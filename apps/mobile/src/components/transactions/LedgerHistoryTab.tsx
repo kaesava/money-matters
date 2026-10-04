@@ -1,10 +1,9 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, FlatList, TouchableOpacity, RefreshControl } from 'react-native';
 import { Feather } from '@expo/vector-icons';
-import { SearchInput, MobilePaginationBar, SkeletonCard, RecordFilterBadge } from '@money-matters/ui/mobile';
+import { SearchInput, MobilePaginationBar, SkeletonCard, RecordFilterBadge, MobileFilterSheet } from '@money-matters/ui/mobile';
 import { t } from '@money-matters/i18n';
 import { TransactionRow } from '../TransactionRow';
-import { HistoryFilterSheet } from './HistoryFilterSheet';
 import { TransactionDetailSheet, TransactionDetailRecord } from './TransactionDetailSheet';
 
 export interface LedgerTxItem {
@@ -192,30 +191,60 @@ export function LedgerHistoryTab({
       />
 
       {/* Filter Sheet */}
-      <HistoryFilterSheet
+      <MobileFilterSheet
         visible={filterSheetVisible}
         onClose={() => setFilterSheetVisible(false)}
-        flowFilter={flowFilter}
-        onSelectFlow={(f) => {
-          onFlowFilterChange(f);
-          onPageChange(1);
-        }}
-        selectedPoolId={selectedPoolId}
-        onSelectPool={(id) => {
-          onPoolChange(id);
-          onPageChange(1);
-        }}
-        selectedBankAccountId={selectedBankAccountId}
-        onSelectBank={(id) => {
-          onBankChange(id);
-          onPageChange(1);
-        }}
+        activeCount={activeCount}
         sortField={sortField}
-        sortDir={sortDir}
-        onSortFieldChange={onSortFieldChange}
-        onSortDirChange={onSortDirChange}
-        pools={pools}
-        bankAccounts={bankAccounts}
+        sortOrder={sortDir}
+        sortOptions={[
+          { id: 'recordedAt', label: t('common.date') || 'Date' },
+          { id: 'amount', label: t('common.amount') || 'Amount' },
+        ]}
+        onSortFieldChange={(f) => onSortFieldChange(f as any)}
+        onSortOrderChange={onSortDirChange}
+        sections={[
+          {
+            id: 'flow',
+            title: t('common.type') || 'Flow Type',
+            selectedValue: flowFilter,
+            onSelect: (f: 'ALL' | 'DEBIT' | 'CREDIT') => {
+              onFlowFilterChange(f);
+              onPageChange(1);
+            },
+            options: [
+              { id: 'ALL', label: t('common.all') || 'All Flows' },
+              { id: 'DEBIT', label: t('transactions.expenses') || 'Expenses (Out)' },
+              { id: 'CREDIT', label: t('transactions.income') || 'Income (In)' },
+            ],
+          },
+          {
+            id: 'pool',
+            title: t('categories.title') || 'Spending Pool',
+            selectedValue: selectedPoolId,
+            onSelect: (id: string) => {
+              onPoolChange(id);
+              onPageChange(1);
+            },
+            options: [
+              { id: 'ALL', label: t('common.all') || 'All Pools' },
+              ...pools.map((p) => ({ id: p.id, label: p.name })),
+            ],
+          },
+          {
+            id: 'bank',
+            title: t('bankAccounts.title') || 'Bank Account',
+            selectedValue: selectedBankAccountId,
+            onSelect: (id: string) => {
+              onBankChange(id);
+              onPageChange(1);
+            },
+            options: [
+              { id: 'ALL', label: t('common.all') || 'All Accounts' },
+              ...bankAccounts.map((b) => ({ id: b.id, label: b.name })),
+            ],
+          },
+        ]}
         onReset={() => {
           onFlowFilterChange('ALL');
           onPoolChange('ALL');
@@ -224,7 +253,6 @@ export function LedgerHistoryTab({
           onSortDirChange('desc');
           onPageChange(1);
         }}
-        activeCount={activeCount}
       />
 
       {/* Details Sheet */}

@@ -1,11 +1,10 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, FlatList, TouchableOpacity, RefreshControl } from 'react-native';
 import { Feather } from '@expo/vector-icons';
-import { SearchInput, MobilePaginationBar, SkeletonCard } from '@money-matters/ui/mobile';
+import { SearchInput, MobilePaginationBar, SkeletonCard, MobileFilterSheet } from '@money-matters/ui/mobile';
 import { t } from '@money-matters/i18n';
 import { formatAUD, formatDate } from '../../lib/format';
 import { MobilePaydayAllocationDetailModal, MobilePaydayAllocationRecord } from '../paychecks/MobilePaydayAllocationDetailModal';
-import { IncomeSplitsFilterSheet } from './IncomeSplitsFilterSheet';
 
 interface IncomeSplitsTabProps {
   plans: MobilePaydayAllocationRecord[];
@@ -157,26 +156,42 @@ export function IncomeSplitsTab({
       />
 
       {/* Filter Sheet */}
-      <IncomeSplitsFilterSheet
+      <MobileFilterSheet
         visible={filterSheetVisible}
         onClose={() => setFilterSheetVisible(false)}
-        selectedBankId={selectedBankId}
-        onSelectBank={(id) => {
-          onBankChange(id);
-          onPageChange(1);
-        }}
+        activeCount={activeCount}
         sortField={sortField}
-        sortDir={sortDir}
-        onSortFieldChange={onSortFieldChange}
-        onSortDirChange={onSortDirChange}
-        bankAccounts={bankAccounts}
+        sortOrder={sortDir}
+        sortOptions={[
+          { id: 'expectedDate', label: t('common.date') || 'Date' },
+          { id: 'amount', label: t('common.amount') || 'Amount' },
+          { id: 'incomeName', label: t('common.name') || 'Income Source' },
+          { id: 'receivingAccount', label: t('bankAccounts.title') || 'Bank Account' },
+          { id: 'createdAt', label: t('common.created') || 'Created At' },
+        ]}
+        onSortFieldChange={(f) => onSortFieldChange(f as any)}
+        onSortOrderChange={onSortDirChange}
+        sections={[
+          {
+            id: 'bank',
+            title: t('bankAccounts.title') || 'Receiving Account',
+            selectedValue: selectedBankId,
+            onSelect: (id: string) => {
+              onBankChange(id);
+              onPageChange(1);
+            },
+            options: [
+              { id: 'ALL', label: t('common.all') || 'All Accounts' },
+              ...bankAccounts.map((b) => ({ id: b.id, label: b.name })),
+            ],
+          },
+        ]}
         onReset={() => {
           onBankChange('ALL');
           onSortFieldChange('expectedDate');
           onSortDirChange('desc');
           onPageChange(1);
         }}
-        activeCount={activeCount}
       />
 
       {/* Plan Details Modal */}

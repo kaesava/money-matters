@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import {
   View,
   Text,
@@ -6,15 +6,14 @@ import {
   TouchableOpacity,
   ScrollView,
   StyleSheet,
-  ActivityIndicator,
 } from 'react-native';
-import { useRouter, useLocalSearchParams, type Href } from 'expo-router';
+import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { t } from '@money-matters/i18n';
-import { DESIGN_TOKENS, showMobileConfirm } from '@money-matters/ui/mobile';
+import { DESIGN_TOKENS, showMobileConfirm, InfoTooltip } from '@money-matters/ui/mobile';
 import { trpc } from '../../lib/trpc';
-
-import { InfoTooltip } from '../../components/InfoTooltip';
+import { useSetupWizard } from '../../context/SetupWizardContext';
+import { IncomeItem } from '@money-matters/types';
 
 const FREQUENCIES = ['WEEKLY', 'FORTNIGHTLY', 'MONTHLY'] as const;
 type Frequency = (typeof FREQUENCIES)[number];
@@ -28,11 +27,7 @@ const FREQ_LABELS: Record<Frequency, string> = {
 export default function SetupIncomeScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const params = useLocalSearchParams<{ mode?: string }>();
-
-  const [name, setName] = useState(t('setup.income.defaultName'));
-  const [amount, setAmount] = useState('');
-  const [frequency, setFrequency] = useState<Frequency>('FORTNIGHTLY');
+  const { incomes, setIncomes } = useSetupWizard();
 
   const updatePref = trpc.updateUserPreferences.useMutation();
 
@@ -52,22 +47,27 @@ export default function SetupIncomeScreen() {
     });
   };
 
-  const handleNext = () => {
-    const numericAmount = parseFloat(amount);
-    if (!name.trim() || isNaN(numericAmount) || numericAmount < 0) return;
-
-    router.push({
-      pathname: '/(setup)/accounts',
-      params: {
-        incomeName: name.trim(),
-        incomeAmount: numericAmount.toFixed(2),
-        incomeFrequency: frequency,
-        mode: params.mode,
-      },
-    } as Href);
+  const handleAddIncome = () => {
+    const id = `inc-${Date.now()}`;
+    setIncomes((prev) => [
+      ...prev,
+      { id, name: `Income ${prev.length + 1}`, amount: 2000, frequency: 'FORTNIGHTLY', type: 'SALARY' },
+    ]);
   };
 
-  const isFormValid = name.trim() !== '' && amount.trim() !== '' && !isNaN(parseFloat(amount)) && parseFloat(amount) >= 0;
+  const handleRemoveIncome = (id: string) => {
+    setIncomes((prev) => prev.filter((i) => i.id !== id));
+  };
+
+  const handleUpdateIncome = <K extends keyof IncomeItem>(id: string, field: K, val: IncomeItem[K]) => {
+    setIncomes((prev) => prev.map((inc) => (inc.id === id ? { ...inc, [field]: val } : inc)));
+  };
+
+  const handleNext = () => {
+    router.push('/(setup)/accounts');
+  };
+
+  const isFormValid = incomes.length > 0 && incomes.every((i) => i.name.trim() !== '' && i.amount > 0);
 
   return (
     <ScrollView
@@ -85,6 +85,8 @@ export default function SetupIncomeScreen() {
           <View style={[styles.progressDot, styles.progressDotActive]} />
           <View style={styles.progressDot} />
           <View style={styles.progressDot} />
+          <View style={styles.progressDot} />
+          <View style={styles.progressDot} />
         </View>
         <TouchableOpacity
           onPress={handleSkip}
@@ -94,50 +96,68 @@ export default function SetupIncomeScreen() {
         </TouchableOpacity>
       </View>
 
-      <Text style={styles.stepLabel}>{t('setup.stepOf', { step: 1, total: 3 })}</Text>
-      <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 16 }}>
-        <Text style={styles.title}>{t('setup.income.titleSimple')}</Text>
+      <Text style={styles.stepLabel}>{t('setup.stepOf', { step: 1, total: 5 })}</Text>
+      <View style={styles.headerRow}>
+        <Text style={styles.title}>{t('setup.income.sectionTitle')}</Text>
         <InfoTooltip
           title={t('setup.income.takeHomePayTooltipTitle')}
           content={t('setup.income.takeHomePayTooltipContent')}
         />
       </View>
 
-      <View style={styles.card}>
-        <Text style={styles.label}>{t('setup.income.nameLabel')}</Text>
-        <TextInput
-          style={styles.input}
-          placeholder={t('setup.income.namePlaceholder')}
-          placeholderTextColor={DESIGN_TOKENS.colors.textMuted}
-          value={name}
-          onChangeText={setName}
-        />
+      {incomes.map((inc, index) => (
+        <View key={inc.id} style={styles.card}>
+          <View style={styles.cardHeader}>
+            <Text style={styles.itemTitle}>{t('setup.income.incomeItemNumber', { number: index + 1 })}</Text>
+            {incomes.length > 1 && (
+              <TouchableOpacity onPress={() => handleRemoveIncome(inc.id)}>
+                <Text style={styles.removeText}>{t('common.remove')}</Text>
+              </TouchableOpacity>
+            )}
+          </View>
 
-        <Text style={[styles.label, styles.labelGap]}>{t('setup.income.amountLabel')}</Text>
-        <TextInput
-          style={styles.input}
-          placeholder={t('setup.income.amountPlaceholder')}
-          placeholderTextColor={DESIGN_TOKENS.colors.textMuted}
-          value={amount}
-          onChangeText={setAmount}
-          keyboardType="decimal-pad"
-        />
+          <Text style={styles.label}>{t('setup.income.nameLabel')}</Text>
+          <TextInput
+            style={styles.input}
+            placeholder={t('setup.income.namePlaceholder')}
+            placeholderTextColor={DESIGN_TOKENS.colors.textMuted}
+            value={inc.name}
+            onChangeText={(txt) => handleUpdateIncome(inc.id, 'name', txt)}
+          />
 
-        <Text style={[styles.label, styles.labelGap]}>{t('setup.income.scheduleLabel')}</Text>
-        <View style={styles.chipRow}>
-          {FREQUENCIES.map((fr) => (
-            <TouchableOpacity
-              key={fr}
-              style={[styles.chip, frequency === fr && styles.chipActive]}
-              onPress={() => setFrequency(fr)}
-            >
-              <Text style={[styles.chipText, frequency === fr && styles.chipTextActive]}>
-                {t(FREQ_LABELS[fr])}
-              </Text>
-            </TouchableOpacity>
-          ))}
+          <Text style={[styles.label, styles.labelGap]}>{t('setup.income.amountLabel')}</Text>
+          <TextInput
+            style={styles.input}
+            placeholder={t('setup.income.amountPlaceholder')}
+            placeholderTextColor={DESIGN_TOKENS.colors.textMuted}
+            value={inc.amount ? String(inc.amount) : ''}
+            onChangeText={(txt) => handleUpdateIncome(inc.id, 'amount', parseFloat(txt) || 0)}
+            keyboardType="decimal-pad"
+          />
+
+          <Text style={[styles.label, styles.labelGap]}>{t('setup.income.scheduleLabel')}</Text>
+          <View style={styles.chipRow}>
+            {FREQUENCIES.map((fr) => (
+              <TouchableOpacity
+                key={fr}
+                style={[styles.chip, inc.frequency === fr && styles.chipActive]}
+                onPress={() => handleUpdateIncome(inc.id, 'frequency', fr)}
+              >
+                <Text style={[styles.chipText, inc.frequency === fr && styles.chipTextActive]}>
+                  {t(FREQ_LABELS[fr])}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
         </View>
-      </View>
+      ))}
+
+      <TouchableOpacity
+        style={styles.addBtn}
+        onPress={handleAddIncome}
+      >
+        <Text style={styles.addBtnText}>+ {t('setup.income.addIncomeSchedule')}</Text>
+      </TouchableOpacity>
 
       <Text style={styles.skipHint}>{t('setup.income.progressiveHint')}</Text>
 
@@ -157,68 +177,71 @@ const styles = StyleSheet.create({
   container: {
     flexGrow: 1,
     paddingHorizontal: DESIGN_TOKENS.spacing.containerMargin,
-    paddingTop: 56,
-    paddingBottom: 40,
     backgroundColor: DESIGN_TOKENS.colors.background,
   },
-  topNavRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 16,
-  },
+  topNavRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 },
   progressRow: { flexDirection: 'row', gap: 6 },
-  skipBtn: {
-    paddingVertical: 4,
-    paddingHorizontal: 8,
-  },
-  skipBtnText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: DESIGN_TOKENS.colors.textMuted,
-  },
-  progressDot: {
-    width: 48, height: 4, borderRadius: 2,
-    backgroundColor: '#E5E7EB',
-  },
+  skipBtnText: { fontSize: 12, fontWeight: '600', color: DESIGN_TOKENS.colors.textMuted },
+  progressDot: { width: 24, height: 4, borderRadius: 2, backgroundColor: '#E5E7EB' },
   progressDotActive: { backgroundColor: DESIGN_TOKENS.colors.accent },
   stepLabel: { fontSize: 12, color: DESIGN_TOKENS.colors.textMuted, marginBottom: 4 },
-  title: { fontSize: 22, fontWeight: '700', color: DESIGN_TOKENS.colors.primary, marginBottom: 6 },
-  subtitle: { fontSize: 13, color: DESIGN_TOKENS.colors.textMuted, lineHeight: 18, marginBottom: 20 },
+  headerRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 16, gap: 6 },
+  title: { fontSize: 22, fontWeight: '700', color: DESIGN_TOKENS.colors.primary },
   card: {
     backgroundColor: DESIGN_TOKENS.colors.surface,
     borderRadius: DESIGN_TOKENS.radius.lg,
     padding: DESIGN_TOKENS.spacing.cardPadding,
     marginBottom: 16,
-    shadowColor: '#000', shadowOpacity: 0.04, shadowOffset: { width: 0, height: 2 }, shadowRadius: 8,
+    shadowColor: '#000',
+    shadowOpacity: 0.04,
+    shadowOffset: { width: 0, height: 2 },
+    shadowRadius: 8,
   },
+  cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
+  itemTitle: { fontSize: 13, fontWeight: '700', color: DESIGN_TOKENS.colors.textPrimary },
+  removeText: { fontSize: 12, fontWeight: '600', color: '#EF4444' },
   label: { fontSize: 13, fontWeight: '600', color: DESIGN_TOKENS.colors.textPrimary, marginBottom: 6 },
   labelGap: { marginTop: 14 },
   input: {
     backgroundColor: DESIGN_TOKENS.colors.surfaceVariant,
-    borderWidth: 1, borderColor: '#E5E7EB',
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
     borderRadius: DESIGN_TOKENS.radius.md,
-    paddingHorizontal: 14, paddingVertical: 12,
-    fontSize: 15, color: DESIGN_TOKENS.colors.textPrimary,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    fontSize: 15,
+    color: DESIGN_TOKENS.colors.textPrimary,
   },
   chipRow: { flexDirection: 'row', gap: 8, flexWrap: 'wrap' },
   chip: {
-    paddingHorizontal: 14, paddingVertical: 8,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
     borderRadius: DESIGN_TOKENS.radius.full,
-    borderWidth: 1, borderColor: '#E5E7EB',
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
     backgroundColor: DESIGN_TOKENS.colors.surfaceVariant,
   },
-  chipActive: {
-    backgroundColor: DESIGN_TOKENS.colors.accent,
-    borderColor: DESIGN_TOKENS.colors.accent,
-  },
+  chipActive: { backgroundColor: DESIGN_TOKENS.colors.accent, borderColor: DESIGN_TOKENS.colors.accent },
   chipText: { fontSize: 13, color: DESIGN_TOKENS.colors.textMuted },
   chipTextActive: { color: DESIGN_TOKENS.colors.onAccent, fontWeight: '600' },
+  addBtn: {
+    borderWidth: 1,
+    borderColor: DESIGN_TOKENS.colors.accent,
+    borderStyle: 'dashed',
+    borderRadius: DESIGN_TOKENS.radius.md,
+    paddingVertical: 12,
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  addBtnText: { fontSize: 14, fontWeight: '700', color: DESIGN_TOKENS.colors.accent },
   skipHint: { fontSize: 12, color: DESIGN_TOKENS.colors.textMuted, textAlign: 'center', marginBottom: 20 },
   nextBtn: {
     backgroundColor: DESIGN_TOKENS.colors.accent,
-    paddingVertical: 15, borderRadius: DESIGN_TOKENS.radius.md, alignItems: 'center',
+    paddingVertical: 15,
+    borderRadius: DESIGN_TOKENS.radius.md,
+    alignItems: 'center',
   },
   nextBtnDisabled: { opacity: 0.4 },
   nextBtnText: { color: DESIGN_TOKENS.colors.onAccent, fontWeight: '700', fontSize: 16 },
 });
+

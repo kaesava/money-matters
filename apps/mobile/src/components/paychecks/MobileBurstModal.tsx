@@ -5,40 +5,20 @@ import {
   TouchableOpacity,
   ScrollView,
   StyleSheet,
-  ActivityIndicator,
 } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import {
   DESIGN_TOKENS,
   MobileModalDialog,
-  AmountInput,
-  MobileDatePickerField,
   showMobileConfirm,
 } from '@money-matters/ui/mobile';
 import { t } from '@money-matters/i18n';
-import { formatAUD, formatDate, formatIsoDate } from '../../lib/format';
+import { formatAUD, formatIsoDate } from '../../lib/format';
+import { BurstSourceItem, BurstEventItem, parseFrequencyLabel } from './burst-types';
+import { BurstSourceHeaderCard } from './BurstSourceHeaderCard';
+import { BurstEventCard } from './BurstEventCard';
 
-export interface BurstSourceItem {
-  id: string;
-  name: string;
-  amount: string | number;
-  rrule?: string | null;
-  startDate?: string | null;
-  categoryName?: string;
-  accountName?: string;
-}
-
-export interface BurstEventItem {
-  id: string;
-  expectedDate: string;
-  expectedAmount: string;
-  actualAmount?: string | null;
-  status: string;
-  incomeSourceId?: string | null;
-  expenseSourceId?: string | null;
-  name?: string | null;
-  note?: string | null;
-}
+export type { BurstSourceItem, BurstEventItem };
 
 export interface MobileBurstModalProps {
   visible: boolean;
@@ -51,16 +31,6 @@ export interface MobileBurstModalProps {
   onMarkPaid: (eventId: string, amount: string, date: string) => Promise<void>;
   onDeleteEvent: (eventId: string) => Promise<void>;
   onUpdateEvent: (eventId: string, amount: string, date: string) => Promise<void>;
-}
-
-function parseFrequencyLabel(rrule?: string | null): string {
-  if (!rrule) return t('forms.oneOff');
-  const r = rrule.toUpperCase();
-  if (r.includes('FREQ=WEEKLY') && r.includes('INTERVAL=2')) return t('forms.fortnightly') || 'Fortnightly';
-  if (r.includes('FREQ=WEEKLY')) return t('forms.weekly') || 'Weekly';
-  if (r.includes('FREQ=MONTHLY')) return t('forms.monthly') || 'Monthly';
-  if (r.includes('FREQ=YEARLY') || r.includes('ANNUALLY')) return t('forms.yearly') || 'Annually';
-  return t('forms.recurring');
 }
 
 export function MobileBurstModal({
@@ -162,52 +132,16 @@ export function MobileBurstModal({
       subtitle={`${freqLabel} • ${isIncome ? '+' : '−'}${formatAUD(parseFloat(String(source.amount)))}`}
     >
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.container}>
-        {/* Source Meta Header Card */}
-        <View style={styles.sourceMetaCard}>
-          <View style={styles.metaRow}>
-            <View style={styles.badgeWrap}>
-              <Text style={[styles.freqBadgeText, isIncome ? styles.incomeBadge : styles.expenseBadge]}>
-                {freqLabel}
-              </Text>
-            </View>
-            <Text style={[styles.amountText, isIncome ? styles.incomeText : styles.expenseText]}>
-              {isIncome ? '+' : '−'}{formatAUD(parseFloat(String(source.amount)))}
-            </Text>
-          </View>
+        <BurstSourceHeaderCard
+          source={source}
+          freqLabel={freqLabel}
+          isIncome={isIncome}
+          onEditSchedule={() => {
+            onClose();
+            onEditSchedule(source);
+          }}
+        />
 
-          <View style={styles.detailsRow}>
-            {source.startDate && (
-              <Text style={styles.metaSubtext}>
-                {t('common.date')}: {formatDate(source.startDate)}
-              </Text>
-            )}
-            {isIncome && source.accountName && (
-              <Text style={styles.metaSubtext}>
-                🏦 {source.accountName}
-              </Text>
-            )}
-            {!isIncome && source.categoryName && (
-              <Text style={styles.metaSubtext}>
-                📁 {source.categoryName}
-              </Text>
-            )}
-          </View>
-
-          <TouchableOpacity
-            style={styles.editScheduleBtn}
-            onPress={() => {
-              onClose();
-              onEditSchedule(source);
-            }}
-          >
-            <Feather name="edit-2" size={13} color="#2563eb" />
-            <Text style={styles.editScheduleText}>
-              {isIncome ? t('incomeAndBills.incomeSchedule') : t('incomeAndBills.billSchedule')} {t('common.edit')}
-            </Text>
-          </TouchableOpacity>
-        </View>
-
-        {/* Occurrences List */}
         <View style={styles.occurrencesSection}>
           <Text style={styles.sectionTitle}>
             {isIncome ? t('matrix.incomeAllocationGridTitle') : t('incomeBillsTabs.upcomingTimeline')} ({sourceEvents.length})
@@ -219,135 +153,36 @@ export function MobileBurstModal({
             </View>
           ) : (
             <View style={styles.eventsList}>
-              {sourceEvents.map((evt) => {
-                const isPaid = evt.status === 'CONFIRMED';
-                const isEditing = editingEventId === evt.id;
-                const isFuture = evt.expectedDate > todayStr;
-                const amtVal = parseFloat(evt.actualAmount || evt.expectedAmount || '0');
-
-                return (
-                  <View
-                    key={evt.id}
-                    style={[styles.eventItemCard, isPaid && styles.paidEventItemCard]}
-                  >
-                    <View style={styles.eventItemHeader}>
-                      <View style={styles.dateCol}>
-                        <View style={styles.statusIndicatorRow}>
-                          <Text style={styles.statusDot}>{isPaid ? '✓' : '📅'}</Text>
-                          <Text style={styles.eventDateText}>
-                            {formatDate(evt.expectedDate)}
-                          </Text>
-                          {isPaid && (
-                            <View style={styles.paidBadge}>
-                              <Text style={styles.paidBadgeText}>
-                                {t('expenseStatus.confirmedLabel')}
-                              </Text>
-                            </View>
-                          )}
-                        </View>
-                      </View>
-
-                      {!isEditing && (
-                        <Text style={[styles.eventAmountText, isIncome ? styles.incomeText : styles.expenseText]}>
-                          {isIncome ? '+' : '−'}{formatAUD(amtVal)}
-                        </Text>
-                      )}
-                    </View>
-
-                    {isEditing ? (
-                      <View style={styles.editFormBox}>
-                        <AmountInput
-                          label={t('common.amount')}
-                          required
-                          value={editAmount}
-                          onChangeText={setEditAmount}
-                        />
-                        <MobileDatePickerField
-                          label={t('common.date')}
-                          required
-                          value={editDate}
-                          onChange={setEditDate}
-                        />
-
-                        <View style={styles.editActionRow}>
-                          <TouchableOpacity
-                            style={styles.saveEditBtn}
-                            onPress={() => handleSaveEdit(evt.id)}
-                            disabled={submitting}
-                          >
-                            <Text style={styles.saveEditText}>{t('common.save')}</Text>
-                          </TouchableOpacity>
-
-                          {!isFuture && (
-                            <TouchableOpacity
-                              style={styles.markPaidConfirmBtn}
-                              onPress={() => handleActionMarkPaid(evt)}
-                              disabled={submitting}
-                            >
-                              <Text style={styles.markPaidConfirmText}>
-                                {isIncome ? t('common.runSplit') : t('common.markSpent')}
-                              </Text>
-                            </TouchableOpacity>
-                          )}
-
-                          <TouchableOpacity
-                            style={styles.cancelEditBtn}
-                            onPress={cancelEdit}
-                            disabled={submitting}
-                          >
-                            <Text style={styles.cancelEditText}>{t('common.cancel')}</Text>
-                          </TouchableOpacity>
-                        </View>
-                      </View>
-                    ) : (
-                      !isPaid && (
-                        <View style={styles.itemActionRow}>
-                          <TouchableOpacity
-                            style={styles.actionBtnPrimary}
-                            onPress={() => handleActionMarkPaid(evt)}
-                            disabled={submitting}
-                          >
-                            <Feather name="check" size={12} color="#FFFFFF" />
-                            <Text style={styles.actionBtnPrimaryText}>
-                              {isIncome ? t('common.runSplit') : t('common.markSpent')}
-                            </Text>
-                          </TouchableOpacity>
-
-                          <TouchableOpacity
-                            style={styles.actionBtnOutline}
-                            onPress={() => startEdit(evt)}
-                            disabled={submitting}
-                          >
-                            <Feather name="edit-2" size={12} color="#475569" />
-                            <Text style={styles.actionBtnOutlineText}>{t('common.edit')}</Text>
-                          </TouchableOpacity>
-
-                          <TouchableOpacity
-                            style={styles.actionBtnDanger}
-                            onPress={() => handleDeleteOccurrence(evt.id)}
-                            disabled={submitting}
-                          >
-                            <Feather name="trash-2" size={12} color="#EF4444" />
-                            <Text style={styles.actionBtnDangerText}>{t('common.delete')}</Text>
-                          </TouchableOpacity>
-                        </View>
-                      )
-                    )}
-                  </View>
-                );
-              })}
+              {sourceEvents.map((evt) => (
+                <BurstEventCard
+                  key={evt.id}
+                  evt={evt}
+                  isIncome={isIncome}
+                  isEditing={editingEventId === evt.id}
+                  isFuture={evt.expectedDate > todayStr}
+                  editAmount={editAmount}
+                  editDate={editDate}
+                  submitting={submitting}
+                  onStartEdit={() => startEdit(evt)}
+                  onCancelEdit={cancelEdit}
+                  onEditAmountChange={setEditAmount}
+                  onEditDateChange={setEditDate}
+                  onSaveEdit={() => handleSaveEdit(evt.id)}
+                  onMarkPaid={() => handleActionMarkPaid(evt)}
+                  onDeleteOccurrence={() => handleDeleteOccurrence(evt.id)}
+                />
+              ))}
             </View>
           )}
         </View>
 
-        {/* Inconspicuous Archive Schedule Link at bottom-left */}
         <View style={styles.footerRow}>
           <TouchableOpacity
             style={styles.archiveLink}
             onPress={handleArchive}
             disabled={submitting}
           >
-            <Feather name="archive" size={13} color="#94A3B8" />
+            <Feather name="archive" size={13} color={DESIGN_TOKENS.colors.slate[400]} />
             <Text style={styles.archiveLinkText}>
               {t('common.archive')} {isIncome ? t('incomeAndBills.incomeSchedule') : t('incomeAndBills.billSchedule')}
             </Text>
@@ -358,71 +193,10 @@ export function MobileBurstModal({
   );
 }
 
-const D = DESIGN_TOKENS;
 const styles = StyleSheet.create({
   container: {
     gap: 14,
     paddingBottom: 10,
-  },
-  sourceMetaCard: {
-    backgroundColor: '#F8FAFC',
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    padding: 14,
-    gap: 10,
-  },
-  metaRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  badgeWrap: {
-    backgroundColor: '#EFF6FF',
-    borderRadius: 8,
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-  },
-  freqBadgeText: {
-    fontSize: 11,
-    fontWeight: '700',
-  },
-  incomeBadge: { color: '#047857' },
-  expenseBadge: { color: '#2563eb' },
-  amountText: {
-    fontSize: 17,
-    fontWeight: '900',
-    fontFamily: 'monospace',
-  },
-  incomeText: { color: '#047857' },
-  expenseText: { color: '#DC2626' },
-  detailsRow: {
-    flexDirection: 'row',
-    gap: 12,
-    flexWrap: 'wrap',
-  },
-  metaSubtext: {
-    fontSize: 11,
-    color: '#64748B',
-    fontWeight: '500',
-  },
-  editScheduleBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    alignSelf: 'flex-start',
-    backgroundColor: '#FFFFFF',
-    borderWidth: 1,
-    borderColor: '#BFDBFE',
-    borderRadius: 8,
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    marginTop: 4,
-  },
-  editScheduleText: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: '#2563eb',
   },
   occurrencesSection: {
     gap: 10,
@@ -430,171 +204,27 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 13,
     fontWeight: '800',
-    color: '#1B2B4B',
+    color: DESIGN_TOKENS.colors.primary,
   },
   emptyBox: {
     padding: 24,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: DESIGN_TOKENS.colors.slate[50],
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: DESIGN_TOKENS.colors.slate[200],
     alignItems: 'center',
   },
   emptyText: {
     fontSize: 12,
-    color: '#94A3B8',
+    color: DESIGN_TOKENS.colors.slate[400],
     textAlign: 'center',
   },
   eventsList: {
     gap: 8,
   },
-  eventItemCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    padding: 12,
-    gap: 8,
-  },
-  paidEventItemCard: {
-    backgroundColor: '#F0FDF4',
-    borderColor: '#BBF7D0',
-  },
-  eventItemHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  dateCol: {
-    flex: 1,
-  },
-  statusIndicatorRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  statusDot: {
-    fontSize: 12,
-  },
-  eventDateText: {
-    fontSize: 12,
-    fontWeight: '700',
-    fontFamily: 'monospace',
-    color: '#1B2B4B',
-  },
-  paidBadge: {
-    backgroundColor: '#DCFCE7',
-    paddingHorizontal: 6,
-    paddingVertical: 1,
-    borderRadius: 4,
-  },
-  paidBadgeText: {
-    fontSize: 9,
-    fontWeight: '800',
-    color: '#15803D',
-    textTransform: 'uppercase',
-  },
-  eventAmountText: {
-    fontSize: 14,
-    fontWeight: '800',
-    fontFamily: 'monospace',
-  },
-  itemActionRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    marginTop: 4,
-  },
-  actionBtnPrimary: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    backgroundColor: '#047857',
-    paddingHorizontal: 8,
-    paddingVertical: 5,
-    borderRadius: 8,
-  },
-  actionBtnPrimaryText: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: '#FFFFFF',
-  },
-  actionBtnOutline: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    backgroundColor: '#F1F5F9',
-    paddingHorizontal: 8,
-    paddingVertical: 5,
-    borderRadius: 8,
-  },
-  actionBtnOutlineText: {
-    fontSize: 11,
-    fontWeight: '600',
-    color: '#475569',
-  },
-  actionBtnDanger: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    backgroundColor: '#FEF2F2',
-    paddingHorizontal: 8,
-    paddingVertical: 5,
-    borderRadius: 8,
-  },
-  actionBtnDangerText: {
-    fontSize: 11,
-    fontWeight: '600',
-    color: '#DC2626',
-  },
-  editFormBox: {
-    gap: 8,
-    paddingTop: 6,
-  },
-  editActionRow: {
-    flexDirection: 'row',
-    gap: 8,
-    marginTop: 4,
-  },
-  saveEditBtn: {
-    flex: 1,
-    backgroundColor: '#2563eb',
-    paddingVertical: 8,
-    borderRadius: 8,
-    alignItems: 'center',
-  },
-  saveEditText: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: '#FFFFFF',
-  },
-  markPaidConfirmBtn: {
-    flex: 1,
-    backgroundColor: '#047857',
-    paddingVertical: 8,
-    borderRadius: 8,
-    alignItems: 'center',
-  },
-  markPaidConfirmText: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: '#FFFFFF',
-  },
-  cancelEditBtn: {
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    backgroundColor: '#F1F5F9',
-    borderRadius: 8,
-    alignItems: 'center',
-  },
-  cancelEditText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#64748B',
-  },
   footerRow: {
     borderTopWidth: 1,
-    borderTopColor: '#F1F5F9',
+    borderTopColor: DESIGN_TOKENS.colors.slate[100],
     paddingTop: 10,
     marginTop: 6,
   },
@@ -608,6 +238,6 @@ const styles = StyleSheet.create({
   archiveLinkText: {
     fontSize: 12,
     fontWeight: '500',
-    color: '#94A3B8',
+    color: DESIGN_TOKENS.colors.slate[400],
   },
 });

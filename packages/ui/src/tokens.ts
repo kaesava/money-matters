@@ -14,23 +14,52 @@ export const DESIGN_TOKENS = {
     accent: "#2563eb",      // Serene Blue (standardized)
     onAccent: "#FFFFFF",
     
-    // Surface Colors
-    background: "#F7F8FA",  // Soft off-white
-    surface: "#FFFFFF",     // White for containers/cards
+    // Slate Palette
+    slate: {
+      50: "#F8FAFC",
+      100: "#F1F5F9",
+      200: "#E2E8F0",
+      300: "#CBD5E1",
+      400: "#94A3B8",
+      500: "#64748B",
+      600: "#475569",
+      700: "#334155",
+      800: "#1E293B",
+      900: "#0F172A",
+    },
+
+    // Status Pairs
+    success: "#22C55E",
+    successLight: "#ECFDF5",
+    successBorder: "#A7F3D0",
+    successDark: "#047857",
+
+    warning: "#F59E0B",
+    warningLight: "#FFFBEB",
+    warningBorder: "#FDE68A",
+    warningDark: "#92400E",
+
+    critical: "#EF4444",
+    criticalLight: "#FEF2F2",
+    criticalBorder: "#FECDD3",
+    criticalDark: "#B91C1C",
+    burnRed: "#ba1a1a",
+
+    accentLight: "#EFF6FF",
+    accentBorder: "#BFDBFE",
+    accentDark: "#1E40AF",
+
+    // Surfaces & Neutral Roles
+    background: "#F7F8FA",
+    surface: "#FFFFFF",
     surfaceVariant: "#F3F4F6",
-
-    // Border Colors
-    border: "#E5E7EB",      // Light Grey
-    
-    // Status (Traffic Light Colors)
-    success: "#22C55E",     // Green (On Track / Income)
-    warning: "#F59E0B",     // Amber (At Risk)
-    critical: "#EF4444",    // Red (Underfunded / Expense)
-    burnRed: "#ba1a1a",     // Deep Burn Red
-
-    // Neutral Text Colors
+    cardBg: "#FFFFFF",
+    cardBorder: "#E2E8F0",
+    border: "#E5E7EB",
+    divider: "#F1F5F9",
     textPrimary: "#1B2B4B",
-    textMuted: "#6B7280"
+    textMuted: "#64748B",
+    subtleText: "#94A3B8",
   },
   radius: {
     sm: 4,

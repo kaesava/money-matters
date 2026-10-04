@@ -1,13 +1,12 @@
 import React, { useState, useMemo } from 'react';
 import { View, StyleSheet, TouchableOpacity, Text } from 'react-native';
 import { Feather } from '@expo/vector-icons';
-import { SearchInput, MobilePaginationBar } from '@money-matters/ui/mobile';
+import { SearchInput, MobilePaginationBar, MobileFilterSheet } from '@money-matters/ui/mobile';
 import { t } from '@money-matters/i18n';
 import {
   PaycheckEventSection,
   PaycheckTransferEvent,
 } from './PaycheckEventSection';
-import { UpcomingTimelineFilterSheet } from './UpcomingTimelineFilterSheet';
 import { useUpcomingEvents } from './useUpcomingEvents';
 
 interface UpcomingEventsTabProps {
@@ -147,30 +146,57 @@ export function UpcomingEventsTab({
         </View>
       )}
 
-      <UpcomingTimelineFilterSheet
+      <MobileFilterSheet
         visible={filterSheetVisible}
         onClose={() => setFilterSheetVisible(false)}
         activeCount={activeUpcomingFilterCount}
-        upcomingSortField={upcomingSortField}
-        upcomingSortOrder={upcomingSortOrder}
-        upcomingScopeFilter={upcomingScopeFilter}
-        upcomingKindFilter={upcomingKindFilter}
+        sortField={upcomingSortField}
+        sortOrder={upcomingSortOrder}
+        sortOptions={[
+          { id: 'date', label: t('common.date') || 'Date' },
+          { id: 'amount', label: t('common.amount') || 'Amount' },
+          { id: 'name', label: t('common.name') || 'Name' },
+        ]}
         onSortFieldChange={(field) => {
-          setUpcomingSortField(field);
+          setUpcomingSortField(field as 'date' | 'amount' | 'name');
           setUpcomingPage(1);
         }}
         onSortOrderChange={(order) => {
           setUpcomingSortOrder(order);
           setUpcomingPage(1);
         }}
-        onScopeChange={(val) => {
-          setUpcomingScopeFilter(val);
-          setUpcomingPage(1);
-        }}
-        onKindChange={(val) => {
-          setUpcomingKindFilter(val);
-          setUpcomingPage(1);
-        }}
+        sections={[
+          {
+            id: 'scope',
+            title: t('dashboard.scope') || 'Time Horizon',
+            selectedValue: upcomingScopeFilter,
+            onSelect: (val) => {
+              setUpcomingScopeFilter(val as any);
+              setUpcomingPage(1);
+            },
+            options: [
+              { id: 'ALL', label: t('common.all') || 'All Events' },
+              { id: 'CURRENT_CYCLE', label: t('incomeBillsTabs.currentCycle') || 'Current Pay Period' },
+              { id: '30_DAYS', label: t('incomeBillsTabs.days30') || 'Next 30 Days' },
+              { id: '60_DAYS', label: t('incomeBillsTabs.days60') || 'Next 60 Days' },
+            ],
+          },
+          {
+            id: 'kind',
+            title: t('common.type') || 'Event Type',
+            selectedValue: upcomingKindFilter,
+            onSelect: (val) => {
+              setUpcomingKindFilter(val as any);
+              setUpcomingPage(1);
+            },
+            options: [
+              { id: 'ALL', label: t('common.all') || 'All Types' },
+              { id: 'INCOME', label: t('common.income') || 'Income' },
+              { id: 'EXPENSE', label: t('common.expenses') || 'Expenses & Bills' },
+              { id: 'TRANSFER', label: t('common.transfers') || 'Transfers' },
+            ],
+          },
+        ]}
         onReset={() => {
           setUpcomingScopeFilter('ALL');
           setUpcomingKindFilter('ALL');

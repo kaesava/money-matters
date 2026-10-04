@@ -4,12 +4,14 @@ import { Feather } from '@expo/vector-icons';
 import {
   SegmentedTabs,
   SearchInput,
+  MobileFilterSheet,
+  FilterSection,
+  FilterSortOption,
 } from '@money-matters/ui/mobile';
 import { t } from '@money-matters/i18n';
 import { SourceToEdit } from '../IncomeExpenseFormModal';
 import { useRecurringSchedules } from './useRecurringSchedules';
 import { RecurringSchedulesCards } from './RecurringSchedulesCards';
-import { SetupSchedulesFilterSheet } from './SetupSchedulesFilterSheet';
 import { IncomeSourceItem } from './IncomeSourceCard';
 import { ExpenseSourceItem } from './ExpenseBillCard';
 
@@ -166,12 +168,21 @@ export function RecurringSchedulesTab({
         onOccurrences={onBurstModal}
       />
 
-      <SetupSchedulesFilterSheet
+      <MobileFilterSheet
         visible={filterSheetVisible}
         onClose={() => setFilterSheetVisible(false)}
-        activeSubSegment={setupSubSegment}
+        activeCount={
+          (setupSubSegment === 'INCOME' && selectedIncomeBankId !== 'ALL' ? 1 : 0) +
+          (setupSubSegment === 'EXPENSE' && selectedExpensePoolId !== 'ALL' ? 1 : 0) +
+          (sortField !== 'name' || sortOrder !== 'asc' ? 1 : 0)
+        }
         sortField={sortField}
         sortOrder={sortOrder}
+        sortOptions={[
+          { id: 'name', label: t('common.name') || 'Name' },
+          { id: 'amount', label: t('common.amount') || 'Amount' },
+          { id: 'date', label: t('common.date') || 'Date' },
+        ]}
         onSortFieldChange={(field) => {
           setSortField(field as 'name' | 'amount' | 'date');
           setIncomePage(1);
@@ -182,18 +193,39 @@ export function RecurringSchedulesTab({
           setIncomePage(1);
           setExpensePage(1);
         }}
-        selectedBankId={selectedIncomeBankId}
-        onBankChange={(bId) => {
-          setSelectedIncomeBankId(bId);
-          setIncomePage(1);
-        }}
-        bankAccounts={bankAccounts.map((b) => ({ id: b.id, name: b.name }))}
-        selectedPoolId={selectedExpensePoolId}
-        onPoolChange={(pId) => {
-          setSelectedExpensePoolId(pId);
-          setExpensePage(1);
-        }}
-        pools={pools.map((p) => ({ id: p.id, name: p.name }))}
+        sections={
+          setupSubSegment === 'INCOME'
+            ? [
+                {
+                  id: 'bank',
+                  title: t('bankAccounts.title') || 'Receiving Bank Account',
+                  selectedValue: selectedIncomeBankId,
+                  onSelect: (bId: string) => {
+                    setSelectedIncomeBankId(bId);
+                    setIncomePage(1);
+                  },
+                  options: [
+                    { id: 'ALL', label: t('common.all') || 'All Accounts' },
+                    ...bankAccounts.map((b) => ({ id: b.id, label: b.name })),
+                  ],
+                },
+              ]
+            : [
+                {
+                  id: 'pool',
+                  title: t('categories.title') || 'Target Pool',
+                  selectedValue: selectedExpensePoolId,
+                  onSelect: (pId: string) => {
+                    setSelectedExpensePoolId(pId);
+                    setExpensePage(1);
+                  },
+                  options: [
+                    { id: 'ALL', label: t('common.all') || 'All Pools' },
+                    ...pools.map((p) => ({ id: p.id, label: p.name })),
+                  ],
+                },
+              ]
+        }
         onReset={() => {
           setSelectedIncomeBankId('ALL');
           setSelectedExpensePoolId('ALL');

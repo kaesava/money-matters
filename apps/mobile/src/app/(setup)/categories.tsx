@@ -1,378 +1,235 @@
 import React, { useState } from 'react';
-import {
-  View, Text, TouchableOpacity, ScrollView, TextInput, StyleSheet, ActivityIndicator
-} from 'react-native';
-import { useRouter, useLocalSearchParams } from 'expo-router';
+import { View, Text, TouchableOpacity, ScrollView, TextInput, StyleSheet, ActivityIndicator } from 'react-native';
+import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { t } from '@money-matters/i18n';
-import { DESIGN_TOKENS, showMobileConfirm, useMobileToast } from '@money-matters/ui/mobile';
+import { DESIGN_TOKENS, showMobileConfirm, InfoTooltip, useMobileToast } from '@money-matters/ui/mobile';
 import { trpc } from '../../lib/trpc';
-import { formatIsoDate } from '../../lib/format';
-import { AUSTRALIAN_FAMILY_PRESETS, SetupPreset } from '@money-matters/types';
+import { useSetupWizard } from '../../context/SetupWizardContext';
+import { SetupCategoryRow } from '../../components/setup/SetupCategoryRow';
 
 export default function SetupCategoriesScreen() {
   const insets = useSafeAreaInsets();
-  const toast = useMobileToast();
   const router = useRouter();
-  const params = useLocalSearchParams<{ incomeName: string; incomeAmount: string; incomeFrequency: string; mode?: string }>();
+  const toast = useMobileToast();
+  const {
+    incomes, goals, activeCategories, activeEveryday, activeRegular,
+    categoryFrequencies, setCategoryFrequencies, setAmountOverrides,
+    setRemovedCategoryNames, setCustomCategories,
+    totalAllocatedMonthly, totalEverydayMonthly, totalRegularMonthly,
+    estimation,
+  } = useSetupWizard();
 
-  // State
-  const [selected, setSelected] = useState<Set<string>>(() => {
-    const defaults = AUSTRALIAN_FAMILY_PRESETS.filter(p => p.defaultSelected).map(p => p.id);
-    return new Set(defaults);
-  });
-  const [targets, setTargets] = useState<Record<string, string>>({});
   const [customName, setCustomName] = useState('');
-  const [customPresets, setCustomPresets] = useState<SetupPreset[]>([]);
-  const [excessBucketId, setExcessBucketId] = useState('emergency');
+  const [customAmount, setCustomAmount] = useState('100');
   const [isSubmitting, setIsSubmitting] = useState(false);
-
-  // Queries & Mutations
-  const bankAccountsQuery = trpc.listBankAccountsWithExpected.useQuery();
-  const existingCategoriesQuery = trpc.listPools.useQuery(undefined, { enabled: params.mode === 'rerun' });
+  const bankAccountsQuery = trpc.getBankAccountsWithMappings.useQuery();
+  const poolsQuery = trpc.listPools.useQuery();
   const saveSetupBudgetMut = trpc.saveSetupBudget.useMutation();
 
-  const allPresets = [...AUSTRALIAN_FAMILY_PRESETS, ...customPresets];
-
-  const toggle = (id: string) => {
-    setSelected((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) {
-        next.delete(id);
-      } else {
-        next.add(id);
-      }
-      if (excessBucketId === id && next.size > 0) {
-        setExcessBucketId(Array.from(next)[0]!);
-      }
-      return next;
-    });
-  };
+  const netSurplus = estimation.totalMonthlyIncomeAud - totalAllocatedMonthly;
 
   const handleAddCustom = () => {
     if (!customName.trim()) return;
-    const id = `custom-${Date.now()}`;
-    const newCat: SetupPreset = {
-      id,
-      name: customName.trim(),
-      type: 'REGULAR',
-      emoji: '📌',
-      suggestedMonthlyAud: 100,
-      defaultSelected: false
-    };
-    setCustomPresets((prev) => [...prev, newCat]);
-    setSelected((prev) => new Set([...prev, id]));
+    const amt = parseFloat(customAmount) || 0;
+    setCustomCategories((prev) => [
+      ...prev,
+      { name: customName.trim(), type: 'REGULAR', monthlyAud: amt, icon: '📌' },
+    ]);
     setCustomName('');
+    setCustomAmount('100');
   };
 
-  const handleCompleteSetup = async () => {
+  const handleFinish = async () => {
     setIsSubmitting(true);
     try {
-      const existingAccounts = bankAccountsQuery.data ?? [];
-      const bankAccountsPayload = existingAccounts.length > 0
-        ? existingAccounts.map((a) => ({
-            id: a.id,
-            name: a.name,
-            bankProvider: a.bankProvider,
-            lastKnownBalance: (parseFloat(a.lastKnownBalance || '0') || 0).toFixed(2),
-            unbudgetedBuffer: (parseFloat(a.unbudgetedBuffer || '0') || 0).toFixed(2),
-            isPrivate: a.isPrivate ?? false,
-          }))
-        : [
-            {
-              name: 'Everyday Spending Card',
-              bankProvider: 'CBA',
-              lastKnownBalance: '1000.00',
-              unbudgetedBuffer: '0.00',
-              isPrivate: false,
-            },
-          ];
+      const existingPools = poolsQuery.data || [];
+      const existingEveryday = existingPools.find((p) => p.poolType === 'EVERYDAY');
+      const existingRegular = existingPools.find((p) => p.poolType === 'REGULAR');
+      const accountsPayload = (bankAccountsQuery.data || []).map((acc) => ({
+        id: acc.id,
+        name: acc.name,
+        bankProvider: acc.bankProvider || 'CBA',
+        lastKnownBalance: String(acc.lastKnownBalance || '0.00'),
+        unbudgetedBuffer: String(acc.unbudgetedBuffer || '0.00'),
+        isPrivate: Boolean(acc.isPrivate),
+      }));
 
-      const defaultBankAccountId = (bankAccountsPayload[0] as { id?: string })?.id;
-      const selectedList = allPresets.filter((p) => selected.has(p.id));
-
-      const poolsPayload = selectedList.map((cat) => {
-        const targetAmt = targets[cat.id] || allPresets.find((p) => p.id === cat.id)!.suggestedMonthlyAud.toString();
-        const monthly = parseFloat(targetAmt) || 100;
-        return {
-          name: cat.name,
-          poolType: cat.type as 'EVERYDAY' | 'REGULAR' | 'GOAL',
-          targetAmount: monthly.toFixed(2),
-          targetDate: cat.type === 'GOAL' ? formatIsoDate(new Date(Date.now() + 365 * 24 * 60 * 60 * 1000)) : undefined,
-          isSurplusTarget: cat.id === excessBucketId,
-          isCommitted: cat.type === 'GOAL',
-          isPrivate: false,
-          bankAccountId: defaultBankAccountId,
-        };
-      });
-
-      const categoriesPayload = selectedList.map((cat) => {
-        const targetAmt = targets[cat.id] || allPresets.find((p) => p.id === cat.id)!.suggestedMonthlyAud.toString();
-        const monthly = parseFloat(targetAmt) || 100;
-        return {
-          name: cat.name,
-          poolType: cat.type as 'EVERYDAY' | 'REGULAR' | 'GOAL',
-          monthlyAmount: monthly.toFixed(2),
-          enteredAmount: monthly.toFixed(2),
-          budgetFrequency: 'MONTHLY' as const,
-          icon: cat.emoji || 'wallet',
-          isEssential: cat.type === 'REGULAR',
-        };
-      });
-
-      const numericAmount = parseFloat(params.incomeAmount || '0') || 2000;
-      const incomesPayload = [
-        {
-          name: params.incomeName || t('setup.income.defaultName'),
-          amount: numericAmount.toFixed(2),
-          frequency: (params.incomeFrequency as 'WEEKLY' | 'FORTNIGHTLY' | 'MONTHLY') || 'FORTNIGHTLY',
-          type: 'SALARY' as const,
-          receivingAccountId: defaultBankAccountId,
-        },
+      const poolsPayload = [
+        { id: existingEveryday?.id, name: existingEveryday?.name || 'Everyday Spending', poolType: 'EVERYDAY' as const, everydayAllowanceAmount: (totalEverydayMonthly || 1000).toFixed(2), isSurplusTarget: false, isCommitted: false, isPrivate: false },
+        { id: existingRegular?.id, name: existingRegular?.name || 'Regular Bills', poolType: 'REGULAR' as const, isSurplusTarget: false, isCommitted: false, isPrivate: false },
+        ...goals.map((g, idx) => ({ id: g.id?.startsWith('g-') ? undefined : g.id, name: g.name, poolType: 'GOAL' as const, targetAmount: (g.targetAmount || g.monthlyAmount * 12 || 1000).toFixed(2), targetDate: g.dueDate || null, isSurplusTarget: idx === 0, isCommitted: true, isPrivate: false })),
       ];
+
+      const categoriesPayload = activeCategories.map((c) => {
+        const rawFreq = categoryFrequencies[c.name];
+        const budgetFreq: 'WEEKLY' | 'FORTNIGHTLY' | 'MONTHLY' | 'ANNUALLY' =
+          rawFreq === 'YEARLY' ? 'ANNUALLY' : 'MONTHLY';
+        const catId = 'id' in c && typeof c.id === 'string' && !c.id.startsWith('temp-') ? c.id : undefined;
+        return {
+          id: catId,
+          name: c.name,
+          poolType: c.type,
+          monthlyAmount: (c.monthlyAud || 0).toFixed(2),
+          enteredAmount: (c.monthlyAud || 0).toFixed(2),
+          budgetFrequency: budgetFreq,
+          icon: c.icon || 'wallet',
+          isEssential: c.type === 'REGULAR',
+        };
+      });
+
+      const incomesPayload = incomes.map((inc) => ({
+        id: inc.id?.startsWith('inc-') ? undefined : inc.id,
+        name: inc.name,
+        type: 'SALARY' as const,
+        amount: (inc.amount || 0).toFixed(2),
+        frequency: inc.frequency as any,
+        receivingAccountId: inc.receivingAccountId || null,
+      }));
 
       await saveSetupBudgetMut.mutateAsync({
         incomes: incomesPayload,
-        bankAccounts: bankAccountsPayload,
-        pools: poolsPayload.length > 0 ? poolsPayload : [
-          {
-            name: 'Everyday Spending',
-            poolType: 'EVERYDAY',
-            everydayAllowanceAmount: '1000.00',
-            isSurplusTarget: false,
-            isCommitted: false,
-            isPrivate: false,
-            bankAccountId: defaultBankAccountId,
-          },
+        bankAccounts: accountsPayload.length > 0 ? accountsPayload : [
+          { name: 'Primary Account', bankProvider: 'CBA', lastKnownBalance: '1000.00', unbudgetedBuffer: '0.00', isPrivate: false },
         ],
+        pools: poolsPayload,
         categories: categoriesPayload,
         archivedPools: [],
         archivedCategoryIds: [],
-        archetypeApplied: 'ALL_IN_ONE_CUSTOM',
+        archetypeApplied: accountsPayload.length >= 2 ? 'AUSSIE_2_ACCOUNT' : 'ALL_IN_ONE_CUSTOM',
       });
 
-      router.replace('/(app)/home');
-    } catch (err) {
-      toast.error("We couldn't save your setup values. Please try again.", 'Setup Failed');
-      console.error(err);
+      router.replace('/(setup)/complete');
+    } catch {
+      toast.error("Couldn't save setup. Please try again.", 'Setup Error');
     } finally {
       setIsSubmitting(false);
     }
-  };
-
-  const handleSkip = () => {
-    showMobileConfirm({
-      title: t('setup.skipConfirmTitle'),
-      message: t('setup.skipConfirmMessage'),
-      confirmText: t('setup.skipConfirmButton'),
-      onConfirm: () => {
-        router.replace('/(app)/home');
-      },
-    });
   };
 
   return (
     <ScrollView
       contentContainerStyle={[
         styles.container,
-        {
-          paddingTop: Math.max(insets.top + 16, 56),
-          paddingBottom: Math.max(insets.bottom + 20, 40),
-        },
+        { paddingTop: Math.max(insets.top + 16, 20), paddingBottom: Math.max(insets.bottom + 20, 20) },
       ]}
       keyboardShouldPersistTaps="handled"
     >
-      <View style={styles.topNavRow}>
-        <View style={styles.progressRow}>
-          <View style={[styles.progressDot, styles.progressDotActive]} />
-          <View style={[styles.progressDot, styles.progressDotActive]} />
-          <View style={[styles.progressDot, styles.progressDotActive]} />
-        </View>
-        <TouchableOpacity
-          onPress={handleSkip}
-          style={styles.skipBtn}
-          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-        >
-          <Text style={styles.skipBtnText}>{t('setup.skipForNow')}</Text>
-        </TouchableOpacity>
-      </View>
-      
-      <Text style={styles.stepLabel}>{t('setup.stepOf', { step: 3, total: 3 })}</Text>
-      <Text style={styles.title}>{t('setup.bills.title')}</Text>
-      <Text style={styles.subtitle}>{t('setup.bills.subtitle')}</Text>
-
-      {/* REGULAR BILLS */}
-      <Text style={styles.sectionTitle}>{t('setup.bills.regularSection')}</Text>
-      {allPresets.filter(p => p.type === 'REGULAR').map((p) => {
-        const on = selected.has(p.id);
-        return (
-          <View key={p.id} style={[styles.row, on && styles.rowActive]}>
-            <TouchableOpacity
-              style={styles.rowPressable}
-              onPress={() => toggle(p.id)}
-              activeOpacity={0.7}
-            >
-              <Text style={styles.emoji}>{p.emoji}</Text>
-              <Text style={[styles.name, on && styles.nameActive]}>{p.name}</Text>
-            </TouchableOpacity>
-
-            {on && (
-              <View style={styles.inputContainer}>
-                <Text style={styles.inputLabel}>{t('setup.bills.monthlyLabel')}</Text>
-                <TextInput
-                  style={styles.inlineInput}
-                  keyboardType="numeric"
-                  placeholder={p.suggestedMonthlyAud.toString()}
-                  placeholderTextColor="#9CA3AF"
-                  value={targets[p.id] ?? ''}
-                  onChangeText={(val) => setTargets(prev => ({ ...prev, [p.id]: val }))}
-                />
-              </View>
-            )}
-
-            <TouchableOpacity onPress={() => toggle(p.id)} style={[styles.check, on && styles.checkActive]}>
-              {on && <Text style={styles.checkMark}>✓</Text>}
-            </TouchableOpacity>
-          </View>
-        );
-      })}
-
-      {/* SAVINGS GOALS */}
-      <Text style={[styles.sectionTitle, { marginTop: 16 }]}>{t('setup.bills.savingsSection')}</Text>
-      {allPresets.filter(p => p.type === 'GOAL').map((p) => {
-        const on = selected.has(p.id);
-        return (
-          <View key={p.id} style={[styles.row, on && styles.rowActive]}>
-            <TouchableOpacity
-              style={styles.rowPressable}
-              onPress={() => toggle(p.id)}
-              activeOpacity={0.7}
-            >
-              <Text style={styles.emoji}>{p.emoji}</Text>
-              <Text style={[styles.name, on && styles.nameActive]}>{p.name}</Text>
-            </TouchableOpacity>
-
-            {on && (
-              <View style={styles.inputContainer}>
-                <Text style={styles.inputLabel}>{t('setup.bills.targetLabel')}</Text>
-                <TextInput
-                  style={styles.inlineInput}
-                  keyboardType="numeric"
-                  placeholder={p.suggestedMonthlyAud.toString()}
-                  placeholderTextColor="#9CA3AF"
-                  value={targets[p.id] ?? ''}
-                  onChangeText={(val) => setTargets(prev => ({ ...prev, [p.id]: val }))}
-                />
-              </View>
-            )}
-
-            <TouchableOpacity onPress={() => toggle(p.id)} style={[styles.check, on && styles.checkActive]}>
-              {on && <Text style={styles.checkMark}>✓</Text>}
-            </TouchableOpacity>
-          </View>
-        );
-      })}
-
-      <View style={styles.customRow}>
-        <TextInput
-          style={styles.customInput}
-          placeholder={t('setup.bills.customAddCta')}
-          placeholderTextColor={DESIGN_TOKENS.colors.textMuted}
-          value={customName}
-          onChangeText={setCustomName}
-        />
-        <TouchableOpacity
-          style={[styles.addBtn, !customName.trim() && styles.addBtnOff]}
-          onPress={handleAddCustom}
-          disabled={!customName.trim()}
-        >
-          <Text style={styles.addBtnText}>{t('common.add')}</Text>
-        </TouchableOpacity>
+      <Text style={styles.stepLabel}>{t('setup.stepOf', { step: 5, total: 5 })}</Text>
+      <View style={styles.titleRow}>
+        <Text style={styles.title}>Review Budget Summary</Text>
+        <InfoTooltip title="Budget Summary" content="Auto-estimated bills and spending based on your answers." />
       </View>
 
-      {selected.size > 0 && (
-        <View style={styles.excessContainer}>
-          <Text style={styles.excessLabel}>{t('setup.bills.excessLabel')}</Text>
-          <View style={styles.pickerRow}>
-            {allPresets.filter(p => selected.has(p.id)).map(p => (
-              <TouchableOpacity
-                key={p.id}
-                style={[styles.pickerItem, excessBucketId === p.id && styles.pickerItemActive]}
-                onPress={() => setExcessBucketId(p.id)}
-              >
-                <Text style={[styles.pickerText, excessBucketId === p.id && styles.pickerTextActive]}>{p.name}</Text>
-              </TouchableOpacity>
-            ))}
-          </View>
+      <View style={styles.summaryGrid}>
+        <View style={styles.summaryCard}>
+          <Text style={styles.summaryCardLabel}>Net Income</Text>
+          <Text style={styles.summaryCardVal}>${estimation.totalMonthlyIncomeAud.toLocaleString()}</Text>
         </View>
-      )}
+        <View style={styles.summaryCard}>
+          <Text style={styles.summaryCardLabel}>Allocated</Text>
+          <Text style={styles.summaryCardVal}>${totalAllocatedMonthly.toLocaleString()}</Text>
+        </View>
+        <View style={[styles.summaryCard, netSurplus >= 0 ? styles.surplusBg : styles.deficitBg]}>
+          <Text style={styles.summaryCardLabel}>{netSurplus >= 0 ? 'Surplus' : 'Deficit'}</Text>
+          <Text style={styles.summaryCardVal}>${Math.abs(netSurplus).toLocaleString()}</Text>
+        </View>
+      </View>
 
-      <TouchableOpacity
-        style={[styles.next, (selected.size === 0 || isSubmitting) && styles.nextOff]}
-        onPress={handleCompleteSetup}
-        disabled={selected.size === 0 || isSubmitting}
-        activeOpacity={0.85}
-      >
-        {isSubmitting ? (
-          <ActivityIndicator color={DESIGN_TOKENS.colors.onAccent} />
-        ) : (
-          <Text style={styles.nextText}>{t('setup.bills.completeCta')}</Text>
-        )}
-      </TouchableOpacity>
+      <View style={styles.sectionCard}>
+        <View style={styles.sectionHeader}>
+          <Text style={styles.sectionTitle}>Everyday Spending</Text>
+          <Text style={styles.sectionTotal}>${totalEverydayMonthly.toLocaleString()}/mo</Text>
+        </View>
+        {activeEveryday.map((cat) => (
+          <SetupCategoryRow
+            key={cat.name}
+            cat={cat}
+            freq={categoryFrequencies[cat.name] || 'MONTHLY'}
+            onUpdateAmount={(amt) => setAmountOverrides((prev) => ({ ...prev, [cat.name]: amt }))}
+            onUpdateFreq={(f) => setCategoryFrequencies((prev) => ({ ...prev, [cat.name]: f }))}
+            onRemove={() => setRemovedCategoryNames((prev) => new Set(prev).add(cat.name))}
+          />
+        ))}
+      </View>
+
+      <View style={styles.sectionCard}>
+        <View style={styles.sectionHeader}>
+          <Text style={styles.sectionTitle}>Regular Bills</Text>
+          <Text style={styles.sectionTotal}>${totalRegularMonthly.toLocaleString()}/mo</Text>
+        </View>
+        {activeRegular.map((cat) => (
+          <SetupCategoryRow
+            key={cat.name}
+            cat={cat}
+            freq={categoryFrequencies[cat.name] || 'MONTHLY'}
+            onUpdateAmount={(amt) => setAmountOverrides((prev) => ({ ...prev, [cat.name]: amt }))}
+            onUpdateFreq={(f) => setCategoryFrequencies((prev) => ({ ...prev, [cat.name]: f }))}
+            onRemove={() => setRemovedCategoryNames((prev) => new Set(prev).add(cat.name))}
+          />
+        ))}
+      </View>
+
+      <View style={styles.customBox}>
+        <Text style={styles.customHeading}>Add Custom Category</Text>
+        <View style={styles.customRow}>
+          <TextInput
+            style={styles.customInput}
+            value={customName}
+            onChangeText={setCustomName}
+            placeholder="e.g. Pet Insurance"
+            placeholderTextColor={DESIGN_TOKENS.colors.textMuted}
+          />
+          <TouchableOpacity
+            style={[styles.addBtn, !customName.trim() && { opacity: 0.5 }]}
+            onPress={handleAddCustom}
+            disabled={!customName.trim()}
+          >
+            <Text style={styles.addBtnText}>+ Add</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+
+      <View style={styles.actionRow}>
+        <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
+          <Text style={styles.backBtnText}>{t('setup.previousStep')}</Text>
+        </TouchableOpacity>
+        <TouchableOpacity onPress={handleFinish} style={styles.nextBtn} disabled={isSubmitting}>
+          {isSubmitting ? (
+            <ActivityIndicator color={DESIGN_TOKENS.colors.onAccent} size="small" />
+          ) : (
+            <Text style={styles.nextBtnText}>{t('setup.finish.cta')}</Text>
+          )}
+        </TouchableOpacity>
+      </View>
     </ScrollView>
   );
 }
 
-const D = DESIGN_TOKENS;
 const styles = StyleSheet.create({
-  container: { flexGrow: 1, paddingHorizontal: D.spacing.containerMargin, paddingTop: 56, paddingBottom: 40, backgroundColor: D.colors.background },
-  topNavRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 16,
-  },
-  progressRow: { flexDirection: 'row', gap: 6 },
-  skipBtn: {
-    paddingVertical: 4,
-    paddingHorizontal: 8,
-  },
-  skipBtnText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: D.colors.textMuted,
-  },
-  progressDot: { width: 48, height: 4, borderRadius: 2, backgroundColor: '#E5E7EB' },
-  progressDotActive: { backgroundColor: D.colors.accent },
-  stepLabel: { fontSize: 12, color: D.colors.textMuted, marginBottom: 4 },
-  title: { fontSize: 22, fontWeight: '700', color: D.colors.primary, marginBottom: 6 },
-  subtitle: { fontSize: 13, color: D.colors.textMuted, lineHeight: 18, marginBottom: 16 },
-  sectionTitle: { fontSize: 11, fontWeight: '700', letterSpacing: 0.8, color: D.colors.textMuted, textTransform: 'uppercase', marginBottom: 8 },
-  row: { flexDirection: 'row', alignItems: 'center', backgroundColor: D.colors.surface, borderRadius: D.radius.md, padding: 10, marginBottom: 6, borderWidth: 1, borderColor: '#E5E7EB', gap: 8 },
-  rowActive: { borderColor: D.colors.accent, backgroundColor: `${D.colors.accent}0D` },
-  rowPressable: { flex: 1, flexDirection: 'row', alignItems: 'center' },
-  emoji: { fontSize: 20, marginRight: 8 },
-  name: { fontSize: 13, color: D.colors.textPrimary, flexShrink: 1 },
-  nameActive: { color: D.colors.accent, fontWeight: '600' },
-  inputContainer: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  inputLabel: { fontSize: 9, color: D.colors.textMuted, fontWeight: '600' },
-  inlineInput: { borderWidth: 1, borderColor: '#D1D5DB', borderRadius: 6, width: 60, paddingHorizontal: 6, paddingVertical: 4, fontSize: 11, backgroundColor: '#FFF', color: D.colors.textPrimary, textAlign: 'right' },
-  check: { width: 22, height: 22, borderRadius: 11, borderWidth: 2, borderColor: '#D1D5DB', alignItems: 'center', justifyContent: 'center' },
-  checkActive: { borderColor: D.colors.accent, backgroundColor: D.colors.accent },
-  checkMark: { fontSize: 12, color: '#FFF', fontWeight: '700' },
-  customRow: { flexDirection: 'row', gap: 10, marginTop: 12, marginBottom: 16 },
-  customInput: { flex: 1, backgroundColor: D.colors.surface, borderWidth: 1, borderColor: '#E5E7EB', borderRadius: D.radius.md, paddingHorizontal: 12, paddingVertical: 10, fontSize: 14, color: D.colors.textPrimary },
-  addBtn: { backgroundColor: D.colors.primary, paddingHorizontal: 18, borderRadius: D.radius.md, justifyContent: 'center' },
-  addBtnOff: { opacity: 0.4 },
-  addBtnText: { color: '#FFF', fontWeight: '700', fontSize: 13 },
-  excessContainer: { backgroundColor: D.colors.surface, borderWidth: 1, borderColor: '#E5E7EB', borderRadius: D.radius.md, padding: 12, marginBottom: 20 },
-  excessLabel: { fontSize: 11, fontWeight: '700', color: D.colors.textMuted, textTransform: 'uppercase', marginBottom: 8 },
-  pickerRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
-  pickerItem: { paddingHorizontal: 10, paddingVertical: 6, borderRadius: 12, borderWidth: 1, borderColor: '#E5E7EB', backgroundColor: '#F9FAFB' },
-  pickerItemActive: { borderColor: D.colors.accent, backgroundColor: D.colors.accent + '1A' },
-  pickerText: { fontSize: 11, color: D.colors.textPrimary },
-  pickerTextActive: { color: D.colors.accent, fontWeight: '700' },
-  next: { backgroundColor: D.colors.accent, paddingVertical: 15, borderRadius: D.radius.md, alignItems: 'center' },
-  nextOff: { opacity: 0.4 },
-  nextText: { color: D.colors.onAccent, fontWeight: '700', fontSize: 16 },
+  container: { padding: 20, backgroundColor: DESIGN_TOKENS.colors.background, flexGrow: 1 },
+  stepLabel: { fontSize: 12, fontWeight: '700', color: DESIGN_TOKENS.colors.accent, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 },
+  titleRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 16 },
+  title: { fontSize: 20, fontWeight: '900', color: DESIGN_TOKENS.colors.primary },
+  summaryGrid: { flexDirection: 'row', gap: 8, marginBottom: 16 },
+  summaryCard: { flex: 1, backgroundColor: DESIGN_TOKENS.colors.surface, padding: 10, borderRadius: DESIGN_TOKENS.radius.md, borderWidth: 1, borderColor: '#E2E8F0' },
+  summaryCardLabel: { fontSize: 10, fontWeight: '800', textTransform: 'uppercase', color: DESIGN_TOKENS.colors.textMuted },
+  summaryCardVal: { fontSize: 15, fontWeight: '800', color: DESIGN_TOKENS.colors.primary, marginTop: 2 },
+  surplusBg: { backgroundColor: '#F0FDF4', borderColor: '#BBF7D0' },
+  deficitBg: { backgroundColor: '#FEF2F2', borderColor: '#FECACA' },
+  sectionCard: { backgroundColor: DESIGN_TOKENS.colors.surface, padding: 14, borderRadius: DESIGN_TOKENS.radius.lg, borderWidth: 1, borderColor: '#E2E8F0', marginBottom: 16 },
+  sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', borderBottomWidth: 1, borderBottomColor: '#F1F5F9', paddingBottom: 8, marginBottom: 4 },
+  sectionTitle: { fontSize: 13, fontWeight: '800', color: DESIGN_TOKENS.colors.primary },
+  sectionTotal: { fontSize: 12, fontWeight: '700', color: DESIGN_TOKENS.colors.accent },
+  customBox: { backgroundColor: DESIGN_TOKENS.colors.surface, padding: 12, borderRadius: DESIGN_TOKENS.radius.lg, borderWidth: 1, borderColor: '#E2E8F0', marginBottom: 20 },
+  customHeading: { fontSize: 12, fontWeight: '700', color: DESIGN_TOKENS.colors.primary, marginBottom: 8 },
+  customRow: { flexDirection: 'row', gap: 8 },
+  customInput: { flex: 1, backgroundColor: DESIGN_TOKENS.colors.surfaceVariant, borderWidth: 1, borderColor: '#E2E8F0', borderRadius: DESIGN_TOKENS.radius.md, paddingHorizontal: 12, paddingVertical: 8, fontSize: 13, color: DESIGN_TOKENS.colors.textPrimary },
+  addBtn: { backgroundColor: DESIGN_TOKENS.colors.accent, paddingHorizontal: 16, justifyContent: 'center', borderRadius: DESIGN_TOKENS.radius.md },
+  addBtnText: { color: DESIGN_TOKENS.colors.onAccent, fontWeight: '700', fontSize: 12 },
+  actionRow: { flexDirection: 'row', gap: 12, marginTop: 8, marginBottom: 40 },
+  backBtn: { flex: 1, paddingVertical: 14, backgroundColor: DESIGN_TOKENS.colors.surface, borderWidth: 1, borderColor: '#CBD5E1', borderRadius: DESIGN_TOKENS.radius.md, alignItems: 'center' },
+  backBtnText: { fontSize: 14, fontWeight: '700', color: '#475569' },
+  nextBtn: { flex: 2, paddingVertical: 14, backgroundColor: DESIGN_TOKENS.colors.accent, borderRadius: DESIGN_TOKENS.radius.md, alignItems: 'center' },
+  nextBtnText: { fontSize: 14, fontWeight: '800', color: DESIGN_TOKENS.colors.onAccent },
 });

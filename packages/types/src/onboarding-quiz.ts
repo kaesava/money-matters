@@ -285,3 +285,14 @@ export function calculateQuizEstimates(answers: QuizAnswers): EstimationResult {
     totalMonthlyAllocatedAud,
   };
 }
+
+export const UserGoalItemSchema = z.object({
+  id: z.string(),
+  name: z.string().min(1),
+  monthlyAmount: z.number().nonnegative(),
+  icon: z.string().default("🎯"),
+  targetAmount: z.number().positive(),
+  dueDate: z.string(),
+  isPrivate: z.boolean().optional(),
+});
+export type UserGoalItem = z.infer<typeof UserGoalItemSchema>;

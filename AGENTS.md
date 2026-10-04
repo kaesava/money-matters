@@ -131,8 +131,11 @@ All tables MUST include:
   - First editable inputs MUST receive `autoFocus`.
   - Monetary amount inputs MUST use `<AmountField />` (web) or `<AmountInput />` (mobile), enforcing `$` prefix, monospace font (`font-mono tabular-nums`), non-negative values, max 12 digits, and max 2 decimal places.
 - **Modal Component Consolidation & Discard Confirmation Parity**: Proactively merge separate Create and Edit modals for the same entity into single unified components using an `isEdit` flag. All modals MUST use `<ModalDialog />` (web) or `<MobileModalDialog />` (mobile) and wire the `isDirty` prop. Closing a modal via Cancel button, Escape key, or backdrop click MUST trigger a Discard Changes confirmation dialog whenever form state is dirty (`isDirty`).
-- **Defensive Input Limits**: All text, numeric, and schedule frequency inputs MUST enforce defensive min/max boundaries centrally in Zod DTO schemas (`@money-matters/types`) to prevent database/overflow exceptions (e.g., `Every N (units)` capped at max 365; amounts capped at 12 digits).
 - **Universal Table Skeleton Loading & Conditional Pagination**: Table loading states MUST use `<SkeletonTable />` (web) or `<SkeletonCard />` (mobile). Pagination controls (`<PaginationBar />` on web, `<MobilePaginationBar />` on mobile) MUST be conditionally rendered under tables/lists ONLY if total record count is 5 or more (`totalItems >= 5` or `data.length >= 5`).
+- **Continuous In-Flight i18n & Theme Hygiene (Zero Retrospective Remediation)**:
+  - While writing or modifying any component, NEVER introduce temporary hardcoded string literals (`>Save<`, `title="Save"`, `placeholder="Search..."`, `error="Required"`), fallback strings (`t('x') || 'y'`, `defaultValue: '...'`), or inline hex color codes (`#2563EB`, `#64748B`, etc.).
+  - MUST resolve user-facing copy to canonical `t(...)` keys and colors to `DESIGN_TOKENS.colors` immediately at point of authoring. Deferring localization or tokenization to a retrospective cleanup pass is strictly forbidden.
+  - When creating or editing modals or screens, confirm dialogs, loading states, discard checks (`isDirty`), and defensive limits MUST be implemented upfront.
 
 
 
@@ -193,8 +196,12 @@ All tables MUST include:
 - **Smart Commenting**: Prohibit trivial comments that restate what code does (e.g. `// increment count`). Mandate high-value "why" comments explaining complex business math (e.g. 5-step waterfall deficit repair steps), architectural decisions, concurrency locks, or edge-case handling.
 
 ## 23. CI/CD Enforcement, Validation Recovery Loop & Git Workflow
-- **Targeted Intermediate Checks**: As you build or modify code, you may execute specific validation commands (`pnpm typecheck`, `pnpm lint`, `pnpm test`, `pnpm test:coverage`, `pnpm check-i18n`, `pnpm audit:schema`, `pnpm install`) for the targeted packages/modules as needed.
-- **Mandatory Final Validation (`pnpm validate`)**: Before completing any task, feature, or refactor, `pnpm validate` MUST run and pass completely.
+- **Continuous In-Flight CI Enforcement (Zero Retrospective Fixing)**:
+  - CI compliance is an active, continuous discipline applied WHILE writing each line of code, NOT a retrospective cleanup exercise at the end of a task.
+  - At the moment any file is authored or modified, it MUST immediately meet all strict standards: zero un-externalized text literals (`>Text<`, `title=`, `label=`, `placeholder=`), zero fallback expressions (`t(...) || '...'`), zero inline hex color literals, strict types (zero `any`), and files <= 250 lines / functions <= 30 lines.
+  - Never accumulate un-externalized copy, hardcoded hex values, or type debt under the assumption of fixing them later.
+- **Targeted Intermediate Checks**: After modifying any component, view, or schema, execute the targeted validation commands immediately (`pnpm check-i18n`, `pnpm typecheck`, `pnpm lint`, `pnpm test`) to verify the file in-flight before proceeding to the next file.
+- **Mandatory Final Validation (`pnpm validate`)**: Before completing any task, feature, or refactor, `pnpm validate` MUST run and pass completely with exit code 0.
 - **Iterative Fail-Safe Recovery Loop**: `pnpm validate` consists of multiple underlying commands (`install` → `check-i18n` → `audit:schema` → `typecheck` → `test:coverage` → `test` → `lint` → `build`). If `pnpm validate` fails:
   1. Identify the specific sub-command(s) that failed.
   2. Run ONLY the failed sub-command(s) sequentially while diagnosing and fixing the errors until they pass.

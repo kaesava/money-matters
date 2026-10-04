@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   View,
   Text,
@@ -14,34 +14,17 @@ import {
   MobileButton,
   ChipSelect,
   FormLabel,
-  FormFieldError,
   FormErrorBanner,
 } from '@money-matters/ui/mobile';
 import { t } from '@money-matters/i18n';
 import { authClient } from '../lib/auth';
 import { getMobileVersionInfo } from '../lib/version';
+import { FeedbackDiagnosticsBox } from './dashboard/FeedbackDiagnosticsBox';
 
 interface FeedbackFormModalProps {
   visible: boolean;
   onClose: () => void;
 }
-
-const CATEGORIES = [
-  { key: 'setup', label: 'Onboarding & Setup' },
-  { key: 'waterfall', label: 'Payday Allocation & Split' },
-  { key: 'bank_accounts', label: 'Bank Accounts & Balances' },
-  { key: 'categories_bills', label: 'Categories & Bills' },
-  { key: 'ui_ux', label: 'App Display & Navigation' },
-  { key: 'account_auth', label: 'Account & Security' },
-  { key: 'other', label: 'General Feedback' },
-] as const;
-
-const FRUSTRATIONS = [
-  { key: 'LOW', label: 'Minor Suggestion' },
-  { key: 'MEDIUM', label: 'Mild Inconvenience' },
-  { key: 'HIGH', label: 'Disrupted Workflow' },
-  { key: 'URGENT', label: 'Critical Blocker' },
-] as const;
 
 export function FeedbackFormModal({ visible, onClose }: FeedbackFormModalProps) {
   const { data: session } = authClient.useSession();
@@ -78,11 +61,11 @@ export function FeedbackFormModal({ visible, onClose }: FeedbackFormModalProps) 
   const handleSubmit = async () => {
     let hasError = false;
     if (!title.trim()) {
-      setTitleError('Please enter a feedback summary.');
+      setTitleError(t('feedback.errorSummaryRequired'));
       hasError = true;
     }
     if (!description.trim()) {
-      setDescriptionError('Please describe your feedback or issue.');
+      setDescriptionError(t('feedback.errorDescriptionRequired'));
       hasError = true;
     }
 
@@ -110,21 +93,28 @@ export function FeedbackFormModal({ visible, onClose }: FeedbackFormModalProps) 
       await Linking.openURL(mailtoUrl);
       handleClose();
     } catch (err) {
-      setGeneralError(err instanceof Error ? err.message : 'Failed to open email client.');
+      setGeneralError(err instanceof Error ? err.message : t('feedback.openEmailFailed'));
     } finally {
       setSubmitting(false);
     }
   };
 
-  const categoryOptions = CATEGORIES.map((cat) => ({
-    key: cat.key,
-    label: cat.label,
-  }));
+  const categoryOptions = useMemo(() => [
+    { key: 'setup', label: t('feedback.categories.setup') },
+    { key: 'waterfall', label: t('feedback.categories.waterfall') },
+    { key: 'bank_accounts', label: t('feedback.categories.bank_accounts') },
+    { key: 'categories_bills', label: t('feedback.categories.categories_bills') },
+    { key: 'ui_ux', label: t('feedback.categories.ui_ux') },
+    { key: 'account_auth', label: t('feedback.categories.account_auth') },
+    { key: 'other', label: t('feedback.categories.other') },
+  ], []);
 
-  const frustrationOptions = FRUSTRATIONS.map((f) => ({
-    key: f.key,
-    label: f.label,
-  }));
+  const frustrationOptions = useMemo(() => [
+    { key: 'LOW', label: t('feedback.severities.LOW') },
+    { key: 'MEDIUM', label: t('feedback.severities.MEDIUM') },
+    { key: 'HIGH', label: t('feedback.severities.HIGH') },
+    { key: 'URGENT', label: t('feedback.severities.URGENT') },
+  ], []);
 
   const isDirty = Boolean(title.trim() || description.trim());
 
@@ -133,8 +123,8 @@ export function FeedbackFormModal({ visible, onClose }: FeedbackFormModalProps) 
       visible={visible}
       onClose={handleClose}
       isDirty={isDirty}
-      title="💬 Provide Feedback"
-      subtitle="Help shape Money Matters for Android"
+      title={t('feedback.title')}
+      subtitle={t('feedback.subtitle')}
       footer={
         <MobileButton
           variant="primary"
@@ -142,30 +132,28 @@ export function FeedbackFormModal({ visible, onClose }: FeedbackFormModalProps) 
           loading={submitting}
           disabled={!title.trim() || !description.trim()}
         >
-          Send Feedback
+          {t('feedback.submitCta')}
         </MobileButton>
       }
     >
-      <ScrollView contentContainerStyle={{ gap: 14, paddingBottom: 16 }} showsVerticalScrollIndicator={false}>
+      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
         <FormErrorBanner message={generalError} />
 
-        {/* Feedback Summary */}
         <MobileInput
-          label="Feedback Summary"
+          label={t('feedback.summaryLabel')}
           required
           value={title}
           onChangeText={(val) => {
             setTitle(val);
             if (titleError) setTitleError('');
           }}
-          placeholder="Brief summary of your feedback or issue..."
+          placeholder={t('feedback.summaryPlaceholder')}
           error={titleError}
           autoFocus
         />
 
-        {/* Workflow Category Chips */}
         <View style={styles.inputGroup}>
-          <FormLabel>Workflow Category</FormLabel>
+          <FormLabel>{t('feedback.categoryLabel')}</FormLabel>
           <ChipSelect
             options={categoryOptions}
             value={category}
@@ -173,9 +161,8 @@ export function FeedbackFormModal({ visible, onClose }: FeedbackFormModalProps) 
           />
         </View>
 
-        {/* Frustration Level */}
         <View style={styles.inputGroup}>
-          <FormLabel>Frustration Level</FormLabel>
+          <FormLabel>{t('feedback.severityLabel')}</FormLabel>
           <ChipSelect
             options={frustrationOptions}
             value={frustration}
@@ -183,24 +170,22 @@ export function FeedbackFormModal({ visible, onClose }: FeedbackFormModalProps) 
           />
         </View>
 
-        {/* Description */}
         <MobileInput
-          label="Description & Details"
+          label={t('feedback.descriptionLabel')}
           required
           value={description}
           onChangeText={(val) => {
             setDescription(val);
             if (descriptionError) setDescriptionError('');
           }}
-          placeholder="Describe your feedback, suggestion, or what happened in detail..."
+          placeholder={t('feedback.descriptionPlaceholder')}
           multiline
           numberOfLines={4}
           error={descriptionError}
         />
 
-        {/* Contact Email */}
         <MobileInput
-          label="Receipt / Contact Email"
+          label={t('feedback.emailLabel')}
           value={email}
           onChangeText={setEmail}
           placeholder="your@example.com"
@@ -208,132 +193,35 @@ export function FeedbackFormModal({ visible, onClose }: FeedbackFormModalProps) 
           autoCapitalize="none"
         />
 
-            {/* Consent Toggle */}
-            <View style={styles.consentRow}>
-              <Switch
-                value={consent}
-                onValueChange={setConsent}
-                trackColor={{ false: DESIGN_TOKENS.colors.border, true: '#93C5FD' }}
-                thumbColor={consent ? DESIGN_TOKENS.colors.sereneBlue : DESIGN_TOKENS.colors.background}
-              />
-              <Text style={styles.consentText}>
-                Email me receipt & updates regarding this ticket
-              </Text>
-            </View>
+        <View style={styles.consentRow}>
+          <Switch
+            value={consent}
+            onValueChange={setConsent}
+            trackColor={{ false: DESIGN_TOKENS.colors.slate[200], true: DESIGN_TOKENS.colors.sereneBlue }}
+            thumbColor={consent ? DESIGN_TOKENS.colors.sereneBlue : DESIGN_TOKENS.colors.surface}
+          />
+          <Text style={styles.consentText}>
+            Email me receipt & updates regarding this ticket
+          </Text>
+        </View>
 
-            {/* Telemetry Summary Box */}
-            <View style={styles.telemetryBox}>
-              <Text style={styles.telemetryTitle}>📱 Captured Diagnostics</Text>
-              <Text style={styles.telemetryItem}>App: Money Matters {versionInfo.formattedVersion}</Text>
-              <Text style={styles.telemetryItem}>Platform: Android ({versionInfo.channel} channel)</Text>
-              <Text style={styles.telemetryItem}>Commit: {versionInfo.gitCommit}</Text>
-            </View>
-          </ScrollView>
+        <FeedbackDiagnosticsBox
+          formattedVersion={versionInfo.formattedVersion}
+          channel={versionInfo.channel}
+          gitCommit={versionInfo.gitCommit}
+        />
+      </ScrollView>
     </MobileModalDialog>
   );
 }
 
-const D = DESIGN_TOKENS;
 const styles = StyleSheet.create({
-  modalBackdrop: {
-    flex: 1,
-    backgroundColor: 'rgba(15, 23, 42, 0.6)',
-    justifyContent: 'flex-end',
-  },
-  modalContainer: {
-    backgroundColor: D.colors.surface,
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    maxHeight: '90%',
-  },
-  modalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingTop: 20,
-    paddingBottom: 14,
-    borderBottomWidth: 1,
-    borderBottomColor: D.colors.surfaceVariant,
-  },
-  modalTitle: {
-    fontSize: 17,
-    fontWeight: '800',
-    color: D.colors.primary,
-  },
-  modalSubtitle: {
-    fontSize: 12,
-    color: D.colors.textMuted,
-    marginTop: 2,
-  },
-  closeBtn: {
-    padding: 6,
-    borderRadius: 8,
-    backgroundColor: D.colors.surfaceVariant,
-  },
-  formContent: {
-    padding: 20,
-    gap: 16,
-  },
-  fieldGroup: {
-    gap: 6,
+  scrollContent: {
+    gap: 14,
+    paddingBottom: 16,
   },
   inputGroup: {
     gap: 6,
-  },
-  label: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: D.colors.textPrimary,
-  },
-  requiredStar: {
-    color: D.colors.critical,
-  },
-  input: {
-    backgroundColor: D.colors.background,
-    borderWidth: 1,
-    borderColor: D.colors.border,
-    borderRadius: 10,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    fontSize: 14,
-    color: D.colors.textPrimary,
-  },
-  textArea: {
-    minHeight: 80,
-  },
-  chipRow: {
-    flexDirection: 'row',
-    gap: 8,
-  },
-  chip: {
-    backgroundColor: D.colors.background,
-    borderWidth: 1,
-    borderColor: D.colors.border,
-    borderRadius: 8,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-  },
-  chipSelected: {
-    backgroundColor: D.colors.surfaceVariant,
-    borderColor: D.colors.sereneBlue,
-  },
-  chipUrgent: {
-    backgroundColor: '#FEF2F2',
-    borderColor: D.colors.critical,
-  },
-  chipText: {
-    fontSize: 11,
-    fontWeight: '600',
-    color: D.colors.textMuted,
-  },
-  chipTextSelected: {
-    color: D.colors.sereneBlue,
-    fontWeight: '800',
-  },
-  chipTextUrgent: {
-    color: D.colors.critical,
-    fontWeight: '800',
   },
   consentRow: {
     flexDirection: 'row',
@@ -343,38 +231,8 @@ const styles = StyleSheet.create({
   },
   consentText: {
     fontSize: 12,
-    color: D.colors.textMuted,
+    color: DESIGN_TOKENS.colors.slate[500],
     flex: 1,
-  },
-  telemetryBox: {
-    backgroundColor: D.colors.background,
-    borderWidth: 1,
-    borderColor: D.colors.border,
-    borderRadius: 12,
-    padding: 12,
-    gap: 4,
-  },
-  telemetryTitle: {
-    fontSize: 11,
-    fontWeight: '800',
-    color: D.colors.textPrimary,
-  },
-  telemetryItem: {
-    fontSize: 11,
-    color: D.colors.textMuted,
-    fontFamily: 'monospace',
-  },
-  submitBtn: {
-    backgroundColor: D.colors.sereneBlue,
-    borderRadius: 12,
-    paddingVertical: 13,
-    alignItems: 'center',
-    marginTop: 6,
-  },
-  submitBtnText: {
-    fontSize: 14,
-    fontWeight: '800',
-    color: D.colors.onPrimary,
   },
 });
 

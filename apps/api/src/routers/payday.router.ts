@@ -4,13 +4,11 @@ import { and, eq, sql, desc, inArray } from "drizzle-orm";
 import { posthog } from '../lib/posthog.js';
 import {
   runAllocationCommand,
-  confirmAllocationCommand,
   previewAllocationQuery,
   previewPaydayQuery,
   overrideEventCommand,
   bulkDeleteEventsCommand,
   deleteUpcomingEventCommand,
-  ConfirmAllocationInput,
 } from "@money-matters/capability-budgeting";
 import {
   OverrideEventCommand,
@@ -200,36 +198,6 @@ export const paydayRouter = {
         ctx.userId!,
         input.incomeEventId,
         input.incomeAmount,
-        ctx.db
-      );
-    }),
-
-  previewAllocation: privateTenantProcedure
-    .input(
-      z.object({
-        incomeEventId: z.string().uuid(),
-        incomeAmount: z.number().positive(),
-      }).strict()
-    )
-    .query(async ({ input, ctx }) => {
-      return await previewAllocationQuery(
-        ctx.tenantId!,
-        ctx.appId!,
-        input.incomeEventId,
-        input.incomeAmount,
-        ctx.db
-      );
-    }),
-
-  confirmAllocation: privateTenantProcedure
-    .input(ConfirmAllocationInput)
-    .mutation(async ({ input, ctx }) => {
-      requiresWriteAccess(ctx);
-      return await confirmAllocationCommand(
-        input,
-        ctx.tenantId!,
-        ctx.appId!,
-        ctx.userId!,
         ctx.db
       );
     }),
