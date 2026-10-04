@@ -2,18 +2,14 @@ import { useState, useMemo, useEffect } from 'react';
 import { trpc } from '../../lib/trpc';
 import { formatIsoDate } from '../../lib/format';
 import { usePostHog } from 'posthog-react-native';
+import {
+  QuickPresetItem,
+  computeRecentAndFrequentPresets,
+  isPaydayOrAdjustment,
+} from '@money-matters/types';
 
 export type QuickActionType = 'DEBIT' | 'CREDIT' | 'TRANSFER';
-
-export interface QuickPresetItem {
-  name?: string;
-  displayName?: string;
-  amount?: string;
-  categoryId?: string;
-  sourceCategoryId?: string;
-  destinationCategoryId?: string;
-  receivingAccountId?: string;
-}
+export type { QuickPresetItem };
 
 export function useMobileQuickAction(
   visible: boolean,
@@ -72,11 +68,12 @@ export function useMobileQuickAction(
       setGeneralError('');
       if (initialSourcePoolId) {
         setSelectedPoolId(initialSourcePoolId);
-      } else if (everydayPool) {
-        setSelectedPoolId(everydayPool.id);
+      } else {
+        setSelectedPoolId('');
       }
+      setSelectedSubCategoryId(null);
     }
-  }, [visible, initialType, initialSourcePoolId, everydayPool, todayStr]);
+  }, [visible, initialType, initialSourcePoolId, todayStr]);
 
   const recordExpenseMutation = trpc.recordExpense.useMutation();
   const createExpenseSourceMut = trpc.createExpenseSource.useMutation();
@@ -85,61 +82,11 @@ export function useMobileQuickAction(
   const moveMoneyMutation = trpc.moveMoney.useMutation();
   const createTransferSourceMut = trpc.createTransferSource.useMutation();
 
-  const isPaydayOrAdjustment = (noteStr?: string | null) => {
-    if (!noteStr) return false;
-    const lower = noteStr.toLowerCase();
-    return (
-      lower.includes('payday') ||
-      lower.includes('waterfall') ||
-      lower.includes('adjustment') ||
-      lower.includes('pool balance') ||
-      lower.includes('reconcil')
-    );
-  };
-
-  const computePresets = <T,>(
-    items: T[],
-    getKey: (item: T) => string | null,
-    buildPreset: (item: T) => QuickPresetItem,
-    getTimestamp?: (item: T) => number
-  ): { recent: QuickPresetItem[]; frequent: QuickPresetItem[] } => {
-    const recent: QuickPresetItem[] = [];
-    const recentKeys = new Set<string>();
-    const freqCounts = new Map<string, { count: number; sample: T }>();
-    const cutoffTime = Date.now() - 180 * 24 * 60 * 60 * 1000;
-
-    for (const item of items) {
-      const key = getKey(item);
-      if (!key) continue;
-      if (recent.length < 2 && !recentKeys.has(key)) {
-        recentKeys.add(key);
-        recent.push(buildPreset(item));
-      }
-      const itemTime = getTimestamp ? getTimestamp(item) : Date.now();
-      if (itemTime >= cutoffTime) {
-        const existing = freqCounts.get(key);
-        if (existing) {
-          existing.count += 1;
-        } else {
-          freqCounts.set(key, { count: 1, sample: item });
-        }
-      }
-    }
-
-    const frequent = Array.from(freqCounts.entries())
-      .filter(([key]) => !recentKeys.has(key))
-      .sort((a, b) => b[1].count - a[1].count)
-      .slice(0, 2)
-      .map(([_, entry]) => buildPreset(entry.sample));
-
-    return { recent, frequent };
-  };
-
   const expensePresets = useMemo(() => {
     const valid = txList.filter(
       (tx) => tx.flowType === 'DEBIT' && !tx.transferGroupId && tx.note && !isPaydayOrAdjustment(tx.note)
     );
-    return computePresets(
+    return computeRecentAndFrequentPresets(
       valid,
       (tx) => tx.note?.trim().toLowerCase() || null,
       (tx) => ({
@@ -155,7 +102,7 @@ export function useMobileQuickAction(
     const valid = txList.filter(
       (tx) => tx.flowType === 'CREDIT' && !tx.transferGroupId && tx.note && !isPaydayOrAdjustment(tx.note)
     );
-    return computePresets(
+    return computeRecentAndFrequentPresets(
       valid,
       (tx) => tx.note?.trim().toLowerCase() || null,
       (tx) => ({
@@ -203,7 +150,7 @@ export function useMobileQuickAction(
       })
       .filter((tItem) => !isPaydayOrAdjustment(tItem.displayName));
 
-    return computePresets(
+    return computeRecentAndFrequentPresets(
       transferItems,
       (tItem) => tItem.displayName.toLowerCase(),
       (tItem) => ({
@@ -242,13 +189,12 @@ export function useMobileQuickAction(
     setName('');
     setAmount('');
     setDate(todayStr);
+    setSelectedPoolId('');
+    setSelectedSubCategoryId(null);
     setNote('');
     setDestPoolId('');
     setReceivingAccountId('');
     setGeneralError('');
-    if (newType === 'DEBIT' && everydayPool) {
-      setSelectedPoolId(everydayPool.id);
-    }
   };
 
   return {

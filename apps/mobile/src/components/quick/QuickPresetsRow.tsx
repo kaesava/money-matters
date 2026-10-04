@@ -15,46 +15,84 @@ export function QuickPresetsRow({
   frequentPresets,
   onSelect,
 }: QuickPresetsRowProps) {
-  const allPresets = [...recentPresets, ...frequentPresets];
-  if (allPresets.length === 0) return null;
+  if (recentPresets.length === 0 && frequentPresets.length === 0) return null;
 
   return (
     <View style={styles.container}>
-      <Text style={styles.label}>{t('quickPick.recent')}</Text>
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.row}
-      >
-        {allPresets.map((item, idx) => {
-          const key = `${item.name || item.displayName || 'preset'}-${idx}`;
-          const title = item.displayName || item.name || '';
-          const subtitle = item.amount ? `$${item.amount}` : '';
+      {recentPresets.length > 0 && (
+        <View style={styles.section}>
+          <Text style={styles.label}>{t('quickPick.recent')}</Text>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.row}
+          >
+            {recentPresets.map((item, idx) => {
+              const key = `recent-${item.name || item.displayName || 'preset'}-${idx}`;
+              const title = item.displayName || item.name || '';
+              const subtitle = item.amount ? `$${item.amount}` : '';
 
-          return (
-            <TouchableOpacity
-              key={key}
-              onPress={() => {
-                triggerHaptic('selection');
-                onSelect(item);
-              }}
-              style={styles.chip}
-            >
-              <Text style={styles.chipText} numberOfLines={1}>
-                {title} {subtitle}
-              </Text>
-            </TouchableOpacity>
-          );
-        })}
-      </ScrollView>
+              return (
+                <TouchableOpacity
+                  key={key}
+                  onPress={() => {
+                    triggerHaptic('selection');
+                    onSelect(item);
+                  }}
+                  style={styles.chip}
+                >
+                  <Text style={styles.chipText} numberOfLines={1}>
+                    {title} {subtitle}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </ScrollView>
+        </View>
+      )}
+
+      {frequentPresets.length > 0 && (
+        <View style={styles.section}>
+          <Text style={styles.label}>{t('quickPick.frequent')}</Text>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.row}
+          >
+            {frequentPresets.map((item, idx) => {
+              const key = `freq-${item.name || item.displayName || 'preset'}-${idx}`;
+              const title = item.displayName || item.name || '';
+              const subtitle = item.amount ? `$${item.amount}` : '';
+
+              return (
+                <TouchableOpacity
+                  key={key}
+                  onPress={() => {
+                    triggerHaptic('selection');
+                    onSelect(item);
+                  }}
+                  style={styles.chip}
+                >
+                  <Text style={styles.chipText} numberOfLines={1}>
+                    {title} {subtitle}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </ScrollView>
+        </View>
+      )}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
-    gap: 6,
+    gap: 8,
     marginBottom: 4,
+  },
+  section: {
+    gap: 4,
   },
   label: {
     fontSize: 11,

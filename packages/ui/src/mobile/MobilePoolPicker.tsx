@@ -285,42 +285,51 @@ export const MobilePoolPicker: React.FC<MobilePoolPickerProps> = ({
 
                       {allowCategorySelection &&
                         item.categories &&
-                        item.categories.length > 0 && (
-                          <View style={styles.catSubList}>
-                            {item.categories.map((cat) => {
-                              const isCatSelected =
-                                item.id === selectedPoolId && selectedCategoryId === cat.id;
-                              return (
-                                <TouchableOpacity
-                                  key={cat.id}
-                                  style={[styles.catRow, isCatSelected && styles.catRowSelected]}
-                                  onPress={() => handleSelect(item.id, cat.id)}
-                                  activeOpacity={0.7}
-                                >
-                                  <View style={styles.itemInfo}>
-                                    <Feather
-                                      name="tag"
-                                      size={12}
-                                      color={isCatSelected ? '#2563eb' : '#94A3B8'}
-                                    />
-                                    <Text
-                                      style={[
-                                        styles.catText,
-                                        isCatSelected && styles.catTextSelected,
-                                      ]}
-                                      numberOfLines={1}
-                                    >
-                                      {cat.name}
-                                    </Text>
-                                  </View>
-                                  {isCatSelected && (
-                                    <Feather name="check" size={14} color="#2563eb" />
-                                  )}
-                                </TouchableOpacity>
-                              );
-                            })}
-                          </View>
-                        )}
+                        item.categories.length > 0 && (() => {
+                          const q = searchQuery.toLowerCase().trim();
+                          const poolMatches = !q || item.name.toLowerCase().includes(q) || Boolean(item.poolType && item.poolType.toLowerCase().includes(q));
+                          const visibleCats = poolMatches
+                            ? item.categories
+                            : item.categories.filter((c) => c.name.toLowerCase().includes(q));
+                          if (visibleCats.length === 0) return null;
+
+                          return (
+                            <View style={styles.catSubList}>
+                              {visibleCats.map((cat) => {
+                                const isCatSelected =
+                                  item.id === selectedPoolId && selectedCategoryId === cat.id;
+                                return (
+                                  <TouchableOpacity
+                                    key={cat.id}
+                                    style={[styles.catRow, isCatSelected && styles.catRowSelected]}
+                                    onPress={() => handleSelect(item.id, cat.id)}
+                                    activeOpacity={0.7}
+                                  >
+                                    <View style={styles.itemInfo}>
+                                      <Feather
+                                        name="tag"
+                                        size={12}
+                                        color={isCatSelected ? '#2563eb' : '#94A3B8'}
+                                      />
+                                      <Text
+                                        style={[
+                                          styles.catText,
+                                          isCatSelected && styles.catTextSelected,
+                                        ]}
+                                        numberOfLines={1}
+                                      >
+                                        {cat.name}
+                                      </Text>
+                                    </View>
+                                    {isCatSelected && (
+                                      <Feather name="check" size={14} color="#2563eb" />
+                                    )}
+                                  </TouchableOpacity>
+                                );
+                              })}
+                            </View>
+                          );
+                        })()}
                     </View>
                   );
                 })}
@@ -383,7 +392,7 @@ export const MobilePoolPicker: React.FC<MobilePoolPickerProps> = ({
               >
                 {displayLabel}
               </Text>
-              {selectedPool && selectedPoolBal && (
+              {selectedPool && selectedPoolBal && !selectedCategoryId && (
                 <Text style={styles.fieldBalText}>({selectedPoolBal})</Text>
               )}
             </View>
@@ -515,40 +524,51 @@ export const MobilePoolPicker: React.FC<MobilePoolPickerProps> = ({
 
                       {allowCategorySelection &&
                         item.categories &&
-                        item.categories.length > 0 && (
-                          <View style={styles.catSubList}>
-                            {item.categories.map((cat) => {
-                              const isCatSelected =
-                                item.id === selectedPoolId && selectedCategoryId === cat.id;
-                              return (
-                                <TouchableOpacity
-                                  key={cat.id}
-                                  style={[styles.catRow, isCatSelected && styles.catRowSelected]}
-                                  onPress={() => handleSelect(item.id, cat.id)}
-                                >
-                                  <View style={styles.itemInfo}>
-                                    <Feather
-                                      name="tag"
-                                      size={12}
-                                      color={isCatSelected ? '#2563eb' : '#94A3B8'}
-                                    />
-                                    <Text
-                                      style={[
-                                        styles.catText,
-                                        isCatSelected && styles.catTextSelected,
-                                      ]}
-                                    >
-                                      {cat.name}
-                                    </Text>
-                                  </View>
-                                  {isCatSelected && (
-                                    <Feather name="check" size={14} color="#2563eb" />
-                                  )}
-                                </TouchableOpacity>
-                              );
-                            })}
-                          </View>
-                        )}
+                        item.categories.length > 0 && (() => {
+                          const q = searchQuery.toLowerCase().trim();
+                          const poolMatches = !q || item.name.toLowerCase().includes(q) || Boolean(item.poolType && item.poolType.toLowerCase().includes(q));
+                          const visibleCats = poolMatches
+                            ? item.categories
+                            : item.categories.filter((c) => c.name.toLowerCase().includes(q));
+                          if (visibleCats.length === 0) return null;
+
+                          return (
+                            <View style={styles.catSubList}>
+                              {visibleCats.map((cat) => {
+                                const isCatSelected =
+                                  item.id === selectedPoolId && selectedCategoryId === cat.id;
+                                return (
+                                  <TouchableOpacity
+                                    key={cat.id}
+                                    style={[styles.catRow, isCatSelected && styles.catRowSelected]}
+                                    onPress={() => handleSelect(item.id, cat.id)}
+                                    activeOpacity={0.7}
+                                  >
+                                    <View style={styles.itemInfo}>
+                                      <Feather
+                                        name="tag"
+                                        size={12}
+                                        color={isCatSelected ? '#2563eb' : '#94A3B8'}
+                                      />
+                                      <Text
+                                        style={[
+                                          styles.catText,
+                                          isCatSelected && styles.catTextSelected,
+                                        ]}
+                                        numberOfLines={1}
+                                      >
+                                        {cat.name}
+                                      </Text>
+                                    </View>
+                                    {isCatSelected && (
+                                      <Feather name="check" size={14} color="#2563eb" />
+                                    )}
+                                  </TouchableOpacity>
+                                );
+                              })}
+                            </View>
+                          );
+                        })()}
                     </View>
                   );
                 }}

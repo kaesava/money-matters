@@ -16,6 +16,7 @@ interface UpcomingEventsTabProps {
   rawTransferEvents: any[];
   bankAccounts: any[];
   pools: any[];
+  incomeSources?: any[];
   onOpenPaydayWizard: (eventId: string) => void;
   onMarkExpensePaid: (expenseId: string, amount: string) => void;
   onEditExpense: (expense: any) => void;
@@ -32,6 +33,7 @@ export function UpcomingEventsTab({
   rawTransferEvents,
   bankAccounts,
   pools,
+  incomeSources,
   onOpenPaydayWizard,
   onMarkExpensePaid,
   onEditExpense,
@@ -58,6 +60,7 @@ export function UpcomingEventsTab({
     rawTransferEvents,
     bankAccounts,
     pools,
+    incomeSources,
     upcomingKindFilter,
     upcomingScopeFilter,
     upcomingSearchQuery,

@@ -17,6 +17,8 @@ interface CalendarModalProps {
   value?: string; // YYYY-MM-DD
   onChange: (dateIso: string) => void;
   title?: string;
+  minDate?: string;
+  maxDate?: string;
 }
 
 const WEEKDAYS = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
@@ -63,6 +65,8 @@ export function CalendarModal({
   value,
   onChange,
   title,
+  minDate,
+  maxDate,
 }: CalendarModalProps) {
   const selectedDate = useMemo(() => parseIso(value), [value]);
   const [viewYear, setViewYear] = useState(() => selectedDate.getFullYear());
@@ -110,6 +114,7 @@ export function CalendarModal({
       dayNum: number;
       isCurrentMonth: boolean;
       isoString: string;
+      isDisabled: boolean;
     }> = [];
 
     // Previous month filler days
@@ -117,19 +122,25 @@ export function CalendarModal({
       const d = daysInPrevMonth - i;
       const prevMonth = viewMonth === 0 ? 11 : viewMonth - 1;
       const prevYear = viewMonth === 0 ? viewYear - 1 : viewYear;
+      const iso = `${prevYear}-${padZero(prevMonth + 1)}-${padZero(d)}`;
+      const isDisabled = Boolean((minDate && iso < minDate) || (maxDate && iso > maxDate));
       days.push({
         dayNum: d,
         isCurrentMonth: false,
-        isoString: `${prevYear}-${padZero(prevMonth + 1)}-${padZero(d)}`,
+        isoString: iso,
+        isDisabled,
       });
     }
 
     // Current month days
     for (let d = 1; d <= daysInCurrentMonth; d++) {
+      const iso = `${viewYear}-${padZero(viewMonth + 1)}-${padZero(d)}`;
+      const isDisabled = Boolean((minDate && iso < minDate) || (maxDate && iso > maxDate));
       days.push({
         dayNum: d,
         isCurrentMonth: true,
-        isoString: `${viewYear}-${padZero(viewMonth + 1)}-${padZero(d)}`,
+        isoString: iso,
+        isDisabled,
       });
     }
 
@@ -139,23 +150,28 @@ export function CalendarModal({
     const nextMonth = viewMonth === 11 ? 0 : viewMonth + 1;
     const nextYear = viewMonth === 11 ? viewYear + 1 : viewYear;
     for (let d = 1; d <= remaining; d++) {
+      const iso = `${nextYear}-${padZero(nextMonth + 1)}-${padZero(d)}`;
+      const isDisabled = Boolean((minDate && iso < minDate) || (maxDate && iso > maxDate));
       days.push({
         dayNum: d,
         isCurrentMonth: false,
-        isoString: `${nextYear}-${padZero(nextMonth + 1)}-${padZero(d)}`,
+        isoString: iso,
+        isDisabled,
       });
     }
 
     return days;
-  }, [viewYear, viewMonth]);
+  }, [viewYear, viewMonth, minDate, maxDate]);
 
-  const handleSelectDate = (iso: string) => {
+  const handleSelectDate = (iso: string, isDisabled?: boolean) => {
+    if (isDisabled) return;
     onChange(iso);
     onClose();
   };
 
   const handleSelectToday = () => {
     const today = toIso(new Date());
+    if ((minDate && today < minDate) || (maxDate && today > maxDate)) return;
     onChange(today);
     onClose();
   };
@@ -221,11 +237,13 @@ export function CalendarModal({
               return (
                 <TouchableOpacity
                   key={idx}
-                  onPress={() => handleSelectDate(item.isoString)}
+                  disabled={item.isDisabled}
+                  onPress={() => handleSelectDate(item.isoString, item.isDisabled)}
                   style={[
                     styles.dayCell,
                     isSelected && styles.dayCellSelected,
                     !isSelected && isToday && styles.dayCellToday,
+                    item.isDisabled && { opacity: 0.3 },
                   ]}
                   activeOpacity={0.7}
                 >
@@ -235,6 +253,7 @@ export function CalendarModal({
                       !item.isCurrentMonth && styles.dayTextMuted,
                       isSelected && styles.dayTextSelected,
                       !isSelected && isToday && styles.dayTextToday,
+                      item.isDisabled && { color: '#CBD5E1' },
                     ]}
                   >
                     {item.dayNum}

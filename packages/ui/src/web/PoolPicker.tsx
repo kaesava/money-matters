@@ -223,6 +223,7 @@ export function PoolPicker({
                   onSelectPool={handleSelectPool}
                   onSelectCategory={handleSelectCategory}
                   formatBalance={formatPoolBalance}
+                  searchQuery={searchQuery}
                 />
               ))
             )}

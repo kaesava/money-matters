@@ -219,15 +219,15 @@ export function QuickActionDrawer({ onClose, initialTab = "DEBIT" }: QuickAction
                     </div>
                   )}
 
-                  {isIncome && bankAccounts.length > 0 && (
+                  {isIncome && (
                     <div className="flex flex-col gap-1">
-                      <FormLabel>{t("drawers.quickExpense.bankAccountOptional")}</FormLabel>
+                      <FormLabel required>{t("drawers.quickExpense.receivingAccount")}</FormLabel>
                       <select
                         value={receivingAccountId}
                         onChange={(e) => setReceivingAccountId(e.target.value)}
                         className="px-3.5 py-2.5 text-xs font-medium rounded-xl border border-zinc-200 focus:outline-none focus:ring-2 focus:ring-[#2563eb]"
                       >
-                        <option value="">{t("drawers.quickExpense.defaultEverydayAccount")}</option>
+                        <option value="">{t("drawers.quickExpense.selectBankAccountPlaceholder")}</option>
                         {bankAccounts.map((a: { id: string; name: string }) => (
                           <option key={a.id} value={a.id}>
                             {a.name}
@@ -271,7 +271,7 @@ export function QuickActionDrawer({ onClose, initialTab = "DEBIT" }: QuickAction
                 {isIncome && (
                   <button
                     type="button"
-                    disabled={isPending || !amount.trim() || parseFloat(amount) <= 0}
+                    disabled={isPending || !name.trim() || !amount.trim() || parseFloat(amount) <= 0 || !receivingAccountId}
                     onClick={() => executeSubmit(false, true)}
                     className="px-4 py-2.5 text-xs font-bold text-[#2563eb] hover:text-blue-800 underline cursor-pointer disabled:opacity-50 transition-all"
                   >
@@ -281,13 +281,22 @@ export function QuickActionDrawer({ onClose, initialTab = "DEBIT" }: QuickAction
                 <Button
                   type="submit"
                   loading={isPending}
-                  disabled={!amount.trim() || parseFloat(amount) <= 0 || (isTransfer ? (!sourceCategoryId || !destinationCategoryId) : (!isIncome && !categoryId))}
+                  disabled={
+                    !name.trim() ||
+                    !amount.trim() ||
+                    parseFloat(amount) <= 0 ||
+                    (isTransfer
+                      ? !sourceCategoryId || !destinationCategoryId || sourceCategoryId === destinationCategoryId
+                      : isIncome
+                      ? !receivingAccountId
+                      : !categoryId)
+                  }
                   variant="primary"
                 >
                   {isTransfer
                     ? isFutureDate
-                      ? t("common.saveOnly")
-                      : t("common.transfer")
+                    ? t("common.saveOnly")
+                    : t("common.transfer")
                     : isIncome
                     ? t("common.splitIncome")
                     : isFutureDate

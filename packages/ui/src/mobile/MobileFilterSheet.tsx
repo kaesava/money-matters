@@ -157,8 +157,8 @@ export function MobileFilterSheet({
                 <Text style={styles.resetBtnText}>{t('common.reset') || 'Reset'}</Text>
               </TouchableOpacity>
             )}
-            <TouchableOpacity onPress={handleApply} style={styles.applyBtn} activeOpacity={0.8}>
-              <Text style={styles.applyBtnText}>{t('common.confirm') || 'Apply Filters'}</Text>
+            <TouchableOpacity onPress={handleApply} style={styles.closeActionBtn} activeOpacity={0.8}>
+              <Text style={styles.closeActionBtnText}>{t('common.close') || 'Close'}</Text>
             </TouchableOpacity>
           </View>
         </Pressable>
@@ -299,21 +299,18 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#64748B',
   },
-  applyBtn: {
+  closeActionBtn: {
     flex: 1,
     paddingVertical: 12,
     borderRadius: 12,
-    backgroundColor: '#2563eb',
+    backgroundColor: '#F8FAFC',
+    borderWidth: 1.5,
+    borderColor: '#E2E8F0',
     alignItems: 'center',
-    shadowColor: '#2563eb',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
-    elevation: 3,
   },
-  applyBtnText: {
+  closeActionBtnText: {
     fontSize: 13,
-    fontWeight: '800',
-    color: '#FFFFFF',
+    fontWeight: '700',
+    color: '#334155',
   },
 });

@@ -57,6 +57,7 @@ export function QuickTransferTab({
   onSubmit,
   onCancel,
 }: QuickTransferTabProps) {
+  const [nameError, setNameError] = useState('');
   const [amountError, setAmountError] = useState('');
   const [sourceError, setSourceError] = useState('');
   const [destError, setDestError] = useState('');
@@ -66,6 +67,14 @@ export function QuickTransferTab({
 
   const handleValidateAndSubmit = () => {
     let hasError = false;
+
+    if (!name.trim()) {
+      setNameError(t('drawers.quickExpense.nameRequired'));
+      hasError = true;
+    } else {
+      setNameError('');
+    }
+
     const num = parseFloat(amount);
     if (!amount || isNaN(num) || num <= 0) {
       setAmountError(t('drawers.quickExpense.validAmountError'));
@@ -103,6 +112,17 @@ export function QuickTransferTab({
     }
   };
 
+  const isFormValid =
+    name.trim().length > 0 &&
+    Boolean(sourcePoolId) &&
+    Boolean(destPoolId) &&
+    sourcePoolId !== destPoolId &&
+    amount.trim().length > 0 &&
+    !isNaN(parseFloat(amount)) &&
+    parseFloat(amount) > 0 &&
+    Boolean(date) &&
+    date >= todayStr;
+
   return (
     <View style={styles.container}>
       <QuickPresetsRow
@@ -111,12 +131,18 @@ export function QuickTransferTab({
         onSelect={onSelectPreset}
       />
 
-      {/* Transfer Name */}
+      {/* Transfer Name (Mandatory) */}
       <MobileInput
         label={t('drawers.quickExpense.transferName')}
+        required
         value={name}
-        onChangeText={setName}
+        onChangeText={(val) => {
+          setName(val);
+          if (nameError) setNameError('');
+        }}
         placeholder={t('drawers.quickExpense.transferNamePlaceholder')}
+        error={nameError}
+        autoFocus
       />
 
       {/* Source Pool Picker */}
@@ -172,6 +198,7 @@ export function QuickTransferTab({
       <MobileDatePickerField
         label={t('drawers.quickExpense.dateLabel')}
         value={date}
+        minDate={todayStr}
         onChange={(val) => {
           setDate(val);
           if (dateError) setDateError('');
@@ -188,6 +215,7 @@ export function QuickTransferTab({
         <MobileButton
           variant="primary"
           onPress={handleValidateAndSubmit}
+          disabled={!isFormValid || isSubmitting}
           loading={isSubmitting}
           style={styles.flexBtn}
         >

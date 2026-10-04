@@ -2,7 +2,7 @@ import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { useRouter, type Href } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
-import { CardDrawerIndicator, EntityLinkChip } from '@money-matters/ui/mobile';
+import { CardDrawerIndicator, EntityLinkChip, DESIGN_TOKENS } from '@money-matters/ui/mobile';
 import { formatAUD, formatScheduleDetail } from '../../lib/format';
 
 export interface ExpenseSourceItem {
@@ -134,7 +134,7 @@ const styles = StyleSheet.create({
   amount: {
     fontSize: 16,
     fontWeight: '800',
-    color: '#0F172A',
+    color: DESIGN_TOKENS.colors.critical,
     fontFamily: 'monospace',
   },
   freqText: {

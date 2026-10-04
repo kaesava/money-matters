@@ -34,6 +34,7 @@ export * from "./household.types";
 export * from "./bank-account.types";
 export * from "./subscription.types";
 export * from "./shortfall-allocation";
+export * from "./quick-presets";
 
 /**
  * Subscription status lifecycle state machine.

@@ -109,6 +109,14 @@ export function QuickExpenseTab({
     }
   };
 
+  const isFormValid =
+    name.trim().length > 0 &&
+    Boolean(selectedPoolId) &&
+    amount.trim().length > 0 &&
+    !isNaN(parseFloat(amount)) &&
+    parseFloat(amount) > 0 &&
+    Boolean(date);
+
   return (
     <View style={styles.container}>
       <QuickPresetsRow
@@ -117,33 +125,7 @@ export function QuickExpenseTab({
         onSelect={onSelectPreset}
       />
 
-      <View style={styles.inputGroup}>
-        <AmountInput
-          label={t('drawers.quickExpense.amountAud')}
-          required
-          value={amount}
-          onChangeText={(val) => {
-            setAmount(val);
-            if (amountError) setAmountError('');
-          }}
-          error={amountError}
-          placeholder="0.00"
-          autoFocus
-        />
-        {isOverdraft && (
-          <Text style={styles.overdraftWarning}>
-            ⚠️ Exceeds pool balance ({formatAUD(poolBal)})
-          </Text>
-        )}
-      </View>
-
-      <MobileDatePickerField
-        label={t('drawers.quickExpense.dateLabel')}
-        value={date}
-        onChange={setDate}
-        required
-      />
-
+      {/* 1. Name First */}
       <MobileInput
         label={t('drawers.quickExpense.expenseNameMerchant')}
         required
@@ -154,9 +136,10 @@ export function QuickExpenseTab({
         }}
         placeholder={t('drawers.quickExpense.woolworthsPlaceholder')}
         error={nameError}
+        autoFocus
       />
 
-      {/* Pool / Category Selection */}
+      {/* 2. Pool / Category Second */}
       <MobilePoolPicker
         label={t('drawers.quickExpense.category')}
         required
@@ -176,6 +159,33 @@ export function QuickExpenseTab({
         }}
       />
 
+      {/* 3. Amount & Date */}
+      <View style={styles.inputGroup}>
+        <AmountInput
+          label={t('drawers.quickExpense.amountAud')}
+          required
+          value={amount}
+          onChangeText={(val) => {
+            setAmount(val);
+            if (amountError) setAmountError('');
+          }}
+          error={amountError}
+          placeholder="0.00"
+        />
+        {isOverdraft && (
+          <Text style={styles.overdraftWarning}>
+            ⚠️ Exceeds pool balance ({formatAUD(poolBal)})
+          </Text>
+        )}
+      </View>
+
+      <MobileDatePickerField
+        label={t('drawers.quickExpense.dateLabel')}
+        value={date}
+        onChange={setDate}
+        required
+      />
+
       {/* Footer Buttons */}
       <View style={styles.btnRow}>
         <MobileButton variant="ghost" onPress={onCancel} style={styles.flexBtn}>
@@ -184,6 +194,7 @@ export function QuickExpenseTab({
         <MobileButton
           variant="primary"
           onPress={handleValidateAndSubmit}
+          disabled={!isFormValid || isSubmitting}
           loading={isSubmitting}
           style={styles.flexBtn}
         >

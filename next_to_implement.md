@@ -8,12 +8,7 @@
 
 
 # Mobile App
-
-## General
-
-## Mobile > Pools
-
-# Web App
+All changes are for the Mobile App unless explicitly specified as Web App
 
 ## Pools
 

@@ -8,6 +8,7 @@ interface UseUpcomingEventsProps {
   rawTransferEvents: any[];
   bankAccounts: any[];
   pools: any[];
+  incomeSources?: any[];
   upcomingKindFilter: 'ALL' | 'INCOME' | 'EXPENSE' | 'TRANSFER';
   upcomingScopeFilter: 'ALL' | 'SHARED' | 'PRIVATE';
   upcomingSearchQuery: string;
@@ -21,6 +22,7 @@ export function useUpcomingEvents({
   rawTransferEvents,
   bankAccounts,
   pools,
+  incomeSources = [],
   upcomingKindFilter,
   upcomingScopeFilter,
   upcomingSearchQuery,
@@ -31,15 +33,16 @@ export function useUpcomingEvents({
     const list: TimelineEventItem[] = [];
 
     rawIncomeEvents.forEach((e) => {
-      const targetBankId = (e as any).bankAccountId || (e as any).receivingAccountId;
-      const acct = bankAccounts.find((b) => b.id === targetBankId);
+      const source = e.incomeSourceId ? incomeSources.find((s) => s.id === e.incomeSourceId) : null;
+      const targetBankId = (e as any).bankAccountId || (e as any).receivingAccountId || source?.receivingAccountId;
+      const acct = targetBankId ? bankAccounts.find((b) => b.id === targetBankId) : null;
       list.push({
         id: e.id,
         kind: 'INCOME',
         name: e.name || t('badges.income') || 'Income',
         expectedAmount: e.expectedAmount,
         expectedDate: e.expectedDate,
-        accountId: acct?.id || targetBankId,
+        accountId: acct?.id || targetBankId || null,
         accountName: acct?.name || null,
         isPrivate: acct?.isPrivate || false,
         rawIncome: {
@@ -47,7 +50,7 @@ export function useUpcomingEvents({
           name: e.name,
           expectedAmount: e.expectedAmount,
           expectedDate: e.expectedDate,
-          accountId: acct?.id || targetBankId,
+          accountId: acct?.id || targetBankId || null,
           accountName: acct?.name || null,
           isPrivate: acct?.isPrivate || false,
         },

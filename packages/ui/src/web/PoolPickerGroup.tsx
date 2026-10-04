@@ -18,6 +18,7 @@ export interface PoolPickerGroupProps {
   readonly onSelectPool: (pool: PoolOption) => void;
   readonly onSelectCategory: (pool: PoolOption, cat: { id: string; name: string }) => void;
   readonly formatBalance: (val: number | string | null | undefined) => string | null;
+  readonly searchQuery?: string;
 }
 
 export function PoolPickerGroup({
@@ -33,6 +34,7 @@ export function PoolPickerGroup({
   onSelectPool,
   onSelectCategory,
   formatBalance,
+  searchQuery,
 }: PoolPickerGroupProps) {
   return (
     <div className="rounded-xl overflow-hidden border border-slate-100 dark:border-slate-800/80">
@@ -104,29 +106,38 @@ export function PoolPickerGroup({
                 </div>
 
                 {/* Child Categories */}
-                {hasCategories && isPoolExpanded && (
-                  <div className="ml-4 border-l-2 border-slate-200 dark:border-slate-800 pl-2 my-1 space-y-0.5">
-                    {pool.categories!.map((cat) => {
-                      const isCatSelected = selectedPoolId === pool.id && selectedCategoryId === cat.id;
-                      return (
-                        <div
-                          key={cat.id}
-                          onClick={() => onSelectCategory(pool, cat)}
-                          className={`flex items-center justify-between rounded-md px-2.5 py-1.5 text-[11px] font-medium cursor-pointer transition-colors ${
-                            isCatSelected
-                              ? "bg-blue-50 text-[#2563eb] font-bold dark:bg-blue-950/40 dark:text-blue-400"
-                              : "text-slate-600 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800"
-                          }`}
-                        >
-                          <div className="flex items-center gap-1.5 truncate">
-                            <span className="text-slate-400">•</span>
-                            <span className="truncate">{cat.name}</span>
+                {hasCategories && isPoolExpanded && (() => {
+                  const q = (searchQuery || "").toLowerCase().trim();
+                  const poolMatches = !q || pool.name.toLowerCase().includes(q) || Boolean(pool.poolType && pool.poolType.toLowerCase().includes(q));
+                  const visibleCats = poolMatches
+                    ? pool.categories!
+                    : pool.categories!.filter((c) => c.name.toLowerCase().includes(q));
+                  if (visibleCats.length === 0) return null;
+
+                  return (
+                    <div className="ml-4 border-l-2 border-slate-200 dark:border-slate-800 pl-2 my-1 space-y-0.5">
+                      {visibleCats.map((cat) => {
+                        const isCatSelected = selectedPoolId === pool.id && selectedCategoryId === cat.id;
+                        return (
+                          <div
+                            key={cat.id}
+                            onClick={() => onSelectCategory(pool, cat)}
+                            className={`flex items-center justify-between rounded-md px-2.5 py-1.5 text-[11px] font-medium cursor-pointer transition-colors ${
+                              isCatSelected
+                                ? "bg-blue-50 text-[#2563eb] font-bold dark:bg-blue-950/40 dark:text-blue-400"
+                                : "text-slate-600 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800"
+                            }`}
+                          >
+                            <div className="flex items-center gap-1.5 truncate">
+                              <span className="text-slate-400">•</span>
+                              <span className="truncate">{cat.name}</span>
+                            </div>
                           </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
+                        );
+                      })}
+                    </div>
+                  );
+                })()}
               </div>
             );
           })}

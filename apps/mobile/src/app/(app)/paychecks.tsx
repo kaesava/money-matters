@@ -181,104 +181,85 @@ export default function IncomeAndBillsScreen({ initialTab }: IncomeAndBillsScree
         }
       >
         <View style={styles.topControlSection}>
-          <TouchableOpacity
-            style={styles.transferButton}
-            onPress={handleOpenNewTransfer}
-            activeOpacity={0.8}
-          >
-            <Feather name="repeat" size={14} color="#4338CA" />
-            <Text style={styles.transferButtonText}>
-              {t('dashboard.transferBetweenPools')}
-            </Text>
-          </TouchableOpacity>
+          <View style={styles.buttonRow}>
+            <TouchableOpacity
+              style={styles.actionButton}
+              onPress={() => router.push('/(app)/paychecks/schedules' as any)}
+              activeOpacity={0.8}
+            >
+              <Feather name="calendar" size={14} color="#2563eb" />
+              <Text style={styles.actionButtonText}>
+                {t('transactions.tabs.setup')}
+              </Text>
+            </TouchableOpacity>
 
-          <SegmentedTabs<PaycheckTabSegment>
-            tabs={[
-              { key: 'EVENTS', label: t('transactions.tabs.pendingList') },
-              { key: 'SOURCES', label: t('transactions.tabs.setup') },
-            ]}
-            activeKey={activeSegment}
-            onChange={setActiveSegment}
-          />
+            <TouchableOpacity
+              style={[styles.actionButton, styles.transferButton]}
+              onPress={handleOpenNewTransfer}
+              activeOpacity={0.8}
+            >
+              <Feather name="repeat" size={14} color="#4338CA" />
+              <Text style={[styles.actionButtonText, styles.transferButtonText]}>
+                {t('dashboard.transferBetweenPools')}
+              </Text>
+            </TouchableOpacity>
+          </View>
         </View>
 
-        {activeSegment === 'EVENTS' && (
-          <UpcomingEventsTab
-            rawIncomeEvents={rawIncomeEvents}
-            rawExpenseEvents={rawExpenseEvents}
-            rawTransferEvents={rawTransferEvents}
-            bankAccounts={bankAccounts}
-            pools={pools}
-            onOpenPaydayWizard={(eventId) => {
-              router.push(`/(app)/paychecks/${eventId}` as any);
-            }}
-            onMarkExpensePaid={(eventId, amount) => {
-              const expense = rawExpenseEvents.find((e) => e.id === eventId);
-              if (expense) {
-                setMarkPaidEvent({
-                  id: expense.id,
-                  name: expense.name || 'Expense',
-                  expectedAmount: parseFloat(amount),
-                  expectedDate: expense.expectedDate,
-                  poolId: expense.poolId,
-                  categoryId: expense.categoryId,
-                });
-              }
-            }}
-            onEditExpense={(expense) => {
-              const fullExpense = rawExpenseEvents.find((e) => e.id === expense.id);
-              if (fullExpense) {
-                setEventToOverride({
-                  id: fullExpense.id,
-                  eventType: 'EXPENSE',
-                  name: fullExpense.name || 'Expense',
-                  expectedDate: fullExpense.expectedDate,
-                  expectedAmount: fullExpense.expectedAmount,
-                });
-                setOverrideModalVisible(true);
-              }
-            }}
-            onEditIncome={(income) => {
-              const fullIncome = rawIncomeEvents.find((e) => e.id === income.id);
-              if (fullIncome) {
-                setEventToOverride({
-                  id: fullIncome.id,
-                  eventType: 'INCOME',
-                  name: fullIncome.name || 'Income',
-                  expectedDate: fullIncome.expectedDate,
-                  expectedAmount: fullIncome.expectedAmount,
-                });
-                setOverrideModalVisible(true);
-              }
-            }}
-            onDeleteIncomeEvent={handleDeleteIncomeEvent}
-            onDeleteExpenseEvent={handleDeleteExpenseEvent}
-            onExecuteTransfer={handleOpenTransferModal}
-            onDeleteTransferEvent={handleDeleteTransferEvent}
-          />
-        )}
-
-        {activeSegment === 'SOURCES' && (
-          <RecurringSchedulesTab
-            incomeSources={incomeSources}
-            expenseSources={expenseSources}
-            bankAccounts={bankAccounts}
-            pools={pools}
-            isLoadingIncome={isLoadingIncome}
-            isLoadingExpense={isLoadingExpense}
-            onAddSchedule={(mode) => {
-              setSourceToEdit(null);
-              setFormMode(mode);
-              setFormModalVisible(true);
-            }}
-            onEditSchedule={(source, mode) => {
-              setSourceToEdit(source);
-              setFormMode(mode);
-              setFormModalVisible(true);
-            }}
-            onBurstModal={handleOpenBurstModal}
-          />
-        )}
+        <UpcomingEventsTab
+          rawIncomeEvents={rawIncomeEvents}
+          rawExpenseEvents={rawExpenseEvents}
+          rawTransferEvents={rawTransferEvents}
+          bankAccounts={bankAccounts}
+          pools={pools}
+          incomeSources={incomeSources}
+          onOpenPaydayWizard={(eventId) => {
+            router.push(`/(app)/paychecks/${eventId}` as any);
+          }}
+          onMarkExpensePaid={(eventId, amount) => {
+            const expense = rawExpenseEvents.find((e) => e.id === eventId);
+            if (expense) {
+              setMarkPaidEvent({
+                id: expense.id,
+                name: expense.name || 'Expense',
+                expectedAmount: parseFloat(amount),
+                expectedDate: expense.expectedDate,
+                poolId: expense.poolId,
+                categoryId: expense.categoryId,
+              });
+            }
+          }}
+          onEditExpense={(expense) => {
+            const fullExpense = rawExpenseEvents.find((e) => e.id === expense.id);
+            if (fullExpense) {
+              setEventToOverride({
+                id: fullExpense.id,
+                eventType: 'EXPENSE',
+                name: fullExpense.name || 'Expense',
+                expectedDate: fullExpense.expectedDate,
+                expectedAmount: fullExpense.expectedAmount,
+              });
+              setOverrideModalVisible(true);
+            }
+          }}
+          onEditIncome={(income) => {
+            const fullIncome = rawIncomeEvents.find((e) => e.id === income.id);
+            if (fullIncome) {
+              setEventToOverride({
+                id: fullIncome.id,
+                eventType: 'INCOME',
+                name: fullIncome.name || 'Income',
+                expectedDate: fullIncome.expectedDate,
+                expectedAmount: fullIncome.expectedAmount,
+              });
+              setOverrideModalVisible(true);
+            }
+          }}
+          onDeleteIncomeEvent={handleDeleteIncomeEvent}
+          onDeleteExpenseEvent={handleDeleteExpenseEvent}
+          onExecuteTransfer={handleOpenTransferModal}
+          onDeleteTransferEvent={handleDeleteTransferEvent}
+        />
       </ScrollView>
 
       <PaychecksModalManager
@@ -341,21 +322,34 @@ const styles = StyleSheet.create({
     paddingBottom: 10,
     gap: 10,
   },
-  transferButton: {
+  buttonRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  actionButton: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 6,
-    backgroundColor: '#EEF2FF',
+    backgroundColor: '#EFF6FF',
     borderWidth: 1,
-    borderColor: '#C7D2FE',
+    borderColor: '#BFDBFE',
     borderRadius: 12,
     paddingVertical: 10,
-    paddingHorizontal: 14,
+    paddingHorizontal: 12,
   },
-  transferButtonText: {
+  actionButtonText: {
     fontSize: 13,
     fontWeight: '700',
+    color: '#2563eb',
+  },
+  transferButton: {
+    backgroundColor: '#EEF2FF',
+    borderColor: '#C7D2FE',
+  },
+  transferButtonText: {
     color: '#4338CA',
   },
 });

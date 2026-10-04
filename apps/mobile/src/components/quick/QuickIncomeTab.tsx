@@ -1,12 +1,12 @@
 import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, StyleSheet } from 'react-native';
+import { View, StyleSheet } from 'react-native';
 import {
-  DESIGN_TOKENS,
   AmountInput,
   MobileDatePickerField,
   MobileInput,
-  FormLabel,
   MobileButton,
+  MobileBankPicker,
+  DESIGN_TOKENS,
 } from '@money-matters/ui/mobile';
 import { t } from '@money-matters/i18n';
 import { QuickPresetItem } from './useMobileQuickAction';
@@ -21,7 +21,7 @@ export interface QuickIncomeTabProps {
   setDate: (v: string) => void;
   receivingAccountId: string;
   setReceivingAccountId: (v: string) => void;
-  bankAccounts: Array<{ id: string; name: string }>;
+  bankAccounts: Array<{ id: string; name: string; bankProvider?: string | null; currentBalance?: string | number | null }>;
   presets: { recent: QuickPresetItem[]; frequent: QuickPresetItem[] };
   onSelectPreset: (preset: QuickPresetItem) => void;
   isSubmitting: boolean;
@@ -47,6 +47,7 @@ export function QuickIncomeTab({
 }: QuickIncomeTabProps) {
   const [amountError, setAmountError] = useState('');
   const [nameError, setNameError] = useState('');
+  const [bankError, setBankError] = useState('');
 
   const handleValidateAndSubmit = (splitImmediately: boolean) => {
     let hasError = false;
@@ -65,10 +66,25 @@ export function QuickIncomeTab({
       setNameError('');
     }
 
+    if (!receivingAccountId) {
+      setBankError(t('drawers.quickExpense.bankAccountRequired') || 'Receiving bank account is required');
+      hasError = true;
+    } else {
+      setBankError('');
+    }
+
     if (!hasError) {
       onSubmit(splitImmediately);
     }
   };
+
+  const isFormValid =
+    name.trim().length > 0 &&
+    Boolean(receivingAccountId) &&
+    amount.trim().length > 0 &&
+    !isNaN(parseFloat(amount)) &&
+    parseFloat(amount) > 0 &&
+    Boolean(date);
 
   return (
     <View style={styles.container}>
@@ -78,6 +94,38 @@ export function QuickIncomeTab({
         onSelect={onSelectPreset}
       />
 
+      {/* 1. Name First */}
+      <MobileInput
+        label={t('drawers.quickExpense.incomeSourceDescription')}
+        required
+        value={name}
+        onChangeText={(val) => {
+          setName(val);
+          if (nameError) setNameError('');
+        }}
+        placeholder={t('drawers.quickExpense.freelancePlaceholder')}
+        error={nameError}
+        autoFocus
+      />
+
+      {/* 2. Mandatory Receiving Bank Account Second */}
+      <MobileBankPicker
+        label={t('drawers.quickExpense.receivingAccount') || 'Receiving Bank Account'}
+        required
+        displayStyle="field"
+        compact={false}
+        allowAllOption={false}
+        placeholder={t('drawers.quickExpense.selectBankAccountPlaceholder') || 'Select Bank Account'}
+        banks={bankAccounts}
+        selectedBankId={receivingAccountId}
+        error={bankError}
+        onSelectBank={(bId) => {
+          setReceivingAccountId(bId);
+          setBankError('');
+        }}
+      />
+
+      {/* 3. Amount & Date */}
       <View style={styles.inputGroup}>
         <AmountInput
           label={t('drawers.quickExpense.amountAud')}
@@ -89,7 +137,6 @@ export function QuickIncomeTab({
           }}
           error={amountError}
           placeholder="0.00"
-          autoFocus
         />
       </View>
 
@@ -100,70 +147,6 @@ export function QuickIncomeTab({
         required
       />
 
-      <MobileInput
-        label={t('drawers.quickExpense.incomeSourceDescription')}
-        required
-        value={name}
-        onChangeText={(val) => {
-          setName(val);
-          if (nameError) setNameError('');
-        }}
-        placeholder={t('drawers.quickExpense.freelancePlaceholder')}
-        error={nameError}
-      />
-
-      {/* Optional Receiving Bank Account */}
-      {bankAccounts.length > 0 && (
-        <View style={styles.inputGroup}>
-          <FormLabel>{t('drawers.quickExpense.bankAccountOptional')}</FormLabel>
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.accountChips}
-          >
-            <TouchableOpacity
-              onPress={() => setReceivingAccountId('')}
-              style={[
-                styles.accountChip,
-                !receivingAccountId && styles.accountChipSelected,
-              ]}
-            >
-              <Text
-                style={[
-                  styles.accountChipText,
-                  !receivingAccountId && styles.accountChipTextSelected,
-                ]}
-              >
-                {t('drawers.quickExpense.defaultEverydayAccount')}
-              </Text>
-            </TouchableOpacity>
-
-            {bankAccounts.map((acc) => {
-              const isSelected = receivingAccountId === acc.id;
-              return (
-                <TouchableOpacity
-                  key={acc.id}
-                  onPress={() => setReceivingAccountId(acc.id)}
-                  style={[
-                    styles.accountChip,
-                    isSelected && styles.accountChipSelected,
-                  ]}
-                >
-                  <Text
-                    style={[
-                      styles.accountChipText,
-                      isSelected && styles.accountChipTextSelected,
-                    ]}
-                  >
-                    {acc.name}
-                  </Text>
-                </TouchableOpacity>
-              );
-            })}
-          </ScrollView>
-        </View>
-      )}
-
       {/* Action Buttons: Split Income (primary) and Save Only (secondary) */}
       <View style={styles.btnRow}>
         <MobileButton variant="ghost" onPress={onCancel} style={styles.flexBtn}>
@@ -172,6 +155,7 @@ export function QuickIncomeTab({
         <MobileButton
           variant="secondary"
           onPress={() => handleValidateAndSubmit(false)}
+          disabled={!isFormValid || isSubmitting}
           loading={isSubmitting}
           style={styles.flexBtn}
         >
@@ -180,6 +164,7 @@ export function QuickIncomeTab({
         <MobileButton
           variant="primary"
           onPress={() => handleValidateAndSubmit(true)}
+          disabled={!isFormValid || isSubmitting}
           loading={isSubmitting}
           style={styles.flexBtn}
         >

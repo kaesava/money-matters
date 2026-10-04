@@ -13,6 +13,8 @@ export interface DatePickerFieldProps {
   required?: boolean;
   error?: string;
   disabled?: boolean;
+  minDate?: string;
+  maxDate?: string;
 }
 
 function padZero(num: number): string {
@@ -50,6 +52,8 @@ export function DatePickerField({
   required = false,
   error,
   disabled = false,
+  minDate,
+  maxDate,
 }: DatePickerFieldProps) {
   const [modalVisible, setModalVisible] = useState(false);
 
@@ -92,6 +96,8 @@ export function DatePickerField({
         value={value}
         onChange={onChange}
         title={label}
+        minDate={minDate}
+        maxDate={maxDate}
       />
     </View>
   );

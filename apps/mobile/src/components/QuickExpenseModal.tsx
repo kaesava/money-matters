@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import {
   View,
   Text,
@@ -16,6 +16,7 @@ import {
   SegmentedTabs,
   FormErrorBanner,
   showMobileConfirm,
+  useMobileToast,
 } from '@money-matters/ui/mobile';
 import { t } from '@money-matters/i18n';
 import { formatAUD } from '../lib/format';
@@ -47,12 +48,62 @@ export function QuickExpenseModal({
   onIncomeSuccess,
 }: QuickExpenseModalProps) {
   const router = useRouter();
+  const toast = useMobileToast();
   const state = useMobileQuickAction(visible, initialType, initialSourcePoolId);
+
+  const isDirty = useMemo(() => {
+    return (
+      state.name.trim().length > 0 ||
+      state.amount.trim().length > 0 ||
+      state.selectedPoolId.length > 0 ||
+      Boolean(state.destPoolId) ||
+      Boolean(state.receivingAccountId) ||
+      state.date !== state.todayStr
+    );
+  }, [
+    state.name,
+    state.amount,
+    state.selectedPoolId,
+    state.destPoolId,
+    state.receivingAccountId,
+    state.date,
+    state.todayStr,
+  ]);
+
+  const handleRequestClose = () => {
+    if (isDirty) {
+      showMobileConfirm({
+        title: t('modals.discardChanges.title'),
+        message: t('modals.discardChanges.description'),
+        confirmText: t('modals.discardChanges.discard'),
+        isDestructive: true,
+        onConfirm: () => {
+          resetAndClose();
+        },
+      });
+    } else {
+      resetAndClose();
+    }
+  };
+
+  const invalidateAllQueries = () => {
+    state.utils.listPools.invalidate();
+    state.utils.listCategories.invalidate();
+    state.utils.listTransactions.invalidate();
+    state.utils.listExpenseSources.invalidate();
+    state.utils.listExpenseEvents.invalidate();
+    state.utils.listIncomeSources.invalidate();
+    state.utils.listIncomeEvents.invalidate();
+    state.utils.listTransferEvents.invalidate();
+    state.utils.listBankAccountsWithExpected.invalidate();
+  };
 
   const resetAndClose = () => {
     state.setName('');
     state.setAmount('');
     state.setDate(state.todayStr);
+    state.setSelectedPoolId('');
+    state.setSelectedSubCategoryId(null);
     state.setNote('');
     state.setDestPoolId('');
     state.setReceivingAccountId('');
@@ -96,19 +147,16 @@ export function QuickExpenseModal({
           poolId: state.selectedPoolId,
           categoryId: state.selectedSubCategoryId || undefined,
           amount: numAmount.toFixed(2),
-          flowType: 'DEBIT',
           date: state.date.trim(),
           note: state.name.trim(),
-          idempotencyKey: crypto.randomUUID(),
         });
       }
       state.posthog?.capture('expense_recorded', {
         amount: numAmount,
         pool_id: state.selectedPoolId,
       });
-      state.utils.listPools.invalidate();
-      state.utils.listTransactions.invalidate();
-      state.utils.listExpenseSources.invalidate();
+      invalidateAllQueries();
+      toast.success(t('toasts.saved'));
       resetAndClose();
     } catch (err) {
       state.setGeneralError(
@@ -133,9 +181,8 @@ export function QuickExpenseModal({
       });
 
       state.posthog?.capture('income_recorded', { amount: numAmount });
-      state.utils.listPools.invalidate();
-      state.utils.listIncomeEvents.invalidate();
-      state.utils.listIncomeSources.invalidate();
+      invalidateAllQueries();
+      toast.success(t('toasts.saved'));
       resetAndClose();
 
       if (splitImmediately && created?.firstEventId) {
@@ -181,8 +228,7 @@ export function QuickExpenseModal({
         });
       }
 
-      state.utils.listPools.invalidate();
-      state.utils.listTransactions.invalidate();
+      invalidateAllQueries();
 
       const srcAccount = state.bankAccounts?.find(
         (b) => b.id === state.pools.find((p) => p.id === state.selectedPoolId)?.bankAccountId
@@ -199,6 +245,7 @@ export function QuickExpenseModal({
           amount: numAmount,
         });
       } else {
+        toast.success(t('toasts.transferCompleted'));
         resetAndClose();
       }
     } catch (err) {
@@ -219,7 +266,7 @@ export function QuickExpenseModal({
 
   return (
     <>
-      <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
+      <Modal visible={visible} transparent animationType="slide" onRequestClose={handleRequestClose}>
         <KeyboardAvoidingView
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
           style={styles.modalOverlay}
@@ -227,7 +274,7 @@ export function QuickExpenseModal({
           <View style={styles.modalContent}>
             <View style={styles.header}>
               <Text style={styles.headerTitle}>{titleText}</Text>
-              <TouchableOpacity onPress={onClose} style={styles.closeBtn}>
+              <TouchableOpacity onPress={handleRequestClose} style={styles.closeBtn}>
                 <Feather name="x" size={20} color={DESIGN_TOKENS.colors.textMuted} />
               </TouchableOpacity>
             </View>
@@ -264,7 +311,7 @@ export function QuickExpenseModal({
                   onSelectPreset={state.handleSelectPreset}
                   isSubmitting={state.isSubmitting}
                   onSubmit={handleExpenseSubmit}
-                  onCancel={onClose}
+                  onCancel={handleRequestClose}
                 />
               )}
 
@@ -283,7 +330,7 @@ export function QuickExpenseModal({
                   onSelectPreset={state.handleSelectPreset}
                   isSubmitting={state.isSubmitting}
                   onSubmit={handleIncomeSubmit}
-                  onCancel={onClose}
+                  onCancel={handleRequestClose}
                 />
               )}
 
@@ -305,7 +352,7 @@ export function QuickExpenseModal({
                   onSelectPreset={state.handleSelectPreset}
                   isSubmitting={state.isSubmitting}
                   onSubmit={handleTransferSubmit}
-                  onCancel={onClose}
+                  onCancel={handleRequestClose}
                 />
               )}
             </ScrollView>
