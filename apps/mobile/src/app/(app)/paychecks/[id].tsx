@@ -51,7 +51,7 @@ function extractLines(engineResult: unknown): AllocationLineItem[] {
 
 export default function IncomeSplitStudioScreen() {
   const toast = useMobileToast();
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const { id, returnTo } = useLocalSearchParams<{ id: string; returnTo?: string }>();
   const router = useRouter();
   const { data: session } = authClient.useSession();
   const utils = trpc.useUtils();
@@ -188,6 +188,14 @@ export default function IncomeSplitStudioScreen() {
   };
 
   const attemptExit = useCallback(() => {
+    const doExit = () => {
+      if (returnTo) {
+        router.push(returnTo as never);
+      } else {
+        router.back();
+      }
+    };
+
     if (isDirty && !isReadOnly) {
       showMobileConfirm({
         title: t('common.discardChangesTitle'),
@@ -195,12 +203,12 @@ export default function IncomeSplitStudioScreen() {
         confirmText: t('common.discard'),
         cancelText: t('common.cancel'),
         isDestructive: true,
-        onConfirm: () => router.back(),
+        onConfirm: doExit,
       });
     } else {
-      router.back();
+      doExit();
     }
-  }, [isDirty, isReadOnly, router]);
+  }, [isDirty, isReadOnly, returnTo, router]);
 
   const handleRecalculateWaterfall = async () => {
     try {

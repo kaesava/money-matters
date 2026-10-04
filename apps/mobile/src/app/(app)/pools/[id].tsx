@@ -12,9 +12,9 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
 import {
   MobileScreenWrapper,
-  BankProviderBadge,
   showMobileConfirm,
   SearchInput,
+  MobileFilterSheet,
   useMobileToast,
 } from '@money-matters/ui/mobile';
 import { t } from '@money-matters/i18n';
@@ -41,16 +41,11 @@ export default function PoolDetailScreen() {
   const [catSearchQuery, setCatSearchQuery] = useState('');
   const [catSortField, setCatSortField] = useState<'name' | 'amount'>('name');
   const [catSortDir, setCatSortDir] = useState<'asc' | 'desc'>('asc');
-
-  // Category bottom sheet inspector
-  const [inspectCat, setInspectCat] = useState<{
-    id: string;
-    name: string;
-    enteredAmount?: string | null;
-    monthlyAmount?: string | null;
-    budgetFrequency?: string | null;
-    isEssential?: boolean;
-  } | null>(null);
+  const [categoriesExpanded, setCategoriesExpanded] = useState(true);
+  const [upcomingExpanded, setUpcomingExpanded] = useState(true);
+  const [historyExpanded, setHistoryExpanded] = useState(true);
+  const [catFilterSheetVisible, setCatFilterSheetVisible] = useState(false);
+  const [catPriorityFilter, setCatPriorityFilter] = useState<'ALL' | 'PRIORITISED' | 'REGULAR'>('ALL');
 
   const poolsQuery = trpc.listPools.useQuery(undefined, { enabled: !!session?.user });
   const categoriesQuery = trpc.listCategories.useQuery(undefined, { enabled: !!session?.user });
@@ -67,14 +62,6 @@ export default function PoolDetailScreen() {
     },
   });
 
-  const archiveCatMut = trpc.archiveCategory.useMutation({
-    onSuccess: () => {
-      utils.listCategories.invalidate();
-      utils.listPools.invalidate();
-      setInspectCat(null);
-    },
-  });
-
   const pool = poolsQuery.data?.find((p) => p.id === id);
   const poolCategories = (categoriesQuery.data ?? []).filter(
     (c) => c.poolId === id
@@ -86,16 +73,19 @@ export default function PoolDetailScreen() {
   const isGoal = pool?.poolType === 'GOAL';
 
   const upcomingExpenses = useMemo(() => {
+    const poolCatIds = new Set(poolCategories.map((c) => c.id));
     return (expenseEventsQuery.data ?? [])
-      .filter((e) => e.status !== 'CONFIRMED')
+      .filter((e) => e.status !== 'CONFIRMED' && (e.poolId === id || (e.categoryId && poolCatIds.has(e.categoryId))))
       .sort((a, b) => a.expectedDate.localeCompare(b.expectedDate));
-  }, [expenseEventsQuery.data]);
+  }, [expenseEventsQuery.data, id, poolCategories]);
 
   const topUpcomingExpenses = upcomingExpenses.slice(0, 5);
 
   const filteredCategories = useMemo(() => {
     return poolCategories
       .filter((c) => {
+        if (catPriorityFilter === 'PRIORITISED' && !c.isEssential) return false;
+        if (catPriorityFilter === 'REGULAR' && c.isEssential) return false;
         if (!catSearchQuery.trim()) return true;
         return c.name.toLowerCase().includes(catSearchQuery.toLowerCase().trim());
       })
@@ -108,18 +98,11 @@ export default function PoolDetailScreen() {
         const bAmt = parseFloat(b.monthlyAmount || b.enteredAmount || '0');
         return catSortDir === 'asc' ? aAmt - bAmt : bAmt - aAmt;
       });
-  }, [poolCategories, catSearchQuery, catSortField, catSortDir]);
+  }, [poolCategories, catSearchQuery, catSortField, catSortDir, catPriorityFilter]);
+
+  const activeCatFilterCount = catPriorityFilter !== 'ALL' ? 1 : 0;
 
   const recentTransactions = (txLedgerQuery.data ?? []).slice(0, 5);
-
-  const toggleCatSort = (field: 'name' | 'amount') => {
-    if (catSortField === field) {
-      setCatSortDir((prev) => (prev === 'asc' ? 'desc' : 'asc'));
-    } else {
-      setCatSortField(field);
-      setCatSortDir('asc');
-    }
-  };
 
   const handleArchivePool = () => {
     if (!pool) return;
@@ -129,16 +112,6 @@ export default function PoolDetailScreen() {
       confirmText: t('categories.archivePool'),
       isDestructive: true,
       onConfirm: () => archivePoolMut.mutate({ poolId: pool.id }),
-    });
-  };
-
-  const handleArchiveCategory = (catId: string, catName: string) => {
-    showMobileConfirm({
-      title: t('categories.archiveCategory'),
-      message: t('categories.archiveCategoryConfirm', { name: catName }),
-      confirmText: t('categories.archiveCategory'),
-      isDestructive: true,
-      onConfirm: () => archiveCatMut.mutate({ categoryId: catId }),
     });
   };
 
@@ -189,12 +162,6 @@ export default function PoolDetailScreen() {
                   <View style={styles.surplusPill}>
                     <Text style={styles.surplusPillText}>{t('categories.surplusBadgeText')}</Text>
                   </View>
-                )}
-                {bankAccount && (
-                  <BankProviderBadge
-                    provider={bankAccount.bankProvider}
-                    size="sm"
-                  />
                 )}
               </View>
               <Text style={styles.poolNameTitle}>{pool.name}</Text>
@@ -253,9 +220,20 @@ export default function PoolDetailScreen() {
         {!isGoal && (
           <>
             <View style={styles.sectionHeaderRow}>
-              <Text style={styles.sectionTitle}>
-                {t('categories.budgetCategories')} ({filteredCategories.length})
-              </Text>
+              <TouchableOpacity
+                onPress={() => setCategoriesExpanded((v) => !v)}
+                style={styles.accordionHeaderBtn}
+                activeOpacity={0.7}
+              >
+                <Feather
+                  name={categoriesExpanded ? 'chevron-down' : 'chevron-right'}
+                  size={16}
+                  color="#1B2B4B"
+                />
+                <Text style={styles.sectionTitle}>
+                  {t('categories.poolCategories')} ({filteredCategories.length})
+                </Text>
+              </TouchableOpacity>
               <TouchableOpacity
                 onPress={() => {
                   setSelectedCatForEdit(null);
@@ -270,92 +248,121 @@ export default function PoolDetailScreen() {
               </TouchableOpacity>
             </View>
 
-            {poolCategories.length > 0 && (
-              <View style={styles.catFilterBar}>
-                <View style={{ flex: 1 }}>
-                  <SearchInput
-                    placeholder={t('categories.searchCategories')}
-                    value={catSearchQuery}
-                    onChangeText={setCatSearchQuery}
-                  />
-                </View>
-
-                <View style={styles.catSortRow}>
-                  <TouchableOpacity
-                    onPress={() => toggleCatSort('name')}
-                    style={[styles.catSortBtn, catSortField === 'name' && styles.catSortBtnActive]}
-                  >
-                    <Text style={[styles.catSortBtnText, catSortField === 'name' && styles.catSortBtnTextActive]}>
-                      {t('common.name')} {catSortField === 'name' ? (catSortDir === 'asc' ? '▲' : '▼') : ''}
-                    </Text>
-                  </TouchableOpacity>
-
-                  <TouchableOpacity
-                    onPress={() => toggleCatSort('amount')}
-                    style={[styles.catSortBtn, catSortField === 'amount' && styles.catSortBtnActive]}
-                  >
-                    <Text style={[styles.catSortBtnText, catSortField === 'amount' && styles.catSortBtnTextActive]}>
-                      {t('common.amount')} {catSortField === 'amount' ? (catSortDir === 'asc' ? '▲' : '▼') : ''}
-                    </Text>
-                  </TouchableOpacity>
-                </View>
-              </View>
-            )}
-
-            {filteredCategories.length > 0 ? (
-              <View style={styles.categoriesList}>
-                {filteredCategories.map((cat) => (
-                  <TouchableOpacity
-                    key={cat.id}
-                    activeOpacity={0.75}
-                    onPress={() => setInspectCat(cat as unknown as typeof inspectCat)}
-                    style={styles.categoryCard}
-                  >
+            {categoriesExpanded && (
+              <>
+                {poolCategories.length > 0 && (
+                  <View style={styles.catFilterBar}>
                     <View style={{ flex: 1 }}>
-                      <View style={styles.catTitleRow}>
-                        <Text style={styles.catName}>{cat.name}</Text>
-                        {cat.isEssential && (
-                          <View style={styles.essentialBadge}>
-                            <Text style={styles.essentialText}>{t('categories.essentialBadge')}</Text>
-                          </View>
-                        )}
-                      </View>
-                      <Text style={styles.catFreq}>
-                        {cat.budgetFrequency || t('categories.frequencyMonthly')}
-                      </Text>
+                      <SearchInput
+                        placeholder={t('categories.searchCategories')}
+                        value={catSearchQuery}
+                        onChangeText={setCatSearchQuery}
+                      />
                     </View>
 
-                    <View style={styles.catAmountCol}>
-                      <Text style={styles.catAmount}>
-                        {formatAUD(cat.enteredAmount || cat.monthlyAmount || 0)}
+                    <TouchableOpacity
+                      style={[styles.filterBtn, activeCatFilterCount > 0 && styles.filterBtnActive]}
+                      onPress={() => setCatFilterSheetVisible(true)}
+                      activeOpacity={0.7}
+                    >
+                      <Feather
+                        name="sliders"
+                        size={15}
+                        color={activeCatFilterCount > 0 ? '#2563eb' : '#64748B'}
+                      />
+                      <Text
+                        style={[
+                          styles.filterBtnText,
+                          activeCatFilterCount > 0 && styles.filterBtnTextActive,
+                        ]}
+                      >
+                        {t('common.filter')}
+                        {activeCatFilterCount > 0 ? ` (${activeCatFilterCount})` : ''}
                       </Text>
-                      <Feather name="chevron-right" size={16} color="#94A3B8" />
-                    </View>
-                  </TouchableOpacity>
-                ))}
-              </View>
-            ) : (
-              <View style={styles.emptyCategoriesBox}>
-                <Text style={styles.emptyCategoriesText}>
-                  {poolCategories.length === 0
-                    ? t('categories.noCategoriesDefined')
-                    : t('categories.noCategoriesMatched')}
-                </Text>
-              </View>
+                    </TouchableOpacity>
+                  </View>
+                )}
+
+                {filteredCategories.length > 0 ? (
+                  <View style={styles.categoriesList}>
+                    {filteredCategories.map((cat) => (
+                      <TouchableOpacity
+                        key={cat.id}
+                        activeOpacity={0.75}
+                        onPress={() =>
+                          router.push(
+                            `/(app)/categories/${cat.id}?returnTo=${encodeURIComponent(`/(app)/pools/${pool.id}`)}` as never
+                          )
+                        }
+                        style={styles.categoryCard}
+                      >
+                        <View style={{ flex: 1 }}>
+                          <View style={styles.catTitleRow}>
+                            <Text style={styles.catName}>{cat.name}</Text>
+                            {cat.isEssential && (
+                              <View style={styles.essentialBadge}>
+                                <Text style={styles.essentialText}>{t('categories.essentialBadge')}</Text>
+                              </View>
+                            )}
+                          </View>
+                          <Text style={styles.catFreq}>
+                            {cat.budgetFrequency || t('categories.frequencyMonthly')}
+                          </Text>
+                        </View>
+
+                        <View style={styles.nestedCatRight}>
+                          <View style={styles.nestedCatAmountCol}>
+                            <Text style={styles.nestedCatAmount}>
+                              ${parseFloat(cat.monthlyAmount || '0').toFixed(2)}/mo
+                            </Text>
+                            {cat.enteredAmount &&
+                              cat.budgetFrequency &&
+                              cat.budgetFrequency !== 'MONTHLY' && (
+                                <Text style={styles.nestedCatSubAmount}>
+                                  (${parseFloat(cat.enteredAmount).toFixed(2)}/{cat.budgetFrequency.toLowerCase()})
+                                </Text>
+                              )}
+                          </View>
+                          <Feather name="chevron-right" size={16} color="#94A3B8" />
+                        </View>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                ) : (
+                  <View style={styles.emptyCategoriesBox}>
+                    <Text style={styles.emptyCategoriesText}>
+                      {poolCategories.length === 0
+                        ? t('categories.noCategoriesDefined')
+                        : t('categories.noCategoriesMatched')}
+                    </Text>
+                  </View>
+                )}
+              </>
             )}
           </>
         )}
 
         {/* Upcoming Expenses Section */}
         <View style={[styles.sectionHeaderRow, { marginTop: 24 }]}>
-          <Text style={styles.sectionTitle}>
-            {t('incomeBillsTabs.upcomingTimeline')} ({upcomingExpenses.length})
-          </Text>
+          <TouchableOpacity
+            onPress={() => setUpcomingExpanded((v) => !v)}
+            style={styles.accordionHeaderBtn}
+            activeOpacity={0.7}
+          >
+            <Feather
+              name={upcomingExpanded ? 'chevron-down' : 'chevron-right'}
+              size={16}
+              color="#1B2B4B"
+            />
+            <Text style={styles.sectionTitle}>
+              {t('incomeBillsTabs.upcomingExpensesTitle')} ({upcomingExpenses.length})
+            </Text>
+          </TouchableOpacity>
           {upcomingExpenses.length > 5 && (
             <TouchableOpacity
               onPress={() =>
                 router.push(
-                  `/(app)/paychecks?tab=EVENTS&type=EXPENSE&poolId=${pool.id}` as never
+                  `/(app)/paychecks?tab=EVENTS&type=EXPENSE&poolId=${pool.id}&returnTo=${encodeURIComponent(`/(app)/pools/${pool.id}`)}` as never
                 )
               }
               style={styles.viewHistoryBtn}
@@ -368,197 +375,144 @@ export default function PoolDetailScreen() {
           )}
         </View>
 
-        {topUpcomingExpenses.length > 0 ? (
-          <View style={styles.upcomingList}>
-            {topUpcomingExpenses.map((exp) => (
-              <View key={exp.id} style={styles.upcomingCard}>
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.upcomingName}>{exp.name || t('common.description')}</Text>
-                  <Text style={styles.upcomingDate}>
-                    {formatDate(exp.expectedDate)}
-                  </Text>
-                </View>
+        {upcomingExpanded && (
+          <>
+            {topUpcomingExpenses.length > 0 ? (
+              <View style={styles.upcomingList}>
+                {topUpcomingExpenses.map((exp) => (
+                  <View key={exp.id} style={styles.upcomingCard}>
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.upcomingName}>{exp.name || t('common.description')}</Text>
+                      <Text style={styles.upcomingDate}>
+                        {formatDate(exp.expectedDate)}
+                      </Text>
+                    </View>
 
-                <View style={styles.upcomingRightCol}>
-                  <Text style={styles.upcomingAmount}>
-                    {formatAUD(exp.expectedAmount)}
-                  </Text>
-                  <TouchableOpacity
-                    style={styles.payBtn}
-                    onPress={() => {
-                      setMarkPaidEvent({
-                        id: exp.id,
-                        name: exp.name || 'Expense',
-                        expectedAmount: parseFloat(exp.expectedAmount),
-                        expectedDate: exp.expectedDate,
-                        poolId: exp.poolId,
-                        categoryId: exp.categoryId,
-                      });
-                    }}
-                  >
-                    <Feather name="check" size={12} color="#FFFFFF" />
-                    <Text style={styles.payBtnText}>{t('common.markSpent')}</Text>
-                  </TouchableOpacity>
-                </View>
+                    <View style={styles.upcomingRightCol}>
+                      <Text style={styles.upcomingAmount}>
+                        {formatAUD(exp.expectedAmount)}
+                      </Text>
+                      <TouchableOpacity
+                        style={styles.payBtn}
+                        onPress={() => {
+                          setMarkPaidEvent({
+                            id: exp.id,
+                            name: exp.name || 'Expense',
+                            expectedAmount: parseFloat(exp.expectedAmount),
+                            expectedDate: exp.expectedDate,
+                            poolId: exp.poolId,
+                            categoryId: exp.categoryId,
+                          });
+                        }}
+                      >
+                        <Feather name="check" size={12} color="#FFFFFF" />
+                        <Text style={styles.payBtnText}>{t('common.markSpent')}</Text>
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+                ))}
               </View>
-            ))}
-          </View>
-        ) : (
-          <View style={styles.emptyCategoriesBox}>
-            <Text style={styles.emptyCategoriesText}>
-              {t('badges.noUpcomingBills')}
-            </Text>
-          </View>
+            ) : (
+              <View style={styles.emptyCategoriesBox}>
+                <Text style={styles.emptyCategoriesText}>
+                  {t('badges.noUpcomingBills')}
+                </Text>
+              </View>
+            )}
+          </>
         )}
 
-        {/* Recent Activity Section */}
+        {/* Recent History Section */}
         <View style={[styles.sectionHeaderRow, { marginTop: 24 }]}>
-          <Text style={styles.sectionTitle}>
-            {t('categories.recentActivity')}
-          </Text>
           <TouchableOpacity
-            onPress={() => router.push(`/(app)/transactions?poolId=${pool.id}` as never)}
+            onPress={() => setHistoryExpanded((v) => !v)}
+            style={styles.accordionHeaderBtn}
+            activeOpacity={0.7}
+          >
+            <Feather
+              name={historyExpanded ? 'chevron-down' : 'chevron-right'}
+              size={16}
+              color="#1B2B4B"
+            />
+            <Text style={styles.sectionTitle}>
+              {t('categories.recentHistory')} ({recentTransactions.length})
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            onPress={() =>
+              router.push(
+                `/(app)/transactions?poolId=${pool.id}&returnTo=${encodeURIComponent(`/(app)/pools/${pool.id}`)}` as never
+              )
+            }
             style={styles.viewHistoryBtn}
           >
             <Text style={styles.viewHistoryText}>
-              {t('categories.viewAllHistory')}
+              {t('categories.seeAllHistory')}
             </Text>
             <Feather name="chevron-right" size={13} color="#2563eb" />
           </TouchableOpacity>
         </View>
 
-        {recentTransactions.length > 0 ? (
-          <View style={styles.recentTxList}>
-            {recentTransactions.map((tx) => (
-              <TransactionRow
-                key={tx.id}
-                amount={tx.amount}
-                flowType={tx.flowType as 'DEBIT' | 'CREDIT' | 'TRANSFER'}
-                poolName={tx.poolName}
-                categoryName={tx.categoryName}
-                note={tx.note}
-                recordedAt={tx.recordedAt}
-              />
-            ))}
-          </View>
-        ) : (
-          <View style={styles.emptyCategoriesBox}>
-            <Text style={styles.emptyCategoriesText}>
-              {t('categories.noRecentActivity')}
-            </Text>
-          </View>
+        {historyExpanded && (
+          <>
+            {recentTransactions.length > 0 ? (
+              <View style={styles.recentTxList}>
+                {recentTransactions.map((tx) => (
+                  <TransactionRow
+                    key={tx.id}
+                    amount={tx.amount}
+                    flowType={tx.flowType as 'DEBIT' | 'CREDIT' | 'TRANSFER'}
+                    poolName={tx.poolName}
+                    categoryName={tx.categoryName}
+                    note={tx.note}
+                    recordedAt={tx.recordedAt}
+                  />
+                ))}
+              </View>
+            ) : (
+              <View style={styles.emptyCategoriesBox}>
+                <Text style={styles.emptyCategoriesText}>
+                  {t('categories.noRecentActivity')}
+                </Text>
+              </View>
+            )}
+          </>
         )}
       </ScrollView>
 
-      {/* Category Detail Bottom Sheet */}
-      {inspectCat && (
-        <Modal
-          visible={!!inspectCat}
-          transparent
-          animationType="slide"
-          onRequestClose={() => setInspectCat(null)}
-        >
-          <View style={styles.sheetOverlay}>
-            <View style={styles.sheetContent}>
-              <View style={styles.sheetHeader}>
-                <View>
-                  <Text style={styles.sheetTitle}>{inspectCat.name}</Text>
-                  <Text style={styles.sheetSubtitle}>{t('categories.categoryBreakdown')}</Text>
-                </View>
-                <TouchableOpacity
-                  onPress={() => setInspectCat(null)}
-                  style={styles.sheetCloseBtn}
-                >
-                  <Feather name="x" size={20} color="#94A3B8" />
-                </TouchableOpacity>
-              </View>
-
-              <View style={styles.sheetBody}>
-                <View style={styles.sheetDetailRow}>
-                  <Text style={styles.sheetLabel}>{t('categories.budgetAmount')}</Text>
-                  <Text style={styles.sheetValue}>
-                    {formatAUD(inspectCat.enteredAmount || inspectCat.monthlyAmount || 0)}
-                  </Text>
-                </View>
-
-                <View style={styles.sheetDetailRow}>
-                  <Text style={styles.sheetLabel}>{t('categories.frequencyLabel')}</Text>
-                  <Text style={styles.sheetValue}>
-                    {inspectCat.budgetFrequency || t('categories.frequencyMonthly')}
-                  </Text>
-                </View>
-
-                <View style={styles.sheetDetailRow}>
-                  <Text style={styles.sheetLabel}>{t('categories.priorityLabel')}</Text>
-                  <Text style={styles.sheetValue}>
-                    {inspectCat.isEssential ? t('categories.priority1') : t('categories.standardPriority')}
-                  </Text>
-                </View>
-              </View>
-
-              {/* Navigation Quick Links */}
-              <View style={styles.sheetLinksRow}>
-                <TouchableOpacity
-                  onPress={() => {
-                    const name = inspectCat.name;
-                    setInspectCat(null);
-                    router.push(`/(app)/transactions?search=${encodeURIComponent(name)}` as never);
-                  }}
-                  style={styles.sheetLinkBtn}
-                >
-                  <Feather name="clock" size={13} color="#2563eb" />
-                  <Text style={styles.sheetLinkText}>
-                    {t('transactions.title')}
-                  </Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  onPress={() => {
-                    setInspectCat(null);
-                    router.push('/(app)/paychecks' as never);
-                  }}
-                  style={styles.sheetLinkBtn}
-                >
-                  <Feather name="calendar" size={13} color="#2563eb" />
-                  <Text style={styles.sheetLinkText}>
-                    {t('categories.viewExpenses')}
-                  </Text>
-                </TouchableOpacity>
-              </View>
-
-              <View style={styles.sheetActions}>
-                <TouchableOpacity
-                  onPress={() => {
-                    const c = inspectCat;
-                    setInspectCat(null);
-                    setSelectedCatForEdit({
-                      id: c.id,
-                      name: c.name,
-                      enteredAmount: c.enteredAmount,
-                      monthlyAmount: c.monthlyAmount,
-                      budgetFrequency: (c.budgetFrequency as 'WEEKLY' | 'FORTNIGHTLY' | 'MONTHLY' | 'ANNUALLY') || undefined,
-                      isEssential: c.isEssential,
-                    });
-                    setCatModalVisible(true);
-                  }}
-                  style={styles.sheetEditBtn}
-                >
-                  <Feather name="edit-2" size={14} color="#2563eb" />
-                  <Text style={styles.sheetEditText}>{t('categories.editTitle', { name: inspectCat.name })}</Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  onPress={() => handleArchiveCategory(inspectCat.id, inspectCat.name)}
-                  style={styles.sheetArchiveBtn}
-                >
-                  <Feather name="archive" size={14} color="#ba1a1a" />
-                  <Text style={styles.sheetArchiveText}>{t('categories.archiveCategory')}</Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-          </View>
-        </Modal>
-      )}
+      {/* Category Filter Sheet */}
+      <MobileFilterSheet
+        visible={catFilterSheetVisible}
+        onClose={() => setCatFilterSheetVisible(false)}
+        title={t('common.filter')}
+        activeCount={activeCatFilterCount}
+        sortField={catSortField}
+        sortOrder={catSortDir}
+        onSortFieldChange={(field) => setCatSortField(field as 'name' | 'amount')}
+        onSortOrderChange={setCatSortDir}
+        sortOptions={[
+          { id: 'name', label: t('common.name') || 'Name' },
+          { id: 'amount', label: t('common.amount') || 'Amount' },
+        ]}
+        sections={[
+          {
+            id: 'priority',
+            title: t('categories.priorityLabel') || 'Priority',
+            options: [
+              { id: 'ALL', label: t('transactions.filterAll') || 'All' },
+              { id: 'PRIORITISED', label: t('categories.priority1') || 'Prioritised' },
+              { id: 'REGULAR', label: t('categories.standardPriority') || 'Regular' },
+            ],
+            selectedValue: catPriorityFilter,
+            onSelect: (val) => setCatPriorityFilter(val as 'ALL' | 'PRIORITISED' | 'REGULAR'),
+          },
+        ]}
+        onReset={() => {
+          setCatPriorityFilter('ALL');
+          setCatSortField('name');
+          setCatSortDir('asc');
+        }}
+      />
 
       {/* Category Add/Edit Modal */}
       <CategoryItemModal
@@ -736,6 +690,31 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: '800',
     color: '#1B2B4B',
+  },
+  accordionHeaderBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  nestedCatRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  nestedCatAmountCol: {
+    alignItems: 'flex-end',
+  },
+  nestedCatAmount: {
+    fontSize: 14,
+    fontWeight: '800',
+    fontFamily: 'monospace',
+    color: '#1B2B4B',
+  },
+  nestedCatSubAmount: {
+    fontSize: 11,
+    color: '#94A3B8',
+    fontFamily: 'monospace',
+    marginTop: 1,
   },
   addCategoryBtn: {
     flexDirection: 'row',
@@ -918,6 +897,29 @@ const styles = StyleSheet.create({
     gap: 8,
     marginTop: 8,
     marginBottom: 10,
+  },
+  filterBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderRadius: 12,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1.5,
+    borderColor: '#E2E8F0',
+  },
+  filterBtnActive: {
+    backgroundColor: '#EFF6FF',
+    borderColor: '#93C5FD',
+  },
+  filterBtnText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#64748B',
+  },
+  filterBtnTextActive: {
+    color: '#2563eb',
   },
   catSortRow: {
     flexDirection: 'row',

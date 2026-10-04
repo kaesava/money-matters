@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { StyleSheet, ScrollView, RefreshControl } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import { AppScreenWrapper } from '../../../components/AppScreenWrapper';
 import { t } from '@money-matters/i18n';
 import { SourceToEdit } from '../../../components/IncomeExpenseFormModal';
@@ -13,10 +13,19 @@ import { PaychecksModalManager } from '../../../components/paychecks/PaychecksMo
 
 export default function RecurringSchedulesScreen() {
   const router = useRouter();
+  const searchParams = useLocalSearchParams<{ returnTo?: string }>();
 
   const [formModalVisible, setFormModalVisible] = useState(false);
   const [formMode, setFormMode] = useState<'INCOME' | 'EXPENSE'>('INCOME');
   const [sourceToEdit, setSourceToEdit] = useState<SourceToEdit | null>(null);
+
+  const handleBack = () => {
+    if (searchParams.returnTo) {
+      router.push(searchParams.returnTo as never);
+    } else {
+      router.back();
+    }
+  };
 
   // Burst Modal State
   const [burstModalVisible, setBurstModalVisible] = useState(false);
@@ -80,7 +89,7 @@ export default function RecurringSchedulesScreen() {
     <AppScreenWrapper
       title={t('transactions.tabs.setup')}
       showBack={true}
-      onBackPress={() => router.back()}
+      onBackPress={handleBack}
       scrollable={false}
       infoTooltip={{
         title: t('transactions.tabs.setup'),

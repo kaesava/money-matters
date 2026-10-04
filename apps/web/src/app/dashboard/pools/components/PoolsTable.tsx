@@ -362,9 +362,10 @@ export function PoolsTable({
                                 {pool.bankAccountName ? (
                                   <Link
                                     href={pool.bankAccountId ? `/dashboard/settings?tab=bank-accounts&id=${pool.bankAccountId}` : `/dashboard/settings?tab=bank-accounts`}
-                                    className="font-semibold text-zinc-600 hover:text-[#2563eb] hover:underline"
+                                    className="font-bold text-[#2563eb] hover:underline inline-flex items-center gap-1"
                                   >
-                                    {pool.bankAccountName}
+                                    <span>{pool.bankAccountName}</span>
+                                    <span className="text-xs">↗</span>
                                   </Link>
                                 ) : (
                                   <span className="text-zinc-400 font-medium">—</span>

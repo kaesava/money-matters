@@ -34,13 +34,25 @@ interface IncomeAndBillsScreenProps {
 
 export default function IncomeAndBillsScreen({ initialTab }: IncomeAndBillsScreenProps = {}) {
   const router = useRouter();
-  const searchParams = useLocalSearchParams<{ tab?: string }>();
+  const searchParams = useLocalSearchParams<{
+    tab?: string;
+    type?: string;
+    poolId?: string;
+    categoryId?: string;
+    returnTo?: string;
+  }>();
 
   const resolvedInitialTab: PaycheckTabSegment = initialTab || (
     searchParams.tab?.toUpperCase() === 'SOURCES'
       ? 'SOURCES'
       : 'EVENTS'
   );
+
+  const initialKind = searchParams.type?.toUpperCase() === 'EXPENSE'
+    ? 'EXPENSE'
+    : searchParams.type?.toUpperCase() === 'INCOME'
+    ? 'INCOME'
+    : undefined;
 
   const [activeSegment, setActiveSegment] = useState<PaycheckTabSegment>(resolvedInitialTab);
   const [formModalVisible, setFormModalVisible] = useState(false);
@@ -94,6 +106,14 @@ export default function IncomeAndBillsScreen({ initialTab }: IncomeAndBillsScree
     handleDeleteTransferEvent,
     refetchAll,
   } = usePaychecksData();
+
+  const handleBack = () => {
+    if (searchParams.returnTo) {
+      router.push(searchParams.returnTo as never);
+    } else {
+      router.back();
+    }
+  };
 
   const handleOpenTransferModal = (transferItem: PaycheckTransferEvent) => {
     setActiveTransfer({
@@ -164,6 +184,8 @@ export default function IncomeAndBillsScreen({ initialTab }: IncomeAndBillsScree
     <AppScreenWrapper
       title={t('nav.incomeExpenses')}
       scrollable={false}
+      showBack={Boolean(searchParams.returnTo)}
+      onBackPress={handleBack}
       infoTooltip={{
         title: t('nav.incomeExpenses'),
         content: t('tooltips.incomeBills.content'),
@@ -181,29 +203,29 @@ export default function IncomeAndBillsScreen({ initialTab }: IncomeAndBillsScree
         }
       >
         <View style={styles.topControlSection}>
-          <View style={styles.buttonRow}>
-            <TouchableOpacity
-              style={styles.actionButton}
-              onPress={() => router.push('/(app)/paychecks/schedules' as any)}
-              activeOpacity={0.8}
-            >
-              <Feather name="calendar" size={14} color="#2563eb" />
-              <Text style={styles.actionButtonText}>
-                {t('transactions.tabs.setup')}
-              </Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={[styles.actionButton, styles.transferButton]}
-              onPress={handleOpenNewTransfer}
-              activeOpacity={0.8}
-            >
-              <Feather name="repeat" size={14} color="#4338CA" />
-              <Text style={[styles.actionButtonText, styles.transferButtonText]}>
-                {t('dashboard.transferBetweenPools')}
-              </Text>
-            </TouchableOpacity>
-          </View>
+          <TouchableOpacity
+            style={styles.prominentSchedulesButton}
+            onPress={() =>
+              router.push(
+                `/(app)/paychecks/schedules?returnTo=${encodeURIComponent(
+                  searchParams.returnTo || '/(app)/paychecks'
+                )}` as never
+              )
+            }
+            activeOpacity={0.8}
+          >
+            <View style={styles.prominentSchedulesInner}>
+              <View style={styles.prominentIconWrap}>
+                <Feather name="calendar" size={18} color="#2563eb" />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.prominentTitle}>
+                  {t('paychecks.incomeExpenseSchedules')}
+                </Text>
+              </View>
+              <Feather name="chevron-right" size={18} color="#94A3B8" />
+            </View>
+          </TouchableOpacity>
         </View>
 
         <UpcomingEventsTab
@@ -213,6 +235,9 @@ export default function IncomeAndBillsScreen({ initialTab }: IncomeAndBillsScree
           bankAccounts={bankAccounts}
           pools={pools}
           incomeSources={incomeSources}
+          initialKind={initialKind}
+          initialPoolId={searchParams.poolId}
+          initialCategoryId={searchParams.categoryId}
           onOpenPaydayWizard={(eventId) => {
             router.push(`/(app)/paychecks/${eventId}` as any);
           }}
@@ -322,34 +347,34 @@ const styles = StyleSheet.create({
     paddingBottom: 10,
     gap: 10,
   },
-  buttonRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-  },
-  actionButton: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 6,
-    backgroundColor: '#EFF6FF',
+  prominentSchedulesButton: {
+    backgroundColor: '#FFFFFF',
     borderWidth: 1,
     borderColor: '#BFDBFE',
-    borderRadius: 12,
-    paddingVertical: 10,
-    paddingHorizontal: 12,
+    borderRadius: 16,
+    padding: 14,
+    shadowColor: '#2563eb',
+    shadowOpacity: 0.06,
+    shadowOffset: { width: 0, height: 2 },
+    shadowRadius: 6,
+    elevation: 2,
   },
-  actionButtonText: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: '#2563eb',
+  prominentSchedulesInner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
   },
-  transferButton: {
-    backgroundColor: '#EEF2FF',
-    borderColor: '#C7D2FE',
+  prominentIconWrap: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    backgroundColor: '#EFF6FF',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  transferButtonText: {
-    color: '#4338CA',
+  prominentTitle: {
+    fontSize: 15,
+    fontWeight: '800',
+    color: '#1B2B4B',
   },
 });

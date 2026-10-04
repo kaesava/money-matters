@@ -25,6 +25,9 @@ interface UpcomingEventsTabProps {
   onDeleteExpenseEvent: (item: { id: string; name?: string | null }) => void;
   onExecuteTransfer: (item: PaycheckTransferEvent) => void;
   onDeleteTransferEvent: (item: { id: string; name?: string | null }) => void;
+  initialKind?: 'ALL' | 'INCOME' | 'EXPENSE' | 'TRANSFER';
+  initialPoolId?: string | null;
+  initialCategoryId?: string | null;
 }
 
 export function UpcomingEventsTab({
@@ -42,17 +45,26 @@ export function UpcomingEventsTab({
   onDeleteExpenseEvent,
   onExecuteTransfer,
   onDeleteTransferEvent,
+  initialKind,
+  initialPoolId,
+  initialCategoryId,
 }: UpcomingEventsTabProps) {
   const [upcomingSearchQuery, setUpcomingSearchQuery] = useState('');
   const [upcomingScopeFilter, setUpcomingScopeFilter] = useState<'ALL' | 'SHARED' | 'PRIVATE'>('ALL');
-  const [upcomingKindFilter, setUpcomingKindFilter] = useState<'ALL' | 'INCOME' | 'EXPENSE' | 'TRANSFER'>('ALL');
+  const [upcomingKindFilter, setUpcomingKindFilter] = useState<'ALL' | 'INCOME' | 'EXPENSE' | 'TRANSFER'>(
+    initialKind || 'ALL'
+  );
   const [upcomingSortField, setUpcomingSortField] = useState<'date' | 'name' | 'amount'>('date');
   const [upcomingSortOrder, setUpcomingSortOrder] = useState<'asc' | 'desc'>('asc');
   const [filterSheetVisible, setFilterSheetVisible] = useState(false);
   const [upcomingPage, setUpcomingPage] = useState(1);
   const UPCOMING_PAGE_SIZE = 10;
 
-  const activeUpcomingFilterCount = (upcomingScopeFilter !== 'ALL' ? 1 : 0) + (upcomingKindFilter !== 'ALL' ? 1 : 0);
+  const activeUpcomingFilterCount =
+    (upcomingScopeFilter !== 'ALL' ? 1 : 0) +
+    (upcomingKindFilter !== 'ALL' ? 1 : 0) +
+    (initialPoolId ? 1 : 0) +
+    (initialCategoryId ? 1 : 0);
 
   const { filteredUpcomingEvents } = useUpcomingEvents({
     rawIncomeEvents,
@@ -66,6 +78,8 @@ export function UpcomingEventsTab({
     upcomingSearchQuery,
     upcomingSortField,
     upcomingSortOrder,
+    poolIdFilter: initialPoolId,
+    categoryIdFilter: initialCategoryId,
   });
 
   const paginatedUpcomingEvents = useMemo(() => {

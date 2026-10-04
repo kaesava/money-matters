@@ -285,9 +285,10 @@ export function SlideOverCategoryDrawer({
                   <Link
                     href={targetPool.bankAccountId ? `/dashboard/settings?tab=bank-accounts&id=${targetPool.bankAccountId}` : `/dashboard/settings?tab=bank-accounts`}
                     onClick={onClose}
-                    className="text-sm font-semibold text-zinc-700 hover:text-[#2563eb] hover:underline dark:text-zinc-300 truncate block"
+                    className="text-sm font-bold text-[#2563eb] hover:underline inline-flex items-center gap-1 truncate max-w-full"
                   >
-                    {targetPool.bankAccountName}
+                    <span className="truncate">{targetPool.bankAccountName}</span>
+                    <span className="text-xs">↗</span>
                   </Link>
                 ) : (
                   <span className="text-sm font-medium text-zinc-400">—</span>

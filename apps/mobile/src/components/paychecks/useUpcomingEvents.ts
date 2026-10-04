@@ -14,6 +14,8 @@ interface UseUpcomingEventsProps {
   upcomingSearchQuery: string;
   upcomingSortField: 'date' | 'name' | 'amount';
   upcomingSortOrder: 'asc' | 'desc';
+  poolIdFilter?: string | null;
+  categoryIdFilter?: string | null;
 }
 
 export function useUpcomingEvents({
@@ -28,6 +30,8 @@ export function useUpcomingEvents({
   upcomingSearchQuery,
   upcomingSortField,
   upcomingSortOrder,
+  poolIdFilter,
+  categoryIdFilter,
 }: UseUpcomingEventsProps) {
   const unifiedTimelineEvents: TimelineEventItem[] = useMemo(() => {
     const list: TimelineEventItem[] = [];
@@ -125,6 +129,21 @@ export function useUpcomingEvents({
       result = result.filter((e) => !e.isPrivate);
     }
 
+    if (poolIdFilter) {
+      result = result.filter(
+        (e) =>
+          e.poolId === poolIdFilter ||
+          e.sourcePoolId === poolIdFilter ||
+          e.destinationPoolId === poolIdFilter
+      );
+    }
+
+    if (categoryIdFilter) {
+      result = result.filter(
+        (e) => e.rawExpense?.categoryId === categoryIdFilter
+      );
+    }
+
     if (upcomingSearchQuery.trim()) {
       const q = upcomingSearchQuery.toLowerCase().trim();
       result = result.filter((e) => {
@@ -157,6 +176,8 @@ export function useUpcomingEvents({
     upcomingSearchQuery,
     upcomingSortField,
     upcomingSortOrder,
+    poolIdFilter,
+    categoryIdFilter,
   ]);
 
   return { filteredUpcomingEvents };

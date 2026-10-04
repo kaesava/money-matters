@@ -195,7 +195,6 @@ export default function PoolsScreen() {
             </View>
             {bank && (
               <View style={styles.bankBadgeWrap}>
-                <BankProviderBadge provider={bank.bankProvider} size="sm" />
                 <Text style={styles.bankNameText}>{bank.name}</Text>
               </View>
             )}
@@ -230,23 +229,31 @@ export default function PoolsScreen() {
             <TouchableOpacity
               onPress={() => togglePoolExpand(pool.id)}
               style={styles.nestedToggleBtn}
+              activeOpacity={0.7}
             >
               <Feather
-                name={isExpanded ? 'chevron-up' : 'chevron-down'}
+                name={isExpanded ? 'chevron-down' : 'chevron-right'}
                 size={14}
                 color="#64748B"
               />
               <Text style={styles.nestedToggleText}>
-                {isExpanded
-                  ? t('common.close')
-                  : t('categories.nestedCategories', { count: nestedCount })}
+                {t('categories.nestedCategories', { count: nestedCount })}
               </Text>
             </TouchableOpacity>
 
             {isExpanded && (
               <View style={styles.nestedCategoriesList}>
                 {poolCats.map((cat) => (
-                  <View key={cat.id} style={styles.nestedCategoryRow}>
+                  <TouchableOpacity
+                    key={cat.id}
+                    style={styles.nestedCategoryRow}
+                    activeOpacity={0.7}
+                    onPress={() =>
+                      router.push(
+                        `/(app)/categories/${cat.id}?returnTo=${encodeURIComponent('/(app)/categories')}` as never
+                      )
+                    }
+                  >
                     <View style={styles.nestedCatInfo}>
                       <Text style={styles.nestedCatName}>{cat.name}</Text>
                       {cat.isEssential && (
@@ -257,10 +264,23 @@ export default function PoolsScreen() {
                         </View>
                       )}
                     </View>
-                    <Text style={styles.nestedCatAmount}>
-                      {formatAUD(cat.enteredAmount || cat.monthlyAmount || 0)}
-                    </Text>
-                  </View>
+
+                    <View style={styles.nestedCatRight}>
+                      <View style={styles.nestedCatAmountCol}>
+                        <Text style={styles.nestedCatAmount}>
+                          ${parseFloat(cat.monthlyAmount || '0').toFixed(2)}/mo
+                        </Text>
+                        {cat.enteredAmount &&
+                          cat.budgetFrequency &&
+                          cat.budgetFrequency !== 'MONTHLY' && (
+                            <Text style={styles.nestedCatSubAmount}>
+                              (${parseFloat(cat.enteredAmount).toFixed(2)}/{cat.budgetFrequency.toLowerCase()})
+                            </Text>
+                          )}
+                      </View>
+                      <Feather name="chevron-right" size={14} color="#94A3B8" />
+                    </View>
+                  </TouchableOpacity>
                 ))}
               </View>
             )}
@@ -733,11 +753,25 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#BA1A1A',
   },
+  nestedCatRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  nestedCatAmountCol: {
+    alignItems: 'flex-end',
+  },
   nestedCatAmount: {
     fontSize: 12,
     fontWeight: '700',
     fontFamily: 'monospace',
     color: '#1B2B4B',
+  },
+  nestedCatSubAmount: {
+    fontSize: 10,
+    fontWeight: '500',
+    fontFamily: 'monospace',
+    color: '#94A3B8',
   },
   emptyCard: {
     backgroundColor: '#F8FAFC',

@@ -131,6 +131,24 @@ export function RecurringSchedulesTab({
         />
       </View>
 
+      {/* In-Screen Add Schedule Button */}
+      {onAddSchedule && (
+        <View style={styles.addScheduleRow}>
+          <TouchableOpacity
+            style={styles.addScheduleBtn}
+            onPress={() => onAddSchedule(setupSubSegment)}
+            activeOpacity={0.8}
+          >
+            <Feather name="plus" size={15} color="#FFFFFF" />
+            <Text style={styles.addScheduleBtnText}>
+              {setupSubSegment === 'INCOME'
+                ? t('payday.addIncomeSchedule')
+                : t('payday.addExpenseSchedule')}
+            </Text>
+          </TouchableOpacity>
+        </View>
+      )}
+
       <RecurringSchedulesCards
         setupSubSegment={setupSubSegment}
         isLoadingIncome={isLoadingIncome}
@@ -221,5 +239,28 @@ const styles = StyleSheet.create({
   },
   filterBtnTextActive: {
     color: '#2563eb',
+  },
+  addScheduleRow: {
+    marginBottom: 14,
+  },
+  addScheduleBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: '#2563eb',
+    borderRadius: 12,
+    paddingVertical: 11,
+    paddingHorizontal: 16,
+    shadowColor: '#2563eb',
+    shadowOpacity: 0.15,
+    shadowOffset: { width: 0, height: 2 },
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  addScheduleBtnText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#FFFFFF',
   },
 });

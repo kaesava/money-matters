@@ -128,6 +128,7 @@ export default function AppLayout() {
   return (
     <View style={styles.root}>
       <Tabs
+        backBehavior="history"
         screenOptions={{
           headerShown: false,
           tabBarStyle: [
@@ -189,6 +190,7 @@ export default function AppLayout() {
         <Tabs.Screen name="pools/projection" options={{ href: null }} />
         <Tabs.Screen name="categories/[id]" options={{ href: null }} />
         <Tabs.Screen name="paychecks/[id]" options={{ href: null }} />
+        <Tabs.Screen name="paychecks/schedules" options={{ href: null }} />
         <Tabs.Screen
           name="paychecks/transfer-instructions"
           options={{ href: null }}
