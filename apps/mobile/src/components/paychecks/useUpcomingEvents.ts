@@ -43,7 +43,7 @@ export function useUpcomingEvents({
       list.push({
         id: e.id,
         kind: 'INCOME',
-        name: e.name || t('badges.income') || 'Income',
+        name: e.name || t('badges.income'),
         expectedAmount: e.expectedAmount,
         expectedDate: e.expectedDate,
         accountId: acct?.id || targetBankId || null,
@@ -66,7 +66,7 @@ export function useUpcomingEvents({
       list.push({
         id: e.id,
         kind: 'EXPENSE',
-        name: e.name || t('badges.bill') || 'Expense',
+        name: e.name || t('badges.bill'),
         expectedAmount: e.expectedAmount,
         expectedDate: e.expectedDate,
         poolId: pool?.id || e.poolId || e.categoryId,
@@ -92,13 +92,13 @@ export function useUpcomingEvents({
       list.push({
         id: e.id,
         kind: 'TRANSFER',
-        name: e.name || t('common.transfer') || 'Transfer',
+        name: e.name || t('common.transfer'),
         expectedAmount: e.expectedAmount,
         expectedDate: e.expectedDate,
         sourcePoolId: e.sourcePoolId,
-        sourcePoolName: srcPool?.name || e.sourcePoolName || 'Source',
+        sourcePoolName: srcPool?.name || e.sourcePoolName || null,
         destinationPoolId: e.destinationPoolId,
-        destinationPoolName: dstPool?.name || e.destinationPoolName || 'Destination',
+        destinationPoolName: dstPool?.name || e.destinationPoolName || null,
         isPrivate: isPriv,
         rawTransfer: {
           id: e.id,

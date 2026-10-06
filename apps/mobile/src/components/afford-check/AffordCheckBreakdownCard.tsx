@@ -2,6 +2,7 @@ import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { DESIGN_TOKENS } from '@money-matters/ui/mobile';
+import { t } from '@money-matters/i18n';
 import { formatAUD } from '../../lib/format';
 
 interface AffordCheckBreakdownData {
@@ -28,32 +29,32 @@ export function AffordCheckBreakdownCard({ data }: AffordCheckBreakdownCardProps
   return (
     <>
       <View style={styles.breakdownCard}>
-        <Text style={styles.breakdownHeader}>Financial Details</Text>
+        <Text style={styles.breakdownHeader}>{t('canIAfford.detailsTitle')}</Text>
 
         {data.availableCash !== undefined && (
           <View style={styles.breakdownRow}>
-            <Text style={styles.breakdownLabel}>Available Cash</Text>
+            <Text style={styles.breakdownLabel}>{t('canIAfford.availableCash')}</Text>
             <Text style={styles.breakdownVal}>{formatAUD(data.availableCash)}</Text>
           </View>
         )}
 
         {data.everydayRemaining !== undefined && (
           <View style={styles.breakdownRow}>
-            <Text style={styles.breakdownLabel}>Everyday Remaining</Text>
+            <Text style={styles.breakdownLabel}>{t('canIAfford.everydayRemaining')}</Text>
             <Text style={styles.breakdownVal}>{formatAUD(data.everydayRemaining)}</Text>
           </View>
         )}
 
         {data.safeCushion !== undefined && (
           <View style={styles.breakdownRow}>
-            <Text style={styles.breakdownLabel}>Safe Buffer</Text>
+            <Text style={styles.breakdownLabel}>{t('canIAfford.safeBuffer')}</Text>
             <Text style={styles.breakdownVal}>{formatAUD(data.safeCushion)}</Text>
           </View>
         )}
 
         {data.upcomingBillsBeforePayday !== undefined && (
           <View style={styles.breakdownRow}>
-            <Text style={styles.breakdownLabel}>Upcoming Ring-fenced Bills</Text>
+            <Text style={styles.breakdownLabel}>{t('canIAfford.ringFencedBills')}</Text>
             <Text style={styles.breakdownVal}>
               {formatAUD(data.upcomingBillsBeforePayday)}
             </Text>
@@ -62,7 +63,7 @@ export function AffordCheckBreakdownCard({ data }: AffordCheckBreakdownCardProps
 
         {data.shortfallToday !== undefined && (
           <View style={styles.breakdownRow}>
-            <Text style={styles.breakdownLabel}>Shortfall Today</Text>
+            <Text style={styles.breakdownLabel}>{t('canIAfford.shortfallToday')}</Text>
             <Text style={styles.breakdownValNegative}>
               -{formatAUD(data.shortfallToday)}
             </Text>
@@ -71,7 +72,7 @@ export function AffordCheckBreakdownCard({ data }: AffordCheckBreakdownCardProps
 
         {data.shortfall !== undefined && (
           <View style={styles.breakdownRow}>
-            <Text style={styles.breakdownLabel}>Estimated Shortfall</Text>
+            <Text style={styles.breakdownLabel}>{t('canIAfford.estimatedShortfall')}</Text>
             <Text style={styles.breakdownValNegative}>
               -{formatAUD(data.shortfall)}
             </Text>
@@ -83,9 +84,11 @@ export function AffordCheckBreakdownCard({ data }: AffordCheckBreakdownCardProps
         <View style={styles.goalDelayCard}>
           <Feather name="alert-triangle" size={16} color={DESIGN_TOKENS.colors.warningDark} />
           <View style={styles.flex1}>
-            <Text style={styles.goalDelayTitle}>Goal Impact</Text>
+            <Text style={styles.goalDelayTitle}>{t('canIAfford.goalImpactTitle')}</Text>
             <Text style={styles.goalDelayText}>
-              This commitment delays {data.goalDelays.map((g) => `${g.goalName} (+${g.delayDays}d)`).join(', ')}.
+              {t('canIAfford.goalImpactText', {
+                goals: data.goalDelays.map((g) => `${g.goalName} (+${g.delayDays}d)`).join(', '),
+              })}
             </Text>
           </View>
         </View>
@@ -95,9 +98,13 @@ export function AffordCheckBreakdownCard({ data }: AffordCheckBreakdownCardProps
         <View style={styles.goalDelayCard}>
           <Feather name="target" size={16} color={DESIGN_TOKENS.colors.sereneBlue} />
           <View style={styles.flex1}>
-            <Text style={styles.goalDelayTitle}>Goal Alternative Available</Text>
+            <Text style={styles.goalDelayTitle}>{t('canIAfford.goalAlternativeAvailableTitle')}</Text>
             <Text style={styles.goalDelayText}>
-              You could borrow {formatAUD(data.goalAlternative.shortfallCovered)} from {data.goalAlternative.goalName} (delays goal by {data.goalAlternative.delayDays} days).
+              {t('canIAfford.goalAlternativeAvailableText', {
+                amount: formatAUD(data.goalAlternative.shortfallCovered),
+                goalName: data.goalAlternative.goalName,
+                delayDays: data.goalAlternative.delayDays,
+              })}
             </Text>
           </View>
         </View>

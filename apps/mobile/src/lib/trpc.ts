@@ -7,47 +7,21 @@ import { authClient } from "./auth";
 export const trpc = createTRPCReact<AppRouter>();
 
 import * as SecureStore from "expo-secure-store";
+import {
+  setActiveSessionToken,
+  getActiveSessionToken,
+  setActiveTenantId,
+  getActiveTenantId,
+  switchActiveTenant,
+} from "./trpc-session";
 
-let activeSessionToken: string | null = null;
-let activeTenantId: string | null = null;
-
-export function setActiveSessionToken(token: string | null) {
-  activeSessionToken = token;
-}
-
-export function setActiveTenantId(tenantId: string | null) {
-  activeTenantId = tenantId;
-  if (tenantId) {
-    SecureStore.setItemAsync("money_matters_active_tenant_id", tenantId).catch(() => {});
-  } else {
-    SecureStore.deleteItemAsync("money_matters_active_tenant_id").catch(() => {});
-  }
-}
-
-export function getActiveTenantId(): string | null {
-  return activeTenantId;
-}
-
-export async function switchActiveTenant(
-  tenantId: string,
-  queryClientOrUtils?: {
-    invalidateQueries?: () => Promise<unknown> | void;
-    invalidate?: () => Promise<unknown> | void;
-  }
-) {
-  setActiveTenantId(tenantId);
-  if (queryClientOrUtils) {
-    try {
-      if (typeof queryClientOrUtils.invalidate === 'function') {
-        await queryClientOrUtils.invalidate();
-      } else if (typeof queryClientOrUtils.invalidateQueries === 'function') {
-        await queryClientOrUtils.invalidateQueries();
-      }
-    } catch (err) {
-      console.warn('[switchActiveTenant] Invalidation failed:', err);
-    }
-  }
-}
+export {
+  setActiveSessionToken,
+  getActiveSessionToken,
+  setActiveTenantId,
+  getActiveTenantId,
+  switchActiveTenant,
+};
 
 import { Platform } from "react-native";
 
@@ -178,7 +152,7 @@ export function buildTrpcClient() {
 
             // 401 Unauthorized Interceptor: Stale token detected; purge and refresh
             if (res.status === 401) {
-              activeSessionToken = null;
+              setActiveSessionToken(null);
               await SecureStore.deleteItemAsync("money-matters_session_token").catch(() => {});
               await SecureStore.deleteItemAsync("money-matters-session-token").catch(() => {});
 
@@ -202,7 +176,7 @@ export function buildTrpcClient() {
               }
 
               if (freshToken) {
-                activeSessionToken = freshToken;
+                setActiveSessionToken(freshToken);
                 await SecureStore.setItemAsync("money-matters_session_token", freshToken).catch(() => {});
                 const newHeaders: Record<string, string> = {
                   ...((options?.headers as Record<string, string>) || {}),
@@ -236,15 +210,15 @@ export function buildTrpcClient() {
         },
         async headers() {
           const { token: storedToken, cookie } = await getStoredTokenAndCookie();
-          let token = storedToken || activeSessionToken;
+          let token = storedToken || getActiveSessionToken();
           if (token) {
-            activeSessionToken = token;
+            setActiveSessionToken(token);
           }
 
-          let tenantId = activeTenantId;
+          let tenantId = getActiveTenantId();
           if (!tenantId) {
             tenantId = await SecureStore.getItemAsync("money_matters_active_tenant_id");
-            if (tenantId) activeTenantId = tenantId;
+            if (tenantId) setActiveTenantId(tenantId);
           }
 
           const headersObj: Record<string, string> = {};

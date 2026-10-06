@@ -2,21 +2,19 @@ import React from 'react';
 import {
   View,
   Text,
-  TextInput,
   TouchableOpacity,
-  Image,
   ScrollView,
   StyleSheet,
 } from 'react-native';
-import { Feather } from '@expo/vector-icons';
 import {
   MobileButton,
   FormLabel,
-  FormFieldError,
-  SwitchRow,
+  DESIGN_TOKENS,
 } from '@money-matters/ui/mobile';
 import { t } from '@money-matters/i18n';
-import { SUPPORTED_LOCALES, COMMON_TIMEZONES } from '@money-matters/types';
+import { ProfileAvatarSection } from './profile/ProfileAvatarSection';
+import { ProfileContactFields } from './profile/ProfileContactFields';
+import { ProfilePreferencesFields } from './profile/ProfilePreferencesFields';
 
 interface MobileProfileEditViewProps {
   name: string;
@@ -57,7 +55,6 @@ export function MobileProfileEditView({
   onPickAvatar,
   timezone,
   setTimezone,
-  language,
   setLanguage,
   locale,
   setLocale,
@@ -67,15 +64,6 @@ export function MobileProfileEditView({
   onSave,
   onCancel,
 }: MobileProfileEditViewProps) {
-  const initials = name
-    ? name
-        .split(' ')
-        .map((w) => w[0])
-        .join('')
-        .toUpperCase()
-        .slice(0, 2)
-    : '?';
-
   return (
     <View style={styles.card}>
       <View style={styles.headerRow}>
@@ -88,77 +76,24 @@ export function MobileProfileEditView({
       </View>
 
       {/* Avatar Picker Row */}
-      <View style={styles.avatarRow}>
-        <View style={styles.avatarContainer}>
-          {avatarUri ? (
-            <Image source={{ uri: avatarUri }} style={styles.avatarImg} />
-          ) : (
-            <View style={styles.avatarPlaceholder}>
-              <Text style={styles.avatarInitials}>{initials}</Text>
-            </View>
-          )}
-          <TouchableOpacity onPress={onPickAvatar} style={styles.cameraPill}>
-            <Feather name="camera" size={14} color="#FFFFFF" />
-          </TouchableOpacity>
-        </View>
+      <ProfileAvatarSection
+        avatarUri={avatarUri}
+        name={name}
+        onPickAvatar={onPickAvatar}
+      />
 
-        <TouchableOpacity onPress={onPickAvatar} style={styles.changePhotoBtn}>
-          <Text style={styles.changePhotoText}>{t('settings.avatarUploadLabel')}</Text>
-        </TouchableOpacity>
-      </View>
-
-      {/* Name (Mandatory) */}
-      <View style={styles.inputGroup}>
-        <FormLabel label={t('settings.displayNameLabel')} required />
-        <TextInput
-          style={styles.textInput}
-          value={name}
-          onChangeText={setName}
-          placeholder={t('settings.displayNamePlaceholder')}
-          placeholderTextColor="#94A3B8"
-        />
-        {!name.trim() && (
-          <FormFieldError error={t('settings.displayNameRequired')} />
-        )}
-      </View>
-
-      {/* Notification Email (Mandatory) */}
-      <View style={styles.inputGroup}>
-        <FormLabel label={t('settings.notificationEmailLabel')} required />
-        <TextInput
-          style={styles.textInput}
-          value={notificationEmail}
-          onChangeText={setNotificationEmail}
-          placeholder="alerts@example.com"
-          placeholderTextColor="#94A3B8"
-          keyboardType="email-address"
-          autoCapitalize="none"
-        />
-        <Text style={styles.hintText}>{t('settings.notificationEmailHint')}</Text>
-      </View>
-
-      {/* Phone Number */}
-      <View style={styles.inputGroup}>
-        <FormLabel label={t('settings.phoneNumberLabel')} />
-        <View style={styles.phoneRow}>
-          <TextInput
-            style={styles.phoneCodeInput}
-            value={phoneCountryCode}
-            onChangeText={setPhoneCountryCode}
-            placeholder="+61"
-            placeholderTextColor="#94A3B8"
-          />
-          <TextInput
-            style={styles.phoneNumberInput}
-            value={phoneNumber}
-            onChangeText={setPhoneNumber}
-            placeholder="412 345 678"
-            placeholderTextColor="#94A3B8"
-            keyboardType="phone-pad"
-          />
-        </View>
-        {phoneError ? <FormFieldError error={phoneError} /> : null}
-      </View>
+      {/* Contact Fields (Name, Notification Email, Phone Number) */}
+      <ProfileContactFields
+        name={name}
+        setName={setName}
+        notificationEmail={notificationEmail}
+        setNotificationEmail={setNotificationEmail}
+        phoneCountryCode={phoneCountryCode}
+        setPhoneCountryCode={setPhoneCountryCode}
+        phoneNumber={phoneNumber}
+        setPhoneNumber={setPhoneNumber}
+        phoneError={phoneError}
+      />
 
       {/* Language */}
       <View style={styles.inputGroup}>
@@ -175,54 +110,14 @@ export function MobileProfileEditView({
         </View>
       </View>
 
-      {/* Date Format */}
-      <View style={styles.inputGroup}>
-        <FormLabel label={t('settings.dateFormat')} />
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.scrollRow}>
-          {SUPPORTED_LOCALES.map((l) => {
-            const isSelected = locale === l.code;
-            return (
-              <TouchableOpacity
-                key={l.code}
-                onPress={() => setLocale(l.code)}
-                style={[styles.chip, isSelected && styles.chipSelected]}
-              >
-                <Text style={[styles.chipText, isSelected && styles.chipTextSelected]}>
-                  {l.label} ({l.dateFormatExample})
-                </Text>
-              </TouchableOpacity>
-            );
-          })}
-        </ScrollView>
-      </View>
-
-      {/* Timezone (COMMON_TIMEZONES) */}
-      <View style={styles.inputGroup}>
-        <FormLabel label={t('settings.items.timezone')} />
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.scrollRow}>
-          {COMMON_TIMEZONES.map((tz) => {
-            const isSelected = timezone === tz.value;
-            return (
-              <TouchableOpacity
-                key={tz.value}
-                onPress={() => setTimezone(tz.value)}
-                style={[styles.chip, isSelected && styles.chipSelected]}
-              >
-                <Text style={[styles.chipText, isSelected && styles.chipTextSelected]}>
-                  {tz.label}
-                </Text>
-              </TouchableOpacity>
-            );
-          })}
-        </ScrollView>
-      </View>
-
-      {/* Show Icons Switch */}
-      <SwitchRow
-        label={t('settings.items.showIcons')}
-        hint={t('settings.items.showIconsHint')}
-        value={showIcons}
-        onValueChange={setShowIcons}
+      {/* Preferences (Locale, Timezone, Icons) */}
+      <ProfilePreferencesFields
+        locale={locale}
+        setLocale={setLocale}
+        timezone={timezone}
+        setTimezone={setTimezone}
+        showIcons={showIcons}
+        setShowIcons={setShowIcons}
       />
 
       {/* Bottom Actions */}
@@ -246,10 +141,10 @@ export function MobileProfileEditView({
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: DESIGN_TOKENS.colors.surface,
     borderRadius: 18,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: DESIGN_TOKENS.colors.border,
     padding: 16,
     gap: 14,
   },
@@ -261,7 +156,7 @@ const styles = StyleSheet.create({
   cardTitle: {
     fontSize: 15,
     fontWeight: '800',
-    color: '#1B2B4B',
+    color: DESIGN_TOKENS.colors.primary,
   },
   actionRow: {
     flexDirection: 'row',
@@ -272,136 +167,43 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 6,
     borderRadius: 8,
-    backgroundColor: '#F1F5F9',
+    backgroundColor: DESIGN_TOKENS.colors.slate[100],
   },
   cancelBtnText: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#475569',
-  },
-  avatarRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 14,
-    backgroundColor: '#F8FAFC',
-    borderRadius: 14,
-    padding: 12,
-  },
-  avatarContainer: {
-    position: 'relative',
-  },
-  avatarImg: {
-    width: 54,
-    height: 54,
-    borderRadius: 27,
-  },
-  avatarPlaceholder: {
-    width: 54,
-    height: 54,
-    borderRadius: 27,
-    backgroundColor: '#1B2B4B',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  avatarInitials: {
-    color: '#FFFFFF',
-    fontSize: 18,
-    fontWeight: '800',
-  },
-  cameraPill: {
-    position: 'absolute',
-    bottom: 0,
-    right: 0,
-    backgroundColor: '#2563eb',
-    borderRadius: 10,
-    padding: 4,
-    borderWidth: 1.5,
-    borderColor: '#FFFFFF',
-  },
-  changePhotoBtn: {
-    paddingVertical: 6,
-    paddingHorizontal: 12,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#CBD5E1',
-    alignSelf: 'flex-start',
-  },
-  changePhotoText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#2563eb',
+    color: DESIGN_TOKENS.colors.slate[600],
   },
   inputGroup: {
     gap: 6,
   },
-  textInput: {
-    backgroundColor: '#FFFFFF',
-    borderWidth: 1,
-    borderColor: '#CBD5E1',
-    borderRadius: 10,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    fontSize: 14,
-    color: '#1B2B4B',
-  },
-  hintText: {
-    fontSize: 11,
-    color: '#64748B',
-    marginTop: 2,
-  },
-  phoneRow: {
-    flexDirection: 'row',
-    gap: 8,
-  },
-  phoneCodeInput: {
-    width: 80,
-    backgroundColor: '#FFFFFF',
-    borderWidth: 1,
-    borderColor: '#CBD5E1',
-    borderRadius: 10,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    fontSize: 14,
-    color: '#1B2B4B',
-  },
-  phoneNumberInput: {
-    flex: 1,
-    backgroundColor: '#FFFFFF',
-    borderWidth: 1,
-    borderColor: '#CBD5E1',
-    borderRadius: 10,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    fontSize: 14,
-    color: '#1B2B4B',
-  },
   chipRow: {
     flexDirection: 'row',
-    gap: 8,
   },
   scrollRow: {
     flexDirection: 'row',
   },
   chip: {
+    flexDirection: 'row',
+    alignItems: 'center',
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderRadius: 10,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
-    backgroundColor: '#F8FAFC',
+    borderColor: DESIGN_TOKENS.colors.border,
+    backgroundColor: DESIGN_TOKENS.colors.background,
     marginRight: 8,
   },
   chipSelected: {
-    backgroundColor: '#EFF6FF',
-    borderColor: '#2563eb',
+    backgroundColor: DESIGN_TOKENS.colors.accentLight,
+    borderColor: DESIGN_TOKENS.colors.sereneBlue,
   },
   chipText: {
     fontSize: 12,
-    color: '#475569',
+    color: DESIGN_TOKENS.colors.slate[600],
   },
   chipTextSelected: {
-    color: '#2563eb',
+    color: DESIGN_TOKENS.colors.sereneBlue,
     fontWeight: '700',
   },
   footerRow: {

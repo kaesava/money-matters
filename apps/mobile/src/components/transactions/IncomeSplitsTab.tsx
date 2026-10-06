@@ -1,10 +1,19 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, RefreshControl } from 'react-native';
+import { View, Text, StyleSheet, FlatList, RefreshControl } from 'react-native';
 import { Feather } from '@expo/vector-icons';
-import { SearchInput, MobilePaginationBar, SkeletonCard, MobileFilterSheet } from '@money-matters/ui/mobile';
+import {
+  MobilePaginationBar,
+  SkeletonCard,
+  MobileFilterSheet,
+  DESIGN_TOKENS,
+} from '@money-matters/ui/mobile';
 import { t } from '@money-matters/i18n';
-import { formatAUD, formatDate } from '../../lib/format';
-import { MobilePaydayAllocationDetailModal, MobilePaydayAllocationRecord } from '../paychecks/MobilePaydayAllocationDetailModal';
+import {
+  MobilePaydayAllocationDetailModal,
+  MobilePaydayAllocationRecord,
+} from '../paychecks/MobilePaydayAllocationDetailModal';
+import { IncomeSplitHistoryRow } from './splits/IncomeSplitHistoryRow';
+import { IncomeSplitsHeaderControls } from './IncomeSplitsHeaderControls';
 
 interface IncomeSplitsTabProps {
   plans: MobilePaydayAllocationRecord[];
@@ -17,7 +26,9 @@ interface IncomeSplitsTabProps {
   onBankChange: (id: string) => void;
   sortField: 'createdAt' | 'expectedDate' | 'incomeName' | 'receivingAccount' | 'amount';
   sortDir: 'asc' | 'desc';
-  onSortFieldChange: (field: 'createdAt' | 'expectedDate' | 'incomeName' | 'receivingAccount' | 'amount') => void;
+  onSortFieldChange: (
+    field: 'createdAt' | 'expectedDate' | 'incomeName' | 'receivingAccount' | 'amount'
+  ) => void;
   onSortDirChange: (dir: 'asc' | 'desc') => void;
   page: number;
   pageSize: number;
@@ -57,83 +68,36 @@ export function IncomeSplitsTab({
   return (
     <View style={styles.container}>
       {/* Search & Filter Header */}
-      <View style={styles.lockedHeader}>
-        <View style={styles.controlsRow}>
-          <View style={{ flex: 1 }}>
-            <SearchInput
-              placeholder={t('transactions.searchPaydaysPlaceholder')}
-              value={searchQuery}
-              onChangeText={onSearchChange}
-            />
-          </View>
-
-          <TouchableOpacity
-            style={[styles.filterBtn, activeCount > 0 && styles.filterBtnActive]}
-            onPress={() => setFilterSheetVisible(true)}
-            activeOpacity={0.7}
-          >
-            <Feather name="sliders" size={15} color={activeCount > 0 ? '#2563eb' : '#64748B'} />
-            <Text style={[styles.filterBtnText, activeCount > 0 && styles.filterBtnTextActive]}>
-              {t('common.filter')}
-              {activeCount > 0 ? ` (${activeCount})` : ''}
-            </Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            onPress={onExportCsv}
-            style={styles.csvBtn}
-            disabled={plans.length === 0}
-            activeOpacity={0.7}
-          >
-            <Feather name="download" size={14} color="#2563eb" />
-          </TouchableOpacity>
-        </View>
-      </View>
+      <IncomeSplitsHeaderControls
+        searchQuery={searchQuery}
+        onSearchChange={onSearchChange}
+        activeCount={activeCount}
+        onOpenFilterSheet={() => setFilterSheetVisible(true)}
+        onExportCsv={onExportCsv}
+        canExport={plans.length > 0}
+      />
 
       {/* Plans List */}
       <FlatList
         data={paginatedPlans}
         keyExtractor={(item) => item.id}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#2563eb" />}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor={DESIGN_TOKENS.colors.sereneBlue}
+          />
+        }
         contentContainerStyle={styles.listContent}
         renderItem={({ item }) => (
-          <TouchableOpacity
-            style={styles.planCard}
-            onPress={() => setSelectedPlan(item)}
-            activeOpacity={0.7}
-          >
-            <View style={styles.planHeader}>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.planTitle}>{item.incomeName || 'Income Deposit'}</Text>
-                <Text style={styles.planSubtitle}>{item.receivingAccountName || 'Main Account'}</Text>
-              </View>
-              <Text style={styles.planAmount}>+{formatAUD(item.totalIncomeAmount)}</Text>
-            </View>
-
-            <View style={styles.planFooter}>
-              <View style={styles.datesCol}>
-                <Text style={styles.planDateText}>
-                  <Text style={styles.planDateLabel}>{t('paydayDrawer.incomeDate')}: </Text>
-                  {formatDate(item.expectedDate)}
-                </Text>
-                <Text style={styles.planDateText}>
-                  <Text style={styles.planDateLabel}>{t('paydayDrawer.incomeSplitDate')}: </Text>
-                  {formatDate(item.createdAt || item.expectedDate)}
-                </Text>
-              </View>
-              <View style={styles.detailsBtn}>
-                <Text style={styles.detailsBtnText}>{t('transactions.details')}</Text>
-                <Feather name="chevron-right" size={14} color="#2563eb" />
-              </View>
-            </View>
-          </TouchableOpacity>
+          <IncomeSplitHistoryRow item={item} onPress={() => setSelectedPlan(item)} />
         )}
         ListEmptyComponent={
           isLoading ? (
             <SkeletonCard count={4} />
           ) : (
             <View style={styles.emptyContainer}>
-              <Feather name="layers" size={32} color="#94A3B8" />
+              <Feather name="layers" size={32} color={DESIGN_TOKENS.colors.subtleText} />
               <Text style={styles.emptyTitle}>{t('transactions.noTransactionsFound')}</Text>
               <Text style={styles.emptySubtitle}>{t('transactions.emptySubtitle')}</Text>
             </View>
@@ -163,25 +127,29 @@ export function IncomeSplitsTab({
         sortField={sortField}
         sortOrder={sortDir}
         sortOptions={[
-          { id: 'expectedDate', label: t('common.date') || 'Date' },
-          { id: 'amount', label: t('common.amount') || 'Amount' },
-          { id: 'incomeName', label: t('common.name') || 'Income Source' },
-          { id: 'receivingAccount', label: t('bankAccounts.title') || 'Bank Account' },
-          { id: 'createdAt', label: t('common.created') || 'Created At' },
+          { id: 'expectedDate', label: t('transactions.date') },
+          { id: 'amount', label: t('transactions.amount') },
+          { id: 'incomeName', label: t('transactions.description') },
+          { id: 'receivingAccount', label: t('bankAccounts.title') },
+          { id: 'createdAt', label: t('common.created') },
         ]}
-        onSortFieldChange={(f) => onSortFieldChange(f as any)}
+        onSortFieldChange={(f) =>
+          onSortFieldChange(
+            f as 'createdAt' | 'expectedDate' | 'incomeName' | 'receivingAccount' | 'amount'
+          )
+        }
         onSortOrderChange={onSortDirChange}
         sections={[
           {
             id: 'bank',
-            title: t('bankAccounts.title') || 'Receiving Account',
+            title: t('bankAccounts.title'),
             selectedValue: selectedBankId,
             onSelect: (id: string) => {
               onBankChange(id);
               onPageChange(1);
             },
             options: [
-              { id: 'ALL', label: t('common.all') || 'All Accounts' },
+              { id: 'ALL', label: t('common.all') },
               ...bankAccounts.map((b) => ({ id: b.id, label: b.name })),
             ],
           },
@@ -206,114 +174,10 @@ export function IncomeSplitsTab({
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  lockedHeader: {
-    backgroundColor: '#FFFFFF',
-    borderBottomWidth: 1,
-    borderBottomColor: '#F1F5F9',
-    paddingHorizontal: 16,
-    paddingTop: 8,
-    paddingBottom: 10,
-  },
-  controlsRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  filterBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    backgroundColor: '#F8FAFC',
-    borderRadius: 12,
-    borderWidth: 1.5,
-    borderColor: '#E2E8F0',
-    gap: 6,
-  },
-  filterBtnActive: {
-    backgroundColor: '#EFF6FF',
-    borderColor: '#2563eb',
-  },
-  filterBtnText: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: '#64748B',
-  },
-  filterBtnTextActive: {
-    color: '#2563eb',
-  },
-  csvBtn: {
-    padding: 10,
-    backgroundColor: '#F8FAFC',
-    borderRadius: 12,
-    borderWidth: 1.5,
-    borderColor: '#E2E8F0',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
   listContent: {
     paddingHorizontal: 16,
     paddingVertical: 8,
     gap: 10,
-  },
-  planCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    padding: 14,
-    gap: 10,
-  },
-  planHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-  },
-  planTitle: {
-    fontSize: 14,
-    fontWeight: '800',
-    color: '#1B2B4B',
-  },
-  planSubtitle: {
-    fontSize: 12,
-    color: '#64748B',
-    marginTop: 2,
-  },
-  planAmount: {
-    fontSize: 15,
-    fontWeight: '900',
-    fontFamily: 'monospace',
-    color: '#22c55e',
-  },
-  planFooter: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    borderTopWidth: 1,
-    borderTopColor: '#F8FAFC',
-    paddingTop: 8,
-  },
-  datesCol: {
-    flex: 1,
-    gap: 2,
-  },
-  planDateText: {
-    fontSize: 11,
-    color: '#64748B',
-  },
-  planDateLabel: {
-    fontWeight: '700',
-    color: '#94A3B8',
-  },
-  detailsBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 2,
-  },
-  detailsBtnText: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: '#2563eb',
   },
   emptyContainer: {
     alignItems: 'center',
@@ -323,11 +187,11 @@ const styles = StyleSheet.create({
   emptyTitle: {
     fontSize: 15,
     fontWeight: '800',
-    color: '#1B2B4B',
+    color: DESIGN_TOKENS.colors.primary,
   },
   emptySubtitle: {
     fontSize: 12,
-    color: '#94A3B8',
+    color: DESIGN_TOKENS.colors.subtleText,
     textAlign: 'center',
   },
   paginationWrap: {

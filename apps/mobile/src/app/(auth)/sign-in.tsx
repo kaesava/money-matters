@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React from "react";
 import {
   View,
   Text,
@@ -8,176 +8,24 @@ import {
   KeyboardAvoidingView,
   Platform,
 } from "react-native";
-import { useRouter, useLocalSearchParams } from "expo-router";
+import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { usePostHog } from "posthog-react-native";
 import { t } from "@money-matters/i18n";
 import {
   DESIGN_TOKENS,
   MobileLogo,
   MobileButton,
-  MobileInput,
-  FormLabel,
   FormErrorBanner,
 } from "@money-matters/ui/mobile";
-import { SignInInputSchema, isValidEmail } from "@money-matters/types";
-import { authClient } from "../../lib/auth";
-import { trpc, setActiveSessionToken, setActiveTenantId, switchActiveTenant } from "../../lib/trpc";
-import * as SecureStore from "expo-secure-store";
-import { registerPushNotificationsAsync } from "../../lib/push";
 import { MobileSocialAuthButtons } from "../../components/auth/MobileSocialAuthButtons";
 import { MobileOtpVerificationView } from "../../components/auth/MobileOtpVerificationView";
+import { SignInEmailPasswordFields } from "../../components/auth/SignInEmailPasswordFields";
+import { useSignInForm } from "../../components/auth/useSignInForm";
 
 export default function SignInScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const posthog = usePostHog();
-  const searchParams = useLocalSearchParams<{ email?: string; reason?: string }>();
-  const utils = trpc.useUtils();
-
-  const [email, setEmail] = useState(searchParams.email ? String(searchParams.email).trim().toLowerCase() : "");
-  const [password, setPassword] = useState("");
-  const [fieldErrors, setFieldErrors] = useState<{ email?: string; password?: string }>({});
-  const [error, setError] = useState<string | null>(
-    searchParams.reason === "existing" ? t("auth.userAlreadyExists") : null
-  );
-  const [loading, setLoading] = useState(false);
-
-  // State for unverified email / OTP requirement
-  const [unverifiedEmail, setUnverifiedEmail] = useState<string | null>(null);
-  const [passwordForOtp, setPasswordForOtp] = useState<string | undefined>(undefined);
-
-  const registerToken = trpc.registerToken.useMutation();
-
-  const handleSignIn = async () => {
-    setError(null);
-    setFieldErrors({});
-
-    const validation = SignInInputSchema.safeParse({ email: email.trim().toLowerCase(), password });
-    if (!validation.success) {
-      const formatted = validation.error.format();
-      setFieldErrors({
-        email: formatted.email?._errors[0] === "invalidEmail" ? t("validation.invalidEmail") : t("auth.fillAllFields"),
-        password: formatted.password?._errors[0] ? t("auth.fillAllFields") : undefined,
-      });
-      return;
-    }
-
-    setLoading(true);
-    try {
-      const result = await authClient.signIn.email({
-        email: email.trim().toLowerCase(),
-        password,
-      });
-
-      if (result.error) {
-        const msg = result.error.message || "";
-        const lowerMsg = msg.toLowerCase();
-        // Check if error indicates email needs verification
-        if (
-          lowerMsg.includes("email_not_verified") ||
-          lowerMsg.includes("not verified") ||
-          lowerMsg.includes("verify your email")
-        ) {
-          try {
-            await authClient.emailOtp.sendVerificationOtp({
-              email: email.trim().toLowerCase(),
-              type: "email-verification",
-            });
-          } catch (_e) {
-            // Ignore failure if otp already sent
-          }
-          setUnverifiedEmail(email.trim().toLowerCase());
-          setPasswordForOtp(password);
-          return;
-        }
-
-        setError(t("auth.signInFailed"));
-        return;
-      }
-
-      let sessionToken =
-        (result.data as { session?: { token?: string }; token?: string })?.session?.token ||
-        (result.data as { token?: string })?.token;
-
-      if (!sessionToken) {
-        try {
-          const sessionRes = await authClient.getSession();
-          sessionToken =
-            (sessionRes?.data as { session?: { token?: string }; token?: string })?.session?.token ||
-            (sessionRes?.data as { token?: string })?.token;
-        } catch {
-          // Ignore
-        }
-      }
-
-      if (sessionToken) {
-        await SecureStore.setItemAsync("money-matters_session_token", sessionToken);
-        await SecureStore.setItemAsync("money-matters-session-token", sessionToken);
-        setActiveSessionToken(sessionToken);
-      }
-      if (result.data?.user?.email) {
-        await SecureStore.setItemAsync("money-matters_user_email", result.data.user.email);
-      }
-      if (result.data?.user?.name) {
-        await SecureStore.setItemAsync("money-matters_user_name", result.data.user.name);
-      }
-
-      const userId = result.data?.user?.id;
-      if (userId) {
-        posthog.identify(userId, {
-          $set: { name: result.data?.user?.name },
-        });
-      }
-      posthog.capture("user_signed_in", { method: "email" });
-
-      try {
-        // Clear active tenant ID so that getTenantStatus automatically resolves the user's primary OWNER tenant
-        setActiveTenantId(null);
-        await SecureStore.deleteItemAsync("money_matters_active_tenant_id").catch(() => {});
-
-        const tenantStatus = await utils.client.getTenantStatus.query();
-        if (tenantStatus?.tenantId) {
-          await switchActiveTenant(tenantStatus.tenantId, utils);
-        }
-      } catch (tenantErr) {
-        console.warn("Could not resolve tenant status on sign-in:", tenantErr);
-      }
-
-      try {
-        const tokenData = await registerPushNotificationsAsync();
-        if (tokenData) {
-          registerToken.mutate({
-            platform: Platform.OS === "ios" ? "ios" : "android",
-            token: tokenData,
-          });
-        }
-      } catch (pushErr) {
-        console.warn("Could not register push token:", pushErr);
-      }
-
-      router.replace("/(app)/home");
-    } catch (_err) {
-      setError(t("auth.signInFailed"));
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleOtpSuccess = async () => {
-    setUnverifiedEmail(null);
-    try {
-      const tenantStatus = await utils.client.getTenantStatus.query();
-      if (tenantStatus?.tenantId) {
-        await switchActiveTenant(tenantStatus.tenantId, utils);
-      }
-    } catch (tenantErr) {
-      console.warn("Could not resolve tenant status on OTP success:", tenantErr);
-    }
-    router.replace("/(app)/home");
-  };
-
-  const isFormValid = isValidEmail(email) && password.length > 0;
+  const form = useSignInForm();
 
   return (
     <KeyboardAvoidingView
@@ -194,33 +42,27 @@ export default function SignInScreen() {
         ]}
         keyboardShouldPersistTaps="handled"
       >
-        {/* Brand Header */}
         <View style={styles.brandBlock}>
           <MobileLogo size={64} source={require("../../../assets/icon.png")} />
           <Text style={styles.title}>
-            {unverifiedEmail ? t("auth.checkYourEmailTitle") : t("auth.signIn")}
+            {form.unverifiedEmail ? t("auth.checkYourEmailTitle") : t("auth.signIn")}
           </Text>
           <Text style={styles.subtitle}>
-            {unverifiedEmail ? t("auth.otpLabel") : t("app.tagline")}
+            {form.unverifiedEmail ? t("auth.otpLabel") : t("app.tagline")}
           </Text>
         </View>
 
-        {unverifiedEmail ? (
+        {form.unverifiedEmail ? (
           <MobileOtpVerificationView
-            email={unverifiedEmail}
-            password={passwordForOtp}
-            onSuccess={handleOtpSuccess}
-            onCancel={() => setUnverifiedEmail(null)}
+            email={form.unverifiedEmail}
+            password={form.passwordForOtp}
+            onSuccess={form.handleOtpSuccess}
+            onCancel={() => form.setUnverifiedEmail(null)}
           />
         ) : (
           <View style={styles.form}>
-            <FormErrorBanner message={error} />
-
-            {/* Social Auth Buttons */}
-            <MobileSocialAuthButtons
-              mode="signIn"
-              onError={(msg) => setError(msg)}
-            />
+            <FormErrorBanner message={form.error} />
+            <MobileSocialAuthButtons mode="signIn" onError={(msg) => form.setError(msg)} />
 
             <View style={styles.dividerRow}>
               <View style={styles.dividerLine} />
@@ -228,52 +70,19 @@ export default function SignInScreen() {
               <View style={styles.dividerLine} />
             </View>
 
-            {/* Email Field */}
-            <View style={styles.inputGroup}>
-              <FormLabel required={true}>{t("auth.emailLabel")}</FormLabel>
-              <MobileInput
-                value={email}
-                onChangeText={(val) => {
-                  setEmail(val);
-                  if (fieldErrors.email) setFieldErrors((prev) => ({ ...prev, email: undefined }));
-                }}
-                placeholder={t("auth.emailPlaceholder")}
-                keyboardType="email-address"
-                autoCapitalize="none"
-                autoComplete="email"
-                textContentType="emailAddress"
-                error={fieldErrors.email}
-              />
-            </View>
-
-            {/* Password Field */}
-            <View style={styles.inputGroup}>
-              <FormLabel required={true}>{t("auth.passwordLabel")}</FormLabel>
-              <MobileInput
-                value={password}
-                onChangeText={(val) => {
-                  setPassword(val);
-                  if (fieldErrors.password) setFieldErrors((prev) => ({ ...prev, password: undefined }));
-                }}
-                placeholder={t("auth.passwordPlaceholder")}
-                secureTextEntry
-                autoComplete="password"
-                textContentType="password"
-                error={fieldErrors.password}
-              />
-            </View>
-
-            <TouchableOpacity
-              style={styles.forgotRow}
-              onPress={() => router.push("/(auth)/forgot-password")}
-            >
-              <Text style={styles.forgotText}>{t("auth.forgotPassword")}</Text>
-            </TouchableOpacity>
+            <SignInEmailPasswordFields
+              email={form.email}
+              setEmail={form.setEmail}
+              password={form.password}
+              setPassword={form.setPassword}
+              fieldErrors={form.fieldErrors}
+              setFieldErrors={form.setFieldErrors}
+            />
 
             <MobileButton
-              onPress={handleSignIn}
-              loading={loading}
-              disabled={!isFormValid || loading}
+              onPress={form.handleSignIn}
+              loading={form.loading}
+              disabled={!form.isFormValid || form.loading}
               variant="primary"
             >
               {t("auth.signInCta")}
@@ -281,8 +90,7 @@ export default function SignInScreen() {
           </View>
         )}
 
-        {/* Footer nav */}
-        {!unverifiedEmail && (
+        {!form.unverifiedEmail && (
           <View style={styles.footer}>
             <Text style={styles.footerPrompt}>{t("auth.signUpPrompt")} </Text>
             <TouchableOpacity onPress={() => router.push("/(auth)/sign-up")}>
@@ -319,9 +127,6 @@ const styles = StyleSheet.create({
     maxWidth: 280,
   },
   form: { gap: 14 },
-  inputGroup: { gap: 4 },
-  forgotRow: { alignItems: "flex-end", marginTop: 4, marginBottom: 10 },
-  forgotText: { fontSize: 12, color: DESIGN_TOKENS.colors.accent, fontWeight: "600" },
   footer: { flexDirection: "row", justifyContent: "center", marginTop: 32 },
   footerPrompt: { fontSize: 13, color: DESIGN_TOKENS.colors.textMuted },
   footerLink: { fontSize: 13, color: DESIGN_TOKENS.colors.accent, fontWeight: "600" },
@@ -333,7 +138,7 @@ const styles = StyleSheet.create({
   dividerLine: {
     flex: 1,
     height: 1,
-    backgroundColor: "#E2E8F0",
+    backgroundColor: DESIGN_TOKENS.colors.slate[200],
   },
   dividerText: {
     marginHorizontal: 12,

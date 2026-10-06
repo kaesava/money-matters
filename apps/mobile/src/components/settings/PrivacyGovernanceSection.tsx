@@ -3,7 +3,7 @@ import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator } from 'rea
 import * as FileSystem from 'expo-file-system/legacy';
 import * as Sharing from 'expo-sharing';
 import JSZip from 'jszip';
-import { useMobileToast } from '@money-matters/ui/mobile';
+import { useMobileToast, DESIGN_TOKENS } from '@money-matters/ui/mobile';
 import { t } from '@money-matters/i18n';
 import { trpc } from '../../lib/trpc';
 import { formatIsoDate } from '../../lib/format';
@@ -65,11 +65,11 @@ export function PrivacyGovernanceSection() {
       >
         {isExporting ? (
           <View style={styles.exportingRow}>
-            <ActivityIndicator size="small" color="#334155" />
-            <Text style={styles.exportBtnText}>Creating Zipped Archive...</Text>
+            <ActivityIndicator size="small" color={DESIGN_TOKENS.colors.slate[700]} />
+            <Text style={styles.exportBtnText}>{t('privacy.creatingArchive')}</Text>
           </View>
         ) : (
-          <Text style={styles.exportBtnText}>{t('privacy.exportButton')}</Text>
+          <Text style={styles.exportBtnText}>{t('privacy.exportZipButton')}</Text>
         )}
       </TouchableOpacity>
 
@@ -86,27 +86,27 @@ export function PrivacyGovernanceSection() {
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: DESIGN_TOKENS.colors.surface,
     borderRadius: 16,
     padding: 16,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: DESIGN_TOKENS.colors.border,
     gap: 12,
   },
   cardTitle: {
     fontSize: 14,
     fontWeight: '800',
-    color: '#1B2B4B',
+    color: DESIGN_TOKENS.colors.primary,
   },
   cardSubtitle: {
     fontSize: 11,
-    color: '#64748B',
+    color: DESIGN_TOKENS.colors.textMuted,
     lineHeight: 16,
   },
   exportBtn: {
-    backgroundColor: '#F8FAFC',
+    backgroundColor: DESIGN_TOKENS.colors.background,
     borderWidth: 1,
-    borderColor: '#CBD5E1',
+    borderColor: DESIGN_TOKENS.colors.border,
     borderRadius: 10,
     paddingVertical: 12,
     alignItems: 'center',
@@ -120,16 +120,16 @@ const styles = StyleSheet.create({
   exportBtnText: {
     fontSize: 13,
     fontWeight: '700',
-    color: '#334155',
+    color: DESIGN_TOKENS.colors.slate[700],
   },
   footerInfo: {
     paddingTop: 8,
     borderTopWidth: 1,
-    borderTopColor: '#F1F5F9',
+    borderTopColor: DESIGN_TOKENS.colors.slate[100],
   },
   footerText: {
     fontSize: 11,
-    color: '#94A3B8',
+    color: DESIGN_TOKENS.colors.subtleText,
     textAlign: 'center',
     fontWeight: '500',
   },

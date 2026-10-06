@@ -72,7 +72,13 @@ export function AffordCheckInputControls({
               style={[styles.freqChip, frequency === f && styles.freqChipActive]}
             >
               <Text style={[styles.freqText, frequency === f && styles.freqTextActive]}>
-                {f === 'WEEKLY' ? 'Wk' : f === 'FORTNIGHTLY' ? 'Fortnight' : f === 'MONTHLY' ? 'Month' : 'Year'}
+                {f === 'WEEKLY'
+                  ? t('canIAfford.freqChips.weekly')
+                  : f === 'FORTNIGHTLY'
+                  ? t('canIAfford.freqChips.fortnightly')
+                  : f === 'MONTHLY'
+                  ? t('canIAfford.freqChips.monthly')
+                  : t('canIAfford.freqChips.annually')}
               </Text>
             </TouchableOpacity>
           ))}
@@ -108,9 +114,9 @@ export function AffordCheckInputControls({
 
       <View style={styles.switchRow}>
         <View style={styles.flex1}>
-          <Text style={styles.switchLabel}>Include Private Allowances</Text>
+          <Text style={styles.switchLabel}>{t('canIAfford.includePersonal')}</Text>
           <Text style={styles.switchSubtext}>
-            Simulate against personal allowances in addition to shared pools.
+            {t('canIAfford.includePersonalSubtext')}
           </Text>
         </View>
         <Switch

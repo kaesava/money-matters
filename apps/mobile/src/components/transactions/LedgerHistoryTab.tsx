@@ -1,10 +1,17 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, RefreshControl } from 'react-native';
+import { View, Text, StyleSheet, FlatList, RefreshControl } from 'react-native';
 import { Feather } from '@expo/vector-icons';
-import { SearchInput, MobilePaginationBar, SkeletonCard, RecordFilterBadge, MobileFilterSheet } from '@money-matters/ui/mobile';
+import {
+  MobilePaginationBar,
+  SkeletonCard,
+  MobileFilterSheet,
+  DESIGN_TOKENS,
+} from '@money-matters/ui/mobile';
 import { t } from '@money-matters/i18n';
 import { TransactionRow } from '../TransactionRow';
 import { TransactionDetailSheet, TransactionDetailRecord } from './TransactionDetailSheet';
+import { LedgerFilterControls } from './ledger/LedgerFilterControls';
+import { useLedgerFilterSections } from './hooks/useLedgerFilterSections';
 
 export interface LedgerTxItem {
   id: string;
@@ -91,65 +98,45 @@ export function LedgerHistoryTab({
   const matchedPool = pools.find((p) => p.id === selectedPoolId);
   const matchedBank = bankAccounts.find((b) => b.id === selectedBankAccountId);
 
+  const filterSections = useLedgerFilterSections({
+    flowFilter: flowFilter as 'ALL' | 'DEBIT' | 'CREDIT',
+    onFlowFilterChange,
+    selectedPoolId,
+    onPoolChange,
+    selectedBankAccountId,
+    onBankChange,
+    pools,
+    bankAccounts,
+    onPageChange,
+  });
+
   return (
     <View style={styles.container}>
-      {/* Search, Filter Button & Export CSV */}
-      <View style={styles.lockedHeader}>
-        <View style={styles.controlsRow}>
-          <View style={{ flex: 1 }}>
-            <SearchInput
-              placeholder={t('transactions.searchPlaceholder')}
-              value={searchQuery}
-              onChangeText={onSearchChange}
-            />
-          </View>
+      <LedgerFilterControls
+        searchQuery={searchQuery}
+        onSearchChange={onSearchChange}
+        activeCount={activeCount}
+        onOpenFilterSheet={() => setFilterSheetVisible(true)}
+        onExportCsv={onExportCsv}
+        disableExport={transactions.length === 0}
+        selectedPoolId={selectedPoolId}
+        selectedBankAccountId={selectedBankAccountId}
+        matchedPoolName={matchedPool?.name}
+        matchedBankName={matchedBank?.name}
+        onClearPool={() => onPoolChange('ALL')}
+        onClearBank={() => onBankChange('ALL')}
+      />
 
-          <TouchableOpacity
-            style={[styles.filterBtn, activeCount > 0 && styles.filterBtnActive]}
-            onPress={() => setFilterSheetVisible(true)}
-            activeOpacity={0.7}
-          >
-            <Feather name="sliders" size={15} color={activeCount > 0 ? '#2563eb' : '#64748B'} />
-            <Text style={[styles.filterBtnText, activeCount > 0 && styles.filterBtnTextActive]}>
-              {t('common.filter')}
-              {activeCount > 0 ? ` (${activeCount})` : ''}
-            </Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            onPress={onExportCsv}
-            style={styles.csvBtn}
-            disabled={transactions.length === 0}
-            activeOpacity={0.7}
-          >
-            <Feather name="download" size={14} color="#2563eb" />
-          </TouchableOpacity>
-        </View>
-
-        {/* Active Route Badges */}
-        {(selectedPoolId !== 'ALL' || selectedBankAccountId !== 'ALL') && (
-          <View style={styles.badgeRow}>
-            {selectedPoolId !== 'ALL' && (
-              <RecordFilterBadge
-                label={matchedPool ? `Pool: ${matchedPool.name}` : `Pool: ${selectedPoolId}`}
-                onClear={() => onPoolChange('ALL')}
-              />
-            )}
-            {selectedBankAccountId !== 'ALL' && (
-              <RecordFilterBadge
-                label={matchedBank ? `Bank: ${matchedBank.name}` : `Bank: ${selectedBankAccountId}`}
-                onClear={() => onBankChange('ALL')}
-              />
-            )}
-          </View>
-        )}
-      </View>
-
-      {/* List */}
       <FlatList
         data={paginatedTxs}
         keyExtractor={(item) => item.id}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#2563eb" />}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor={DESIGN_TOKENS.colors.sereneBlue}
+          />
+        }
         contentContainerStyle={styles.listContent}
         renderItem={({ item }) => (
           <TransactionRow
@@ -168,7 +155,7 @@ export function LedgerHistoryTab({
             <SkeletonCard count={4} />
           ) : (
             <View style={styles.emptyContainer}>
-              <Feather name="clock" size={32} color="#94A3B8" />
+              <Feather name="clock" size={32} color={DESIGN_TOKENS.colors.subtleText} />
               <Text style={styles.emptyTitle}>{t('transactions.noTransactionsFound')}</Text>
               <Text style={styles.emptySubtitle}>{t('transactions.emptySubtitle')}</Text>
             </View>
@@ -190,7 +177,6 @@ export function LedgerHistoryTab({
         }
       />
 
-      {/* Filter Sheet */}
       <MobileFilterSheet
         visible={filterSheetVisible}
         onClose={() => setFilterSheetVisible(false)}
@@ -198,53 +184,14 @@ export function LedgerHistoryTab({
         sortField={sortField}
         sortOrder={sortDir}
         sortOptions={[
-          { id: 'recordedAt', label: t('common.date') || 'Date' },
-          { id: 'amount', label: t('common.amount') || 'Amount' },
+          { id: 'recordedAt', label: t('transactions.date') },
+          { id: 'amount', label: t('transactions.amount') },
         ]}
-        onSortFieldChange={(f) => onSortFieldChange(f as any)}
+        onSortFieldChange={(f) =>
+          onSortFieldChange(f as 'recordedAt' | 'amount' | 'description')
+        }
         onSortOrderChange={onSortDirChange}
-        sections={[
-          {
-            id: 'flow',
-            title: t('common.type') || 'Flow Type',
-            selectedValue: flowFilter,
-            onSelect: (f: 'ALL' | 'DEBIT' | 'CREDIT') => {
-              onFlowFilterChange(f);
-              onPageChange(1);
-            },
-            options: [
-              { id: 'ALL', label: t('common.all') || 'All Flows' },
-              { id: 'DEBIT', label: t('transactions.expenses') || 'Expenses (Out)' },
-              { id: 'CREDIT', label: t('transactions.income') || 'Income (In)' },
-            ],
-          },
-          {
-            id: 'pool',
-            title: t('categories.title') || 'Spending Pool',
-            selectedValue: selectedPoolId,
-            onSelect: (id: string) => {
-              onPoolChange(id);
-              onPageChange(1);
-            },
-            options: [
-              { id: 'ALL', label: t('common.all') || 'All Pools' },
-              ...pools.map((p) => ({ id: p.id, label: p.name })),
-            ],
-          },
-          {
-            id: 'bank',
-            title: t('bankAccounts.title') || 'Bank Account',
-            selectedValue: selectedBankAccountId,
-            onSelect: (id: string) => {
-              onBankChange(id);
-              onPageChange(1);
-            },
-            options: [
-              { id: 'ALL', label: t('common.all') || 'All Accounts' },
-              ...bankAccounts.map((b) => ({ id: b.id, label: b.name })),
-            ],
-          },
-        ]}
+        sections={filterSections}
         onReset={() => {
           onFlowFilterChange('ALL');
           onPoolChange('ALL');
@@ -255,7 +202,6 @@ export function LedgerHistoryTab({
         }}
       />
 
-      {/* Details Sheet */}
       <TransactionDetailSheet
         visible={!!detailTx}
         transaction={detailTx}
@@ -268,57 +214,6 @@ export function LedgerHistoryTab({
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  lockedHeader: {
-    backgroundColor: '#FFFFFF',
-    borderBottomWidth: 1,
-    borderBottomColor: '#F1F5F9',
-    paddingHorizontal: 16,
-    paddingTop: 8,
-    paddingBottom: 10,
-    gap: 8,
-  },
-  controlsRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  filterBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    backgroundColor: '#F8FAFC',
-    borderRadius: 12,
-    borderWidth: 1.5,
-    borderColor: '#E2E8F0',
-    gap: 6,
-  },
-  filterBtnActive: {
-    backgroundColor: '#EFF6FF',
-    borderColor: '#2563eb',
-  },
-  filterBtnText: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: '#64748B',
-  },
-  filterBtnTextActive: {
-    color: '#2563eb',
-  },
-  csvBtn: {
-    padding: 10,
-    backgroundColor: '#F8FAFC',
-    borderRadius: 12,
-    borderWidth: 1.5,
-    borderColor: '#E2E8F0',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  badgeRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 6,
-  },
   listContent: {
     paddingHorizontal: 16,
     paddingVertical: 8,
@@ -331,11 +226,11 @@ const styles = StyleSheet.create({
   emptyTitle: {
     fontSize: 15,
     fontWeight: '800',
-    color: '#1B2B4B',
+    color: DESIGN_TOKENS.colors.primary,
   },
   emptySubtitle: {
     fontSize: 12,
-    color: '#94A3B8',
+    color: DESIGN_TOKENS.colors.subtleText,
     textAlign: 'center',
   },
   paginationWrap: {

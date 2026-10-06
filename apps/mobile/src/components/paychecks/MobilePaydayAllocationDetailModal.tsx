@@ -1,6 +1,5 @@
 import React from 'react';
 import {
-  View,
   Text,
   TouchableOpacity,
   ScrollView,
@@ -9,7 +8,9 @@ import {
 import { Feather } from '@expo/vector-icons';
 import { DESIGN_TOKENS, MobileModalDialog } from '@money-matters/ui/mobile';
 import { t } from '@money-matters/i18n';
-import { formatAUD, formatDate } from '../../lib/format';
+import { formatDate } from '../../lib/format';
+import { AllocationDetailHeader } from './allocation-detail/AllocationDetailHeader';
+import { AllocationDetailLinesList } from './allocation-detail/AllocationDetailLinesList';
 
 export interface MobilePaydayAllocationRecord {
   id: string;
@@ -45,8 +46,6 @@ export function MobilePaydayAllocationDetailModal({
   onClose,
   onOpenSplitStudio,
 }: MobilePaydayAllocationDetailModalProps) {
-  const D = DESIGN_TOKENS;
-
   if (!visible || !allocation) return null;
 
   const totalIncome = parseFloat(allocation.totalIncomeAmount) || 0;
@@ -56,92 +55,18 @@ export function MobilePaydayAllocationDetailModal({
     <MobileModalDialog
       visible={visible}
       onClose={onClose}
-      title={t('paydayDrawer.incomeSplitDetails') || 'Income Split Details'}
+      title={t('paydayDrawer.incomeSplitDetails')}
       subtitle={`${allocation.incomeName} • ${formatDate(allocation.expectedDate)}`}
     >
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.body}>
-        {/* Status and Total */}
-        <View style={styles.topCard}>
-          <View style={styles.topCardRow}>
-            <View style={{ flex: 1 }}>
-              <Text style={styles.sourceTitle}>{allocation.incomeName}</Text>
-              {allocation.receivingAccountName && (
-                <Text style={styles.accountMeta}>
-                  {t('paydayDrawer.bankAccount')}: {allocation.receivingAccountName}
-                </Text>
-              )}
-            </View>
+        <AllocationDetailHeader
+          allocation={allocation}
+          totalIncome={totalIncome}
+          isConfirmed={isConfirmed}
+        />
 
-            <View style={styles.statusCol}>
-              <View
-                style={[
-                  styles.statusBadge,
-                  isConfirmed ? styles.confirmedBadge : styles.savedBadge,
-                ]}
-              >
-                <Text
-                  style={[
-                    styles.statusText,
-                    isConfirmed ? styles.confirmedText : styles.savedText,
-                  ]}
-                >
-                  {isConfirmed ? t('transactions.statusConfirmed') : t('transactions.statusDraft')}
-                </Text>
-              </View>
-              <Text style={styles.totalIncomeText}>{formatAUD(totalIncome)}</Text>
-            </View>
-          </View>
+        <AllocationDetailLinesList lines={allocation.lines} />
 
-          {/* Income Dates Section */}
-          <View style={styles.dateMetaBox}>
-            <View style={styles.dateMetaRow}>
-              <Text style={styles.dateMetaLabel}>{t('paydayDrawer.incomeDate')}:</Text>
-              <Text style={styles.dateMetaValue}>{formatDate(allocation.expectedDate)}</Text>
-            </View>
-            <View style={styles.dateMetaRow}>
-              <Text style={styles.dateMetaLabel}>{t('paydayDrawer.incomeSplitDate')}:</Text>
-              <Text style={styles.dateMetaValue}>{formatDate(allocation.createdAt)}</Text>
-            </View>
-          </View>
-
-          {allocation.note ? (
-            <Text style={styles.noteText}>
-              {t('paydayDrawer.incomeNote') || 'Note'}: {allocation.note}
-            </Text>
-          ) : null}
-        </View>
-
-        {/* Lines Breakdown */}
-        {(() => {
-          const nonZeroLines = allocation.lines.filter(
-            (line) => parseFloat(line.confirmedAmount || line.proposedAmount || '0') > 0.001
-          );
-          return (
-            <View style={styles.linesSection}>
-              <Text style={styles.sectionHeader}>
-                {t('paydayDrawer.splitBreakdown', { count: nonZeroLines.length }) || 'Income Split Breakdown'}
-              </Text>
-              {nonZeroLines.map((line, idx) => {
-                const amt = parseFloat(line.confirmedAmount || line.proposedAmount || '0');
-                return (
-                  <View key={line.id || idx} style={styles.lineItem}>
-                    <View style={{ flex: 1 }}>
-                      <Text style={styles.poolName}>
-                        {line.poolName || 'Everyday Pool'}
-                      </Text>
-                      {line.reasoning ? (
-                        <Text style={styles.lineReasoning}>{line.reasoning}</Text>
-                      ) : null}
-                    </View>
-                    <Text style={styles.lineAmount}>{formatAUD(amt)}</Text>
-                  </View>
-                );
-              })}
-            </View>
-          );
-        })()}
-
-        {/* Action button */}
         {onOpenSplitStudio && !isConfirmed && (
           <TouchableOpacity
             onPress={() => {
@@ -150,8 +75,8 @@ export function MobilePaydayAllocationDetailModal({
             }}
             style={styles.openStudioBtn}
           >
-            <Feather name="sliders" size={15} color="#FFFFFF" />
-            <Text style={styles.openStudioBtnText}>{t('paydayDrawer.reviewIncome') || 'Edit in Split Studio'}</Text>
+            <Feather name="sliders" size={15} color={DESIGN_TOKENS.colors.onAccent} />
+            <Text style={styles.openStudioBtnText}>{t('paydayDrawer.reviewIncome')}</Text>
           </TouchableOpacity>
         )}
       </ScrollView>
@@ -164,125 +89,8 @@ const styles = StyleSheet.create({
     gap: 14,
     paddingBottom: 10,
   },
-  topCard: {
-    backgroundColor: '#F8FAFC',
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    padding: 14,
-    gap: 8,
-  },
-  topCardRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-  },
-  sourceTitle: {
-    fontSize: 16,
-    fontWeight: '800',
-    color: '#1B2B4B',
-  },
-  accountMeta: {
-    fontSize: 12,
-    color: '#64748B',
-    marginTop: 2,
-  },
-  statusCol: {
-    alignItems: 'flex-end',
-  },
-  statusBadge: {
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 6,
-    marginBottom: 4,
-  },
-  statusText: {
-    fontSize: 10,
-    fontWeight: '700',
-  },
-  confirmedBadge: {
-    backgroundColor: '#ECFDF5',
-  },
-  confirmedText: {
-    color: '#047857',
-  },
-  savedBadge: {
-    backgroundColor: '#FFFBEB',
-  },
-  savedText: {
-    color: '#92400E',
-  },
-  totalIncomeText: {
-    fontSize: 18,
-    fontWeight: '900',
-    fontFamily: 'monospace',
-    color: '#2563eb',
-  },
-  noteText: {
-    fontSize: 12,
-    color: '#475569',
-    fontStyle: 'italic',
-  },
-  dateMetaBox: {
-    backgroundColor: '#FFFFFF',
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    borderRadius: 10,
-    padding: 10,
-    gap: 6,
-  },
-  dateMetaRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  dateMetaLabel: {
-    fontSize: 11,
-    fontWeight: '600',
-    color: '#64748B',
-  },
-  dateMetaValue: {
-    fontSize: 11,
-    fontWeight: '700',
-    fontFamily: 'monospace',
-    color: '#1B2B4B',
-  },
-  linesSection: {
-    gap: 8,
-  },
-  sectionHeader: {
-    fontSize: 13,
-    fontWeight: '800',
-    color: '#1B2B4B',
-  },
-  lineItem: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    backgroundColor: '#FFFFFF',
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    borderRadius: 12,
-    padding: 12,
-  },
-  poolName: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: '#1B2B4B',
-  },
-  lineReasoning: {
-    fontSize: 11,
-    color: '#64748B',
-    marginTop: 2,
-  },
-  lineAmount: {
-    fontSize: 14,
-    fontWeight: '800',
-    fontFamily: 'monospace',
-    color: '#1B2B4B',
-  },
   openStudioBtn: {
-    backgroundColor: '#2563eb',
+    backgroundColor: DESIGN_TOKENS.colors.accent,
     borderRadius: 14,
     paddingVertical: 12,
     flexDirection: 'row',
@@ -294,7 +102,7 @@ const styles = StyleSheet.create({
   openStudioBtnText: {
     fontSize: 14,
     fontWeight: '800',
-    color: '#FFFFFF',
+    color: DESIGN_TOKENS.colors.onAccent,
   },
 });
 

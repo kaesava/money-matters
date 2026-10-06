@@ -2,6 +2,7 @@ import React from 'react';
 import { View, Text, TouchableOpacity, TextInput, StyleSheet } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { DESIGN_TOKENS } from '@money-matters/ui/mobile';
+import { t } from '@money-matters/i18n';
 import { formatAUD } from '../../lib/format';
 import { FundingPoolItem } from './mark-paid-types';
 
@@ -26,7 +27,12 @@ export function MarkPaidAccordionGroup({
   onToggle,
   onAmountChange,
 }: MarkPaidAccordionGroupProps) {
-  const typeLabel = typeKey === 'REGULAR' ? 'Bills' : typeKey === 'EVERYDAY' ? 'Everyday' : 'Goal';
+  const typeLabel =
+    typeKey === 'REGULAR'
+      ? t('incomeBillsTabs.bills')
+      : typeKey === 'EVERYDAY'
+        ? t('incomeBillsTabs.everyday')
+        : t('incomeBillsTabs.goals');
 
   return (
     <View style={styles.accordionGroup}>
@@ -36,7 +42,9 @@ export function MarkPaidAccordionGroup({
         activeOpacity={0.7}
       >
         <View style={styles.accordionHeaderLeft}>
-          <Text style={styles.accordionTitle}>{typeLabel} Pools</Text>
+          <Text style={styles.accordionTitle}>
+            {typeLabel} {t('categories.title')}
+          </Text>
           <View style={styles.accordionCountBadge}>
             <Text style={styles.accordionCountText}>{poolsInGroup.length}</Text>
           </View>
@@ -63,12 +71,12 @@ export function MarkPaidAccordionGroup({
                     <Text style={styles.poolItemName}>{pool.name}</Text>
                     {pool.isSurplusTarget && (
                       <View style={styles.surplusBadge}>
-                        <Text style={styles.surplusBadgeText}>Surplus</Text>
+                        <Text style={styles.surplusBadgeText}>{t('incomeBillsTabs.surplus')}</Text>
                       </View>
                     )}
                   </View>
                   <Text style={styles.poolItemBal}>
-                    Available: {formatAUD(b)}
+                    {t('incomeBillsTabs.available', { amount: formatAUD(b) })}
                   </Text>
                 </View>
 
@@ -91,7 +99,7 @@ export function MarkPaidAccordionGroup({
                     style={styles.maxBtn}
                     activeOpacity={0.7}
                   >
-                    <Text style={styles.maxBtnText}>Max</Text>
+                    <Text style={styles.maxBtnText}>{t('incomeBillsTabs.max')}</Text>
                   </TouchableOpacity>
                 </View>
               </View>

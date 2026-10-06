@@ -61,7 +61,7 @@ export function MobileBankAccountsSection() {
           style={styles.addAccountBtn}
           activeOpacity={0.8}
         >
-          <Feather name="plus" size={14} color="#FFFFFF" />
+          <Feather name="plus" size={14} color={DESIGN_TOKENS.colors.onAccent} />
           <Text style={styles.addAccountText}>
             {t('settings.bankAccounts.addAccount')}
           </Text>
@@ -73,10 +73,10 @@ export function MobileBankAccountsSection() {
         <ActivityIndicator color={DESIGN_TOKENS.colors.sereneBlue} style={styles.loader} />
       ) : accounts.length === 0 ? (
         <View style={styles.emptyCard}>
-          <Feather name="credit-card" size={32} color="#94A3B8" />
-          <Text style={styles.emptyTitle}>No Bank Accounts Linked</Text>
+          <Feather name="credit-card" size={32} color={DESIGN_TOKENS.colors.subtleText} />
+          <Text style={styles.emptyTitle}>{t('bankAccounts.noAccountsFound')}</Text>
           <Text style={styles.emptyDesc}>
-            Link your checking or savings account to start allocating money into pools.
+            {t('bankAccounts.noAccountsDescription')}
           </Text>
         </View>
       ) : (
@@ -188,18 +188,18 @@ const styles = StyleSheet.create({
   sectionHeaderTitle: {
     fontSize: 16,
     fontWeight: '800',
-    color: '#1B2B4B',
+    color: DESIGN_TOKENS.colors.primary,
   },
   sectionHeaderSubtitle: {
     fontSize: 12,
-    color: '#64748B',
+    color: DESIGN_TOKENS.colors.textMuted,
     marginTop: 2,
   },
   addAccountBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    backgroundColor: '#2563eb',
+    backgroundColor: DESIGN_TOKENS.colors.sereneBlue,
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderRadius: 10,
@@ -207,16 +207,16 @@ const styles = StyleSheet.create({
   addAccountText: {
     fontSize: 12,
     fontWeight: '700',
-    color: '#FFFFFF',
+    color: DESIGN_TOKENS.colors.onAccent,
   },
   loader: {
     marginVertical: 40,
   },
   emptyCard: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: DESIGN_TOKENS.colors.surface,
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: DESIGN_TOKENS.colors.border,
     padding: 24,
     alignItems: 'center',
     gap: 8,
@@ -225,12 +225,12 @@ const styles = StyleSheet.create({
   emptyTitle: {
     fontSize: 15,
     fontWeight: '700',
-    color: '#1B2B4B',
+    color: DESIGN_TOKENS.colors.primary,
     marginTop: 8,
   },
   emptyDesc: {
     fontSize: 12,
-    color: '#64748B',
+    color: DESIGN_TOKENS.colors.textMuted,
     textAlign: 'center',
     lineHeight: 18,
   },

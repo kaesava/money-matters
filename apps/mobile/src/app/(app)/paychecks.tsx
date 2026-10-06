@@ -1,38 +1,19 @@
-import React, { useState } from 'react';
-import {
-  StyleSheet,
-  ScrollView,
-  RefreshControl,
-  View,
-  TouchableOpacity,
-  Text,
-} from 'react-native';
+import React from 'react';
+import { StyleSheet, ScrollView, RefreshControl } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
-import { Feather } from '@expo/vector-icons';
-import { SegmentedTabs } from '@money-matters/ui/mobile';
+import { DESIGN_TOKENS } from '@money-matters/ui/mobile';
 import { AppScreenWrapper } from '../../components/AppScreenWrapper';
 import { t } from '@money-matters/i18n';
-
 import { SourceToEdit } from '../../components/IncomeExpenseFormModal';
-import { MarkPaidEvent } from '../../components/MarkPaidModal';
 import { UpcomingEventsTab } from '../../components/paychecks/UpcomingEventsTab';
-import { RecurringSchedulesTab } from '../../components/paychecks/RecurringSchedulesTab';
 import { usePaychecksData } from '../../components/paychecks/usePaychecksData';
-import { TransferEventData } from '../../components/paychecks/MobileTransferModal';
-import { CategoryScheduledEvent } from '../../components/paychecks/MobileCategoryDetailModal';
-import { BurstSourceItem, BurstEventItem } from '../../components/paychecks/MobileBurstModal';
-import { IncomeSourceItem } from '../../components/paychecks/IncomeSourceCard';
-import { ExpenseSourceItem } from '../../components/paychecks/ExpenseBillCard';
 import { PaycheckTransferEvent } from '../../components/paychecks/PaycheckEventSection';
 import { PaychecksModalManager } from '../../components/paychecks/PaychecksModalManager';
+import { BurstEventItem } from '../../components/paychecks/MobileBurstModal';
+import { PaychecksSchedulesBanner } from '../../components/paychecks/overview/PaychecksSchedulesBanner';
+import { usePaychecksModalController } from '../../components/paychecks/hooks/usePaychecksModalController';
 
-export type PaycheckTabSegment = 'EVENTS' | 'SOURCES';
-
-interface IncomeAndBillsScreenProps {
-  initialTab?: PaycheckTabSegment;
-}
-
-export default function IncomeAndBillsScreen({ initialTab }: IncomeAndBillsScreenProps = {}) {
+export default function IncomeAndBillsScreen() {
   const router = useRouter();
   const searchParams = useLocalSearchParams<{
     tab?: string;
@@ -42,65 +23,23 @@ export default function IncomeAndBillsScreen({ initialTab }: IncomeAndBillsScree
     returnTo?: string;
   }>();
 
-  const resolvedInitialTab: PaycheckTabSegment = initialTab || (
-    searchParams.tab?.toUpperCase() === 'SOURCES'
-      ? 'SOURCES'
-      : 'EVENTS'
-  );
-
   const initialKind = searchParams.type?.toUpperCase() === 'EXPENSE'
     ? 'EXPENSE'
     : searchParams.type?.toUpperCase() === 'INCOME'
     ? 'INCOME'
     : undefined;
 
-  const [activeSegment, setActiveSegment] = useState<PaycheckTabSegment>(resolvedInitialTab);
-  const [formModalVisible, setFormModalVisible] = useState(false);
-  const [formMode, setFormMode] = useState<'INCOME' | 'EXPENSE'>('INCOME');
-  const [sourceToEdit, setSourceToEdit] = useState<SourceToEdit | null>(null);
-
-  const [overrideModalVisible, setOverrideModalVisible] = useState(false);
-  const [eventToOverride, setEventToOverride] = useState<{
-    id: string;
-    eventType: 'INCOME' | 'EXPENSE';
-    name: string;
-    expectedDate: string;
-    expectedAmount: string;
-  } | null>(null);
-  const [markPaidEvent, setMarkPaidEvent] = useState<MarkPaidEvent | null>(null);
-
-  // Transfer Modal State
-  const [transferModalVisible, setTransferModalVisible] = useState(false);
-  const [activeTransfer, setActiveTransfer] = useState<TransferEventData | null>(null);
-
-  // Category Detail Modal State
-  const [categoryModalVisible, setCategoryModalVisible] = useState(false);
-  const [activeCategoryDetail, setActiveCategoryDetail] = useState<{
-    poolId: string;
-    poolName: string;
-    poolType?: string;
-    currentBalance?: number;
-    targetAmount?: number;
-    events: CategoryScheduledEvent[];
-  } | null>(null);
-
-  // Burst Modal State
-  const [burstModalVisible, setBurstModalVisible] = useState(false);
-  const [burstSource, setBurstSource] = useState<BurstSourceItem | null>(null);
-  const [burstMode, setBurstMode] = useState<'INCOME' | 'EXPENSE'>('INCOME');
+  const modals = usePaychecksModalController();
 
   const {
     refreshing,
     onRefresh,
     incomeSources,
-    expenseSources,
     pools,
     bankAccounts,
     rawIncomeEvents,
     rawExpenseEvents,
     rawTransferEvents,
-    isLoadingIncome,
-    isLoadingExpense,
     handleDeleteIncomeEvent,
     handleDeleteExpenseEvent,
     handleDeleteTransferEvent,
@@ -116,7 +55,7 @@ export default function IncomeAndBillsScreen({ initialTab }: IncomeAndBillsScree
   };
 
   const handleOpenTransferModal = (transferItem: PaycheckTransferEvent) => {
-    setActiveTransfer({
+    modals.setActiveTransfer({
       id: transferItem.id,
       name: transferItem.name || t('common.transfer'),
       expectedAmount: transferItem.expectedAmount,
@@ -126,39 +65,10 @@ export default function IncomeAndBillsScreen({ initialTab }: IncomeAndBillsScree
       destinationPoolId: transferItem.destinationPoolId,
       destinationPoolName: transferItem.destinationPoolName,
     });
-    setTransferModalVisible(true);
+    modals.setTransferModalVisible(true);
   };
 
-  const handleOpenNewTransfer = () => {
-    setActiveTransfer({
-      id: 'new',
-      name: t('common.transfer'),
-      expectedAmount: '',
-      expectedDate: new Date().toISOString().split('T')[0] ?? '',
-      sourcePoolId: pools[0]?.id || '',
-      destinationPoolId: pools[1]?.id || '',
-    });
-    setTransferModalVisible(true);
-  };
-
-  const handleOpenBurstModal = (
-    source: IncomeSourceItem | ExpenseSourceItem,
-    mode: 'INCOME' | 'EXPENSE'
-  ) => {
-    setBurstMode(mode);
-    setBurstSource({
-      id: source.id,
-      name: source.name,
-      amount: source.amount,
-      rrule: source.rrule,
-      startDate: source.startDate,
-      categoryName: 'categoryName' in source ? (source.categoryName || undefined) : undefined,
-      accountName: 'accountName' in source ? (source.accountName || undefined) : undefined,
-    });
-    setBurstModalVisible(true);
-  };
-
-  const burstEvents: BurstEventItem[] = burstMode === 'INCOME'
+  const burstEvents: BurstEventItem[] = modals.burstMode === 'INCOME'
     ? rawIncomeEvents.map((evt) => ({
         id: evt.id,
         expectedDate: evt.expectedDate,
@@ -198,35 +108,19 @@ export default function IncomeAndBillsScreen({ initialTab }: IncomeAndBillsScree
           <RefreshControl
             refreshing={refreshing}
             onRefresh={onRefresh}
-            tintColor="#2563eb"
+            tintColor={DESIGN_TOKENS.colors.accent}
           />
         }
       >
-        <View style={styles.topControlSection}>
-          <TouchableOpacity
-            style={styles.prominentSchedulesButton}
-            onPress={() =>
-              router.push(
-                `/(app)/paychecks/schedules?returnTo=${encodeURIComponent(
-                  searchParams.returnTo || '/(app)/paychecks'
-                )}` as never
-              )
-            }
-            activeOpacity={0.8}
-          >
-            <View style={styles.prominentSchedulesInner}>
-              <View style={styles.prominentIconWrap}>
-                <Feather name="calendar" size={18} color="#2563eb" />
-              </View>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.prominentTitle}>
-                  {t('paychecks.incomeExpenseSchedules')}
-                </Text>
-              </View>
-              <Feather name="chevron-right" size={18} color="#94A3B8" />
-            </View>
-          </TouchableOpacity>
-        </View>
+        <PaychecksSchedulesBanner
+          onPress={() =>
+            router.push(
+              `/(app)/paychecks/schedules?returnTo=${encodeURIComponent(
+                searchParams.returnTo || '/(app)/paychecks'
+              )}` as never
+            )
+          }
+        />
 
         <UpcomingEventsTab
           rawIncomeEvents={rawIncomeEvents}
@@ -244,7 +138,7 @@ export default function IncomeAndBillsScreen({ initialTab }: IncomeAndBillsScree
           onMarkExpensePaid={(eventId, amount) => {
             const expense = rawExpenseEvents.find((e) => e.id === eventId);
             if (expense) {
-              setMarkPaidEvent({
+              modals.setMarkPaidEvent({
                 id: expense.id,
                 name: expense.name || 'Expense',
                 expectedAmount: parseFloat(amount),
@@ -257,27 +151,27 @@ export default function IncomeAndBillsScreen({ initialTab }: IncomeAndBillsScree
           onEditExpense={(expense) => {
             const fullExpense = rawExpenseEvents.find((e) => e.id === expense.id);
             if (fullExpense) {
-              setEventToOverride({
+              modals.setEventToOverride({
                 id: fullExpense.id,
                 eventType: 'EXPENSE',
                 name: fullExpense.name || 'Expense',
                 expectedDate: fullExpense.expectedDate,
                 expectedAmount: fullExpense.expectedAmount,
               });
-              setOverrideModalVisible(true);
+              modals.setOverrideModalVisible(true);
             }
           }}
           onEditIncome={(income) => {
             const fullIncome = rawIncomeEvents.find((e) => e.id === income.id);
             if (fullIncome) {
-              setEventToOverride({
+              modals.setEventToOverride({
                 id: fullIncome.id,
                 eventType: 'INCOME',
                 name: fullIncome.name || 'Income',
                 expectedDate: fullIncome.expectedDate,
                 expectedAmount: fullIncome.expectedAmount,
               });
-              setOverrideModalVisible(true);
+              modals.setOverrideModalVisible(true);
             }
           }}
           onDeleteIncomeEvent={handleDeleteIncomeEvent}
@@ -288,17 +182,17 @@ export default function IncomeAndBillsScreen({ initialTab }: IncomeAndBillsScree
       </ScrollView>
 
       <PaychecksModalManager
-        formModalVisible={formModalVisible}
-        formMode={formMode}
-        sourceToEdit={sourceToEdit}
-        onCloseForm={() => setFormModalVisible(false)}
-        markPaidEvent={markPaidEvent}
-        onCloseMarkPaid={() => setMarkPaidEvent(null)}
-        overrideModalVisible={overrideModalVisible}
-        eventToOverride={eventToOverride}
-        onCloseOverride={() => setOverrideModalVisible(false)}
-        transferModalVisible={transferModalVisible}
-        activeTransfer={activeTransfer}
+        formModalVisible={modals.formModalVisible}
+        formMode={modals.formMode}
+        sourceToEdit={modals.sourceToEdit}
+        onCloseForm={() => modals.setFormModalVisible(false)}
+        markPaidEvent={modals.markPaidEvent}
+        onCloseMarkPaid={() => modals.setMarkPaidEvent(null)}
+        overrideModalVisible={modals.overrideModalVisible}
+        eventToOverride={modals.eventToOverride}
+        onCloseOverride={() => modals.setOverrideModalVisible(false)}
+        transferModalVisible={modals.transferModalVisible}
+        activeTransfer={modals.activeTransfer}
         pools={pools.map((p) => ({
           id: p.id,
           name: p.name,
@@ -307,28 +201,28 @@ export default function IncomeAndBillsScreen({ initialTab }: IncomeAndBillsScree
           isPrivate: p.isPrivate,
         }))}
         onCloseTransfer={() => {
-          setTransferModalVisible(false);
-          setActiveTransfer(null);
+          modals.setTransferModalVisible(false);
+          modals.setActiveTransfer(null);
         }}
-        categoryModalVisible={categoryModalVisible}
-        activeCategoryDetail={activeCategoryDetail}
+        categoryModalVisible={modals.categoryModalVisible}
+        activeCategoryDetail={modals.activeCategoryDetail}
         onCloseCategoryDetail={() => {
-          setCategoryModalVisible(false);
-          setActiveCategoryDetail(null);
+          modals.setCategoryModalVisible(false);
+          modals.setActiveCategoryDetail(null);
         }}
-        burstModalVisible={burstModalVisible}
-        burstSource={burstSource}
-        burstMode={burstMode}
+        burstModalVisible={modals.burstModalVisible}
+        burstSource={modals.burstSource}
+        burstMode={modals.burstMode}
         burstEvents={burstEvents}
         onCloseBurst={() => {
-          setBurstModalVisible(false);
-          setBurstSource(null);
+          modals.setBurstModalVisible(false);
+          modals.setBurstSource(null);
         }}
         onEditBurstSchedule={(src) => {
-          setBurstModalVisible(false);
-          setSourceToEdit(src as unknown as SourceToEdit);
-          setFormMode(burstMode);
-          setFormModalVisible(true);
+          modals.setBurstModalVisible(false);
+          modals.setSourceToEdit(src as unknown as SourceToEdit);
+          modals.setFormMode(modals.burstMode);
+          modals.setFormModalVisible(true);
         }}
         onRefresh={onRefresh}
         refetchAll={refetchAll}
@@ -340,41 +234,5 @@ export default function IncomeAndBillsScreen({ initialTab }: IncomeAndBillsScree
 const styles = StyleSheet.create({
   scrollContent: {
     paddingBottom: 90,
-  },
-  topControlSection: {
-    paddingHorizontal: 20,
-    paddingTop: 12,
-    paddingBottom: 10,
-    gap: 10,
-  },
-  prominentSchedulesButton: {
-    backgroundColor: '#FFFFFF',
-    borderWidth: 1,
-    borderColor: '#BFDBFE',
-    borderRadius: 16,
-    padding: 14,
-    shadowColor: '#2563eb',
-    shadowOpacity: 0.06,
-    shadowOffset: { width: 0, height: 2 },
-    shadowRadius: 6,
-    elevation: 2,
-  },
-  prominentSchedulesInner: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
-  prominentIconWrap: {
-    width: 36,
-    height: 36,
-    borderRadius: 10,
-    backgroundColor: '#EFF6FF',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  prominentTitle: {
-    fontSize: 15,
-    fontWeight: '800',
-    color: '#1B2B4B',
   },
 });

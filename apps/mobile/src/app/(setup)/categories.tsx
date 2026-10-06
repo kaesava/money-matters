@@ -117,28 +117,28 @@ export default function SetupCategoriesScreen() {
     >
       <Text style={styles.stepLabel}>{t('setup.stepOf', { step: 5, total: 5 })}</Text>
       <View style={styles.titleRow}>
-        <Text style={styles.title}>Review Budget Summary</Text>
-        <InfoTooltip title="Budget Summary" content="Auto-estimated bills and spending based on your answers." />
+        <Text style={styles.title}>{t('setup.reviewSummaryTitle')}</Text>
+        <InfoTooltip title={t('setup.reviewSummaryTooltipTitle')} content={t('setup.reviewSummaryTooltipContent')} />
       </View>
 
       <View style={styles.summaryGrid}>
         <View style={styles.summaryCard}>
-          <Text style={styles.summaryCardLabel}>Net Income</Text>
+          <Text style={styles.summaryCardLabel}>{t('setup.netIncomeLabel')}</Text>
           <Text style={styles.summaryCardVal}>${estimation.totalMonthlyIncomeAud.toLocaleString()}</Text>
         </View>
         <View style={styles.summaryCard}>
-          <Text style={styles.summaryCardLabel}>Allocated</Text>
+          <Text style={styles.summaryCardLabel}>{t('setup.allocatedLabel')}</Text>
           <Text style={styles.summaryCardVal}>${totalAllocatedMonthly.toLocaleString()}</Text>
         </View>
         <View style={[styles.summaryCard, netSurplus >= 0 ? styles.surplusBg : styles.deficitBg]}>
-          <Text style={styles.summaryCardLabel}>{netSurplus >= 0 ? 'Surplus' : 'Deficit'}</Text>
+          <Text style={styles.summaryCardLabel}>{netSurplus >= 0 ? t('setup.surplusLabel') : t('setup.deficitLabel')}</Text>
           <Text style={styles.summaryCardVal}>${Math.abs(netSurplus).toLocaleString()}</Text>
         </View>
       </View>
 
       <View style={styles.sectionCard}>
         <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>Everyday Spending</Text>
+          <Text style={styles.sectionTitle}>{t('setup.everydayPoolTitle')}</Text>
           <Text style={styles.sectionTotal}>${totalEverydayMonthly.toLocaleString()}/mo</Text>
         </View>
         {activeEveryday.map((cat) => (
@@ -155,7 +155,7 @@ export default function SetupCategoriesScreen() {
 
       <View style={styles.sectionCard}>
         <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>Regular Bills</Text>
+          <Text style={styles.sectionTitle}>{t('setup.billsPoolTitle')}</Text>
           <Text style={styles.sectionTotal}>${totalRegularMonthly.toLocaleString()}/mo</Text>
         </View>
         {activeRegular.map((cat) => (
@@ -171,13 +171,13 @@ export default function SetupCategoriesScreen() {
       </View>
 
       <View style={styles.customBox}>
-        <Text style={styles.customHeading}>Add Custom Category</Text>
+        <Text style={styles.customHeading}>{t('setup.addCustomCategory')}</Text>
         <View style={styles.customRow}>
           <TextInput
             style={styles.customInput}
             value={customName}
             onChangeText={setCustomName}
-            placeholder="e.g. Pet Insurance"
+            placeholder={t('setup.addCustomCategoryPlaceholder')}
             placeholderTextColor={DESIGN_TOKENS.colors.textMuted}
           />
           <TouchableOpacity
@@ -185,7 +185,7 @@ export default function SetupCategoriesScreen() {
             onPress={handleAddCustom}
             disabled={!customName.trim()}
           >
-            <Text style={styles.addBtnText}>+ Add</Text>
+            <Text style={styles.addBtnText}>{t('setup.addCustomCategoryBtn')}</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -212,24 +212,24 @@ const styles = StyleSheet.create({
   titleRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 16 },
   title: { fontSize: 20, fontWeight: '900', color: DESIGN_TOKENS.colors.primary },
   summaryGrid: { flexDirection: 'row', gap: 8, marginBottom: 16 },
-  summaryCard: { flex: 1, backgroundColor: DESIGN_TOKENS.colors.surface, padding: 10, borderRadius: DESIGN_TOKENS.radius.md, borderWidth: 1, borderColor: '#E2E8F0' },
+  summaryCard: { flex: 1, backgroundColor: DESIGN_TOKENS.colors.surface, padding: 10, borderRadius: DESIGN_TOKENS.radius.md, borderWidth: 1, borderColor: DESIGN_TOKENS.colors.slate[200] },
   summaryCardLabel: { fontSize: 10, fontWeight: '800', textTransform: 'uppercase', color: DESIGN_TOKENS.colors.textMuted },
   summaryCardVal: { fontSize: 15, fontWeight: '800', color: DESIGN_TOKENS.colors.primary, marginTop: 2 },
-  surplusBg: { backgroundColor: '#F0FDF4', borderColor: '#BBF7D0' },
-  deficitBg: { backgroundColor: '#FEF2F2', borderColor: '#FECACA' },
-  sectionCard: { backgroundColor: DESIGN_TOKENS.colors.surface, padding: 14, borderRadius: DESIGN_TOKENS.radius.lg, borderWidth: 1, borderColor: '#E2E8F0', marginBottom: 16 },
-  sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', borderBottomWidth: 1, borderBottomColor: '#F1F5F9', paddingBottom: 8, marginBottom: 4 },
+  surplusBg: { backgroundColor: DESIGN_TOKENS.colors.successLight, borderColor: DESIGN_TOKENS.colors.successBorder },
+  deficitBg: { backgroundColor: DESIGN_TOKENS.colors.criticalLight, borderColor: DESIGN_TOKENS.colors.criticalBorder },
+  sectionCard: { backgroundColor: DESIGN_TOKENS.colors.surface, padding: 14, borderRadius: DESIGN_TOKENS.radius.lg, borderWidth: 1, borderColor: DESIGN_TOKENS.colors.slate[200], marginBottom: 16 },
+  sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', borderBottomWidth: 1, borderBottomColor: DESIGN_TOKENS.colors.slate[100], paddingBottom: 8, marginBottom: 4 },
   sectionTitle: { fontSize: 13, fontWeight: '800', color: DESIGN_TOKENS.colors.primary },
   sectionTotal: { fontSize: 12, fontWeight: '700', color: DESIGN_TOKENS.colors.accent },
-  customBox: { backgroundColor: DESIGN_TOKENS.colors.surface, padding: 12, borderRadius: DESIGN_TOKENS.radius.lg, borderWidth: 1, borderColor: '#E2E8F0', marginBottom: 20 },
+  customBox: { backgroundColor: DESIGN_TOKENS.colors.surface, padding: 12, borderRadius: DESIGN_TOKENS.radius.lg, borderWidth: 1, borderColor: DESIGN_TOKENS.colors.slate[200], marginBottom: 20 },
   customHeading: { fontSize: 12, fontWeight: '700', color: DESIGN_TOKENS.colors.primary, marginBottom: 8 },
   customRow: { flexDirection: 'row', gap: 8 },
-  customInput: { flex: 1, backgroundColor: DESIGN_TOKENS.colors.surfaceVariant, borderWidth: 1, borderColor: '#E2E8F0', borderRadius: DESIGN_TOKENS.radius.md, paddingHorizontal: 12, paddingVertical: 8, fontSize: 13, color: DESIGN_TOKENS.colors.textPrimary },
+  customInput: { flex: 1, backgroundColor: DESIGN_TOKENS.colors.surfaceVariant, borderWidth: 1, borderColor: DESIGN_TOKENS.colors.slate[200], borderRadius: DESIGN_TOKENS.radius.md, paddingHorizontal: 12, paddingVertical: 8, fontSize: 13, color: DESIGN_TOKENS.colors.textPrimary },
   addBtn: { backgroundColor: DESIGN_TOKENS.colors.accent, paddingHorizontal: 16, justifyContent: 'center', borderRadius: DESIGN_TOKENS.radius.md },
   addBtnText: { color: DESIGN_TOKENS.colors.onAccent, fontWeight: '700', fontSize: 12 },
   actionRow: { flexDirection: 'row', gap: 12, marginTop: 8, marginBottom: 40 },
-  backBtn: { flex: 1, paddingVertical: 14, backgroundColor: DESIGN_TOKENS.colors.surface, borderWidth: 1, borderColor: '#CBD5E1', borderRadius: DESIGN_TOKENS.radius.md, alignItems: 'center' },
-  backBtnText: { fontSize: 14, fontWeight: '700', color: '#475569' },
+  backBtn: { flex: 1, paddingVertical: 14, backgroundColor: DESIGN_TOKENS.colors.surface, borderWidth: 1, borderColor: DESIGN_TOKENS.colors.slate[300], borderRadius: DESIGN_TOKENS.radius.md, alignItems: 'center' },
+  backBtnText: { fontSize: 14, fontWeight: '700', color: DESIGN_TOKENS.colors.slate[600] },
   nextBtn: { flex: 2, paddingVertical: 14, backgroundColor: DESIGN_TOKENS.colors.accent, borderRadius: DESIGN_TOKENS.radius.md, alignItems: 'center' },
   nextBtnText: { fontSize: 14, fontWeight: '800', color: DESIGN_TOKENS.colors.onAccent },
 });

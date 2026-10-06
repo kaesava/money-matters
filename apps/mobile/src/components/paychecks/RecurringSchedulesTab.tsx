@@ -1,12 +1,8 @@
 import React, { useState, useMemo } from 'react';
-import { View, StyleSheet, TouchableOpacity, Text } from 'react-native';
-import { Feather } from '@expo/vector-icons';
+import { View, StyleSheet } from 'react-native';
 import {
   SegmentedTabs,
-  SearchInput,
   MobileFilterSheet,
-  FilterSection,
-  FilterSortOption,
 } from '@money-matters/ui/mobile';
 import { t } from '@money-matters/i18n';
 import { SourceToEdit } from '../IncomeExpenseFormModal';
@@ -14,6 +10,8 @@ import { useRecurringSchedules } from './useRecurringSchedules';
 import { RecurringSchedulesCards } from './RecurringSchedulesCards';
 import { IncomeSourceItem } from './IncomeSourceCard';
 import { ExpenseSourceItem } from './ExpenseBillCard';
+import { SchedulesSearchFilterBar } from './schedules/SchedulesSearchFilterBar';
+import { AddScheduleButtonRow } from './schedules/AddScheduleButtonRow';
 
 interface RecurringSchedulesTabProps {
   incomeSources: IncomeSourceItem[];
@@ -77,44 +75,18 @@ export function RecurringSchedulesTab({
 
   return (
     <View style={styles.sourcesView}>
-      {/* Top Search + Filter Row (Filters across both sub-tabs) */}
-      <View style={styles.searchAndFilterRow}>
-        <View style={{ flex: 1 }}>
-          <SearchInput
-            placeholder={t('payday.searchSchedules')}
-            value={scheduleSearchQuery}
-            onChangeText={(text) => {
-              setScheduleSearchQuery(text);
-              setIncomePage(1);
-              setExpensePage(1);
-            }}
-          />
-        </View>
+      <SchedulesSearchFilterBar
+        searchQuery={scheduleSearchQuery}
+        onSearchChange={(text) => {
+          setScheduleSearchQuery(text);
+          setIncomePage(1);
+          setExpensePage(1);
+        }}
+        activeFilterCount={activeFilterCount}
+        onOpenFilterSheet={() => setFilterSheetVisible(true)}
+      />
 
-        <TouchableOpacity
-          style={[styles.filterBtn, activeFilterCount > 0 && styles.filterBtnActive]}
-          onPress={() => setFilterSheetVisible(true)}
-          activeOpacity={0.7}
-        >
-          <Feather
-            name="sliders"
-            size={15}
-            color={activeFilterCount > 0 ? '#2563eb' : '#64748B'}
-          />
-          <Text
-            style={[
-              styles.filterBtnText,
-              activeFilterCount > 0 && styles.filterBtnTextActive,
-            ]}
-          >
-            {t('common.filter')}
-            {activeFilterCount > 0 ? ` (${activeFilterCount})` : ''}
-          </Text>
-        </TouchableOpacity>
-      </View>
-
-      {/* Sub-tabs: Income Schedules vs Expense Schedules */}
-      <View style={{ marginBottom: 14 }}>
+      <View style={styles.subSegmentWrapper}>
         <SegmentedTabs<'INCOME' | 'EXPENSE'>
           tabs={[
             {
@@ -127,28 +99,15 @@ export function RecurringSchedulesTab({
             },
           ]}
           activeKey={setupSubSegment}
-          onChange={(key) => {
-            setSetupSubSegment(key);
-          }}
+          onChange={(key) => setSetupSubSegment(key)}
         />
       </View>
 
-      {/* In-Screen Add Schedule Button */}
       {onAddSchedule && (
-        <View style={styles.addScheduleRow}>
-          <TouchableOpacity
-            style={styles.addScheduleBtn}
-            onPress={() => onAddSchedule(setupSubSegment)}
-            activeOpacity={0.8}
-          >
-            <Feather name="plus" size={15} color="#FFFFFF" />
-            <Text style={styles.addScheduleBtnText}>
-              {setupSubSegment === 'INCOME'
-                ? t('payday.addIncomeSchedule')
-                : t('payday.addExpenseSchedule')}
-            </Text>
-          </TouchableOpacity>
-        </View>
+        <AddScheduleButtonRow
+          setupSubSegment={setupSubSegment}
+          onAddSchedule={onAddSchedule}
+        />
       )}
 
       <RecurringSchedulesCards
@@ -179,9 +138,9 @@ export function RecurringSchedulesTab({
         sortField={sortField}
         sortOrder={sortOrder}
         sortOptions={[
-          { id: 'name', label: t('common.name') || 'Name' },
-          { id: 'amount', label: t('common.amount') || 'Amount' },
-          { id: 'date', label: t('common.date') || 'Date' },
+          { id: 'name', label: t('common.name') },
+          { id: 'amount', label: t('common.amount') },
+          { id: 'date', label: t('common.date') },
         ]}
         onSortFieldChange={(field) => {
           setSortField(field as 'name' | 'amount' | 'date');
@@ -198,14 +157,14 @@ export function RecurringSchedulesTab({
             ? [
                 {
                   id: 'bank',
-                  title: t('bankAccounts.title') || 'Receiving Bank Account',
+                  title: t('bankAccounts.title'),
                   selectedValue: selectedIncomeBankId,
                   onSelect: (bId: string) => {
                     setSelectedIncomeBankId(bId);
                     setIncomePage(1);
                   },
                   options: [
-                    { id: 'ALL', label: t('common.all') || 'All Accounts' },
+                    { id: 'ALL', label: t('common.all') },
                     ...bankAccounts.map((b) => ({ id: b.id, label: b.name })),
                   ],
                 },
@@ -213,14 +172,14 @@ export function RecurringSchedulesTab({
             : [
                 {
                   id: 'pool',
-                  title: t('categories.title') || 'Target Pool',
+                  title: t('categories.title'),
                   selectedValue: selectedExpensePoolId,
                   onSelect: (pId: string) => {
                     setSelectedExpensePoolId(pId);
                     setExpensePage(1);
                   },
                   options: [
-                    { id: 'ALL', label: t('common.all') || 'All Pools' },
+                    { id: 'ALL', label: t('common.all') },
                     ...pools.map((p) => ({ id: p.id, label: p.name })),
                   ],
                 },
@@ -243,56 +202,7 @@ const styles = StyleSheet.create({
   sourcesView: {
     paddingHorizontal: 20,
   },
-  searchAndFilterRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
+  subSegmentWrapper: {
     marginBottom: 14,
-  },
-  filterBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    borderRadius: 12,
-    backgroundColor: '#FFFFFF',
-    borderWidth: 1.5,
-    borderColor: '#E2E8F0',
-  },
-  filterBtnActive: {
-    backgroundColor: '#EFF6FF',
-    borderColor: '#93C5FD',
-  },
-  filterBtnText: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: '#64748B',
-  },
-  filterBtnTextActive: {
-    color: '#2563eb',
-  },
-  addScheduleRow: {
-    marginBottom: 14,
-  },
-  addScheduleBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    backgroundColor: '#2563eb',
-    borderRadius: 12,
-    paddingVertical: 11,
-    paddingHorizontal: 16,
-    shadowColor: '#2563eb',
-    shadowOpacity: 0.15,
-    shadowOffset: { width: 0, height: 2 },
-    shadowRadius: 4,
-    elevation: 2,
-  },
-  addScheduleBtnText: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: '#FFFFFF',
   },
 });

@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { DESIGN_TOKENS } from '@money-matters/ui/mobile';
+import { t } from '@money-matters/i18n';
 import { formatAUD } from '../../lib/format';
 
 interface MarkPaidTargetPoolCardProps {
@@ -17,13 +18,13 @@ export function MarkPaidTargetPoolCard({
   return (
     <View style={styles.poolCard}>
       <View>
-        <Text style={styles.poolCardLabel}>Target Pool</Text>
+        <Text style={styles.poolCardLabel}>{t('incomeBillsTabs.targetPool')}</Text>
         <Text style={styles.poolCardName}>
           {poolName} <Text style={styles.poolCardType}>({poolType})</Text>
         </Text>
       </View>
       <View style={styles.balanceContainer}>
-        <Text style={styles.poolCardLabel}>Current Balance</Text>
+        <Text style={styles.poolCardLabel}>{t('incomeBillsTabs.currentBalance')}</Text>
         <Text style={styles.poolCardBal}>{formatAUD(poolBalance)}</Text>
       </View>
     </View>

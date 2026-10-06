@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { View, StyleSheet, TouchableOpacity, Text } from 'react-native';
 import { Feather } from '@expo/vector-icons';
-import { SearchInput, MobilePaginationBar, MobileFilterSheet } from '@money-matters/ui/mobile';
+import { DESIGN_TOKENS, SearchInput, MobilePaginationBar, MobileFilterSheet } from '@money-matters/ui/mobile';
 import { t } from '@money-matters/i18n';
 import {
   PaycheckEventSection,
@@ -88,9 +88,8 @@ export function UpcomingEventsTab({
 
   return (
     <View style={styles.eventsView}>
-      {/* Search + Filter Row */}
       <View style={styles.timelineControlRow}>
-        <View style={{ flex: 1 }}>
+        <View style={styles.flex1}>
           <SearchInput
             placeholder={t('common.search')}
             value={upcomingSearchQuery}
@@ -107,7 +106,7 @@ export function UpcomingEventsTab({
           <Feather
             name="sliders"
             size={15}
-            color={activeUpcomingFilterCount > 0 ? '#2563eb' : '#64748B'}
+            color={activeUpcomingFilterCount > 0 ? DESIGN_TOKENS.colors.accent : DESIGN_TOKENS.colors.textMuted}
           />
           <Text
             style={[
@@ -134,7 +133,7 @@ export function UpcomingEventsTab({
       />
 
       {filteredUpcomingEvents.length >= 5 && (
-        <View style={{ marginTop: 8 }}>
+        <View style={styles.paginationWrap}>
           <MobilePaginationBar
             page={upcomingPage}
             totalPages={Math.ceil(filteredUpcomingEvents.length / UPCOMING_PAGE_SIZE)}
@@ -153,9 +152,9 @@ export function UpcomingEventsTab({
         sortField={upcomingSortField}
         sortOrder={upcomingSortOrder}
         sortOptions={[
-          { id: 'date', label: t('common.date') || 'Date' },
-          { id: 'amount', label: t('common.amount') || 'Amount' },
-          { id: 'name', label: t('common.name') || 'Name' },
+          { id: 'date', label: t('common.date') },
+          { id: 'amount', label: t('common.amount') },
+          { id: 'name', label: t('common.name') },
         ]}
         onSortFieldChange={(field) => {
           setUpcomingSortField(field as 'date' | 'amount' | 'name');
@@ -168,32 +167,32 @@ export function UpcomingEventsTab({
         sections={[
           {
             id: 'scope',
-            title: t('dashboard.scope') || 'Time Horizon',
+            title: t('dashboard.scope'),
             selectedValue: upcomingScopeFilter,
             onSelect: (val) => {
               setUpcomingScopeFilter(val as any);
               setUpcomingPage(1);
             },
             options: [
-              { id: 'ALL', label: t('common.all') || 'All Events' },
-              { id: 'CURRENT_CYCLE', label: t('incomeBillsTabs.currentCycle') || 'Current Pay Period' },
-              { id: '30_DAYS', label: t('incomeBillsTabs.days30') || 'Next 30 Days' },
-              { id: '60_DAYS', label: t('incomeBillsTabs.days60') || 'Next 60 Days' },
+              { id: 'ALL', label: t('common.all') },
+              { id: 'CURRENT_CYCLE', label: t('incomeBillsTabs.currentCycle') },
+              { id: '30_DAYS', label: t('incomeBillsTabs.days30') },
+              { id: '60_DAYS', label: t('incomeBillsTabs.days60') },
             ],
           },
           {
             id: 'kind',
-            title: t('common.type') || 'Event Type',
+            title: t('common.type'),
             selectedValue: upcomingKindFilter,
             onSelect: (val) => {
               setUpcomingKindFilter(val as any);
               setUpcomingPage(1);
             },
             options: [
-              { id: 'ALL', label: t('common.all') || 'All Types' },
-              { id: 'INCOME', label: t('common.income') || 'Income' },
-              { id: 'EXPENSE', label: t('common.expenses') || 'Expenses & Bills' },
-              { id: 'TRANSFER', label: t('common.transfers') || 'Transfers' },
+              { id: 'ALL', label: t('common.all') },
+              { id: 'INCOME', label: t('common.income') },
+              { id: 'EXPENSE', label: t('common.expenses') },
+              { id: 'TRANSFER', label: t('common.transfers') },
             ],
           },
         ]}
@@ -210,6 +209,9 @@ export function UpcomingEventsTab({
 }
 
 const styles = StyleSheet.create({
+  flex1: {
+    flex: 1,
+  },
   eventsView: {
     paddingHorizontal: 20,
   },
@@ -226,20 +228,23 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 10,
     borderRadius: 12,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: DESIGN_TOKENS.colors.surface,
     borderWidth: 1.5,
-    borderColor: '#E2E8F0',
+    borderColor: DESIGN_TOKENS.colors.slate[200],
   },
   filterBtnActive: {
-    backgroundColor: '#EFF6FF',
-    borderColor: '#93C5FD',
+    backgroundColor: DESIGN_TOKENS.colors.accentLight,
+    borderColor: DESIGN_TOKENS.colors.accentBorder,
   },
   filterBtnText: {
     fontSize: 13,
     fontWeight: '700',
-    color: '#64748B',
+    color: DESIGN_TOKENS.colors.textMuted,
   },
   filterBtnTextActive: {
-    color: '#2563eb',
+    color: DESIGN_TOKENS.colors.accent,
+  },
+  paginationWrap: {
+    marginTop: 8,
   },
 });

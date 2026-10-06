@@ -1,12 +1,5 @@
-import React, { useState, useEffect, useMemo } from 'react';
-import {
-  View,
-  Text,
-  TouchableOpacity,
-  ScrollView,
-  StyleSheet,
-} from 'react-native';
-import { Feather } from '@expo/vector-icons';
+import React, { useState, useEffect } from 'react';
+import { View, Text, ScrollView, StyleSheet } from 'react-native';
 import {
   DESIGN_TOKENS,
   MobileModalDialog,
@@ -16,11 +9,10 @@ import {
 } from '@money-matters/ui/mobile';
 import { t } from '@money-matters/i18n';
 import { trpc } from '../../lib/trpc';
-import { formatAUD } from '../../lib/format';
-import {
-  ReconciliationPoolRow,
-  ReconcilePoolItem,
-} from './ReconciliationPoolRow';
+import { ReconciliationPoolRow } from './ReconciliationPoolRow';
+import { ReconciliationMetrics } from './reconciliation/ReconciliationMetrics';
+import { ReconciliationValidationFooter } from './reconciliation/ReconciliationValidationFooter';
+import { useReconciliationCalculations } from './reconciliation/useReconciliationCalculations';
 
 export interface MobileReconciliationModalProps {
   visible: boolean;
@@ -61,53 +53,18 @@ export function MobileReconciliationModal({
   const buffer = parseFloat(account?.unbudgetedBuffer || '0');
   const availableToBudget = Math.max(0, actualBal - buffer);
 
-  const parsedPools: ReconcilePoolItem[] = useMemo(() => {
-    return (account?.linkedPools ?? []).map((p) => ({
-      id: p.id,
-      name: p.name,
-      poolType: p.poolType,
-      currentBalance: typeof p.currentBalance === 'number'
-        ? p.currentBalance
-        : parseFloat(String(p.currentBalance || '0')),
-      isSurplusTarget: p.isSurplusTarget,
-    }));
-  }, [account?.linkedPools]);
-
-  const expectedTotal = parsedPools.reduce((sum, p) => sum + p.currentBalance, 0);
-  const variance = Number((availableToBudget - expectedTotal).toFixed(2));
-  const isSurplus = variance > 0;
-  const absVariance = Math.abs(variance);
-
-  const hasSurplusTargetInList = useMemo(
-    () => parsedPools.some((p) => p.isSurplusTarget),
-    [parsedPools]
-  );
-
-  const isPoolSweepTarget = (p: ReconcilePoolItem) =>
-    Boolean(p.isSurplusTarget || (!hasSurplusTargetInList && p.poolType === 'EVERYDAY'));
-
-  const visiblePools = useMemo(() => {
-    let list: ReconcilePoolItem[];
-    if (!isSurplus) {
-      list = parsedPools.filter(
-        (p) => isPoolSweepTarget(p) || p.poolType === 'EVERYDAY' || p.currentBalance > 0
-      );
-    } else {
-      list = [...parsedPools];
-    }
-
-    return list.sort((a, b) => {
-      const aSweep = isPoolSweepTarget(a);
-      const bSweep = isPoolSweepTarget(b);
-      if (aSweep && !bSweep) return -1;
-      if (!aSweep && bSweep) return 1;
-      return 0;
-    });
-  }, [parsedPools, isSurplus, hasSurplusTargetInList]);
-
-  const hasHiddenZeroPools = !isSurplus && parsedPools.some(
-    (p) => !isPoolSweepTarget(p) && p.poolType !== 'EVERYDAY' && p.currentBalance <= 0
-  );
+  const {
+    expectedTotal,
+    variance,
+    isSurplus,
+    absVariance,
+    isPoolSweepTarget,
+    visiblePools,
+    hasHiddenZeroPools,
+  } = useReconciliationCalculations({
+    linkedPools: account?.linkedPools,
+    availableToBudget,
+  });
 
   useEffect(() => {
     if (visible && account) {
@@ -138,7 +95,6 @@ export function MobileReconciliationModal({
   );
 
   const isSumValid = Math.abs(sumAdjustments - absVariance) < 0.009;
-
   const reconcileMut = trpc.reconcileBankBalance.useMutation();
 
   const handleConfirmSubmit = async () => {
@@ -203,36 +159,14 @@ export function MobileReconciliationModal({
       }
     >
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.body}>
-        {/* Metric Cards Row */}
-        <View style={styles.metricsGrid}>
-          <View style={styles.metricCard}>
-            <Text style={styles.metricLabel}>{t('bankAccounts.reconcile.expectedTotal')}</Text>
-            <Text style={styles.metricVal}>{formatAUD(expectedTotal)}</Text>
-          </View>
+        <ReconciliationMetrics
+          expectedTotal={expectedTotal}
+          availableToBudget={availableToBudget}
+          variance={variance}
+          absVariance={absVariance}
+          isSurplus={isSurplus}
+        />
 
-          <View style={styles.metricCard}>
-            <Text style={styles.metricLabel}>{t('bankAccounts.reconcile.availableToBudget')}</Text>
-            <Text style={styles.metricVal}>{formatAUD(availableToBudget)}</Text>
-          </View>
-
-          <View style={styles.metricCard}>
-            <Text style={styles.metricLabel}>{t('bankAccounts.reconcile.difference')}</Text>
-            <Text style={[styles.metricVal, isSurplus ? styles.textSurplus : styles.textShortfall]}>
-              {isSurplus ? `+${formatAUD(variance)}` : `-${formatAUD(absVariance)}`}
-            </Text>
-          </View>
-        </View>
-
-        {/* Contextual Notice */}
-        <View style={[styles.noticeCard, isSurplus ? styles.noticeSurplus : styles.noticeShortfall]}>
-          <Text style={[styles.noticeText, isSurplus ? styles.noticeTextSurplus : styles.noticeTextShortfall]}>
-            {isSurplus
-              ? t('bankAccounts.reconcile.surplusNotice', { amount: formatAUD(absVariance) })
-              : t('bankAccounts.reconcile.shortfallNotice', { amount: formatAUD(absVariance) })}
-          </Text>
-        </View>
-
-        {/* Optional Reason / Note */}
         <MobileInput
           label={t('bankAccounts.reconcile.reasonLabel')}
           value={reason}
@@ -240,7 +174,6 @@ export function MobileReconciliationModal({
           placeholder={t('bankAccounts.reconcile.reasonPlaceholder')}
         />
 
-        {/* Multi-Pool Allocation List */}
         <View style={styles.poolsSection}>
           {visiblePools.length === 0 ? (
             <Text style={styles.noPoolsText}>{t('bankAccounts.reconcile.noLinkedPools')}</Text>
@@ -266,32 +199,12 @@ export function MobileReconciliationModal({
           )}
         </View>
 
-        {/* Live Validation Counter */}
-        <View style={styles.validationRow}>
-          <Text style={styles.validationLabel}>
-            {t('bankAccounts.reconcile.allocatedSplitTotal')}
-          </Text>
-          <View style={styles.validationRight}>
-            <Text style={[styles.validationAmount, isSumValid ? styles.textSurplus : styles.textShortfall]}>
-              {formatAUD(sumAdjustments)} / {formatAUD(absVariance)}
-            </Text>
-            <Text style={[styles.validationBadge, isSumValid ? styles.textSurplus : styles.textShortfall]}>
-              {isSumValid
-                ? t('bankAccounts.reconcile.matches')
-                : t('bankAccounts.reconcile.remaining', { amount: formatAUD(Math.abs(absVariance - sumAdjustments)) })}
-            </Text>
-          </View>
-        </View>
-
-        {/* Transfer Between Pools Shortcut */}
-        {onOpenTransfer && (
-          <TouchableOpacity onPress={onOpenTransfer} style={styles.transferLinkBtn}>
-            <Text style={styles.transferLinkText}>
-              {t('bankAccounts.reconcile.transferBetweenPoolsLink')}
-            </Text>
-            <Feather name="arrow-right" size={14} color="#2563eb" />
-          </TouchableOpacity>
-        )}
+        <ReconciliationValidationFooter
+          sumAdjustments={sumAdjustments}
+          absVariance={absVariance}
+          isSumValid={isSumValid}
+          onOpenTransfer={onOpenTransfer}
+        />
       </ScrollView>
     </MobileModalDialog>
   );
@@ -302,114 +215,21 @@ const styles = StyleSheet.create({
     gap: 14,
     paddingBottom: 8,
   },
-  metricsGrid: {
-    flexDirection: 'row',
-    gap: 8,
-  },
-  metricCard: {
-    flex: 1,
-    backgroundColor: '#F8FAFC',
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    padding: 10,
-    gap: 4,
-  },
-  metricLabel: {
-    fontSize: 10,
-    fontWeight: '700',
-    color: '#64748B',
-    textTransform: 'uppercase',
-  },
-  metricVal: {
-    fontSize: 12,
-    fontWeight: '800',
-    fontFamily: 'monospace',
-    color: '#1B2B4B',
-  },
-  textSurplus: {
-    color: '#059669',
-  },
-  textShortfall: {
-    color: '#D97706',
-  },
-  noticeCard: {
-    padding: 12,
-    borderRadius: 12,
-    borderWidth: 1,
-  },
-  noticeSurplus: {
-    backgroundColor: '#ECFDF5',
-    borderColor: '#A7F3D0',
-  },
-  noticeShortfall: {
-    backgroundColor: '#FFFBEB',
-    borderColor: '#FDE68A',
-  },
-  noticeText: {
-    fontSize: 12,
-    fontWeight: '600',
-    lineHeight: 18,
-  },
-  noticeTextSurplus: {
-    color: '#065F46',
-  },
-  noticeTextShortfall: {
-    color: '#92400E',
-  },
   poolsSection: {
     gap: 10,
   },
   noPoolsText: {
     fontSize: 12,
-    color: '#94A3B8',
+    color: DESIGN_TOKENS.colors.subtleText,
     fontStyle: 'italic',
     textAlign: 'center',
     paddingVertical: 12,
   },
   hiddenNoticeText: {
     fontSize: 11,
-    color: '#94A3B8',
+    color: DESIGN_TOKENS.colors.subtleText,
     fontStyle: 'italic',
     marginTop: 2,
-  },
-  validationRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    borderTopWidth: 1,
-    borderTopColor: '#F1F5F9',
-    paddingTop: 10,
-  },
-  validationLabel: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: '#475569',
-  },
-  validationRight: {
-    alignItems: 'flex-end',
-  },
-  validationAmount: {
-    fontSize: 13,
-    fontWeight: '800',
-    fontFamily: 'monospace',
-  },
-  validationBadge: {
-    fontSize: 10,
-    fontWeight: '700',
-    marginTop: 2,
-  },
-  transferLinkBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'flex-end',
-    gap: 4,
-    paddingVertical: 4,
-  },
-  transferLinkText: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: '#2563eb',
   },
   footerRow: {
     flexDirection: 'row',

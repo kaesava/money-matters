@@ -1,21 +1,14 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import {
-  DESIGN_TOKENS,
   MobileModalDialog,
-  MobileInput,
-  AmountInput,
-  ChipSelect,
-  MobileButton,
-  FormLabel,
-  DatePickerField,
-  MobileCheckbox,
   showMobileConfirm,
   useMobileToast,
 } from '@money-matters/ui/mobile';
 import { t } from '@money-matters/i18n';
 import { trpc } from '../lib/trpc';
 import { formatIsoDate } from '../lib/format';
+import { CategoryFormFields } from './categories/form/CategoryFormFields';
+import { CategoryFormFooter } from './categories/form/CategoryFormFooter';
 
 export interface CategoryItem {
   id: string;
@@ -217,191 +210,36 @@ export function CategoryFormModal({ visible, categoryToEdit, onClose, onSuccess 
       isDirty={isDirty}
       title={isEdit ? t('categories.editPoolTitle', { name: categoryToEdit?.name || '' }) : t('categories.createPool')}
       footer={
-        <View style={styles.footerContainer}>
-          {isEdit ? (
-            <TouchableOpacity
-              onPress={handleArchive}
-              disabled={isPending}
-              style={styles.archiveBtn}
-              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-            >
-              <Text style={styles.archiveBtnText}>{t('categories.archivePool')}</Text>
-            </TouchableOpacity>
-          ) : (
-            <View style={{ flex: 1 }} />
-          )}
-
-          <MobileButton
-            variant="primary"
-            loading={isPending}
-            disabled={!isValid || !isDirty || isPending}
-            onPress={handleSubmit}
-            style={styles.submitBtn}
-          >
-            {t('categories.savePool')}
-          </MobileButton>
-        </View>
+        <CategoryFormFooter
+          isEdit={isEdit}
+          isPending={isPending}
+          isValid={isValid}
+          isDirty={isDirty}
+          onArchive={handleArchive}
+          onSubmit={handleSubmit}
+        />
       }
     >
-      <View style={styles.content}>
-        {/* Pool Name */}
-        <MobileInput
-          label={t('categories.poolNameLabel')}
-          required
-          value={name}
-          onChangeText={(val) => {
-            setName(val);
-            if (nameError) setNameError('');
-          }}
-          placeholder={t('categories.placeholderPoolName')}
-          error={nameError}
-          autoFocus={!isEdit}
-        />
-
-        {/* Pool Type */}
-        <View style={styles.formGroup}>
-          <FormLabel required>{t('categories.poolTypeLabel')}</FormLabel>
-          <ChipSelect
-            options={typeOptions}
-            value={type}
-            onChange={(val) => setType(val as 'GOAL' | 'REGULAR' | 'EVERYDAY')}
-            disabled={isEdit}
-          />
-        </View>
-
-        {/* Linked Bank Account (Positioned ABOVE Target Amount) */}
-        <View style={styles.formGroup}>
-          <FormLabel required={!isEdit}>{t('categories.linkedAccountLabel')}</FormLabel>
-          <ChipSelect
-            options={bankOptions}
-            value={bankAccountId}
-            onChange={setBankAccountId}
-            disabled={isEdit}
-          />
-        </View>
-
-        {/* Immutability Warning when Editing */}
-        {isEdit && (
-          <View style={styles.warningBox}>
-            <Text style={styles.warningText}>
-              {t('categories.immutabilityWarning')}
-            </Text>
-          </View>
-        )}
-
-        {/* Calculated Target Notice for Everyday & Bills */}
-        {(type === 'REGULAR' || type === 'EVERYDAY') && (
-          <View style={styles.noticeCard}>
-            <Text style={styles.noticeTitle}>{t('categories.calculatedTarget')}</Text>
-            <Text style={styles.noticeDesc}>{t('categories.calculatedTargetNotice')}</Text>
-          </View>
-        )}
-
-        {/* Target Amount & Mandatory Completion Date for Goals */}
-        {type === 'GOAL' && (
-          <>
-            <AmountInput
-              label={t('categories.targetAmountLabel')}
-              required
-              value={targetAmount}
-              onChangeText={setTargetAmount}
-              placeholder="10000.00"
-            />
-            <DatePickerField
-              label={t('categories.targetCompletionDate')}
-              required
-              value={targetDate}
-              onChange={setTargetDate}
-            />
-          </>
-        )}
-
-        {/* Shortfall / Surplus Target Checkbox (Savings/Bills only) */}
-        {type !== 'EVERYDAY' && (
-          <View style={styles.surplusRow}>
-            <MobileCheckbox
-              checked={isSurplusTarget}
-              onChange={setIsSurplusTarget}
-              disabled={isSurplusDisabled}
-              label={t('categories.sweepSurplus')}
-            />
-            {isSurplusDisabled && (
-              <Text style={styles.surplusDisabledText}>
-                {t('categories.shortfallTargetDisabledWarning')}
-              </Text>
-            )}
-          </View>
-        )}
-      </View>
+      <CategoryFormFields
+        name={name}
+        setName={setName}
+        nameError={nameError}
+        setNameError={setNameError}
+        type={type}
+        setType={setType}
+        targetAmount={targetAmount}
+        setTargetAmount={setTargetAmount}
+        targetDate={targetDate}
+        setTargetDate={setTargetDate}
+        bankAccountId={bankAccountId}
+        setBankAccountId={setBankAccountId}
+        isSurplusTarget={isSurplusTarget}
+        setIsSurplusTarget={setIsSurplusTarget}
+        isEdit={isEdit}
+        isSurplusDisabled={isSurplusDisabled}
+        typeOptions={typeOptions}
+        bankOptions={bankOptions}
+      />
     </MobileModalDialog>
   );
 }
-
-const styles = StyleSheet.create({
-  content: {
-    gap: 14,
-  },
-  formGroup: {
-    gap: 4,
-  },
-  warningBox: {
-    padding: 12,
-    backgroundColor: '#FFFBEB',
-    borderRadius: DESIGN_TOKENS.radius.md,
-    borderWidth: 1,
-    borderColor: '#FCD34D',
-  },
-  warningText: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: '#92400E',
-    lineHeight: 16,
-  },
-  noticeCard: {
-    padding: 12,
-    backgroundColor: '#F8FAFC',
-    borderRadius: DESIGN_TOKENS.radius.md,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    gap: 4,
-  },
-  noticeTitle: {
-    fontSize: 12,
-    fontWeight: '800',
-    color: '#1B2B4B',
-  },
-  noticeDesc: {
-    fontSize: 11,
-    color: '#64748B',
-    lineHeight: 16,
-  },
-  surplusRow: {
-    paddingTop: 4,
-    gap: 4,
-  },
-  surplusDisabledText: {
-    fontSize: 11,
-    color: '#94A3B8',
-    paddingLeft: 30,
-  },
-  footerContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    width: '100%',
-    gap: 12,
-  },
-  archiveBtn: {
-    paddingVertical: 10,
-    paddingHorizontal: 4,
-  },
-  archiveBtnText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#94A3B8',
-  },
-  submitBtn: {
-    flex: 1,
-    maxWidth: 200,
-  },
-});

@@ -1,19 +1,15 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator } from 'react-native';
-import { Feather } from '@expo/vector-icons';
+import { View, StyleSheet } from 'react-native';
 import {
-  DESIGN_TOKENS,
   MobileModalDialog,
-  MobileDatePickerField,
-  AmountInput,
-  MobileInput,
   FormErrorBanner,
-  MobilePoolPicker,
   useMobileToast,
   showMobileConfirm,
 } from '@money-matters/ui/mobile';
 import { t } from '@money-matters/i18n';
 import { formatIsoDate } from '../../lib/format';
+import { TransferFormFields } from './transfer/TransferFormFields';
+import { TransferModalActions } from './transfer/TransferModalActions';
 
 export interface TransferEventData {
   id: string;
@@ -88,20 +84,26 @@ export function MobileTransferModal({
 
   if (!visible || !transfer) return null;
 
-  const handleSave = async () => {
+  const validate = (): number | null => {
     const numAmt = parseFloat(amount);
     if (!name.trim()) {
       setErrorMsg(t('drawers.quickExpense.nameRequired'));
-      return;
+      return null;
     }
     if (isNaN(numAmt) || numAmt <= 0) {
       setErrorMsg(t('drawers.quickExpense.invalidAmount'));
-      return;
+      return null;
     }
     if (sourcePoolId && destinationPoolId && sourcePoolId === destinationPoolId) {
       setErrorMsg(t('drawers.quickExpense.poolsDifferent'));
-      return;
+      return null;
     }
+    return numAmt;
+  };
+
+  const handleSave = async () => {
+    const numAmt = validate();
+    if (numAmt === null) return;
 
     try {
       setSubmitting(true);
@@ -125,15 +127,8 @@ export function MobileTransferModal({
   };
 
   const handleExecuteNow = async () => {
-    const numAmt = parseFloat(amount);
-    if (isNaN(numAmt) || numAmt <= 0) {
-      setErrorMsg(t('drawers.quickExpense.invalidAmount'));
-      return;
-    }
-    if (sourcePoolId && destinationPoolId && sourcePoolId === destinationPoolId) {
-      setErrorMsg(t('drawers.quickExpense.poolsDifferent'));
-      return;
-    }
+    const numAmt = validate();
+    if (numAmt === null) return;
 
     try {
       setSubmitting(true);
@@ -178,14 +173,6 @@ export function MobileTransferModal({
     });
   };
 
-  const formattedPools = pools.map((p) => ({
-    id: p.id,
-    name: p.name,
-    poolType: p.poolType,
-    currentBalance: p.currentBalance ?? undefined,
-    isPrivate: p.isPrivate,
-  }));
-
   return (
     <MobileModalDialog
       visible={visible}
@@ -196,152 +183,37 @@ export function MobileTransferModal({
       <View style={styles.formContainer}>
         <FormErrorBanner message={errorMsg} />
 
-        <MobileInput
-          label={t('common.name')}
-          required
-          value={name}
-          onChangeText={(v) => {
-            setName(v);
-            if (errorMsg) setErrorMsg('');
-          }}
-          placeholder={t('common.transfer')}
-        />
-
-        <AmountInput
-          label={t('common.amount')}
-          required
-          value={amount}
-          onChangeText={(v) => {
-            setAmount(v);
+        <TransferFormFields
+          name={name}
+          setName={setName}
+          amount={amount}
+          setAmount={setAmount}
+          expectedDate={expectedDate}
+          setExpectedDate={setExpectedDate}
+          sourcePoolId={sourcePoolId}
+          setSourcePoolId={setSourcePoolId}
+          destinationPoolId={destinationPoolId}
+          setDestinationPoolId={setDestinationPoolId}
+          pools={pools}
+          onFieldChange={() => {
             if (errorMsg) setErrorMsg('');
           }}
         />
 
-        <MobileDatePickerField
-          label={t('common.date')}
-          required
-          value={expectedDate}
-          onChange={(v) => {
-            setExpectedDate(v);
-            if (errorMsg) setErrorMsg('');
-          }}
+        <TransferModalActions
+          submitting={submitting}
+          onSaveDraft={handleSave}
+          onExecuteNow={handleExecuteNow}
+          onDelete={onDelete ? handleDelete : undefined}
         />
-
-        <MobilePoolPicker
-          label={t('drawers.quickExpense.fromPool')}
-          required
-          displayStyle="field"
-          mode="inline"
-          pools={formattedPools}
-          selectedPoolId={sourcePoolId}
-          allowCategorySelection={false}
-          placeholder={t('common.selectPool')}
-          onSelectPool={(pId) => {
-            setSourcePoolId(pId);
-            if (errorMsg) setErrorMsg('');
-          }}
-        />
-
-        <MobilePoolPicker
-          label={t('drawers.quickExpense.toPoolDestination')}
-          required
-          displayStyle="field"
-          mode="inline"
-          pools={formattedPools}
-          selectedPoolId={destinationPoolId}
-          allowCategorySelection={false}
-          placeholder={t('common.selectPool')}
-          onSelectPool={(pId) => {
-            setDestinationPoolId(pId);
-            if (errorMsg) setErrorMsg('');
-          }}
-        />
-
-        <View style={styles.actionsRow}>
-          <TouchableOpacity
-            style={styles.saveDraftBtn}
-            onPress={handleSave}
-            disabled={submitting}
-          >
-            <Text style={styles.saveDraftText}>{t('common.save')}</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={styles.executeBtn}
-            onPress={handleExecuteNow}
-            disabled={submitting}
-          >
-            {submitting ? (
-              <ActivityIndicator color="#FFFFFF" size="small" />
-            ) : (
-              <Text style={styles.executeBtnText}>{t('common.transfer')}</Text>
-            )}
-          </TouchableOpacity>
-        </View>
-
-        {onDelete && (
-          <TouchableOpacity
-            onPress={handleDelete}
-            disabled={submitting}
-            style={styles.deleteLink}
-          >
-            <Feather name="trash-2" size={14} color="#94A3B8" />
-            <Text style={styles.deleteLinkText}>{t('common.delete')}</Text>
-          </TouchableOpacity>
-        )}
       </View>
     </MobileModalDialog>
   );
 }
 
-const D = DESIGN_TOKENS;
 const styles = StyleSheet.create({
   formContainer: {
     gap: 12,
     paddingBottom: 8,
-  },
-  actionsRow: {
-    flexDirection: 'row',
-    gap: 12,
-    marginTop: 8,
-  },
-  saveDraftBtn: {
-    flex: 1,
-    backgroundColor: '#F1F5F9',
-    borderRadius: 12,
-    paddingVertical: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  saveDraftText: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: '#475569',
-  },
-  executeBtn: {
-    flex: 1,
-    backgroundColor: D.colors.accent,
-    borderRadius: 12,
-    paddingVertical: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  executeBtnText: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: '#FFFFFF',
-  },
-  deleteLink: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 6,
-    paddingVertical: 8,
-    marginTop: 4,
-  },
-  deleteLinkText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#94A3B8',
   },
 });

@@ -11,14 +11,14 @@ import {
   MobileButton,
   FormLabel,
   FormFieldError,
+  DESIGN_TOKENS,
 } from '@money-matters/ui/mobile';
 import { t } from '@money-matters/i18n';
 import {
   SUPPORTED_CURRENCIES,
-  SUPPORTED_COUNTRIES,
   COMMON_TIMEZONES,
-  AU_STATES,
 } from '@money-matters/types';
+import { HouseholdLocationFields } from './household/HouseholdLocationFields';
 
 interface HouseholdEditViewProps {
   householdName: string;
@@ -57,8 +57,6 @@ export function HouseholdEditView({
   onSave,
   onCancel,
 }: HouseholdEditViewProps) {
-  const isAustralia = country === 'AU';
-
   return (
     <View style={styles.card}>
       <View style={styles.headerRow}>
@@ -78,7 +76,7 @@ export function HouseholdEditView({
           value={householdName}
           onChangeText={setHouseholdName}
           placeholder={t('auth.householdNamePlaceholder')}
-          placeholderTextColor="#94A3B8"
+          placeholderTextColor={DESIGN_TOKENS.colors.subtleText}
         />
         {!householdName.trim() && (
           <FormFieldError error={t('auth.householdNameRequired')} />
@@ -106,7 +104,7 @@ export function HouseholdEditView({
         </ScrollView>
       </View>
 
-      {/* Timezone Selector (COMMON_TIMEZONES) */}
+      {/* Timezone Selector */}
       <View style={styles.inputGroup}>
         <FormLabel label={t('settings.timezone')} required />
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.scrollRow}>
@@ -127,70 +125,16 @@ export function HouseholdEditView({
         </ScrollView>
       </View>
 
-      {/* Country Selector */}
-      <View style={styles.inputGroup}>
-        <FormLabel label={t('auth.countryLabel')} />
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.scrollRow}>
-          {SUPPORTED_COUNTRIES.map((c) => {
-            const isSelected = country === c.code;
-            return (
-              <TouchableOpacity
-                key={c.code}
-                onPress={() => setCountry(c.code)}
-                style={[styles.chip, isSelected && styles.chipSelected]}
-              >
-                <Text style={styles.chipFlag}>{c.flag}</Text>
-                <Text style={[styles.chipText, isSelected && styles.chipTextSelected]}>
-                  {c.name}
-                </Text>
-              </TouchableOpacity>
-            );
-          })}
-        </ScrollView>
-      </View>
-
-      {/* State & Postcode */}
-      <View style={styles.row}>
-        <View style={[styles.inputGroup, { flex: 1 }]}>
-          <FormLabel label={t('settings.household.stateLabel')} />
-          {isAustralia ? (
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.scrollRow}>
-              {AU_STATES.map((st) => (
-                <TouchableOpacity
-                  key={st.code}
-                  onPress={() => setState(st.code)}
-                  style={[styles.chip, state === st.code && styles.chipSelected]}
-                >
-                  <Text style={[styles.chipText, state === st.code && styles.chipTextSelected]}>
-                    {st.code}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </ScrollView>
-          ) : (
-            <TextInput
-              style={styles.textInput}
-              value={state}
-              onChangeText={setState}
-              placeholder="e.g. CA"
-              placeholderTextColor="#94A3B8"
-            />
-          )}
-        </View>
-
-        <View style={[styles.inputGroup, { flex: 1 }]}>
-          <FormLabel label={t('settings.household.postcodeLabel')} />
-          <TextInput
-            style={styles.textInput}
-            value={postcode}
-            onChangeText={setPostcode}
-            placeholder={isAustralia ? '2000' : '90210'}
-            placeholderTextColor="#94A3B8"
-            keyboardType="numeric"
-          />
-          {postcodeError ? <FormFieldError error={postcodeError} /> : null}
-        </View>
-      </View>
+      {/* Location Fields (Country, State, Postcode) */}
+      <HouseholdLocationFields
+        country={country}
+        setCountry={setCountry}
+        state={state}
+        setState={setState}
+        postcode={postcode}
+        setPostcode={setPostcode}
+        postcodeError={postcodeError}
+      />
 
       {/* Footer Actions */}
       <View style={styles.footerRow}>
@@ -213,10 +157,10 @@ export function HouseholdEditView({
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: DESIGN_TOKENS.colors.surface,
     borderRadius: 18,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: DESIGN_TOKENS.colors.border,
     padding: 16,
     gap: 14,
   },
@@ -228,7 +172,7 @@ const styles = StyleSheet.create({
   cardTitle: {
     fontSize: 15,
     fontWeight: '800',
-    color: '#1B2B4B',
+    color: DESIGN_TOKENS.colors.primary,
   },
   actionRow: {
     flexDirection: 'row',
@@ -239,25 +183,25 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 6,
     borderRadius: 8,
-    backgroundColor: '#F1F5F9',
+    backgroundColor: DESIGN_TOKENS.colors.slate[100],
   },
   cancelBtnText: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#475569',
+    color: DESIGN_TOKENS.colors.slate[600],
   },
   inputGroup: {
     gap: 6,
   },
   textInput: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: DESIGN_TOKENS.colors.surface,
     borderWidth: 1,
-    borderColor: '#CBD5E1',
+    borderColor: DESIGN_TOKENS.colors.border,
     borderRadius: 10,
     paddingHorizontal: 12,
     paddingVertical: 10,
     fontSize: 14,
-    color: '#1B2B4B',
+    color: DESIGN_TOKENS.colors.primary,
   },
   scrollRow: {
     flexDirection: 'row',
@@ -269,29 +213,21 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     borderRadius: 10,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
-    backgroundColor: '#F8FAFC',
+    borderColor: DESIGN_TOKENS.colors.border,
+    backgroundColor: DESIGN_TOKENS.colors.background,
     marginRight: 8,
   },
   chipSelected: {
-    backgroundColor: '#EFF6FF',
-    borderColor: '#2563eb',
-  },
-  chipFlag: {
-    fontSize: 14,
-    marginRight: 6,
+    backgroundColor: DESIGN_TOKENS.colors.accentLight,
+    borderColor: DESIGN_TOKENS.colors.sereneBlue,
   },
   chipText: {
     fontSize: 12,
-    color: '#475569',
+    color: DESIGN_TOKENS.colors.slate[600],
   },
   chipTextSelected: {
-    color: '#2563eb',
+    color: DESIGN_TOKENS.colors.sereneBlue,
     fontWeight: '700',
-  },
-  row: {
-    flexDirection: 'row',
-    gap: 12,
   },
   footerRow: {
     flexDirection: 'row',

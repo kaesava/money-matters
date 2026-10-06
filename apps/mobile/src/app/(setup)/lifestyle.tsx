@@ -67,12 +67,12 @@ export default function SetupLifestyleScreen() {
 
       <Text style={styles.stepLabel}>{t('setup.stepOf', { step: 4, total: 5 })}</Text>
       <View style={styles.titleRow}>
-        <Text style={styles.title}>🏡 Lifestyle Setup</Text>
-        <InfoTooltip title="Australian Benchmarks" content="We calculate initial estimates based on ABS benchmarks." />
+        <Text style={styles.title}>{t('setup.lifestyle.title')}</Text>
+        <InfoTooltip title={t('setup.lifestyle.benchmarksTitle')} content={t('setup.lifestyle.benchmarksContent')} />
       </View>
 
       <View style={styles.sectionCard}>
-        <Text style={styles.sectionTitle}>Housing Setup</Text>
+        <Text style={styles.sectionTitle}>{t('setup.lifestyle.housingTitle')}</Text>
         <View style={styles.chipGrid}>
           {HOUSING_OPTIONS.map((opt) => (
             <TouchableOpacity
@@ -88,9 +88,9 @@ export default function SetupLifestyleScreen() {
 
       <View style={styles.sectionCard}>
         <View style={styles.rowBetween}>
-          <Text style={styles.sectionTitle}>🚗 Vehicles</Text>
+          <Text style={styles.sectionTitle}>{t('setup.lifestyle.vehiclesTitle')}</Text>
           <TouchableOpacity onPress={() => setHasCars(!hasCars)}>
-            <Text style={styles.toggleText}>{hasCars ? '✓ Own Vehicles' : 'No Vehicle'}</Text>
+            <Text style={styles.toggleText}>{hasCars ? t('setup.lifestyle.ownVehicles') : t('setup.lifestyle.noVehicle')}</Text>
           </TouchableOpacity>
         </View>
         {hasCars && (
@@ -109,7 +109,7 @@ export default function SetupLifestyleScreen() {
               style={styles.addBtn}
               onPress={() => setVehicles(prev => [...prev, { id: `veh-${Date.now()}`, name: `Car ${prev.length + 1}`, size: 'MID_SUV' }])}
             >
-              <Text style={styles.addBtnText}>+ Add Vehicle</Text>
+              <Text style={styles.addBtnText}>{t('setup.lifestyle.addVehicle')}</Text>
             </TouchableOpacity>
           </View>
         )}
@@ -117,9 +117,9 @@ export default function SetupLifestyleScreen() {
 
       <View style={styles.sectionCard}>
         <View style={styles.rowBetween}>
-          <Text style={styles.sectionTitle}>👨‍👩‍👧 Dependents / Kids</Text>
+          <Text style={styles.sectionTitle}>{t('setup.lifestyle.dependentsTitle')}</Text>
           <TouchableOpacity onPress={() => setHasKids(!hasKids)}>
-            <Text style={styles.toggleText}>{hasKids ? '✓ Have Kids' : 'No Kids'}</Text>
+            <Text style={styles.toggleText}>{hasKids ? t('setup.lifestyle.haveKids') : t('setup.lifestyle.noKids')}</Text>
           </TouchableOpacity>
         </View>
         {hasKids && (
@@ -138,21 +138,21 @@ export default function SetupLifestyleScreen() {
               style={styles.addBtn}
               onPress={() => setChildren(prev => [...prev, { id: `child-${Date.now()}`, name: `Child ${prev.length + 1}`, stage: 'PRIMARY', type: 'PUBLIC' }])}
             >
-              <Text style={styles.addBtnText}>+ Add Child</Text>
+              <Text style={styles.addBtnText}>{t('setup.lifestyle.addChild')}</Text>
             </TouchableOpacity>
           </View>
         )}
       </View>
 
       <View style={styles.sectionCard}>
-        <Text style={styles.sectionTitle}>Healthcare & Pets</Text>
+        <Text style={styles.sectionTitle}>{t('setup.lifestyle.healthcarePetsTitle')}</Text>
         <View style={styles.rowWrap}>
           <TouchableOpacity
             style={[styles.chip, hasPrivateHealth && styles.chipActive]}
             onPress={() => setHasPrivateHealth(!hasPrivateHealth)}
           >
             <Text style={[styles.chipText, hasPrivateHealth && styles.chipTextActive]}>
-              {hasPrivateHealth ? '✓ Private Health' : 'Private Health'}
+              {hasPrivateHealth ? t('setup.lifestyle.havePrivateHealth') : t('setup.lifestyle.privateHealth')}
             </Text>
           </TouchableOpacity>
           <TouchableOpacity
@@ -160,7 +160,7 @@ export default function SetupLifestyleScreen() {
             onPress={() => setHasPets(!hasPets)}
           >
             <Text style={[styles.chipText, hasPets && styles.chipTextActive]}>
-              {hasPets ? '✓ Have Pets' : 'Pets'}
+              {hasPets ? t('setup.lifestyle.havePets') : t('setup.lifestyle.pets')}
             </Text>
           </TouchableOpacity>
         </View>
@@ -168,9 +168,9 @@ export default function SetupLifestyleScreen() {
 
       <View style={styles.sectionCard}>
         <View style={styles.rowBetween}>
-          <Text style={styles.sectionTitle}>💳 Active Debt Repayments</Text>
+          <Text style={styles.sectionTitle}>{t('setup.lifestyle.debtTitle')}</Text>
           <TouchableOpacity onPress={() => setHasDebt(!hasDebt)}>
-            <Text style={styles.toggleText}>{hasDebt ? '✓ Have Debt' : 'None'}</Text>
+            <Text style={styles.toggleText}>{hasDebt ? t('setup.lifestyle.haveDebt') : t('setup.lifestyle.noDebt')}</Text>
           </TouchableOpacity>
         </View>
         {hasDebt && (
@@ -185,18 +185,18 @@ export default function SetupLifestyleScreen() {
       </View>
 
       <View style={styles.sectionCard}>
-        <Text style={styles.sectionTitle}>Weekly Discretionary Spending</Text>
+        <Text style={styles.sectionTitle}>{t('setup.lifestyle.spendingTitle')}</Text>
         <View style={styles.budgetRow}>
-          <Text style={styles.budgetLabel}>🛒 Groceries</Text>
-          <Text style={styles.budgetValue}>${weeklyGroceries}/wk</Text>
+          <Text style={styles.budgetLabel}>{t('setup.lifestyle.groceries')}</Text>
+          <Text style={styles.budgetValue}>${weeklyGroceries}{t('setup.lifestyle.perWeek')}</Text>
         </View>
         <View style={styles.budgetRow}>
-          <Text style={styles.budgetLabel}>☕ Dining & Fun</Text>
-          <Text style={styles.budgetValue}>${weeklyDining}/wk</Text>
+          <Text style={styles.budgetLabel}>{t('setup.lifestyle.dining')}</Text>
+          <Text style={styles.budgetValue}>${weeklyDining}{t('setup.lifestyle.perWeek')}</Text>
         </View>
         <View style={styles.budgetRow}>
-          <Text style={styles.budgetLabel}>🛍️ Personal Buffer</Text>
-          <Text style={styles.budgetValue}>${weeklyPersonal}/wk</Text>
+          <Text style={styles.budgetLabel}>{t('setup.lifestyle.personalBuffer')}</Text>
+          <Text style={styles.budgetValue}>${weeklyPersonal}{t('setup.lifestyle.perWeek')}</Text>
         </View>
       </View>
 
@@ -216,19 +216,19 @@ const styles = StyleSheet.create({
   container: { padding: 20, backgroundColor: DESIGN_TOKENS.colors.background, flexGrow: 1 },
   topNavRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 },
   progressRow: { flexDirection: 'row', gap: 6 },
-  progressDot: { width: 24, height: 6, borderRadius: 3, backgroundColor: '#E2E8F0' },
+  progressDot: { width: 24, height: 6, borderRadius: 3, backgroundColor: DESIGN_TOKENS.colors.slate[200] },
   progressDotActive: { backgroundColor: DESIGN_TOKENS.colors.accent },
   skipBtnText: { fontSize: 13, fontWeight: '600', color: DESIGN_TOKENS.colors.textMuted },
   stepLabel: { fontSize: 12, fontWeight: '700', color: DESIGN_TOKENS.colors.accent, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 },
   titleRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 16 },
   title: { fontSize: 20, fontWeight: '900', color: DESIGN_TOKENS.colors.primary },
-  sectionCard: { backgroundColor: DESIGN_TOKENS.colors.surface, padding: 14, borderRadius: DESIGN_TOKENS.radius.lg, borderWidth: 1, borderColor: '#E2E8F0', marginBottom: 12 },
+  sectionCard: { backgroundColor: DESIGN_TOKENS.colors.surface, padding: 14, borderRadius: DESIGN_TOKENS.radius.lg, borderWidth: 1, borderColor: DESIGN_TOKENS.colors.slate[200], marginBottom: 12 },
   sectionTitle: { fontSize: 13, fontWeight: '800', color: DESIGN_TOKENS.colors.primary, marginBottom: 8 },
   rowBetween: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   toggleText: { fontSize: 12, fontWeight: '700', color: DESIGN_TOKENS.colors.accent },
   chipGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
   rowWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  chip: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: DESIGN_TOKENS.radius.full, borderWidth: 1, borderColor: '#E2E8F0', backgroundColor: DESIGN_TOKENS.colors.surfaceVariant },
+  chip: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: DESIGN_TOKENS.radius.full, borderWidth: 1, borderColor: DESIGN_TOKENS.colors.slate[200], backgroundColor: DESIGN_TOKENS.colors.surfaceVariant },
   chipActive: { backgroundColor: DESIGN_TOKENS.colors.accent, borderColor: DESIGN_TOKENS.colors.accent },
   chipText: { fontSize: 12, color: DESIGN_TOKENS.colors.textMuted },
   chipTextActive: { color: DESIGN_TOKENS.colors.onAccent, fontWeight: '600' },
@@ -238,8 +238,8 @@ const styles = StyleSheet.create({
   budgetLabel: { fontSize: 13, color: DESIGN_TOKENS.colors.textPrimary },
   budgetValue: { fontSize: 13, fontWeight: '700', color: DESIGN_TOKENS.colors.accent },
   actionRow: { flexDirection: 'row', gap: 12, marginTop: 8, marginBottom: 40 },
-  backBtn: { flex: 1, paddingVertical: 14, backgroundColor: DESIGN_TOKENS.colors.surface, borderWidth: 1, borderColor: '#CBD5E1', borderRadius: DESIGN_TOKENS.radius.md, alignItems: 'center' },
-  backBtnText: { fontSize: 14, fontWeight: '700', color: '#475569' },
+  backBtn: { flex: 1, paddingVertical: 14, backgroundColor: DESIGN_TOKENS.colors.surface, borderWidth: 1, borderColor: DESIGN_TOKENS.colors.slate[300], borderRadius: DESIGN_TOKENS.radius.md, alignItems: 'center' },
+  backBtnText: { fontSize: 14, fontWeight: '700', color: DESIGN_TOKENS.colors.slate[600] },
   nextBtn: { flex: 2, paddingVertical: 14, backgroundColor: DESIGN_TOKENS.colors.accent, borderRadius: DESIGN_TOKENS.radius.md, alignItems: 'center' },
   nextBtnText: { fontSize: 14, fontWeight: '800', color: DESIGN_TOKENS.colors.onAccent },
 });

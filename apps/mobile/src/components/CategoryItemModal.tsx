@@ -1,24 +1,14 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import {
-  View,
-  Text,
-  ScrollView,
-  Switch,
-  StyleSheet,
-  TouchableOpacity,
-} from 'react-native';
+import { ScrollView } from 'react-native';
 import {
   MobileModalDialog,
-  MobileInput,
-  AmountInput,
-  ChipSelect,
-  MobileButton,
-  FormLabel,
   useMobileToast,
   showMobileConfirm,
 } from '@money-matters/ui/mobile';
 import { t } from '@money-matters/i18n';
 import { trpc } from '../lib/trpc';
+import { CategoryItemFields } from './categories/form/CategoryItemFields';
+import { CategoryItemFooter } from './categories/form/CategoryItemFooter';
 
 export interface CategoryItemToEdit {
   id?: string;
@@ -200,156 +190,32 @@ export function CategoryItemModal({
           : t('categories.createSubtitle')
       }
       footer={
-        <View style={styles.footerContainer}>
-          {isEdit ? (
-            <TouchableOpacity
-              onPress={handleArchive}
-              disabled={isPending}
-              style={styles.archiveBtn}
-              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-            >
-              <Text style={styles.archiveBtnText}>{t('categories.archiveCategory')}</Text>
-            </TouchableOpacity>
-          ) : (
-            <View style={{ flex: 1 }} />
-          )}
-
-          <MobileButton
-            variant="primary"
-            loading={isPending}
-            disabled={!name.trim() || !enteredAmount.trim() || isPending}
-            onPress={handleSubmit}
-            style={styles.submitBtn}
-          >
-            {isEdit ? t('categories.saveCategory') : t('categories.createButton')}
-          </MobileButton>
-        </View>
+        <CategoryItemFooter
+          isEdit={isEdit}
+          isPending={isPending}
+          canSubmit={Boolean(name.trim() && enteredAmount.trim())}
+          onArchive={handleArchive}
+          onSubmit={handleSubmit}
+        />
       }
     >
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.form}>
-        {/* Name */}
-        <MobileInput
-          label={t('categories.nameLabel')}
-          required
-          placeholder={t('categories.namePlaceholder')}
-          value={name}
-          onChangeText={setName}
-          autoFocus={!isEdit}
+      <ScrollView showsVerticalScrollIndicator={false}>
+        <CategoryItemFields
+          name={name}
+          setName={setName}
+          enteredAmount={enteredAmount}
+          setEnteredAmount={setEnteredAmount}
+          frequency={frequency}
+          setFrequency={setFrequency}
+          isEssential={isEssential}
+          setIsEssential={setIsEssential}
+          calculatedMonthly={calculatedMonthly}
+          isEdit={isEdit}
+          freqOptions={freqOptions}
         />
-
-        {/* Amount */}
-        <AmountInput
-          label={t('categories.targetAmountLabel')}
-          required
-          placeholder="0.00"
-          value={enteredAmount}
-          onChangeText={setEnteredAmount}
-        />
-
-        {/* Frequency Chips */}
-        <View style={styles.inputGroup}>
-          <FormLabel>{t('categories.frequencyLabel')}</FormLabel>
-          <ChipSelect
-            options={freqOptions}
-            value={frequency}
-            onChange={(val) => setFrequency(val as FrequencyOption)}
-          />
-        </View>
-
-        {/* Monthly Equivalent Banner if not monthly */}
-        {enteredAmount && parseFloat(enteredAmount) > 0 && frequency !== 'MONTHLY' && (
-          <View style={styles.equivBanner}>
-            <Text style={styles.equivLabel}>{t('categories.monthlyEquivalent')}</Text>
-            <Text style={styles.equivVal}>${calculatedMonthly} / mo</Text>
-          </View>
-        )}
-
-        {/* Essential Bill Toggle */}
-        <View style={styles.switchRow}>
-          <View style={{ flex: 1, paddingRight: 8 }}>
-            <Text style={styles.switchLabel}>{t('categories.prioritiseCategory')}</Text>
-            <Text style={styles.switchSubtext}>
-              {t('categories.priorityCategoryInfo')}
-            </Text>
-          </View>
-          <Switch
-            value={isEssential}
-            onValueChange={setIsEssential}
-            trackColor={{ false: '#E2E8F0', true: '#2563eb' }}
-          />
-        </View>
       </ScrollView>
     </MobileModalDialog>
   );
 }
-
-const styles = StyleSheet.create({
-  form: {
-    gap: 14,
-    paddingBottom: 10,
-  },
-  inputGroup: {
-    gap: 4,
-  },
-  equivBanner: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    backgroundColor: '#EFF6FF',
-    borderWidth: 1,
-    borderColor: '#BFDBFE',
-    borderRadius: 12,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-  },
-  equivLabel: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#1E40AF',
-  },
-  equivVal: {
-    fontSize: 13,
-    fontWeight: '800',
-    fontFamily: 'monospace',
-    color: '#2563eb',
-  },
-  switchRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: 6,
-    gap: 12,
-  },
-  switchLabel: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: '#1B2B4B',
-  },
-  switchSubtext: {
-    fontSize: 11,
-    color: '#94A3B8',
-    marginTop: 2,
-  },
-  footerContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    width: '100%',
-    gap: 12,
-  },
-  archiveBtn: {
-    paddingVertical: 10,
-    paddingHorizontal: 4,
-  },
-  archiveBtnText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#94A3B8',
-  },
-  submitBtn: {
-    flex: 1,
-    maxWidth: 200,
-  },
-});
 
 export default CategoryItemModal;
