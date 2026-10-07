@@ -72,7 +72,7 @@ export function FeedbackModal({ isOpen, onClose, userEmail = '' }: FeedbackModal
       ];
       const subject = encodeURIComponent(`[Feedback] ${title.trim()}`);
       const body = encodeURIComponent(diagnostics.join('\n'));
-      const mailtoUrl = `mailto:support@moneymatters.kaesava.au?subject=${subject}&body=${body}`;
+      const mailtoUrl = `mailto:info@moneymatters.kaesava.au?subject=${subject}&body=${body}`;
 
       window.location.href = mailtoUrl;
       handleClose();

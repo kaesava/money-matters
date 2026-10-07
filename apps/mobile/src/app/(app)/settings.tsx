@@ -178,13 +178,14 @@ export default function SettingsScreen() {
               <SubscriptionPlanSection />
 
               <PrivacyGovernanceSection />
-
-              <SettingsVersionFeedbackSection
-                onOpenFeedback={() => setFeedbackVisible(true)}
-                onCopyDiagnostics={handleCopyDiagnostics}
-              />
             </View>
           )}
+
+          {/* Persistent Version & Feedback Section */}
+          <SettingsVersionFeedbackSection
+            onOpenFeedback={() => setFeedbackVisible(true)}
+            onCopyDiagnostics={handleCopyDiagnostics}
+          />
         </ScrollView>
       </AppScreenWrapper>
 

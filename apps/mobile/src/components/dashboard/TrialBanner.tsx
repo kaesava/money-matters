@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
 import { t } from '@money-matters/i18n';
+import { DESIGN_TOKENS } from '@money-matters/ui/mobile';
 import { trpc } from '../../lib/trpc';
 
 export function TrialBanner() {
@@ -22,14 +23,14 @@ export function TrialBanner() {
   }
 
   let message = '';
-  let bgColor = '#2563eb';
+  let bgColor: string = DESIGN_TOKENS.colors.sereneBlue;
 
   if (status.isTrialActive) {
-    message = t('subscription.bannerUrgent', { days: String(days) }) || `${days} days left in free trial`;
-    bgColor = days <= 3 ? '#ba1a1a' : '#d97706';
+    message = t('subscription.bannerUrgent', { days: String(days) });
+    bgColor = days <= 3 ? DESIGN_TOKENS.colors.burnRed : DESIGN_TOKENS.colors.warning;
   } else if (status.isPastDue) {
-    message = t('subscription.bannerPastDue') || 'Payment past due.';
-    bgColor = '#d97706';
+    message = t('subscription.bannerPastDue');
+    bgColor = DESIGN_TOKENS.colors.warning;
   }
 
   return (
@@ -41,17 +42,18 @@ export function TrialBanner() {
       </View>
       <View style={styles.actions}>
         <TouchableOpacity
-          onPress={() => router.push('/(app)/settings' as never)}
+          onPress={() => router.push('/(app)/settings?tab=account-data' as never)}
           style={styles.ctaBtn}
         >
           <Text style={styles.ctaText}>
-            {t('subscription.upgradeCta') || 'Upgrade'}
+            {t('subscription.upgradeCta')}
           </Text>
         </TouchableOpacity>
         <TouchableOpacity
           onPress={() => setDismissed(true)}
           style={styles.dismissBtn}
           hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          accessibilityLabel="Dismiss banner"
         >
           <Text style={styles.dismissText}>✕</Text>
         </TouchableOpacity>
@@ -73,7 +75,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   message: {
-    color: '#FFFFFF',
+    color: DESIGN_TOKENS.colors.onPrimary,
     fontSize: 12,
     fontWeight: '700',
   },
@@ -83,21 +85,21 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   ctaBtn: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: DESIGN_TOKENS.colors.onPrimary,
     paddingVertical: 4,
     paddingHorizontal: 10,
-    borderRadius: 8,
+    borderRadius: DESIGN_TOKENS.radius.sm,
   },
   ctaText: {
     fontSize: 11,
     fontWeight: '800',
-    color: '#1B2B4B',
+    color: DESIGN_TOKENS.colors.primary,
   },
   dismissBtn: {
     padding: 2,
   },
   dismissText: {
-    color: '#FFFFFF',
+    color: DESIGN_TOKENS.colors.onPrimary,
     fontSize: 14,
     fontWeight: '700',
     opacity: 0.8,

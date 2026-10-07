@@ -10,6 +10,9 @@
 # Mobile App
 All changes are for the Mobile App unless explicitly specified as Web App
 
+## Settings > Feedback
+* Ensure parity between mobile and web app. Functionality, User-facing literals, etc.
+* It seems to be sending an email to support@moneymatters.kaesava.au - but not sure that exists, I believe it should be info@moneymatters.kaesava.au. Fix across mobile and web.
 
 ## General - the below changes apply to the screens listed in the next section.
 * Important: Align mobile app functionality to web app (this includes required fields, branching logic, data retrieval/setting logic, calculation logic, and any functiona logic used). However, the UX for the mobile app must follow UX best practice, and must used every opportunity for reusable UX/UI so other screens have consistent look and feel. If there is significant capability gaps, check with me.

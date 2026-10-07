@@ -79,7 +79,7 @@ All tables MUST include:
 - tRPC is primary API.
 - **Independent App SemVer**: Apps (`apps/web`, `apps/mobile`) follow independent Semantic Versioning (`MAJOR.MINOR.PATCH-PRERELEASE`) managed automatically via `pnpm version:bump`.
 - **App Version Capture & Diagnostics**: Web and Mobile clients dynamically resolve `AppVersionInfo` via `@money-matters/config` and display an inconspicuous version footer in the Settings view (`Money Matters v1.0.0-beta.1 (#42)`). Tapping/clicking copies JSON diagnostics.
-- **Bug Report Diagnostics**: All user feedback submissions capture app version, build number, channel, platform, and device metadata automatically formatted into `mailto:support@moneymatters.kaesava.au`.
+- **Bug Report Diagnostics**: All user feedback submissions capture app version, build number, channel, platform, and device metadata automatically formatted into `mailto:info@moneymatters.kaesava.au`.
 - Breaking changes REQUIRE new major version.
 - MUST maintain backward compatibility.
 

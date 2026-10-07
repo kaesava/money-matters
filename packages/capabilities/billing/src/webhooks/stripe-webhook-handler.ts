@@ -218,7 +218,7 @@ async function resolveTenantId(
             await sendNotificationEmail(
               customerEmail,
               "Your Money Matters Subscription Receipt",
-              `Thank you for your payment of ${formattedAmount} for Money Matters Household.\n\nYour subscription is active until ${currentPeriodEnd.toLocaleDateString("en-AU")}.\n\nYou can view and download your invoice receipt here:\n${invoice.hosted_invoice_url || "https://moneymatters.kaesava.au/dashboard/settings?tab=account-data"}\n\nIf you have any questions, contact our Australian support team at support@moneymatters.kaesava.au.`
+              `Thank you for your payment of ${formattedAmount} for Money Matters Household.\n\nYour subscription is active until ${currentPeriodEnd.toLocaleDateString("en-AU")}.\n\nYou can view and download your invoice receipt here:\n${invoice.hosted_invoice_url || "https://moneymatters.kaesava.au/dashboard/settings?tab=account-data"}\n\nIf you have any questions, contact our Australian support team at info@moneymatters.kaesava.au.`
             ).catch(() => {});
           }
         }
@@ -270,7 +270,7 @@ async function resolveTenantId(
             await sendNotificationEmail(
               customerEmail,
               "⚠️ Payment Action Required — Money Matters Household",
-              `We were unable to process your recurring subscription payment for Money Matters Household.\n\nTo prevent interruption to your household budget and data access, please update your payment method via the customer portal:\nhttps://moneymatters.kaesava.au/subscription/manage\n\nNeed assistance? Contact support@moneymatters.kaesava.au.`
+              `We were unable to process your recurring subscription payment for Money Matters Household.\n\nTo prevent interruption to your household budget and data access, please update your payment method via the customer portal:\nhttps://moneymatters.kaesava.au/subscription/manage\n\nNeed assistance? Contact info@moneymatters.kaesava.au.`
             ).catch(() => {});
           }
         }

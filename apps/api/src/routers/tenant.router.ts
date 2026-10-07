@@ -105,7 +105,7 @@ export const tenantRouter = {
     .mutation(async ({ input, ctx }) => {
       const appId = ctx.appId || ctx.session?.appId || MONEY_MATTERS_APP_ID;
       const handler = createTenantHandler(ctx.db || db);
-      const result = await handler(input, appId, ctx.userId);
+      const result = await handler(input, appId, ctx.userId, ctx.email);
 
       // Dispatch signup workflow (welcome email, onboarding notifications) — fires exactly
       // once here via explicit createTenant rather than in context auto-provisioning.

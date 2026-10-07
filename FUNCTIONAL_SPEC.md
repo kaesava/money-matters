@@ -318,7 +318,7 @@ The onboarding flow delivers an engaging interactive estimation experience compl
   - **Bank Reconciliation (`BankReconcileCard` & `BankReconcileModal`)**: Static status indicators with direct wiring to the `reconcileBankBalance` tRPC mutation.
   - **Deduplicated & Streamlined Filter Surfaces**: Counter-card health filter integration on Categories screen; permanent 3-way (`All / Debits / Credits`) segmented control on Transaction History screen.
   - **Collapsible Sections & Minimalist View Mode**: Quick Actions, All Upcoming Payments, and Category Health can be collapsed. Users can toggle "Show Decorative Icons" in Settings to switch between iconified vs minimalist typographic UI layouts across Web and Mobile apps.
-  - **In-App Feedback & Diagnostics**: "Provide Feedback" feature accessible from Settings on Web and Mobile. Captures user feedback, category, description, and auto-derived system diagnostics (`platform`, `appVersion`, build number, channel, platform, and device metadata), automatically formatting and dispatching directly via `mailto:support@moneymatters.kaesava.au`.
+  - **In-App Feedback & Diagnostics**: "Provide Feedback" feature accessible from Settings on Web and Mobile. Captures user feedback, category, description, and auto-derived system diagnostics (`platform`, `appVersion`, build number, channel, platform, and device metadata), automatically formatting and dispatching directly via `mailto:info@moneymatters.kaesava.au`.
   - **Inconspicuous App Version Footer**: An understated version footer (`Money Matters v1.0.0-beta.1 (#42) • beta channel`) displayed at the bottom of the Settings view on Web and Mobile. Tapping/clicking copies complete environment diagnostics JSON to the clipboard for support troubleshooting.
 
 ### 6.1 Native Android Mobile App Experience (`apps/mobile`) — 100% Feature Parity
@@ -442,8 +442,9 @@ The onboarding flow delivers an engaging interactive estimation experience compl
    - **On-Demand Portal Return Synchronization**: When users return from managing their subscription in the Customer Portal (`?tab=account-data&stripe_sync=true`) or click the manual refresh button (`↻`), Money Matters instantly reconciles subscription state and backfills the latest 10 invoices from Stripe.
    - **Advance Renewal Reminders**: Hybrid renewal reminder architecture: Stripe sends automated 7-day advance reminder emails for annual recurring subscriptions, and Money Matters displays an informative in-app banner within 7 days of the renewal date.
    - **Invoice History & Receipts**: Paid and failed invoices are persisted to `billing_invoices`. The Settings "Data & Subscription" tab renders recent invoices with direct links to Stripe-hosted invoice PDFs.
-   - **Anti-Abuse Protections**: Each user can own at most 1 active household (`role === 'OWNER'`). Additionally, a permanent `hasUsedTrial` flag on `users` ensures that any subsequent household created by the same user starts in `TRIAL_EXPIRED` status, preventing recurring trial reset abuse.
-   - **Support & Feedback Channel**: Australian customer support contact (`support@moneymatters.kaesava.au`) is surfaced across the upgrade page, settings subscription section, and invoice receipts.
+   - **Anti-Abuse Protections**: Each user can own at most 1 active household (`role === 'OWNER'`). Additionally, a permanent `hasUsedTrial` flag on `users` alongside a case-insensitive email check across all registered accounts (`lower(users.email)`) ensures that any subsequent household created by the same user or email address starts in `TRIAL_EXPIRED` status, preventing recurring trial reset abuse.
+   - **100% Mobile Parity for Data & Subscription and Feedback**: Full feature and styling parity is implemented in the mobile app, including the interactive subscription status card with on-demand Stripe sync, cancellation callouts with "Resume Plan ↗", receipt downloads, Founding Member plan selection ($69/yr), Australian Privacy Guarantee tooltip, Zipped CSV backup export, and an in-app "Provide Feedback" modal with system diagnostics dispatched to `info@moneymatters.kaesava.au`.
+   - **Support & Feedback Channel**: Australian customer support contact (`info@moneymatters.kaesava.au`) is surfaced across the upgrade page, settings subscription section, and invoice receipts.
 
 ---
 
@@ -908,8 +909,8 @@ This specification governs the exhaustive end-to-end Playwright master suite (`a
     - `E2E-034`: Transactions ledger: search, debits/credits/transfers tabs, sortable headers, CSV export download.
     - `E2E-035`: Payday Allocations audit tab: historical runs list, slide-over detail drawer with read-only split breakdown.
 11. **Settings, Governance & Subscriptions**:
-    - `E2E-036`: My Details: read-only default mode, edit form validation, country/phone formatting, timezone picker, avatar pan/zoom upload, info tooltip toggle.
-    - `E2E-037`: Household: currency change warning, member list, partner invitation dispatch, leave household challenge.
+    - `E2E-036`: My Details: read-only default mode, edit form validation, country/phone formatting, presentation display timezone picker (`user_preferences.timezone`), avatar pan/zoom upload, info tooltip toggle.
+    - `E2E-037`: Household: permanent base currency lock (read-only with informative tooltip explaining transaction and account integrity), accounting timezone picker (`tenants.timezone`), member list, partner invitation dispatch, leave household challenge.
     - `E2E-038`: Archived Data: filter by entity type, cascading restore integrity validation.
     - `E2E-039`: Data & Subscription: trial countdown, Stripe checkout redirect, customer portal link, invoice receipts, 1-click 12-table Zipped CSV Backup download.
     - `E2E-040`: Household Danger Zone & Account Deletion: exact household name typing confirmation, automated database erasure dispatch.

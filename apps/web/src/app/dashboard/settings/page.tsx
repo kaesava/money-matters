@@ -3,10 +3,12 @@
 import React, { useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { t } from "@money-matters/i18n";
-import { InfoTooltip, Tabs, ConfirmDialog } from "@money-matters/ui/web";
+import { InfoTooltip, Tabs, ConfirmDialog, useToast } from "@money-matters/ui/web";
 import { authClient } from "../../../lib/auth";
 import posthog from "../../../lib/posthog-client";
 import { trpc } from "../../../lib/trpc";
+import { getWebVersionInfo } from "../../../lib/version";
+import { FeedbackModal } from "../../../components/web/FeedbackModal";
 
 import { useSubscriptionStatus } from "../../../hooks/useSubscriptionStatus";
 import { ProfileSection } from "./components/ProfileSection";
@@ -26,6 +28,8 @@ function SettingsPageContent() {
   const currentTab = searchParams.get("tab") || "profile";
   const [activeTab, setActiveTab] = useState(status?.isTrialExpired ? "account-data" : currentTab);
 
+  const toast = useToast();
+  const [feedbackVisible, setFeedbackVisible] = useState(false);
   const [pendingTab, setPendingTab] = useState<string | null>(null);
   const [showDiscardConfirm, setShowDiscardConfirm] = useState(false);
   const [isProfileDirty, setIsProfileDirty] = useState(false);
@@ -86,6 +90,13 @@ function SettingsPageContent() {
     await authClient.signOut();
     posthog.reset();
     router.push("/sign-in");
+  };
+
+  const versionInfo = getWebVersionInfo();
+
+  const handleCopyDiagnostics = () => {
+    navigator.clipboard.writeText(JSON.stringify(versionInfo, null, 2));
+    toast.success(t("toasts.copied"));
   };
 
   const tabsList = [
@@ -156,6 +167,32 @@ function SettingsPageContent() {
         <SubscriptionSection status={status} />
         <PrivacySection />
       </div>
+
+      {/* Feedback & Version Section */}
+      <div className="pt-6 border-t border-slate-200/60 dark:border-slate-800 flex flex-col items-center gap-3">
+        <button
+          type="button"
+          onClick={() => setFeedbackVisible(true)}
+          className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl text-xs font-bold text-blue-700 bg-blue-50 hover:bg-blue-100 border border-blue-200 dark:bg-blue-950/40 dark:border-blue-900/60 dark:text-blue-400 transition-all shadow-xs"
+        >
+          {t("settings.reportBugLink")}
+        </button>
+
+        <button
+          type="button"
+          onClick={handleCopyDiagnostics}
+          className="text-[11px] font-medium text-slate-400 hover:text-slate-600 dark:text-slate-500 dark:hover:text-slate-400 transition-colors"
+          title={t("settings.versionInfo.copyDiagnosticsHint")}
+        >
+          Money Matters {versionInfo.formattedVersion} • {versionInfo.channel} channel
+        </button>
+      </div>
+
+      <FeedbackModal
+        isOpen={feedbackVisible}
+        onClose={() => setFeedbackVisible(false)}
+        userEmail={session?.user?.email || ""}
+      />
 
       <ConfirmDialog
         isOpen={showDiscardConfirm}

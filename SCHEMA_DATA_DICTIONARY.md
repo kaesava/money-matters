@@ -256,7 +256,7 @@ Subscription invoices and receipts synced from Stripe.
 The following tables were audited, found to be dead or orphaned (0 reads, 0 writes, or mock artifacts), and were permanently dropped from the PostgreSQL database in Migration `0024_prune_dead_tables_and_columns.sql`:
 1. `app_categories`: Replaced by direct pool/category seeding during tenant onboarding.
 2. `app_versions`: Replaced by static `@money-matters/config` client build constants.
-3. `bug_reports`: Replaced by direct `mailto:support@moneymatters.kaesava.au` client diagnostic dispatches.
+3. `bug_reports`: Replaced by direct `mailto:info@moneymatters.kaesava.au` client diagnostic dispatches.
 4. `file_notes`: Orphaned stub; no capabilities or UI ever read or wrote to this table.
 5. `category_schedules`: Never populated; schedules live on `expense_sources` and `income_sources`.
 6. `bank_account_category_mappings`: Replaced by `pools.bankAccountId` and `categories.poolId`.

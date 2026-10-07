@@ -3,7 +3,7 @@ import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator, Linking } 
 import { Feather } from '@expo/vector-icons';
 import { DESIGN_TOKENS } from '@money-matters/ui/mobile';
 import { t } from '@money-matters/i18n';
-import { formatDate } from '../../lib/format';
+import { fmtDateMedium } from '@money-matters/ui';
 
 interface InvoiceItem {
   id: string;
@@ -33,55 +33,61 @@ export function MobileInvoiceHistory({ invoices, isLoading }: MobileInvoiceHisto
       </Text>
 
       {isLoading ? (
-        <ActivityIndicator size="small" color="#2563eb" style={styles.loader} />
+        <ActivityIndicator
+          size="small"
+          color={DESIGN_TOKENS.colors.sereneBlue}
+          style={styles.loader}
+        />
       ) : invoices.length === 0 ? (
         <Text style={styles.noInvoicesText}>{t('subscription.noInvoices')}</Text>
       ) : (
         <View style={styles.invoicesList}>
           {invoices.map((inv) => {
             const receiptUrl = inv.invoicePdfUrl || inv.hostedInvoiceUrl;
+            const isPaid = inv.status.toLowerCase() === 'paid';
             return (
               <View key={inv.id} style={styles.invoiceRow}>
-                <View style={styles.invoiceInfo}>
+                <View style={styles.topMetaRow}>
                   <Text style={styles.invoiceDate}>
-                    {inv.paidAt ? formatDate(inv.paidAt) : '—'}
+                    {inv.paidAt ? fmtDateMedium(inv.paidAt) : '—'}
                   </Text>
-                  <View style={styles.invoiceAmountRow}>
-                    <Text style={styles.invoiceAmount}>
-                      ${inv.amountPaid} {inv.currency.toUpperCase()}
-                    </Text>
-                    <View
+                  <View
+                    style={[
+                      styles.invoiceStatusBadge,
+                      isPaid ? styles.paidBadge : styles.unpaidBadge,
+                    ]}
+                  >
+                    <Text
                       style={[
-                        styles.invoiceStatusBadge,
-                        inv.status === 'paid' ? styles.invoicePaidBadge : styles.invoiceUnpaidBadge,
+                        styles.invoiceStatusText,
+                        isPaid ? styles.paidText : styles.unpaidText,
                       ]}
                     >
-                      <Text
-                        style={[
-                          styles.invoiceStatusText,
-                          inv.status === 'paid' ? styles.invoicePaidText : styles.invoiceUnpaidText,
-                        ]}
-                      >
-                        {inv.status}
-                      </Text>
-                    </View>
+                      {inv.status}
+                    </Text>
                   </View>
                 </View>
 
-                {receiptUrl ? (
-                  <TouchableOpacity
-                    onPress={() => handleOpenReceipt(receiptUrl)}
-                    style={styles.receiptBtn}
-                    activeOpacity={0.7}
-                  >
-                    <Feather name="download" size={12} color="#2563eb" />
-                    <Text style={styles.receiptBtnText}>
-                      {t('subscription.downloadReceipt')}
-                    </Text>
-                  </TouchableOpacity>
-                ) : (
-                  <Text style={styles.noReceiptText}>—</Text>
-                )}
+                <View style={styles.bottomActionRow}>
+                  <Text style={styles.invoiceAmount}>
+                    ${inv.amountPaid} {inv.currency.toUpperCase()}
+                  </Text>
+
+                  {receiptUrl ? (
+                    <TouchableOpacity
+                      onPress={() => handleOpenReceipt(receiptUrl)}
+                      style={styles.receiptBtn}
+                      activeOpacity={0.7}
+                    >
+                      <Feather name="download" size={12} color={DESIGN_TOKENS.colors.accent} />
+                      <Text style={styles.receiptBtnText}>
+                        {t('subscription.downloadReceipt')} ↗
+                      </Text>
+                    </TouchableOpacity>
+                  ) : (
+                    <Text style={styles.noReceiptText}>—</Text>
+                  )}
+                </View>
               </View>
             );
           })}
@@ -93,76 +99,83 @@ export function MobileInvoiceHistory({ invoices, isLoading }: MobileInvoiceHisto
 
 const styles = StyleSheet.create({
   invoiceSection: {
-    marginTop: 10,
+    marginTop: 6,
     borderTopWidth: 1,
-    borderTopColor: '#E2E8F0',
+    borderTopColor: DESIGN_TOKENS.colors.border,
     paddingTop: 14,
     gap: 10,
   },
   invoiceHeaderTitle: {
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: '800',
-    color: '#1B2B4B',
+    color: DESIGN_TOKENS.colors.subtleText,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
   },
   loader: {
     paddingVertical: 12,
   },
   noInvoicesText: {
     fontSize: 12,
-    color: '#94A3B8',
+    color: DESIGN_TOKENS.colors.textMuted,
     fontStyle: 'italic',
   },
   invoicesList: {
     gap: 8,
   },
   invoiceRow: {
+    backgroundColor: DESIGN_TOKENS.colors.slate[50],
+    borderRadius: DESIGN_TOKENS.radius.md,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: DESIGN_TOKENS.colors.border,
+    gap: 8,
+  },
+  topMetaRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: '#F8FAFC',
-    borderRadius: 10,
-    padding: 10,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-  },
-  invoiceInfo: {
-    gap: 2,
   },
   invoiceDate: {
-    fontSize: 11,
-    color: '#64748B',
-  },
-  invoiceAmountRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  invoiceAmount: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: '#1B2B4B',
+    fontSize: 12,
+    fontWeight: '600',
+    color: DESIGN_TOKENS.colors.textMuted,
   },
   invoiceStatusBadge: {
-    paddingHorizontal: 5,
-    paddingVertical: 1,
-    borderRadius: 4,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: DESIGN_TOKENS.radius.sm,
+    borderWidth: 1,
   },
-  invoicePaidBadge: {
-    backgroundColor: '#DCFCE7',
+  paidBadge: {
+    backgroundColor: DESIGN_TOKENS.colors.successLight,
+    borderColor: DESIGN_TOKENS.colors.successBorder,
   },
-  invoiceUnpaidBadge: {
-    backgroundColor: '#FEF3C7',
+  unpaidBadge: {
+    backgroundColor: DESIGN_TOKENS.colors.criticalLight,
+    borderColor: DESIGN_TOKENS.colors.criticalBorder,
   },
   invoiceStatusText: {
-    fontSize: 9,
-    fontWeight: '700',
+    fontSize: 10,
+    fontWeight: '800',
     textTransform: 'uppercase',
   },
-  invoicePaidText: {
-    color: '#15803D',
+  paidText: {
+    color: DESIGN_TOKENS.colors.successDark,
   },
-  invoiceUnpaidText: {
-    color: '#92400E',
+  unpaidText: {
+    color: DESIGN_TOKENS.colors.criticalDark,
+  },
+  bottomActionRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  invoiceAmount: {
+    fontSize: 14,
+    fontWeight: '800',
+    fontFamily: 'JetBrainsMono',
+    color: DESIGN_TOKENS.colors.primary,
   },
   receiptBtn: {
     flexDirection: 'row',
@@ -170,16 +183,18 @@ const styles = StyleSheet.create({
     gap: 4,
     paddingHorizontal: 8,
     paddingVertical: 4,
-    backgroundColor: '#EFF6FF',
-    borderRadius: 6,
+    backgroundColor: DESIGN_TOKENS.colors.accentLight,
+    borderRadius: DESIGN_TOKENS.radius.sm,
+    borderWidth: 1,
+    borderColor: DESIGN_TOKENS.colors.accentBorder,
   },
   receiptBtnText: {
     fontSize: 11,
-    fontWeight: '700',
-    color: '#2563eb',
+    fontWeight: '800',
+    color: DESIGN_TOKENS.colors.accent,
   },
   noReceiptText: {
     fontSize: 11,
-    color: '#94A3B8',
+    color: DESIGN_TOKENS.colors.subtleText,
   },
 });

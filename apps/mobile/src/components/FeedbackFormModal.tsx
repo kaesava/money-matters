@@ -88,7 +88,7 @@ export function FeedbackFormModal({ visible, onClose }: FeedbackFormModalProps) 
         description.trim(),
       ];
       const body = encodeURIComponent(bodyLines.join('\n'));
-      const mailtoUrl = `mailto:support@moneymatters.kaesava.au?subject=${subject}&body=${body}`;
+      const mailtoUrl = `mailto:info@moneymatters.kaesava.au?subject=${subject}&body=${body}`;
 
       await Linking.openURL(mailtoUrl);
       handleClose();

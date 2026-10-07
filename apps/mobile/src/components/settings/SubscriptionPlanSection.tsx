@@ -1,17 +1,20 @@
-import React, { useState } from 'react';
-import { View, Linking, StyleSheet } from 'react-native';
-import { useMobileToast, MobileButton, DESIGN_TOKENS } from '@money-matters/ui/mobile';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { View, Linking, StyleSheet, AppState, AppStateStatus, Text } from 'react-native';
+import { useMobileToast, DESIGN_TOKENS } from '@money-matters/ui/mobile';
 import { trpc } from '../../lib/trpc';
 import { t } from '@money-matters/i18n';
 import { MobilePlanPickerModal, PlanChoice } from './MobilePlanPickerModal';
 import { MobileInvoiceHistory } from './MobileInvoiceHistory';
 import { SubscriptionStatusCard } from './subscription/SubscriptionStatusCard';
+import { MobileSubscriptionCancellationCallout } from './subscription/MobileSubscriptionCancellationCallout';
 
 export function SubscriptionPlanSection() {
   const toast = useMobileToast();
   const [syncing, setSyncing] = useState(false);
   const [pickerVisible, setPickerVisible] = useState(false);
   const [checkoutLoading, setCheckoutLoading] = useState(false);
+  const [loadingPortal, setLoadingPortal] = useState(false);
+  const awaitingExternalReturn = useRef(false);
 
   const trpcUtils = trpc.useUtils();
   const statusQuery = trpc.getSubscriptionStatus.useQuery();
@@ -21,12 +24,117 @@ export function SubscriptionPlanSection() {
 
   const status = statusQuery.data;
   const isSubscribed = status?.status === 'SUBSCRIBED';
-  const isCanceling = status?.cancelAtPeriodEnd;
+  const isCanceling = Boolean(status?.cancelAtPeriodEnd);
+  const isTrialActive = status?.status === 'TRIAL_ACTIVE';
 
   const invoicesQuery = trpc.listInvoices.useQuery(undefined, {
     enabled: isSubscribed || status?.status === 'PAST_DUE',
   });
   const invoices = invoicesQuery.data || [];
+
+  const handleManualSync = async () => {
+    setSyncing(true);
+    try {
+      await syncMut.mutateAsync();
+      await Promise.all([
+        trpcUtils.getSubscriptionStatus.invalidate(),
+        trpcUtils.listInvoices.invalidate(),
+      ]);
+      toast.success(t('subscription.syncedSuccess'));
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : t('subscription.portalError'));
+    } finally {
+      setSyncing(false);
+    }
+  };
+
+  const handleSilentSync = useCallback(async () => {
+    try {
+      await syncMut.mutateAsync();
+      await Promise.all([
+        trpcUtils.getSubscriptionStatus.invalidate(),
+        trpcUtils.listInvoices.invalidate(),
+      ]);
+      toast.success(t('subscription.syncedSuccess'));
+    } catch {
+      // Non-blocking sync on app return
+    }
+  }, [syncMut, trpcUtils, toast]);
+
+  // Dual-trigger auto-reconciliation on returning from Stripe checkout or customer portal
+  useEffect(() => {
+    const handleAppStateChange = (nextAppState: AppStateStatus) => {
+      if (nextAppState === 'active' && awaitingExternalReturn.current) {
+        awaitingExternalReturn.current = false;
+        handleSilentSync();
+      }
+    };
+
+    const handleDeepLink = (event: { url: string }) => {
+      if (event.url.includes('stripe_sync=true') || event.url.includes('checkout_success=true')) {
+        awaitingExternalReturn.current = false;
+        handleSilentSync();
+      }
+    };
+
+    const sub = AppState.addEventListener('change', handleAppStateChange);
+    const linkSub = Linking.addEventListener('url', handleDeepLink);
+
+    // Initial check for deep link on mount
+    Linking.getInitialURL().then((url) => {
+      if (url && (url.includes('stripe_sync=true') || url.includes('checkout_success=true'))) {
+        handleSilentSync();
+      }
+    });
+
+    return () => {
+      sub.remove();
+      linkSub.remove();
+    };
+  }, [handleSilentSync]);
+
+  const handleSelectPlan = async (plan: PlanChoice) => {
+    setCheckoutLoading(true);
+    try {
+      const res = await checkoutMut.mutateAsync({
+        planType: plan,
+        successUrl: 'moneymatters://settings?tab=account-data&stripe_sync=true&checkout_success=true',
+        cancelUrl: 'moneymatters://settings?tab=account-data&checkout_canceled=true',
+      });
+      if (res.url) {
+        setPickerVisible(false);
+        awaitingExternalReturn.current = true;
+        Linking.openURL(res.url);
+      }
+    } catch (err) {
+      toast.error(
+        err instanceof Error ? err.message : t('subscription.portalError'),
+        t('common.error')
+      );
+    } finally {
+      setCheckoutLoading(false);
+    }
+  };
+
+  const handleOpenStripePortal = async () => {
+    setLoadingPortal(true);
+    try {
+      const res = await portalMut.mutateAsync({
+        returnUrl: 'moneymatters://settings?tab=account-data&stripe_sync=true',
+      });
+      if (res.url) {
+        awaitingExternalReturn.current = true;
+        Linking.openURL(res.url);
+      }
+    } catch (err) {
+      toast.error(
+        err instanceof Error ? err.message : t('subscription.portalError'),
+        t('common.error')
+      );
+    } finally {
+      setLoadingPortal(false);
+    }
+  };
 
   let planName = t('subscription.freePlan');
   if (status) {
@@ -47,94 +155,35 @@ export function SubscriptionPlanSection() {
     }
   }
 
-  const handleManualSync = async () => {
-    setSyncing(true);
-    try {
-      await syncMut.mutateAsync();
-      await Promise.all([
-        trpcUtils.getSubscriptionStatus.invalidate(),
-        trpcUtils.listInvoices.invalidate(),
-      ]);
-      toast.success(t('subscription.syncedSuccess'));
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : t('subscription.portalError'));
-    } finally {
-      setSyncing(false);
-    }
-  };
-
-  const handleSelectPlan = async (plan: PlanChoice) => {
-    setCheckoutLoading(true);
-    try {
-      const res = await checkoutMut.mutateAsync({
-        planType: plan,
-        successUrl: 'moneymatters://subscription/success',
-        cancelUrl: 'moneymatters://subscription/manage',
-      });
-      if (res.url) {
-        setPickerVisible(false);
-        Linking.openURL(res.url);
-      }
-    } catch (err) {
-      toast.error(
-        err instanceof Error ? err.message : t('subscription.portalError'),
-        t('common.error')
-      );
-    } finally {
-      setCheckoutLoading(false);
-    }
-  };
-
-  const handleOpenStripePortal = async () => {
-    try {
-      const res = await portalMut.mutateAsync({
-        returnUrl: 'moneymatters://settings',
-      });
-      if (res.url) {
-        Linking.openURL(res.url);
-      }
-    } catch (err) {
-      toast.error(
-        err instanceof Error ? err.message : t('subscription.portalError'),
-        t('common.error')
-      );
-    }
-  };
-
   return (
-    <View style={styles.card}>
+    <View style={styles.sectionWrapper}>
+      <Text style={styles.sectionEyebrow}>{t('subscription.sectionTitle')}</Text>
+
       <SubscriptionStatusCard
         planName={planName}
         isSubscribed={isSubscribed}
         isCanceling={isCanceling}
+        isTrialActive={isTrialActive}
         nextBillingAt={status?.nextBillingAt}
         subscriptionEndsAt={status?.subscriptionEndsAt}
         syncing={syncing}
         onManualSync={handleManualSync}
+        onOpenPortal={handleOpenStripePortal}
+        onOpenUpgrade={() => setPickerVisible(true)}
+        loadingPortal={loadingPortal}
       />
 
-      <View style={styles.btnRow}>
-        {isSubscribed ? (
-          <MobileButton
-            variant="secondary"
-            label={`${isCanceling ? t('subscription.resumeSubscription') : t('subscription.mobileManageSubscription')} ↗`}
-            onPress={handleOpenStripePortal}
-          />
-        ) : (
-          <MobileButton
-            variant="primary"
-            label={t('subscription.mobileUpgradePlan')}
-            onPress={() => setPickerVisible(true)}
-          />
-        )}
-      </View>
+      <MobileSubscriptionCancellationCallout
+        status={status}
+        isSubscribed={isSubscribed}
+        loadingPortal={loadingPortal}
+        onOpenPortal={handleOpenStripePortal}
+      />
 
-      {/* Invoice History */}
       {(isSubscribed || invoices.length > 0) && (
         <MobileInvoiceHistory invoices={invoices} isLoading={invoicesQuery.isLoading} />
       )}
 
-      {/* 3-Tier Plan Picker Modal */}
       <MobilePlanPickerModal
         visible={pickerVisible}
         onClose={() => setPickerVisible(false)}
@@ -146,16 +195,15 @@ export function SubscriptionPlanSection() {
 }
 
 const styles = StyleSheet.create({
-  card: {
-    backgroundColor: DESIGN_TOKENS.colors.surface,
-    borderRadius: 18,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: DESIGN_TOKENS.colors.border,
-    gap: 10,
+  sectionWrapper: {
+    gap: 8,
   },
-  btnRow: {
-    marginTop: 4,
-    alignItems: 'flex-start',
+  sectionEyebrow: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: DESIGN_TOKENS.colors.subtleText,
+    textTransform: 'uppercase',
+    letterSpacing: 0.6,
+    paddingHorizontal: 2,
   },
 });

@@ -22,7 +22,7 @@ export const billingRouter = {
     .input(CreateCheckoutSessionCommand)
     .mutation(async ({ ctx, input }) => {
       const tenantId = ctx.tenantId!;
-      const userEmail = ctx.session?.email || 'support@moneymatters.kaesava.au';
+      const userEmail = ctx.session?.email || 'info@moneymatters.kaesava.au';
       const result = await createCheckoutSessionCommand(ctx.db, tenantId, userEmail, input);
       if (posthog && ctx.userId) {
         posthog.capture({

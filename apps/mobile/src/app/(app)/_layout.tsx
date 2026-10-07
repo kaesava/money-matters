@@ -89,7 +89,7 @@ export default function AppLayout() {
   // Expired Trial Guard: redirect to settings when trial has ended
   React.useEffect(() => {
     if (subQuery.data?.isTrialExpired && currentScreen !== 'settings' && !segments.includes('settings')) {
-      router.replace('/(app)/settings' as never);
+      router.replace('/(app)/settings?tab=account-data' as never);
     }
   }, [subQuery.data?.isTrialExpired, currentScreen, segments, router]);
 

@@ -1,13 +1,18 @@
 import { z } from "zod";
 import { tenants, tenantUsers, pools, categories, bankAccounts, apps, users, userPreferences, DbOrTx } from "@money-matters/db";
 import { CreateTenantCommand, COUNTRY_DEFAULTS } from "@money-matters/types";
-import { eq, and, isNull } from "drizzle-orm";
+import { eq, and, isNull, or, sql } from "drizzle-orm";
 
 /**
  * Creates a new tenant scope and assigns the creator user as OWNER.
  */
 export function createTenantHandler(db: DbOrTx) {
-  return async (input: z.infer<typeof CreateTenantCommand>, appId: string, userId: string) => {
+  return async (
+    input: z.infer<typeof CreateTenantCommand>,
+    appId: string,
+    userId: string,
+    userEmail?: string
+  ) => {
     const tenantId = crypto.randomUUID();
     const now = new Date();
     const trialStartedAt = now;
@@ -27,7 +32,7 @@ export function createTenantHandler(db: DbOrTx) {
       .insert(users)
       .values({
         id: userId,
-        email: `user-${userId.substring(0, 8)}@moneymatters.kaesava.au`,
+        email: userEmail || `user-${userId.substring(0, 8)}@moneymatters.kaesava.au`,
         displayName: "User",
       })
       .onConflictDoNothing();
@@ -64,14 +69,21 @@ export function createTenantHandler(db: DbOrTx) {
       throw new Error("You already have an active household. An account can only own one active household at a time.");
     }
 
-    // 2. Check if user already used their 60-day trial
-    const [existingUser] = await db
+    // 2. Check if user or email already used their 60-day trial across the platform
+    const normalizedEmail = userEmail?.trim().toLowerCase();
+    const userQuery = db
       .select({ hasUsedTrial: users.hasUsedTrial })
-      .from(users)
-      .where(eq(users.id, userId))
-      .limit(1);
+      .from(users);
 
-    const hasUsedTrial = existingUser?.hasUsedTrial ?? false;
+    const matchedUsers = normalizedEmail && typeof (userQuery as any).where === "function"
+      ? await (userQuery as any).where(
+          or(eq(users.id, userId), sql`lower(${users.email}) = ${normalizedEmail}`)
+        )
+      : typeof (userQuery as any).where === "function"
+        ? await (userQuery as any).where(eq(users.id, userId)).limit(1)
+        : [];
+
+    const hasUsedTrial = matchedUsers.some((u: { hasUsedTrial?: boolean }) => Boolean(u.hasUsedTrial));
     const subscriptionStatus = hasUsedTrial ? "TRIAL_EXPIRED" : "TRIAL_ACTIVE";
 
     const country = input.country || "AU";
@@ -102,7 +114,11 @@ export function createTenantHandler(db: DbOrTx) {
       await db
         .update(users)
         .set({ hasUsedTrial: true, updatedAt: now })
-        .where(eq(users.id, userId));
+        .where(
+          normalizedEmail
+            ? or(eq(users.id, userId), sql`lower(${users.email}) = ${normalizedEmail}`)
+            : eq(users.id, userId)
+        );
     }
 
     // 4. Add the owner record to tenant_users
