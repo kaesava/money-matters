@@ -20,9 +20,10 @@ export interface FilterSortOption<T = string> {
 export interface FilterSection<T = string> {
   id: string;
   title: string;
-  options: FilterSortOption<T>[];
-  selectedValue: T;
-  onSelect: (value: T) => void;
+  options?: FilterSortOption<T>[];
+  selectedValue?: T;
+  onSelect?: (value: T) => void;
+  renderCustom?: () => React.ReactNode;
 }
 
 export interface MobileFilterSheetProps {
@@ -129,23 +130,27 @@ export function MobileFilterSheet({
             {sections.map((section) => (
               <View key={section.id} style={styles.section}>
                 <Text style={styles.sectionTitle}>{section.title}</Text>
-                <View style={styles.chipsWrap}>
-                  {section.options.map((opt) => {
-                    const isSelected = section.selectedValue === opt.id;
-                    return (
-                      <TouchableOpacity
-                        key={String(opt.id)}
-                        onPress={() => section.onSelect(opt.id)}
-                        style={[styles.chip, isSelected && styles.chipActive]}
-                        activeOpacity={0.7}
-                      >
-                        <Text style={[styles.chipText, isSelected && styles.chipTextActive]}>
-                          {opt.label}
-                        </Text>
-                      </TouchableOpacity>
-                    );
-                  })}
-                </View>
+                {section.renderCustom ? (
+                  section.renderCustom()
+                ) : (
+                  <View style={styles.chipsWrap}>
+                    {section.options?.map((opt) => {
+                      const isSelected = section.selectedValue === opt.id;
+                      return (
+                        <TouchableOpacity
+                          key={String(opt.id)}
+                          onPress={() => section.onSelect?.(opt.id)}
+                          style={[styles.chip, isSelected && styles.chipActive]}
+                          activeOpacity={0.7}
+                        >
+                          <Text style={[styles.chipText, isSelected && styles.chipTextActive]}>
+                            {opt.label}
+                          </Text>
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </View>
+                )}
               </View>
             ))}
           </ScrollView>

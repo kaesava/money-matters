@@ -35,6 +35,11 @@ Neon DB Auth user accounts.
 ### 2. `tenants` (`packages/db/src/schema/tenant.ts`)
 Multi-tenant container (household / organization).
 - `name` (text, not null): Household or workspace name.
+- `country` (varchar(2), not null, default `'AU'`): Country code.
+- `currency` (varchar(3), not null, default `'AUD'`): Base accounting currency.
+- `timezone` (varchar(100), not null, default `'Australia/Sydney'`): Accounting cutoff timezone.
+- `state` (varchar(50), nullable): State/province.
+- `postcode` (varchar(20), nullable): Postal or ZIP code.
 - `subscriptionTier` (`free` | `pro` | `partner`, default `'free'`): Subscription entitlement tier.
 - `stripeCustomerId` (text, nullable): Stripe customer reference.
 - `stripeSubscriptionId` (text, nullable): Active Stripe subscription ID.
@@ -151,9 +156,14 @@ Push notification tokens for mobile clients.
 ### 13. `user_preferences` (`packages/db/src/schema/user_preference.ts`)
 Global individual user preferences.
 - `userId` (uuid, not null, unique): Target user.
-- `theme` (`LIGHT` | `DARK` | `SYSTEM`, not null, default `'SYSTEM'`): UI theme.
-- `locale` (text, not null, default `'en-AU'`): Language and formatting locale.
-- `notificationsEnabled` (boolean, not null, default `true`): Master notification gate.
+- `theme` (varchar(20), not null, default `'system'`): UI theme.
+- `language` (varchar(10), not null, default `'en'`): User interface language.
+- `locale` (varchar(20), not null, default `'auto'`): Date and number formatting locale.
+- `timezone` (varchar(100), nullable): User display and activity timezone.
+- `showIcons` (boolean, not null, default `true`): Information tooltip icon visibility.
+- `notificationEmail` (varchar(255), nullable): User notification email.
+- `phoneCountryCode` (varchar(10), default `'+61'`): Phone number country dialing code.
+- `phoneNumber` (varchar(50), nullable): User phone number.
 - **Consumers**: `apps/api` (`tenant.router.ts`), User Settings UI.
 
 ### 14. `tenant_user_preferences` (`packages/db/src/schema/tenant_user_preference.ts`)

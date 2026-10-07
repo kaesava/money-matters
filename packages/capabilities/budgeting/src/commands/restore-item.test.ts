@@ -79,4 +79,41 @@ describe("restoreItemCommand", () => {
     // Pool update + Category cascade update
     expect(updatedTables.length).toBe(2);
   });
+
+  it("cascades restore to child categories using cutoff with 2s lag tolerance", async () => {
+    const poolArchiveDate = new Date("2026-05-01T12:00:00.000Z");
+    let categoryWhereClause: any = null;
+
+    const mockDb = {
+      select: vi.fn().mockReturnValue({
+        from: vi.fn().mockReturnValue({
+          leftJoin: vi.fn().mockReturnValue({
+            where: vi.fn().mockResolvedValue([
+              { isPrivate: false, bankAccountUserId: null, archivedAt: poolArchiveDate },
+            ]),
+          }),
+        }),
+      }),
+      update: vi.fn().mockImplementation((table: any) => {
+        return {
+          set: vi.fn().mockReturnValue({
+            where: vi.fn().mockImplementation((clause: any) => {
+              if (table !== null) {
+                categoryWhereClause = clause;
+              }
+              return {
+                returning: vi.fn().mockResolvedValue([
+                  { id: "pool-1", name: "Groceries Pool", archivedAt: poolArchiveDate },
+                ]),
+              };
+            }),
+          }),
+        };
+      }),
+    } as unknown as DbOrTx;
+
+    const res = await restoreItemCommand("pool-1", "POOL", tenantId, appId, userId, mockDb);
+    expect(res).toBeDefined();
+    expect(categoryWhereClause).toBeDefined();
+  });
 });

@@ -5,6 +5,7 @@ import posthog from "../../../lib/posthog-client";
 import { QuickPresetItem, computeRecentAndFrequentPresets, isPaydayOrAdjustment } from "@money-matters/types";
 import { useToast } from "@money-matters/ui/web";
 import { t } from "@money-matters/i18n";
+import { useLocale } from "../../../providers/LocaleProvider";
 
 export function useQuickActionState(
   onClose: () => void,
@@ -12,9 +13,11 @@ export function useQuickActionState(
 ) {
   const router = useRouter();
   const toast = useToast();
-  const todayStr = new Intl.DateTimeFormat("en-CA", {
-    timeZone: "Australia/Sydney",
-  }).format(new Date());
+  const { userTimezone, timezone } = useLocale();
+  const activeTz = userTimezone || timezone || "Australia/Sydney";
+  const todayStr = useMemo(() => new Intl.DateTimeFormat("en-CA", {
+    timeZone: activeTz,
+  }).format(new Date()), [activeTz]);
 
   const [type, setType] = useState<"DEBIT" | "CREDIT" | "TRANSFER">(initialTab);
   const [name, setName] = useState("");

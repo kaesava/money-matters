@@ -1,15 +1,19 @@
 import { useMemo } from 'react';
 import { t } from '@money-matters/i18n';
-import { FilterSection } from '@money-matters/ui/mobile';
+import { FilterSection, MobilePoolPicker, MobileBankPicker } from '@money-matters/ui/mobile';
 
 interface PoolOption {
   id: string;
   name: string;
+  poolType?: string;
+  currentBalance?: string | number;
 }
 
 interface BankOption {
   id: string;
   name: string;
+  bankProvider?: string;
+  balance?: string | number;
 }
 
 interface UseLedgerFilterSectionsProps {
@@ -54,28 +58,42 @@ export function useLedgerFilterSections({
       {
         id: 'pool',
         title: t('categories.title'),
-        selectedValue: selectedPoolId,
-        onSelect: (id: string) => {
-          onPoolChange(id);
-          onPageChange(1);
-        },
-        options: [
-          { id: 'ALL', label: t('common.all') },
-          ...pools.map((p) => ({ id: p.id, label: p.name })),
-        ],
+        renderCustom: () => (
+          <MobilePoolPicker
+            pools={pools.map((p) => ({
+              id: p.id,
+              name: p.name,
+              poolType: p.poolType,
+              currentBalance: p.currentBalance,
+            }))}
+            selectedPoolId={selectedPoolId}
+            onSelectPool={(id) => {
+              onPoolChange(id);
+              onPageChange(1);
+            }}
+            allowAllOption={true}
+          />
+        ),
       },
       {
         id: 'bank',
         title: t('bankAccounts.title'),
-        selectedValue: selectedBankAccountId,
-        onSelect: (id: string) => {
-          onBankChange(id);
-          onPageChange(1);
-        },
-        options: [
-          { id: 'ALL', label: t('common.all') },
-          ...bankAccounts.map((b) => ({ id: b.id, label: b.name })),
-        ],
+        renderCustom: () => (
+          <MobileBankPicker
+            banks={bankAccounts.map((b) => ({
+              id: b.id,
+              name: b.name,
+              institution: b.bankProvider,
+              currentBalance: b.balance,
+            }))}
+            selectedBankId={selectedBankAccountId}
+            onSelectBank={(id) => {
+              onBankChange(id);
+              onPageChange(1);
+            }}
+            allowAllOption={true}
+          />
+        ),
       },
     ],
     [

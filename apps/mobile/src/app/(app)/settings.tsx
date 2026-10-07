@@ -114,6 +114,7 @@ export default function SettingsScreen() {
             tabs={tabs}
             activeKey={activeTab}
             onChange={handleTabChange}
+            scrollable={true}
           />
 
           {/* TAB 1: MY DETAILS */}

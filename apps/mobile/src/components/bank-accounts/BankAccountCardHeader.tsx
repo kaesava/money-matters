@@ -40,13 +40,8 @@ export function BankAccountCardHeader({
       <View style={styles.balWrap}>
         <View style={styles.balanceCol}>
           <Text style={styles.balanceAmount}>{formatAUD(availBal)}</Text>
-          <Text style={styles.balanceSub}>
-            {buffer > 0
-              ? t('bankAccounts.actualBalanceWithBuffer', {
-                  actual: formatAUD(actualBal),
-                  buffer: formatAUD(buffer),
-                })
-              : t('bankAccounts.availableLabel')}
+          <Text style={styles.actualBalance}>
+            {t('bankAccounts.actualBalanceLabel', { amount: formatAUD(actualBal) })}
           </Text>
         </View>
         <CardDrawerIndicator size={18} />
@@ -100,9 +95,11 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     color: DESIGN_TOKENS.colors.primary,
   },
-  balanceSub: {
+  actualBalance: {
     fontSize: 11,
-    color: DESIGN_TOKENS.colors.textMuted,
+    color: '#94A3B8',
+    fontFamily: 'monospace',
     fontWeight: '500',
+    marginTop: 1,
   },
 });

@@ -94,14 +94,16 @@ export function MobileNextPaydayCard({
           </Text>
         </View>
 
-        <TouchableOpacity
-          onPress={() => router.push('/(app)/paychecks' as never)}
-          style={styles.showMoreBtn}
-          activeOpacity={0.7}
-        >
-          <Text style={styles.showMoreText}>{t('dashboard.nextPay.showMore')}</Text>
-          <Feather name="chevron-right" size={14} color={DESIGN_TOKENS.colors.accent} />
-        </TouchableOpacity>
+        {upcomingIncomes.length > 0 && (
+          <TouchableOpacity
+            onPress={() => router.push('/(app)/paychecks' as never)}
+            style={styles.showMoreBtn}
+            activeOpacity={0.7}
+          >
+            <Text style={styles.showMoreText}>{t('dashboard.nextPay.showMore')}</Text>
+            <Feather name="chevron-right" size={14} color={DESIGN_TOKENS.colors.accent} />
+          </TouchableOpacity>
+        )}
       </View>
 
       {upcomingIncomes.length === 0 ? (

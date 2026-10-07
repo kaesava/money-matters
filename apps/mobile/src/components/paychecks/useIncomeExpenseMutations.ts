@@ -82,7 +82,7 @@ export function useIncomeExpenseMutations({
     try {
       if (mode === 'INCOME') {
         if (isEdit && sourceToEdit) {
-          const res = await updateIncomeMut.mutateAsync({
+          await updateIncomeMut.mutateAsync({
             id: sourceToEdit.id,
             data: {
               name: params.name.trim(),
@@ -95,9 +95,6 @@ export function useIncomeExpenseMutations({
               endDate: params.isRecurring && params.endDate ? params.endDate : undefined,
             },
           });
-          if (res?.hasConfirmedHistory) {
-            toast.info(t('modals.updateSchedule.confirmDescDetailChange'));
-          }
           toast.success('Income schedule updated successfully.');
         } else {
           await createIncomeMut.mutateAsync({
@@ -130,7 +127,7 @@ export function useIncomeExpenseMutations({
               endDate: params.isRecurring && params.endDate ? params.endDate : undefined,
             },
           });
-          toast.success('Bill schedule updated successfully.');
+          toast.success('Expense schedule updated successfully.');
         } else {
           await createExpenseMut.mutateAsync({
             name: params.name.trim(),
@@ -144,7 +141,7 @@ export function useIncomeExpenseMutations({
             endDate: params.isRecurring && params.endDate ? params.endDate : undefined,
           });
           toast.success(
-            params.isRecurring ? t('toasts.saved') : 'One-off bill saved to Upcoming Timeline.'
+            params.isRecurring ? t('toasts.saved') : 'One-off expense saved to Upcoming Timeline.'
           );
         }
       }

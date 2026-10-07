@@ -10,6 +10,7 @@ import { IncomeSplitCommandPanel } from "./IncomeSplitCommandPanel";
 import { IncomeSplitPoolTable } from "./IncomeSplitPoolTable";
 import { SlideOverCategoryDrawer } from "../../income-and-bills/components/SlideOverCategoryDrawer";
 import { CategoryFormModal } from "../../../../components/web/CategoryFormModal";
+import { useLocale } from "../../../../providers/LocaleProvider";
 
 export interface IncomeSplitScreenProps {
   readonly incomeEventId: string;
@@ -45,6 +46,8 @@ export function IncomeSplitScreen({ incomeEventId, returnTo = "/dashboard" }: In
   const router = useRouter();
   const toast = useToast();
   const utils = trpc.useUtils();
+  const { userTimezone, timezone } = useLocale();
+  const activeTz = userTimezone || timezone || "Australia/Sydney";
 
   const poolsQuery = trpc.listPools.useQuery();
   const pools = useMemo(() => poolsQuery.data ?? [], [poolsQuery.data]);
@@ -66,7 +69,7 @@ export function IncomeSplitScreen({ incomeEventId, returnTo = "/dashboard" }: In
   const [initialAmount, setInitialAmount] = useState("0.00");
   const [sourceName, setSourceName] = useState("Paycheck");
   const [selectedDate, setSelectedDate] = useState(
-    new Intl.DateTimeFormat("en-CA", { timeZone: "Australia/Sydney" }).format(new Date())
+    new Intl.DateTimeFormat("en-CA", { timeZone: activeTz }).format(new Date())
   );
   const [linesMap, setLinesMap] = useState<Record<string, string>>({});
   const [initialLinesMap, setInitialLinesMap] = useState<Record<string, string>>({});
@@ -83,7 +86,7 @@ export function IncomeSplitScreen({ incomeEventId, returnTo = "/dashboard" }: In
   const [poolToEdit, setPoolToEdit] = useState<React.ComponentProps<typeof CategoryFormModal>["categoryToEdit"] | null>(null);
   const [isPoolModalOpen, setIsPoolModalOpen] = useState(false);
 
-  const todayStr = new Intl.DateTimeFormat("en-CA", { timeZone: "Australia/Sydney" }).format(new Date());
+  const todayStr = useMemo(() => new Intl.DateTimeFormat("en-CA", { timeZone: activeTz }).format(new Date()), [activeTz]);
 
   useEffect(() => {
     if (previewQuery.data) {

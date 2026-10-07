@@ -1,10 +1,8 @@
-import { pools, categories, incomeSources, expenseSources, incomeEvents, expenseEvents, bankAccounts, DbOrTx } from "@money-matters/db";
+import { pools, categories, incomeSources, expenseSources, incomeEvents, expenseEvents, bankAccounts, tenants, DbOrTx } from "@money-matters/db";
 import { eq, and, sql } from "drizzle-orm";
 import { generateBurstDates } from "../engine/burst-engine.js";
 
 import { getTenantDateString } from "@money-matters/core";
-
-const getAestDateString = (d: Date = new Date()) => getTenantDateString(d);
 
 export async function restoreItemCommand(
   itemId: string,
@@ -14,7 +12,22 @@ export async function restoreItemCommand(
   userId: string,
   dbClient: DbOrTx
 ) {
+  let tenantRecord: { timezone: string | null } | null = null;
+  if (typeof (dbClient as any).select === "function") {
+    try {
+      const q = dbClient.select({ timezone: tenants.timezone }).from(tenants).where(eq(tenants.id, tenantId));
+      if (typeof (q as any).limit === "function") {
+        const rows = await (q as any).limit(1);
+        tenantRecord = rows[0] || null;
+      }
+    } catch {
+      // Mock db or schema mismatch safe fallback
+    }
+  }
+  const tenantTz = tenantRecord?.timezone || "Australia/Sydney";
+  const getLocalDateString = (d: Date = new Date()) => getTenantDateString(d, { timezone: tenantTz });
   // 1. Verify existence, stealth privacy, and parent constraints
+  let poolArchivedAt: Date | null = null;
   if (itemType === "BANK_ACCOUNT") {
     const [acc] = await dbClient
       .select()
@@ -29,6 +42,7 @@ export async function restoreItemCommand(
       .select({
         isPrivate: bankAccounts.isPrivate,
         bankAccountUserId: bankAccounts.userId,
+        archivedAt: pools.archivedAt,
       })
       .from(pools)
       .leftJoin(bankAccounts, eq(pools.bankAccountId, bankAccounts.id))
@@ -37,6 +51,7 @@ export async function restoreItemCommand(
     if (p.isPrivate && p.bankAccountUserId !== userId) {
       throw new Error("Access unauthorized or private pool.");
     }
+    poolArchivedAt = p.archivedAt;
   } else if (itemType === "CATEGORY") {
     const [cat] = await dbClient
       .select({
@@ -108,7 +123,12 @@ export async function restoreItemCommand(
     .returning();
 
   if (restored && itemType === "POOL") {
-    // Cascade restore any child categories that were archived
+    // Cascade restore any child categories archived on or after the pool was archived (allowing 2s lag)
+    const poolArchivedTime = (restored as typeof pools.$inferSelect).archivedAt || poolArchivedAt;
+    const cutoff = poolArchivedTime
+      ? new Date(new Date(poolArchivedTime).getTime() - 2000)
+      : new Date(Date.now() - 2000);
+
     await dbClient
       .update(categories)
       .set({
@@ -122,7 +142,7 @@ export async function restoreItemCommand(
           eq(categories.poolId, itemId),
           eq(categories.tenantId, tenantId),
           eq(categories.appId, appId),
-          sql`${categories.archivedAt} IS NOT NULL`
+          sql`${categories.archivedAt} >= ${cutoff}`
         )
       );
   }
@@ -130,14 +150,14 @@ export async function restoreItemCommand(
   if (restored) {
     if (itemType === "INCOME_SOURCE") {
       const inc = restored as typeof incomeSources.$inferSelect;
-      const startDate = inc.startDate || getAestDateString();
+      const startDate = inc.startDate || getLocalDateString();
       if (inc.rrule) {
         const dates = generateBurstDates(inc.rrule, startDate, inc.endDate, 12);
         if (dates.length > 0) {
           await dbClient.insert(incomeEvents).values(
             dates.map((d) => ({
               incomeSourceId: inc.id,
-              expectedDate: getAestDateString(d),
+              expectedDate: getLocalDateString(d),
               expectedAmount: inc.amount,
               status: "PENDING" as const,
               tenantId,
@@ -161,7 +181,7 @@ export async function restoreItemCommand(
       }
     } else if (itemType === "EXPENSE_SOURCE") {
       const exp = restored as typeof expenseSources.$inferSelect;
-      const startDate = exp.startDate || getAestDateString();
+      const startDate = exp.startDate || getLocalDateString();
       if (exp.rrule) {
         const dates = generateBurstDates(exp.rrule, startDate, exp.endDate, 12);
         if (dates.length > 0) {
@@ -171,7 +191,7 @@ export async function restoreItemCommand(
               poolId: exp.poolId,
               categoryId: exp.categoryId,
               name: exp.name,
-              expectedDate: getAestDateString(d),
+              expectedDate: getLocalDateString(d),
               expectedAmount: exp.amount,
               status: "PENDING" as const,
               tenantId,

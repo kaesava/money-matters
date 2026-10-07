@@ -24,7 +24,7 @@ export const PaychecksSchedulesBanner: React.FC<PaychecksSchedulesBannerProps> =
           </View>
           <View style={styles.titleWrap}>
             <Text style={styles.prominentTitle}>
-              {t('paychecks.incomeExpenseSchedules')}
+              {t('incomeBillsTabs.setupIncomeExpenseSchedules')}
             </Text>
           </View>
           <Feather name="chevron-right" size={18} color={DESIGN_TOKENS.colors.slate[400]} />

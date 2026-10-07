@@ -8,6 +8,7 @@ import { trpc } from '../../lib/trpc';
 import { useSetupWizard } from '../../context/SetupWizardContext';
 import { UserGoalItem } from '@money-matters/types';
 import { SetupGoalCard } from '../../components/setup/SetupGoalCard';
+import { getMobileLocaleConfig } from '../../lib/format';
 
 const PRESET_GOALS = [
   { name: 'Emergency Reserve (3-6 Months)', icon: '🛡️', defaultTarget: 10000, defaultMonths: 12 },
@@ -27,6 +28,8 @@ export default function SetupGoalsScreen() {
   const [customName, setCustomName] = useState('');
   const [customTarget, setCustomTarget] = useState('5000');
 
+  const tz = getMobileLocaleConfig().timezone;
+
   const isPresetActive = (name: string) => goals.some((g) => g.name.trim().toLowerCase() === name.trim().toLowerCase());
 
   const togglePreset = (preset: typeof PRESET_GOALS[0]) => {
@@ -36,7 +39,7 @@ export default function SetupGoalsScreen() {
     } else {
       const d = new Date();
       d.setMonth(d.getMonth() + preset.defaultMonths);
-      const dueDate = new Intl.DateTimeFormat('en-CA', { timeZone: 'Australia/Sydney' }).format(d);
+      const dueDate = new Intl.DateTimeFormat('en-CA', { timeZone: tz }).format(d);
       setGoals((prev) => [
         ...prev,
         {
@@ -56,7 +59,7 @@ export default function SetupGoalsScreen() {
     const target = parseFloat(customTarget) || 1000;
     const d = new Date();
     d.setMonth(d.getMonth() + 12);
-    const dueDate = new Intl.DateTimeFormat('en-CA', { timeZone: 'Australia/Sydney' }).format(d);
+    const dueDate = new Intl.DateTimeFormat('en-CA', { timeZone: tz }).format(d);
     setGoals((prev) => [
       ...prev,
       {

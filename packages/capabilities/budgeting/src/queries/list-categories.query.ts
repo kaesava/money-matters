@@ -1,4 +1,4 @@
-import { categories, pools, bankAccounts, transactionLedger, DbOrTx } from "@money-matters/db";
+import { categories, pools, bankAccounts, transactionLedger, tenants, DbOrTx } from "@money-matters/db";
 import { eq, and, sql } from "drizzle-orm";
 import { getTenantDateString } from "@money-matters/core";
 
@@ -38,10 +38,36 @@ export async function listCategoriesQuery(
     ? dbCats.filter((c) => !c.isPrivate || c.bankAccountUserId === userId)
     : dbCats;
 
-  // 2. Compute current month's spent amount (debits) per categoryId in Australia/Sydney timezone
-  const aestDateStr = getTenantDateString(new Date());
-  const [yStr, mStr] = aestDateStr.split('-');
-  const startOfMonthIso = new Date(`${yStr}-${mStr}-01T00:00:00+10:00`).toISOString();
+  // 2. Resolve tenant accounting timezone and compute current month's spent amount (debits) per categoryId
+  const [tenantRecord] = await dbClient
+    .select({ timezone: tenants.timezone })
+    .from(tenants)
+    .where(eq(tenants.id, tenantId))
+    .limit(1);
+
+  const tenantTz = tenantRecord?.timezone || "Australia/Sydney";
+  const tenantDateStr = getTenantDateString(new Date(), { timezone: tenantTz });
+  const [yStr, mStr] = tenantDateStr.split('-');
+
+  // Calculate midnight of the 1st of the current month in the tenant accounting timezone
+  // Midday UTC on the 1st of month:
+  const middayUtc = new Date(Date.UTC(parseInt(yStr, 10), parseInt(mStr, 10) - 1, 1, 12, 0, 0));
+  // Format in tenant timezone to get local day components
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone: tenantTz,
+    timeZoneName: 'shortOffset',
+  }).formatToParts(middayUtc);
+  const tzOffsetPart = parts.find((p) => p.type === 'timeZoneName')?.value || 'GMT+10';
+  // Normalize GMT+10 or GMT-5 to +10:00 or -05:00
+  let offsetIso = '+10:00';
+  const offsetMatch = tzOffsetPart.match(/GMT([+-])(\d+)(?::(\d+))?/);
+  if (offsetMatch) {
+    const sign = offsetMatch[1];
+    const hours = offsetMatch[2].padStart(2, '0');
+    const mins = (offsetMatch[3] || '00').padStart(2, '0');
+    offsetIso = `${sign}${hours}:${mins}`;
+  }
+  const startOfMonthIso = new Date(`${yStr}-${mStr}-01T00:00:00${offsetIso}`).toISOString();
 
   const txs = await dbClient
     .select({

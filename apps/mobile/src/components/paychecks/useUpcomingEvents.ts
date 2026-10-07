@@ -11,6 +11,7 @@ interface UseUpcomingEventsProps {
   incomeSources?: any[];
   upcomingKindFilter: 'ALL' | 'INCOME' | 'EXPENSE' | 'TRANSFER';
   upcomingScopeFilter: 'ALL' | 'SHARED' | 'PRIVATE';
+  upcomingStatusFilter?: 'ALL' | 'OVERDUE';
   upcomingSearchQuery: string;
   upcomingSortField: 'date' | 'name' | 'amount';
   upcomingSortOrder: 'asc' | 'desc';
@@ -27,6 +28,7 @@ export function useUpcomingEvents({
   incomeSources = [],
   upcomingKindFilter,
   upcomingScopeFilter,
+  upcomingStatusFilter = 'ALL',
   upcomingSearchQuery,
   upcomingSortField,
   upcomingSortOrder,
@@ -129,6 +131,16 @@ export function useUpcomingEvents({
       result = result.filter((e) => !e.isPrivate);
     }
 
+    if (upcomingStatusFilter === 'OVERDUE') {
+      const todayZero = new Date();
+      todayZero.setHours(0, 0, 0, 0);
+      result = result.filter((e) => {
+        const itemDate = new Date(e.expectedDate);
+        itemDate.setHours(0, 0, 0, 0);
+        return itemDate.getTime() < todayZero.getTime();
+      });
+    }
+
     if (poolIdFilter) {
       result = result.filter(
         (e) =>
@@ -173,6 +185,7 @@ export function useUpcomingEvents({
     unifiedTimelineEvents,
     upcomingKindFilter,
     upcomingScopeFilter,
+    upcomingStatusFilter,
     upcomingSearchQuery,
     upcomingSortField,
     upcomingSortOrder,

@@ -53,7 +53,7 @@ export function formatHealthStatus(status?: string | null): string {
 /**
  * Formats a numeric value or numeric string as standard currency using active mobile locale/currency.
  */
-export function formatAUD(
+export function formatMobileCurrency(
   value: number | string,
   currency?: string,
   locale?: string
@@ -64,9 +64,14 @@ export function formatAUD(
 }
 
 /**
+ * Backward compatibility alias for formatMobileCurrency.
+ */
+export const formatAUD = formatMobileCurrency;
+
+/**
  * Formats a numeric value as compact currency (e.g. $1.5k).
  */
-export function formatAUDCompact(
+export function formatMobileCurrencyCompact(
   value: number | string,
   currency?: string,
   locale?: string
@@ -81,6 +86,11 @@ export function formatAUDCompact(
   }
   return `${sym}${num.toFixed(0)}`;
 }
+
+/**
+ * Backward compatibility alias for formatMobileCurrencyCompact.
+ */
+export const formatAUDCompact = formatMobileCurrencyCompact;
 
 /**
  * Returns a timezone-aware ISO date string (YYYY-MM-DD) avoiding off-by-one shifts.

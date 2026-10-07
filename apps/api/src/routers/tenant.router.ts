@@ -732,12 +732,21 @@ export const tenantRouter = {
         throw new Error("Only the owner can update household settings");
       }
 
+      const [currentTenant] = await ctx.db
+        .select({ currency: tenants.currency })
+        .from(tenants)
+        .where(eq(tenants.id, ctx.tenantId!))
+        .limit(1);
+
+      if (input.currency && currentTenant && input.currency !== currentTenant.currency) {
+        throw new Error("Household currency is permanently locked and cannot be changed.");
+      }
+
       await ctx.db
         .update(tenants)
         .set({
           name: input.name,
           country: input.country ?? "AU",
-          ...(input.currency ? { currency: input.currency } : {}),
           ...(input.timezone ? { timezone: input.timezone } : {}),
           state: input.state || null,
           postcode: input.postcode || null,

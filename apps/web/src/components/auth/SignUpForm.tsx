@@ -4,7 +4,7 @@ import React, { useState } from "react";
 import Link from "next/link";
 import { t } from "@money-matters/i18n";
 import { Button, FormLabel, FormFieldError, FormErrorBanner } from "@money-matters/ui/web";
-import { SUPPORTED_COUNTRIES, SignUpInputSchema, isValidEmail, getCountryDefaults } from "@money-matters/types";
+import { SUPPORTED_COUNTRIES, SUPPORTED_CURRENCIES, COMMON_TIMEZONES, SignUpInputSchema, isValidEmail, getCountryDefaults } from "@money-matters/types";
 import { authClient } from "../../lib/auth";
 import { trpc } from "../../lib/trpc";
 import { PasswordStrengthIndicator } from "./PasswordStrengthIndicator";
@@ -33,8 +33,18 @@ export function SignUpForm({
   onError,
   autoFocus = true,
 }: SignUpFormProps) {
+  const detectedTimezone = React.useMemo(() => {
+    try {
+      return Intl.DateTimeFormat().resolvedOptions().timeZone || "Australia/Sydney";
+    } catch {
+      return "Australia/Sydney";
+    }
+  }, []);
+
   const [name, setName] = useState("");
   const [country, setCountry] = useState("AU");
+  const [currency, setCurrency] = useState(() => getCountryDefaults("AU").currency);
+  const [timezone, setTimezone] = useState(() => detectedTimezone);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -49,6 +59,14 @@ export function SignUpForm({
     agreedToTerms?: string;
   }>({});
   const [formError, setFormError] = useState<string | null>(null);
+
+  const handleCountryChange = (newCountry: string) => {
+    setCountry(newCountry);
+    const defaults = getCountryDefaults(newCountry);
+    setCurrency(defaults.currency);
+    setTimezone(defaults.timezone);
+    if (fieldErrors.country) setFieldErrors((prev) => ({ ...prev, country: undefined }));
+  };
 
   const createTenant = trpc.createTenant.useMutation();
 
@@ -134,12 +152,11 @@ export function SignUpForm({
         return;
       }
 
-      const defaults = getCountryDefaults(country);
       const pendingTenant: PendingTenantData = {
-        name: name.trim(),
+        name: `${name.trim()}'s Household`,
         country,
-        currency: defaults.currency,
-        timezone: defaults.timezone,
+        currency,
+        timezone,
       };
 
       const sessionData = await authClient.getSession();
@@ -157,12 +174,11 @@ export function SignUpForm({
     } catch (err) {
       const errMsg = err instanceof Error ? err.message : "";
       if (errMsg.includes("Authentication required") || errMsg.includes("UNAUTHORIZED")) {
-        const defaults = getCountryDefaults(country);
         onNeedOtp(email.trim().toLowerCase(), password, {
-          name: name.trim(),
+          name: `${name.trim()}'s Household`,
           country,
-          currency: defaults.currency,
-          timezone: defaults.timezone,
+          currency,
+          timezone,
         });
       } else {
         const displayErr = errMsg || t("auth.unexpectedError");
@@ -208,26 +224,61 @@ export function SignUpForm({
         <FormFieldError error={fieldErrors.name} />
       </div>
 
-      <div>
-        <FormLabel required={true} htmlFor="signup-country">
-          {t("auth.countryLabel")}
-        </FormLabel>
-        <select
-          id="signup-country"
-          value={country}
-          onChange={(e) => {
-            setCountry(e.target.value);
-            if (fieldErrors.country) setFieldErrors((prev) => ({ ...prev, country: undefined }));
-          }}
-          className="w-full px-3.5 py-2.5 text-sm rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-[#2563eb] bg-white text-slate-900"
-        >
-          {SUPPORTED_COUNTRIES.map((c) => (
-            <option key={c.code} value={c.code}>
-              {c.flag} {c.name}
-            </option>
-          ))}
-        </select>
-        <FormFieldError error={fieldErrors.country} />
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        <div>
+          <FormLabel required={true} htmlFor="signup-country">
+            {t("auth.countryLabel")}
+          </FormLabel>
+          <select
+            id="signup-country"
+            value={country}
+            onChange={(e) => handleCountryChange(e.target.value)}
+            className="w-full px-3.5 py-2.5 text-sm rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-[#2563eb] bg-white text-slate-900"
+          >
+            {SUPPORTED_COUNTRIES.map((c) => (
+              <option key={c.code} value={c.code}>
+                {c.flag} {c.name}
+              </option>
+            ))}
+          </select>
+          <FormFieldError error={fieldErrors.country} />
+        </div>
+
+        <div>
+          <FormLabel required={true} htmlFor="signup-currency">
+            {t("settings.currency")}
+          </FormLabel>
+          <select
+            id="signup-currency"
+            value={currency}
+            onChange={(e) => setCurrency(e.target.value)}
+            className="w-full px-3.5 py-2.5 text-sm rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-[#2563eb] bg-white text-slate-900"
+          >
+            {Object.values(SUPPORTED_CURRENCIES).map((curr) => (
+              <option key={curr.code} value={curr.code}>
+                {curr.code} ({curr.symbol})
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <div>
+          <FormLabel required={true} htmlFor="signup-timezone">
+            {t("settings.timezone")}
+          </FormLabel>
+          <select
+            id="signup-timezone"
+            value={timezone}
+            onChange={(e) => setTimezone(e.target.value)}
+            className="w-full px-3.5 py-2.5 text-sm rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-[#2563eb] bg-white text-slate-900"
+          >
+            {COMMON_TIMEZONES.map((tz) => (
+              <option key={tz.value} value={tz.value}>
+                {tz.label}
+              </option>
+            ))}
+          </select>
+        </div>
       </div>
 
       <div>

@@ -78,11 +78,11 @@ export function useProfileForm({ user, currentTimezone }: UseProfileFormParams) 
     const file = e.target.files?.[0];
     if (!file) return;
     if (file.size > 2 * 1024 * 1024) {
-      toast.error("Avatar image size must be under 2MB.");
+      toast.error(t("settings.profile.avatarSizeError"));
       return;
     }
     if (!["image/png", "image/jpeg", "image/webp"].includes(file.type)) {
-      toast.error("Please upload a PNG, JPG, or WEBP image file.");
+      toast.error(t("settings.profile.avatarTypeError"));
       return;
     }
     const reader = new FileReader();
@@ -108,13 +108,13 @@ export function useProfileForm({ user, currentTimezone }: UseProfileFormParams) 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!data.displayName.trim() || !data.notificationEmail.trim()) {
-      toast.error("Name and notification email are required.");
+      toast.error(t("settings.profile.nameRequired"));
       return;
     }
     const phoneCheck = validateMobileNumber(data.phoneCountryCode, data.phoneNumber);
     if (!phoneCheck.isValid) {
       setPhoneError(phoneCheck.errorMessage);
-      toast.error(phoneCheck.errorMessage!);
+      toast.error(phoneCheck.errorMessage || t("settings.profile.phoneInvalid"));
       return;
     }
     setPhoneError(undefined);
@@ -148,7 +148,7 @@ export function useProfileForm({ user, currentTimezone }: UseProfileFormParams) 
       setIsEditing(false);
       toast.success(t("settings.profileSaved"));
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Failed to save profile.");
+      toast.error(err instanceof Error ? err.message : t("settings.profile.profileSaveFailed"));
     } finally {
       setIsSaving(false);
     }

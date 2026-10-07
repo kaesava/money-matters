@@ -118,6 +118,7 @@ export function UpcomingTimelineTab({
 
   // Filter States
   const [kindFilter, setKindFilter] = useState<"ALL" | "INCOME" | "EXPENSE" | "TRANSFER">(initialKindFilter);
+  const [statusFilter, setStatusFilter] = useState<"ALL" | "OVERDUE">("ALL");
   const [scopeFilter, setScopeFilter] = useState<"ALL" | "SHARED" | "PRIVATE">("ALL");
   const [searchQuery, setSearchQuery] = useState(initialSearchQuery);
 
@@ -173,6 +174,9 @@ export function UpcomingTimelineTab({
         // 1. Kind filter
         if (kindFilter !== "ALL" && e.eventKind !== kindFilter) return false;
 
+        // 1.2 Status filter (All vs Overdue)
+        if (statusFilter === "OVERDUE" && e.expectedDate >= todayStr) return false;
+
         // 1.5 Explicit Pool ID filter
         if (filterPoolId) {
           const matchesPool =
@@ -218,12 +222,12 @@ export function UpcomingTimelineTab({
         }
         return sortOrder === "asc" ? comp : -comp;
       });
-  }, [incomeEvents, expenseEvents, transferEvents, kindFilter, scopeFilter, searchQuery, sortField, sortOrder, filterPoolId, filterCategoryId]);
+  }, [incomeEvents, expenseEvents, transferEvents, kindFilter, statusFilter, todayStr, scopeFilter, searchQuery, sortField, sortOrder, filterPoolId, filterCategoryId]);
 
 
   useEffect(() => {
     setPage(1);
-  }, [kindFilter, scopeFilter, searchQuery, filterPoolId, filterCategoryId]);
+  }, [kindFilter, statusFilter, scopeFilter, searchQuery, filterPoolId, filterCategoryId]);
 
   const paginatedEvents = useMemo(() => {
     const start = (page - 1) * pageSize;
@@ -264,7 +268,7 @@ export function UpcomingTimelineTab({
         </div>
       )}
 
-      {/* Controls Bar: Search, Kind Filter, Scope Filter */}
+      {/* Controls Bar: Search, Status Filter, Kind Filter, Scope Filter */}
       <div className="flex flex-wrap items-center justify-between gap-4 bg-white dark:bg-zinc-900 p-4 border border-zinc-200 dark:border-zinc-800 rounded-2xl shadow-xs">
         <div className="flex-1 w-full max-w-full">
           <SearchInput
@@ -276,6 +280,32 @@ export function UpcomingTimelineTab({
         </div>
 
         <div className="flex flex-wrap items-center gap-3">
+          {/* Status Filter Pills: All | Overdue */}
+          <div className="flex items-center gap-1 bg-zinc-100 dark:bg-zinc-800 p-1 rounded-xl">
+            <button
+              type="button"
+              onClick={() => setStatusFilter("ALL")}
+              className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all ${
+                statusFilter === "ALL"
+                  ? "bg-white dark:bg-zinc-900 text-[#1B2B4B] dark:text-white shadow-xs"
+                  : "text-zinc-500 hover:text-zinc-900 dark:hover:text-white"
+              }`}
+            >
+              All
+            </button>
+            <button
+              type="button"
+              onClick={() => setStatusFilter("OVERDUE")}
+              className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all ${
+                statusFilter === "OVERDUE"
+                  ? "bg-rose-600 text-white shadow-xs"
+                  : "text-zinc-500 hover:text-zinc-900 dark:hover:text-white"
+              }`}
+            >
+              Overdue
+            </button>
+          </div>
+
           {/* Scope Filter Pills: All | Shared | Private */}
           <div className="flex items-center gap-1 bg-zinc-100 dark:bg-zinc-800 p-1 rounded-xl">
             <button

@@ -49,7 +49,7 @@ export function UpcomingEventsTab({
   initialCategoryId,
 }: UpcomingEventsTabProps) {
   const [upcomingSearchQuery, setUpcomingSearchQuery] = useState('');
-  const [upcomingScopeFilter, setUpcomingScopeFilter] = useState<'ALL' | 'SHARED' | 'PRIVATE'>('ALL');
+  const [upcomingStatusFilter, setUpcomingStatusFilter] = useState<'ALL' | 'OVERDUE'>('ALL');
   const [upcomingKindFilter, setUpcomingKindFilter] = useState<'ALL' | 'INCOME' | 'EXPENSE' | 'TRANSFER'>(
     initialKind || 'ALL'
   );
@@ -60,7 +60,7 @@ export function UpcomingEventsTab({
   const UPCOMING_PAGE_SIZE = 10;
 
   const activeUpcomingFilterCount =
-    (upcomingScopeFilter !== 'ALL' ? 1 : 0) +
+    (upcomingStatusFilter !== 'ALL' ? 1 : 0) +
     (upcomingKindFilter !== 'ALL' ? 1 : 0) +
     (initialPoolId ? 1 : 0) +
     (initialCategoryId ? 1 : 0);
@@ -73,7 +73,8 @@ export function UpcomingEventsTab({
     pools,
     incomeSources,
     upcomingKindFilter,
-    upcomingScopeFilter,
+    upcomingScopeFilter: 'ALL',
+    upcomingStatusFilter,
     upcomingSearchQuery,
     upcomingSortField,
     upcomingSortOrder,
@@ -166,18 +167,16 @@ export function UpcomingEventsTab({
         }}
         sections={[
           {
-            id: 'scope',
-            title: t('dashboard.scope'),
-            selectedValue: upcomingScopeFilter,
+            id: 'status',
+            title: t('common.status'),
+            selectedValue: upcomingStatusFilter,
             onSelect: (val) => {
-              setUpcomingScopeFilter(val as any);
+              setUpcomingStatusFilter(val as 'ALL' | 'OVERDUE');
               setUpcomingPage(1);
             },
             options: [
               { id: 'ALL', label: t('common.all') },
-              { id: 'CURRENT_CYCLE', label: t('incomeBillsTabs.currentCycle') },
-              { id: '30_DAYS', label: t('incomeBillsTabs.days30') },
-              { id: '60_DAYS', label: t('incomeBillsTabs.days60') },
+              { id: 'OVERDUE', label: t('common.overdue') },
             ],
           },
           {
@@ -197,7 +196,7 @@ export function UpcomingEventsTab({
           },
         ]}
         onReset={() => {
-          setUpcomingScopeFilter('ALL');
+          setUpcomingStatusFilter('ALL');
           setUpcomingKindFilter('ALL');
           setUpcomingSortField('date');
           setUpcomingSortOrder('asc');

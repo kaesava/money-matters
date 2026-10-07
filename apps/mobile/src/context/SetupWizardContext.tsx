@@ -10,6 +10,7 @@ import {
   calculateQuizEstimates,
 } from '@money-matters/types';
 import { SetupWizardContextValue } from './setup-wizard-types';
+import { formatIsoDate } from '../lib/format';
 
 const SetupWizardContext = createContext<SetupWizardContextValue | null>(null);
 
@@ -25,7 +26,7 @@ export function SetupWizardProvider({ children: reactChildren }: { children: Rea
       monthlyAmount: 300,
       icon: '🛡️',
       targetAmount: 10000,
-      dueDate: new Intl.DateTimeFormat('en-CA', { timeZone: 'Australia/Sydney' }).format(new Date(Date.now() + 365 * 24 * 60 * 60 * 1000)),
+      dueDate: formatIsoDate(new Date(Date.now() + 365 * 24 * 60 * 60 * 1000)),
     },
     {
       id: 'g-2',
@@ -33,7 +34,7 @@ export function SetupWizardProvider({ children: reactChildren }: { children: Rea
       monthlyAmount: 250,
       icon: '✈️',
       targetAmount: 5000,
-      dueDate: new Intl.DateTimeFormat('en-CA', { timeZone: 'Australia/Sydney' }).format(new Date(Date.now() + 365 * 24 * 60 * 60 * 1000)),
+      dueDate: formatIsoDate(new Date(Date.now() + 365 * 24 * 60 * 60 * 1000)),
     },
   ]);
 

@@ -1,11 +1,8 @@
-import { pools, bankAccounts, categories, incomeEvents, expenseEvents, getPoolBalancesMap, DbOrTx } from "@money-matters/db";
+import { pools, bankAccounts, categories, incomeEvents, expenseEvents, getPoolBalancesMap, tenants, DbOrTx } from "@money-matters/db";
 import { eq, and, sql, desc, asc } from "drizzle-orm";
 import { BillCoverageResult, BillCoverageItem } from "@money-matters/types";
 
-
 import { getTenantDateString } from "@money-matters/core";
-
-const getAestDateString = (d: Date = new Date()) => getTenantDateString(d);
 
 export async function listBillCoverageQuery(
   tenantId: string,
@@ -13,7 +10,20 @@ export async function listBillCoverageQuery(
   dbClient: DbOrTx,
   userId?: string
 ): Promise<BillCoverageResult> {
-  const todayStr = getAestDateString();
+  let tenantRecord: { timezone: string | null } | null = null;
+  if (typeof (dbClient as any).select === "function") {
+    try {
+      const q = dbClient.select({ timezone: tenants.timezone }).from(tenants).where(eq(tenants.id, tenantId));
+      if (typeof (q as any).limit === "function") {
+        const rows = await (q as any).limit(1);
+        tenantRecord = rows[0] || null;
+      }
+    } catch {
+      // Mock db or schema mismatch safe fallback
+    }
+  }
+  const tenantTz = tenantRecord?.timezone || "Australia/Sydney";
+  const todayStr = getTenantDateString(new Date(), { timezone: tenantTz });
 
   // 1. Fetch REGULAR pools with privacy filtering
   const poolFilters = [
@@ -76,7 +86,7 @@ export async function listBillCoverageQuery(
 
   // 3. Determine next payday date (upcomingPaychecks sorted DESC, last item is nearest)
   const nextPaycheck = upcomingPaychecks[upcomingPaychecks.length - 1];
-  const defaultNextPayday = getAestDateString(new Date(Date.now() + 14 * 24 * 60 * 60 * 1000));
+  const defaultNextPayday = getTenantDateString(new Date(Date.now() + 14 * 24 * 60 * 60 * 1000), { timezone: tenantTz });
   const nextPaydayDateStr = nextPaycheck ? nextPaycheck.expectedDate : defaultNextPayday;
 
   // 4. Batch 2: Fetch upcoming expense events due before next payday for REGULAR pools

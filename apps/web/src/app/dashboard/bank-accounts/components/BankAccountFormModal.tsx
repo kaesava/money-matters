@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useId, useState } from "react";
-import { InfoTooltip, isFormDirty, ConfirmDialog, Button, Input, GenericSelectField, AmountField, ModalDialog } from "@money-matters/ui/web";
+import { InfoTooltip, isFormDirty, ConfirmDialog, Button, Input, AmountField, ModalDialog } from "@money-matters/ui/web";
 import { t } from "@money-matters/i18n";
 import { useLocale } from "../../../../providers/LocaleProvider";
 import { computeAccountAvailability } from "@money-matters/types";
@@ -115,13 +115,31 @@ export function BankAccountFormModal({
           </div>
         )}
 
-        <GenericSelectField
-          label={t("settings.bankAccountForm.bankProviderLabel")}
-          value={accBankProvider}
-          onChange={(val) => setAccBankProvider(val as BankName)}
-          options={bankOptions.map((b) => ({ value: b.key, label: b.label }))}
-          required
-        />
+        {/* Bank Institution Chips (Required) */}
+        <div className="flex flex-col gap-2">
+          <label className="text-xs font-bold text-zinc-700">
+            {t("settings.bankAccountForm.bankProviderLabel")} <span className="text-rose-500">*</span>
+          </label>
+          <div className="flex flex-wrap gap-2">
+            {bankOptions.map((b) => {
+              const isSelected = accBankProvider === b.key;
+              return (
+                <button
+                  key={b.key}
+                  type="button"
+                  onClick={() => setAccBankProvider(b.key)}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-bold border transition-all cursor-pointer ${
+                    isSelected
+                      ? "bg-[#2563eb] text-white border-[#2563eb] shadow-xs"
+                      : "bg-white text-zinc-700 border-zinc-200 hover:border-zinc-300"
+                  }`}
+                >
+                  {b.label}
+                </button>
+              );
+            })}
+          </div>
+        </div>
 
         <Input
           label={t("settings.bankAccountForm.accountNameLabel")}
@@ -179,12 +197,18 @@ export function BankAccountFormModal({
             />
             <span>{t("settings.bankAccountForm.privacyLabel")}</span>
           </label>
+          <InfoTooltip content={t("settings.bankAccountForm.privacyHint")} />
           {Boolean(editingAccount) ? (
             <InfoTooltip content={t("settings.bankAccountForm.privacyLockedTooltip")} />
           ) : isTrialExpired ? (
             <InfoTooltip content={t("settings.bankAccountForm.privacyUpgradeTooltip")} />
           ) : null}
         </div>
+
+        {/* Informative note about linking pools */}
+        <p className="text-[11px] text-zinc-500 italic">
+          {t("settings.bankAccountForm.linkPoolNote")}
+        </p>
 
         <div className="flex items-center justify-between gap-2 pt-2 border-t border-zinc-100">
           <div>

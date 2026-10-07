@@ -19,6 +19,7 @@ import { ProfilePreferencesFields } from './profile/ProfilePreferencesFields';
 interface MobileProfileEditViewProps {
   name: string;
   setName: (val: string) => void;
+  loginEmail?: string;
   notificationEmail: string;
   setNotificationEmail: (val: string) => void;
   phoneCountryCode: string;
@@ -44,6 +45,7 @@ interface MobileProfileEditViewProps {
 export function MobileProfileEditView({
   name,
   setName,
+  loginEmail,
   notificationEmail,
   setNotificationEmail,
   phoneCountryCode,
@@ -82,10 +84,11 @@ export function MobileProfileEditView({
         onPickAvatar={onPickAvatar}
       />
 
-      {/* Contact Fields (Name, Notification Email, Phone Number) */}
+      {/* Contact Fields (Name, Login Email, Notification Email, Phone Number) */}
       <ProfileContactFields
         name={name}
         setName={setName}
+        loginEmail={loginEmail}
         notificationEmail={notificationEmail}
         setNotificationEmail={setNotificationEmail}
         phoneCountryCode={phoneCountryCode}

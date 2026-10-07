@@ -83,25 +83,13 @@ export function HouseholdEditView({
         )}
       </View>
 
-      {/* Currency Selector */}
+      {/* Currency Display (Locked) */}
       <View style={styles.inputGroup}>
         <FormLabel label={t('settings.currency')} required />
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.scrollRow}>
-          {Object.values(SUPPORTED_CURRENCIES).map((c) => {
-            const isSelected = currency === c.code;
-            return (
-              <TouchableOpacity
-                key={c.code}
-                onPress={() => onSelectCurrency(c.code)}
-                style={[styles.chip, isSelected && styles.chipSelected]}
-              >
-                <Text style={[styles.chipText, isSelected && styles.chipTextSelected]}>
-                  {c.code} ({c.symbol})
-                </Text>
-              </TouchableOpacity>
-            );
-          })}
-        </ScrollView>
+        <View style={styles.lockedRow}>
+          <Text style={styles.lockedText}>🔒 {currency}</Text>
+        </View>
+        <Text style={styles.helperText}>{t('settings.currencyLockedTooltip')}</Text>
       </View>
 
       {/* Timezone Selector */}
@@ -234,5 +222,23 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
     gap: 8,
     marginTop: 8,
+  },
+  lockedRow: {
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: DESIGN_TOKENS.colors.slate[200],
+    backgroundColor: DESIGN_TOKENS.colors.slate[50],
+  },
+  lockedText: {
+    fontSize: 14,
+    color: DESIGN_TOKENS.colors.slate[600],
+    fontWeight: '600',
+  },
+  helperText: {
+    fontSize: 11,
+    color: DESIGN_TOKENS.colors.slate[500],
+    lineHeight: 15,
   },
 });

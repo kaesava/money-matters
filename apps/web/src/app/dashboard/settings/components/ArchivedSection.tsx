@@ -4,7 +4,6 @@ import React, { useState } from "react";
 import { trpc } from "../../../../lib/trpc";
 import { t } from "@money-matters/i18n";
 import { PaginationBar, Spinner, InfoTooltip, SearchInput, SkeletonTable, ConfirmDialog, useToast } from "@money-matters/ui/web";
-import { useLocale } from "../../../../providers/LocaleProvider";
 
 type ArchivedItemType = "POOL" | "CATEGORY" | "INCOME_SOURCE" | "EXPENSE_SOURCE" | "BANK_ACCOUNT";
 
@@ -18,7 +17,6 @@ interface ArchivedItem {
 
 export function ArchivedSection() {
   const toast = useToast();
-  const { fmt } = useLocale();
   const [search, setSearch] = useState("");
   const [filterType, setFilterType] = useState<"ALL" | ArchivedItemType>("ALL");
 
@@ -64,22 +62,6 @@ export function ArchivedSection() {
 
   const totalPages = Math.ceil(filtered.length / pageSize) || 1;
   const paginated = filtered.slice((page - 1) * pageSize, page * pageSize);
-
-  const formatSubtitle = (item: ArchivedItem) => {
-    if (!item.subtitle) return null;
-    if (item.itemType === "POOL") {
-      return item.subtitle === "EVERYDAY"
-        ? t("poolTypes.everyday")
-        : item.subtitle === "REGULAR"
-          ? t("poolTypes.regular")
-          : t("poolTypes.goal");
-    }
-    const num = parseFloat(item.subtitle);
-    if (!isNaN(num)) {
-      return fmt(num);
-    }
-    return item.subtitle;
-  };
 
   const getItemTypeBadge = (itemType: string) => {
     const typeKey = `settings.archived.types.${itemType}` as const;
@@ -172,9 +154,16 @@ export function ArchivedSection() {
                     {getItemTypeBadge(item.itemType)}
                   </span>
                 </div>
-                {item.subtitle && (
-                  <span className="text-xs text-slate-500 font-medium font-mono tabular-nums">
-                    {formatSubtitle(item)}
+                {item.archivedAt && (
+                  <span className="text-xs text-slate-500 font-medium">
+                    {t("settings.archived.archivedOn", {
+                      date: new Intl.DateTimeFormat("en-AU", {
+                        day: "2-digit",
+                        month: "short",
+                        year: "numeric",
+                        timeZone: "Australia/Sydney",
+                      }).format(new Date(item.archivedAt)),
+                    })}
                   </span>
                 )}
               </div>

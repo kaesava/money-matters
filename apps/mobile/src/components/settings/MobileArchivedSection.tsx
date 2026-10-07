@@ -1,26 +1,28 @@
 import React, { useState } from 'react';
-import { View, Text, FlatList, StyleSheet } from 'react-native';
+import { View, Text, FlatList, StyleSheet, TouchableOpacity } from 'react-native';
+import { Feather } from '@expo/vector-icons';
 import {
   DESIGN_TOKENS,
   SearchInput,
   SkeletonCard,
   MobilePaginationBar,
+  MobileFilterSheet,
+  InfoTooltip,
   showMobileConfirm,
   useMobileToast,
 } from '@money-matters/ui/mobile';
 import { t } from '@money-matters/i18n';
 import { trpc } from '../../lib/trpc';
-import {
-  ArchivedFilterChips,
-  FilterType,
-} from './archived/ArchivedFilterChips';
-import { ArchivedItemRow, ArchivedItem } from './archived/ArchivedItemRow';
+import { ArchivedItemRow, ArchivedItem, ArchivedItemType } from './archived/ArchivedItemRow';
 
 export function MobileArchivedSection() {
   const toast = useMobileToast();
   const utils = trpc.useUtils();
   const [search, setSearch] = useState('');
-  const [filterType, setFilterType] = useState<FilterType>('ALL');
+  const [filterType, setFilterType] = useState<ArchivedItemType>('ALL');
+  const [sortField, setSortField] = useState<'name' | 'type'>('name');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
+  const [filterSheetVisible, setFilterSheetVisible] = useState(false);
   const [page, setPage] = useState(1);
   const [restoringId, setRestoringId] = useState<string | null>(null);
   const pageSize = 10;
@@ -53,14 +55,27 @@ export function MobileArchivedSection() {
 
   const items = (archivedQuery.data ?? []) as ArchivedItem[];
 
-  const filtered = items.filter((item) => {
-    const matchesSearch = item.name.toLowerCase().includes(search.toLowerCase());
-    const matchesType = filterType === 'ALL' || item.itemType === filterType;
-    return matchesSearch && matchesType;
-  });
+  const filtered = items
+    .filter((item) => {
+      const matchesSearch = item.name.toLowerCase().includes(search.toLowerCase());
+      const matchesType = filterType === 'ALL' || item.itemType === filterType;
+      return matchesSearch && matchesType;
+    })
+    .sort((a, b) => {
+      let comp = 0;
+      if (sortField === 'name') {
+        comp = a.name.localeCompare(b.name);
+      } else {
+        comp = a.itemType.localeCompare(b.itemType);
+      }
+      return sortOrder === 'asc' ? comp : -comp;
+    });
 
   const totalPages = Math.ceil(filtered.length / pageSize) || 1;
   const paginated = filtered.slice((page - 1) * pageSize, page * pageSize);
+
+  const activeFilterCount =
+    (filterType !== 'ALL' ? 1 : 0) + (sortField !== 'name' || sortOrder !== 'asc' ? 1 : 0);
 
   const handleRestore = (item: ArchivedItem) => {
     showMobileConfirm({
@@ -86,22 +101,49 @@ export function MobileArchivedSection() {
 
   return (
     <View style={styles.container}>
-      <SearchInput
-        value={search}
-        onChangeText={(val) => {
-          setSearch(val);
-          setPage(1);
-        }}
-        placeholder={t('settings.archived.searchPlaceholder')}
-      />
+      {/* Title & InfoTooltip Header */}
+      <View style={styles.headerRow}>
+        <Text style={styles.headerTitle}>{t('settings.tabs.archived')}</Text>
+        <InfoTooltip
+          title={t('tooltips.archived.title')}
+          content={t('tooltips.archived.content')}
+        />
+      </View>
 
-      <ArchivedFilterChips
-        filterType={filterType}
-        onSelectFilter={(type) => {
-          setFilterType(type);
-          setPage(1);
-        }}
-      />
+      {/* Search & Filter Bar */}
+      <View style={styles.searchAndFilterRow}>
+        <View style={styles.flex1}>
+          <SearchInput
+            value={search}
+            onChangeText={(val) => {
+              setSearch(val);
+              setPage(1);
+            }}
+            placeholder={t('settings.archived.searchPlaceholder')}
+          />
+        </View>
+
+        <TouchableOpacity
+          style={[styles.filterBtn, activeFilterCount > 0 && styles.filterBtnActive]}
+          onPress={() => setFilterSheetVisible(true)}
+          activeOpacity={0.7}
+        >
+          <Feather
+            name="sliders"
+            size={15}
+            color={activeFilterCount > 0 ? DESIGN_TOKENS.colors.accent : DESIGN_TOKENS.colors.textMuted}
+          />
+          <Text
+            style={[
+              styles.filterBtnText,
+              activeFilterCount > 0 && styles.filterBtnTextActive,
+            ]}
+          >
+            {t('common.filter')}
+            {activeFilterCount > 0 ? ` (${activeFilterCount})` : ''}
+          </Text>
+        </TouchableOpacity>
+      </View>
 
       {archivedQuery.isLoading ? (
         <View style={styles.loaderWrap}>
@@ -141,6 +183,52 @@ export function MobileArchivedSection() {
           onPageSizeChange={() => {}}
         />
       )}
+
+      {/* Filter and Sort Sheet */}
+      <MobileFilterSheet
+        visible={filterSheetVisible}
+        onClose={() => setFilterSheetVisible(false)}
+        activeCount={activeFilterCount}
+        sortField={sortField}
+        sortOrder={sortOrder}
+        sortOptions={[
+          { id: 'name', label: t('common.name') },
+          { id: 'type', label: t('common.type') },
+        ]}
+        onSortFieldChange={(field) => {
+          setSortField(field as 'name' | 'type');
+          setPage(1);
+        }}
+        onSortOrderChange={(order) => {
+          setSortOrder(order);
+          setPage(1);
+        }}
+        sections={[
+          {
+            id: 'type',
+            title: t('common.type'),
+            selectedValue: filterType,
+            onSelect: (val: string) => {
+              setFilterType(val as ArchivedItemType);
+              setPage(1);
+            },
+            options: [
+              { id: 'ALL', label: t('common.all') },
+              { id: 'POOL', label: t('settings.archived.pools') },
+              { id: 'CATEGORY', label: t('settings.archived.categories') },
+              { id: 'INCOME_SOURCE', label: t('settings.archived.income') },
+              { id: 'EXPENSE_SOURCE', label: t('settings.archived.expenses') },
+              { id: 'BANK_ACCOUNT', label: t('settings.archived.accounts') },
+            ],
+          },
+        ]}
+        onReset={() => {
+          setFilterType('ALL');
+          setSortField('name');
+          setSortOrder('asc');
+          setPage(1);
+        }}
+      />
     </View>
   );
 }
@@ -148,6 +236,48 @@ export function MobileArchivedSection() {
 const styles = StyleSheet.create({
   container: {
     gap: 12,
+  },
+  headerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 4,
+  },
+  headerTitle: {
+    fontSize: 16,
+    fontWeight: '800',
+    color: DESIGN_TOKENS.colors.primary,
+  },
+  flex1: {
+    flex: 1,
+  },
+  searchAndFilterRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  filterBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderRadius: 12,
+    backgroundColor: DESIGN_TOKENS.colors.surface,
+    borderWidth: 1.5,
+    borderColor: DESIGN_TOKENS.colors.slate[200],
+  },
+  filterBtnActive: {
+    backgroundColor: DESIGN_TOKENS.colors.accentLight,
+    borderColor: DESIGN_TOKENS.colors.accentBorder,
+  },
+  filterBtnText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: DESIGN_TOKENS.colors.textMuted,
+  },
+  filterBtnTextActive: {
+    color: DESIGN_TOKENS.colors.accent,
   },
   loaderWrap: {
     gap: 10,

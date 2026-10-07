@@ -1,10 +1,8 @@
-import { DbOrTx, incomeSources, incomeEvents, expenseSources, expenseEvents } from "@money-matters/db";
+import { DbOrTx, incomeSources, incomeEvents, expenseSources, expenseEvents, tenants } from "@money-matters/db";
 import { and, eq, sql } from "drizzle-orm";
 import { generateBurstDates } from "../engine/burst-engine.js";
 
 import { getTenantDateString } from "@money-matters/core";
-
-const getAestDateString = (d: Date = new Date()) => getTenantDateString(d);
 
 export async function maintainRollingWindowCommand({
   db,
@@ -18,7 +16,17 @@ export async function maintainRollingWindowCommand({
   userId: string;
 }) {
   let newEventsCount = 0;
-  const todayStr = getAestDateString();
+
+  const [tenantRecord] = typeof (db as any).select === "function"
+    ? await db
+        .select({ timezone: tenants.timezone })
+        .from(tenants)
+        .where(eq(tenants.id, tenantId))
+        .limit(1)
+    : [null];
+  const tenantTz = tenantRecord?.timezone || "Australia/Sydney";
+  const getLocalDateString = (d: Date = new Date()) => getTenantDateString(d, { timezone: tenantTz });
+  const todayStr = getLocalDateString();
 
   // 1. Sync Income Sources
   const incomes = await db
@@ -46,14 +54,14 @@ export async function maintainRollingWindowCommand({
     const horizonDates = generateBurstDates(source.rrule, startDate, source.endDate, 12);
 
     const datesToInsert = horizonDates.filter((d) => {
-      const dStr = getAestDateString(d);
+      const dStr = getLocalDateString(d);
       return !existingDates.has(dStr);
     });
 
     if (datesToInsert.length > 0) {
       await db.insert(incomeEvents).values(
         datesToInsert.map((d) => {
-          const dateStr = getAestDateString(d);
+          const dateStr = getLocalDateString(d);
           return {
             incomeSourceId: source.id,
             name: source.name,
@@ -99,14 +107,14 @@ export async function maintainRollingWindowCommand({
     const horizonDates = generateBurstDates(source.rrule, startDate, source.endDate, 12);
 
     const datesToInsert = horizonDates.filter((d) => {
-      const dStr = getAestDateString(d);
+      const dStr = getLocalDateString(d);
       return !existingDates.has(dStr);
     });
 
     if (datesToInsert.length > 0) {
       await db.insert(expenseEvents).values(
         datesToInsert.map((d) => {
-          const dateStr = getAestDateString(d);
+          const dateStr = getLocalDateString(d);
           return {
             expenseSourceId: source.id,
             poolId: source.poolId,

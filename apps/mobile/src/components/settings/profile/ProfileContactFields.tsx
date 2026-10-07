@@ -6,6 +6,7 @@ import { t } from '@money-matters/i18n';
 export interface ProfileContactFieldsProps {
   name: string;
   setName: (val: string) => void;
+  loginEmail?: string;
   notificationEmail: string;
   setNotificationEmail: (val: string) => void;
   phoneCountryCode: string;
@@ -18,6 +19,7 @@ export interface ProfileContactFieldsProps {
 export function ProfileContactFields({
   name,
   setName,
+  loginEmail,
   notificationEmail,
   setNotificationEmail,
   phoneCountryCode,
@@ -41,6 +43,18 @@ export function ProfileContactFields({
         {!name.trim() && (
           <FormFieldError error={t('settings.displayNameRequired')} />
         )}
+      </View>
+
+      {/* Login Email (Primary Auth - Read Only) */}
+      <View style={styles.inputGroup}>
+        <FormLabel label={t('settings.loginEmailLabel')} />
+        <TextInput
+          style={[styles.textInput, styles.readOnlyInput]}
+          value={loginEmail || ''}
+          editable={false}
+          placeholder="user@example.com"
+          placeholderTextColor={DESIGN_TOKENS.colors.subtleText}
+        />
       </View>
 
       {/* Notification Email (Mandatory) */}
@@ -97,6 +111,10 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     fontSize: 14,
     color: DESIGN_TOKENS.colors.primary,
+  },
+  readOnlyInput: {
+    backgroundColor: DESIGN_TOKENS.colors.slate[50],
+    color: DESIGN_TOKENS.colors.textMuted,
   },
   hintText: {
     fontSize: 11,

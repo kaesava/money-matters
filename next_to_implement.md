@@ -5,14 +5,10 @@
 * Strict adherence to AGENTS.md
 * If you need clarity, [/grill-me](slashCommand;grill-me) (don't make assumptions). Be critical.
 * I don't need walkthrough at the end. I don't need a fancy report. Just a detail implementation plan that can be unambiguously followed.
-
+* Aggressively cull un-used code, l18n keys, files and database tables/fields.
 
 # Mobile App
 All changes are for the Mobile App unless explicitly specified as Web App
-
-## Pools
-
-
 
 
 ## General - the below changes apply to the screens listed in the next section.

@@ -1,4 +1,4 @@
-import { pools, categories, incomeEvents, incomeSources, expenseEvents, getPoolBalancesMap, DbOrTx } from "@money-matters/db";
+import { pools, categories, incomeEvents, incomeSources, expenseEvents, getPoolBalancesMap, tenants, DbOrTx } from "@money-matters/db";
 import { eq, and, sql } from "drizzle-orm";
 import { runAllocationEngine, EngineBucket, UpcomingExpenseItem } from "../engine/allocation-engine.js";
 import { parseRruleFrequencyDays } from "../commands/run-allocation.command.js";
@@ -68,10 +68,19 @@ export async function previewAllocationQuery(
     }
   }
 
-  const todayStr = getTenantDateString();
+  const [tenantRecord] = typeof (dbClient as any).select === "function"
+    ? await dbClient
+        .select({ timezone: tenants.timezone })
+        .from(tenants)
+        .where(eq(tenants.id, tenantId))
+        .limit(1)
+    : [null];
+  const tenantTz = tenantRecord?.timezone || "Australia/Sydney";
+
+  const todayStr = getTenantDateString(new Date(), { timezone: tenantTz });
   const eventDateStr = event ? event.expectedDate : todayStr;
-  const eventTime = event ? new Date(event.expectedDate + "T00:00:00+10:00").getTime() : Date.now();
-  const nextCutoffDateStr = getTenantDateString(new Date(eventTime + freqDays * 24 * 60 * 60 * 1000));
+  const eventTime = event ? new Date(event.expectedDate + "T12:00:00Z").getTime() : Date.now();
+  const nextCutoffDateStr = getTenantDateString(new Date(eventTime + freqDays * 24 * 60 * 60 * 1000), { timezone: tenantTz });
 
   // 5. Fetch upcoming expenses due before next cycle cutoff for Cashflow Guard parity
   const pendingExpenses = await dbClient

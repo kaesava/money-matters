@@ -2,13 +2,19 @@ import React from 'react';
 import { View, Text, TouchableOpacity, ActivityIndicator, StyleSheet } from 'react-native';
 import { DESIGN_TOKENS } from '@money-matters/ui/mobile';
 import { t } from '@money-matters/i18n';
-import { formatAUD } from '../../../lib/format';
-import { FilterType } from './ArchivedFilterChips';
+
+export type ArchivedItemType =
+  | 'ALL'
+  | 'CATEGORY'
+  | 'POOL'
+  | 'INCOME_SOURCE'
+  | 'EXPENSE_SOURCE'
+  | 'BANK_ACCOUNT';
 
 export interface ArchivedItem {
   id: string;
   name: string;
-  itemType: FilterType;
+  itemType: ArchivedItemType;
   subtitle?: string | null;
   archivedAt: string | Date | null;
 }
@@ -26,28 +32,19 @@ export function ArchivedItemRow({
   disableRestore,
   onRestore,
 }: ArchivedItemRowProps) {
-  const formatSubtitle = () => {
-    if (!item.subtitle) return null;
-    if (item.itemType === 'POOL') {
-      return item.subtitle === 'EVERYDAY'
-        ? t('poolTypes.everyday')
-        : item.subtitle === 'REGULAR'
-        ? t('poolTypes.regular')
-        : t('poolTypes.goal');
-    }
-    const num = parseFloat(item.subtitle);
-    if (!isNaN(num)) {
-      return formatAUD(num);
-    }
-    return item.subtitle;
-  };
-
   const getItemTypeBadge = () => {
     const typeKey = `settings.archived.types.${item.itemType}` as const;
     return t(typeKey);
   };
 
-  const subtitle = formatSubtitle();
+  const formattedDate = item.archivedAt
+    ? new Intl.DateTimeFormat('en-AU', {
+        day: '2-digit',
+        month: 'short',
+        year: 'numeric',
+        timeZone: 'Australia/Sydney',
+      }).format(new Date(item.archivedAt))
+    : '';
 
   return (
     <View style={styles.itemCard}>
@@ -58,7 +55,11 @@ export function ArchivedItemRow({
             <Text style={styles.typeBadgeText}>{getItemTypeBadge()}</Text>
           </View>
         </View>
-        {subtitle ? <Text style={styles.itemSubtitle}>{subtitle}</Text> : null}
+        {formattedDate ? (
+          <Text style={styles.itemSubtitle}>
+            {t('settings.archived.archivedOn', { date: formattedDate })}
+          </Text>
+        ) : null}
       </View>
       <TouchableOpacity
         onPress={onRestore}

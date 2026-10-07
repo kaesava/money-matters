@@ -90,7 +90,11 @@ export default function SignUpScreen() {
               email={form.email}
               setEmail={form.setEmail}
               country={form.country}
-              setCountry={form.setCountry}
+              onCountryChange={form.handleCountryChange}
+              currency={form.currency}
+              setCurrency={form.setCurrency}
+              timezone={form.timezone}
+              setTimezone={form.setTimezone}
               password={form.password}
               setPassword={form.setPassword}
               confirmPassword={form.confirmPassword}

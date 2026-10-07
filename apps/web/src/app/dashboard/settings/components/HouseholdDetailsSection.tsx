@@ -29,7 +29,6 @@ export function HouseholdDetailsSection({
   const [country, setCountry] = useState("AU");
   const [currency, setCurrency] = useState("AUD");
   const [timezone, setTimezone] = useState("Australia/Sydney");
-  const [pendingCurrency, setPendingCurrency] = useState<string | null>(null);
   const [state, setState] = useState("");
   const [postcode, setPostcode] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -50,10 +49,10 @@ export function HouseholdDetailsSection({
       utils.getHouseholdGovernanceInfo.invalidate();
       utils.getUserPreferences.invalidate();
       setIsEditing(false);
-      toast.success("Household details updated successfully");
+      toast.success(t("toasts.saved"));
     },
     onError: (err) => {
-      toast.error(err.message || "Failed to update household details");
+      toast.error(err.message || t("common.errorTryAgain"));
     },
   });
 
@@ -111,12 +110,12 @@ export function HouseholdDetailsSection({
     if (!gov?.isOwner) return;
 
     if (!householdName.trim()) {
-      toast.error("Household name cannot be blank.");
+      toast.error(t("auth.householdNameRequired"));
       return;
     }
 
     if (country === "AU" && postcode.trim() && !validateAustralianPostcode(postcode)) {
-      toast.error("Australian postcode must be exactly 4 digits.");
+      toast.error(t("validation.postcodeDigits"));
       return;
     }
     
@@ -125,7 +124,6 @@ export function HouseholdDetailsSection({
       await updateHouseholdMut.mutateAsync({
         name: householdName.trim(),
         country: country.trim(),
-        currency: currency.trim(),
         timezone: timezone.trim(),
         state: state.trim(),
         postcode: postcode.trim(),
@@ -142,7 +140,6 @@ export function HouseholdDetailsSection({
           householdName={householdName}
           setHouseholdName={setHouseholdName}
           currency={currency}
-          setCurrency={setCurrency}
           timezone={timezone}
           setTimezone={setTimezone}
           country={country}
@@ -155,8 +152,6 @@ export function HouseholdDetailsSection({
           isSubmitting={isSubmitting}
           onSave={handleSave}
           onCancel={handleCancel}
-          setPendingCurrency={setPendingCurrency}
-          govCurrency={gov?.currency}
         />
       ) : (
         <HouseholdReadOnlyView
@@ -181,27 +176,6 @@ export function HouseholdDetailsSection({
           variant="danger"
           onConfirm={handleDiscardConfirm}
           onClose={() => setShowDiscardDialog(false)}
-        />
-      )}
-
-      {pendingCurrency && (
-        <ConfirmDialog
-          isOpen={!!pendingCurrency}
-          title={t("settings.currencyConfirmTitle")}
-          description={t("settings.currencyConfirmBody", {
-            oldCurrency: gov?.currency || "AUD",
-            newCurrency: pendingCurrency,
-          })}
-          confirmLabel={t("common.confirm")}
-          cancelLabel={t("common.cancel")}
-          variant="warning"
-          onConfirm={() => {
-            setCurrency(pendingCurrency);
-            setPendingCurrency(null);
-          }}
-          onClose={() => {
-            setPendingCurrency(null);
-          }}
         />
       )}
     </section>

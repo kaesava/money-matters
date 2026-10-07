@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, TouchableOpacity, ScrollView, StyleSheet } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { DESIGN_TOKENS } from '../tokens';
 
@@ -14,22 +14,28 @@ export interface SegmentedTabsProps<T extends string = string> {
   tabs: SegmentTabItem<T>[];
   activeKey: T;
   onChange: (key: T) => void;
+  scrollable?: boolean;
 }
 
 export function SegmentedTabs<T extends string = string>({
   tabs,
   activeKey,
   onChange,
+  scrollable = false,
 }: SegmentedTabsProps<T>) {
-  return (
-    <View style={styles.container}>
+  const content = (
+    <View style={[styles.container, scrollable && styles.scrollContainer]}>
       {tabs.map((tab) => {
         const isActive = tab.key === activeKey;
         return (
           <TouchableOpacity
             key={tab.key}
             onPress={() => onChange(tab.key)}
-            style={[styles.tab, isActive && styles.tabActive]}
+            style={[
+              styles.tab,
+              scrollable && styles.scrollTab,
+              isActive && styles.tabActive,
+            ]}
             activeOpacity={0.7}
           >
             {tab.icon && (
@@ -55,6 +61,22 @@ export function SegmentedTabs<T extends string = string>({
       })}
     </View>
   );
+
+  if (scrollable) {
+    return (
+      <View style={styles.scrollWrapper}>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.scrollContent}
+        >
+          {content}
+        </ScrollView>
+      </View>
+    );
+  }
+
+  return content;
 }
 
 const styles = StyleSheet.create({
@@ -111,6 +133,19 @@ const styles = StyleSheet.create({
   },
   badgeTextActive: {
     color: '#1E40AF',
+  },
+  scrollWrapper: {
+    marginBottom: 14,
+  },
+  scrollContent: {
+    paddingHorizontal: 0,
+  },
+  scrollContainer: {
+    marginBottom: 0,
+  },
+  scrollTab: {
+    flex: 0,
+    paddingHorizontal: 16,
   },
 });
 

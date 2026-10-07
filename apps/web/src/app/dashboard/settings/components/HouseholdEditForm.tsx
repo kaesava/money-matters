@@ -9,7 +9,6 @@ interface HouseholdEditFormProps {
   householdName: string;
   setHouseholdName: (v: string) => void;
   currency: string;
-  setCurrency: (v: string) => void;
   timezone: string;
   setTimezone: (v: string) => void;
   country: string;
@@ -22,15 +21,12 @@ interface HouseholdEditFormProps {
   isSubmitting: boolean;
   onSave: (e: React.FormEvent) => void;
   onCancel: () => void;
-  setPendingCurrency: (v: string | null) => void;
-  govCurrency?: string;
 }
 
 export function HouseholdEditForm({
   householdName,
   setHouseholdName,
   currency,
-  setCurrency,
   timezone,
   setTimezone,
   country,
@@ -43,8 +39,6 @@ export function HouseholdEditForm({
   isSubmitting,
   onSave,
   onCancel,
-  setPendingCurrency,
-  govCurrency,
 }: HouseholdEditFormProps) {
   return (
     <form onSubmit={onSave} className="p-6 bg-white border border-slate-200 rounded-2xl shadow-xs space-y-6">
@@ -75,21 +69,17 @@ export function HouseholdEditForm({
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div className="flex flex-col gap-1.5">
-          <label htmlFor="edit-household-currency" className="text-xs font-bold text-[#1B2B4B]">
-            {t("settings.currency")} <span className="text-red-500">*</span>
-          </label>
+          <div className="flex items-center gap-1.5">
+            <label htmlFor="edit-household-currency" className="text-xs font-bold text-[#1B2B4B]">
+              {t("settings.currency")} <span className="text-red-500">*</span>
+            </label>
+            <InfoTooltip content={t("settings.currencyLockedTooltip")} />
+          </div>
           <select
             id="edit-household-currency"
             value={currency}
-            onChange={(e) => {
-              const nextCurr = e.target.value;
-              if (nextCurr !== (govCurrency || "AUD")) {
-                setPendingCurrency(nextCurr);
-              } else {
-                setCurrency(nextCurr);
-              }
-            }}
-            className="px-3 py-2 text-xs font-medium border border-slate-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-[#2563eb]"
+            disabled={true}
+            className="px-3 py-2 text-xs font-medium border border-slate-200 rounded-xl bg-slate-50 text-slate-500 cursor-not-allowed focus:outline-none"
           >
             {Object.values(SUPPORTED_CURRENCIES).map((c) => (
               <option key={c.code} value={c.code}>

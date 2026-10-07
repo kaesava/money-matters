@@ -1,10 +1,8 @@
-import { pools, categories, allocationPlans, allocationPlanLines, transactionLedger, incomeEvents, incomeSources, expenseEvents, getPoolBalancesMap, DbOrTx } from "@money-matters/db";
+import { pools, categories, allocationPlans, allocationPlanLines, transactionLedger, incomeEvents, incomeSources, expenseEvents, getPoolBalancesMap, tenants, DbOrTx } from "@money-matters/db";
 import { eq, and, sql } from "drizzle-orm";
 import { runAllocationEngine, EngineBucket } from "../engine/allocation-engine.js";
 
 import { getTenantDateString } from "@money-matters/core";
-
-const getAestDateString = (d: Date = new Date()) => getTenantDateString(d);
 
 /**
  * Resolves frequency interval in days from an RRULE recurrence string.
@@ -91,18 +89,28 @@ export async function runAllocationCommand(
     .leftJoin(incomeSources, eq(incomeEvents.incomeSourceId, incomeSources.id))
     .where(eq(incomeEvents.id, incomeEventId));
 
+  const [tenantRecord] = typeof (dbClient as any).select === "function"
+    ? await dbClient
+        .select({ timezone: tenants.timezone })
+        .from(tenants)
+        .where(eq(tenants.id, tenantId))
+        .limit(1)
+    : [null];
+  const tenantTz = tenantRecord?.timezone || "Australia/Sydney";
+  const getLocalDateString = (d: Date = new Date()) => getTenantDateString(d, { timezone: tenantTz });
+
   let freqDays = 14;
   if (eventWithSource?.rrule) {
     freqDays = parseRruleFrequencyDays(eventWithSource.rrule);
   }
 
-  const todayStr = getAestDateString();
+  const todayStr = getLocalDateString();
   const eventDateStr = eventWithSource ? eventWithSource.expectedDate : todayStr;
   const isFuturePlanned = eventDateStr > todayStr && !markAsReceivedToday;
 
   // 5. Fetch upcoming expenses due before the next cycle cutoff
   const eventTime = eventWithSource ? new Date(eventWithSource.expectedDate + "T00:00:00").getTime() : Date.now();
-  const nextCutoffDateStr = getAestDateString(new Date(eventTime + freqDays * 24 * 60 * 60 * 1000));
+  const nextCutoffDateStr = getLocalDateString(new Date(eventTime + freqDays * 24 * 60 * 60 * 1000));
 
   const pendingExpenses = await dbClient
     .select({
@@ -263,7 +271,7 @@ export async function runAllocationCommand(
     } = {
       status: "CONFIRMED",
       actualAmount: incomeAmount.toFixed(2),
-      actualDate: markAsReceivedToday ? getAestDateString() : (eventWithSource?.expectedDate || getAestDateString()),
+      actualDate: markAsReceivedToday ? getLocalDateString() : (eventWithSource?.expectedDate || getLocalDateString()),
       updatedBy: userId,
       updatedAt: new Date(),
     };

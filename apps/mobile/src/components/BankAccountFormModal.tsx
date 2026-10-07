@@ -15,6 +15,7 @@ import {
   MobileButton,
   FormLabel,
   FormErrorBanner,
+  InfoTooltip,
   showMobileConfirm,
 } from '@money-matters/ui/mobile';
 import { t } from '@money-matters/i18n';
@@ -63,9 +64,6 @@ export function BankAccountFormModal({
     linkedPools,
     availableToBudget,
     isNegativeAvailable,
-    linkedPoolsTotal,
-    hasVariance,
-    diffBeforeSave,
     handleArchive,
     handleSubmit,
   } = useBankAccountForm(visible, accountToEdit, onClose, onSuccess, onNeedsReconciliation);
@@ -88,7 +86,7 @@ export function BankAccountFormModal({
       visible={visible}
       onClose={onClose}
       isDirty={isDirty}
-      title={isEdit ? t('modals.bankAccountForm.titleEdit') : t('settings.bankAccounts.addAccount')}
+      title={isEdit ? t('settings.bankAccountForm.editTitle') : t('settings.bankAccounts.addAccount')}
       subtitle={t('tooltips.bankAccounts.content')}
       footer={
         <View style={styles.footerContainer}>
@@ -117,21 +115,9 @@ export function BankAccountFormModal({
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.form}>
         <FormErrorBanner message={generalError} />
 
-        <MobileInput
-          label={t('common.name')}
-          required
-          value={name}
-          onChangeText={(v) => {
-            setName(v);
-            if (nameError) setNameError('');
-          }}
-          placeholder="e.g. CBA Smart Access"
-          error={nameError}
-          autoFocus={!isEdit}
-        />
-
+        {/* 1. Bank Institution (Required Chips) */}
         <View style={styles.inputGroup}>
-          <FormLabel label={t('bankAccounts.title')} />
+          <FormLabel label={t('settings.bankAccountForm.bankProviderLabel')} required />
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.providersRow}>
             {PROVIDERS.map((p) => (
               <TouchableOpacity
@@ -145,23 +131,41 @@ export function BankAccountFormModal({
           </ScrollView>
         </View>
 
+        {/* 2. Account Name (Required) */}
+        <MobileInput
+          label={t('settings.bankAccountForm.accountNameLabel')}
+          required
+          value={name}
+          onChangeText={(v) => {
+            setName(v);
+            if (nameError) setNameError('');
+          }}
+          placeholder={t('settings.bankAccountForm.accountNamePlaceholder')}
+          error={nameError}
+          autoFocus={!isEdit}
+        />
+
+        {/* 3. Balances & Buffer */}
         <AccountBalanceCard
           balance={balance}
           buffer={buffer}
           availableToBudget={availableToBudget}
           isNegativeAvailable={isNegativeAvailable}
-          linkedPoolsTotal={linkedPoolsTotal}
-          hasVariance={hasVariance}
-          diffBeforeSave={diffBeforeSave}
-          linkedPoolsCount={linkedPools.length}
           onBalanceChange={setBalance}
           onBufferChange={setBuffer}
         />
 
+        {/* 4. Privacy Toggle with Tooltip */}
         <View style={styles.switchRow}>
-          <View style={{ flex: 1 }}>
-            <Text style={styles.switchLabel}>{t('bankAccounts.privatePersonalAccount')}</Text>
-            <Text style={styles.switchSubtext}>{t('categories.privatePoolTooltip')}</Text>
+          <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+            <Text style={styles.switchLabel}>{t('settings.bankAccountForm.privacyLabel')}</Text>
+            <InfoTooltip
+              content={
+                isEdit
+                  ? t('settings.bankAccountForm.privacyLockedTooltip')
+                  : t('settings.bankAccountForm.privacyHint')
+              }
+            />
           </View>
           <Switch
             value={isPrivate}
@@ -170,6 +174,11 @@ export function BankAccountFormModal({
             trackColor={{ false: '#E2E8F0', true: DESIGN_TOKENS.colors.sereneBlue }}
           />
         </View>
+
+        {/* 5. Link Pool Note */}
+        <Text style={styles.linkPoolNote}>
+          {t('settings.bankAccountForm.linkPoolNote')}
+        </Text>
       </ScrollView>
     </MobileModalDialog>
   );
@@ -208,10 +217,11 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#1B2B4B',
   },
-  switchSubtext: {
+  linkPoolNote: {
     fontSize: 11,
-    color: '#94A3B8',
-    marginTop: 2,
+    color: '#64748B',
+    fontStyle: 'italic',
+    marginTop: 4,
   },
   footerContainer: {
     flexDirection: 'row',

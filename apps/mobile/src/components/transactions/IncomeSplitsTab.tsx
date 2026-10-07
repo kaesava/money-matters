@@ -5,6 +5,7 @@ import {
   MobilePaginationBar,
   SkeletonCard,
   MobileFilterSheet,
+  MobileBankPicker,
   DESIGN_TOKENS,
 } from '@money-matters/ui/mobile';
 import { t } from '@money-matters/i18n';
@@ -143,15 +144,20 @@ export function IncomeSplitsTab({
           {
             id: 'bank',
             title: t('bankAccounts.title'),
-            selectedValue: selectedBankId,
-            onSelect: (id: string) => {
-              onBankChange(id);
-              onPageChange(1);
-            },
-            options: [
-              { id: 'ALL', label: t('common.all') },
-              ...bankAccounts.map((b) => ({ id: b.id, label: b.name })),
-            ],
+            renderCustom: () => (
+              <MobileBankPicker
+                banks={bankAccounts.map((b) => ({
+                  id: b.id,
+                  name: b.name,
+                }))}
+                selectedBankId={selectedBankId}
+                onSelectBank={(id) => {
+                  onBankChange(id);
+                  onPageChange(1);
+                }}
+                allowAllOption={true}
+              />
+            ),
           },
         ]}
         onReset={() => {

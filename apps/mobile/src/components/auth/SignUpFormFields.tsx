@@ -6,7 +6,7 @@ import {
   MobileInput,
   FormLabel,
 } from "@money-matters/ui/mobile";
-import { SUPPORTED_COUNTRIES } from "@money-matters/types";
+import { SUPPORTED_COUNTRIES, SUPPORTED_CURRENCIES, COMMON_TIMEZONES } from "@money-matters/types";
 import { MobilePasswordStrength } from "./MobilePasswordStrength";
 
 interface SignUpFormFieldsProps {
@@ -15,7 +15,11 @@ interface SignUpFormFieldsProps {
   email: string;
   setEmail: (v: string) => void;
   country: string;
-  setCountry: (v: string) => void;
+  onCountryChange: (v: string) => void;
+  currency: string;
+  setCurrency: (v: string) => void;
+  timezone: string;
+  setTimezone: (v: string) => void;
   password: string;
   setPassword: (v: string) => void;
   confirmPassword: string;
@@ -41,7 +45,11 @@ export function SignUpFormFields({
   email,
   setEmail,
   country,
-  setCountry,
+  onCountryChange,
+  currency,
+  setCurrency,
+  timezone,
+  setTimezone,
   password,
   setPassword,
   confirmPassword,
@@ -78,12 +86,54 @@ export function SignUpFormFields({
             return (
               <TouchableOpacity
                 key={c.code}
-                onPress={() => setCountry(c.code)}
+                onPress={() => onCountryChange(c.code)}
                 style={[styles.countryChip, isSelected && styles.countryChipSelected]}
               >
                 <Text style={styles.countryFlag}>{c.flag}</Text>
                 <Text style={[styles.countryText, isSelected && styles.countryTextSelected]}>
                   {c.name}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
+        </ScrollView>
+      </View>
+
+      {/* Currency Selector */}
+      <View style={styles.inputGroup}>
+        <FormLabel required={true}>{t("settings.currency")}</FormLabel>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.countryRow}>
+          {Object.values(SUPPORTED_CURRENCIES).map((curr) => {
+            const isSelected = currency === curr.code;
+            return (
+              <TouchableOpacity
+                key={curr.code}
+                onPress={() => setCurrency(curr.code)}
+                style={[styles.countryChip, isSelected && styles.countryChipSelected]}
+              >
+                <Text style={[styles.countryText, isSelected && styles.countryTextSelected]}>
+                  {curr.code} ({curr.symbol})
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
+        </ScrollView>
+      </View>
+
+      {/* Timezone Selector */}
+      <View style={styles.inputGroup}>
+        <FormLabel required={true}>{t("settings.timezone")}</FormLabel>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.countryRow}>
+          {COMMON_TIMEZONES.map((tz) => {
+            const isSelected = timezone === tz.value;
+            return (
+              <TouchableOpacity
+                key={tz.value}
+                onPress={() => setTimezone(tz.value)}
+                style={[styles.countryChip, isSelected && styles.countryChipSelected]}
+              >
+                <Text style={[styles.countryText, isSelected && styles.countryTextSelected]}>
+                  {tz.label}
                 </Text>
               </TouchableOpacity>
             );

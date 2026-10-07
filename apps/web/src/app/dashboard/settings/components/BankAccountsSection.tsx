@@ -91,7 +91,7 @@ export function BankAccountsSection() {
         <SearchInput
           value={list.searchQuery}
           onChange={list.setSearchQuery}
-          placeholder={t("settings.archived.searchPlaceholder")}
+          placeholder={t("settings.bankAccounts.searchPlaceholder")}
         />
 
         <div className="flex items-center gap-3">

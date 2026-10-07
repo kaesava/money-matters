@@ -8,7 +8,13 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
-import { DESIGN_TOKENS } from '@money-matters/ui/mobile';
+import {
+  DESIGN_TOKENS,
+  SearchInput,
+  MobileFilterSheet,
+  MobilePoolPicker,
+  InfoTooltip,
+} from '@money-matters/ui/mobile';
 import { t } from '@money-matters/i18n';
 import { trpc } from '../../lib/trpc';
 import {
@@ -36,22 +42,59 @@ export function MobileBankAccountsSection() {
   } | null>(null);
   const [transferModalVisible, setTransferModalVisible] = useState(false);
 
+  // Search, Filter, Sort State
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedPoolId, setSelectedPoolId] = useState<string>('ALL');
+  const [sortField, setSortField] = useState<'name' | 'balance'>('name');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
+  const [filterSheetVisible, setFilterSheetVisible] = useState(false);
+
   const bankAccountsQuery = trpc.listBankAccountsWithExpected.useQuery();
   const poolsQuery = trpc.listPools.useQuery();
   const accounts = bankAccountsQuery.data || [];
   const allPools = poolsQuery.data || [];
 
+  const filteredAccounts = accounts
+    .filter((acc) => {
+      const q = searchQuery.toLowerCase().trim();
+      const matchesSearch =
+        !q ||
+        acc.name.toLowerCase().includes(q) ||
+        (acc.bankProvider || '').toLowerCase().includes(q);
+
+      const matchesPool =
+        selectedPoolId === 'ALL' ||
+        allPools.some((p) => p.bankAccountId === acc.id && p.id === selectedPoolId);
+
+      return matchesSearch && matchesPool;
+    })
+    .sort((a, b) => {
+      let comp = 0;
+      if (sortField === 'name') {
+        comp = a.name.localeCompare(b.name);
+      } else {
+        const balA = parseFloat(a.lastKnownBalance || '0');
+        const balB = parseFloat(b.lastKnownBalance || '0');
+        comp = balA - balB;
+      }
+      return sortOrder === 'asc' ? comp : -comp;
+    });
+
+  const activeFilterCount =
+    (selectedPoolId !== 'ALL' ? 1 : 0) + (sortField !== 'name' || sortOrder !== 'asc' ? 1 : 0);
+
   return (
     <View style={styles.container}>
-      {/* Top Action Header */}
+      {/* Top Action Header with Clean Title & InfoTooltip */}
       <View style={styles.topRow}>
-        <View style={styles.headerTextCol}>
+        <View style={styles.headerTitleRow}>
           <Text style={styles.sectionHeaderTitle}>
             {t('settings.accounts')} ({accounts.length})
           </Text>
-          <Text style={styles.sectionHeaderSubtitle}>
-            {t('tooltips.bankAccounts.content')}
-          </Text>
+          <InfoTooltip
+            title={t('tooltips.bankAccounts.title')}
+            content={t('tooltips.bankAccounts.content')}
+          />
         </View>
         <TouchableOpacity
           onPress={() => {
@@ -68,10 +111,42 @@ export function MobileBankAccountsSection() {
         </TouchableOpacity>
       </View>
 
+      {/* Search and Filter Controls */}
+      <View style={styles.searchAndFilterRow}>
+        <View style={styles.flex1}>
+          <SearchInput
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+            placeholder={t('settings.bankAccounts.searchPlaceholder')}
+          />
+        </View>
+
+        <TouchableOpacity
+          style={[styles.filterBtn, activeFilterCount > 0 && styles.filterBtnActive]}
+          onPress={() => setFilterSheetVisible(true)}
+          activeOpacity={0.7}
+        >
+          <Feather
+            name="sliders"
+            size={15}
+            color={activeFilterCount > 0 ? DESIGN_TOKENS.colors.accent : DESIGN_TOKENS.colors.textMuted}
+          />
+          <Text
+            style={[
+              styles.filterBtnText,
+              activeFilterCount > 0 && styles.filterBtnTextActive,
+            ]}
+          >
+            {t('common.filter')}
+            {activeFilterCount > 0 ? ` (${activeFilterCount})` : ''}
+          </Text>
+        </TouchableOpacity>
+      </View>
+
       {/* Bank Accounts List */}
       {bankAccountsQuery.isLoading ? (
         <ActivityIndicator color={DESIGN_TOKENS.colors.sereneBlue} style={styles.loader} />
-      ) : accounts.length === 0 ? (
+      ) : filteredAccounts.length === 0 ? (
         <View style={styles.emptyCard}>
           <Feather name="credit-card" size={32} color={DESIGN_TOKENS.colors.subtleText} />
           <Text style={styles.emptyTitle}>{t('bankAccounts.noAccountsFound')}</Text>
@@ -81,7 +156,7 @@ export function MobileBankAccountsSection() {
         </View>
       ) : (
         <View style={styles.accountsList}>
-          {accounts.map((acc) => {
+          {filteredAccounts.map((acc) => {
             const linkedPools: LinkedPoolItem[] = allPools.filter((p) => p.bankAccountId === acc.id);
 
             return (
@@ -122,6 +197,45 @@ export function MobileBankAccountsSection() {
           })}
         </View>
       )}
+
+      {/* Filter Sheet for Bank Accounts */}
+      <MobileFilterSheet
+        visible={filterSheetVisible}
+        onClose={() => setFilterSheetVisible(false)}
+        activeCount={activeFilterCount}
+        sortField={sortField}
+        sortOrder={sortOrder}
+        sortOptions={[
+          { id: 'name', label: t('common.name') },
+          { id: 'balance', label: t('common.amount') },
+        ]}
+        onSortFieldChange={(field) => setSortField(field as 'name' | 'balance')}
+        onSortOrderChange={setSortOrder}
+        sections={[
+          {
+            id: 'pool',
+            title: t('categories.title'),
+            renderCustom: () => (
+              <MobilePoolPicker
+                pools={allPools.map((p) => ({
+                  id: p.id,
+                  name: p.name,
+                  poolType: p.poolType,
+                  currentBalance: p.currentBalance,
+                }))}
+                selectedPoolId={selectedPoolId}
+                onSelectPool={(pId) => setSelectedPoolId(pId)}
+                allowAllOption={true}
+              />
+            ),
+          },
+        ]}
+        onReset={() => {
+          setSelectedPoolId('ALL');
+          setSortField('name');
+          setSortOrder('asc');
+        }}
+      />
 
       {/* Account Create/Edit Modal */}
       <BankAccountFormModal
@@ -182,18 +296,46 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     gap: 12,
   },
-  headerTextCol: {
-    flex: 1,
+  headerTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
   },
   sectionHeaderTitle: {
     fontSize: 16,
     fontWeight: '800',
     color: DESIGN_TOKENS.colors.primary,
   },
-  sectionHeaderSubtitle: {
-    fontSize: 12,
+  flex1: {
+    flex: 1,
+  },
+  searchAndFilterRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  filterBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderRadius: 12,
+    backgroundColor: DESIGN_TOKENS.colors.surface,
+    borderWidth: 1.5,
+    borderColor: DESIGN_TOKENS.colors.slate[200],
+  },
+  filterBtnActive: {
+    backgroundColor: DESIGN_TOKENS.colors.accentLight,
+    borderColor: DESIGN_TOKENS.colors.accentBorder,
+  },
+  filterBtnText: {
+    fontSize: 13,
+    fontWeight: '700',
     color: DESIGN_TOKENS.colors.textMuted,
-    marginTop: 2,
+  },
+  filterBtnTextActive: {
+    color: DESIGN_TOKENS.colors.accent,
   },
   addAccountBtn: {
     flexDirection: 'row',

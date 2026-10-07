@@ -102,22 +102,8 @@ export function HouseholdDetailsSection({
     registerDiscard?.(handleDiscard);
   }, [handleDiscard, registerDiscard]);
 
-  const handleSelectCurrency = (newCurr: string) => {
-    if (!isOwner) return;
-    if (newCurr !== (gov?.currency || 'AUD')) {
-      showMobileConfirm({
-        title: t('settings.currencyConfirmTitle'),
-        message: t('settings.currencyConfirmBody', {
-          oldCurrency: gov?.currency || 'AUD',
-          newCurrency: newCurr,
-        }),
-        confirmText: t('common.confirm'),
-        cancelText: t('common.cancel'),
-        onConfirm: () => setCurrency(newCurr),
-      });
-    } else {
-      setCurrency(newCurr);
-    }
+  const handleSelectCurrency = (_newCurr: string) => {
+    // Currency is permanently locked after household creation
   };
 
   const handleCancel = () => {

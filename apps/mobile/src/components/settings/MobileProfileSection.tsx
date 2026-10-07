@@ -22,6 +22,7 @@ export function MobileProfileSection({
       <MobileProfileEditView
         name={data.name}
         setName={data.setName}
+        loginEmail={data.storedEmail}
         notificationEmail={data.notificationEmail}
         setNotificationEmail={data.setNotificationEmail}
         phoneCountryCode={data.phoneCountryCode}

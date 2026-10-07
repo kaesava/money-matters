@@ -4,6 +4,7 @@ import { trpc } from '../../lib/trpc';
 import { useMobileToast } from '@money-matters/ui/mobile';
 import { t } from '@money-matters/i18n';
 import { triggerHaptic } from '../../lib/haptics';
+import { formatIsoDate } from '../../lib/format';
 import { MarkPaidEvent, FundingPoolItem } from './mark-paid-types';
 
 export function useMarkPaidForm(
@@ -14,7 +15,7 @@ export function useMarkPaidForm(
 ) {
   const toast = useMobileToast();
   const utils = trpc.useUtils();
-  const todayStr = useMemo(() => new Intl.DateTimeFormat('en-CA', { timeZone: 'Australia/Sydney' }).format(new Date()), []);
+  const todayStr = useMemo(() => formatIsoDate(new Date()), []);
 
   const [actualAmount, setActualAmount] = useState('');
   const [actualDate, setActualDate] = useState(todayStr);

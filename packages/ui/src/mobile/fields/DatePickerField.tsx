@@ -5,6 +5,7 @@ import { t } from '@money-matters/i18n';
 import FormLabel from '../FormLabel';
 import FormFieldError from '../FormFieldError';
 import { CalendarModal } from './CalendarModal';
+import { useDateLocale } from '../../hooks/DateLocaleContext';
 
 export interface DatePickerFieldProps {
   label?: string;
@@ -15,6 +16,8 @@ export interface DatePickerFieldProps {
   disabled?: boolean;
   minDate?: string;
   maxDate?: string;
+  locale?: string;
+  timeZone?: string;
 }
 
 function padZero(num: number): string {
@@ -25,7 +28,7 @@ function toIso(d: Date): string {
   return `${d.getFullYear()}-${padZero(d.getMonth() + 1)}-${padZero(d.getDate())}`;
 }
 
-function formatDisplayDate(isoDate?: string): string {
+function formatDisplayDate(isoDate?: string, locale: string = 'en-AU', timeZone: string = 'Australia/Sydney'): string {
   if (!isoDate) return 'Select date';
   const parts = isoDate.split('-');
   if (parts.length === 3) {
@@ -34,7 +37,7 @@ function formatDisplayDate(isoDate?: string): string {
     const d = parseInt(parts[2], 10);
     if (!isNaN(y) && !isNaN(m) && !isNaN(d)) {
       const dateObj = new Date(y, m, d);
-      return dateObj.toLocaleDateString('en-AU', {
+      return dateObj.toLocaleDateString(locale === 'auto' ? 'en-AU' : locale, {
         weekday: 'short',
         day: 'numeric',
         month: 'short',
@@ -54,8 +57,13 @@ export function DatePickerField({
   disabled = false,
   minDate,
   maxDate,
+  locale: propLocale,
+  timeZone: propTimeZone,
 }: DatePickerFieldProps) {
   const [modalVisible, setModalVisible] = useState(false);
+  const dateLocaleCtx = useDateLocale();
+  const effectiveLocale = propLocale || dateLocaleCtx.locale || 'en-AU';
+  const effectiveTimeZone = propTimeZone || dateLocaleCtx.timeZone || 'Australia/Sydney';
 
   return (
     <View style={styles.container}>
@@ -82,7 +90,7 @@ export function DatePickerField({
             disabled ? styles.textDisabled : null,
           ]}
         >
-          {formatDisplayDate(value)}
+          {formatDisplayDate(value, effectiveLocale, effectiveTimeZone)}
         </Text>
 
         <Feather name="chevron-down" size={18} color="#94A3B8" />

@@ -1,8 +1,8 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useRouter } from "expo-router";
 import { usePostHog } from "posthog-react-native";
 import { t } from "@money-matters/i18n";
-import { SignUpInputSchema, isValidEmail } from "@money-matters/types";
+import { SignUpInputSchema, isValidEmail, getCountryDefaults } from "@money-matters/types";
 import { authClient } from "../../lib/auth";
 import { trpc, setActiveSessionToken } from "../../lib/trpc";
 import * as SecureStore from "expo-secure-store";
@@ -12,12 +12,30 @@ export function useSignUpForm() {
   const router = useRouter();
   const posthog = usePostHog();
 
+  const detectedTimezone = useMemo(() => {
+    try {
+      return Intl.DateTimeFormat().resolvedOptions().timeZone || "Australia/Sydney";
+    } catch {
+      return "Australia/Sydney";
+    }
+  }, []);
+
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [country, setCountry] = useState("AU");
+  const [currency, setCurrency] = useState(() => getCountryDefaults("AU").currency);
+  const [timezone, setTimezone] = useState(() => detectedTimezone);
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [agreeTerms, setAgreeTerms] = useState(false);
+
+  const handleCountryChange = (newCountry: string) => {
+    setCountry(newCountry);
+    const defaults = getCountryDefaults(newCountry);
+    setCurrency(defaults.currency);
+    setTimezone(defaults.timezone);
+    if (fieldErrors.name) setFieldErrors((prev) => ({ ...prev }));
+  };
 
   const [fieldErrors, setFieldErrors] = useState<{
     name?: string;
@@ -102,7 +120,12 @@ export function useSignUpForm() {
         const userId = session.data.user.id;
         posthog?.identify(userId, { email: session.data.user.email, name: session.data.user.name });
         try {
-          await createTenant.mutateAsync({ name: `${name.trim()}'s Household`, country: country || "AU" });
+          await createTenant.mutateAsync({
+            name: `${name.trim()}'s Household`,
+            country: country || "AU",
+            currency,
+            timezone,
+          });
         } catch {
           // Household provisioning fallback
         }
@@ -137,6 +160,11 @@ export function useSignUpForm() {
     setEmail,
     country,
     setCountry,
+    handleCountryChange,
+    currency,
+    setCurrency,
+    timezone,
+    setTimezone,
     password,
     setPassword,
     confirmPassword,
