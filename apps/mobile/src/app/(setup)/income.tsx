@@ -10,7 +10,7 @@ import {
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { t } from '@money-matters/i18n';
-import { DESIGN_TOKENS, showMobileConfirm, InfoTooltip } from '@money-matters/ui/mobile';
+import { DESIGN_TOKENS, showMobileConfirm, InfoTooltip, AmountInput } from '@money-matters/ui/mobile';
 import { trpc } from '../../lib/trpc';
 import { useSetupWizard } from '../../context/SetupWizardContext';
 import { IncomeItem } from '@money-matters/types';
@@ -125,14 +125,12 @@ export default function SetupIncomeScreen() {
             onChangeText={(txt) => handleUpdateIncome(inc.id, 'name', txt)}
           />
 
-          <Text style={[styles.label, styles.labelGap]}>{t('setup.income.amountLabel')}</Text>
-          <TextInput
-            style={styles.input}
+          <AmountInput
+            label={t('setup.income.amountLabel')}
             placeholder={t('setup.income.amountPlaceholder')}
-            placeholderTextColor={DESIGN_TOKENS.colors.textMuted}
             value={inc.amount ? String(inc.amount) : ''}
             onChangeText={(txt) => handleUpdateIncome(inc.id, 'amount', parseFloat(txt) || 0)}
-            keyboardType="decimal-pad"
+            containerStyle={styles.amountWrap}
           />
 
           <Text style={[styles.label, styles.labelGap]}>{t('setup.income.scheduleLabel')}</Text>
@@ -202,6 +200,7 @@ const styles = StyleSheet.create({
   removeText: { fontSize: 12, fontWeight: '600', color: '#EF4444' },
   label: { fontSize: 13, fontWeight: '600', color: DESIGN_TOKENS.colors.textPrimary, marginBottom: 6 },
   labelGap: { marginTop: 14 },
+  amountWrap: { marginTop: 14, marginBottom: 0 },
   input: {
     backgroundColor: DESIGN_TOKENS.colors.surfaceVariant,
     borderWidth: 1,

@@ -23,24 +23,24 @@ export interface AmountInputProps extends Omit<TextInputProps, 'onChangeText' | 
   containerStyle?: StyleProp<ViewStyle>;
 }
 
-export const AmountInput = React.forwardRef<TextInput, AmountInputProps>(
-  (
-    {
-      value,
-      onChangeText,
-      label,
-      required,
-      error,
-      hint,
-      currencySymbol = '$',
-      placeholder = '0.00',
-      containerStyle,
-      editable = true,
-      style,
-      ...props
-    },
-    ref
-  ) => {
+export const AmountInputBase = (
+  {
+    value,
+    onChangeText,
+    label,
+    required,
+    error,
+    hint,
+    currencySymbol = '$',
+    placeholder = '0.00',
+    containerStyle,
+    editable = true,
+    selectTextOnFocus = true,
+    style,
+    ...props
+  }: AmountInputProps,
+  ref: React.ForwardedRef<TextInput>
+) => {
     const handleChange = (raw: string) => {
       // Defensively keep only numbers and a single decimal point
       let cleaned = raw.replace(/[^0-9.]/g, '');
@@ -48,12 +48,14 @@ export const AmountInput = React.forwardRef<TextInput, AmountInputProps>(
       if (parts.length > 2) {
         cleaned = parts[0] + '.' + parts.slice(1).join('');
       }
-      if (parts[1] && parts[1].length > 2) {
-        cleaned = parts[0] + '.' + parts[1].slice(0, 2);
+      const decimalParts = cleaned.split('.');
+      if (decimalParts[1] && decimalParts[1].length > 2) {
+        cleaned = decimalParts[0] + '.' + decimalParts[1].slice(0, 2);
       }
       // Cap integer part at 12 digits
-      if (parts[0] && parts[0].length > 12) {
-        cleaned = parts[0].slice(0, 12) + (parts.length > 1 ? '.' + parts[1] : '');
+      const finalParts = cleaned.split('.');
+      if (finalParts[0] && finalParts[0].length > 12) {
+        cleaned = finalParts[0].slice(0, 12) + (finalParts.length > 1 ? '.' + finalParts[1] : '');
       }
       onChangeText(cleaned);
     };
@@ -72,6 +74,7 @@ export const AmountInput = React.forwardRef<TextInput, AmountInputProps>(
             placeholderTextColor={DESIGN_TOKENS.colors.textMuted}
             keyboardType="decimal-pad"
             editable={editable}
+            selectTextOnFocus={selectTextOnFocus}
             style={[styles.input, style]}
             {...props}
           />
@@ -79,9 +82,9 @@ export const AmountInput = React.forwardRef<TextInput, AmountInputProps>(
         <FormFieldError error={error} />
       </View>
     );
-  }
-);
+};
 
+export const AmountInput = React.forwardRef<TextInput, AmountInputProps>(AmountInputBase);
 AmountInput.displayName = 'AmountInput';
 
 const D = DESIGN_TOKENS;

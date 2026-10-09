@@ -91,6 +91,7 @@ export const SplitPoolRow: React.FC<SplitPoolRowProps> = ({
               onChangeText={(val) => onLineAmountChange(item.bucketId, val)}
               placeholder="0.00"
               placeholderTextColor={DESIGN_TOKENS.colors.slate[400]}
+              selectTextOnFocus={true}
             />
           </View>
 
@@ -100,9 +101,7 @@ export const SplitPoolRow: React.FC<SplitPoolRowProps> = ({
                 onPress={() => onLineAmountChange(item.bucketId, '0.00')}
                 style={styles.zeroChip}
               >
-                <Text style={styles.zeroChipText}>
-                  {t('paydayDrawer.setZeroPercent')}
-                </Text>
+                <Text style={styles.zeroChipText}>{t('paydayDrawer.setZeroPercent')}</Text>
               </TouchableOpacity>
             )}
 

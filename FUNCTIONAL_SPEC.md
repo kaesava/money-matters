@@ -288,7 +288,7 @@ The onboarding flow delivers an engaging interactive estimation experience compl
   - Typography: Inter for general UI headings and body; **JetBrains Mono** (`font-mono`, `tabular-nums`) for all monetary metrics across Web and Mobile.
   - Strict zero-hex policy: Raw inline hex colors are banned in favor of tokenized Tailwind classes and `tokens.colors`.
 - **Form Input Defenses & Consistency**:
-  - **Monetary Amounts (`AmountField` / `AmountInput`)**: Centrally enforces `$` currency indicator, monospace numerals (`font-mono tabular-nums`), non-negative values, max 12 digits, and max 2 decimal places. Inputs automatically format on blur without losing active caret position during numeric typing.
+  - **Monetary Amounts (`AmountField` / `AmountInput`)**: Centrally enforces `$` currency indicator, monospace numerals (`font-mono tabular-nums`), non-negative values, max 12 digits, and max 2 decimal places. Auto-selects existing content on focus (`selectTextOnFocus` on mobile, `e.target.select()` on web) so users can immediately start typing. Inputs automatically format on blur without losing active caret position during numeric typing.
   - **Mandatory Field Labels (`FormLabel`)**: Mandatory fields are denoted with a subtle red asterisk (`*`).
   - **Inline Field Errors (`FormFieldError`)**: Form validation errors render consistently as subtle red helper text directly below the invalid input, replacing native browser HTML5 bubbles and ad-hoc popups.
   - **Form Error Banners (`FormErrorBanner`)**: Top-level API or submission error alerts display in a clean, subtle red-tinted banner with a warning icon at the head of the form.
@@ -588,7 +588,7 @@ This section provides the authoritative, exhaustive breakdown of every functiona
   - *Mobile*: Bottom-sheet dialogs (`<MobileModalDialog />`, `<CategoryItemModal />`, `<LinkedPoolsModalSheet />`, `<PoolsFilterSheet />`) with native drag indicators, backdrop dismissal, and `showMobileConfirm(...)` discard warnings when form state is dirty (`isDirty`).
 * **Form Validation & Input Defenses**:
   - *Universal*: 100% Zod `.strict()` schema-driven validation. Mandatory fields rendered with red asterisk `<FormLabel required={true}>`. Field errors rendered inline via `<FormFieldError />`. Top-level submission/API errors rendered via `<FormErrorBanner />`. Submit buttons disabled unless form is dirty and valid (`!isDirty || !isValid`).
-  - *Monetary Inputs*: `<AmountField />` (web) and `<AmountInput />` (mobile) enforcing `$` prefix, monospace font, non-negative values, max 12 digits, and max 2 decimal places. Browser spinner arrows suppressed in favor of custom steppers.
+  - *Monetary Inputs*: `<AmountField />` (web) and `<AmountInput />` (mobile) enforcing `$` prefix, monospace font, non-negative values, max 12 digits, max 2 decimal places, and automatic select-on-focus (`selectTextOnFocus={true}` / `e.target.select()`) for immediate typing without manual clearing. Browser spinner arrows suppressed in favor of custom steppers.
   - *Date Pickers*: `<DatePickerField />` enforcing user presentation timezone (AEST/en-AU) and boundaries (`min` / `max` dates). Raw ISO strings (`YYYY-MM-DD`) forbidden in user views.
 * **Information Tooltips (`InfoTooltip`)**:
   - *Universal*: Contextual `(i)` trigger rendering user-friendly plain-English financial explanations with zero technical jargon. Globally toggled on/off via the "Show information icons" switch in Settings > My Details across both Web and Mobile.

@@ -88,6 +88,7 @@ export function MarkPaidAccordionGroup({
                     placeholder="0.00"
                     placeholderTextColor={DESIGN_TOKENS.colors.slate[400]}
                     keyboardType="decimal-pad"
+                    selectTextOnFocus={true}
                   />
                   <TouchableOpacity
                     onPress={() => {

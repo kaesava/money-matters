@@ -457,7 +457,7 @@ tenants (id PK, appId FK→apps.id, name, subscriptionTier, stripeCustomerId, st
 - **Mobile UI Primitives Catalog (`@money-matters/ui/mobile`)**:
   - `MobileButton` (`Button`): Native touchable button with primary (`#2563eb`), secondary, destructive (`#ba1a1a`), and ghost variants. Automatically displays `ActivityIndicator` during `isLoading` or `isSubmitting` states.
   - `MobileInput` (`Input`): Native text input integrated with `FormLabel` and `FormFieldError`.
-  - `AmountInput`: Monetary amount input with `$` currency prefix, numeric keypad (`keyboardType="decimal-pad"`), 12-digit limit, and 2 decimal place formatting.
+  - `AmountInput`: Monetary amount input with `$` currency prefix, numeric keypad (`keyboardType="decimal-pad"`), 12-digit limit, 2 decimal place formatting, and automatic select-on-focus (`selectTextOnFocus={true}`) for immediate typing.
   - `ChipSelect`: Flexible single/multi-select chip component supporting `key`/`value` or `value`/`label` options with Serene Blue active state.
   - `MobileModalDialog`: Centralized modal sheet / bottom drawer with scrollable body, fixed header/footer, and `isDirty` discard confirmation interception.
   - `MobileConfirmDialog` (`showMobileConfirm`): Universal native confirmation modal replacing `Alert.alert` for all destructive, archival, and discard actions.

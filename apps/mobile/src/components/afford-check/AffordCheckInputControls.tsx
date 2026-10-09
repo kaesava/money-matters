@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, TextInput, TouchableOpacity, Switch, StyleSheet } from 'react-native';
 import { Feather } from '@expo/vector-icons';
-import { DESIGN_TOKENS } from '@money-matters/ui/mobile';
+import { DESIGN_TOKENS, AmountInput } from '@money-matters/ui/mobile';
 import { t } from '@money-matters/i18n';
 
 interface AffordCheckInputControlsProps {
@@ -96,21 +96,13 @@ export function AffordCheckInputControls({
         />
       </View>
 
-      <View style={styles.inputGroup}>
-        <Text style={styles.label}>{t('canIAfford.amountLabel')}</Text>
-        <View style={styles.amountWrap}>
-          <Text style={styles.currencySymbol}>$</Text>
-          <TextInput
-            style={styles.amountInput}
-            placeholder="0.00"
-            keyboardType="decimal-pad"
-            value={rawAmount}
-            onChangeText={onAmountChange}
-            placeholderTextColor={DESIGN_TOKENS.colors.slate[400]}
-            autoFocus
-          />
-        </View>
-      </View>
+      <AmountInput
+        label={t('canIAfford.amountLabel')}
+        placeholder="0.00"
+        value={rawAmount}
+        onChangeText={onAmountChange}
+        autoFocus
+      />
 
       <View style={styles.switchRow}>
         <View style={styles.flex1}>
@@ -185,24 +177,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: DESIGN_TOKENS.colors.primary,
     backgroundColor: DESIGN_TOKENS.colors.surface,
-  },
-  amountWrap: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderWidth: 1.5,
-    borderColor: DESIGN_TOKENS.colors.slate[200],
-    borderRadius: 12,
-    paddingHorizontal: 14,
-    backgroundColor: DESIGN_TOKENS.colors.surface,
-  },
-  currencySymbol: { fontSize: 24, fontWeight: '900', color: DESIGN_TOKENS.colors.slate[500], marginRight: 12 },
-  amountInput: {
-    flex: 1,
-    fontSize: 24,
-    fontWeight: '900',
-    fontFamily: 'monospace',
-    color: DESIGN_TOKENS.colors.primary,
-    paddingVertical: 10,
   },
   switchRow: {
     flexDirection: 'row',
