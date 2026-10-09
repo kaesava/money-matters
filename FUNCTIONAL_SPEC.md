@@ -624,9 +624,10 @@ This section provides the authoritative, exhaustive breakdown of every functiona
   - *Step 2: Australian Household Banking Architecture*: Archetype selection (Aussie 2-Account Blueprint, Yours Mine & Ours, All-in-One Account) with 60-Second Australian Bank Cheat Sheet modal (CBA, Up, Macquarie, ING).
   - *Step 3: Goals & Commitments*: Targeted savings goals (Emergency Fund, Car, Holiday) with target amount and target date.
   - *Step 4: Lifestyle Category Budgeting*: ABS 2025/2026 benchmark estimations for housing, transport, food, family, and utilities.
-  - *Step 5: Review & Confirm*: Total Monthly Income vs Total Monthly Budgeted comparison; custom category adjustments; single-click commit creating pools, categories, schedules, and setting `setupStatus = 'COMPLETED'`.
+  - *Step 5: Review & Confirm*: Total Monthly Income vs Total Monthly Budgeted comparison; custom category adjustments; automated recurring bill expense schedule generation (`autoCreateExpenseSchedules`, defaulting to enabled with opt-out checkbox in the Regular Bills section) which creates `expense_sources` and 12 projected `expense_events` anchored to the 1st of next month for monthly bills (or next pay cycle for weekly/fortnightly bills) to prevent Day 1 Cashflow Guard distortions; single-click commit creating pools, categories, bill schedules, and setting `setupStatus = 'COMPLETED'`.
 * **Budget Re-calibration (`/setup?mode=rerun`)**:
   - *Universal*: 3-step streamlined flow skipping lifestyle quiz: Step 1 Incomes $\rightarrow$ Step 2 Bank Accounts $\rightarrow$ Step 3 Categories & Targets.
+  - *Strict Add-Only Schedule Preservation*: Re-running budget setup preserves existing bill schedules, custom due dates, and historical confirmed payment events untouched; newly introduced `REGULAR` categories without existing schedules are automatically created and scheduled.
   - *Atomic Balance Sweep on Pool Deletion*: Prompts `<MoveMoneyModal>` to sweep positive balances ($> \$0.00$) into destination pool before pool soft-archival, recording balanced `TRANSFER_OUT`/`TRANSFER_IN` ledger entries.
   - *Budget Impact Review Panel*: Diff preview showing +/- changes to monthly caps and effective start date before committing.
 
