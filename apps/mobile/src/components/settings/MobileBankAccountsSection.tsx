@@ -6,13 +6,14 @@ import {
   StyleSheet,
   ActivityIndicator,
 } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
 import {
   DESIGN_TOKENS,
   SearchInput,
   MobileFilterSheet,
   MobilePoolPicker,
+  MobilePaginationBar,
   InfoTooltip,
 } from '@money-matters/ui/mobile';
 import { t } from '@money-matters/i18n';
@@ -43,11 +44,25 @@ export function MobileBankAccountsSection() {
   const [transferModalVisible, setTransferModalVisible] = useState(false);
 
   // Search, Filter, Sort State
+  const searchParams = useLocalSearchParams<{ id?: string }>();
+  const [selectedAccountId, setSelectedAccountId] = useState<string | null>(searchParams.id || null);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedPoolId, setSelectedPoolId] = useState<string>('ALL');
   const [sortField, setSortField] = useState<'name' | 'balance'>('name');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
   const [filterSheetVisible, setFilterSheetVisible] = useState(false);
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(5);
+
+  React.useEffect(() => {
+    if (searchParams.id) {
+      setSelectedAccountId(searchParams.id);
+    }
+  }, [searchParams.id]);
+
+  React.useEffect(() => {
+    setPage(1);
+  }, [searchQuery, selectedPoolId, selectedAccountId, sortField, sortOrder, pageSize]);
 
   const bankAccountsQuery = trpc.listBankAccountsWithExpected.useQuery();
   const poolsQuery = trpc.listPools.useQuery();
@@ -56,6 +71,9 @@ export function MobileBankAccountsSection() {
 
   const filteredAccounts = accounts
     .filter((acc) => {
+      if (selectedAccountId && acc.id !== selectedAccountId) {
+        return false;
+      }
       const q = searchQuery.toLowerCase().trim();
       const matchesSearch =
         !q ||
@@ -80,8 +98,14 @@ export function MobileBankAccountsSection() {
       return sortOrder === 'asc' ? comp : -comp;
     });
 
+  const totalPages = Math.ceil(filteredAccounts.length / pageSize) || 1;
+  const paginatedAccounts = filteredAccounts.slice((page - 1) * pageSize, page * pageSize);
+  const targetedAccount = selectedAccountId ? accounts.find((a) => a.id === selectedAccountId) : null;
+
   const activeFilterCount =
-    (selectedPoolId !== 'ALL' ? 1 : 0) + (sortField !== 'name' || sortOrder !== 'asc' ? 1 : 0);
+    (selectedPoolId !== 'ALL' ? 1 : 0) +
+    (selectedAccountId ? 1 : 0) +
+    (sortField !== 'name' || sortOrder !== 'asc' ? 1 : 0);
 
   return (
     <View style={styles.container}>
@@ -143,6 +167,27 @@ export function MobileBankAccountsSection() {
         </TouchableOpacity>
       </View>
 
+      {/* Active Account Filter Banner */}
+      {selectedAccountId && targetedAccount && (
+        <View style={styles.appliedFilterBanner}>
+          <View style={styles.appliedFilterContent}>
+            <Feather name="filter" size={13} color={DESIGN_TOKENS.colors.sereneBlue} />
+            <Text style={styles.appliedFilterText} numberOfLines={1}>
+              {targetedAccount.name}
+            </Text>
+          </View>
+          <TouchableOpacity
+            onPress={() => setSelectedAccountId(null)}
+            style={styles.clearFilterBtn}
+            activeOpacity={0.7}
+            accessibilityRole="button"
+          >
+            <Feather name="x" size={13} color={DESIGN_TOKENS.colors.sereneBlue} />
+            <Text style={styles.clearFilterText}>{t('common.clear')}</Text>
+          </TouchableOpacity>
+        </View>
+      )}
+
       {/* Bank Accounts List */}
       {bankAccountsQuery.isLoading ? (
         <ActivityIndicator color={DESIGN_TOKENS.colors.sereneBlue} style={styles.loader} />
@@ -156,7 +201,7 @@ export function MobileBankAccountsSection() {
         </View>
       ) : (
         <View style={styles.accountsList}>
-          {filteredAccounts.map((acc) => {
+          {paginatedAccounts.map((acc) => {
             const linkedPools: LinkedPoolItem[] = allPools.filter((p) => p.bankAccountId === acc.id);
 
             return (
@@ -198,6 +243,22 @@ export function MobileBankAccountsSection() {
         </View>
       )}
 
+      {/* Conditional Pagination Bar */}
+      {filteredAccounts.length >= 5 && (
+        <MobilePaginationBar
+          page={page}
+          totalPages={totalPages}
+          pageSize={pageSize}
+          totalItems={filteredAccounts.length}
+          pageSizeOptions={[5, 10, 20]}
+          onPageChange={setPage}
+          onPageSizeChange={(newSize) => {
+            setPageSize(newSize);
+            setPage(1);
+          }}
+        />
+      )}
+
       {/* Filter Sheet for Bank Accounts */}
       <MobileFilterSheet
         visible={filterSheetVisible}
@@ -231,6 +292,7 @@ export function MobileBankAccountsSection() {
           },
         ]}
         onReset={() => {
+          setSelectedAccountId(null);
           setSelectedPoolId('ALL');
           setSortField('name');
           setSortOrder('asc');
@@ -378,5 +440,44 @@ const styles = StyleSheet.create({
   },
   accountsList: {
     gap: 12,
+  },
+  appliedFilterBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: DESIGN_TOKENS.colors.accentLight,
+    borderWidth: 1,
+    borderColor: DESIGN_TOKENS.colors.accentBorder,
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    marginBottom: 12,
+  },
+  appliedFilterContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    flex: 1,
+  },
+  appliedFilterText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: DESIGN_TOKENS.colors.sereneBlue,
+  },
+  clearFilterBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingVertical: 2,
+    paddingHorizontal: 6,
+    backgroundColor: DESIGN_TOKENS.colors.surface,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: DESIGN_TOKENS.colors.accentBorder,
+  },
+  clearFilterText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: DESIGN_TOKENS.colors.sereneBlue,
   },
 });

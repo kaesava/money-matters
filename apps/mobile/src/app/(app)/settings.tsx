@@ -21,9 +21,9 @@ import { MobileArchivedSection } from '../../components/settings/MobileArchivedS
 import { getMobileVersionInfo } from '../../lib/version';
 
 import { SettingsNotificationsCard } from '../../components/settings/layout/SettingsNotificationsCard';
-import { SettingsSignOutButton } from '../../components/settings/layout/SettingsSignOutButton';
 import { SettingsActiveHouseholdCard } from '../../components/settings/layout/SettingsActiveHouseholdCard';
-import { SettingsVersionFeedbackSection } from '../../components/settings/layout/SettingsVersionFeedbackSection';
+import { SettingsHeaderActions } from '../../components/settings/layout/SettingsHeaderActions';
+import { SettingsVersionFooter } from '../../components/settings/layout/SettingsVersionFooter';
 import { useSettingsTabManagement, SettingsTab } from '../../components/settings/layout/useSettingsTabManagement';
 
 export type { SettingsTab };
@@ -109,13 +109,23 @@ export default function SettingsScreen() {
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
         >
-          {/* Top 5-Tab Segmented Control */}
-          <SegmentedTabs
-            tabs={tabs}
-            activeKey={activeTab}
-            onChange={handleTabChange}
-            scrollable={true}
-          />
+          {/* Top 5-Tab Segmented Control with right-aligned actions */}
+          <View style={styles.tabsHeaderRow}>
+            <View style={styles.tabsWrapper}>
+              <SegmentedTabs
+                tabs={tabs}
+                activeKey={activeTab}
+                onChange={handleTabChange}
+                scrollable={true}
+                style={styles.segmentedTabs}
+              />
+            </View>
+            <SettingsHeaderActions
+              loading={loading}
+              onOpenFeedback={() => setFeedbackVisible(true)}
+              onSignOut={handleSignOut}
+            />
+          </View>
 
           {/* TAB 1: MY DETAILS */}
           {activeTab === 'profile' && (
@@ -128,11 +138,6 @@ export default function SettingsScreen() {
               />
 
               <SettingsNotificationsCard />
-
-              <SettingsSignOutButton
-                loading={loading}
-                onSignOut={handleSignOut}
-              />
             </View>
           )}
 
@@ -181,9 +186,8 @@ export default function SettingsScreen() {
             </View>
           )}
 
-          {/* Persistent Version & Feedback Section */}
-          <SettingsVersionFeedbackSection
-            onOpenFeedback={() => setFeedbackVisible(true)}
+          {/* Inconspicuous Version Footer */}
+          <SettingsVersionFooter
             onCopyDiagnostics={handleCopyDiagnostics}
           />
         </ScrollView>
@@ -212,5 +216,18 @@ const styles = StyleSheet.create({
   },
   tabSection: {
     gap: 14,
+  },
+  tabsHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 14,
+    gap: 8,
+  },
+  tabsWrapper: {
+    flex: 1,
+    minWidth: 0,
+  },
+  segmentedTabs: {
+    marginBottom: 0,
   },
 });

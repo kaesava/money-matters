@@ -6,7 +6,7 @@ import {
   TouchableOpacity,
   StyleSheet,
 } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useRouter, type Href } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
 import { BankProviderBadge, DESIGN_TOKENS } from '@money-matters/ui/mobile';
 import { t } from '@money-matters/i18n';
@@ -62,7 +62,7 @@ export function BankBalancesStrip({ accounts }: BankBalancesStripProps) {
             <TouchableOpacity
               activeOpacity={0.8}
               onPress={() =>
-                router.push('/(app)/settings/bank-accounts' as never)
+                router.push(`/(app)/settings?tab=bank-accounts&id=${item.id}&returnTo=/(app)/home` as Href)
               }
               style={styles.accountCard}
             >

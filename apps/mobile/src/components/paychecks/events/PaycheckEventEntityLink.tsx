@@ -20,7 +20,7 @@ export const PaycheckEventEntityLink: React.FC<PaycheckEventEntityLinkProps> = (
           isPrivate={item.isPrivate}
           icon="credit-card"
           onPress={() => {
-            router.push('/(app)/settings?tab=bank-accounts&returnTo=/(app)/paychecks' as Href);
+            router.push(`/(app)/settings?tab=bank-accounts&id=${item.accountId}&returnTo=/(app)/paychecks` as Href);
           }}
         />
       </View>

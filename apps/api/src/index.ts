@@ -18,6 +18,7 @@ const isDev = process.env.NODE_ENV !== "production";
 
 const server = fastify({ 
   maxParamLength: 5000,
+  bodyLimit: 10 * 1024 * 1024,
   logger: true,
   disableRequestLogging: !isDev,
   trustProxy: true,

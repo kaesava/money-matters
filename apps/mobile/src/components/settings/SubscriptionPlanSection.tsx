@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { View, Linking, StyleSheet, AppState, AppStateStatus, Text } from 'react-native';
+import * as WebBrowser from 'expo-web-browser';
 import { useMobileToast, DESIGN_TOKENS } from '@money-matters/ui/mobile';
 import { trpc } from '../../lib/trpc';
 import { t } from '@money-matters/i18n';
@@ -104,7 +105,15 @@ export function SubscriptionPlanSection() {
       if (res.url) {
         setPickerVisible(false);
         awaitingExternalReturn.current = true;
-        Linking.openURL(res.url);
+        try {
+          await WebBrowser.openAuthSessionAsync(
+            res.url,
+            'moneymatters://settings?tab=account-data'
+          );
+        } catch {
+          Linking.openURL(res.url);
+        }
+        await handleSilentSync();
       }
     } catch (err) {
       toast.error(
@@ -124,7 +133,15 @@ export function SubscriptionPlanSection() {
       });
       if (res.url) {
         awaitingExternalReturn.current = true;
-        Linking.openURL(res.url);
+        try {
+          await WebBrowser.openAuthSessionAsync(
+            res.url,
+            'moneymatters://settings?tab=account-data'
+          );
+        } catch {
+          Linking.openURL(res.url);
+        }
+        await handleSilentSync();
       }
     } catch (err) {
       toast.error(

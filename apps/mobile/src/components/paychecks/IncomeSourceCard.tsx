@@ -57,7 +57,8 @@ export const IncomeSourceCard: React.FC<IncomeSourceCardProps> = ({
               label={inc.accountName}
               icon="credit-card"
               onPress={() => {
-                router.push('/(app)/settings?tab=bank-accounts&returnTo=/(app)/paychecks' as Href);
+                const idParam = inc.receivingAccountId ? `&id=${inc.receivingAccountId}` : '';
+                router.push(`/(app)/settings?tab=bank-accounts${idParam}&returnTo=/(app)/paychecks` as Href);
               }}
             />
           ) : null}

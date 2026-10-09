@@ -1,7 +1,7 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator, Linking } from 'react-native';
 import { Feather } from '@expo/vector-icons';
-import { DESIGN_TOKENS } from '@money-matters/ui/mobile';
+import { DESIGN_TOKENS, MobilePaginationBar } from '@money-matters/ui/mobile';
 import { t } from '@money-matters/i18n';
 import { fmtDateMedium } from '@money-matters/ui';
 
@@ -21,6 +21,16 @@ interface MobileInvoiceHistoryProps {
 }
 
 export function MobileInvoiceHistory({ invoices, isLoading }: MobileInvoiceHistoryProps) {
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(5);
+
+  useEffect(() => {
+    setPage(1);
+  }, [invoices.length, pageSize]);
+
+  const totalPages = Math.ceil(invoices.length / pageSize) || 1;
+  const paginatedInvoices = invoices.slice((page - 1) * pageSize, page * pageSize);
+
   const handleOpenReceipt = (url?: string | null) => {
     if (!url) return;
     Linking.openURL(url);
@@ -42,7 +52,7 @@ export function MobileInvoiceHistory({ invoices, isLoading }: MobileInvoiceHisto
         <Text style={styles.noInvoicesText}>{t('subscription.noInvoices')}</Text>
       ) : (
         <View style={styles.invoicesList}>
-          {invoices.map((inv) => {
+          {paginatedInvoices.map((inv) => {
             const receiptUrl = inv.invoicePdfUrl || inv.hostedInvoiceUrl;
             const isPaid = inv.status.toLowerCase() === 'paid';
             return (
@@ -92,6 +102,21 @@ export function MobileInvoiceHistory({ invoices, isLoading }: MobileInvoiceHisto
             );
           })}
         </View>
+      )}
+
+      {invoices.length >= 5 && (
+        <MobilePaginationBar
+          page={page}
+          totalPages={totalPages}
+          pageSize={pageSize}
+          totalItems={invoices.length}
+          pageSizeOptions={[5, 10, 20]}
+          onPageChange={setPage}
+          onPageSizeChange={(newSize) => {
+            setPageSize(newSize);
+            setPage(1);
+          }}
+        />
       )}
     </View>
   );

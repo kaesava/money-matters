@@ -26,7 +26,13 @@ export function ProfileAvatarSection({
 
   return (
     <View style={styles.avatarRow}>
-      <View style={styles.avatarContainer}>
+      <TouchableOpacity
+        onPress={onPickAvatar}
+        style={styles.avatarContainer}
+        activeOpacity={0.8}
+        accessibilityRole="button"
+        accessibilityLabel={t('settings.avatarUploadLabel')}
+      >
         {avatarUri ? (
           <Image source={{ uri: avatarUri }} style={styles.avatarImg} />
         ) : (
@@ -34,10 +40,10 @@ export function ProfileAvatarSection({
             <Text style={styles.avatarInitials}>{initials}</Text>
           </View>
         )}
-        <TouchableOpacity onPress={onPickAvatar} style={styles.cameraPill}>
+        <View style={styles.cameraPill}>
           <Feather name="camera" size={14} color={DESIGN_TOKENS.colors.onAccent} />
-        </TouchableOpacity>
-      </View>
+        </View>
+      </TouchableOpacity>
 
       <TouchableOpacity onPress={onPickAvatar} style={styles.changePhotoBtn}>
         <Text style={styles.changePhotoText}>{t('settings.avatarUploadLabel')}</Text>

@@ -1,7 +1,7 @@
 "use client";
 
-import React from "react";
-import { Spinner } from "@money-matters/ui/web";
+import React, { useState, useEffect } from "react";
+import { Spinner, PaginationBar } from "@money-matters/ui/web";
 import { t } from "@money-matters/i18n";
 
 export interface InvoiceItem {
@@ -25,6 +25,15 @@ export function SubscriptionInvoicesTable({
   isLoading,
   fmtDateMedium,
 }: SubscriptionInvoicesTableProps) {
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(5);
+
+  useEffect(() => {
+    setPage(1);
+  }, [invoices.length, pageSize]);
+
+  const totalPages = Math.ceil(invoices.length / pageSize) || 1;
+  const paginatedInvoices = invoices.slice((page - 1) * pageSize, page * pageSize);
   return (
     <div className="pt-4 border-t border-zinc-100 dark:border-zinc-800 flex flex-col gap-3">
       <p className="text-[11px] font-bold uppercase tracking-wider text-zinc-400">
@@ -51,7 +60,7 @@ export function SubscriptionInvoicesTable({
               </tr>
             </thead>
             <tbody className="divide-y divide-zinc-50 dark:divide-zinc-800">
-              {invoices.map((inv) => (
+              {paginatedInvoices.map((inv) => (
                 <tr
                   key={inv.id}
                   className="text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50/50 dark:hover:bg-zinc-800/50 transition-colors"
@@ -92,6 +101,21 @@ export function SubscriptionInvoicesTable({
             </tbody>
           </table>
         </div>
+      )}
+
+      {invoices.length >= 5 && (
+        <PaginationBar
+          page={page}
+          totalPages={totalPages}
+          pageSize={pageSize}
+          totalItems={invoices.length}
+          pageSizeOptions={[5, 10, 20]}
+          onPageChange={setPage}
+          onPageSizeChange={(newSize) => {
+            setPageSize(newSize);
+            setPage(1);
+          }}
+        />
       )}
     </div>
   );

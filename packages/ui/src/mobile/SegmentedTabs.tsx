@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, ScrollView, StyleSheet } from 'react-native';
+import { View, Text, TouchableOpacity, ScrollView, StyleSheet, StyleProp, ViewStyle } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { DESIGN_TOKENS } from '../tokens';
 
@@ -15,6 +15,7 @@ export interface SegmentedTabsProps<T extends string = string> {
   activeKey: T;
   onChange: (key: T) => void;
   scrollable?: boolean;
+  style?: StyleProp<ViewStyle>;
 }
 
 export function SegmentedTabs<T extends string = string>({
@@ -22,9 +23,10 @@ export function SegmentedTabs<T extends string = string>({
   activeKey,
   onChange,
   scrollable = false,
+  style,
 }: SegmentedTabsProps<T>) {
   const content = (
-    <View style={[styles.container, scrollable && styles.scrollContainer]}>
+    <View style={[styles.container, scrollable && styles.scrollContainer, !scrollable && style]}>
       {tabs.map((tab) => {
         const isActive = tab.key === activeKey;
         return (
@@ -64,7 +66,7 @@ export function SegmentedTabs<T extends string = string>({
 
   if (scrollable) {
     return (
-      <View style={styles.scrollWrapper}>
+      <View style={[styles.scrollWrapper, style]}>
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}

@@ -1512,6 +1512,9 @@ export const en = {
     },
     notificationsLink: "Notification Preferences",
     reportBugLink: "Provide Feedback",
+    versionInfo: {
+      copyDiagnosticsHint: "Click to copy diagnostic info",
+    },
     helpTitle: "Help & Support",
     helpDesc: "Need assistance or have a suggestion? Share your feedback or reach support.",
     bankAccounts: {
@@ -1720,8 +1723,8 @@ export const en = {
     deleteIncomeEventConfirm: "Are you sure you want to delete this upcoming income event?",
     resetConfirmTitle: "Reset Allocations?",
     resetConfirmMessage: "Your custom split will be discarded and reset to the suggested allocation. Continue?",
-    addIncomeSchedule: "+ Add Income Schedule",
-    addExpenseSchedule: "+ Add Expense Schedule",
+    addIncomeSchedule: "Add Income Schedule",
+    addExpenseSchedule: "Add Expense Schedule",
   },
   incomeAndBills: {
     incomeSchedule: "Income Name",
