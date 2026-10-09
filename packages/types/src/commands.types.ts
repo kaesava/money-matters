@@ -331,5 +331,6 @@ export const SaveSetupBudgetCommand = z.object({
   })).default([]),
   archivedCategoryIds: z.array(z.string()).default([]),
   archetypeApplied: z.enum(["AUSSIE_2_ACCOUNT", "COUPLES_HYBRID", "ALL_IN_ONE_CUSTOM"]).optional(),
+  autoCreateExpenseSchedules: z.boolean().default(true),
 }).strict();
 

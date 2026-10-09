@@ -1,4 +1,5 @@
-import React, { useState } from "react";
+import React, { useState, useId } from "react";
+import { t } from "@money-matters/i18n";
 import { EstimatedCategoryItem } from "@money-matters/types";
 import { InfoTooltip, Button, AmountField } from "@money-matters/ui/web";
 import { UserGoalItem } from "./SetupGoalsStep";
@@ -32,6 +33,9 @@ interface SetupCategoriesStepProps {
   onBack: () => void;
   onFinish: () => void;
   showIcons?: boolean;
+  autoCreateExpenseSchedules?: boolean;
+  setAutoCreateExpenseSchedules?: (val: boolean) => void;
+  isRerun?: boolean;
 }
 
 export function SetupCategoriesStep({
@@ -61,7 +65,11 @@ export function SetupCategoriesStep({
   onBack,
   onFinish,
   showIcons = true,
+  autoCreateExpenseSchedules = true,
+  setAutoCreateExpenseSchedules,
+  isRerun = false,
 }: SetupCategoriesStepProps) {
+  const autoScheduleCheckboxId = useId();
   const [warningMsg, setWarningMsg] = useState<string | null>(null);
 
   const handleAttemptRemove = (name: string) => {
@@ -201,6 +209,27 @@ export function SetupCategoriesStep({
               Monthly Est: ${totalRegularMonthly.toLocaleString()}/mo
             </span>
           </div>
+
+          {/* Auto-schedule bills toggle */}
+          {setAutoCreateExpenseSchedules && (
+            <div className="flex items-start gap-2.5 p-3 bg-blue-50/60 rounded-xl border border-blue-100">
+              <input
+                id={autoScheduleCheckboxId}
+                type="checkbox"
+                checked={autoCreateExpenseSchedules}
+                onChange={(e) => setAutoCreateExpenseSchedules(e.target.checked)}
+                className="mt-0.5 h-4 w-4 rounded border-blue-300 text-[#2563eb] focus:ring-[#2563eb]"
+              />
+              <label htmlFor={autoScheduleCheckboxId} className="flex flex-col cursor-pointer select-none">
+                <span className="text-xs font-bold text-[#1B2B4B]">
+                  {t("setup.autoScheduleBillsLabel")}
+                </span>
+                <span className="text-[11px] text-zinc-500 leading-tight">
+                  {isRerun ? t("setup.autoScheduleBillsRerunHelp") : t("setup.autoScheduleBillsHelp")}
+                </span>
+              </label>
+            </div>
+          )}
 
           <div className="flex flex-col gap-2 max-h-[35vh] overflow-y-auto pr-1">
             {activeRegular.map((cat) => {

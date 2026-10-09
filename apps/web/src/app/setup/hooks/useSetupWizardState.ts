@@ -95,6 +95,7 @@ export function useSetupWizardState() {
   const [categoryFrequencies, setCategoryFrequencies] = useState<
     Record<string, "WEEKLY" | "FORTNIGHTLY" | "MONTHLY" | "YEARLY">
   >({});
+  const [autoCreateExpenseSchedules, setAutoCreateExpenseSchedules] = useState(true);
 
   const userPrefQuery = trpc.getUserPreferences.useQuery();
   const poolsQuery = trpc.listPools.useQuery();
@@ -391,6 +392,7 @@ export function useSetupWizardState() {
         archivedPools: sweepQueue,
         archivedCategoryIds: Array.from(removedCategoryNames).filter((name) => !name.startsWith("temp-")),
         archetypeApplied: accountsPayload.length >= 2 ? "AUSSIE_2_ACCOUNT" : "ALL_IN_ONE_CUSTOM",
+        autoCreateExpenseSchedules,
       });
 
       posthog.capture("setup_completed", {
@@ -490,6 +492,8 @@ export function useSetupWizardState() {
     setAmountOverrides,
     categoryFrequencies,
     setCategoryFrequencies,
+    autoCreateExpenseSchedules,
+    setAutoCreateExpenseSchedules,
     showIcons,
     estimation,
     activeCategories,

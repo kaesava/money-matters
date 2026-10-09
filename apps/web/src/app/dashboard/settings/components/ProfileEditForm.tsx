@@ -76,7 +76,7 @@ export function ProfileEditForm({
                 type="button"
                 onClick={onAvatarClick}
                 className="cursor-pointer group relative block rounded-full focus:outline-none focus:ring-2 focus:ring-[#2563eb]"
-                title="Click to view / alter avatar"
+                title={t("settings.positionZoomAvatar")}
               >
                 <Image
                   unoptimized

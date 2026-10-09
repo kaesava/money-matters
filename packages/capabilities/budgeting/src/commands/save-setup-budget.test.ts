@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { saveSetupBudgetHandler } from "./save-setup-budget.command";
-import { pools, categories, bankAccounts, incomeSources, transactionLedger, tenants } from "@money-matters/db";
+import { pools, categories, bankAccounts, incomeSources, expenseSources, expenseEvents, transactionLedger, tenants } from "@money-matters/db";
 
 vi.mock("@money-matters/db", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@money-matters/db")>();
@@ -26,6 +26,7 @@ describe("saveSetupBudgetHandler", () => {
     pools?: any[];
     categories?: any[];
     incomes?: any[];
+    expenseSources?: any[];
     prefs?: any[];
   }) => {
     insertedRows = {};
@@ -39,6 +40,7 @@ describe("saveSetupBudgetHandler", () => {
             if (table === pools) return Promise.resolve(existingData?.pools || []);
             if (table === categories) return Promise.resolve(existingData?.categories || []);
             if (table === incomeSources) return Promise.resolve(existingData?.incomes || []);
+            if (table === expenseSources) return Promise.resolve(existingData?.expenseSources || []);
             return Promise.resolve(existingData?.prefs || []);
           }),
           limit: vi.fn().mockImplementation(() => Promise.resolve(existingData?.prefs || [])),
@@ -57,6 +59,10 @@ describe("saveSetupBudgetHandler", () => {
             insertedRows["categories"] = items;
           } else if (table === incomeSources) {
             insertedRows["income_sources"] = items;
+          } else if (table === expenseSources) {
+            insertedRows["expense_sources"] = items;
+          } else if (table === expenseEvents) {
+            insertedRows["expense_events"] = items;
           }
           return Promise.resolve(vals);
         }),
@@ -113,8 +119,74 @@ describe("saveSetupBudgetHandler", () => {
     expect(result.persistedCounts.bankAccounts).toBe(2);
     expect(result.persistedCounts.pools).toBe(3);
     expect(result.persistedCounts.categories).toBe(2);
+    expect(result.persistedCounts.expenseSources).toBe(1);
+    expect(insertedRows["expense_sources"]).toHaveLength(1);
+    expect(insertedRows["expense_sources"][0].name).toBe("Electricity");
+    expect(insertedRows["expense_events"]).toHaveLength(12);
     expect(updatedRows["tenants"]).toBeDefined();
     expect(updatedRows["tenants"][0].setupStatus).toBe("COMPLETED");
+  });
+
+  it("skips automated bill schedule generation when opt-out toggle is false", async () => {
+    const mockDb = createMockDb();
+    const handler = saveSetupBudgetHandler(mockDb);
+
+    const result = await handler(
+      {
+        incomes: [{ name: "Salary", type: "SALARY", amount: "3200.00", frequency: "FORTNIGHTLY" }],
+        bankAccounts: [{ name: "Main", bankProvider: "CBA", lastKnownBalance: "1000.00", unbudgetedBuffer: "0.00", isPrivate: false }],
+        pools: [{ name: "Regular Bills", poolType: "REGULAR", isSurplusTarget: false, isCommitted: false, isPrivate: false }],
+        categories: [{ name: "Electricity", poolType: "REGULAR", monthlyAmount: "150.00", icon: "zap", budgetFrequency: "MONTHLY", isEssential: true }],
+        archivedPools: [],
+        archivedCategoryIds: [],
+        autoCreateExpenseSchedules: false,
+      },
+      appId,
+      userId,
+      tenantId
+    );
+
+    expect(result.success).toBe(true);
+    expect(result.persistedCounts.expenseSources).toBe(0);
+    expect(insertedRows["expense_sources"]).toBeUndefined();
+    expect(insertedRows["expense_events"]).toBeUndefined();
+  });
+
+  it("enforces Strict Add-Only during re-setup without duplicating or altering existing schedules", async () => {
+    const existingCatId = "00000000-0000-0000-0000-000000000010";
+    const existingScheduleId = "00000000-0000-0000-0000-000000000020";
+
+    const mockDb = createMockDb({
+      categories: [{ id: existingCatId, name: "Electricity", poolType: "REGULAR", monthlyAmount: "150.00" }],
+      expenseSources: [{ id: existingScheduleId, name: "Electricity", categoryId: existingCatId, amount: "150.00" }],
+    });
+    const handler = saveSetupBudgetHandler(mockDb);
+
+    // Re-setup: Electricity (existing) amount changed, plus Gas (newly added)
+    const result = await handler(
+      {
+        incomes: [{ name: "Salary", type: "SALARY", amount: "3200.00", frequency: "FORTNIGHTLY" }],
+        bankAccounts: [{ name: "Main", bankProvider: "CBA", lastKnownBalance: "1000.00", unbudgetedBuffer: "0.00", isPrivate: false }],
+        pools: [{ name: "Regular Bills", poolType: "REGULAR", isSurplusTarget: false, isCommitted: false, isPrivate: false }],
+        categories: [
+          { id: existingCatId, name: "Electricity", poolType: "REGULAR", monthlyAmount: "180.00", icon: "zap", budgetFrequency: "MONTHLY", isEssential: true },
+          { name: "Gas", poolType: "REGULAR", monthlyAmount: "60.00", icon: "flame", budgetFrequency: "MONTHLY", isEssential: true },
+        ],
+        archivedPools: [],
+        archivedCategoryIds: [],
+        autoCreateExpenseSchedules: true,
+      },
+      appId,
+      userId,
+      tenantId
+    );
+
+    expect(result.success).toBe(true);
+    // Only Gas should be newly created
+    expect(result.persistedCounts.expenseSources).toBe(1);
+    expect(insertedRows["expense_sources"]).toHaveLength(1);
+    expect(insertedRows["expense_sources"][0].name).toBe("Gas");
+    expect(insertedRows["expense_events"]).toHaveLength(12);
   });
 
   it("prevents archiving the EVERYDAY pool", async () => {

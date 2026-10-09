@@ -22,6 +22,7 @@ export default function SetupCategoriesScreen() {
 
   const [customName, setCustomName] = useState('');
   const [customAmount, setCustomAmount] = useState('100');
+  const [autoCreateExpenseSchedules, setAutoCreateExpenseSchedules] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const bankAccountsQuery = trpc.getBankAccountsWithMappings.useQuery();
   const poolsQuery = trpc.listPools.useQuery();
@@ -97,6 +98,7 @@ export default function SetupCategoriesScreen() {
         archivedPools: [],
         archivedCategoryIds: [],
         archetypeApplied: accountsPayload.length >= 2 ? 'AUSSIE_2_ACCOUNT' : 'ALL_IN_ONE_CUSTOM',
+        autoCreateExpenseSchedules,
       });
 
       router.replace('/(setup)/complete');
@@ -158,6 +160,19 @@ export default function SetupCategoriesScreen() {
           <Text style={styles.sectionTitle}>{t('setup.billsPoolTitle')}</Text>
           <Text style={styles.sectionTotal}>${totalRegularMonthly.toLocaleString()}/mo</Text>
         </View>
+        <TouchableOpacity
+          style={styles.toggleRow}
+          onPress={() => setAutoCreateExpenseSchedules((prev) => !prev)}
+          activeOpacity={0.7}
+        >
+          <View style={[styles.checkbox, autoCreateExpenseSchedules && styles.checkboxActive]}>
+            {autoCreateExpenseSchedules && <Text style={styles.checkmarkText}>✓</Text>}
+          </View>
+          <View style={styles.toggleTextCol}>
+            <Text style={styles.toggleLabel}>{t('setup.autoScheduleBillsLabel')}</Text>
+            <Text style={styles.toggleHelp}>{t('setup.autoScheduleBillsHelp')}</Text>
+          </View>
+        </TouchableOpacity>
         {activeRegular.map((cat) => (
           <SetupCategoryRow
             key={cat.name}
@@ -232,4 +247,11 @@ const styles = StyleSheet.create({
   backBtnText: { fontSize: 14, fontWeight: '700', color: DESIGN_TOKENS.colors.slate[600] },
   nextBtn: { flex: 2, paddingVertical: 14, backgroundColor: DESIGN_TOKENS.colors.accent, borderRadius: DESIGN_TOKENS.radius.md, alignItems: 'center' },
   nextBtnText: { fontSize: 14, fontWeight: '800', color: DESIGN_TOKENS.colors.onAccent },
+  toggleRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 10, backgroundColor: DESIGN_TOKENS.colors.surfaceVariant, padding: 10, borderRadius: DESIGN_TOKENS.radius.md, marginVertical: 8, borderWidth: 1, borderColor: DESIGN_TOKENS.colors.slate[200] },
+  checkbox: { width: 18, height: 18, borderRadius: 4, borderWidth: 1.5, borderColor: DESIGN_TOKENS.colors.slate[400], alignItems: 'center', justifyContent: 'center', marginTop: 1, backgroundColor: DESIGN_TOKENS.colors.surface },
+  checkboxActive: { backgroundColor: DESIGN_TOKENS.colors.accent, borderColor: DESIGN_TOKENS.colors.accent },
+  checkmarkText: { color: DESIGN_TOKENS.colors.onAccent, fontSize: 11, fontWeight: '900', lineHeight: 12 },
+  toggleTextCol: { flex: 1 },
+  toggleLabel: { fontSize: 12, fontWeight: '700', color: DESIGN_TOKENS.colors.primary },
+  toggleHelp: { fontSize: 10, color: DESIGN_TOKENS.colors.textMuted, marginTop: 2, lineHeight: 14 },
 });

@@ -786,7 +786,10 @@ export const tenantRouter = {
         notificationEmail: z.string().email("Invalid email address"),
         phoneCountryCode: z.string().optional(),
         phoneNumber: z.string().optional(),
-        avatarUrl: z.string().optional(),
+        avatarUrl: z
+          .string()
+          .max(300_000, "Avatar payload exceeds maximum allowed size of 200KB")
+          .optional(),
       }).strict()
     )
     .mutation(async ({ input, ctx }) => {

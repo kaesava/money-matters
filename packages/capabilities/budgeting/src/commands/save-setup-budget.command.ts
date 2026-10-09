@@ -4,6 +4,7 @@ import {
   categories,
   bankAccounts,
   incomeSources,
+  expenseSources,
   transactionLedger,
   tenants,
   getPoolBalancesMap,
@@ -12,6 +13,11 @@ import { eq, and, inArray, sql } from "drizzle-orm";
 import { z } from "zod";
 import { SaveSetupBudgetCommand } from "@money-matters/types";
 import { randomUUID } from "crypto";
+import {
+  CategoryScheduleCandidate,
+  buildExpenseSchedulePayloads,
+  insertExpenseSchedulesBulk,
+} from "./save-setup-budget-helpers.js";
 
 export interface SaveSetupBudgetResult {
   success: boolean;
@@ -22,16 +28,18 @@ export interface SaveSetupBudgetResult {
     categories: number;
     sweptPools: number;
     sweptTotalAmount: number;
+    expenseSources: number;
   };
 }
 
 export function saveSetupBudgetHandler(dbClient: DbOrTx) {
   return async (
-    input: z.infer<typeof SaveSetupBudgetCommand>,
+    rawInput: z.input<typeof SaveSetupBudgetCommand>,
     appId: string,
     userId: string,
     tenantId: string
   ): Promise<SaveSetupBudgetResult> => {
+    const input = SaveSetupBudgetCommand.parse(rawInput);
     // Guard against mock DBs in Vitest without .transaction method
     const runInTx =
       typeof dbClient.transaction === "function"
@@ -319,6 +327,8 @@ export function saveSetupBudgetHandler(dbClient: DbOrTx) {
           )
         );
 
+      const categoryRecordMap = new Map<string, { id: string; poolId: string }>();
+
       for (const catInput of input.categories) {
         const matchedCat = catInput.id ? existingCategories.find((c) => c.id === catInput.id) : null;
 
@@ -344,10 +354,13 @@ export function saveSetupBudgetHandler(dbClient: DbOrTx) {
               updatedBy: userId,
             })
             .where(eq(categories.id, matchedCat.id));
+
+          categoryRecordMap.set(catInput.name, { id: matchedCat.id, poolId: resolvedPoolId || matchedCat.poolId });
         } else {
           // Insert new category
+          const newCatId = randomUUID();
           await tx.insert(categories).values({
-            id: randomUUID(),
+            id: newCatId,
             tenantId,
             appId,
             poolId: resolvedPoolId,
@@ -362,6 +375,8 @@ export function saveSetupBudgetHandler(dbClient: DbOrTx) {
             updatedAt: now,
             updatedBy: userId,
           });
+
+          categoryRecordMap.set(catInput.name, { id: newCatId, poolId: resolvedPoolId });
         }
       }
 
@@ -426,6 +441,71 @@ export function saveSetupBudgetHandler(dbClient: DbOrTx) {
       }
 
       // =========================================================================
+      // 5b. Auto-create Expense Schedules for REGULAR categories (Strict Add-Only)
+      // =========================================================================
+      let createdExpenseSourcesCount = 0;
+      if (input.autoCreateExpenseSchedules !== false) {
+        const existingExpenseSources = await tx
+          .select({
+            id: expenseSources.id,
+            name: expenseSources.name,
+            categoryId: expenseSources.categoryId,
+          })
+          .from(expenseSources)
+          .where(
+            and(
+              eq(expenseSources.tenantId, tenantId),
+              eq(expenseSources.appId, appId),
+              sql`${expenseSources.archivedAt} IS NULL`
+            )
+          );
+
+        const candidates: CategoryScheduleCandidate[] = [];
+
+        for (const catInput of input.categories) {
+          // Only REGULAR pool categories qualify as committed bill schedules
+          if (catInput.poolType !== "REGULAR") continue;
+
+          const amountVal = catInput.enteredAmount || catInput.monthlyAmount || "0.00";
+          if (parseFloat(amountVal) <= 0) continue;
+
+          const catRecord = categoryRecordMap.get(catInput.name);
+          if (!catRecord) continue;
+
+          // Strict Add-Only: Never duplicate or modify if category already has an active schedule
+          const hasExisting = existingExpenseSources.some(
+            (es) =>
+              es.categoryId === catRecord.id ||
+              es.name.trim().toLowerCase() === catInput.name.trim().toLowerCase()
+          );
+          if (hasExisting) continue;
+
+          candidates.push({
+            name: catInput.name,
+            amount: amountVal,
+            budgetFrequency: catInput.budgetFrequency || "MONTHLY",
+            poolId: catRecord.poolId,
+            categoryId: catRecord.id,
+          });
+        }
+
+        if (candidates.length > 0) {
+          const { sourcesToInsert, eventsToInsert } = buildExpenseSchedulePayloads(
+            candidates,
+            tenantId,
+            appId,
+            userId,
+            now
+          );
+          createdExpenseSourcesCount = await insertExpenseSchedulesBulk(
+            tx,
+            sourcesToInsert,
+            eventsToInsert
+          );
+        }
+      }
+
+      // =========================================================================
       // 6. Update Tenant Setup Status and Setup Timestamp (Household Level)
       // =========================================================================
       if (typeof (tx as any).update === "function") {
@@ -449,6 +529,7 @@ export function saveSetupBudgetHandler(dbClient: DbOrTx) {
           categories: input.categories.length,
           sweptPools: sweptPoolsCount,
           sweptTotalAmount,
+          expenseSources: createdExpenseSourcesCount,
         },
       };
     });

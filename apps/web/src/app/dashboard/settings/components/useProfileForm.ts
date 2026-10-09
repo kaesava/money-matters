@@ -77,8 +77,8 @@ export function useProfileForm({ user, currentTimezone }: UseProfileFormParams) 
   const handleAvatarFileSelected = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    if (file.size > 2 * 1024 * 1024) {
-      toast.error(t("settings.profile.avatarSizeError"));
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error(t("settings.profile.avatarSourceSizeError"));
       return;
     }
     if (!["image/png", "image/jpeg", "image/webp"].includes(file.type)) {

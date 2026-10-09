@@ -78,6 +78,8 @@ function SetupWizardContent() {
     setAmountOverrides,
     categoryFrequencies,
     setCategoryFrequencies,
+    autoCreateExpenseSchedules,
+    setAutoCreateExpenseSchedules,
     showIcons,
     estimation,
     activeEveryday,
@@ -188,6 +190,9 @@ function SetupWizardContent() {
             onBack={() => setStep(2)}
             onFinish={handleFinish}
             showIcons={showIcons}
+            autoCreateExpenseSchedules={autoCreateExpenseSchedules}
+            setAutoCreateExpenseSchedules={setAutoCreateExpenseSchedules}
+            isRerun={isRerun}
           />
         )}
 
@@ -313,6 +318,9 @@ function SetupWizardContent() {
             onBack={() => setStep(4)}
             onFinish={handleFinish}
             showIcons={showIcons}
+            autoCreateExpenseSchedules={autoCreateExpenseSchedules}
+            setAutoCreateExpenseSchedules={setAutoCreateExpenseSchedules}
+            isRerun={isRerun}
           />
         )}
 

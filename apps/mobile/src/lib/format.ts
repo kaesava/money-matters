@@ -13,28 +13,14 @@ import {
   fmtDateIso as uiFmtDateIso,
 } from '@money-matters/ui';
 
-export interface MobileLocaleConfig {
-  locale: string;
-  timezone: string;
-  currency: string;
-}
+import {
+  setMobileLocaleConfig,
+  getMobileLocaleConfig,
+} from './locale-config';
+import type { MobileLocaleConfig } from './locale-config';
 
-let currentMobileLocaleConfig: MobileLocaleConfig = {
-  locale: 'en-AU',
-  timezone: 'Australia/Sydney',
-  currency: 'AUD',
-};
-
-export function setMobileLocaleConfig(cfg: Partial<MobileLocaleConfig>): void {
-  currentMobileLocaleConfig = {
-    ...currentMobileLocaleConfig,
-    ...cfg,
-  };
-}
-
-export function getMobileLocaleConfig(): MobileLocaleConfig {
-  return currentMobileLocaleConfig;
-}
+export { setMobileLocaleConfig, getMobileLocaleConfig };
+export type { MobileLocaleConfig };
 
 export function formatHealthStatus(status?: string | null): string {
   if (!status) return 'On Track';
@@ -58,8 +44,9 @@ export function formatMobileCurrency(
   currency?: string,
   locale?: string
 ): string {
-  const c = currency || currentMobileLocaleConfig.currency;
-  const l = locale || currentMobileLocaleConfig.locale;
+  const cfg = getMobileLocaleConfig();
+  const c = currency || cfg.currency;
+  const l = locale || cfg.locale;
   return formatCurrency(value, l, c);
 }
 
@@ -77,8 +64,9 @@ export function formatMobileCurrencyCompact(
   locale?: string
 ): string {
   const num = typeof value === 'string' ? parseFloat(value) : value;
-  const c = currency || currentMobileLocaleConfig.currency;
-  const l = locale || currentMobileLocaleConfig.locale;
+  const cfg = getMobileLocaleConfig();
+  const c = currency || cfg.currency;
+  const l = locale || cfg.locale;
   const sym = getCurrencySymbol(l, c);
   if (isNaN(num)) return `${sym}0`;
   if (Math.abs(num) >= 1000) {
@@ -99,7 +87,7 @@ export function formatIsoDate(
   input?: string | Date | number | null,
   timeZone?: string
 ): string {
-  const tz = timeZone || currentMobileLocaleConfig.timezone;
+  const tz = timeZone || getMobileLocaleConfig().timezone;
   return uiFmtDateIso(input, tz);
 }
 
@@ -114,8 +102,9 @@ export function formatDate(
   timeZone?: string
 ): string {
   if (!date) return '';
-  const loc = locale || currentMobileLocaleConfig.locale;
-  const tz = timeZone || currentMobileLocaleConfig.timezone;
+  const cfg = getMobileLocaleConfig();
+  const loc = locale || cfg.locale;
+  const tz = timeZone || cfg.timezone;
   const formatted = uiFmtDate(date, tz, loc);
   return formatted === 'N/A' ? '' : formatted;
 }
@@ -129,8 +118,9 @@ export function formatRelativeDate(
   timeZone?: string
 ): string {
   if (!date) return '';
-  const loc = locale || currentMobileLocaleConfig.locale;
-  const tz = timeZone || currentMobileLocaleConfig.timezone;
+  const cfg = getMobileLocaleConfig();
+  const loc = locale || cfg.locale;
+  const tz = timeZone || cfg.timezone;
   
   let d: Date;
   if (typeof date === 'string') {

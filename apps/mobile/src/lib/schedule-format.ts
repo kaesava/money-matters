@@ -1,6 +1,6 @@
 import { t } from '@money-matters/i18n';
 import { fmtDate as uiFmtDate } from '@money-matters/ui';
-import { getMobileLocaleConfig } from './format';
+import { getMobileLocaleConfig } from './locale-config';
 
 export interface ScheduleDetail {
   isRecurring: boolean;

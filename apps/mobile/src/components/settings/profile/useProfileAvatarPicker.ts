@@ -12,10 +12,7 @@ export function useProfileAvatarPicker({ setAvatarUri }: UseProfileAvatarPickerP
   const handlePickAvatar = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== 'granted') {
-      toast.warning(
-        'Please grant access to your photo library to choose a profile avatar.',
-        t('common.error')
-      );
+      toast.warning(t('settings.profile.photoLibraryPermissionDenied'), t('common.error'));
       return;
     }
 
@@ -29,8 +26,9 @@ export function useProfileAvatarPicker({ setAvatarUri }: UseProfileAvatarPickerP
 
     if (!result.canceled && result.assets[0]) {
       const asset = result.assets[0];
-      if (asset.fileSize && asset.fileSize > 2 * 1024 * 1024) {
-        toast.error('Avatar image must be under 2MB.');
+      const approxBytes = asset.fileSize ?? (asset.base64 ? Math.round(asset.base64.length * 0.75) : 0);
+      if (approxBytes > 200 * 1024) {
+        toast.error(t('settings.profile.avatarSizeError'));
         return;
       }
       const imageBase64 = asset.base64
