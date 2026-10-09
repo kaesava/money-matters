@@ -382,9 +382,11 @@ tenants (id PK, appId FK→apps.id, name, subscriptionTier, stripeCustomerId, st
     6. **Sign Out**: Guarded by styled `<MobileConfirmDialog />`.
 - **Mobile Hardware, Platform Services & Edge-to-Edge**:
   - `react-native-safe-area-context`: Wrapped at root level in `AppProviders.tsx`, replacing deprecated `SafeAreaView` with dynamic `useSafeAreaInsets` across all screens, headers, modals, and tab bars for full Android edge-to-edge compatibility.
+  - `apps/mobile/src/lib/locale-config.ts`: Standalone central state for mobile locale (`en-AU`), timezone (`Australia/Sydney`), and currency preferences (`AUD`), fully decoupled to prevent require cycles with `schedule-format.ts` and `format.ts`.
   - `apps/mobile/src/lib/biometrics.ts`: Hardware security & local authentication wrapper (`expo-local-authentication`, `expo-secure-store`) with 2-minute background inactivity lock.
   - `apps/mobile/src/lib/haptics.ts`: Tactile feedback engine (`expo-haptics`) supporting light/medium/heavy/success impact patterns and user preferences.
   - `apps/mobile/src/lib/trpc.ts`: Centralized 401 token refresh interceptor reloading refreshed JWT credentials upon session expiry, with multi-key SecureStore, active tenant switching (`switchActiveTenant` / `money_matters_active_tenant_id`), and cookie extraction (`getStoredTokenAndCookie`) for seamless background tRPC authentication.
+  - Avatar Image Management: Strict 200 KB size constraint across mobile (`useProfileAvatarPicker`) and web (`useProfileForm` + `AvatarCropModal`), backed by server-side `z.string().max(300_000)` validation on `avatarUrl` in `tenant.router.ts` to prevent database bloat and excessive payload sizes.
   - `apps/mobile/eas.json`: EAS Build matrix supporting `development` (internal client), `preview` (standalone APK for testing), and `production` (Google Play App Bundle / AAB). Pinned to Expo SDK 54 with `react-native-screens` 4.16.0 compatibility.
 - **Mobile Primitives in `@money-matters/ui`**:
   - `packages/ui/src/mobile/BankProviderBadge.tsx`: Branded provider badges for Australian banks (CBA, Westpac, ANZ, NAB, ING, Macquarie, Other).
