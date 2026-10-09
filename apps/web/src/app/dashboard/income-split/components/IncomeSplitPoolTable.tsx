@@ -248,19 +248,35 @@ export function IncomeSplitPoolTable({
                               className="hover:bg-slate-50/70 dark:hover:bg-zinc-800/40 transition-colors"
                             >
                               <td className="py-3 px-4 md:px-6 text-left">
-                                {onOpenPoolDrawer ? (
-                                  <button
-                                    type="button"
-                                    onClick={() => onOpenPoolDrawer(l.bucketId, l.bucketName)}
-                                    className="font-semibold text-sm text-[#1B2B4B] dark:text-white hover:text-[#2563eb] hover:underline cursor-pointer text-left"
-                                  >
-                                    {l.bucketName}
-                                  </button>
-                                ) : (
-                                  <div className="font-semibold text-sm text-[#1B2B4B] dark:text-white">
-                                    {l.bucketName}
-                                  </div>
-                                )}
+                                <div className="flex items-center gap-2">
+                                  {onOpenPoolDrawer ? (
+                                    <button
+                                      type="button"
+                                      onClick={() => onOpenPoolDrawer(l.bucketId, l.bucketName)}
+                                      className="font-semibold text-sm text-[#1B2B4B] dark:text-white hover:text-[#2563eb] hover:underline cursor-pointer text-left"
+                                    >
+                                      {l.bucketName}
+                                    </button>
+                                  ) : (
+                                    <div className="font-semibold text-sm text-[#1B2B4B] dark:text-white">
+                                      {l.bucketName}
+                                    </div>
+                                  )}
+                                  {group.type === "EVERYDAY" && !isReadOnly && currentBal > 0 && (
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        const curAllocation = parseFloat(linesMap[l.bucketId] ?? l.proposedAmount.toString()) || 0;
+                                        const adjusted = Math.max(0, curAllocation - currentBal);
+                                        onLineAmountChange(l.bucketId, adjusted.toFixed(2));
+                                      }}
+                                      className="px-2 py-0.5 text-[10px] font-bold rounded-md bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 hover:bg-emerald-100 transition-colors cursor-pointer"
+                                      title={t("paydayDrawer.leftoverCashReportedPrompt", { amount: fmt(currentBal) })}
+                                    >
+                                      {t("paydayDrawer.leftoverCashReportedBadge", { amount: fmt(currentBal) })}
+                                    </button>
+                                  )}
+                                </div>
                               </td>
                               <td className="py-3 px-3 text-center font-mono text-xs text-zinc-600 dark:text-zinc-300">
                                 {targetDisplay}

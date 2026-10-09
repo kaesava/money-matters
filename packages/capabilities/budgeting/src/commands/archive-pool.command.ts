@@ -1,4 +1,4 @@
-import { pools, categories, expenseEvents, DbOrTx } from "@money-matters/db";
+import { pools, categories, expenseEvents, bankAccounts, DbOrTx } from "@money-matters/db";
 import { eq, and, sql } from "drizzle-orm";
 
 export async function archivePoolCommand(
@@ -9,8 +9,14 @@ export async function archivePoolCommand(
   dbClient: DbOrTx
 ) {
   const [pool] = await dbClient
-    .select()
+    .select({
+      id: pools.id,
+      poolType: pools.poolType,
+      isSurplusTarget: pools.isSurplusTarget,
+      isPrivate: bankAccounts.isPrivate,
+    })
     .from(pools)
+    .innerJoin(bankAccounts, eq(pools.bankAccountId, bankAccounts.id))
     .where(
       and(
         eq(pools.id, poolId),
@@ -20,8 +26,11 @@ export async function archivePoolCommand(
     );
 
   if (!pool) throw new Error("Pool not found.");
-  if (pool.poolType === "EVERYDAY") {
-    throw new Error("The default Everyday pool cannot be deleted or archived.");
+  if (pool.poolType === "EVERYDAY" && !pool.isPrivate) {
+    throw new Error("The shared Everyday pool cannot be deleted or archived.");
+  }
+  if (pool.poolType === "REGULAR" && !pool.isPrivate) {
+    throw new Error("The shared Bills pool cannot be deleted or archived.");
   }
   if (pool.isSurplusTarget) {
     throw new Error("Cannot archive the designated Surplus Target pool. Please designate another Surplus Target pool first.");

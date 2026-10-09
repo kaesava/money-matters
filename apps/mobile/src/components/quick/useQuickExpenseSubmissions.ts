@@ -102,7 +102,7 @@ export function useQuickExpenseSubmissions({
         if (onIncomeSuccess) {
           onIncomeSuccess(created.firstEventId);
         } else {
-          router.push(`/(app)/paychecks/${created.firstEventId}` as never);
+          router.push(`/(app)/income-split/${created.firstEventId}` as never);
         }
       }
     } catch (err) {

@@ -213,7 +213,6 @@ export function useSetupWizardState() {
       hasKids,
       children,
       hasPrivateHealth,
-      hasMedicalOutofPocket,
       hasGym,
       hasPets,
       petsCount,
@@ -234,7 +233,6 @@ export function useSetupWizardState() {
       hasKids,
       children,
       hasPrivateHealth,
-      hasMedicalOutofPocket,
       hasGym,
       hasPets,
       petsCount,
@@ -250,12 +248,14 @@ export function useSetupWizardState() {
   const estimation = useMemo(() => calculateQuizEstimates(quizAnswers), [quizAnswers]);
 
   const activeCategories = useMemo(() => {
-    const combined = [
-      ...estimation.regularBills,
-      ...estimation.goalSinkingFunds,
-      ...estimation.everydayCategories,
-      ...customCategories,
-    ];
+    const combined = isRerun
+      ? customCategories
+      : [
+          ...estimation.regularBills,
+          ...estimation.goalSinkingFunds,
+          ...estimation.everydayCategories,
+          ...customCategories,
+        ];
 
     return combined
       .filter((cat) => !removedCategoryNames.has(cat.name))
@@ -267,6 +267,7 @@ export function useSetupWizardState() {
         };
       });
   }, [
+    isRerun,
     estimation.regularBills,
     estimation.goalSinkingFunds,
     estimation.everydayCategories,
@@ -390,7 +391,9 @@ export function useSetupWizardState() {
         pools: poolsPayload,
         categories: categoriesPayload,
         archivedPools: sweepQueue,
-        archivedCategoryIds: Array.from(removedCategoryNames).filter((name) => !name.startsWith("temp-")),
+        archivedCategoryIds: Array.from(removedCategoryNames)
+          .map((name) => (categoriesQuery.data || []).find((c) => c.name === name)?.id)
+          .filter((id): id is string => Boolean(id)),
         archetypeApplied: accountsPayload.length >= 2 ? "AUSSIE_2_ACCOUNT" : "ALL_IN_ONE_CUSTOM",
         autoCreateExpenseSchedules,
       });

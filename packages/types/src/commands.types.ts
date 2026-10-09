@@ -47,6 +47,7 @@ export const CreatePoolCommand = z.object({
   poolType: z.enum(["EVERYDAY", "REGULAR", "GOAL"]),
   bankAccountId: z.string().uuid("Please select a bank account"),
   everydayAllowanceAmount: z.string().regex(/^(\d{1,12}(\.\d{1,2})?)?$/, { message: "Amount must be a valid positive number" }).optional().nullable(),
+  safetyBufferFloor: z.string().regex(/^(\d{1,12}(\.\d{1,2})?)?$/, { message: "Safety buffer must be a valid positive number" }).optional().nullable(),
   targetAmount: z.string().regex(/^(\d{1,12}(\.\d{1,2})?)?$/, { message: "Target amount must be a valid positive number" }).optional().nullable(),
   targetDate: z.string().optional().nullable(),
   isCommitted: z.boolean().default(false).optional(),
@@ -73,6 +74,7 @@ export const CreatePoolCommand = z.object({
 export const UpdatePoolCommand = z.object({
   name: z.string().min(1, "Pool name is required").optional(),
   everydayAllowanceAmount: z.string().regex(/^(\d{1,12}(\.\d{1,2})?)?$/, { message: "Amount must be a valid positive number" }).optional().nullable(),
+  safetyBufferFloor: z.string().regex(/^(\d{1,12}(\.\d{1,2})?)?$/, { message: "Safety buffer must be a valid positive number" }).optional().nullable(),
   targetAmount: z.string().regex(/^(\d{1,12}(\.\d{1,2})?)?$/, { message: "Target amount must be a valid positive number" }).optional().nullable(),
   targetDate: z.string().optional().nullable(),
   isCommitted: z.boolean().optional(),
@@ -310,6 +312,7 @@ export const SaveSetupBudgetCommand = z.object({
     targetAmount: z.string().regex(/^(\d{1,12}(\.\d{1,2})?)?$/).optional().nullable(),
     targetDate: z.string().optional().nullable(),
     everydayAllowanceAmount: z.string().regex(/^(\d{1,12}(\.\d{1,2})?)?$/).optional().nullable(),
+    safetyBufferFloor: z.string().regex(/^(\d{1,12}(\.\d{1,2})?)?$/).optional().nullable(),
     isSurplusTarget: z.boolean().default(false),
     isCommitted: z.boolean().default(false),
     isPrivate: z.boolean().default(false),

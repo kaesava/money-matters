@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useRouter, Href } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
 import {
   DESIGN_TOKENS,
@@ -78,7 +78,7 @@ export function HouseholdReadOnlyView({
         </View>
         <TouchableOpacity
           style={styles.recalibrateBtn}
-          onPress={() => router.push({ pathname: '/(setup)/income', params: { mode: 'rerun' } } as never)}
+          onPress={() => router.push({ pathname: '/(setup)/income', params: { mode: 'rerun' } } as Href)}
           activeOpacity={0.8}
         >
           <Text style={styles.recalibrateBtnText}>{t('setup.recalibrateTitle')}</Text>

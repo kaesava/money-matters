@@ -238,10 +238,11 @@ export function runCumulativeProjection(input: CumulativeProjectionInput): Cumul
     for (const cat of input.categories) {
       if (cat.type === "EVERYDAY") {
         const monthlyTarget = cat.monthlyAmount ?? cat.targetAmount ?? cat.everydayAllowanceAmount ?? 0;
+        const floor = cat.safetyBufferFloor ?? 0;
         if (monthlyTarget > 0) {
-          const burnAmount = Number(((monthlyTarget / 30) * daysUntilNext).toFixed(2));
+          const burnAmount = Number((((monthlyTarget * 12) / 365) * daysUntilNext).toFixed(2));
           const curBal = runningBalances.get(cat.id) ?? 0;
-          runningBalances.set(cat.id, Math.max(0, Number((curBal - burnAmount).toFixed(2))));
+          runningBalances.set(cat.id, Math.max(floor, Number((curBal - burnAmount).toFixed(2))));
         }
       }
     }

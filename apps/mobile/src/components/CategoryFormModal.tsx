@@ -21,6 +21,7 @@ export interface CategoryItem {
   bankAccountId?: string | null;
   currentBalance?: string;
   everydayAllowanceAmount?: string | null;
+  safetyBufferFloor?: string | null;
   healthStatus?: string | null;
   isSurplusTarget?: boolean | null;
 }
@@ -44,6 +45,7 @@ export function CategoryFormModal({ visible, categoryToEdit, onClose, onSuccess 
   const [name, setName] = useState('');
   const [nameError, setNameError] = useState('');
   const [type, setType] = useState<'GOAL' | 'REGULAR' | 'EVERYDAY'>('REGULAR');
+  const [safetyBufferFloor, setSafetyBufferFloor] = useState('');
   const [targetAmount, setTargetAmount] = useState('');
   const [targetDate, setTargetDate] = useState('');
   const [bankAccountId, setBankAccountId] = useState('');
@@ -54,6 +56,7 @@ export function CategoryFormModal({ visible, categoryToEdit, onClose, onSuccess 
       setName(categoryToEdit.name);
       setType(categoryToEdit.type);
       setBankAccountId(categoryToEdit.bankAccountId ?? '');
+      setSafetyBufferFloor(categoryToEdit.safetyBufferFloor ?? '');
       setTargetAmount(categoryToEdit.targetAmount ?? '');
       setTargetDate(categoryToEdit.targetDate ? formatIsoDate(categoryToEdit.targetDate) : '');
       setIsSurplusTarget(categoryToEdit.isSurplusTarget ?? false);
@@ -61,6 +64,7 @@ export function CategoryFormModal({ visible, categoryToEdit, onClose, onSuccess 
       setName('');
       setType('REGULAR');
       setBankAccountId('');
+      setSafetyBufferFloor('');
       setTargetAmount('');
       setTargetDate('');
       setIsSurplusTarget(false);
@@ -116,21 +120,23 @@ export function CategoryFormModal({ visible, categoryToEdit, onClose, onSuccess 
 
   const isDirty = useMemo(() => {
     if (!isEdit) {
-      return Boolean(name.trim() || bankAccountId || targetAmount || targetDate || isSurplusTarget);
+      return Boolean(name.trim() || bankAccountId || safetyBufferFloor || targetAmount || targetDate || isSurplusTarget);
     }
     if (!categoryToEdit) return false;
     const initialName = categoryToEdit.name || '';
     const initialTarget = categoryToEdit.targetAmount || '';
+    const initialFloor = categoryToEdit.safetyBufferFloor || '';
     const initialDate = categoryToEdit.targetDate ? formatIsoDate(categoryToEdit.targetDate) : '';
     const initialSurplus = categoryToEdit.isSurplusTarget ?? false;
 
     return (
       name.trim() !== initialName ||
+      safetyBufferFloor !== initialFloor ||
       targetAmount !== initialTarget ||
       targetDate !== initialDate ||
       isSurplusTarget !== initialSurplus
     );
-  }, [isEdit, categoryToEdit, name, bankAccountId, targetAmount, targetDate, isSurplusTarget]);
+  }, [isEdit, categoryToEdit, name, bankAccountId, safetyBufferFloor, targetAmount, targetDate, isSurplusTarget]);
 
   const isSurplusDisabled = Boolean(isEdit && categoryToEdit?.isSurplusTarget);
 
@@ -160,6 +166,7 @@ export function CategoryFormModal({ visible, categoryToEdit, onClose, onSuccess 
         poolId: categoryToEdit.id,
         data: {
           name: name.trim(),
+          safetyBufferFloor: type === 'EVERYDAY' ? safetyBufferFloor || '0.00' : undefined,
           targetAmount: type === 'GOAL' && targetAmount ? parseFloat(targetAmount).toFixed(2) : undefined,
           targetDate: type === 'GOAL' && targetDate ? targetDate : undefined,
           isSurplusTarget: type !== 'EVERYDAY' ? isSurplusTarget : undefined,
@@ -170,6 +177,7 @@ export function CategoryFormModal({ visible, categoryToEdit, onClose, onSuccess 
         name: name.trim(),
         poolType: type,
         bankAccountId,
+        safetyBufferFloor: type === 'EVERYDAY' ? safetyBufferFloor || '0.00' : undefined,
         targetAmount: type === 'GOAL' && targetAmount ? parseFloat(targetAmount).toFixed(2) : undefined,
         targetDate: type === 'GOAL' && targetDate ? targetDate : undefined,
         isSurplusTarget: type !== 'EVERYDAY' ? isSurplusTarget : undefined,
@@ -227,6 +235,8 @@ export function CategoryFormModal({ visible, categoryToEdit, onClose, onSuccess 
         setNameError={setNameError}
         type={type}
         setType={setType}
+        safetyBufferFloor={safetyBufferFloor}
+        setSafetyBufferFloor={setSafetyBufferFloor}
         targetAmount={targetAmount}
         setTargetAmount={setTargetAmount}
         targetDate={targetDate}

@@ -34,6 +34,7 @@ export interface EngineBucket {
   monthlyAmount?: number | null;
   targetAmount?: number | null;
   everydayAllowanceAmount?: number | null;
+  safetyBufferFloor?: number | null;
   targetDate?: string | null;
   dueDate?: string | null;
   currentBalance: number;
@@ -56,6 +57,7 @@ export interface AllocationEngineInput {
   nextPaycheckDate?: Date;
   upcomingExpenses?: UpcomingExpenseItem[];
   sweepEverydayLeftover?: boolean;
+  everydayLeftoverReported?: Record<string, number>; // poolId -> reported leftover cash in bank
 }
 
 export interface AllocationEngineOutput {
@@ -284,15 +286,32 @@ export function runAllocationEngine(input: AllocationEngineInput): AllocationEng
   for (const bucket of everydayBuckets) {
     const monthlyAllowanceCents = toCents(bucket.everydayAllowanceAmount ?? bucket.monthlyAmount ?? bucket.targetAmount ?? 0);
     const cycleAllowanceCents = Math.round(monthlyAllowanceCents * cycleFactor);
-    const neededCents = cycleAllowanceCents;
+    const floorCents = toCents(bucket.safetyBufferFloor ?? 0);
+    const currentBalanceCents = Math.max(0, toCents(bucket.currentBalance));
+    
+    // Safety buffer floor deficit (top up any eroded floor)
+    const floorDeficitCents = Math.max(0, floorCents - currentBalanceCents);
+    
+    // Check if user reported leftover cash in bank during payday checkpoint
+    const reportedLeftoverDollars = input.everydayLeftoverReported?.[bucket.id] ?? 0;
+    const reportedLeftoverCents = toCents(Math.max(0, reportedLeftoverDollars));
+
+    // Base requirement is cycle allowance + floor deficit
+    let baseNeededCents = cycleAllowanceCents + floorDeficitCents;
+    if (reportedLeftoverCents > 0) {
+      baseNeededCents = Math.max(0, baseNeededCents - reportedLeftoverCents);
+    }
+    const neededCents = baseNeededCents;
 
     const toAllocate = Math.min(remainingCents, neededCents);
     if (toAllocate > 0 || neededCents > 0) {
       if (toAllocate > 0) {
+        const floorMsg = floorCents > 0 ? ` (incl $${toDollars(floorCents).toFixed(2)} safety floor)` : "";
+        const leftoverMsg = reportedLeftoverCents > 0 ? ` (adjusted for $${toDollars(reportedLeftoverCents).toFixed(2)} reported leftover)` : "";
         allocateToBucket(
           bucket,
           toAllocate,
-          `Everyday time-based allowance ($${toDollars(monthlyAllowanceCents).toFixed(2)}/mo across ${daysGap} days): $${toDollars(toAllocate).toFixed(2)} allocated.`
+          `Everyday time-based allowance ($${toDollars(monthlyAllowanceCents).toFixed(2)}/mo across ${daysGap} days)${floorMsg}${leftoverMsg}: $${toDollars(toAllocate).toFixed(2)} allocated.`
         );
       } else {
         const line = linesMap.get(bucket.id)!;

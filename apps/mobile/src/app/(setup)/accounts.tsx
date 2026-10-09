@@ -3,20 +3,22 @@ import { View, Text, TouchableOpacity, ScrollView, StyleSheet, ActivityIndicator
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { t } from '@money-matters/i18n';
-import { DESIGN_TOKENS, showMobileConfirm, InfoTooltip } from '@money-matters/ui/mobile';
+import { DESIGN_TOKENS, InfoTooltip } from '@money-matters/ui/mobile';
 import { trpc } from '../../lib/trpc';
 import { AussieBankCheatSheetModal } from '../../components/AussieBankCheatSheetModal';
 import { BankAccountFormModal } from '../../components/BankAccountFormModal';
 import { SetupArchetypeCard } from '../../components/setup/SetupArchetypeCard';
+import { useSetupWizard } from '../../context/SetupWizardContext';
+import { SetupProgressBar } from '../../components/setup/SetupProgressBar';
 
 export default function SetupBankAccountsScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
+  const { isRerun, totalSteps } = useSetupWizard();
 
   const bankAccountsQuery = trpc.getBankAccountsWithMappings.useQuery();
   const createAccountMut = trpc.createBankAccount.useMutation();
   const updateAccountMut = trpc.updateBankAccount.useMutation();
-  const updatePref = trpc.updateUserPreferences.useMutation();
 
   const accounts = bankAccountsQuery.data ?? [];
   const [selectedArchetype, setSelectedArchetype] = useState<string>(
@@ -33,7 +35,7 @@ export default function SetupBankAccountsScreen() {
       if (type === 'AUSSIE_2_ACCOUNT' && accounts.length === 1 && accounts[0]) {
         await updateAccountMut.mutateAsync({
           accountId: accounts[0].id,
-          data: { name: 'Everyday Spending Card', bankProvider: (accounts[0].bankProvider as any) || 'CBA' },
+          data: { name: 'Everyday Spending Card', bankProvider: (accounts[0].bankProvider as 'CBA') || 'CBA' },
         });
         await createAccountMut.mutateAsync({
           name: 'Bills & Savings Account',
@@ -46,7 +48,7 @@ export default function SetupBankAccountsScreen() {
         if (accounts[0]) {
           await updateAccountMut.mutateAsync({
             accountId: accounts[0].id,
-            data: { name: 'Joint Bills & Rent', bankProvider: (accounts[0].bankProvider as any) || 'CBA' },
+            data: { name: 'Joint Bills & Rent', bankProvider: (accounts[0].bankProvider as 'CBA') || 'CBA' },
           });
         }
         await createAccountMut.mutateAsync({
@@ -66,7 +68,7 @@ export default function SetupBankAccountsScreen() {
       } else if (type === 'ALL_IN_ONE_CUSTOM' && accounts.length === 1 && accounts[0]) {
         await updateAccountMut.mutateAsync({
           accountId: accounts[0].id,
-          data: { name: 'Primary Account', bankProvider: (accounts[0].bankProvider as any) || 'CBA' },
+          data: { name: 'Primary Account', bankProvider: (accounts[0].bankProvider as 'CBA') || 'CBA' },
         });
       }
       await bankAccountsQuery.refetch();
@@ -77,20 +79,12 @@ export default function SetupBankAccountsScreen() {
     }
   };
 
-  const handleSkip = () => {
-    showMobileConfirm({
-      title: t('setup.skipConfirmTitle'),
-      message: t('setup.skipConfirmMessage'),
-      confirmText: t('setup.skipConfirmButton'),
-      onConfirm: async () => {
-        try {
-          await updatePref.mutateAsync({ setupCompleted: true });
-        } catch {
-          // Ignore
-        }
-        router.replace('/(app)/home');
-      },
-    });
+  const handleNext = () => {
+    if (isRerun) {
+      router.push({ pathname: '/(setup)/categories', params: { mode: 'rerun' } });
+    } else {
+      router.push('/(setup)/goals');
+    }
   };
 
   return (
@@ -101,20 +95,9 @@ export default function SetupBankAccountsScreen() {
       ]}
       keyboardShouldPersistTaps="handled"
     >
-      <View style={styles.topNavRow}>
-        <View style={styles.progressRow}>
-          <View style={[styles.progressDot, styles.progressDotActive]} />
-          <View style={[styles.progressDot, styles.progressDotActive]} />
-          <View style={styles.progressDot} />
-          <View style={styles.progressDot} />
-          <View style={styles.progressDot} />
-        </View>
-        <TouchableOpacity onPress={handleSkip} style={styles.skipBtn} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
-          <Text style={styles.skipBtnText}>{t('setup.skipForNow')}</Text>
-        </TouchableOpacity>
-      </View>
+      <SetupProgressBar currentStep={2} totalSteps={totalSteps} isRerun={isRerun} />
 
-      <Text style={styles.stepLabel}>{t('setup.stepOf', { step: 2, total: 5 })}</Text>
+      <Text style={styles.stepLabel}>{t('setup.stepOf', { step: 2, total: totalSteps })}</Text>
       <View style={styles.titleRow}>
         <Text style={styles.title}>{t('setup.bankAccountsStep.title')}</Text>
         <InfoTooltip title={t('setup.bankAccountsStep.tooltipTitle')} content={t('setup.bankAccountsStep.tooltip')} />
@@ -172,7 +155,7 @@ export default function SetupBankAccountsScreen() {
         </View>
         {accounts.map((acc) => (
           <View key={acc.id} style={styles.accountRow}>
-            <View style={{ flex: 1 }}>
+            <View style={styles.flexOne}>
               <Text style={styles.accountName}>{acc.name}</Text>
               <Text style={styles.accountBalance}>
                 {t('setup.bankAccountsStep.balance')}: ${parseFloat(acc.lastKnownBalance || '0').toFixed(2)}
@@ -189,11 +172,13 @@ export default function SetupBankAccountsScreen() {
         <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
           <Text style={styles.backBtnText}>{t('setup.previousStep')}</Text>
         </TouchableOpacity>
-        <TouchableOpacity onPress={() => router.push('/(setup)/goals')} style={styles.nextBtn} disabled={isApplying}>
+        <TouchableOpacity onPress={handleNext} style={styles.nextBtn} disabled={isApplying}>
           {isApplying ? (
             <ActivityIndicator color={DESIGN_TOKENS.colors.onAccent} size="small" />
           ) : (
-            <Text style={styles.nextBtnText}>{t('setup.bankAccountsStep.nextGoals')}</Text>
+            <Text style={styles.nextBtnText}>
+              {isRerun ? t('common.next') : t('setup.bankAccountsStep.nextGoals')}
+            </Text>
           )}
         </TouchableOpacity>
       </View>
@@ -213,12 +198,6 @@ export default function SetupBankAccountsScreen() {
 
 const styles = StyleSheet.create({
   container: { padding: 20, backgroundColor: DESIGN_TOKENS.colors.background, flexGrow: 1 },
-  topNavRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 },
-  progressRow: { flexDirection: 'row', gap: 6 },
-  progressDot: { width: 24, height: 6, borderRadius: 3, backgroundColor: '#E2E8F0' },
-  progressDotActive: { backgroundColor: DESIGN_TOKENS.colors.accent },
-  skipBtn: { paddingVertical: 4, paddingHorizontal: 8 },
-  skipBtnText: { fontSize: 13, fontWeight: '600', color: DESIGN_TOKENS.colors.textMuted },
   stepLabel: { fontSize: 12, fontWeight: '700', color: DESIGN_TOKENS.colors.accent, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 },
   titleRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 6, gap: 6 },
   title: { fontSize: 20, fontWeight: '900', color: DESIGN_TOKENS.colors.primary },
@@ -230,16 +209,17 @@ const styles = StyleSheet.create({
   badgeTextNeutral: { fontSize: 10, fontWeight: '700', color: '#475569' },
   cheatSheetBanner: { backgroundColor: '#F0FDF4', borderWidth: 1, borderColor: '#BBF7D0', borderRadius: 12, padding: 12, marginVertical: 12 },
   cheatSheetBannerText: { fontSize: 12, fontWeight: '700', color: '#15803D', textAlign: 'center' },
-  accountsBox: { backgroundColor: DESIGN_TOKENS.colors.surface, borderRadius: DESIGN_TOKENS.radius.lg, borderWidth: 1, borderColor: '#E2E8F0', padding: 14, marginBottom: 20 },
+  accountsBox: { backgroundColor: DESIGN_TOKENS.colors.surface, borderRadius: DESIGN_TOKENS.radius.lg, borderWidth: 1, borderColor: DESIGN_TOKENS.colors.slate[200], padding: 14, marginBottom: 20 },
   accountsHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 },
   accountsBoxTitle: { fontSize: 13, fontWeight: '800', color: DESIGN_TOKENS.colors.primary },
   addAccountLink: { fontSize: 12, fontWeight: '700', color: DESIGN_TOKENS.colors.accent },
   accountRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: '#F1F5F9' },
   accountName: { fontSize: 13, fontWeight: '700', color: DESIGN_TOKENS.colors.primary },
   accountBalance: { fontSize: 11, color: DESIGN_TOKENS.colors.textMuted, marginTop: 2 },
+  flexOne: { flex: 1 },
   actionRow: { flexDirection: 'row', gap: 12, marginTop: 8, marginBottom: 40 },
-  backBtn: { flex: 1, paddingVertical: 14, backgroundColor: DESIGN_TOKENS.colors.surface, borderWidth: 1, borderColor: '#CBD5E1', borderRadius: DESIGN_TOKENS.radius.md, alignItems: 'center' },
-  backBtnText: { fontSize: 14, fontWeight: '700', color: '#475569' },
+  backBtn: { flex: 1, paddingVertical: 14, backgroundColor: DESIGN_TOKENS.colors.surface, borderWidth: 1, borderColor: DESIGN_TOKENS.colors.slate[300], borderRadius: DESIGN_TOKENS.radius.md, alignItems: 'center' },
+  backBtnText: { fontSize: 14, fontWeight: '700', color: DESIGN_TOKENS.colors.slate[600] },
   nextBtn: { flex: 2, paddingVertical: 14, backgroundColor: DESIGN_TOKENS.colors.accent, borderRadius: DESIGN_TOKENS.radius.md, alignItems: 'center' },
   nextBtnText: { fontSize: 14, fontWeight: '800', color: DESIGN_TOKENS.colors.onAccent },
 });

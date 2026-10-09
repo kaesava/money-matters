@@ -83,6 +83,7 @@ export async function canAffordSimulationQuery(
           poolType: pools.poolType,
           bankAccountId: pools.bankAccountId,
           everydayAllowanceAmount: pools.everydayAllowanceAmount,
+          safetyBufferFloor: pools.safetyBufferFloor,
           targetAmount: pools.targetAmount,
           targetDate: pools.targetDate,
           isCommitted: pools.isCommitted,
@@ -274,6 +275,9 @@ export async function canAffordSimulationQuery(
       targetAmount: pool.targetAmount ? parseFloat(pool.targetAmount) : null,
       everydayAllowanceAmount: pool.everydayAllowanceAmount
         ? parseFloat(pool.everydayAllowanceAmount)
+        : null,
+      safetyBufferFloor: pool.safetyBufferFloor
+        ? parseFloat(pool.safetyBufferFloor)
         : null,
       targetDate: pool.targetDate ?? null,
       currentBalance: balance,

@@ -3,12 +3,12 @@ import { View, Text, TouchableOpacity, ScrollView, StyleSheet } from 'react-nati
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { t } from '@money-matters/i18n';
-import { DESIGN_TOKENS, showMobileConfirm, InfoTooltip, AmountInput } from '@money-matters/ui/mobile';
-import { trpc } from '../../lib/trpc';
+import { DESIGN_TOKENS, InfoTooltip, AmountInput } from '@money-matters/ui/mobile';
 import { useSetupWizard } from '../../context/SetupWizardContext';
 import { HousingType } from '@money-matters/types';
 import { LifestyleVehicleSubCard } from '../../components/setup/LifestyleVehicleSubCard';
 import { LifestyleChildSubCard } from '../../components/setup/LifestyleChildSubCard';
+import { SetupProgressBar } from '../../components/setup/SetupProgressBar';
 
 const HOUSING_OPTIONS: { id: HousingType; label: string }[] = [
   { id: 'RENT_SOLO', label: 'Rent (Solo)' },
@@ -20,29 +20,13 @@ const HOUSING_OPTIONS: { id: HousingType; label: string }[] = [
 export default function SetupLifestyleScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const updatePref = trpc.updateUserPreferences.useMutation();
   const {
+    isRerun, totalSteps,
     housingType, setHousingType, hasCars, setHasCars, vehicles, setVehicles,
     hasKids, setHasKids, children, setChildren, hasPrivateHealth, setHasPrivateHealth,
     hasDebt, setHasDebt, debtMonthlyRepayment, setDebtMonthlyRepayment, hasPets, setHasPets,
     weeklyGroceries, weeklyDining, weeklyPersonal,
   } = useSetupWizard();
-
-  const handleSkip = () => {
-    showMobileConfirm({
-      title: t('setup.skipConfirmTitle'),
-      message: t('setup.skipConfirmMessage'),
-      confirmText: t('setup.skipConfirmButton'),
-      onConfirm: async () => {
-        try {
-          await updatePref.mutateAsync({ setupCompleted: true });
-        } catch {
-          // Ignore
-        }
-        router.replace('/(app)/home');
-      },
-    });
-  };
 
   return (
     <ScrollView
@@ -52,20 +36,9 @@ export default function SetupLifestyleScreen() {
       ]}
       keyboardShouldPersistTaps="handled"
     >
-      <View style={styles.topNavRow}>
-        <View style={styles.progressRow}>
-          <View style={[styles.progressDot, styles.progressDotActive]} />
-          <View style={[styles.progressDot, styles.progressDotActive]} />
-          <View style={[styles.progressDot, styles.progressDotActive]} />
-          <View style={[styles.progressDot, styles.progressDotActive]} />
-          <View style={styles.progressDot} />
-        </View>
-        <TouchableOpacity onPress={handleSkip} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
-          <Text style={styles.skipBtnText}>{t('setup.skipForNow')}</Text>
-        </TouchableOpacity>
-      </View>
+      <SetupProgressBar currentStep={4} totalSteps={totalSteps} isRerun={isRerun} />
 
-      <Text style={styles.stepLabel}>{t('setup.stepOf', { step: 4, total: 5 })}</Text>
+      <Text style={styles.stepLabel}>{t('setup.stepOf', { step: 4, total: totalSteps })}</Text>
       <View style={styles.titleRow}>
         <Text style={styles.title}>{t('setup.lifestyle.title')}</Text>
         <InfoTooltip title={t('setup.lifestyle.benchmarksTitle')} content={t('setup.lifestyle.benchmarksContent')} />
@@ -94,7 +67,7 @@ export default function SetupLifestyleScreen() {
           </TouchableOpacity>
         </View>
         {hasCars && (
-          <View style={{ marginTop: 8 }}>
+          <View style={styles.marginTop8}>
             {vehicles.map((v, i) => (
               <LifestyleVehicleSubCard
                 key={v.id}
@@ -123,7 +96,7 @@ export default function SetupLifestyleScreen() {
           </TouchableOpacity>
         </View>
         {hasKids && (
-          <View style={{ marginTop: 8 }}>
+          <View style={styles.marginTop8}>
             {children.map((c, i) => (
               <LifestyleChildSubCard
                 key={c.id}
@@ -174,7 +147,7 @@ export default function SetupLifestyleScreen() {
           </TouchableOpacity>
         </View>
         {hasDebt && (
-          <View style={{ marginTop: 8 }}>
+          <View style={styles.marginTop8}>
             <AmountInput
               value={debtMonthlyRepayment ? String(debtMonthlyRepayment) : ''}
               onChangeText={(v) => setDebtMonthlyRepayment(parseFloat(v) || 0)}
@@ -214,11 +187,6 @@ export default function SetupLifestyleScreen() {
 
 const styles = StyleSheet.create({
   container: { padding: 20, backgroundColor: DESIGN_TOKENS.colors.background, flexGrow: 1 },
-  topNavRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 },
-  progressRow: { flexDirection: 'row', gap: 6 },
-  progressDot: { width: 24, height: 6, borderRadius: 3, backgroundColor: DESIGN_TOKENS.colors.slate[200] },
-  progressDotActive: { backgroundColor: DESIGN_TOKENS.colors.accent },
-  skipBtnText: { fontSize: 13, fontWeight: '600', color: DESIGN_TOKENS.colors.textMuted },
   stepLabel: { fontSize: 12, fontWeight: '700', color: DESIGN_TOKENS.colors.accent, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 },
   titleRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 16 },
   title: { fontSize: 20, fontWeight: '900', color: DESIGN_TOKENS.colors.primary },
@@ -232,6 +200,7 @@ const styles = StyleSheet.create({
   chipActive: { backgroundColor: DESIGN_TOKENS.colors.accent, borderColor: DESIGN_TOKENS.colors.accent },
   chipText: { fontSize: 12, color: DESIGN_TOKENS.colors.textMuted },
   chipTextActive: { color: DESIGN_TOKENS.colors.onAccent, fontWeight: '600' },
+  marginTop8: { marginTop: 8 },
   addBtn: { borderWidth: 1, borderColor: DESIGN_TOKENS.colors.accent, borderStyle: 'dashed', borderRadius: DESIGN_TOKENS.radius.md, paddingVertical: 8, alignItems: 'center', marginTop: 4 },
   addBtnText: { fontSize: 12, fontWeight: '700', color: DESIGN_TOKENS.colors.accent },
   budgetRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 4 },

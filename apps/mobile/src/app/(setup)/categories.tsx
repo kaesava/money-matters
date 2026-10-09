@@ -1,112 +1,60 @@
-import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, TextInput, StyleSheet, ActivityIndicator } from 'react-native';
+import React from 'react';
+import { View, Text, TouchableOpacity, ScrollView, StyleSheet, ActivityIndicator } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { t } from '@money-matters/i18n';
-import { DESIGN_TOKENS, showMobileConfirm, InfoTooltip, useMobileToast } from '@money-matters/ui/mobile';
-import { trpc } from '../../lib/trpc';
+import { DESIGN_TOKENS, InfoTooltip, useMobileToast } from '@money-matters/ui/mobile';
 import { useSetupWizard } from '../../context/SetupWizardContext';
 import { SetupCategoryRow } from '../../components/setup/SetupCategoryRow';
+import { SetupProgressBar } from '../../components/setup/SetupProgressBar';
+import { SetupCategoriesCustomInput } from '../../components/setup/SetupCategoriesCustomInput';
+import { SetupCategoriesGoalsList } from '../../components/setup/SetupCategoriesGoalsList';
+import { SetupBalanceSweepModal } from '../../components/setup/SetupBalanceSweepModal';
+import { useSetupCategoriesSubmission } from './useSetupCategoriesSubmission';
 
 export default function SetupCategoriesScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const toast = useMobileToast();
   const {
-    incomes, goals, activeCategories, activeEveryday, activeRegular,
-    categoryFrequencies, setCategoryFrequencies, setAmountOverrides,
-    setRemovedCategoryNames, setCustomCategories,
-    totalAllocatedMonthly, totalEverydayMonthly, totalRegularMonthly,
+    isRerun,
+    totalSteps,
+    goals,
+    activeCategories,
+    activeEveryday,
+    activeRegular,
+    activeGoals,
+    categoryFrequencies,
+    setCategoryFrequencies,
+    setAmountOverrides,
+    setRemovedCategoryNames,
+    setCustomCategories,
+    totalAllocatedMonthly,
+    totalEverydayMonthly,
+    totalRegularMonthly,
+    totalGoalMonthly,
     estimation,
+    activeSweepPool,
+    setActiveSweepPool,
+    availablePools,
+    selectedSweepDest,
+    setSelectedSweepDest,
+    confirmSweepAndRemove,
+    autoCreateExpenseSchedules,
+    setAutoCreateExpenseSchedules,
   } = useSetupWizard();
 
-  const [customName, setCustomName] = useState('');
-  const [customAmount, setCustomAmount] = useState('100');
-  const [autoCreateExpenseSchedules, setAutoCreateExpenseSchedules] = useState(true);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const bankAccountsQuery = trpc.getBankAccountsWithMappings.useQuery();
-  const poolsQuery = trpc.listPools.useQuery();
-  const saveSetupBudgetMut = trpc.saveSetupBudget.useMutation();
+  const { isSubmitting, handleFinish } = useSetupCategoriesSubmission();
 
   const netSurplus = estimation.totalMonthlyIncomeAud - totalAllocatedMonthly;
 
-  const handleAddCustom = () => {
-    if (!customName.trim()) return;
-    const amt = parseFloat(customAmount) || 0;
-    setCustomCategories((prev) => [
-      ...prev,
-      { name: customName.trim(), type: 'REGULAR', monthlyAud: amt, icon: '📌' },
-    ]);
-    setCustomName('');
-    setCustomAmount('100');
-  };
-
-  const handleFinish = async () => {
-    setIsSubmitting(true);
-    try {
-      const existingPools = poolsQuery.data || [];
-      const existingEveryday = existingPools.find((p) => p.poolType === 'EVERYDAY');
-      const existingRegular = existingPools.find((p) => p.poolType === 'REGULAR');
-      const accountsPayload = (bankAccountsQuery.data || []).map((acc) => ({
-        id: acc.id,
-        name: acc.name,
-        bankProvider: acc.bankProvider || 'CBA',
-        lastKnownBalance: String(acc.lastKnownBalance || '0.00'),
-        unbudgetedBuffer: String(acc.unbudgetedBuffer || '0.00'),
-        isPrivate: Boolean(acc.isPrivate),
-      }));
-
-      const poolsPayload = [
-        { id: existingEveryday?.id, name: existingEveryday?.name || 'Everyday Spending', poolType: 'EVERYDAY' as const, everydayAllowanceAmount: (totalEverydayMonthly || 1000).toFixed(2), isSurplusTarget: false, isCommitted: false, isPrivate: false },
-        { id: existingRegular?.id, name: existingRegular?.name || 'Regular Bills', poolType: 'REGULAR' as const, isSurplusTarget: false, isCommitted: false, isPrivate: false },
-        ...goals.map((g, idx) => ({ id: g.id?.startsWith('g-') ? undefined : g.id, name: g.name, poolType: 'GOAL' as const, targetAmount: (g.targetAmount || g.monthlyAmount * 12 || 1000).toFixed(2), targetDate: g.dueDate || null, isSurplusTarget: idx === 0, isCommitted: true, isPrivate: false })),
-      ];
-
-      const categoriesPayload = activeCategories.map((c) => {
-        const rawFreq = categoryFrequencies[c.name];
-        const budgetFreq: 'WEEKLY' | 'FORTNIGHTLY' | 'MONTHLY' | 'ANNUALLY' =
-          rawFreq === 'YEARLY' ? 'ANNUALLY' : 'MONTHLY';
-        const catId = 'id' in c && typeof c.id === 'string' && !c.id.startsWith('temp-') ? c.id : undefined;
-        return {
-          id: catId,
-          name: c.name,
-          poolType: c.type,
-          monthlyAmount: (c.monthlyAud || 0).toFixed(2),
-          enteredAmount: (c.monthlyAud || 0).toFixed(2),
-          budgetFrequency: budgetFreq,
-          icon: c.icon || 'wallet',
-          isEssential: c.type === 'REGULAR',
-        };
-      });
-
-      const incomesPayload = incomes.map((inc) => ({
-        id: inc.id?.startsWith('inc-') ? undefined : inc.id,
-        name: inc.name,
-        type: 'SALARY' as const,
-        amount: (inc.amount || 0).toFixed(2),
-        frequency: inc.frequency as any,
-        receivingAccountId: inc.receivingAccountId || null,
-      }));
-
-      await saveSetupBudgetMut.mutateAsync({
-        incomes: incomesPayload,
-        bankAccounts: accountsPayload.length > 0 ? accountsPayload : [
-          { name: 'Primary Account', bankProvider: 'CBA', lastKnownBalance: '1000.00', unbudgetedBuffer: '0.00', isPrivate: false },
-        ],
-        pools: poolsPayload,
-        categories: categoriesPayload,
-        archivedPools: [],
-        archivedCategoryIds: [],
-        archetypeApplied: accountsPayload.length >= 2 ? 'AUSSIE_2_ACCOUNT' : 'ALL_IN_ONE_CUSTOM',
-        autoCreateExpenseSchedules,
-      });
-
-      router.replace('/(setup)/complete');
-    } catch {
-      toast.error("Couldn't save setup. Please try again.", 'Setup Error');
-    } finally {
-      setIsSubmitting(false);
+  const handleAttemptRemoveCategory = (name: string) => {
+    const lower = name.trim().toLowerCase();
+    if (lower.includes('emergency') || lower.includes('surplus') || lower.includes('reserve')) {
+      toast.error(t('setup.surplusTargetDeleteWarning'), 'Protected Pool');
+      return;
     }
+    setRemovedCategoryNames((prev) => new Set(prev).add(name));
   };
 
   return (
@@ -117,9 +65,13 @@ export default function SetupCategoriesScreen() {
       ]}
       keyboardShouldPersistTaps="handled"
     >
-      <Text style={styles.stepLabel}>{t('setup.stepOf', { step: 5, total: 5 })}</Text>
+      <SetupProgressBar currentStep={totalSteps} totalSteps={totalSteps} isRerun={isRerun} />
+
+      <Text style={styles.stepLabel}>{t('setup.stepOf', { step: totalSteps, total: totalSteps })}</Text>
       <View style={styles.titleRow}>
-        <Text style={styles.title}>{t('setup.reviewSummaryTitle')}</Text>
+        <Text style={styles.title}>
+          {isRerun ? t('setup.recalibrateTitle') : t('setup.reviewSummaryTitle')}
+        </Text>
         <InfoTooltip title={t('setup.reviewSummaryTooltipTitle')} content={t('setup.reviewSummaryTooltipContent')} />
       </View>
 
@@ -150,7 +102,7 @@ export default function SetupCategoriesScreen() {
             freq={categoryFrequencies[cat.name] || 'MONTHLY'}
             onUpdateAmount={(amt) => setAmountOverrides((prev) => ({ ...prev, [cat.name]: amt }))}
             onUpdateFreq={(f) => setCategoryFrequencies((prev) => ({ ...prev, [cat.name]: f }))}
-            onRemove={() => setRemovedCategoryNames((prev) => new Set(prev).add(cat.name))}
+            onRemove={() => handleAttemptRemoveCategory(cat.name)}
           />
         ))}
       </View>
@@ -170,7 +122,9 @@ export default function SetupCategoriesScreen() {
           </View>
           <View style={styles.toggleTextCol}>
             <Text style={styles.toggleLabel}>{t('setup.autoScheduleBillsLabel')}</Text>
-            <Text style={styles.toggleHelp}>{t('setup.autoScheduleBillsHelp')}</Text>
+            <Text style={styles.toggleHelp}>
+              {isRerun ? t('setup.autoScheduleBillsRerunHelp') : t('setup.autoScheduleBillsHelp')}
+            </Text>
           </View>
         </TouchableOpacity>
         {activeRegular.map((cat) => (
@@ -180,30 +134,21 @@ export default function SetupCategoriesScreen() {
             freq={categoryFrequencies[cat.name] || 'MONTHLY'}
             onUpdateAmount={(amt) => setAmountOverrides((prev) => ({ ...prev, [cat.name]: amt }))}
             onUpdateFreq={(f) => setCategoryFrequencies((prev) => ({ ...prev, [cat.name]: f }))}
-            onRemove={() => setRemovedCategoryNames((prev) => new Set(prev).add(cat.name))}
+            onRemove={() => handleAttemptRemoveCategory(cat.name)}
           />
         ))}
       </View>
 
-      <View style={styles.customBox}>
-        <Text style={styles.customHeading}>{t('setup.addCustomCategory')}</Text>
-        <View style={styles.customRow}>
-          <TextInput
-            style={styles.customInput}
-            value={customName}
-            onChangeText={setCustomName}
-            placeholder={t('setup.addCustomCategoryPlaceholder')}
-            placeholderTextColor={DESIGN_TOKENS.colors.textMuted}
-          />
-          <TouchableOpacity
-            style={[styles.addBtn, !customName.trim() && { opacity: 0.5 }]}
-            onPress={handleAddCustom}
-            disabled={!customName.trim()}
-          >
-            <Text style={styles.addBtnText}>{t('setup.addCustomCategoryBtn')}</Text>
-          </TouchableOpacity>
-        </View>
-      </View>
+      <SetupCategoriesGoalsList
+        goals={activeGoals}
+        userGoals={goals}
+        totalGoalMonthly={totalGoalMonthly}
+        onRemove={handleAttemptRemoveCategory}
+      />
+
+      <SetupCategoriesCustomInput
+        onAdd={(newCat) => setCustomCategories((prev) => [...prev, newCat])}
+      />
 
       <View style={styles.actionRow}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
@@ -213,10 +158,22 @@ export default function SetupCategoriesScreen() {
           {isSubmitting ? (
             <ActivityIndicator color={DESIGN_TOKENS.colors.onAccent} size="small" />
           ) : (
-            <Text style={styles.nextBtnText}>{t('setup.finish.cta')}</Text>
+            <Text style={styles.nextBtnText}>
+              {isRerun ? t('setup.recalibrateBudget') : t('setup.finish.cta')}
+            </Text>
           )}
         </TouchableOpacity>
       </View>
+
+      <SetupBalanceSweepModal
+        visible={Boolean(activeSweepPool)}
+        activePool={activeSweepPool}
+        availablePools={availablePools}
+        selectedDest={selectedSweepDest}
+        onSelectDest={setSelectedSweepDest}
+        onConfirm={confirmSweepAndRemove}
+        onCancel={() => setActiveSweepPool(null)}
+      />
     </ScrollView>
   );
 }
@@ -225,7 +182,7 @@ const styles = StyleSheet.create({
   container: { padding: 20, backgroundColor: DESIGN_TOKENS.colors.background, flexGrow: 1 },
   stepLabel: { fontSize: 12, fontWeight: '700', color: DESIGN_TOKENS.colors.accent, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 },
   titleRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 16 },
-  title: { fontSize: 20, fontWeight: '900', color: DESIGN_TOKENS.colors.primary },
+  title: { fontSize: 20, fontWeight: '900', color: DESIGN_TOKENS.colors.primary, flex: 1 },
   summaryGrid: { flexDirection: 'row', gap: 8, marginBottom: 16 },
   summaryCard: { flex: 1, backgroundColor: DESIGN_TOKENS.colors.surface, padding: 10, borderRadius: DESIGN_TOKENS.radius.md, borderWidth: 1, borderColor: DESIGN_TOKENS.colors.slate[200] },
   summaryCardLabel: { fontSize: 10, fontWeight: '800', textTransform: 'uppercase', color: DESIGN_TOKENS.colors.textMuted },
@@ -236,12 +193,6 @@ const styles = StyleSheet.create({
   sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', borderBottomWidth: 1, borderBottomColor: DESIGN_TOKENS.colors.slate[100], paddingBottom: 8, marginBottom: 4 },
   sectionTitle: { fontSize: 13, fontWeight: '800', color: DESIGN_TOKENS.colors.primary },
   sectionTotal: { fontSize: 12, fontWeight: '700', color: DESIGN_TOKENS.colors.accent },
-  customBox: { backgroundColor: DESIGN_TOKENS.colors.surface, padding: 12, borderRadius: DESIGN_TOKENS.radius.lg, borderWidth: 1, borderColor: DESIGN_TOKENS.colors.slate[200], marginBottom: 20 },
-  customHeading: { fontSize: 12, fontWeight: '700', color: DESIGN_TOKENS.colors.primary, marginBottom: 8 },
-  customRow: { flexDirection: 'row', gap: 8 },
-  customInput: { flex: 1, backgroundColor: DESIGN_TOKENS.colors.surfaceVariant, borderWidth: 1, borderColor: DESIGN_TOKENS.colors.slate[200], borderRadius: DESIGN_TOKENS.radius.md, paddingHorizontal: 12, paddingVertical: 8, fontSize: 13, color: DESIGN_TOKENS.colors.textPrimary },
-  addBtn: { backgroundColor: DESIGN_TOKENS.colors.accent, paddingHorizontal: 16, justifyContent: 'center', borderRadius: DESIGN_TOKENS.radius.md },
-  addBtnText: { color: DESIGN_TOKENS.colors.onAccent, fontWeight: '700', fontSize: 12 },
   actionRow: { flexDirection: 'row', gap: 12, marginTop: 8, marginBottom: 40 },
   backBtn: { flex: 1, paddingVertical: 14, backgroundColor: DESIGN_TOKENS.colors.surface, borderWidth: 1, borderColor: DESIGN_TOKENS.colors.slate[300], borderRadius: DESIGN_TOKENS.radius.md, alignItems: 'center' },
   backBtnText: { fontSize: 14, fontWeight: '700', color: DESIGN_TOKENS.colors.slate[600] },

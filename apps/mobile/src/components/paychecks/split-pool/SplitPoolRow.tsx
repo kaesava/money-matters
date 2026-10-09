@@ -64,6 +64,21 @@ export const SplitPoolRow: React.FC<SplitPoolRowProps> = ({
                 </Text>
               </View>
             )}
+            {groupType === 'EVERYDAY' && !isReadOnly && curBal > 0 && (
+              <TouchableOpacity
+                onPress={() => {
+                  const curAllocation = parseFloat(linesMap[item.bucketId] ?? item.proposedAmount.toString()) || 0;
+                  const adjusted = Math.max(0, curAllocation - curBal);
+                  onLineAmountChange(item.bucketId, adjusted.toFixed(2));
+                }}
+                style={styles.leftoverChip}
+                activeOpacity={0.7}
+              >
+                <Text style={styles.leftoverChipText}>
+                  {t('paydayDrawer.leftoverCashReportedBadge', { amount: formatAUD(curBal) })}
+                </Text>
+              </TouchableOpacity>
+            )}
           </View>
 
           <View style={styles.statsMetaRow}>
@@ -101,7 +116,7 @@ export const SplitPoolRow: React.FC<SplitPoolRowProps> = ({
                 onPress={() => onLineAmountChange(item.bucketId, '0.00')}
                 style={styles.zeroChip}
               >
-                <Text style={styles.zeroChipText}>{t('paydayDrawer.setZeroPercent')}</Text>
+                <Text style={styles.zeroChipText}>{t('paydayDrawer.zeroPercent')}</Text>
               </TouchableOpacity>
             )}
 
@@ -173,6 +188,19 @@ const styles = StyleSheet.create({
     paddingVertical: 1,
   },
   autoSurplusBadgeText: {
+    fontSize: 9,
+    fontWeight: '800',
+    color: DESIGN_TOKENS.colors.successDark,
+  },
+  leftoverChip: {
+    backgroundColor: DESIGN_TOKENS.colors.successLight,
+    borderColor: DESIGN_TOKENS.colors.successBorder,
+    borderWidth: 1,
+    borderRadius: 4,
+    paddingHorizontal: 5,
+    paddingVertical: 1,
+  },
+  leftoverChipText: {
     fontSize: 9,
     fontWeight: '800',
     color: DESIGN_TOKENS.colors.successDark,

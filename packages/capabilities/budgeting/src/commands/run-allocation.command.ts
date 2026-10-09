@@ -151,6 +151,7 @@ export async function runAllocationCommand(
       monthlyAmount: monthlyAmt,
       targetAmount: pool.targetAmount ? parseFloat(pool.targetAmount) : null,
       everydayAllowanceAmount: pool.everydayAllowanceAmount ? parseFloat(pool.everydayAllowanceAmount) : null,
+      safetyBufferFloor: pool.safetyBufferFloor ? parseFloat(pool.safetyBufferFloor) : 0,
       targetDate: pool.targetDate || null,
       currentBalance: balance,
     };

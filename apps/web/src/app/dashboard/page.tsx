@@ -50,6 +50,10 @@ export default function DashboardPage() {
     .filter((p) => p.poolType === "EVERYDAY")
     .reduce((sum, p) => sum + parseFloat(p.everydayAllowanceAmount || p.targetAmount || "0"), 0);
 
+  const everydaySafetyBuffer = pools
+    .filter((p) => p.poolType === "EVERYDAY")
+    .reduce((sum, p) => sum + parseFloat(p.safetyBufferFloor || "0"), 0);
+
   const billsBalance = parseFloat(summaryQuery.data?.billsRemaining || "0");
   const billsMonthlyBudget = pools
     .filter((p) => p.poolType === "REGULAR")
@@ -336,6 +340,7 @@ export default function DashboardPage() {
           <BentoPoolsSection
             everydayBalance={everydayBalance}
             everydayMonthlyBudget={everydayMonthlyBudget}
+            safetyBufferFloor={everydaySafetyBuffer}
             billsBalance={billsBalance}
             billsMonthlyBudget={billsMonthlyBudget}
             daysUntilPayday={daysUntilPayday}

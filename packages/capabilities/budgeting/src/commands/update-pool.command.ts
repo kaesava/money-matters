@@ -29,6 +29,7 @@ export async function updatePoolCommand(
       .update(pools)
       .set({
         ...input,
+        safetyBufferFloor: input.safetyBufferFloor !== undefined ? input.safetyBufferFloor || "0.00" : undefined,
         updatedAt: new Date(),
         updatedBy: userId,
       })

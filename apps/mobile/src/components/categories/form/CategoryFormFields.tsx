@@ -18,6 +18,8 @@ interface CategoryFormFieldsProps {
   setNameError: (v: string) => void;
   type: 'GOAL' | 'REGULAR' | 'EVERYDAY';
   setType: (v: 'GOAL' | 'REGULAR' | 'EVERYDAY') => void;
+  safetyBufferFloor: string;
+  setSafetyBufferFloor: (v: string) => void;
   targetAmount: string;
   setTargetAmount: (v: string) => void;
   targetDate: string;
@@ -39,6 +41,8 @@ export const CategoryFormFields: React.FC<CategoryFormFieldsProps> = ({
   setNameError,
   type,
   setType,
+  safetyBufferFloor,
+  setSafetyBufferFloor,
   targetAmount,
   setTargetAmount,
   targetDate,
@@ -100,6 +104,15 @@ export const CategoryFormFields: React.FC<CategoryFormFieldsProps> = ({
           <Text style={styles.noticeTitle}>{t('categories.calculatedTarget')}</Text>
           <Text style={styles.noticeDesc}>{t('categories.calculatedTargetNotice')}</Text>
         </View>
+      )}
+
+      {type === 'EVERYDAY' && (
+        <AmountInput
+          label={t('categories.safetyBufferFloorLabel')}
+          value={safetyBufferFloor}
+          onChangeText={setSafetyBufferFloor}
+          placeholder="0.00"
+        />
       )}
 
       {type === 'GOAL' && (

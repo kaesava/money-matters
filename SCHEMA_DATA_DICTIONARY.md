@@ -75,8 +75,10 @@ Virtual budgeting buckets allocated on payday.
 - `name` (text, not null): Pool title (e.g. "Everyday", "Committed Bills", "Short-term Savings").
 - `poolType` (`EVERYDAY` | `REGULAR` | `GOAL` | `IRREGULAR`, not null): Allocation behavior category.
 - `isSurplusTarget` (boolean, not null, default `false`): Designates the overflow bucket (usually Everyday).
-- `targetBalance` (numeric(12,2), nullable): Target balance for savings/reserve pools.
-- **Consumers**: `packages/capabilities/budgeting` (waterfall allocation engine, pool management), Dashboard, Categories screen.
+- `everydayAllowanceAmount` (numeric(12,2), nullable): Configured monthly allowance for Everyday spending pools.
+- `safetyBufferFloor` (numeric(12,2), default `0.00`): Baseline safety buffer floor for Everyday pools.
+- `targetAmount` (numeric(12,2), nullable): Target balance for savings/reserve pools.
+- **Consumers**: `packages/capabilities/budgeting` (waterfall allocation engine, pool management), Dashboard, Categories screen, Simulation engine.
 
 ### 6. `categories` (`packages/db/src/schema/category.ts`)
 Budget categories mapped directly under pools.

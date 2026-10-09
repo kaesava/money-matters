@@ -11,15 +11,17 @@ describe("archivePoolCommand", () => {
     const mockDb: any = {
       select: vi.fn().mockImplementation(() => ({
         from: vi.fn().mockImplementation(() => ({
-          where: vi.fn().mockResolvedValue([
-            { id: "pool-everyday", poolType: "EVERYDAY", isSurplusTarget: false }
-          ])
+          innerJoin: vi.fn().mockImplementation(() => ({
+            where: vi.fn().mockResolvedValue([
+              { id: "pool-everyday", poolType: "EVERYDAY", isSurplusTarget: false, isPrivate: false }
+            ])
+          }))
         }))
       }))
     };
 
     await expect(archivePoolCommand("pool-everyday", tenantId, appId, userId, mockDb)).rejects.toThrow(
-      "The default Everyday pool cannot be deleted or archived."
+      "The shared Everyday pool cannot be deleted or archived."
     );
   });
 
@@ -27,9 +29,11 @@ describe("archivePoolCommand", () => {
     const mockDb: any = {
       select: vi.fn().mockImplementation(() => ({
         from: vi.fn().mockImplementation(() => ({
-          where: vi.fn().mockResolvedValue([
-            { id: "pool-surplus", poolType: "GOAL", isSurplusTarget: true }
-          ])
+          innerJoin: vi.fn().mockImplementation(() => ({
+            where: vi.fn().mockResolvedValue([
+              { id: "pool-surplus", poolType: "GOAL", isSurplusTarget: true, isPrivate: false }
+            ])
+          }))
         }))
       }))
     };
@@ -44,11 +48,12 @@ describe("archivePoolCommand", () => {
     const mockDb: any = {
       select: vi.fn().mockImplementation(() => ({
         from: vi.fn().mockImplementation((table: any) => ({
-          where: vi.fn().mockResolvedValue(
-            table === pools
-              ? [{ id: "pool-reg-1", poolType: "REGULAR", isSurplusTarget: false }]
-              : [] // no pending expense events
-          )
+          innerJoin: vi.fn().mockImplementation(() => ({
+            where: vi.fn().mockResolvedValue([
+              { id: "pool-reg-1", poolType: "REGULAR", isSurplusTarget: false, isPrivate: true }
+            ])
+          })),
+          where: vi.fn().mockResolvedValue([]) // no pending expense events
         }))
       })),
       update: vi.fn().mockImplementation((table: any) => ({
@@ -61,7 +66,6 @@ describe("archivePoolCommand", () => {
           };
         })
       }))
-
     };
 
     const res = await archivePoolCommand("pool-reg-1", tenantId, appId, userId, mockDb);

@@ -45,7 +45,7 @@ const styles = StyleSheet.create({
   card: {
     backgroundColor: DESIGN_TOKENS.colors.surface,
     borderWidth: 1.5,
-    borderColor: '#E2E8F0',
+    borderColor: DESIGN_TOKENS.colors.slate[200],
     borderRadius: DESIGN_TOKENS.radius.lg,
     padding: 14,
     marginBottom: 10,
@@ -56,5 +56,5 @@ const styles = StyleSheet.create({
   badgeContainer: { paddingHorizontal: 8, paddingVertical: 2, borderRadius: 12 },
   badgeText: { fontSize: 10, fontWeight: '800' },
   name: { fontSize: 14, fontWeight: '800', color: DESIGN_TOKENS.colors.primary, marginBottom: 4 },
-  desc: { fontSize: 12, color: '#475569', lineHeight: 16 },
+  desc: { fontSize: 12, color: DESIGN_TOKENS.colors.slate[600], lineHeight: 16 },
 });

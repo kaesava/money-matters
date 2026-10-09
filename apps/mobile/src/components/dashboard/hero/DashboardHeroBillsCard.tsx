@@ -31,20 +31,27 @@ export const DashboardHeroBillsCard: React.FC<DashboardHeroBillsCardProps> = ({
       style={styles.billsCard}
     >
       <View style={styles.billsTopRow}>
-        <Text style={styles.sectionTag}>{t('poolTypes.bills')}</Text>
+        <Text style={styles.sectionTag}>{t('dashboard.hero.billsPoolTitle')}</Text>
         <Text style={styles.billsBalance}>{formatAUD(billsBalance)}</Text>
       </View>
+
+      <Text style={styles.billsSubtitle}>
+        {t('dashboard.hero.billsRingFencedSubtitle')}
+      </Text>
 
       {billsShortfall > 0 ? (
         <View style={styles.shortfallAlert}>
           <View style={styles.shortfallTextWrap}>
             <Text style={styles.shortfallTitle}>
-              {t('dashboard.billsShortAmount', {
+              {t('dashboard.hero.shortfallOf', {
                 amount: formatAUD(billsShortfall),
               })}
             </Text>
             <Text style={styles.shortfallDetail}>
-              {billsDue14DaysCount} bill(s) totaling {formatAUD(totalBillsDue14Days)} due in 14 days
+              {t('dashboard.hero.billsDueSummary', {
+                count: billsDue14DaysCount,
+                amount: formatAUD(totalBillsDue14Days),
+              })}
             </Text>
           </View>
           <TouchableOpacity
@@ -53,7 +60,7 @@ export const DashboardHeroBillsCard: React.FC<DashboardHeroBillsCardProps> = ({
             activeOpacity={0.8}
           >
             <Text style={styles.coverButtonText}>
-              {t('dashboard.quickActions.moveMoney')} →
+              {t('dashboard.hero.coverShortfall')}
             </Text>
           </TouchableOpacity>
         </View>
@@ -61,13 +68,15 @@ export const DashboardHeroBillsCard: React.FC<DashboardHeroBillsCardProps> = ({
         <View style={styles.coveredAlert}>
           <Feather name="check-circle" size={14} color={DESIGN_TOKENS.colors.successDark} />
           <Text style={styles.coveredText}>
-            {t('dashboard.bills14DaysCovered')}
+            {t('dashboard.hero.billsFullyCovered')}
           </Text>
         </View>
       )}
 
       <View style={styles.billsFooter}>
-        <Text style={styles.billsCapLabel}>Target Monthly Bills:</Text>
+        <Text style={styles.billsCapLabel}>
+          {t('dashboard.hero.targetMonthlyBills', { amount: '' }).replace(': ', '').trim()}
+        </Text>
         <Text style={styles.billsCapValue}>{formatAUD(billsMonthlyBudget)}</Text>
       </View>
     </TouchableOpacity>
@@ -105,6 +114,11 @@ const styles = StyleSheet.create({
     fontWeight: '900',
     fontFamily: 'monospace',
     color: DESIGN_TOKENS.colors.primary,
+  },
+  billsSubtitle: {
+    fontSize: 11,
+    color: DESIGN_TOKENS.colors.textMuted,
+    fontWeight: '500',
   },
   shortfallAlert: {
     backgroundColor: DESIGN_TOKENS.colors.criticalLight,

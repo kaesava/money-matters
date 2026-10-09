@@ -13,13 +13,10 @@ import { DashboardHeroCard } from '../../components/DashboardHeroCard';
 import { MobileNextPaydayCard } from '../../components/dashboard/MobileNextPaydayCard';
 import { AttentionItemsList } from '../../components/AttentionItemsList';
 import { GoalsProgressStrip } from '../../components/dashboard/GoalsProgressStrip';
-import { BankBalancesStrip } from '../../components/dashboard/BankBalancesStrip';
 import { TrialBanner } from '../../components/dashboard/TrialBanner';
 import { MobileMissingSchedulesBanner } from '../../components/dashboard/MobileMissingSchedulesBanner';
 import { MarkPaidModal, MarkPaidEvent } from '../../components/MarkPaidModal';
 import { QuickExpenseModal, QuickActionType } from '../../components/QuickExpenseModal';
-import { HomeAffordBannerCard } from '../../components/dashboard/HomeAffordBannerCard';
-import { HomeQuickActionsGrid } from '../../components/dashboard/HomeQuickActionsGrid';
 import { useHomeData } from '../../components/dashboard/useHomeData';
 
 export default function HomeScreen() {
@@ -39,15 +36,13 @@ export default function HomeScreen() {
     billsCount,
     everydayBalance,
     everydayMonthlyBudget,
+    everydaySafetyBuffer,
     billsBalance,
     billsMonthlyBudget,
     daysUntilPayday,
     billsShortfall,
     billsDue14DaysCount,
     totalBillsDue14Days,
-    needsAttentionCount,
-    behindCount,
-    onTrackCount,
     upcomingIncomeList,
     attentionItems,
     goalsList,
@@ -95,18 +90,14 @@ export default function HomeScreen() {
         <DashboardHeroCard
           everydayBalance={everydayBalance}
           everydayMonthlyBudget={everydayMonthlyBudget}
+          safetyBufferFloor={everydaySafetyBuffer}
           billsBalance={billsBalance}
           billsMonthlyBudget={billsMonthlyBudget}
           daysUntilPayday={daysUntilPayday}
           billsShortfall={billsShortfall}
           billsDue14DaysCount={billsDue14DaysCount}
           totalBillsDue14Days={totalBillsDue14Days}
-          needsAttentionCount={needsAttentionCount}
-          behindCount={behindCount}
-          onTrackCount={onTrackCount}
           onMoveMoney={() => openQuickModal('TRANSFER')}
-          onReconcile={() => router.push('/(app)/settings/bank-accounts' as never)}
-          onSelectFilter={() => router.push('/(app)/categories')}
           onEverydayPress={() =>
             everydayPool
               ? router.push(`/(app)/pools/${everydayPool.id}` as never)
@@ -119,13 +110,11 @@ export default function HomeScreen() {
           }
         />
 
-        <HomeAffordBannerCard />
-
         <MobileNextPaydayCard
           upcomingIncomes={upcomingIncomeList}
           onPressRunSplit={(id: string) => {
             if (posthog) posthog.capture('payday_wizard_opened');
-            router.push(`/(app)/paychecks/${id}` as never);
+            router.push(`/(app)/income-split/${id}` as never);
           }}
           onDeleteIncome={(id: string) => {
             deleteIncomeMutation.mutate({ eventId: id });
@@ -158,8 +147,6 @@ export default function HomeScreen() {
         />
 
         <GoalsProgressStrip goals={goalsList} />
-        <BankBalancesStrip accounts={bankAccounts} />
-        <HomeQuickActionsGrid onOpenQuickModal={openQuickModal} />
       </ScrollView>
 
       <QuickExpenseModal

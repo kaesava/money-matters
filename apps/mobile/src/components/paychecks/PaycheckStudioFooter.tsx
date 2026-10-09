@@ -29,7 +29,7 @@ export function PaycheckStudioFooter({
         ]}
       >
         <Text style={styles.saveDraftFooterText}>
-          {isFutureDate ? t('paydayDrawer.saveAsDraft') : t('common.save')}
+          {t('common.save')}
         </Text>
       </TouchableOpacity>
 

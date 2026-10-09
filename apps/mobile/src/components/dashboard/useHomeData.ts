@@ -188,6 +188,9 @@ export function useHomeData(token?: string) {
     billsCount: expenseEventsQuery.data?.length ?? 0,
     everydayBalance,
     everydayMonthlyBudget,
+    everydaySafetyBuffer: pools
+      .filter((c) => c.poolType === 'EVERYDAY')
+      .reduce((sum, c) => sum + parseFloat(c.safetyBufferFloor || '0'), 0),
     billsBalance,
     billsMonthlyBudget,
     daysUntilPayday,

@@ -1,23 +1,13 @@
 import React, { useState, useMemo } from 'react';
-import {
-  View,
-  Text,
-  FlatList,
-  TouchableOpacity,
-  StyleSheet,
-  ActivityIndicator,
-  Dimensions,
-} from 'react-native';
+import { View, Text, StyleSheet, ActivityIndicator } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
-import { DESIGN_TOKENS, showMobileConfirm } from '@money-matters/ui/mobile';
+import { DESIGN_TOKENS, showMobileConfirm, useMobileToast } from '@money-matters/ui/mobile';
 import { t } from '@money-matters/i18n';
 import { trpc } from '../../lib/trpc';
-import { formatAUD, formatDate } from '../../lib/format';
-import { MatrixPaydayCard } from './MatrixPaydayCard';
-
-const { width: SCREEN_WIDTH } = Dimensions.get('window');
-const CARD_WIDTH = SCREEN_WIDTH - 40;
+import { MobileSpreadsheetMatrix } from './matrix/MobileSpreadsheetMatrix';
+import type { MobileMatrixCategoryItem, MobileMatrixGroupData } from './matrix/MobileMatrixFrozenColumn';
+import type { MobileMatrixColumnData } from './matrix/MobileMatrixPaydayColumnHeader';
 
 interface MobileMatrixPlanTabProps {
   onOpenCategoryModal?: (params: {
@@ -32,214 +22,203 @@ interface MobileMatrixPlanTabProps {
 
 export function MobileMatrixPlanTab({ onOpenCategoryModal }: MobileMatrixPlanTabProps) {
   const router = useRouter();
-  const D = DESIGN_TOKENS;
-  const [expandedColId, setExpandedColId] = useState<string | null>(null);
-  const [showFull12, setShowFull12] = useState(false);
-  const [statusFilter, setStatusFilter] = useState<'ALL' | 'PENDING' | 'CONFIRMED'>('ALL');
+  const toast = useMobileToast();
+  const utils = trpc.useUtils();
+  const [savingColId, setSavingColId] = useState<string | null>(null);
 
-  const { data, isLoading } = trpc.getMatrixProjectionData.useQuery({ monthsAhead: 12 });
-  const { data: plansData } = trpc.listAllAllocationPlans.useQuery();
+  const { data, isLoading: projectionLoading } = trpc.getMatrixProjectionData.useQuery({ monthsAhead: 12 });
+  const { data: plansData, isLoading: plansLoading } = trpc.listAllAllocationPlans.useQuery();
+  const { data: poolsData, isLoading: poolsLoading } = trpc.listPools.useQuery();
+
+  const isLoading = projectionLoading || plansLoading || poolsLoading;
 
   const saveAllocationMut = trpc.saveAutoAllocation.useMutation();
   const deleteIncomeEventMut = trpc.deleteIncomeEvent.useMutation();
 
-  // Build a map: incomeEventId → plan status (PENDING/CONFIRMED)
-  const planStateMap = useMemo<Record<string, 'PENDING' | 'CONFIRMED'>>(() => {
+  // Column state map: AUTO | SAVED | CONFIRMED
+  const columnStateMap = useMemo<Record<string, 'AUTO' | 'SAVED' | 'CONFIRMED'>>(() => {
     if (!plansData) return {};
-    const map: Record<string, 'PENDING' | 'CONFIRMED'> = {};
+    const map: Record<string, 'AUTO' | 'SAVED' | 'CONFIRMED'> = {};
     for (const plan of plansData) {
       if (plan.incomeEventId) {
-        map[plan.incomeEventId] = plan.status as 'PENDING' | 'CONFIRMED';
+        map[plan.incomeEventId] = plan.status === 'CONFIRMED' ? 'CONFIRMED' : 'SAVED';
       }
     }
     return map;
   }, [plansData]);
 
+  // Saved plan overrides map: `${incomeEventId}_${poolId}` -> number
+  const savedPlanOverrides = useMemo(() => {
+    const map: Record<string, number> = {};
+    if (plansData) {
+      for (const plan of plansData) {
+        if (plan.lines) {
+          for (const line of plan.lines) {
+            const typedLine = line as { confirmedAmount?: string; proposedAmount?: string; poolId: string };
+            const amount = parseFloat(typedLine.confirmedAmount || typedLine.proposedAmount || '0');
+            map[`${plan.incomeEventId}_${typedLine.poolId}`] = amount;
+          }
+        }
+      }
+    }
+    return map;
+  }, [plansData]);
+
+  const rawColumns = (data?.projection?.columns ?? []) as MobileMatrixColumnData[];
+  const rawGroups = (data?.projection?.groups ?? []) as unknown as MobileMatrixGroupData[];
+
+  const categories: MobileMatrixCategoryItem[] = useMemo(() => {
+    if (!poolsData) return [];
+    return poolsData.map((p) => ({
+      id: p.id,
+      name: p.name,
+      currentBalance: p.currentBalance || 0,
+      monthlyAmount: p.targetAmount ? parseFloat(p.targetAmount) : null,
+      targetAmount: p.targetAmount ? parseFloat(p.targetAmount) : null,
+      everydayAllowanceAmount: p.everydayAllowanceAmount ? parseFloat(p.everydayAllowanceAmount) : null,
+      isPrivate: Boolean(p.isPrivate),
+    }));
+  }, [poolsData]);
+
   if (isLoading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#2563eb" />
+        <ActivityIndicator size="large" color={DESIGN_TOKENS.colors.sereneBlue} />
       </View>
     );
   }
 
-  const allColumns = data?.projection?.columns ?? [];
-  const groups = data?.projection?.groups ?? [];
-
-  if (allColumns.length === 0) {
+  if (rawColumns.length === 0) {
     return (
       <View style={styles.emptyContainer}>
-        <Feather name="calendar" size={40} color="#94A3B8" />
+        <Feather name="calendar" size={40} color={DESIGN_TOKENS.colors.slate[400]} />
         <Text style={styles.emptyTitle}>{t('transactions.noPaydaysFound')}</Text>
         <Text style={styles.emptySubtitle}>{t('transactions.noPaydaysSubtitle')}</Text>
       </View>
     );
   }
 
-  // Horizon: next 5 or full 12
-  const horizonColumns = showFull12 ? allColumns : allColumns.slice(0, 5);
+  const handleReview = (colId: string) => {
+    router.push(`/(app)/income-split/${colId}` as never);
+  };
 
-  // Status filter using plan state map
-  const filteredColumns = statusFilter === 'ALL'
-    ? horizonColumns
-    : statusFilter === 'CONFIRMED'
-    ? horizonColumns.filter((col) => planStateMap[col.id] === 'CONFIRMED')
-    : horizonColumns.filter((col) => !planStateMap[col.id]);
-
-  async function handleSave(incomeEventId: string, totalIncome: number) {
+  const handleSave = (incomeEventId: string, totalIncome: number) => {
     showMobileConfirm({
       title: t('matrix.saveDialogTitle'),
       message: t('matrix.saveDialogDescription'),
       confirmText: t('matrix.saveDialogConfirm'),
+      cancelText: t('common.cancel'),
+      isDestructive: false,
       onConfirm: async () => {
-        await saveAllocationMut.mutateAsync({
-          incomeEventId,
-          totalIncomeAmount: totalIncome.toFixed(2),
-        });
+        try {
+          setSavingColId(incomeEventId);
+          await saveAllocationMut.mutateAsync({
+            incomeEventId,
+            totalIncomeAmount: totalIncome.toFixed(2),
+          });
+          await utils.listAllAllocationPlans.invalidate();
+          toast.success(t('matrix.saveSplitSuccess'));
+        } catch (err: unknown) {
+          toast.error((err as Error).message || t('paydayDrawer.saveSplitFailed'));
+        } finally {
+          setSavingColId(null);
+        }
       },
     });
-  }
+  };
 
-  function handleDelete(incomeEventId: string) {
+  const handleDelete = (incomeEventId: string) => {
     showMobileConfirm({
-      title: t('common.delete'),
-      message: t('payday.deleteIncomeEventConfirm'),
+      title: t('common.deleteIncomeTitle'),
+      message: t('paydayDrawer.deleteDescription'),
       confirmText: t('common.delete'),
-      onConfirm: () => {
-        deleteIncomeEventMut.mutate({ eventId: incomeEventId });
+      cancelText: t('common.cancel'),
+      isDestructive: true,
+      onConfirm: async () => {
+        try {
+          await deleteIncomeEventMut.mutateAsync({ eventId: incomeEventId });
+          toast.success(t('paydayDrawer.incomeDeleted'));
+          await utils.getMatrixProjectionData.invalidate();
+          await utils.listAllAllocationPlans.invalidate();
+        } catch (err: unknown) {
+          toast.error((err as Error).message || t('paydayDrawer.deleteFailed'));
+        }
       },
     });
-  }
+  };
+
+  const handleOpenCategoryDrawer = (poolId: string, poolName: string) => {
+    if (!onOpenCategoryModal) return;
+    const pool = poolsData?.find((p) => p.id === poolId);
+    const events = (data?.rawExpenseEvents ?? [])
+      .filter((e) => e.categoryId === poolId)
+      .map((e) => ({
+        id: e.id,
+        name: e.name || poolName,
+        amount: parseFloat(e.actualAmount || e.expectedAmount || '0'),
+        dueDate: e.expectedDate || '',
+        status: e.status,
+      }));
+
+    onOpenCategoryModal({
+      poolId,
+      poolName,
+      poolType: pool?.poolType,
+      currentBalance: pool?.currentBalance ?? 0,
+      targetAmount: pool?.targetAmount ? parseFloat(pool.targetAmount) : undefined,
+      events,
+    });
+  };
 
   return (
     <View style={styles.container}>
-      {/* Horizon + Status filter controls */}
-      <View style={styles.controlsRow}>
-        <TouchableOpacity
-          style={styles.horizonToggle}
-          onPress={() => setShowFull12((v) => !v)}
-        >
-          <Feather name={showFull12 ? 'minimize-2' : 'maximize-2'} size={13} color="#2563eb" />
-          <Text style={styles.horizonToggleText}>
-            {showFull12 ? t('matrix.showNext5') : t('matrix.showFull12Events')}
-          </Text>
-        </TouchableOpacity>
-
-        <View style={styles.statusPills}>
-          {(['ALL', 'PENDING', 'CONFIRMED'] as const).map((s) => (
-            <TouchableOpacity
-              key={s}
-              style={[styles.pill, statusFilter === s && styles.pillActive]}
-              onPress={() => setStatusFilter(s)}
-            >
-              <Text style={[styles.pillText, statusFilter === s && styles.pillTextActive]}>
-                {t(`matrix.status${s}` as 'matrix.statusAll' | 'matrix.statusPending' | 'matrix.statusConfirmed')}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </View>
-      </View>
-
-      <FlatList
-        horizontal
-        pagingEnabled
-        showsHorizontalScrollIndicator={false}
-        snapToInterval={CARD_WIDTH + 16}
-        decelerationRate="fast"
-        contentContainerStyle={styles.carouselContainer}
-        data={filteredColumns}
-        keyExtractor={(item) => item.id}
-        renderItem={({ item, index }) => (
-          <MatrixPaydayCard
-            key={item.id}
-            item={item}
-            index={index}
-            groups={groups}
-            cardWidth={CARD_WIDTH}
-            isExpanded={expandedColId === item.id}
-            planStatus={planStateMap[item.id]}
-            onToggleExpand={() => setExpandedColId(expandedColId === item.id ? null : item.id)}
-            onReview={() => router.push(`/(app)/paychecks/${item.id}` as never)}
-            onSave={() => handleSave(item.id, item.totalIncome)}
-            onDelete={() => handleDelete(item.id)}
-            onOpenCategoryModal={onOpenCategoryModal}
-          />
-        )}
+      <MobileSpreadsheetMatrix
+        columns={rawColumns}
+        groups={rawGroups}
+        categories={categories}
+        columnStateMap={columnStateMap}
+        savedPlanOverrides={savedPlanOverrides}
+        savingColId={savingColId}
+        onReview={handleReview}
+        onSave={handleSave}
+        onDelete={handleDelete}
+        onOpenCategoryDrawer={handleOpenCategoryDrawer}
       />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { gap: 12 },
+  container: {
+    flex: 1,
+  },
   loadingContainer: {
+    flex: 1,
     paddingVertical: 50,
     alignItems: 'center',
     justifyContent: 'center',
   },
   emptyContainer: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: DESIGN_TOKENS.colors.surface,
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: DESIGN_TOKENS.colors.slate[200],
     padding: 30,
     alignItems: 'center',
     gap: 10,
     marginHorizontal: 20,
+    marginTop: 20,
   },
   emptyTitle: {
     fontSize: 16,
     fontWeight: '800',
-    color: '#1B2B4B',
+    color: DESIGN_TOKENS.colors.primary,
   },
   emptySubtitle: {
     fontSize: 12,
-    color: '#64748B',
+    color: DESIGN_TOKENS.colors.textMuted,
     textAlign: 'center',
     lineHeight: 18,
-  },
-  controlsRow: {
-    paddingHorizontal: 20,
-    gap: 10,
-  },
-  horizonToggle: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  horizonToggleText: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: '#2563eb',
-  },
-  statusPills: {
-    flexDirection: 'row',
-    gap: 6,
-  },
-  pill: {
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 20,
-    backgroundColor: '#F1F5F9',
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-  },
-  pillActive: {
-    backgroundColor: '#2563eb',
-    borderColor: '#2563eb',
-  },
-  pillText: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: '#64748B',
-  },
-  pillTextActive: {
-    color: '#FFFFFF',
-  },
-  carouselContainer: {
-    paddingHorizontal: 20,
-    gap: 16,
-    paddingVertical: 4,
   },
 });
 

@@ -284,7 +284,7 @@ export async function seedDatabase(connectionString: string, envLabel: string) {
   // 5. Pools Definition
   const poolDefinitions = [
     // 1. Joint Everyday Pool
-    { key: "everyday", name: "Joint Everyday Pool", poolType: "EVERYDAY" as const, bankAccountId: everydayAccount.id, everydayAllowanceAmount: "2641.54", isCommitted: false, isSurplusTarget: false },
+    { key: "everyday", name: "Joint Everyday Pool", poolType: "EVERYDAY" as const, bankAccountId: everydayAccount.id, everydayAllowanceAmount: "2641.54", safetyBufferFloor: "100.00", isCommitted: false, isSurplusTarget: false },
     // 2. Household Bills Pool
     { key: "bills", name: "Household Bills Pool", poolType: "REGULAR" as const, bankAccountId: misaAccount.id, isCommitted: true, targetAmount: "1099.00", isSurplusTarget: false },
     // 3. Granular Goal Pools (Linked to MISA Offset)
@@ -325,6 +325,7 @@ export async function seedDatabase(connectionString: string, envLabel: string) {
       poolType: p.poolType,
       bankAccountId: p.bankAccountId,
       everydayAllowanceAmount: p.everydayAllowanceAmount,
+      safetyBufferFloor: (p as any).safetyBufferFloor ?? "0.00",
       targetAmount: p.targetAmount,
       targetDate: p.targetDate ?? undefined,
       isCommitted: p.isCommitted,

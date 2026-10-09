@@ -7,6 +7,7 @@ import { formatAUD } from '../../../lib/format';
 interface DashboardHeroEverydayCardProps {
   readonly everydayBalance: number;
   readonly everydayMonthlyBudget: number;
+  readonly safetyBufferFloor?: number;
   readonly dailySpendable: number;
   readonly effectiveDays: number;
   readonly daysUntilPayday?: number;
@@ -14,12 +15,12 @@ interface DashboardHeroEverydayCardProps {
   readonly isBillsRisk: boolean;
   readonly isPacingTight: boolean;
   readonly onEverydayPress?: () => void;
-  readonly onReconcile: () => void;
 }
 
 export const DashboardHeroEverydayCard: React.FC<DashboardHeroEverydayCardProps> = ({
   everydayBalance,
   everydayMonthlyBudget,
+  safetyBufferFloor = 0,
   dailySpendable,
   effectiveDays,
   daysUntilPayday,
@@ -27,7 +28,6 @@ export const DashboardHeroEverydayCard: React.FC<DashboardHeroEverydayCardProps>
   isBillsRisk,
   isPacingTight,
   onEverydayPress,
-  onReconcile,
 }) => {
   return (
     <TouchableOpacity
@@ -68,16 +68,16 @@ export const DashboardHeroEverydayCard: React.FC<DashboardHeroEverydayCardProps>
 
       <Text style={styles.pacingSubtitle}>
         {daysUntilPayday !== undefined && daysUntilPayday <= 0
-          ? t('dashboard.hero.everydayPacingDaysLeftToday', {
+          ? t('dashboard.hero.estRemainingToday', {
               amount: formatAUD(everydayBalance),
             })
-          : t('dashboard.hero.everydayPacingDaysLeft', {
+          : t('dashboard.hero.estRemaining', {
               amount: formatAUD(everydayBalance),
               days: effectiveDays,
             })}
       </Text>
 
-      {/* Progress Bar & Quick Balance Check */}
+      {/* Progress Bar & Buffer Protection */}
       <View style={styles.pacingFooter}>
         <View style={styles.pacingFooterMeta}>
           <Text style={styles.cycleAllowanceText}>
@@ -85,11 +85,11 @@ export const DashboardHeroEverydayCard: React.FC<DashboardHeroEverydayCardProps>
               amount: formatAUD(everydayMonthlyBudget),
             })}
           </Text>
-          <TouchableOpacity onPress={onReconcile} activeOpacity={0.7}>
-            <Text style={styles.reconcileText}>
-              {t('dashboard.hero.reconcileQuickAction')} →
+          {safetyBufferFloor > 0 && (
+            <Text style={styles.bufferProtectedText}>
+              🛡️ {t('dashboard.hero.bufferProtected', { amount: formatAUD(safetyBufferFloor) })}
             </Text>
-          </TouchableOpacity>
+          )}
         </View>
 
         <View style={styles.progressBarTrack}>
@@ -207,10 +207,10 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: DESIGN_TOKENS.colors.textMuted,
   },
-  reconcileText: {
+  bufferProtectedText: {
     fontSize: 11,
     fontWeight: '800',
-    color: DESIGN_TOKENS.colors.accent,
+    color: DESIGN_TOKENS.colors.successDark,
   },
   progressBarTrack: {
     height: 6,

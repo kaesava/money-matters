@@ -10,6 +10,9 @@ import {
 } from '@money-matters/types';
 
 export interface SetupWizardContextValue {
+  isRerun: boolean;
+  totalSteps: number;
+  isLoadingExistingData: boolean;
   incomes: IncomeItem[];
   setIncomes: React.Dispatch<React.SetStateAction<IncomeItem[]>>;
   goals: UserGoalItem[];
@@ -71,4 +74,14 @@ export interface SetupWizardContextValue {
   totalRegularMonthly: number;
   totalGoalMonthly: number;
   totalAllocatedMonthly: number;
+  sweepQueue: Array<{ poolId: string; sweepDestinationPoolId?: string | null }>;
+  activeSweepPool: { id: string; name: string; balance: number } | null;
+  setActiveSweepPool: (pool: { id: string; name: string; balance: number } | null) => void;
+  selectedSweepDest: string;
+  setSelectedSweepDest: (id: string) => void;
+  availablePools: Array<{ id: string; name: string; isSurplusTarget?: boolean | null }>;
+  handleRemoveGoal: (id: string) => void;
+  confirmSweepAndRemove: () => void;
+  autoCreateExpenseSchedules: boolean;
+  setAutoCreateExpenseSchedules: React.Dispatch<React.SetStateAction<boolean>>;
 }

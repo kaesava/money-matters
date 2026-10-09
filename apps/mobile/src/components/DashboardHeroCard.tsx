@@ -7,18 +7,14 @@ import { DashboardHealthFilterStrip } from './dashboard/hero/DashboardHealthFilt
 export interface DashboardHeroCardProps {
   readonly everydayBalance: number;
   readonly everydayMonthlyBudget?: number;
+  readonly safetyBufferFloor?: number;
   readonly billsBalance: number;
   readonly billsMonthlyBudget?: number;
   readonly daysUntilPayday?: number;
   readonly billsShortfall: number;
   readonly billsDue14DaysCount: number;
   readonly totalBillsDue14Days: number;
-  readonly needsAttentionCount: number;
-  readonly behindCount: number;
-  readonly onTrackCount: number;
   readonly onMoveMoney: () => void;
-  readonly onReconcile: () => void;
-  readonly onSelectFilter?: (health: string) => void;
   readonly onEverydayPress?: () => void;
   readonly onBillsPress?: () => void;
 }
@@ -26,18 +22,14 @@ export interface DashboardHeroCardProps {
 export const DashboardHeroCard: React.FC<DashboardHeroCardProps> = ({
   everydayBalance,
   everydayMonthlyBudget = 0,
+  safetyBufferFloor = 0,
   billsBalance,
   billsMonthlyBudget = 0,
   daysUntilPayday,
   billsShortfall,
   billsDue14DaysCount,
   totalBillsDue14Days,
-  needsAttentionCount,
-  behindCount,
-  onTrackCount,
   onMoveMoney,
-  onReconcile,
-  onSelectFilter,
   onEverydayPress,
   onBillsPress,
 }) => {
@@ -70,6 +62,7 @@ export const DashboardHeroCard: React.FC<DashboardHeroCardProps> = ({
       <DashboardHeroEverydayCard
         everydayBalance={everydayBalance}
         everydayMonthlyBudget={everydayMonthlyBudget}
+        safetyBufferFloor={safetyBufferFloor}
         dailySpendable={dailySpendable}
         effectiveDays={effectiveDays}
         daysUntilPayday={daysUntilPayday}
@@ -77,7 +70,6 @@ export const DashboardHeroCard: React.FC<DashboardHeroCardProps> = ({
         isBillsRisk={isBillsRisk}
         isPacingTight={isPacingTight}
         onEverydayPress={onEverydayPress}
-        onReconcile={onReconcile}
       />
 
       <DashboardHeroBillsCard
@@ -88,13 +80,6 @@ export const DashboardHeroCard: React.FC<DashboardHeroCardProps> = ({
         totalBillsDue14Days={totalBillsDue14Days}
         onBillsPress={onBillsPress}
         onMoveMoney={onMoveMoney}
-      />
-
-      <DashboardHealthFilterStrip
-        behindCount={behindCount}
-        needsAttentionCount={needsAttentionCount}
-        onTrackCount={onTrackCount}
-        onSelectFilter={onSelectFilter}
       />
     </View>
   );

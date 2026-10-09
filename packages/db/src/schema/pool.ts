@@ -14,6 +14,7 @@ export const pools = pgTable("pools", {
 
   // EVERYDAY-specific fields
   everydayAllowanceAmount: numeric("everyday_allowance_amount", { precision: 12, scale: 2 }),
+  safetyBufferFloor: numeric("safety_buffer_floor", { precision: 12, scale: 2 }).default("0.00"),
 
   // GOAL-specific fields
   targetAmount: numeric("target_amount", { precision: 12, scale: 2 }),

@@ -133,7 +133,7 @@ export default function IncomeAndBillsScreen() {
           initialPoolId={searchParams.poolId}
           initialCategoryId={searchParams.categoryId}
           onOpenPaydayWizard={(eventId) => {
-            router.push(`/(app)/paychecks/${eventId}` as any);
+            router.push(`/(app)/income-split/${eventId}` as never);
           }}
           onMarkExpensePaid={(eventId, amount) => {
             const expense = rawExpenseEvents.find((e) => e.id === eventId);

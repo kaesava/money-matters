@@ -18,6 +18,7 @@ interface CategoryFormModalProps {
     isPrivate?: boolean | null;
     monthlyAmount?: string | null;
     everydayAllowanceAmount?: string | null;
+    safetyBufferFloor?: string | null;
     targetAmount?: string | null;
     targetDate?: string | null;
     isSurplusTarget?: boolean | null;
@@ -42,6 +43,7 @@ export function CategoryFormModal({
   const [name, setName] = useState("");
   const [type, setType] = useState<"EVERYDAY" | "REGULAR" | "GOAL">("REGULAR");
   const [bankAccountId, setBankAccountId] = useState("");
+  const [safetyBufferFloor, setSafetyBufferFloor] = useState("");
   const [targetAmount, setTargetAmount] = useState("");
   const [targetDate, setTargetDate] = useState("");
   const [isSurplusTarget, setIsSurplusTarget] = useState(false);
@@ -58,6 +60,7 @@ export function CategoryFormModal({
       setName(categoryToEdit.name);
       setType(categoryToEdit.poolType || categoryToEdit.type || "REGULAR");
       setBankAccountId(categoryToEdit.bankAccountId || "");
+      setSafetyBufferFloor(categoryToEdit.safetyBufferFloor || "");
       setTargetAmount(categoryToEdit.targetAmount || "");
       setTargetDate(categoryToEdit.targetDate || "");
       setIsSurplusTarget(categoryToEdit.isSurplusTarget ?? false);
@@ -65,6 +68,7 @@ export function CategoryFormModal({
       setName("");
       setType("REGULAR");
       setBankAccountId(""); // Mandatory: No pre-selection
+      setSafetyBufferFloor("");
       setTargetAmount("");
       setTargetDate("");
       setIsSurplusTarget(false);
@@ -91,16 +95,18 @@ export function CategoryFormModal({
     if (!categoryToEdit) return false;
     const initialName = categoryToEdit.name || "";
     const initialTarget = categoryToEdit.targetAmount || "";
+    const initialFloor = categoryToEdit.safetyBufferFloor || "";
     const initialDate = categoryToEdit.targetDate || "";
     const initialSurplus = categoryToEdit.isSurplusTarget ?? false;
 
     return (
       name.trim() !== initialName ||
+      safetyBufferFloor !== initialFloor ||
       targetAmount !== initialTarget ||
       targetDate !== initialDate ||
       isSurplusTarget !== initialSurplus
     );
-  }, [isEdit, categoryToEdit, name, bankAccountId, targetAmount, targetDate, isSurplusTarget]);
+  }, [isEdit, categoryToEdit, name, bankAccountId, safetyBufferFloor, targetAmount, targetDate, isSurplusTarget]);
 
   const isSurplusDisabled = Boolean(isEdit && categoryToEdit?.isSurplusTarget);
 
@@ -154,6 +160,7 @@ export function CategoryFormModal({
           poolId: categoryToEdit.id,
           data: {
             name: name.trim(),
+            safetyBufferFloor: type === "EVERYDAY" ? safetyBufferFloor || "0.00" : undefined,
             targetAmount: type === "GOAL" ? targetAmount || undefined : undefined,
             targetDate: type === "GOAL" ? targetDate || undefined : undefined,
             isSurplusTarget: type !== "EVERYDAY" ? isSurplusTarget : undefined,
@@ -164,6 +171,7 @@ export function CategoryFormModal({
           name: name.trim(),
           poolType: type,
           bankAccountId: bankAccountId,
+          safetyBufferFloor: type === "EVERYDAY" ? safetyBufferFloor || "0.00" : undefined,
           targetAmount: type === "GOAL" ? targetAmount || undefined : undefined,
           targetDate: type === "GOAL" ? targetDate || undefined : undefined,
           isSurplusTarget: type !== "EVERYDAY" ? isSurplusTarget : undefined,
@@ -244,6 +252,15 @@ export function CategoryFormModal({
             <span className="font-bold text-[#1B2B4B] block mb-0.5">{t("categories.calculatedTarget")}</span>
             {t("categories.calculatedTargetNotice")}
           </div>
+        )}
+
+        {type === "EVERYDAY" && (
+          <AmountField
+            label={t("categories.safetyBufferFloorLabel")}
+            value={safetyBufferFloor}
+            onChange={setSafetyBufferFloor}
+            placeholder="0.00"
+          />
         )}
 
         {type === "GOAL" && (

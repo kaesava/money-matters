@@ -189,6 +189,7 @@ export default function AppLayout() {
         <Tabs.Screen name="pools/[id]" options={{ href: null }} />
         <Tabs.Screen name="pools/projection" options={{ href: null }} />
         <Tabs.Screen name="categories/[id]" options={{ href: null }} />
+        <Tabs.Screen name="income-split/[id]" options={{ href: null }} />
         <Tabs.Screen name="paychecks/[id]" options={{ href: null }} />
         <Tabs.Screen name="paychecks/schedules" options={{ href: null }} />
         <Tabs.Screen
