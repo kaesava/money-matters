@@ -17,6 +17,7 @@ import { KeyboardShortcutsModal } from "./components/KeyboardShortcutsModal";
 import { QuickActionFab } from "./components/QuickActionFab";
 import { NAV_ITEMS } from "./components/navItems";
 import { getWebVersionInfo } from "../../lib/version";
+import { ProductTourProvider } from "../../providers/ProductTourContext";
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
@@ -243,7 +244,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   );
 
   return (
-    <div className="flex min-h-screen" style={{ backgroundColor: "var(--dash-bg)" }}>
+    <ProductTourProvider>
+      <div className="flex min-h-screen" style={{ backgroundColor: "var(--dash-bg)" }}>
         {/* ── Desktop Sidebar ── */}
         <aside
           style={{ backgroundColor: "var(--dash-navy)" }}
@@ -437,5 +439,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           />
         </div>
       </div>
+    </ProductTourProvider>
   );
 }

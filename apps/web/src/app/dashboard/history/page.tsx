@@ -287,7 +287,7 @@ function TransactionsPageContent() {
 
       {/* Tab 1: Itemized Transactions Ledger */}
       {activeTab === "transactions" && (
-        <div className="space-y-6">
+        <div data-tour="history-ledger" className="space-y-6">
           {/* Controls Bar & Segmented Filter */}
           <div className="flex flex-col sm:flex-row items-center justify-between gap-3 p-3 bg-slate-50 border border-zinc-200/80 rounded-2xl">
             <div className="flex flex-col sm:flex-row items-center gap-3 flex-1 w-full">

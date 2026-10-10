@@ -56,10 +56,13 @@ export const BentoPoolsSection: React.FC<BentoPoolsSectionProps> = ({
   const isPacingTight = !isBillsRisk && targetDailyBudget > 0 && dailySpendable < targetDailyBudget * 0.8;
 
   return (
-    <div className="space-y-4">
+    <div data-tour="envelopes-bento" className="space-y-4">
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         {/* Everyday Spending Pool Card */}
-        <div className="bg-white dark:bg-zinc-900 border border-zinc-200/80 dark:border-zinc-800 rounded-2xl p-5 shadow-xs flex flex-col justify-between hover:border-zinc-300 dark:hover:border-zinc-700 transition-all">
+        <div
+          data-tour="hero-metric"
+          className="bg-white dark:bg-zinc-900 border border-zinc-200/80 dark:border-zinc-800 rounded-2xl p-5 shadow-xs flex flex-col justify-between hover:border-zinc-300 dark:hover:border-zinc-700 transition-all"
+        >
           <div className="space-y-3">
             <div className="flex justify-between items-center">
               <span className="text-[11px] font-extrabold uppercase tracking-widest text-gray-500">
@@ -87,6 +90,7 @@ export const BentoPoolsSection: React.FC<BentoPoolsSectionProps> = ({
                 </span>
                 {onAlignEverydayBalance && (
                   <button
+                    data-tour="bank-accounts"
                     type="button"
                     onClick={onAlignEverydayBalance}
                     className="text-xs font-bold text-[#2563eb] hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 hover:underline px-2 py-1 rounded-lg hover:bg-blue-50 dark:hover:bg-zinc-800 transition-colors cursor-pointer"

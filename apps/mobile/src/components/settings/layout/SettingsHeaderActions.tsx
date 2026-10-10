@@ -8,15 +8,30 @@ interface SettingsHeaderActionsProps {
   loading: boolean;
   onOpenFeedback: () => void;
   onSignOut: () => void;
+  onStartTour?: () => void;
 }
 
 export function SettingsHeaderActions({
   loading,
   onOpenFeedback,
   onSignOut,
+  onStartTour,
 }: SettingsHeaderActionsProps) {
   return (
     <View style={styles.container}>
+      {/* Product Tour Re-trigger Button */}
+      {onStartTour ? (
+        <TouchableOpacity
+          style={styles.actionBtn}
+          onPress={onStartTour}
+          activeOpacity={0.7}
+          accessibilityRole="button"
+          accessibilityLabel={t('tour.settings.revisitTour')}
+        >
+          <Feather name="help-circle" size={16} color={DESIGN_TOKENS.colors.sereneBlue} />
+        </TouchableOpacity>
+      ) : null}
+
       {/* Provide Feedback Button */}
       <TouchableOpacity
         style={styles.actionBtn}

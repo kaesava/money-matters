@@ -9,6 +9,11 @@ export interface AppPreferencesBlob {
   shortfall_alerts_enabled?: boolean;
   bill_reminders_enabled?: boolean;
   weekly_digest_enabled?: boolean;
+  // Unified Product Tour Lifecycle
+  has_seen_product_tour?: boolean;
+  tour_completed_at?: string;
+  tour_dismissed_at?: string;
+  tour_last_step?: number;
 }
 
 /**

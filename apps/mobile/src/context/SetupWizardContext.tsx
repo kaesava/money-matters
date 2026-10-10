@@ -28,6 +28,7 @@ export function SetupWizardProvider({ children: reactChildren }: { children: Rea
     {
       id: 'g-1',
       name: 'Emergency Reserve (3-6 Months)',
+      goalMode: 'TARGET_DATE',
       monthlyAmount: 300,
       icon: '🛡️',
       targetAmount: 10000,
@@ -36,6 +37,7 @@ export function SetupWizardProvider({ children: reactChildren }: { children: Rea
     {
       id: 'g-2',
       name: 'Annual Family Holiday',
+      goalMode: 'TARGET_DATE',
       monthlyAmount: 250,
       icon: '✈️',
       targetAmount: 5000,

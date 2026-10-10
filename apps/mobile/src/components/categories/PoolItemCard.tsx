@@ -56,7 +56,9 @@ export function PoolItemCard({
             <Text style={styles.balNum}>{formatAUD(pool.currentBalance)}</Text>
             <Text style={styles.balSub}>
               {isGoal
-                ? target > 0
+                ? pool.goalMode === 'ONGOING'
+                  ? `${formatAUD(target)}/mo (${pool.budgetFrequency || t('categories.frequencyMonthly')})`
+                  : target > 0
                   ? `${pct}% of ${formatAUD(target)}`
                   : t('categories.noTarget')
                 : nestedCount > 0
@@ -68,7 +70,7 @@ export function PoolItemCard({
         </View>
       </TouchableOpacity>
 
-      {isGoal && target > 0 && (
+      {isGoal && target > 0 && pool.goalMode !== 'ONGOING' && (
         <View style={styles.progressTrack}>
           <View style={[styles.progressFill, { width: `${pct}%` }]} />
         </View>

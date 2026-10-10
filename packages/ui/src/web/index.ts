@@ -70,3 +70,5 @@ export * from '../hooks/DateLocaleContext';
 export * from './EnvelopeExplainer';
 export * from './GoalModeToggle';
 export * from './BillCoverageBadge';
+export * from './ProductTourPopover';
+export * from './ProductTourSpotlight';

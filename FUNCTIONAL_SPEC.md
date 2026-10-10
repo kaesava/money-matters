@@ -165,17 +165,23 @@ When an incoming paycheck (or ad-hoc deposit) is processed, the engine executes 
   $$\text{Allocated}_i = \min(\text{remainingNetPay}, \text{Incremental Need}_i)$$
   $$\text{remainingNetPay} \leftarrow \text{remainingNetPay} - \text{Allocated}_i$$
 
-#### Step 6: Committed Savings Goals (Target-Date Horizon Pacing)
-- **Objective**: Fund high-priority committed goals (Emergency Fund, Car Maintenance, Tax Provision) according to their contractual deadlines.
-- **Sorting**: Sorted chronologically by `targetDate` ASC (most urgent deadlines first).
-- **Dual-Horizon Pacing**:
-  - *Imminent Horizon* ($\text{targetDate} \le \text{nextPaydayCutoff}$): The goal deadline arrives before the next paycheck. The full remaining gap must be funded immediately:
-    $$\text{Shortfall} = \max(0, \text{targetAmount} - \text{currentBalance})$$
-    $$\text{Allocated} = \min(\text{remainingNetPay}, \text{Shortfall})$$
-  - *Future Horizon* ($\text{targetDate} > \text{nextPaydayCutoff}$): The deadline is in the future. The gap is smoothly paced across remaining paychecks:
-    $$\text{Remaining Paychecks} = \max\left(1, \left\lfloor \frac{\text{targetDate} - \text{paydayDate}}{\text{payCycleDays}} \right\rfloor\right)$$
-    $$\text{Paced Need} = \frac{\max(0, \text{targetAmount} - \text{currentBalance})}{\text{Remaining Paychecks}}$$
-    $$\text{Allocated} = \min(\text{remainingNetPay}, \text{Paced Need})$$
+#### Step 6: Committed Savings Goals (Target-Date Horizon Pacing & Ongoing Monthly Contributions)
+- **Objective**: Fund high-priority committed goals (Emergency Fund, Car Maintenance, Tax Provision) according to their operating mode.
+- **Dual Goal Modes (Background Mechanics)**:
+  - Users select either **Target Date** or **Recurring** (using identical schedule cadence options to regular bills: Amount, Start Date, Frequency, and Interval). Technical enum discriminators (`TARGET_DATE` vs `ONGOING`) operate purely in the background without user-facing technical jargon.
+  - **Ongoing Recurring Goals (`ONGOING`)**:
+    - Modeled with steady, uninterrupted monthly contributions (`targetAmount` stores the normalized monthly equivalent; `enteredAmount`, `budgetFrequency`, `startDate`, and `rrule` store user recurrence selections).
+    - Allocates the cycle pro-rata contribution ($1/26$ fortnightly, $1/52$ weekly, $1/12$ monthly) every single paycycle continuously without artificial completion capping or halting allocations after month 1.
+    - Dashboard displays balance accumulated and recurring pace (e.g. `$2,500 accumulated · $250/mo recurring`) rather than a static 100% completion bar.
+  - **Target-Date Goals (`TARGET_DATE`)**:
+    - Sorted chronologically by `targetDate` ASC (most urgent deadlines first).
+    - *Imminent Horizon* ($\text{targetDate} \le \text{nextPaydayCutoff}$): The goal deadline arrives before the next paycheck. The full remaining gap must be funded immediately:
+      $$\text{Shortfall} = \max(0, \text{targetAmount} - \text{currentBalance})$$
+      $$\text{Allocated} = \min(\text{remainingNetPay}, \text{Shortfall})$$
+    - *Future Horizon* ($\text{targetDate} > \text{nextPaydayCutoff}$): The deadline is in the future. The gap is smoothly paced across remaining paychecks:
+      $$\text{Remaining Paychecks} = \max\left(1, \left\lfloor \frac{\text{targetDate} - \text{paydayDate}}{\text{payCycleDays}} \right\rfloor\right)$$
+      $$\text{Paced Need} = \frac{\max(0, \text{targetAmount} - \text{currentBalance})}{\text{Remaining Paychecks}}$$
+      $$\text{Allocated} = \min(\text{remainingNetPay}, \text{Paced Need})$$
 
 #### Step 7: Uncommitted Goals & 100% Residual Surplus Sweep
 - **Objective**: Direct every single leftover cent to productive wealth generation, ensuring zero unallocated cash.
@@ -931,3 +937,17 @@ This specification governs the exhaustive end-to-end Playwright master suite (`a
     - `E2E-038`: Archived Data: filter by entity type, cascading restore integrity validation.
     - `E2E-039`: Data & Subscription: trial countdown, Stripe checkout redirect, customer portal link, invoice receipts, 1-click 12-table Zipped CSV Backup download.
     - `E2E-040`: Household Danger Zone & Account Deletion: exact household name typing confirmation, automated database erasure dispatch.
+
+12. **Cross-Platform Onboarding Product Tour**:
+    - **Opt-in Welcome Card**: Triggered automatically on first login post-setup on Dashboard (`TourWelcomeModal`), offering `[ Take 60-Second Tour ]` and `[ Explore on My Own ]`.
+    - **Re-triggerable On-Demand**: Always accessible via `[ 🧭 Take Product Tour ]` button inside Settings (`/dashboard/settings` on Web, `Settings → Preferences` on Mobile).
+    - **7-Step Multi-Page Tour Flow**:
+      1. *Safe to Spend Right Now* (`hero-metric` on Dashboard): Introduces daily pace and core envelope philosophy without micro-budgeting guilt.
+      2. *Your 3 Envelopes* (`envelopes-bento` on Dashboard): Explains Everyday spending, Bills ring-fencing, and Goal sinking pools.
+      3. *1-Click Balance Alignment* (`bank-accounts` on Dashboard): Highlights reconciliation between live bank balances and envelope totals.
+      4. *Payday Allocation Engine* (`payday-card` on Dashboard): Introduces the Two-Horizon Waterfall engine forward-funding bills.
+      5. *Quick Action Center* (`quick-actions` on Dashboard): Covers instant money movements and "Can I Afford It?" tool.
+      6. *12-Month Plan* (`matrix-plan` on `/dashboard/income-and-bills`): Navigates cross-page to preview forward cashflow timeline.
+      7. *Activity & Audit History* (`history-ledger` on `/dashboard/history`): Demonstrates transaction logging and completes with automated return navigation back to `/dashboard`.
+    - **Cross-Platform Presentation**: Spotlight cutout backdrop with anchored popovers and keyboard navigation (`Escape`, `ArrowRight`, `ArrowLeft`) on Web (`ProductTourPopover`, `ProductTourSpotlight`); native bottom-sheet drawer with tactile haptics on Mobile (`MobileProductTourSheet`).
+    - **Unified Cross-Platform Persistence**: Stored within `tenantUserPreferences.appPreferences` JSONB (`has_seen_product_tour`, `tour_completed_at`, `tour_dismissed_at`, `tour_last_step`). Completing or dismissing the tour on either platform syncs across both.

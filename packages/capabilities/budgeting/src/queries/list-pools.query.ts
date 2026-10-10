@@ -22,8 +22,13 @@ export async function listPoolsQuery(
       bankAccountId: pools.bankAccountId,
       everydayAllowanceAmount: pools.everydayAllowanceAmount,
       safetyBufferFloor: pools.safetyBufferFloor,
+      goalMode: pools.goalMode,
       targetAmount: pools.targetAmount,
       targetDate: pools.targetDate,
+      enteredAmount: pools.enteredAmount,
+      budgetFrequency: pools.budgetFrequency,
+      startDate: pools.startDate,
+      rrule: pools.rrule,
       createdAt: pools.createdAt,
       isCommitted: pools.isCommitted,
       isSurplusTarget: pools.isSurplusTarget,
@@ -54,14 +59,19 @@ export async function listPoolsQuery(
     if (currentBalance < 0) {
       healthStatus = "RED";
     } else if (pool.poolType === "GOAL") {
-      const target = pool.targetAmount ? parseFloat(pool.targetAmount) : 0;
-      progressPercentage = target > 0 ? Math.min(100, Math.round((currentBalance / target) * 100)) : 0;
-      if (pool.targetDate) {
-        const targetD = new Date(pool.targetDate + "T00:00:00+10:00").getTime();
-        if (today.getTime() > targetD && currentBalance < target) {
-          healthStatus = "RED";
-        } else if (progressPercentage < 50) {
-          healthStatus = "AMBER";
+      if (pool.goalMode === "ONGOING") {
+        progressPercentage = currentBalance > 0 ? 100 : 0;
+        healthStatus = "GREEN";
+      } else {
+        const target = pool.targetAmount ? parseFloat(pool.targetAmount) : 0;
+        progressPercentage = target > 0 ? Math.min(100, Math.round((currentBalance / target) * 100)) : 0;
+        if (pool.targetDate) {
+          const targetD = new Date(pool.targetDate + "T00:00:00+10:00").getTime();
+          if (today.getTime() > targetD && currentBalance < target) {
+            healthStatus = "RED";
+          } else if (progressPercentage < 50) {
+            healthStatus = "AMBER";
+          }
         }
       }
     } else if (pool.poolType === "REGULAR") {
@@ -78,12 +88,17 @@ export async function listPoolsQuery(
       id: pool.id,
       name: pool.name,
       poolType: pool.poolType,
+      goalMode: pool.goalMode,
       bankAccountId: pool.bankAccountId,
       bankAccountName: pool.bankAccountName || null,
       everydayAllowanceAmount: pool.everydayAllowanceAmount,
       safetyBufferFloor: pool.safetyBufferFloor,
       targetAmount: pool.targetAmount,
       targetDate: pool.targetDate,
+      enteredAmount: pool.enteredAmount,
+      budgetFrequency: pool.budgetFrequency,
+      startDate: pool.startDate,
+      rrule: pool.rrule,
       createdAt: pool.createdAt,
       isCommitted: pool.isCommitted,
       isSurplusTarget: pool.isSurplusTarget,

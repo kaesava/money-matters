@@ -16,6 +16,7 @@ export function QuickActionFab({ pathname, onOpenModal }: QuickActionFabProps) {
   return (
     <button
       id="global-quick-add-btn"
+      data-tour="quick-actions"
       type="button"
       onClick={onOpenModal}
       style={{ backgroundColor: "#2563eb", boxShadow: "0 6px 20px rgba(37,99,235,0.3)" }}

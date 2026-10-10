@@ -12,6 +12,9 @@ export interface GoalCategoryItem {
   readonly healthStatus?: string;
   readonly targetAmount?: string | number | null;
   readonly targetDate?: string | null;
+  readonly goalMode?: 'TARGET_DATE' | 'ONGOING' | null;
+  readonly enteredAmount?: string | null;
+  readonly budgetFrequency?: string | null;
   readonly createdAt?: string | Date | null;
   readonly schedule?: {
     targetAmount?: string | null;
@@ -40,14 +43,15 @@ export const GoalsProgressStrip: React.FC<GoalsProgressStripProps> = ({
     const nowTime = new Date().getTime();
 
     return goalCategories.map((g) => {
+      const isOngoing = g.goalMode === 'ONGOING';
       const bal = parseFloat(String(g.currentBalance || '0'));
       const target = parseFloat(String(g.targetAmount || g.schedule?.targetAmount || '0'));
-      const fundedPct = target > 0 ? Math.min(100, Math.round((bal / target) * 100)) : 0;
+      const fundedPct = isOngoing ? 100 : (target > 0 ? Math.min(100, Math.round((bal / target) * 100)) : 0);
 
       let timeElapsedPct: number | null = null;
       let isOverdue = false;
 
-      if (g.targetDate) {
+      if (!isOngoing && g.targetDate) {
         const targetTime = new Date(g.targetDate).getTime();
         const createdTime = g.createdAt
           ? new Date(g.createdAt).getTime()
@@ -60,6 +64,7 @@ export const GoalsProgressStrip: React.FC<GoalsProgressStripProps> = ({
 
       return {
         ...g,
+        isOngoing,
         balanceNum: bal,
         targetNum: target,
         fundedPct,
@@ -132,16 +137,22 @@ export const GoalsProgressStrip: React.FC<GoalsProgressStripProps> = ({
               >
                 <div className="flex justify-between items-center text-xs">
                   <span className="font-bold text-gray-800 dark:text-zinc-200 truncate">{goal.name}</span>
-                  <span className="font-mono text-gray-600 dark:text-zinc-400 font-semibold">{goal.fundedPct}%</span>
+                  {goal.isOngoing ? (
+                    <span className="text-[10px] font-bold text-blue-600 bg-blue-50 dark:bg-blue-950/40 px-2 py-0.5 rounded-full">
+                      {goal.budgetFrequency || t('categories.frequencyMonthly')}
+                    </span>
+                  ) : (
+                    <span className="font-mono text-gray-600 dark:text-zinc-400 font-semibold">{goal.fundedPct}%</span>
+                  )}
                 </div>
 
-                {/* Pacing Progress Bar with Needle */}
+                {/* Progress Bar / Ongoing Stream Indicator */}
                 <div className="relative h-2.5 bg-gray-200 dark:bg-zinc-700 rounded-full overflow-hidden">
                   <div
                     className={`h-full transition-all duration-300 ${barColor}`}
                     style={{ width: `${goal.fundedPct}%` }}
                   />
-                  {goal.timeElapsedPct !== null && goal.timeElapsedPct > 0 && goal.timeElapsedPct < 100 && (
+                  {!goal.isOngoing && goal.timeElapsedPct !== null && goal.timeElapsedPct > 0 && goal.timeElapsedPct < 100 && (
                     <div
                       className="absolute top-0 bottom-0 w-1 bg-slate-800 dark:bg-white rounded-full z-10 -ml-0.5 shadow-xs pointer-events-none"
                       style={{ left: `${goal.timeElapsedPct}%` }}
@@ -153,11 +164,21 @@ export const GoalsProgressStrip: React.FC<GoalsProgressStripProps> = ({
                 </div>
 
                 <div className="flex justify-between items-center text-[11px] font-mono text-gray-500 dark:text-zinc-400">
-                  <span>
-                    {format(goal.balanceNum)} {goal.targetNum > 0 && `/ ${format(goal.targetNum)}`}
-                  </span>
+                  {goal.isOngoing ? (
+                    <span>
+                      {format(goal.balanceNum)} accumulated · {format(goal.targetNum)}/mo
+                    </span>
+                  ) : (
+                    <span>
+                      {format(goal.balanceNum)} {goal.targetNum > 0 && `/ ${format(goal.targetNum)}`}
+                    </span>
+                  )}
                   {goal.isOverdue ? (
                     <span className="text-rose-600 font-bold font-sans">{t('common.overdue')}</span>
+                  ) : goal.isOngoing ? (
+                    <span className="text-emerald-600 font-sans font-semibold">
+                      {t('dashboard.goals.onTrackBadge')}
+                    </span>
                   ) : goal.timeElapsedPct !== null ? (
                     <span
                       className={`font-sans font-semibold ${

@@ -48,18 +48,28 @@ export function useSetupWizardPrepopulation({
     const goalPools = poolsQuery.data.filter((p) => p.poolType === 'GOAL');
     if (goalPools.length > 0) {
       setGoals(
-        goalPools.map((g) => ({
-          id: g.id,
-          name: g.name,
-          monthlyAmount: Math.round(parseFloat(g.targetAmount || '1000') / 12),
-          icon: '🎯',
-          targetAmount: parseFloat(g.targetAmount || '1000'),
-          dueDate:
-            g.targetDate ||
-            new Intl.DateTimeFormat('en-CA', { timeZone: tz }).format(
-              new Date(Date.now() + 365 * 24 * 60 * 60 * 1000)
-            ),
-        }))
+        goalPools.map((g) => {
+          const isOngoing = g.goalMode === 'ONGOING';
+          const amt = parseFloat(g.targetAmount || '1000');
+          return {
+            id: g.id,
+            name: g.name,
+            goalMode: isOngoing ? ('ONGOING' as const) : ('TARGET_DATE' as const),
+            monthlyAmount: isOngoing ? amt : Math.round(amt / 12),
+            icon: '🎯',
+            targetAmount: amt,
+            enteredAmount: g.enteredAmount ? parseFloat(g.enteredAmount) : amt,
+            budgetFrequency: (g.budgetFrequency as 'WEEKLY' | 'FORTNIGHTLY' | 'MONTHLY' | 'ANNUALLY' | null) || undefined,
+            startDate: g.startDate,
+            rrule: g.rrule,
+            dueDate: isOngoing
+              ? null
+              : g.targetDate ||
+                new Intl.DateTimeFormat('en-CA', { timeZone: tz }).format(
+                  new Date(Date.now() + 365 * 24 * 60 * 60 * 1000)
+                ),
+          };
+        })
       );
     }
   }, [isRerun, poolsQuery.data, setGoals, tz]);

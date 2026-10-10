@@ -291,8 +291,13 @@ export const UserGoalItemSchema = z.object({
   name: z.string().min(1),
   monthlyAmount: z.number().nonnegative(),
   icon: z.string().default("🎯"),
-  targetAmount: z.number().positive(),
-  dueDate: z.string(),
+  goalMode: z.enum(["TARGET_DATE", "ONGOING"]).optional().default("TARGET_DATE"),
+  targetAmount: z.number().nonnegative().optional().nullable(),
+  dueDate: z.string().optional().nullable(),
+  enteredAmount: z.number().nonnegative().optional().nullable(),
+  budgetFrequency: z.enum(["WEEKLY", "FORTNIGHTLY", "MONTHLY", "ANNUALLY"]).optional(),
+  startDate: z.string().optional().nullable(),
+  rrule: z.string().optional().nullable(),
   isPrivate: z.boolean().optional(),
 });
 export type UserGoalItem = z.infer<typeof UserGoalItemSchema>;

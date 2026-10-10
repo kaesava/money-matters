@@ -80,6 +80,10 @@ Virtual budgeting buckets allocated on payday.
 - `safetyBufferFloor` (numeric(12,2), default `0.00`): Baseline safety buffer floor for Everyday pools.
 - `targetAmount` (numeric(12,2), nullable): Target balance for savings/reserve pools or monthly contribution for ongoing goals.
 - `targetDate` (date, nullable): Target completion date for date-driven goals.
+- `enteredAmount` (numeric(12,2), nullable): Recurring amount in original user frequency for ongoing goals.
+- `budgetFrequency` (`WEEKLY` | `FORTNIGHTLY` | `MONTHLY` | `ANNUALLY`, default `'MONTHLY'`): Recurrence frequency for ongoing goals.
+- `startDate` (date, nullable): Start anchor date for ongoing recurring contributions.
+- `rrule` (text, nullable): RFC 5545 recurrence rule synthesized for recurring goal schedules.
 - **Consumers**: `packages/capabilities/budgeting` (waterfall allocation engine, pool management), Dashboard, Categories screen, Simulation engine.
 
 ### 6. `categories` (`packages/db/src/schema/category.ts`)

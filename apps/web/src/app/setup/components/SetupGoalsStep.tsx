@@ -1,15 +1,20 @@
 "use client";
 
 import React, { useState } from "react";
-import { InfoTooltip, AmountField, EnvelopeExplainer } from "@money-matters/ui/web";
+import { InfoTooltip, AmountField, EnvelopeExplainer, GoalModeToggle } from "@money-matters/ui/web";
 
 export interface UserGoalItem {
   id: string;
   name: string;
   monthlyAmount: number;
   icon: string;
-  targetAmount: number;
-  dueDate: string;
+  targetAmount?: number | null;
+  dueDate?: string | null;
+  goalMode?: "TARGET_DATE" | "ONGOING";
+  enteredAmount?: number | null;
+  budgetFrequency?: "WEEKLY" | "FORTNIGHTLY" | "MONTHLY" | "ANNUALLY";
+  startDate?: string | null;
+  rrule?: string | null;
   isPrivate?: boolean;
 }
 
@@ -38,7 +43,7 @@ const PRESET_GOALS = [
   { name: "Tech & Gadget Upgrade", icon: "💻", defaultTarget: 1500, defaultMonths: 6 },
 ];
 
-function getMonthsDiff(targetDateStr: string): number {
+function getMonthsDiff(targetDateStr?: string | null): number {
   if (!targetDateStr) return 12;
   const now = new Date();
   const target = new Date(targetDateStr);
@@ -58,6 +63,7 @@ export function SetupGoalsStep({
   const [customName, setCustomName] = useState("");
   const [customTarget, setCustomTarget] = useState("5000");
   const [customDate, setCustomDate] = useState("");
+  const [customType, setCustomType] = useState<"TARGET_DATE" | "ONGOING">("TARGET_DATE");
 
   const isPresetActive = (name: string) => goals.some((g) => g.name.trim().toLowerCase() === name.trim().toLowerCase());
 
@@ -72,6 +78,7 @@ export function SetupGoalsStep({
         name: preset.name,
         targetAmount: preset.defaultTarget,
         dueDate,
+        goalMode: "TARGET_DATE",
         monthlyAmount: Math.round(preset.defaultTarget / months),
         icon: preset.icon,
       });
@@ -80,18 +87,32 @@ export function SetupGoalsStep({
 
   const handleAddCustom = () => {
     if (!customName.trim()) return;
-    const targetAmount = parseFloat(customTarget) || 1000;
-    const dueDate = customDate || getFutureDate(12);
-    const months = getMonthsDiff(dueDate);
-    onAddGoal({
-      name: customName.trim(),
-      targetAmount,
-      dueDate,
-      monthlyAmount: Math.round(targetAmount / months),
-      icon: "🎯",
-    });
+    const amountNum = parseFloat(customTarget) || (customType === "ONGOING" ? 250 : 1000);
+    if (customType === "ONGOING") {
+      onAddGoal({
+        name: customName.trim(),
+        targetAmount: amountNum,
+        enteredAmount: amountNum,
+        dueDate: null,
+        goalMode: "ONGOING",
+        monthlyAmount: amountNum,
+        budgetFrequency: "MONTHLY",
+        icon: "🎯",
+      });
+    } else {
+      const dueDate = customDate || getFutureDate(12);
+      const months = getMonthsDiff(dueDate);
+      onAddGoal({
+        name: customName.trim(),
+        targetAmount: amountNum,
+        dueDate,
+        goalMode: "TARGET_DATE",
+        monthlyAmount: Math.round(amountNum / months),
+        icon: "🎯",
+      });
+    }
     setCustomName("");
-    setCustomTarget("5000");
+    setCustomTarget(customType === "ONGOING" ? "250" : "5000");
     setCustomDate("");
   };
 
@@ -169,9 +190,10 @@ export function SetupGoalsStep({
 
           <div className="flex flex-col gap-2 max-h-[35vh] overflow-y-auto pr-1">
             {goals.map((g) => {
-              const months = getMonthsDiff(g.dueDate);
-              const estMonthly = Math.round((g.targetAmount || 0) / months);
-              const isPast = g.dueDate && new Date(g.dueDate) < new Date(new Date().setHours(0, 0, 0, 0));
+              const isOngoing = g.goalMode === "ONGOING";
+              const months = isOngoing ? 1 : getMonthsDiff(g.dueDate);
+              const estMonthly = isOngoing ? (g.monthlyAmount || g.targetAmount || 0) : Math.round((g.targetAmount || 0) / months);
+              const isPast = !isOngoing && g.dueDate && new Date(g.dueDate) < new Date(new Date().setHours(0, 0, 0, 0));
 
               return (
                 <div
@@ -192,6 +214,11 @@ export function SetupGoalsStep({
                           ⚠️ Target date is in the past
                         </span>
                       )}
+                      {isOngoing && (
+                        <span className="block text-[10px] font-bold text-blue-600">
+                          Recurring monthly contribution
+                        </span>
+                      )}
                     </div>
                   </div>
 
@@ -202,30 +229,36 @@ export function SetupGoalsStep({
                         onChange={(val) => {
                           const num = parseFloat(val) || 0;
                           onUpdateGoal(g.id, "targetAmount", num);
-                          onUpdateGoal(g.id, "monthlyAmount", Math.round(num / months));
+                          onUpdateGoal(g.id, "monthlyAmount", isOngoing ? num : Math.round(num / months));
                         }}
-                        placeholder="Target"
+                        placeholder={isOngoing ? "Monthly Amount" : "Target"}
                         allowNegative={false}
                       />
                     </div>
 
-                    <div className="flex items-center gap-1">
-                      <span className="text-[11px] font-bold text-zinc-400">By</span>
-                      <input
-                        type="date"
-                        value={g.dueDate || ""}
-                        onChange={(e) => {
-                          const dateVal = e.target.value;
-                          onUpdateGoal(g.id, "dueDate", dateVal);
-                          const m = getMonthsDiff(dateVal);
-                          onUpdateGoal(g.id, "monthlyAmount", Math.round((g.targetAmount || 0) / m));
-                        }}
-                        className="px-2 py-1 text-xs font-bold rounded-lg border border-zinc-200 bg-slate-50"
-                      />
-                    </div>
+                    {!isOngoing ? (
+                      <div className="flex items-center gap-1">
+                        <span className="text-[11px] font-bold text-zinc-400">By</span>
+                        <input
+                          type="date"
+                          value={g.dueDate || ""}
+                          onChange={(e) => {
+                            const dateVal = e.target.value;
+                            onUpdateGoal(g.id, "dueDate", dateVal);
+                            const m = getMonthsDiff(dateVal);
+                            onUpdateGoal(g.id, "monthlyAmount", Math.round((g.targetAmount || 0) / m));
+                          }}
+                          className="px-2 py-1 text-xs font-bold rounded-lg border border-zinc-200 bg-slate-50"
+                        />
+                      </div>
+                    ) : (
+                      <span className="text-[11px] font-bold text-blue-700 bg-blue-50 px-2 py-1 rounded-md border border-blue-200/60">
+                        Monthly
+                      </span>
+                    )}
 
                     <span className="text-[11px] font-bold text-teal-700 bg-teal-50 px-2 py-1 rounded-md border border-teal-200/60">
-                      Est. ${estMonthly}/mo guide
+                      ${estMonthly}/mo guide
                     </span>
 
                     <button
@@ -250,6 +283,9 @@ export function SetupGoalsStep({
       {/* Add Custom Goal Section */}
       <div className="p-4 bg-white rounded-2xl border border-zinc-200/80 flex flex-col gap-3">
         <label className="text-xs font-bold text-[#1B2B4B]">Add a Custom Savings Goal:</label>
+        <div className="max-w-xs">
+          <GoalModeToggle value={customType} onChange={setCustomType} />
+        </div>
         <div className="flex flex-col sm:flex-row gap-2">
           <input
             type="text"
@@ -262,16 +298,18 @@ export function SetupGoalsStep({
             <AmountField
               value={customTarget}
               onChange={setCustomTarget}
-              placeholder="Target Amount"
+              placeholder={customType === "ONGOING" ? "Monthly Amount" : "Target Amount"}
               allowNegative={false}
             />
           </div>
-          <input
-            type="date"
-            value={customDate}
-            onChange={(e) => setCustomDate(e.target.value)}
-            className="w-36 px-3 py-2 text-xs font-bold rounded-xl border border-zinc-200 bg-white"
-          />
+          {customType === "TARGET_DATE" && (
+            <input
+              type="date"
+              value={customDate}
+              onChange={(e) => setCustomDate(e.target.value)}
+              className="w-36 px-3 py-2 text-xs font-bold rounded-xl border border-zinc-200 bg-white"
+            />
+          )}
           <button
             type="button"
             onClick={handleAddCustom}
@@ -281,7 +319,7 @@ export function SetupGoalsStep({
             + Add Goal
           </button>
         </div>
-        {isCustomPastDate && (
+        {customType === "TARGET_DATE" && isCustomPastDate && (
           <p className="text-[11px] font-bold text-amber-800 bg-amber-50 p-2.5 rounded-xl border border-amber-200">
             ⚠️ Target date is in the past. Allocations will calculate as due immediately.
           </p>

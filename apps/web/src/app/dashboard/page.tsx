@@ -449,6 +449,9 @@ export default function DashboardPage() {
               healthStatus: g.healthStatus,
               targetAmount: g.targetAmount,
               targetDate: g.targetDate,
+              goalMode: g.goalMode,
+              enteredAmount: g.enteredAmount,
+              budgetFrequency: g.budgetFrequency,
               createdAt: g.createdAt,
             }))}
             formatAUD={fmt}

@@ -578,6 +578,23 @@ Money Matters is engineered to comply with the 13 Australian Privacy Principles 
   - In-memory `JSZip` creates the zip archive, converts to base64, and writes to `FileSystem.cacheDirectory` via `expo-file-system/legacy`.
   - Native OS share sheet is triggered via `expo-sharing` (`Sharing.shareAsync`), allowing 1-tap saving to Google Drive, local storage, email, or messaging apps.
 
+### 11.5 Cross-Platform Onboarding Product Tour Architecture
+- **State & Persistence Layer**:
+  - Stored inside `tenantUserPreferences.appPreferences` JSONB blob (`packages/db/src/schema/tenant_user_preference.ts`).
+  - Fields: `has_seen_product_tour: boolean`, `tour_completed_at?: string`, `tour_dismissed_at?: string`, `tour_last_step?: number`.
+  - Zero database migration requirement; persisted via existing `trpc.tenant.updatePreferences` mutation.
+  - Cross-platform synchronization: action taken on Web immediately reflects on Mobile and vice-versa.
+- **Web Tour Implementation (`apps/web`)**:
+  - `ProductTourContext.tsx`: Manages active step (1 to 7), automated cross-page routing (`/dashboard` $\rightarrow$ `/dashboard/income-and-bills` $\rightarrow$ `/dashboard/history` $\rightarrow$ `/dashboard`), element target bounding rectangle observation (`getBoundingClientRect` with window resize listeners), and PostHog analytics capture (`product_tour_started`, `product_tour_step_viewed`, `product_tour_completed`, `product_tour_dismissed`).
+  - `ProductTourSpotlight.tsx`: Pure SVG cutout overlay mask dims background while leaving target highlighted.
+  - `ProductTourPopover.tsx`: Anchored floating card rendered using Serene Finance tokens (`#2563eb`, `#1B2B4B`, `#F7F8FA`), badge chips, keyboard controls (`Escape` to dismiss, arrow keys to navigate), and Next/Back actions.
+  - `TourWelcomeModal.tsx`: Unobtrusive welcome dialog offering opt-in start or self-exploration.
+- **Mobile Tour Implementation (`apps/mobile`)**:
+  - `ProductTourContext.tsx`: Native context managing steps, tactile haptic feedback (`expo-haptics`), and programmatic tab/screen navigation (`router.push`).
+  - `MobileProductTourSheet.tsx`: Native bottom sheet drawer rendering step badge, title, localized description, progress dots, and Next/Skip buttons.
+- **E2E Test Coverage**:
+  - Spec `4.4 - Product Tour Flow` verified in `apps/web/e2e/screen-by-screen.spec.ts`.
+
 
 
 

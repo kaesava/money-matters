@@ -64,8 +64,16 @@ export function useSetupCategoriesSubmission() {
           id: g.id?.startsWith('g-') ? undefined : g.id,
           name: g.name,
           poolType: 'GOAL' as const,
-          targetAmount: (g.targetAmount || g.monthlyAmount * 12 || 1000).toFixed(2),
-          targetDate: g.dueDate || null,
+          goalMode: g.goalMode ?? (g.dueDate ? 'TARGET_DATE' : 'ONGOING'),
+          targetAmount: (g.goalMode === 'ONGOING'
+            ? g.monthlyAmount || g.targetAmount || 250
+            : g.targetAmount || g.monthlyAmount * 12 || 1000
+          ).toFixed(2),
+          targetDate: g.goalMode === 'ONGOING' ? null : g.dueDate || null,
+          enteredAmount: g.enteredAmount ? g.enteredAmount.toFixed(2) : undefined,
+          budgetFrequency: g.budgetFrequency,
+          startDate: g.startDate,
+          rrule: g.rrule,
           isSurplusTarget: idx === 0,
           isCommitted: true,
           isPrivate: false,

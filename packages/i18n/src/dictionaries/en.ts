@@ -645,13 +645,19 @@ export const en = {
     },
   },
   goalModes: {
-    modeLabel: "Goal Funding Mode",
+    modeLabel: "Goal Funding Schedule",
     targetDate: "Target Date",
     targetDateDesc: "Reach an amount by a specific date.",
-    ongoing: "Ongoing Contribution",
-    ongoingDesc: "Contribute a fixed amount every month indefinitely.",
-    monthlyContribution: "Monthly Contribution ($)",
+    ongoing: "Recurring",
+    ongoingDesc: "Contribute regularly on a continuous schedule.",
+    recurring: "Recurring",
+    recurringDesc: "Contribute regularly on a continuous schedule.",
+    monthlyContribution: "Recurring Amount ($)",
     targetAmount: "Target Goal Amount ($)",
+    accumulated: "{amount} accumulated",
+    recurringSubtext: "{amount}/mo recurring",
+    recurringBadge: "Recurring",
+    everyX: "Every {count} {unit}",
   },
   billCoverage: {
     covered: "Covered ✓",
@@ -2881,6 +2887,63 @@ export const en = {
     errorSummaryRequired: "Please enter a feedback summary.",
     errorDescriptionRequired: "Please describe your feedback or issue.",
     openEmailFailed: "Failed to open email client.",
+  },
+  tour: {
+    welcome: {
+      title: "Welcome to Money Matters, {name}!",
+      subtitle: "Your forward-looking household budget is ready. Take a quick 60-second guided tour to discover how to spend guilt-free with zero daily receipt tracking.",
+      startAction: "Take 60-Second Tour",
+      dismissAction: "Explore on My Own",
+    },
+    steps: {
+      stepCount: "Step {current} of {total}",
+      hero: {
+        title: "1. Safe to Spend Right Now",
+        desc: "This is your Everyday spending money balance. Because upcoming bills and savings are already ring-fenced, this balance is 100% guilt-free to spend to zero. No receipt tracking required!",
+        badge: "Guilt-Free Spending",
+      },
+      payday: {
+        title: "2. Payday Allocation (Two-Horizon Waterfall)",
+        desc: "When pay arrives, tap 'Split Income'. Horizon 1 funds imminent bills 100% so direct debits never bounce; Horizon 2 smoothly funds future bills and goals. 1-tap confirmation!",
+        badge: "Waterfall Allocation",
+      },
+      envelopes: {
+        title: "3. The 3 Envelopes",
+        desc: "Everyday (guilt-free tap & go card), Regular Bills (direct debits scheduled automatically), and Goals (savings goals that grow every pay cycle).",
+        badge: "Simplified Envelopes",
+      },
+      quickActions: {
+        title: "4. Quick Actions & Can I Afford It?",
+        desc: "Log an expense in 5 seconds or tap 'Can I Afford It?' to simulate an impulse purchase without altering your actual budget.",
+        badge: "Instant Reality Check",
+      },
+      bankAccounts: {
+        title: "5. 1-Click Bank Balance Alignment",
+        desc: "No manual CSV imports or receipt checks. Compare your bank balance against your envelopes and align with one tap.",
+        badge: "Zero CSV Hassle",
+      },
+      matrixPlan: {
+        title: "6. 12-Month Plan",
+        desc: "Simulate cashflow 12 months into the future. Watch how irregular bills (rates, car insurance) are absorbed effortlessly without shockwaves.",
+        badge: "12-Month Cashflow",
+      },
+      historyLedger: {
+        title: "7. Audit History & Allocation Receipts",
+        desc: "Every payday split and internal envelope transfer is permanently verified in the immutable history with 100% mathematical zero-sum balance.",
+        badge: "Verified History",
+      },
+    },
+    controls: {
+      next: "Next",
+      back: "Back",
+      finish: "Got it, let's go!",
+      skip: "Skip tour",
+    },
+    settings: {
+      revisitTour: "Take Product Tour",
+      revisitTourDesc: "Walk through the 7 core features and forward-looking concepts.",
+    },
+    completeToast: "You're all set! Enjoy stress-free payday allocation.",
   },
 } as const;
 

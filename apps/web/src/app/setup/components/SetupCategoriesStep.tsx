@@ -300,7 +300,9 @@ export function SetupCategoriesStep({
               const isSurplusTarget =
                 cat.name.toLowerCase().includes("emergency") || cat.name.toLowerCase().includes("reserve");
               const userGoal = goals.find((g) => g.name.trim().toLowerCase() === cat.name.trim().toLowerCase());
-              const targetAmountStr = userGoal ? `$${userGoal.targetAmount.toLocaleString()}` : `$${cat.monthlyAud.toLocaleString()}`;
+              const targetAmountStr = userGoal && userGoal.targetAmount !== undefined && userGoal.targetAmount !== null
+                ? `$${userGoal.targetAmount.toLocaleString()}`
+                : `$${cat.monthlyAud.toLocaleString()}`;
               const targetDateStr = userGoal?.dueDate ? ` • By ${userGoal.dueDate}` : "";
 
               return (

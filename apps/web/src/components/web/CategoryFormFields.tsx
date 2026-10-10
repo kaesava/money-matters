@@ -20,6 +20,13 @@ export interface CategoryFormFieldsProps {
   setTargetDate: (val: string) => void;
   goalMode: 'TARGET_DATE' | 'ONGOING';
   setGoalMode: (val: 'TARGET_DATE' | 'ONGOING') => void;
+  frequency?: 'WEEKLY' | 'FORTNIGHTLY' | 'MONTHLY' | 'ANNUALLY';
+  setFrequency?: (val: 'WEEKLY' | 'FORTNIGHTLY' | 'MONTHLY' | 'ANNUALLY') => void;
+  interval?: number;
+  setInterval?: (val: number) => void;
+  goalStartDate?: string;
+  setGoalStartDate?: (val: string) => void;
+  calculatedMonthly?: string;
   isSurplusTarget: boolean;
   setIsSurplusTarget: (val: boolean) => void;
   isSurplusDisabled: boolean;
@@ -43,6 +50,13 @@ export function CategoryFormFields({
   setTargetDate,
   goalMode,
   setGoalMode,
+  frequency = 'MONTHLY',
+  setFrequency,
+  interval = 1,
+  setInterval,
+  goalStartDate = '',
+  setGoalStartDate,
+  calculatedMonthly = '0.00',
   isSurplusTarget,
   setIsSurplusTarget,
   isSurplusDisabled,
@@ -102,21 +116,100 @@ export function CategoryFormFields({
         <>
           <GoalModeToggle value={goalMode} onChange={setGoalMode} />
 
-          <AmountField
-            label={goalMode === 'ONGOING' ? t('goalModes.monthlyContribution') : t('categories.targetAmountLabel')}
-            required
-            value={targetAmount}
-            onChange={setTargetAmount}
-            placeholder={goalMode === 'ONGOING' ? '250.00' : '10000.00'}
-          />
+          {goalMode === 'TARGET_DATE' ? (
+            <div className="grid grid-cols-2 gap-3 items-start">
+              <AmountField
+                label={t('categories.targetAmountLabel')}
+                required
+                value={targetAmount}
+                onChange={setTargetAmount}
+                placeholder="10000.00"
+              />
+              <DatePickerField
+                label={t('categories.targetCompletionDate')}
+                required
+                value={targetDate}
+                onChange={setTargetDate}
+              />
+            </div>
+          ) : (
+            <div className="space-y-3">
+              <div className="grid grid-cols-2 gap-3 items-start">
+                <AmountField
+                  label={t('goalModes.monthlyContribution')}
+                  required
+                  value={targetAmount}
+                  onChange={setTargetAmount}
+                  placeholder="250.00"
+                />
+                <GenericSelectField
+                  label={t('categories.frequencyLabel')}
+                  value={frequency}
+                  onChange={(val) => setFrequency?.(val as 'WEEKLY' | 'FORTNIGHTLY' | 'MONTHLY' | 'ANNUALLY')}
+                  options={[
+                    { value: 'WEEKLY', label: t('categories.frequencyWeekly') },
+                    { value: 'FORTNIGHTLY', label: t('categories.frequencyFortnightly') },
+                    { value: 'MONTHLY', label: t('categories.frequencyMonthly') },
+                    { value: 'ANNUALLY', label: t('categories.frequencyAnnually') },
+                  ]}
+                />
+              </div>
 
-          {goalMode === 'TARGET_DATE' && (
-            <DatePickerField
-              label={t('categories.targetCompletionDate')}
-              required
-              value={targetDate}
-              onChange={setTargetDate}
-            />
+              <div className="grid grid-cols-2 gap-3 items-start">
+                <div className="flex flex-col gap-1">
+                  <label className="text-xs font-bold uppercase tracking-wider text-zinc-500">
+                    {t('forms.every')}
+                  </label>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="number"
+                      min="1"
+                      max="365"
+                      value={interval === 0 ? '' : interval}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        if (val === '') {
+                          setInterval?.(0);
+                        } else {
+                          const parsed = parseInt(val, 10);
+                          if (!isNaN(parsed) && parsed >= 1) {
+                            setInterval?.(Math.min(365, parsed));
+                          }
+                        }
+                      }}
+                      onBlur={() => {
+                        if (interval === 0 || isNaN(interval)) {
+                          setInterval?.(1);
+                        }
+                      }}
+                      className="px-4 py-2.5 text-xs font-bold rounded-xl border border-zinc-200 focus:outline-none focus:ring-2 focus:ring-[#2563eb] text-zinc-900 w-full"
+                    />
+                    <span className="text-xs font-bold text-zinc-500 shrink-0">
+                      {frequency === 'WEEKLY'
+                        ? t('forms.weeks')
+                        : frequency === 'FORTNIGHTLY'
+                        ? t('forms.fortnights')
+                        : frequency === 'MONTHLY'
+                        ? t('forms.months')
+                        : t('forms.years')}
+                    </span>
+                  </div>
+                </div>
+
+                <DatePickerField
+                  label={t('forms.firstDate')}
+                  value={goalStartDate}
+                  onChange={(val) => setGoalStartDate?.(val)}
+                />
+              </div>
+
+              {targetAmount && parseFloat(targetAmount) > 0 && (frequency !== 'MONTHLY' || interval > 1) && (
+                <div className="p-2.5 bg-blue-50/70 border border-blue-200 rounded-xl text-[11px] font-semibold text-blue-900 flex items-center justify-between font-mono">
+                  <span>{t('categories.monthlyEquivalent')}</span>
+                  <span className="font-bold text-[#2563eb]">${calculatedMonthly} / mo</span>
+                </div>
+              )}
+            </div>
           )}
         </>
       )}

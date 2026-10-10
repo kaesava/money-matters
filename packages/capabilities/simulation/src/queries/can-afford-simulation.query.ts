@@ -84,6 +84,7 @@ export async function canAffordSimulationQuery(
           bankAccountId: pools.bankAccountId,
           everydayAllowanceAmount: pools.everydayAllowanceAmount,
           safetyBufferFloor: pools.safetyBufferFloor,
+          goalMode: pools.goalMode,
           targetAmount: pools.targetAmount,
           targetDate: pools.targetDate,
           isCommitted: pools.isCommitted,
@@ -279,6 +280,7 @@ export async function canAffordSimulationQuery(
       safetyBufferFloor: pool.safetyBufferFloor
         ? parseFloat(pool.safetyBufferFloor)
         : null,
+      goalMode: pool.goalMode ?? (pool.poolType === "GOAL" ? "TARGET_DATE" : undefined),
       targetDate: pool.targetDate ?? null,
       currentBalance: balance,
       isPrivate: pool.isPrivate ?? false,
@@ -436,7 +438,7 @@ export async function canAffordSimulationQuery(
     }> = [];
 
     for (const pool of goalPools) {
-      if (!pool.targetDate || !pool.targetAmount) continue;
+      if (!pool.targetAmount) continue;
 
       const originalFinalBalance = projectionWithout.finalBalances.get(pool.id) ?? 0;
       const newFinalBalance = projectionWith.finalBalances.get(pool.id) ?? 0;
@@ -445,20 +447,25 @@ export async function canAffordSimulationQuery(
 
       // Estimate delay days from balance drop vs. daily contribution rate
       const poolMonthlyContrib =
-        poolCategoryTargetsMap.get(pool.id) ??
-        (pool.targetAmount ? parseFloat(pool.targetAmount) / 12 : 0);
+        pool.goalMode === "ONGOING"
+          ? parseFloat(pool.targetAmount)
+          : (poolCategoryTargetsMap.get(pool.id) ?? (parseFloat(pool.targetAmount) / 12));
       const dailyContrib = poolMonthlyContrib > 0 ? poolMonthlyContrib / 30 : 1;
       const delayDays = Math.max(1, Math.round(balanceDrop / dailyContrib));
 
-      const originalDate = new Date(pool.targetDate + "T00:00:00+10:00");
-      const newDate = new Date(originalDate.getTime() + delayDays * 24 * 60 * 60 * 1000);
+      let newDateStr: string | null = null;
+      if (pool.targetDate) {
+        const originalDate = new Date(pool.targetDate + "T00:00:00+10:00");
+        const newDate = new Date(originalDate.getTime() + delayDays * 24 * 60 * 60 * 1000);
+        newDateStr = new Intl.DateTimeFormat("en-CA", { timeZone: "Australia/Sydney" }).format(newDate);
+      }
 
       goalDelays.push({
         goalId: pool.id,
         goalName: pool.name,
         isCommitted: pool.isCommitted ?? false,
         originalTargetDate: pool.targetDate,
-        newTargetDate: new Intl.DateTimeFormat("en-CA", { timeZone: "Australia/Sydney" }).format(newDate),
+        newTargetDate: newDateStr,
         delayDays,
       });
     }
@@ -583,8 +590,9 @@ export async function canAffordSimulationQuery(
     const goalBal = poolBalancesMap[candidateGoal.id] ?? 0;
     if (goalBal >= shortfall) {
       const poolMonthlyContrib =
-        poolCategoryTargetsMap.get(candidateGoal.id) ??
-        (candidateGoal.targetAmount ? parseFloat(candidateGoal.targetAmount) / 12 : 0);
+        candidateGoal.goalMode === "ONGOING"
+          ? parseFloat(candidateGoal.targetAmount || "0")
+          : (poolCategoryTargetsMap.get(candidateGoal.id) ?? (candidateGoal.targetAmount ? parseFloat(candidateGoal.targetAmount) / 12 : 0));
       const dailyContrib = poolMonthlyContrib > 0 ? poolMonthlyContrib / 30 : 1;
       const delayDays = Math.max(1, Math.round(shortfall / dailyContrib));
 

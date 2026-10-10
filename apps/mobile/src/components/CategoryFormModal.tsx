@@ -14,8 +14,14 @@ export interface CategoryItem {
   id: string;
   name: string;
   type: 'GOAL' | 'REGULAR' | 'EVERYDAY';
+  poolType?: 'GOAL' | 'REGULAR' | 'EVERYDAY';
   targetAmount?: string | null;
   targetDate?: string | null;
+  enteredAmount?: string | null;
+  budgetFrequency?: 'WEEKLY' | 'FORTNIGHTLY' | 'MONTHLY' | 'ANNUALLY' | null;
+  startDate?: string | null;
+  rrule?: string | null;
+  goalMode?: 'TARGET_DATE' | 'ONGOING' | null;
   monthlyAmount?: string | null;
   everydayTargetKeepAmount?: string | null;
   bankAccountId?: string | null;
@@ -48,17 +54,30 @@ export function CategoryFormModal({ visible, categoryToEdit, onClose, onSuccess 
   const [safetyBufferFloor, setSafetyBufferFloor] = useState('');
   const [targetAmount, setTargetAmount] = useState('');
   const [targetDate, setTargetDate] = useState('');
+  const [goalMode, setGoalMode] = useState<'TARGET_DATE' | 'ONGOING'>('TARGET_DATE');
+  const [frequency, setFrequency] = useState<'WEEKLY' | 'FORTNIGHTLY' | 'MONTHLY' | 'ANNUALLY'>('MONTHLY');
+  const [interval, setInterval] = useState(1);
+  const [goalStartDate, setGoalStartDate] = useState('');
   const [bankAccountId, setBankAccountId] = useState('');
   const [isSurplusTarget, setIsSurplusTarget] = useState(false);
 
   useEffect(() => {
     if (categoryToEdit) {
       setName(categoryToEdit.name);
-      setType(categoryToEdit.type);
+      setType(categoryToEdit.poolType || categoryToEdit.type || 'REGULAR');
       setBankAccountId(categoryToEdit.bankAccountId ?? '');
       setSafetyBufferFloor(categoryToEdit.safetyBufferFloor ?? '');
-      setTargetAmount(categoryToEdit.targetAmount ?? '');
+      setTargetAmount((categoryToEdit.enteredAmount || categoryToEdit.targetAmount) ?? '');
       setTargetDate(categoryToEdit.targetDate ? formatIsoDate(categoryToEdit.targetDate) : '');
+      setGoalMode(categoryToEdit.goalMode || 'TARGET_DATE');
+      setFrequency(categoryToEdit.budgetFrequency || 'MONTHLY');
+      setGoalStartDate(categoryToEdit.startDate ? formatIsoDate(categoryToEdit.startDate) : '');
+      if (categoryToEdit.rrule) {
+        const match = categoryToEdit.rrule.match(/INTERVAL=(\d+)/);
+        setInterval(match ? parseInt(match[1], 10) : 1);
+      } else {
+        setInterval(1);
+      }
       setIsSurplusTarget(categoryToEdit.isSurplusTarget ?? false);
     } else {
       setName('');
@@ -67,10 +86,39 @@ export function CategoryFormModal({ visible, categoryToEdit, onClose, onSuccess 
       setSafetyBufferFloor('');
       setTargetAmount('');
       setTargetDate('');
+      setGoalMode('TARGET_DATE');
+      setFrequency('MONTHLY');
+      setInterval(1);
+      setGoalStartDate(new Intl.DateTimeFormat('en-CA', { timeZone: 'Australia/Sydney' }).format(new Date()));
       setIsSurplusTarget(false);
     }
     setNameError('');
   }, [categoryToEdit, visible]);
+
+  const calculatedMonthly = useMemo(() => {
+    const val = parseFloat(targetAmount);
+    if (isNaN(val) || val <= 0) return '0.00';
+    const intVal = Math.max(1, interval);
+    let monthly = val;
+    if (frequency === 'WEEKLY') monthly = (val * (52 / intVal)) / 12;
+    else if (frequency === 'FORTNIGHTLY') monthly = (val * (26 / intVal)) / 12;
+    else if (frequency === 'MONTHLY') monthly = val / intVal;
+    else if (frequency === 'ANNUALLY') monthly = val / (12 * intVal);
+    return monthly.toFixed(2);
+  }, [targetAmount, frequency, interval]);
+
+  const rruleString = useMemo(() => {
+    if (goalMode !== 'ONGOING') return null;
+    let freqStr = 'FREQ=MONTHLY';
+    let intVal = Math.max(1, interval);
+    if (frequency === 'WEEKLY') freqStr = 'FREQ=WEEKLY';
+    if (frequency === 'FORTNIGHTLY') {
+      freqStr = 'FREQ=WEEKLY';
+      intVal = intVal * 2;
+    }
+    if (frequency === 'ANNUALLY') freqStr = 'FREQ=YEARLY';
+    return intVal > 1 ? `${freqStr};INTERVAL=${intVal}` : freqStr;
+  }, [goalMode, frequency, interval]);
 
   const createMut = trpc.createPool.useMutation({
     onSuccess: () => {
@@ -113,10 +161,10 @@ export function CategoryFormModal({ visible, categoryToEdit, onClose, onSuccess 
     if (!isEdit && !bankAccountId) return false;
     if (type === 'GOAL') {
       if (!targetAmount || parseFloat(targetAmount) <= 0) return false;
-      if (!targetDate) return false;
+      if (goalMode === 'TARGET_DATE' && !targetDate) return false;
     }
     return true;
-  }, [name, isEdit, bankAccountId, type, targetAmount, targetDate]);
+  }, [name, isEdit, bankAccountId, type, targetAmount, goalMode, targetDate]);
 
   const isDirty = useMemo(() => {
     if (!isEdit) {
@@ -124,19 +172,25 @@ export function CategoryFormModal({ visible, categoryToEdit, onClose, onSuccess 
     }
     if (!categoryToEdit) return false;
     const initialName = categoryToEdit.name || '';
-    const initialTarget = categoryToEdit.targetAmount || '';
+    const initialTarget = categoryToEdit.enteredAmount || categoryToEdit.targetAmount || '';
     const initialFloor = categoryToEdit.safetyBufferFloor || '';
     const initialDate = categoryToEdit.targetDate ? formatIsoDate(categoryToEdit.targetDate) : '';
     const initialSurplus = categoryToEdit.isSurplusTarget ?? false;
+    const initialGoalMode = categoryToEdit.goalMode || 'TARGET_DATE';
+    const initialFreq = categoryToEdit.budgetFrequency || 'MONTHLY';
+    const initialStartDate = categoryToEdit.startDate ? formatIsoDate(categoryToEdit.startDate) : '';
 
     return (
       name.trim() !== initialName ||
       safetyBufferFloor !== initialFloor ||
       targetAmount !== initialTarget ||
       targetDate !== initialDate ||
+      goalMode !== initialGoalMode ||
+      frequency !== initialFreq ||
+      goalStartDate !== initialStartDate ||
       isSurplusTarget !== initialSurplus
     );
-  }, [isEdit, categoryToEdit, name, bankAccountId, safetyBufferFloor, targetAmount, targetDate, isSurplusTarget]);
+  }, [isEdit, categoryToEdit, name, bankAccountId, safetyBufferFloor, targetAmount, targetDate, goalMode, frequency, goalStartDate, isSurplusTarget]);
 
   const isSurplusDisabled = Boolean(isEdit && categoryToEdit?.isSurplusTarget);
 
@@ -154,12 +208,16 @@ export function CategoryFormModal({ visible, categoryToEdit, onClose, onSuccess 
         toast.error(t('categories.goalAmountRequired'));
         return;
       }
-      if (!targetDate) {
+      if (goalMode === 'TARGET_DATE' && !targetDate) {
         toast.error(t('categories.goalDateRequired'));
         return;
       }
     }
     setNameError('');
+
+    const finalTargetAmount = type === 'GOAL'
+      ? (goalMode === 'ONGOING' ? calculatedMonthly : parseFloat(targetAmount).toFixed(2))
+      : undefined;
 
     if (categoryToEdit) {
       updateMut.mutate({
@@ -167,8 +225,13 @@ export function CategoryFormModal({ visible, categoryToEdit, onClose, onSuccess 
         data: {
           name: name.trim(),
           safetyBufferFloor: type === 'EVERYDAY' ? safetyBufferFloor || '0.00' : undefined,
-          targetAmount: type === 'GOAL' && targetAmount ? parseFloat(targetAmount).toFixed(2) : undefined,
-          targetDate: type === 'GOAL' && targetDate ? targetDate : undefined,
+          targetAmount: finalTargetAmount,
+          targetDate: type === 'GOAL' && goalMode === 'TARGET_DATE' ? targetDate || undefined : undefined,
+          enteredAmount: type === 'GOAL' && goalMode === 'ONGOING' ? parseFloat(targetAmount).toFixed(2) : undefined,
+          budgetFrequency: type === 'GOAL' && goalMode === 'ONGOING' ? frequency : undefined,
+          startDate: type === 'GOAL' && goalMode === 'ONGOING' ? goalStartDate || undefined : undefined,
+          rrule: type === 'GOAL' && goalMode === 'ONGOING' ? rruleString || undefined : undefined,
+          goalMode: type === 'GOAL' ? goalMode : undefined,
           isSurplusTarget: type !== 'EVERYDAY' ? isSurplusTarget : undefined,
         },
       });
@@ -178,8 +241,13 @@ export function CategoryFormModal({ visible, categoryToEdit, onClose, onSuccess 
         poolType: type,
         bankAccountId,
         safetyBufferFloor: type === 'EVERYDAY' ? safetyBufferFloor || '0.00' : undefined,
-        targetAmount: type === 'GOAL' && targetAmount ? parseFloat(targetAmount).toFixed(2) : undefined,
-        targetDate: type === 'GOAL' && targetDate ? targetDate : undefined,
+        targetAmount: finalTargetAmount,
+        targetDate: type === 'GOAL' && goalMode === 'TARGET_DATE' ? targetDate || undefined : undefined,
+        enteredAmount: type === 'GOAL' && goalMode === 'ONGOING' ? parseFloat(targetAmount).toFixed(2) : undefined,
+        budgetFrequency: type === 'GOAL' && goalMode === 'ONGOING' ? frequency : undefined,
+        startDate: type === 'GOAL' && goalMode === 'ONGOING' ? goalStartDate || undefined : undefined,
+        rrule: type === 'GOAL' && goalMode === 'ONGOING' ? rruleString || undefined : undefined,
+        goalMode: type === 'GOAL' ? goalMode : undefined,
         isSurplusTarget: type !== 'EVERYDAY' ? isSurplusTarget : undefined,
       });
     }
@@ -241,6 +309,15 @@ export function CategoryFormModal({ visible, categoryToEdit, onClose, onSuccess 
         setTargetAmount={setTargetAmount}
         targetDate={targetDate}
         setTargetDate={setTargetDate}
+        goalMode={goalMode}
+        setGoalMode={setGoalMode}
+        frequency={frequency}
+        setFrequency={setFrequency}
+        interval={interval}
+        setInterval={setInterval}
+        goalStartDate={goalStartDate}
+        setGoalStartDate={setGoalStartDate}
+        calculatedMonthly={calculatedMonthly}
         bankAccountId={bankAccountId}
         setBankAccountId={setBankAccountId}
         isSurplusTarget={isSurplusTarget}

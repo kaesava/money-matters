@@ -21,6 +21,10 @@ export const pools = pgTable("pools", {
   goalMode: goalModeEnum("goal_mode").default("TARGET_DATE"),
   targetAmount: numeric("target_amount", { precision: 12, scale: 2 }),
   targetDate: varchar("target_date", { length: 50 }),
+  enteredAmount: numeric("entered_amount", { precision: 12, scale: 2 }),
+  budgetFrequency: varchar("budget_frequency", { length: 50 }).default("MONTHLY"),
+  startDate: varchar("start_date", { length: 50 }),
+  rrule: varchar("rrule", { length: 255 }),
 
   isCommitted: boolean("is_committed").notNull().default(false),
   isSurplusTarget: boolean("is_surplus_target").notNull().default(false),

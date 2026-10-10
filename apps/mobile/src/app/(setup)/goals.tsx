@@ -3,7 +3,7 @@ import { View, Text, TouchableOpacity, ScrollView, TextInput, StyleSheet } from 
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { t } from '@money-matters/i18n';
-import { DESIGN_TOKENS, AmountInput } from '@money-matters/ui/mobile';
+import { DESIGN_TOKENS, AmountInput, MobileGoalModeToggle } from '@money-matters/ui/mobile';
 import { useSetupWizard } from '../../context/SetupWizardContext';
 import { UserGoalItem } from '@money-matters/types';
 import { SetupGoalCard } from '../../components/setup/SetupGoalCard';
@@ -39,6 +39,7 @@ export default function SetupGoalsScreen() {
 
   const [customName, setCustomName] = useState('');
   const [customTarget, setCustomTarget] = useState('5000');
+  const [customType, setCustomType] = useState<'TARGET_DATE' | 'ONGOING'>('TARGET_DATE');
 
   const tz = getMobileLocaleConfig().timezone;
 
@@ -60,6 +61,7 @@ export default function SetupGoalsScreen() {
           name: preset.name,
           targetAmount: preset.defaultTarget,
           dueDate,
+          goalMode: 'TARGET_DATE',
           monthlyAmount: Math.round(preset.defaultTarget / preset.defaultMonths),
           icon: preset.icon,
         },
@@ -69,23 +71,41 @@ export default function SetupGoalsScreen() {
 
   const handleAddCustom = () => {
     if (!customName.trim()) return;
-    const target = parseFloat(customTarget) || 1000;
-    const d = new Date();
-    d.setMonth(d.getMonth() + 12);
-    const dueDate = new Intl.DateTimeFormat('en-CA', { timeZone: tz }).format(d);
-    setGoals((prev) => [
-      ...prev,
-      {
-        id: `g-${Date.now()}`,
-        name: customName.trim(),
-        targetAmount: target,
-        dueDate,
-        monthlyAmount: Math.round(target / 12),
-        icon: '🎯',
-      },
-    ]);
+    const amountNum = parseFloat(customTarget) || (customType === 'ONGOING' ? 250 : 1000);
+    if (customType === 'ONGOING') {
+      setGoals((prev) => [
+        ...prev,
+        {
+          id: `g-${Date.now()}`,
+          name: customName.trim(),
+          targetAmount: amountNum,
+          enteredAmount: amountNum,
+          dueDate: null,
+          goalMode: 'ONGOING',
+          monthlyAmount: amountNum,
+          budgetFrequency: 'MONTHLY',
+          icon: '🎯',
+        },
+      ]);
+    } else {
+      const d = new Date();
+      d.setMonth(d.getMonth() + 12);
+      const dueDate = new Intl.DateTimeFormat('en-CA', { timeZone: tz }).format(d);
+      setGoals((prev) => [
+        ...prev,
+        {
+          id: `g-${Date.now()}`,
+          name: customName.trim(),
+          targetAmount: amountNum,
+          dueDate,
+          goalMode: 'TARGET_DATE',
+          monthlyAmount: Math.round(amountNum / 12),
+          icon: '🎯',
+        },
+      ]);
+    }
     setCustomName('');
-    setCustomTarget('5000');
+    setCustomTarget(customType === 'ONGOING' ? '250' : '5000');
   };
 
   const handleUpdateGoal = (id: string, field: keyof UserGoalItem, val: string | number) => {
@@ -146,9 +166,16 @@ export default function SetupGoalsScreen() {
           value={customName}
           onChangeText={setCustomName}
         />
+        <View style={styles.toggleWrap}>
+          <MobileGoalModeToggle value={customType} onChange={setCustomType} />
+        </View>
         <View style={styles.customTargetRow}>
           <View style={styles.flexOne}>
-            <AmountInput value={customTarget} onChangeText={setCustomTarget} />
+            <AmountInput
+              label={customType === 'ONGOING' ? t('goalModes.monthlyContribution') : t('common.target')}
+              value={customTarget}
+              onChangeText={setCustomTarget}
+            />
           </View>
           <TouchableOpacity
             style={[styles.addCustomBtn, !customName.trim() && styles.disabledBtn]}
@@ -221,6 +248,9 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     fontSize: 14,
     color: DESIGN_TOKENS.colors.textPrimary,
+    marginBottom: 8,
+  },
+  toggleWrap: {
     marginBottom: 8,
   },
   customTargetRow: { flexDirection: 'row', gap: 8, alignItems: 'center' },

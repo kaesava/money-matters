@@ -19,19 +19,29 @@ function getMonthsDiff(targetDateStr: string): number {
 }
 
 export function SetupGoalCard({ goal, onUpdate, onRemove }: SetupGoalCardProps) {
-  const months = getMonthsDiff(goal.dueDate);
-  const estMonthly = Math.round((goal.targetAmount || 0) / months);
+  const isOngoing = goal.goalMode === 'ONGOING';
+  const months = isOngoing ? 1 : getMonthsDiff(goal.dueDate || '');
+  const estMonthly = isOngoing
+    ? Math.round(goal.targetAmount || 0)
+    : Math.round((goal.targetAmount || 0) / months);
 
   return (
     <View style={styles.card}>
       <View style={styles.header}>
         <View style={styles.titleRow}>
           <Text style={styles.icon}>{goal.icon || '🎯'}</Text>
-          <TextInput
-            style={styles.nameInput}
-            value={goal.name}
-            onChangeText={(txt) => onUpdate(goal.id, 'name', txt)}
-          />
+          <View style={{ flex: 1 }}>
+            <TextInput
+              style={styles.nameInput}
+              value={goal.name}
+              onChangeText={(txt) => onUpdate(goal.id, 'name', txt)}
+            />
+            {isOngoing && (
+              <Text style={styles.ongoingBadgeText}>
+                {t('goalModes.ongoing')}
+              </Text>
+            )}
+          </View>
         </View>
         <TouchableOpacity onPress={() => onRemove(goal.id)} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
           <Text style={styles.removeBtn}>✕</Text>
@@ -40,13 +50,15 @@ export function SetupGoalCard({ goal, onUpdate, onRemove }: SetupGoalCardProps) 
 
       <View style={styles.inputsRow}>
         <View style={styles.amountCol}>
-          <Text style={styles.fieldLabel}>{t('common.target')}</Text>
+          <Text style={styles.fieldLabel}>
+            {isOngoing ? t('goalModes.monthlyContribution') : t('common.target')}
+          </Text>
           <AmountInput
             value={goal.targetAmount ? String(goal.targetAmount) : ''}
             onChangeText={(val) => {
               const num = parseFloat(val) || 0;
               onUpdate(goal.id, 'targetAmount', num);
-              onUpdate(goal.id, 'monthlyAmount', Math.round(num / months));
+              onUpdate(goal.id, 'monthlyAmount', isOngoing ? num : Math.round(num / months));
             }}
           />
         </View>
@@ -84,4 +96,10 @@ const styles = StyleSheet.create({
     borderColor: '#BBF7D0',
   },
   guideText: { fontSize: 11, fontWeight: '700', color: '#15803D' },
+  ongoingBadgeText: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: DESIGN_TOKENS.colors.accent,
+    marginTop: 2,
+  },
 });

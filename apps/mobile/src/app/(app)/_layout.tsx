@@ -10,6 +10,7 @@ import { trpc, setActiveTenantId, getActiveTenantId, switchActiveTenant } from '
 import { authClient } from '../../lib/auth';
 import { QuickActionFab } from '../../components/QuickActionFab';
 import { CategoryFormModal } from '../../components/CategoryFormModal';
+import { MobileProductTourProvider } from '../../context/ProductTourContext';
 
 function TabIcon({
   name,
@@ -126,8 +127,9 @@ export default function AppLayout() {
     segments.includes('(setup)');
 
   return (
-    <View style={styles.root}>
-      <Tabs
+    <MobileProductTourProvider>
+      <View style={styles.root}>
+        <Tabs
         backBehavior="history"
         screenOptions={{
           headerShown: false,
@@ -222,6 +224,7 @@ export default function AppLayout() {
         }}
       />
     </View>
+    </MobileProductTourProvider>
   );
 }
 

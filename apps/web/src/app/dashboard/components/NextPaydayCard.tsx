@@ -69,7 +69,7 @@ export const NextPaydayCard: React.FC<NextPaydayCardProps> = ({
   const itemsToShow = upcomingIncomes.slice(0, 3);
 
   return (
-    <div className="bg-white border border-gray-200/80 rounded-2xl p-5 shadow-2xs space-y-4">
+    <div data-tour="payday-card" className="bg-white border border-gray-200/80 rounded-2xl p-5 shadow-2xs space-y-4">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <h2 className="text-sm font-extrabold text-[#1B2B4B]">

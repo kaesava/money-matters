@@ -159,7 +159,8 @@ function IncomeAndBillsContent() {
       )}
 
       {activeTab === "EVENTS" && (
-        <TimelineTabWrapper
+        <div data-tour="matrix-plan">
+          <TimelineTabWrapper
           isLoading={isLoading}
           savedIncomeEventIds={savedIncomeEventIds}
           incomeEvents={incomeEvents.map((e) => {
@@ -191,6 +192,7 @@ function IncomeAndBillsContent() {
           pools={pools.map((p) => ({ id: p.id, name: p.name, poolType: p.poolType, currentBalance: parseFloat(String(p.currentBalance || "0")), isSurplusTarget: p.isSurplusTarget, bankAccountId: p.bankAccountId }))}
           onOpenTransferDrawer={() => setIsTransferDrawerOpen(true)}
         />
+        </div>
       )}
 
       {isIncomeModalOpen && (

@@ -19,6 +19,7 @@ import { MobileTenantSwitcherModal } from '../../components/settings/MobileTenan
 import { MobileBankAccountsSection } from '../../components/settings/MobileBankAccountsSection';
 import { MobileArchivedSection } from '../../components/settings/MobileArchivedSection';
 import { getMobileVersionInfo } from '../../lib/version';
+import { useMobileProductTour } from '../../context/ProductTourContext';
 
 import { SettingsNotificationsCard } from '../../components/settings/layout/SettingsNotificationsCard';
 import { SettingsActiveHouseholdCard } from '../../components/settings/layout/SettingsActiveHouseholdCard';
@@ -31,6 +32,7 @@ export type { SettingsTab };
 export default function SettingsScreen() {
   const router = useRouter();
   const toast = useMobileToast();
+  const { startTour } = useMobileProductTour();
   const { data: session } = authClient.useSession();
   const utils = trpc.useUtils();
 
@@ -124,6 +126,7 @@ export default function SettingsScreen() {
               loading={loading}
               onOpenFeedback={() => setFeedbackVisible(true)}
               onSignOut={handleSignOut}
+              onStartTour={startTour}
             />
           </View>
 

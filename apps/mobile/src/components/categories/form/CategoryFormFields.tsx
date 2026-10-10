@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, TextInput, StyleSheet } from 'react-native';
 import {
   DESIGN_TOKENS,
   MobileInput,
@@ -8,6 +8,7 @@ import {
   AmountInput,
   DatePickerField,
   MobileCheckbox,
+  MobileGoalModeToggle,
 } from '@money-matters/ui/mobile';
 import { t } from '@money-matters/i18n';
 
@@ -24,6 +25,15 @@ interface CategoryFormFieldsProps {
   setTargetAmount: (v: string) => void;
   targetDate: string;
   setTargetDate: (v: string) => void;
+  goalMode?: 'TARGET_DATE' | 'ONGOING';
+  setGoalMode?: (v: 'TARGET_DATE' | 'ONGOING') => void;
+  frequency?: 'WEEKLY' | 'FORTNIGHTLY' | 'MONTHLY' | 'ANNUALLY';
+  setFrequency?: (v: 'WEEKLY' | 'FORTNIGHTLY' | 'MONTHLY' | 'ANNUALLY') => void;
+  interval?: number;
+  setInterval?: (v: number) => void;
+  goalStartDate?: string;
+  setGoalStartDate?: (v: string) => void;
+  calculatedMonthly?: string;
   bankAccountId: string;
   setBankAccountId: (v: string) => void;
   isSurplusTarget: boolean;
@@ -47,6 +57,15 @@ export const CategoryFormFields: React.FC<CategoryFormFieldsProps> = ({
   setTargetAmount,
   targetDate,
   setTargetDate,
+  goalMode = 'TARGET_DATE',
+  setGoalMode,
+  frequency = 'MONTHLY',
+  setFrequency,
+  interval = 1,
+  setInterval,
+  goalStartDate = '',
+  setGoalStartDate,
+  calculatedMonthly = '0.00',
   bankAccountId,
   setBankAccountId,
   isSurplusTarget,
@@ -117,19 +136,99 @@ export const CategoryFormFields: React.FC<CategoryFormFieldsProps> = ({
 
       {type === 'GOAL' && (
         <>
-          <AmountInput
-            label={t('categories.targetAmountLabel')}
-            required
-            value={targetAmount}
-            onChangeText={setTargetAmount}
-            placeholder="10000.00"
-          />
-          <DatePickerField
-            label={t('categories.targetCompletionDate')}
-            required
-            value={targetDate}
-            onChange={setTargetDate}
-          />
+          {setGoalMode && (
+            <MobileGoalModeToggle value={goalMode} onChange={setGoalMode} />
+          )}
+
+          {goalMode === 'TARGET_DATE' ? (
+            <View style={styles.goalInputsCol}>
+              <AmountInput
+                label={t('categories.targetAmountLabel')}
+                required
+                value={targetAmount}
+                onChangeText={setTargetAmount}
+                placeholder="10000.00"
+              />
+              <DatePickerField
+                label={t('categories.targetCompletionDate')}
+                required
+                value={targetDate}
+                onChange={setTargetDate}
+              />
+            </View>
+          ) : (
+            <View style={styles.goalInputsCol}>
+              <AmountInput
+                label={t('goalModes.monthlyContribution')}
+                required
+                value={targetAmount}
+                onChangeText={setTargetAmount}
+                placeholder="250.00"
+              />
+
+              <View style={styles.formGroup}>
+                <FormLabel>{t('categories.frequencyLabel')}</FormLabel>
+                <ChipSelect
+                  options={[
+                    { key: 'WEEKLY', label: t('categories.frequencyWeekly') },
+                    { key: 'FORTNIGHTLY', label: t('categories.frequencyFortnightly') },
+                    { key: 'MONTHLY', label: t('categories.frequencyMonthly') },
+                    { key: 'ANNUALLY', label: t('categories.frequencyAnnually') },
+                  ]}
+                  value={frequency}
+                  onChange={(val) => setFrequency?.(val as 'WEEKLY' | 'FORTNIGHTLY' | 'MONTHLY' | 'ANNUALLY')}
+                />
+              </View>
+
+              <View style={styles.formGroup}>
+                <FormLabel>{t('forms.every')}</FormLabel>
+                <View style={styles.intervalRow}>
+                  <TextInput
+                    style={styles.intervalInput}
+                    keyboardType="numeric"
+                    value={interval === 0 ? '' : String(interval)}
+                    onChangeText={(val) => {
+                      if (val === '') {
+                        setInterval?.(0);
+                      } else {
+                        const parsed = parseInt(val, 10);
+                        if (!isNaN(parsed) && parsed >= 1) {
+                          setInterval?.(Math.min(365, parsed));
+                        }
+                      }
+                    }}
+                    onBlur={() => {
+                      if (interval === 0 || isNaN(interval)) {
+                        setInterval?.(1);
+                      }
+                    }}
+                  />
+                  <Text style={styles.intervalUnit}>
+                    {frequency === 'WEEKLY'
+                      ? t('forms.weeks')
+                      : frequency === 'FORTNIGHTLY'
+                      ? t('forms.fortnights')
+                      : frequency === 'MONTHLY'
+                      ? t('forms.months')
+                      : t('forms.years')}
+                  </Text>
+                </View>
+              </View>
+
+              <DatePickerField
+                label={t('forms.firstDate')}
+                value={goalStartDate}
+                onChange={(val) => setGoalStartDate?.(val)}
+              />
+
+              {targetAmount && parseFloat(targetAmount) > 0 && (frequency !== 'MONTHLY' || interval > 1) && (
+                <View style={styles.equivBanner}>
+                  <Text style={styles.equivLabel}>{t('categories.monthlyEquivalent')}</Text>
+                  <Text style={styles.equivVal}>${calculatedMonthly} / mo</Text>
+                </View>
+              )}
+            </View>
+          )}
         </>
       )}
 
@@ -198,5 +297,51 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: DESIGN_TOKENS.colors.subtleText,
     paddingLeft: 30,
+  },
+  goalInputsCol: {
+    gap: 12,
+  },
+  intervalRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  intervalInput: {
+    backgroundColor: DESIGN_TOKENS.colors.surfaceVariant,
+    borderWidth: 1,
+    borderColor: DESIGN_TOKENS.colors.slate[200],
+    borderRadius: DESIGN_TOKENS.radius.md,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    fontSize: 14,
+    fontWeight: '700',
+    color: DESIGN_TOKENS.colors.textPrimary,
+    minWidth: 80,
+  },
+  intervalUnit: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: DESIGN_TOKENS.colors.textMuted,
+  },
+  equivBanner: {
+    padding: 10,
+    backgroundColor: '#EFF6FF',
+    borderRadius: DESIGN_TOKENS.radius.md,
+    borderWidth: 1,
+    borderColor: '#BFDBFE',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  equivLabel: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#1E3A8A',
+  },
+  equivVal: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: DESIGN_TOKENS.colors.accent,
+    fontFamily: 'monospace',
   },
 });

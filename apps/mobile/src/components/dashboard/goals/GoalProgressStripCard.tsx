@@ -65,15 +65,24 @@ export const GoalProgressStripCard: React.FC<GoalProgressStripCardProps> = ({
     ? DESIGN_TOKENS.colors.success
     : DESIGN_TOKENS.colors.accent;
 
+  const isOngoing = item.goalMode === 'ONGOING';
+
   return (
     <TouchableOpacity
       activeOpacity={0.8}
       onPress={() => router.push(`/(app)/pools/${item.id}` as never)}
       style={styles.goalCard}
     >
-      <Text style={styles.goalName} numberOfLines={1}>
-        {item.name}
-      </Text>
+      <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+        <Text style={[styles.goalName, { flex: 1 }]} numberOfLines={1}>
+          {item.name}
+        </Text>
+        {isOngoing && (
+          <Text style={{ fontSize: 10, fontWeight: '700', color: DESIGN_TOKENS.colors.accent }}>
+            {item.budgetFrequency || t('categories.frequencyMonthly')}
+          </Text>
+        )}
+      </View>
       <Text style={styles.goalBalance}>{formatAUD(bal)}</Text>
 
       {target > 0 ? (
@@ -82,10 +91,11 @@ export const GoalProgressStripCard: React.FC<GoalProgressStripCardProps> = ({
             <View
               style={[
                 styles.progressBarFill,
-                { width: `${fundedPct}%`, backgroundColor: barColor },
+                { width: isOngoing ? '100%' : `${fundedPct}%`, backgroundColor: barColor },
               ]}
             />
-            {timeElapsedPct !== null &&
+            {!isOngoing &&
+              timeElapsedPct !== null &&
               timeElapsedPct > 0 &&
               timeElapsedPct < 100 && (
                 <View
@@ -98,11 +108,17 @@ export const GoalProgressStripCard: React.FC<GoalProgressStripCardProps> = ({
           </View>
 
           <View style={styles.progressMeta}>
-            <Text style={styles.progressPct}>
-              {t('dashboard.goals.funded', { percent: fundedPct })}
-            </Text>
+            {isOngoing ? (
+              <Text style={styles.progressPct}>
+                {formatAUD(bal)} accumulated
+              </Text>
+            ) : (
+              <Text style={styles.progressPct}>
+                {t('dashboard.goals.funded', { percent: fundedPct })}
+              </Text>
+            )}
             <Text style={styles.targetAmount}>
-              {formatAUD(target)}
+              {formatAUD(target)}{isOngoing ? '/mo' : ''}
             </Text>
           </View>
 
@@ -110,6 +126,10 @@ export const GoalProgressStripCard: React.FC<GoalProgressStripCardProps> = ({
             {isOverdue ? (
               <Text style={styles.overdueText}>
                 {t('common.overdue')}
+              </Text>
+            ) : isOngoing ? (
+              <Text style={[styles.pacingText, styles.textGreen]}>
+                {t('dashboard.goals.onTrackBadge')}
               </Text>
             ) : timeElapsedPct !== null ? (
               <Text

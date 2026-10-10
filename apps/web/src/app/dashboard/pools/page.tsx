@@ -193,7 +193,10 @@ function PoolsPageContent() {
       let progressPercentage: number | null = null;
 
       if (p.poolType === "GOAL") {
-        if (targetAmountNum && targetAmountNum > 0) {
+        if (p.goalMode === "ONGOING") {
+          progressText = p.budgetFrequency || t("categories.frequencyMonthly");
+          progressPercentage = 100;
+        } else if (targetAmountNum && targetAmountNum > 0) {
           const pct = Math.min(100, Math.round((currentBal / targetAmountNum) * 100));
           progressPercentage = pct;
           progressText = `${pct}%`;

@@ -51,11 +51,16 @@ export const CreatePoolCommand = z.object({
   safetyBufferFloor: z.string().regex(/^(\d{1,12}(\.\d{1,2})?)?$/, { message: "Safety buffer must be a valid positive number" }).optional().nullable(),
   targetAmount: z.string().regex(/^(\d{1,12}(\.\d{1,2})?)?$/, { message: "Target amount must be a valid positive number" }).optional().nullable(),
   targetDate: z.string().optional().nullable(),
+  enteredAmount: z.string().regex(/^(\d{1,12}(\.\d{1,2})?)?$/, { message: "Entered amount must be a valid positive number" }).optional().nullable(),
+  budgetFrequency: z.enum(["WEEKLY", "FORTNIGHTLY", "MONTHLY", "ANNUALLY"]).optional(),
+  startDate: z.string().optional().nullable(),
+  rrule: z.string().optional().nullable(),
   isCommitted: z.boolean().default(false).optional(),
   isSurplusTarget: z.boolean().default(false).optional(),
 }).strict().superRefine((data, ctx) => {
   if (data.poolType === "GOAL") {
-    if (!data.targetAmount || parseFloat(data.targetAmount) <= 0) {
+    const hasAmount = (data.targetAmount && parseFloat(data.targetAmount) > 0) || (data.enteredAmount && parseFloat(data.enteredAmount) > 0);
+    if (!hasAmount) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         message: "Goal amount is required for Goal pools and must be greater than 0",
@@ -79,6 +84,10 @@ export const UpdatePoolCommand = z.object({
   safetyBufferFloor: z.string().regex(/^(\d{1,12}(\.\d{1,2})?)?$/, { message: "Safety buffer must be a valid positive number" }).optional().nullable(),
   targetAmount: z.string().regex(/^(\d{1,12}(\.\d{1,2})?)?$/, { message: "Target amount must be a valid positive number" }).optional().nullable(),
   targetDate: z.string().optional().nullable(),
+  enteredAmount: z.string().regex(/^(\d{1,12}(\.\d{1,2})?)?$/, { message: "Entered amount must be a valid positive number" }).optional().nullable(),
+  budgetFrequency: z.enum(["WEEKLY", "FORTNIGHTLY", "MONTHLY", "ANNUALLY"]).optional(),
+  startDate: z.string().optional().nullable(),
+  rrule: z.string().optional().nullable(),
   isCommitted: z.boolean().optional(),
   isSurplusTarget: z.boolean().optional(),
 }).strict();
@@ -320,6 +329,10 @@ export const SaveSetupBudgetCommand = z.object({
     goalMode: z.enum(["TARGET_DATE", "ONGOING"]).optional(),
     targetAmount: z.string().regex(/^(\d{1,12}(\.\d{1,2})?)?$/).optional().nullable(),
     targetDate: z.string().optional().nullable(),
+    enteredAmount: z.string().regex(/^(\d{1,12}(\.\d{1,2})?)?$/).optional().nullable(),
+    budgetFrequency: z.enum(["WEEKLY", "FORTNIGHTLY", "MONTHLY", "ANNUALLY"]).optional(),
+    startDate: z.string().optional().nullable(),
+    rrule: z.string().optional().nullable(),
     everydayAllowanceAmount: z.string().regex(/^(\d{1,12}(\.\d{1,2})?)?$/).optional().nullable(),
     safetyBufferFloor: z.string().regex(/^(\d{1,12}(\.\d{1,2})?)?$/).optional().nullable(),
     isSurplusTarget: z.boolean().default(false),

@@ -114,6 +114,7 @@ export async function getProjectedPoolBalancesQuery(
       monthlyAmount: monthlyAmt,
       targetAmount: pool.targetAmount ? parseFloat(pool.targetAmount) : null,
       everydayAllowanceAmount: pool.everydayAllowanceAmount ? parseFloat(pool.everydayAllowanceAmount) : null,
+      goalMode: pool.goalMode ?? (pool.poolType === "GOAL" ? "TARGET_DATE" : undefined),
       targetDate: pool.targetDate || null,
       currentBalance: balance,
       isPrivate: (pool as unknown as { isPrivate?: boolean }).isPrivate ?? false,

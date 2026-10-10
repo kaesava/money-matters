@@ -19,6 +19,7 @@ import { HouseholdDangerZoneSection } from "./components/HouseholdDangerZoneSect
 import { BankAccountsSection } from "./components/BankAccountsSection";
 import { ArchivedSection } from "./components/ArchivedSection";
 import { PrivacySection } from "./components/PrivacySection";
+import { useProductTour } from "../../../providers/ProductTourContext";
 
 function SettingsPageContent() {
   const router = useRouter();
@@ -29,6 +30,7 @@ function SettingsPageContent() {
   const [activeTab, setActiveTab] = useState(status?.isTrialExpired ? "account-data" : currentTab);
 
   const toast = useToast();
+  const { startTour } = useProductTour();
   const [feedbackVisible, setFeedbackVisible] = useState(false);
   const [pendingTab, setPendingTab] = useState<string | null>(null);
   const [showDiscardConfirm, setShowDiscardConfirm] = useState(false);
@@ -170,13 +172,23 @@ function SettingsPageContent() {
 
       {/* Feedback & Version Section */}
       <div className="pt-6 border-t border-slate-200/60 dark:border-slate-800 flex flex-col items-center gap-3">
-        <button
-          type="button"
-          onClick={() => setFeedbackVisible(true)}
-          className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl text-xs font-bold text-blue-700 bg-blue-50 hover:bg-blue-100 border border-blue-200 dark:bg-blue-950/40 dark:border-blue-900/60 dark:text-blue-400 transition-all shadow-xs"
-        >
-          {t("settings.reportBugLink")}
-        </button>
+        <div className="flex items-center gap-3">
+          <button
+            type="button"
+            onClick={startTour}
+            className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl text-xs font-bold text-slate-700 bg-slate-100 hover:bg-slate-200 border border-slate-200 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-300 transition-all shadow-xs cursor-pointer"
+          >
+            <span>✨</span>
+            <span>{t("tour.settings.revisitTour")}</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setFeedbackVisible(true)}
+            className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl text-xs font-bold text-blue-700 bg-blue-50 hover:bg-blue-100 border border-blue-200 dark:bg-blue-950/40 dark:border-blue-900/60 dark:text-blue-400 transition-all shadow-xs cursor-pointer"
+          >
+            {t("settings.reportBugLink")}
+          </button>
+        </div>
 
         <button
           type="button"

@@ -125,3 +125,6 @@ export { MobileGoalModeToggle, MobileGoalModeToggle as GoalModeToggle } from './
 export type { MobileGoalModeToggleProps, MobileGoalModeToggleProps as GoalModeToggleProps } from './GoalModeToggle';
 export { MobileBillCoverageBadge, MobileBillCoverageBadge as BillCoverageBadge } from './BillCoverageBadge';
 export type { MobileBillCoverageBadgeProps, MobileBillCoverageBadgeProps as BillCoverageBadgeProps } from './BillCoverageBadge';
+
+export { MobileProductTourSheet } from './MobileProductTourSheet';
+export type { MobileProductTourSheetProps, MobileTourStepConfig } from './MobileProductTourSheet';
