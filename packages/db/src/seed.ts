@@ -251,6 +251,18 @@ export async function seedDatabase(connectionString: string, envLabel: string) {
     { tenantId: household.id, userId, role: "OWNER" as const, inviteStatus: "ACCEPTED" as const, createdBy: userId, updatedBy: userId },
     { tenantId: household.id, userId: snehaUserId, inviteEmail: snehaEmail, role: "MEMBER" as const, inviteStatus: "ACCEPTED" as const, invitedAt: new Date(now.getTime() - 10 * 24 * 60 * 60 * 1000), createdBy: userId, updatedBy: userId },
     { tenantId: household.id, userId: raehanUserId, inviteEmail: raehanEmail, role: "MEMBER" as const, inviteStatus: "ACCEPTED" as const, invitedAt: new Date(now.getTime() - 5 * 24 * 60 * 60 * 1000), createdBy: userId, updatedBy: userId },
+    {
+      tenantId: household.id,
+      userId: null,
+      inviteEmail: "alex.accountant@example.com",
+      role: "MEMBER" as const,
+      inviteStatus: "PENDING" as const,
+      inviteToken: "d3b07384-d113-4ec4-a5a4-000000000099",
+      invitedAt: new Date(now.getTime() - 2 * 24 * 60 * 60 * 1000),
+      expiresAt: new Date(now.getTime() + 12 * 24 * 60 * 60 * 1000),
+      createdBy: userId,
+      updatedBy: userId,
+    },
     { tenantId: raehanHousehold.id, userId: raehanUserId, role: "OWNER" as const, inviteStatus: "ACCEPTED" as const, createdBy: raehanUserId, updatedBy: raehanUserId },
     { tenantId: raehanHousehold.id, userId, inviteEmail: "kaesava@gmail.com", role: "MEMBER" as const, inviteStatus: "ACCEPTED" as const, invitedAt: new Date(now.getTime() - 3 * 24 * 60 * 60 * 1000), createdBy: raehanUserId, updatedBy: raehanUserId },
     { tenantId: testerHousehold.id, userId: testerUserId, role: "OWNER" as const, inviteStatus: "ACCEPTED" as const, createdBy: testerUserId, updatedBy: testerUserId },
@@ -270,7 +282,7 @@ export async function seedDatabase(connectionString: string, envLabel: string) {
     { userId: testerUserId, tenantId: testerTenantId, appId, appPreferences: { [appId]: { payday_alerts_enabled: true, shortfall_alerts_enabled: true, bill_reminders_enabled: true, weekly_digest_enabled: true } }, createdBy: testerUserId, updatedBy: testerUserId },
   ]);
 
-  // 4. Bank Accounts (Shared Joint Accounts)
+  // 4. Bank Accounts (Shared Joint Accounts & Private Accounts)
   const [everydayAccount] = await db
     .insert(bankAccounts)
     .values({ name: "Everyday Account", bankProvider: "CBA", lastKnownBalance: "2641.54", unbudgetedBuffer: "0.00", isPrivate: false, tenantId, appId, createdBy: userId, updatedBy: userId })
@@ -281,13 +293,20 @@ export async function seedDatabase(connectionString: string, envLabel: string) {
     .values({ name: "MISA (Offset) Account", bankProvider: "CBA", lastKnownBalance: "167581.35", unbudgetedBuffer: "0.00", isPrivate: false, tenantId, appId, createdBy: userId, updatedBy: userId })
     .returning();
 
+  const [personalSaverAccount] = await db
+    .insert(bankAccounts)
+    .values({ name: "Kaesava Personal Saver", bankProvider: "Macquarie", lastKnownBalance: "500.00", unbudgetedBuffer: "0.00", isPrivate: true, userId, tenantId, appId, createdBy: userId, updatedBy: userId })
+    .returning();
+
   // 5. Pools Definition
   const poolDefinitions = [
     // 1. Joint Everyday Pool
     { key: "everyday", name: "Joint Everyday Pool", poolType: "EVERYDAY" as const, bankAccountId: everydayAccount.id, everydayAllowanceAmount: "2641.54", safetyBufferFloor: "100.00", isCommitted: false, isSurplusTarget: false },
     // 2. Household Bills Pool
     { key: "bills", name: "Household Bills Pool", poolType: "REGULAR" as const, bankAccountId: misaAccount.id, isCommitted: true, targetAmount: "1099.00", isSurplusTarget: false },
-    // 3. Granular Goal Pools (Linked to MISA Offset)
+    // 3. Private Discretionary Pool
+    { key: "kaesava_vault", name: "Kaesava Personal Vault", poolType: "GOAL" as const, bankAccountId: personalSaverAccount.id, isCommitted: false, targetAmount: "2000.00", targetDate: "2027-06-30", isSurplusTarget: false },
+    // 4. Granular Goal Pools (Linked to MISA Offset)
     { key: "emergency", name: "Emergency Reserve", poolType: "GOAL" as const, bankAccountId: misaAccount.id, isCommitted: true, targetAmount: "20000.00", targetDate: "2027-06-30", isSurplusTarget: false },
     { key: "raehan_prev", name: "Raehan Future Fund (Prev FY)", poolType: "GOAL" as const, bankAccountId: misaAccount.id, isCommitted: true, targetAmount: "61029.48", targetDate: "2027-06-30", isSurplusTarget: false },
     { key: "raehan_gifts", name: "Raehan's Gifts", poolType: "GOAL" as const, bankAccountId: misaAccount.id, isCommitted: true, targetAmount: "25760.79", targetDate: "2027-06-30", isSurplusTarget: false },
@@ -373,9 +392,12 @@ export async function seedDatabase(connectionString: string, envLabel: string) {
     { name: "Charity / CareFlight", monthlyAmount: "39.00", enteredAmount: "18.00", budgetFrequency: "FORTNIGHTLY", isEssential: false, icon: "heart-handshake" },
   ];
 
+  const vaultPool = poolMap.get("kaesava_vault")!;
+
   const categoriesToInsert = [
     ...everydayCategories.map((c) => ({ ...c, poolId: everydayPool.id })),
     ...billsCategories.map((c) => ({ ...c, poolId: billsPool.id })),
+    { name: "Tech & Gadgets Discretionary", monthlyAmount: "100.00", enteredAmount: "100.00", budgetFrequency: "MONTHLY", isEssential: false, icon: "laptop", poolId: vaultPool.id },
   ];
 
   const insertedCats = await db.insert(categories).values(
@@ -390,6 +412,7 @@ export async function seedDatabase(connectionString: string, envLabel: string) {
 
   const groceriesCat = insertedCats.find((c) => c.name === "Groceries")!;
   const billsHealthCat = insertedCats.find((c) => c.name.includes("Health Insurance"))!;
+  const vaultTechCat = insertedCats.find((c) => c.name.includes("Tech & Gadgets"))!;
 
   // 7. Income Sources
   const [keshSalary] = await db
@@ -622,11 +645,12 @@ export async function seedDatabase(connectionString: string, envLabel: string) {
     { key: "raehan_gifts", amount: "25760.79", note: "Opening Balance — Raehan Gifts (Ring-Fenced Reserve)" },
     { key: "business_idea", amount: "5000.00", note: "Opening Balance — Business Idea Fund" },
     { key: "emergency", amount: "18337.85", note: "Opening Balance — Emergency Reserve" },
+    { key: "kaesava_vault", amount: "500.00", note: "Opening Balance — Kaesava Personal Vault" },
   ];
 
   const openingLedgerRows = openingBalances.map((ob) => {
     const targetPool = poolMap.get(ob.key)!;
-    const targetAccount = ob.key === "everyday" ? everydayAccount.id : misaAccount.id;
+    const targetAccount = ob.key === "everyday" ? everydayAccount.id : ob.key === "kaesava_vault" ? personalSaverAccount.id : misaAccount.id;
     return {
       poolId: targetPool.id,
       bankAccountId: targetAccount,
@@ -768,6 +792,171 @@ export async function seedDatabase(connectionString: string, envLabel: string) {
       expectedDate: "2026-10-01",
       expectedAmount: "3750.00",
       status: "PENDING" as const,
+      tenantId,
+      appId,
+      createdBy: userId,
+      updatedBy: userId,
+    },
+    // Ad-hoc One-off Expense Event 1: Overdue Bill
+    {
+      expenseSourceId: null,
+      poolId: billsPool.id,
+      categoryId: billsHealthCat.id,
+      name: "Dental Checkup & Cleaning",
+      expectedDate: "2026-09-20",
+      actualDate: null,
+      expectedAmount: "280.00",
+      actualAmount: null,
+      note: "Annual checkup and dental x-rays (overdue)",
+      status: "PENDING" as const,
+      tenantId,
+      appId,
+      createdBy: userId,
+      updatedBy: userId,
+    },
+    // Ad-hoc One-off Expense Event 2: Imminent Pending Bill
+    {
+      expenseSourceId: null,
+      poolId: ratesPool.id,
+      name: "Supplementary Water Rates Adjustment",
+      expectedDate: "2026-10-15",
+      actualDate: null,
+      expectedAmount: "145.50",
+      actualAmount: null,
+      note: "Yarra Valley Water supplementary drainage charge",
+      status: "PENDING" as const,
+      tenantId,
+      appId,
+      createdBy: userId,
+      updatedBy: userId,
+    },
+    // Ad-hoc One-off Expense Event 3: Confirmed Goal Drawdown
+    {
+      expenseSourceId: null,
+      poolId: poolMap.get("charu_travel")!.id,
+      name: "Charu Aunty Flight Booking",
+      expectedDate: "2026-09-15",
+      actualDate: "2026-09-15",
+      expectedAmount: "1450.00",
+      actualAmount: "1450.00",
+      note: "Singapore Airlines Melbourne to New Delhi return flight",
+      status: "CONFIRMED" as const,
+      tenantId,
+      appId,
+      createdBy: userId,
+      updatedBy: userId,
+    },
+  ]);
+
+  // 12. Ad-hoc One-off Income Events
+  await db.insert(incomeEvents).values([
+    {
+      incomeSourceId: null,
+      name: "ATO Tax Refund FY26",
+      expectedDate: "2026-10-18",
+      expectedAmount: "1850.00",
+      status: "PENDING" as const,
+      note: "Annual individual tax assessment notice refund",
+      tenantId,
+      appId,
+      createdBy: userId,
+      updatedBy: userId,
+    },
+  ]);
+
+  // 13. Transfer Sources & Transfer Events (Inter-pool transfers)
+  const [savingsSweepSource] = await db
+    .insert(transferSources)
+    .values({
+      name: "Fortnightly Surplus Offset Sweep",
+      amount: "500.00",
+      sourcePoolId: poolMap.get("emergency")!.id,
+      destinationPoolId: poolMap.get("surplus_offset")!.id,
+      startDate: "2026-09-24",
+      tenantId,
+      appId,
+      createdBy: userId,
+      updatedBy: userId,
+    })
+    .returning();
+
+  await db.insert(transferEvents).values([
+    {
+      transferSourceId: savingsSweepSource.id,
+      sourcePoolId: poolMap.get("emergency")!.id,
+      destinationPoolId: poolMap.get("surplus_offset")!.id,
+      name: "Scheduled Surplus Sweep",
+      expectedDate: "2026-09-24",
+      expectedAmount: "500.00",
+      status: "PENDING" as const,
+      tenantId,
+      appId,
+      createdBy: userId,
+      updatedBy: userId,
+    },
+    {
+      transferSourceId: null,
+      sourcePoolId: poolMap.get("emergency")!.id,
+      destinationPoolId: poolMap.get("unexpected")!.id,
+      name: "Ad-hoc Reserve Cushioning Transfer",
+      expectedDate: "2026-09-18",
+      expectedAmount: "250.00",
+      actualAmount: "250.00",
+      status: "CONFIRMED" as const,
+      tenantId,
+      appId,
+      createdBy: userId,
+      updatedBy: userId,
+    },
+  ]);
+
+  // 14. Advanced Ledger Entries (TRANSFER_IN, TRANSFER_OUT, ACCOUNT_ALIGNMENT)
+  const transferGroupId = "d3b07384-d113-4ec4-a5a4-000000000088";
+  await db.insert(transactionLedger).values([
+    // Paired inter-pool transfer
+    {
+      poolId: poolMap.get("emergency")!.id,
+      bankAccountId: misaAccount.id,
+      flowType: "DEBIT" as const,
+      transactionType: "TRANSFER_OUT" as const,
+      amount: "250.00",
+      transferGroupId,
+      idempotencyKey: "transfer-out-emergency-unexpected-2026-09-18",
+      note: "Inter-pool transfer to Unexpected Expenses Reserve",
+      source: "MANUAL" as const,
+      recordedAt: new Date("2026-09-18T11:00:00Z"),
+      tenantId,
+      appId,
+      createdBy: userId,
+      updatedBy: userId,
+    },
+    {
+      poolId: poolMap.get("unexpected")!.id,
+      bankAccountId: misaAccount.id,
+      flowType: "CREDIT" as const,
+      transactionType: "TRANSFER_IN" as const,
+      amount: "250.00",
+      transferGroupId,
+      idempotencyKey: "transfer-in-emergency-unexpected-2026-09-18",
+      note: "Inter-pool transfer from Emergency Reserve",
+      source: "MANUAL" as const,
+      recordedAt: new Date("2026-09-18T11:00:00Z"),
+      tenantId,
+      appId,
+      createdBy: userId,
+      updatedBy: userId,
+    },
+    // Account alignment audit record (e.g. interest or offset bonus alignment)
+    {
+      poolId: poolMap.get("emergency")!.id,
+      bankAccountId: misaAccount.id,
+      flowType: "CREDIT" as const,
+      transactionType: "ACCOUNT_ALIGNMENT" as const,
+      amount: "0.00",
+      idempotencyKey: "account-alignment-misa-2026-09-19",
+      note: "Bank account reconciliation balance verified against CBA MISA feed",
+      source: "AUTO" as const,
+      recordedAt: new Date("2026-09-19T12:00:00Z"),
       tenantId,
       appId,
       createdBy: userId,
