@@ -94,20 +94,29 @@ When an incoming paycheck (or ad-hoc deposit) is processed, the engine executes 
 [ Step 3: Committed Savings Goals ] ─────────────► Target-date pacing (100% if due <= next pay, paced otherwise)
            │
            ▼
-[ Step 4: Everyday Allowance ] ──────────────────► Discretionary living pool (Top-up to cap vs Fresh deposit)
+[ Step 3: Bills Safety Floor Cushion ] ──────────────► Top up bills safety cushion (e.g. $200–$500)
            │
            ▼
-[ Step 5: Uncommitted Goals & Surplus Sweep ] ───► Voluntary goals funded & 100% residual swept to Surplus Target
+[ Step 4: Baseline Everyday Living Allowance ] ──────► Secure groceries & fuel for the pay cycle
+           │
+           ▼
+[ Step 5: Reserve Sinking Funds (Future Bills) ] ────► Pro-rata smoothing for future bills
+           │
+           ▼
+[ Step 6: Committed Savings Goals ] ─────────────────► Contractual target-date goals paced
+           │
+           ▼
+[ Step 7: Uncommitted Goals & Surplus Sweep ] ───────► Voluntary goals funded & 100% residual swept to Surplus Target
            │
            ▼
 [ Unallocated Cash ≡ $0.00 ]
 ```
 
-#### Step 1: Immediate Cashflow Feasibility Guard (Due-Date Aware)
-- **Objective**: Guarantee that all scheduled bills due on or before the next incoming paycheck are 100% funded, preventing direct debit rejections and late fees.
-- **Cutoff Horizon**: `nextPaydayCutoff`. Determined by finding the chronological date of the next incoming scheduled paycheck for the household. If no subsequent paycheck exists in the schedule, defaults to the current paycheck date.
+#### Step 1: Immediate Cashflow Feasibility Guard (Due-Date + Lookahead Buffer Aware)
+- **Objective**: Guarantee that all scheduled bills due on or before the next incoming paycheck (plus a configurable lookahead buffer, default 3 calendar days) are 100% funded, preventing direct debit rejections and late fees from weekend or public holiday payroll delays.
+- **Cutoff Horizon**: `bufferedPaydayCutoff = nextPaydayCutoff + dueBufferDays` (default: 3 days).
 - **Shortfall Calculation**:
-  For each `REGULAR` pool, the engine aggregates all pending expense events (`status === 'PENDING'`) where `expectedDate <= nextPaydayCutoff`:
+  For each `REGULAR` pool, the engine aggregates all pending expense events (`status === 'PENDING'`) where `expectedDate <= bufferedPaydayCutoff`:
   $$\text{Due Amount} = \sum_{e \in \text{PendingEvents}} e.\text{amount}$$
   $$\text{Net Shortfall} = \max(0, \text{Due Amount} - \text{currentPoolBalance})$$
 - **Priority Tier Sorting**:
@@ -118,29 +127,45 @@ When an incoming paycheck (or ad-hoc deposit) is processed, the engine executes 
   $$\text{remainingNetPay} \leftarrow \text{remainingNetPay} - \text{Allocated}_i$$
   $$\text{runningBalance}_i \leftarrow \text{runningBalance}_i + \text{Allocated}_i$$
 
-#### Step 2: Reserve Sinking Funds (Pro-Rata Cycle Accumulation)
-- **Objective**: Accumulate smooth reserves for future obligations due beyond `nextPaydayCutoff`, transforming large quarterly, semi-annual, and annual bills into steady, bite-sized paycheck contributions.
-- **Exact Calendar Cycle Factors**:
-  To eliminate the 1.1% annual underfunding error inherent in legacy $\frac{364}{30}$ divisors, the engine applies exact calendar cycle multipliers:
-  - Fortnightly Pay (26 cycles/year): $\text{Cycle Target} = \frac{\text{monthlyTarget} \times 12}{26}$
-  - Weekly Pay (52 cycles/year): $\text{Cycle Target} = \frac{\text{monthlyTarget} \times 12}{52}$
-  - Monthly Pay (12 cycles/year): $\text{Cycle Target} = \text{monthlyTarget}$
-- **Incremental Delta Funding**:
-  Because a pool may have already received funds in Step 1 to cover an imminent bill, Step 2 only allocates the remaining incremental need:
-  $$\text{Incremental Need}_i = \max(0, \text{Cycle Target}_i - \text{Step1Allocated}_i)$$
-  $$\text{Allocated}_i = \min(\text{remainingNetPay}, \text{Incremental Need}_i)$$
-  $$\text{remainingNetPay} \leftarrow \text{remainingNetPay} - \text{Allocated}_i$$
-
-#### Step 3: Deficit Repair (Negative Balance Clearing)
+#### Step 2: Deficit Repair (Negative Balance Clearing)
 - **Objective**: Restore overdrawn pool balances back to \$0.00.
-- **Architectural Rationale**: Essential shelter and utilities (Step 1) and baseline sinking reserves (Step 2) take precedence over overdraft recovery, ensuring families remain housed and powered during financial distress. However, deficit repair occurs strictly *before* discretionary Everyday allowances or voluntary savings are distributed.
+- **Architectural Rationale**: Repaired after immediate due bills, but strictly *before* discretionary Everyday allowances or voluntary savings are distributed, eliminating overdraft interest and bank dishonour flags.
 - **Allocation Rule**:
   For any pool where $\text{currentBalance} < 0$:
   $$\text{Deficit}_i = |\text{currentBalance}_i|$$
   $$\text{Allocated}_i = \min(\text{remainingNetPay}, \text{Deficit}_i)$$
   $$\text{remainingNetPay} \leftarrow \text{remainingNetPay} - \text{Allocated}_i$$
 
-#### Step 4: Committed Savings Goals (Target-Date Horizon Pacing)
+#### Step 3: Bills Pool Safety Floor Cushion
+- **Objective**: Maintain a dedicated safety cushion in the Bills pool (e.g. \$200–\$500) to absorb unexpected utility bill fluctuations and price hikes.
+- **Allocation Rule**:
+  $$\text{Floor Deficit}_i = \max(0, \text{safetyBufferFloor}_i - \text{runningBalance}_i)$$
+  $$\text{Allocated}_i = \min(\text{remainingNetPay}, \text{Floor Deficit}_i)$$
+  $$\text{remainingNetPay} \leftarrow \text{remainingNetPay} - \text{Allocated}_i$$
+
+#### Step 4: Baseline Everyday Living Allowance (Living Pool Funding)
+- **Objective**: Fund the household's primary transaction account for discretionary groceries, transport, fuel, and daily living expenses *before* future sinking reserves and savings goals.
+- **Frequency-Adjusted Allowance**:
+  $$\text{Cycle Allowance} = \frac{\text{monthlyTarget} \times 12}{\text{payCycleDivisor}}$$
+- **Rollover Rule Modes**:
+  - `RESET` (Top-up to cap): If the user has leftover funds from the prior period, the engine tops up only what is needed to reach the cap:
+    $$\text{Top-Up Need} = \max(0, \text{Cycle Allowance} - \text{currentBalance})$$
+    $$\text{Allocated} = \min(\text{remainingNetPay}, \text{Top-Up Need})$$
+  - `ROLLOVER` / `SWEEP` (Default): The engine deposits the full cycle allowance unconditionally, allowing unspent funds to accumulate for future discretionary rewards:
+    $$\text{Allocated} = \min(\text{remainingNetPay}, \text{Cycle Allowance})$$
+
+#### Step 5: Reserve Sinking Funds (Pro-Rata Cycle Accumulation)
+- **Objective**: Accumulate smooth reserves for future obligations due beyond the buffered payday cutoff, transforming large quarterly, semi-annual, and annual bills into steady, bite-sized paycheck contributions.
+- **Exact Calendar Cycle Factors**:
+  - Fortnightly Pay (26 cycles/year): $\text{Cycle Target} = \frac{\text{monthlyTarget} \times 12}{26}$
+  - Weekly Pay (52 cycles/year): $\text{Cycle Target} = \frac{\text{monthlyTarget} \times 12}{52}$
+  - Monthly Pay (12 cycles/year): $\text{Cycle Target} = \text{monthlyTarget}$
+- **Incremental Delta Funding**:
+  $$\text{Incremental Need}_i = \max(0, \text{Cycle Target}_i - \text{PriorAllocated}_i)$$
+  $$\text{Allocated}_i = \min(\text{remainingNetPay}, \text{Incremental Need}_i)$$
+  $$\text{remainingNetPay} \leftarrow \text{remainingNetPay} - \text{Allocated}_i$$
+
+#### Step 6: Committed Savings Goals (Target-Date Horizon Pacing)
 - **Objective**: Fund high-priority committed goals (Emergency Fund, Car Maintenance, Tax Provision) according to their contractual deadlines.
 - **Sorting**: Sorted chronologically by `targetDate` ASC (most urgent deadlines first).
 - **Dual-Horizon Pacing**:
@@ -152,18 +177,7 @@ When an incoming paycheck (or ad-hoc deposit) is processed, the engine executes 
     $$\text{Paced Need} = \frac{\max(0, \text{targetAmount} - \text{currentBalance})}{\text{Remaining Paychecks}}$$
     $$\text{Allocated} = \min(\text{remainingNetPay}, \text{Paced Need})$$
 
-#### Step 5: Everyday Allowance (Living Pool Funding)
-- **Objective**: Fund the household's primary transaction account for discretionary groceries, transport, dining, and daily living expenses.
-- **Frequency-Adjusted Allowance**:
-  $$\text{Cycle Allowance} = \frac{\text{monthlyTarget} \times 12}{\text{payCycleDivisor}}$$
-- **Rollover Rule Modes**:
-  - `RESET` (Top-up to cap): If the user has leftover funds from the prior period, the engine tops up only what is needed to reach the cap:
-    $$\text{Top-Up Need} = \max(0, \text{Cycle Allowance} - \text{currentBalance})$$
-    $$\text{Allocated} = \min(\text{remainingNetPay}, \text{Top-Up Need})$$
-  - `ROLLOVER` / `SWEEP` (Default): The engine deposits the full cycle allowance unconditionally, allowing unspent funds to accumulate for future discretionary rewards:
-    $$\text{Allocated} = \min(\text{remainingNetPay}, \text{Cycle Allowance})$$
-
-#### Step 6: Uncommitted Goals & 100% Residual Surplus Sweep
+#### Step 7: Uncommitted Goals & 100% Residual Surplus Sweep
 - **Objective**: Direct every single leftover cent to productive wealth generation, ensuring zero unallocated cash.
 - **Uncommitted Goals**: Any flexible `GOAL` pools without explicit target dates receive funding up to their configured target amounts if funds remain.
 - **100% Residual Surplus Sweep**:

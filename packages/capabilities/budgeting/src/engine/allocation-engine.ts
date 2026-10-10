@@ -1,13 +1,14 @@
 /**
  * Paycheck Cascade Waterfall Allocation Engine (V3 - Integer Cent Math & Balance-Aware Capping)
  * 
- * Implements deterministic 5-step waterfall logic distributing incoming paychecks:
- * 0. DEFICIT REPAIR: Restores any overdrawn/negative buckets to $0.
- * 1. ESSENTIAL REGULAR (Bills): Priority 1 bills (Rent/Mortgage, Utilities) ordered by due date, capped by current balance deficit.
- * 2. STANDARD REGULAR (Bills): Other bills prorated and capped by current balance deficit.
- * 3. GOAL (Committed): Priority savings targets funded before discretionary spending.
- * 4. EVERYDAY Top-Up: Top up Everyday bucket to target allowance cap.
- * 5. GOAL (Uncommitted) & Residual Sweep: Sweeps 100% of remaining funds to designated isSurplusTarget category.
+ * Implements deterministic waterfall logic distributing incoming paychecks tailored for Australian households:
+ * 1. IMMEDIATE DUE-DATE FEASIBILITY GUARD: Priority 1 bills due on or before (nextPayday + dueBufferDays).
+ * 2. DEFICIT REPAIR: Restores any overdrawn/negative buckets to $0.
+ * 3. BILLS POOL SAFETY FLOOR CUSHION: Restores safetyBufferFloor cushion on regular bills pools.
+ * 4. BASELINE EVERYDAY ALLOWANCE: Funds cycle groceries/fuel/living allowance before future goals.
+ * 5. RESERVE SINKING FUNDS: Smooths future bills due beyond buffer window (delta above Step 1 & 2).
+ * 6. COMMITTED SAVINGS GOALS: Paces contract/target-date savings goals.
+ * 7. UNCOMMITTED GOALS & RESIDUAL SURPLUS SWEEP: Sweeps 100% of residual cents to designated isSurplusTarget.
  */
 
 export type BucketType = "REGULAR" | "GOAL" | "EVERYDAY";
@@ -55,6 +56,7 @@ export interface AllocationEngineInput {
   paycheckFrequencyDays: number; // 7 = weekly, 14 = fortnightly, 30 = monthly
   daysUntilNextIncome?: number; // Optional Time-Based Accumulation gap in days until next income event
   nextPaycheckDate?: Date;
+  dueBufferDays?: number; // Default 3 days lookahead buffer window to guard against weekend/public holiday pay delays
   upcomingExpenses?: UpcomingExpenseItem[];
   sweepEverydayLeftover?: boolean;
   everydayLeftoverReported?: Record<string, number>; // poolId -> reported leftover cash in bank
@@ -106,18 +108,20 @@ export function runAllocationEngine(input: AllocationEngineInput): AllocationEng
     cycleFactor = 1.0;
   }
 
-  // Next paycheck date cutoff for immediate cashflow feasibility
-  const nextCutoffTime = input.nextPaycheckDate
+  // Next paycheck date cutoff with lookahead buffer (defaults to 3 days)
+  const bufferDays = input.dueBufferDays ?? 3;
+  const baseNextCutoffTime = input.nextPaycheckDate
     ? input.nextPaycheckDate.getTime()
     : input.paycheckDate.getTime() + daysGap * 24 * 60 * 60 * 1000;
   
-  const nextCutoffDateStr = new Intl.DateTimeFormat("en-CA", { timeZone: "Australia/Sydney" }).format(new Date(nextCutoffTime));
+  const bufferedCutoffTime = baseNextCutoffTime + bufferDays * 24 * 60 * 60 * 1000;
+  const bufferedCutoffDateStr = new Intl.DateTimeFormat("en-CA", { timeZone: "Australia/Sydney" }).format(new Date(bufferedCutoffTime));
 
-  // Filter expenses due on or before next payday cutoff
+  // Filter expenses due on or before buffered payday cutoff
   const upcomingExpenses = (input.upcomingExpenses ?? []).filter((e) => {
     if (!e || !e.dueDate) return false;
     const dueStr = e.dueDate.slice(0, 10);
-    return dueStr <= nextCutoffDateStr;
+    return dueStr <= bufferedCutoffDateStr;
   });
 
   const poolImmediateExpensesMap = new Map<string, number>();
@@ -147,9 +151,10 @@ export function runAllocationEngine(input: AllocationEngineInput): AllocationEng
     remainingCents -= amountCents;
   };
 
-  // STEP 1: IMMEDIATE CASHFLOW FEASIBILITY GUARD (Due-Date Aware)
-  // Guarantees bills due before the NEXT payday are 100% funded!
+  // STEP 1: IMMEDIATE CASHFLOW FEASIBILITY GUARD (Due-Date + Lookahead Buffer Aware)
+  // Guarantees bills due on or before (next payday + bufferDays) are 100% funded!
   // Priority: Essential regular pools first, then Standard regular pools.
+  // Essential shelter & power due immediately take absolute priority so families don't face eviction/cutoff.
   const regularBuckets = input.buckets.filter((b) => b.type === "REGULAR");
   const sortedForStep1 = [...regularBuckets].sort((a, b) => {
     if (a.isEssential && !b.isEssential) return -1;
@@ -167,7 +172,7 @@ export function runAllocationEngine(input: AllocationEngineInput): AllocationEng
         allocateToBucket(
           bucket,
           toAllocate,
-          `Immediate bill coverage ($${toDollars(immediateDueCents).toFixed(2)} due before next pay): $${toDollars(toAllocate).toFixed(2)} allocated.`
+          `Immediate bill coverage ($${toDollars(immediateDueCents).toFixed(2)} due within cycle + ${bufferDays}d buffer): $${toDollars(toAllocate).toFixed(2)} allocated.`
         );
         step1AllocatedCentsMap.set(bucket.id, toAllocate);
       }
@@ -175,7 +180,7 @@ export function runAllocationEngine(input: AllocationEngineInput): AllocationEng
   }
 
   // STEP 2: DEFICIT REPAIR — Restores any overdrawn/negative bucket balances to $0
-  // Repaired BEFORE future sinking bills to prevent carrying overdraft holes while accruing distant funds.
+  // Repaired after immediate due bills, but BEFORE Everyday living allowance and future goals.
   for (const bucket of input.buckets) {
     if (bucket.currentBalance < 0) {
       const deficitCents = Math.abs(toCents(bucket.currentBalance));
@@ -190,8 +195,69 @@ export function runAllocationEngine(input: AllocationEngineInput): AllocationEng
     }
   }
 
-  // STEP 3: RESERVE SINKING FUNDS (Pro-Rata Future Bills)
-  // For bills due beyond next payday, smoothly accrue cycle target.
+  // STEP 3: BILLS POOL SAFETY FLOOR CUSHION
+  // If a regular bills pool has an explicit safetyBufferFloor (e.g. $200-$500 buffer for utility spikes), top it up.
+  for (const bucket of sortedForStep1) {
+    const floorCents = toCents(bucket.safetyBufferFloor ?? 0);
+    if (floorCents > 0) {
+      const currentBalanceCents = Math.max(0, toCents(bucket.currentBalance));
+      const step1Alloc = step1AllocatedCentsMap.get(bucket.id) ?? 0;
+      const effectiveBalCents = currentBalanceCents + step1Alloc;
+      const floorDeficitCents = Math.max(0, floorCents - effectiveBalCents);
+      const toAllocate = Math.min(remainingCents, floorDeficitCents);
+      if (toAllocate > 0) {
+        allocateToBucket(
+          bucket,
+          toAllocate,
+          `Bills pool safety buffer cushion (floor $${toDollars(floorCents).toFixed(2)}): $${toDollars(toAllocate).toFixed(2)} allocated.`
+        );
+        step1AllocatedCentsMap.set(bucket.id, step1Alloc + toAllocate);
+      }
+    }
+  }
+
+  // STEP 4: BASELINE EVERYDAY LIVING ALLOWANCE (Groceries, Fuel, Living Expenses)
+  // Household survival (food & fuel for the pay cycle) is secured BEFORE future sinking reserves and savings goals!
+  const everydayBuckets = input.buckets.filter((b) => b.type === "EVERYDAY");
+  for (const bucket of everydayBuckets) {
+    const monthlyAllowanceCents = toCents(bucket.everydayAllowanceAmount ?? bucket.monthlyAmount ?? bucket.targetAmount ?? 0);
+    const cycleAllowanceCents = Math.round(monthlyAllowanceCents * cycleFactor);
+    const floorCents = toCents(bucket.safetyBufferFloor ?? 0);
+    const currentBalanceCents = Math.max(0, toCents(bucket.currentBalance));
+    
+    // Safety buffer floor deficit (top up any eroded floor)
+    const floorDeficitCents = Math.max(0, floorCents - currentBalanceCents);
+    
+    // Check if user reported leftover cash in bank during payday checkpoint
+    const reportedLeftoverDollars = input.everydayLeftoverReported?.[bucket.id] ?? 0;
+    const reportedLeftoverCents = toCents(Math.max(0, reportedLeftoverDollars));
+
+    // Base requirement is cycle allowance + floor deficit
+    let baseNeededCents = cycleAllowanceCents + floorDeficitCents;
+    if (reportedLeftoverCents > 0) {
+      baseNeededCents = Math.max(0, baseNeededCents - reportedLeftoverCents);
+    }
+    const neededCents = baseNeededCents;
+
+    const toAllocate = Math.min(remainingCents, neededCents);
+    if (toAllocate > 0 || neededCents > 0) {
+      if (toAllocate > 0) {
+        const floorMsg = floorCents > 0 ? ` (incl $${toDollars(floorCents).toFixed(2)} safety floor)` : "";
+        const leftoverMsg = reportedLeftoverCents > 0 ? ` (adjusted for $${toDollars(reportedLeftoverCents).toFixed(2)} reported leftover)` : "";
+        allocateToBucket(
+          bucket,
+          toAllocate,
+          `Everyday living allowance ($${toDollars(monthlyAllowanceCents).toFixed(2)}/mo across ${daysGap} days)${floorMsg}${leftoverMsg}: $${toDollars(toAllocate).toFixed(2)} allocated.`
+        );
+      } else {
+        const line = linesMap.get(bucket.id)!;
+        line.reasonings.push(`Everyday living allowance: $0 allocated.`);
+      }
+    }
+  }
+
+  // STEP 5: RESERVE SINKING FUNDS (Pro-Rata Future Bills)
+  // For bills due beyond buffered payday cutoff, smoothly accrue cycle target.
   const fundSinkingBills = (bucketsList: EngineBucket[]) => {
     const sorted = [...bucketsList].sort((a, b) => {
       if (!a.dueDate) return 1;
@@ -202,8 +268,8 @@ export function runAllocationEngine(input: AllocationEngineInput): AllocationEng
     for (const bucket of sorted) {
       const monthlyCents = toCents(bucket.monthlyAmount ?? bucket.targetAmount ?? 0);
       const cycleTargetCents = Math.round(monthlyCents * cycleFactor);
-      const step1Alloc = step1AllocatedCentsMap.get(bucket.id) ?? 0;
-      const additionalNeededCents = Math.max(0, cycleTargetCents - step1Alloc);
+      const priorAlloc = step1AllocatedCentsMap.get(bucket.id) ?? 0;
+      const additionalNeededCents = Math.max(0, cycleTargetCents - priorAlloc);
       const toAllocate = Math.min(remainingCents, additionalNeededCents);
       
       if (toAllocate > 0 || additionalNeededCents > 0) {
@@ -227,7 +293,7 @@ export function runAllocationEngine(input: AllocationEngineInput): AllocationEng
   const standardBills = regularBuckets.filter((b) => !b.isEssential);
   fundSinkingBills(standardBills);
 
-  // STEP 4: COMMITTED SAVINGS GOALS (Target-Date & Imminent Gap Prioritized)
+  // STEP 6: COMMITTED SAVINGS GOALS (Target-Date & Imminent Gap Prioritized)
   const fundGoalsList = (goalsList: EngineBucket[]) => {
     const sortedGoals = [...goalsList].sort((a, b) => {
       if (!a.targetDate) return 1;
@@ -247,7 +313,7 @@ export function runAllocationEngine(input: AllocationEngineInput): AllocationEng
       if (bucket.targetDate) {
         const targetTime = new Date(bucket.targetDate).getTime();
         // If target date is on or before next payday cutoff, fund 100% of remaining gap!
-        if (targetTime <= nextCutoffTime) {
+        if (targetTime <= baseNextCutoffTime) {
           neededCents = gapCents;
         } else {
           const diffMs = targetTime - input.paycheckDate.getTime();
@@ -281,46 +347,7 @@ export function runAllocationEngine(input: AllocationEngineInput): AllocationEng
   const goalCommitted = input.buckets.filter((b) => b.type === "GOAL" && b.isCommitted);
   fundGoalsList(goalCommitted);
 
-  // STEP 5: EVERYDAY TIME-BASED ALLOWANCE (Cap-Aware / Rollover)
-  const everydayBuckets = input.buckets.filter((b) => b.type === "EVERYDAY");
-  for (const bucket of everydayBuckets) {
-    const monthlyAllowanceCents = toCents(bucket.everydayAllowanceAmount ?? bucket.monthlyAmount ?? bucket.targetAmount ?? 0);
-    const cycleAllowanceCents = Math.round(monthlyAllowanceCents * cycleFactor);
-    const floorCents = toCents(bucket.safetyBufferFloor ?? 0);
-    const currentBalanceCents = Math.max(0, toCents(bucket.currentBalance));
-    
-    // Safety buffer floor deficit (top up any eroded floor)
-    const floorDeficitCents = Math.max(0, floorCents - currentBalanceCents);
-    
-    // Check if user reported leftover cash in bank during payday checkpoint
-    const reportedLeftoverDollars = input.everydayLeftoverReported?.[bucket.id] ?? 0;
-    const reportedLeftoverCents = toCents(Math.max(0, reportedLeftoverDollars));
-
-    // Base requirement is cycle allowance + floor deficit
-    let baseNeededCents = cycleAllowanceCents + floorDeficitCents;
-    if (reportedLeftoverCents > 0) {
-      baseNeededCents = Math.max(0, baseNeededCents - reportedLeftoverCents);
-    }
-    const neededCents = baseNeededCents;
-
-    const toAllocate = Math.min(remainingCents, neededCents);
-    if (toAllocate > 0 || neededCents > 0) {
-      if (toAllocate > 0) {
-        const floorMsg = floorCents > 0 ? ` (incl $${toDollars(floorCents).toFixed(2)} safety floor)` : "";
-        const leftoverMsg = reportedLeftoverCents > 0 ? ` (adjusted for $${toDollars(reportedLeftoverCents).toFixed(2)} reported leftover)` : "";
-        allocateToBucket(
-          bucket,
-          toAllocate,
-          `Everyday time-based allowance ($${toDollars(monthlyAllowanceCents).toFixed(2)}/mo across ${daysGap} days)${floorMsg}${leftoverMsg}: $${toDollars(toAllocate).toFixed(2)} allocated.`
-        );
-      } else {
-        const line = linesMap.get(bucket.id)!;
-        line.reasonings.push(`Everyday allowance: $0 allocated.`);
-      }
-    }
-  }
-
-  // STEP 6: UNCOMMITTED GOALS & RESIDUAL SURPLUS SWEEP
+  // STEP 7: UNCOMMITTED GOALS & RESIDUAL SURPLUS SWEEP
   const goalUncommitted = input.buckets.filter((b) => b.type === "GOAL" && !b.isCommitted && !b.isSurplusTarget);
   fundGoalsList(goalUncommitted);
 
