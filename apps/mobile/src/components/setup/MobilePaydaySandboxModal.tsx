@@ -9,6 +9,8 @@ interface MobilePaydaySandboxModalProps {
   visible: boolean;
   onClose: () => void;
   onFinish: () => void;
+  estimatedBills?: number;
+  estimatedGoals?: number;
   defaultPaycheck?: number;
 }
 
@@ -16,14 +18,19 @@ export function MobilePaydaySandboxModal({
   visible,
   onClose,
   onFinish,
+  estimatedBills = 850,
+  estimatedGoals = 400,
   defaultPaycheck = 2500,
 }: MobilePaydaySandboxModalProps) {
   const [paycheckStr, setPaycheckStr] = useState(String(defaultPaycheck));
   const [isSimulated, setIsSimulated] = useState(false);
 
   const parsedPaycheck = parseFloat(paycheckStr) || 0;
-  const billsAllocated = Math.min(parsedPaycheck, 850);
-  const goalsAllocated = Math.min(Math.max(0, parsedPaycheck - billsAllocated), 400);
+  const billsAllocated = Math.min(parsedPaycheck, estimatedBills > 0 ? estimatedBills : 850);
+  const goalsAllocated = Math.min(
+    Math.max(0, parsedPaycheck - billsAllocated),
+    estimatedGoals > 0 ? estimatedGoals : 400
+  );
   const safeToSpend = Math.max(0, parsedPaycheck - billsAllocated - goalsAllocated);
 
   return (

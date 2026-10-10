@@ -430,7 +430,7 @@ export const en = {
     amount: "Amount",
     exportTransactionsDialog: "Export Transactions CSV",
     exportSplitsDialog: "Export Splits CSV",
-    title: "History",
+    title: "Activity",
     expenses: "Expenses (Out)",
     income: "Income (In)",
     empty: "Nothing here yet",

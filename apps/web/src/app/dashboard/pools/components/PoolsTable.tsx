@@ -163,7 +163,7 @@ export function PoolsTable({
                 onClick={() => toggleSort("name")}
               >
                 <div className="flex items-center gap-1">
-                  <span>Pools &amp; Categories</span>
+                  <span>{t("categories.title")}</span>
                   {sortField === "name" && <span>{sortDir === "asc" ? "▲" : "▼"}</span>}
                 </div>
               </ResizableTh>

@@ -389,7 +389,7 @@ function PoolsPageContent() {
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-2">
-            <h1 className="text-2xl font-black text-[#1B2B4B] tracking-tight">Pools</h1>
+            <h1 className="text-2xl font-black text-[#1B2B4B] tracking-tight">{t("categories.title")}</h1>
             <InfoTooltip
               title={t("tooltips.categories.title")}
               content={t("tooltips.categories.content")}

@@ -256,9 +256,9 @@ function IncomeAndBillsContent() {
       {/* Header */}
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div className="flex items-center gap-2">
-          <h1 className="text-2xl font-black text-[#1B2B4B]">{t("tooltips.incomeBills.title")}</h1>
+          <h1 className="text-2xl font-black text-[#1B2B4B]">{t("nav.paychecks")}</h1>
           <InfoTooltip
-            title={t("tooltips.incomeBills.title")}
+            title={t("nav.paychecks")}
             content={t("tooltips.incomeBills.content")}
           />
         </div>

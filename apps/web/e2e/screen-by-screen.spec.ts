@@ -421,43 +421,22 @@ test.describe('100% Comprehensive Field-by-Field Screen-by-Screen E2E Master Sui
   });
 
   // ---------------------------------------------------------------------------
-  // 7. INCOME & BILLS SCHEDULE & 3-TAB COMMAND CENTER (`/dashboard/income-and-bills`)
+  // 7. PLAN COMMAND CENTER (`/dashboard/income-and-bills`) & INCOME SPLIT
   // ---------------------------------------------------------------------------
-  test.describe('7. Income & Bills 3-Tab Command Center (`/dashboard/income-and-bills`)', () => {
-    test('7.1 3-Tab Navigation, Matrix 10-Payday Horizon & Slide-Over Drawer Audit', async ({ page }) => {
+  test.describe('7. Plan Command Center (`/dashboard/income-and-bills`)', () => {
+    test('7.1 Plan Tabs, Upcoming Timeline & Setup Schedules Audit', async ({ page }) => {
       await page.goto('/dashboard/income-and-bills');
       await expect(page.locator('main')).toBeVisible();
 
-      // Verify 3-Tab Buttons
-      const timelineTab = page.locator('button:has-text("Upcoming Timeline")').first();
-      const matrixTab = page.locator('button:has-text("12-Mo Matrix Plan")').first();
-      const setupTab = page.locator('button:has-text("Setup & Sources")').first();
+      // Verify 2-Tab Buttons (Upcoming & Setup Schedule)
+      const upcomingTab = page.locator('button:has-text("Upcoming")').first();
+      const setupTab = page.locator('button:has-text("Setup Schedule"), button:has-text("Setup")').first();
 
-      if (await timelineTab.isVisible()) {
-        await expect(timelineTab).toBeVisible();
+      if (await upcomingTab.isVisible()) {
+        await expect(upcomingTab).toBeVisible();
       }
 
-      // Switch to Tab 2: 12-Mo Matrix Plan
-      if (await matrixTab.isVisible()) {
-        await matrixTab.click();
-
-        // Check Show Full 12 Months Expansion Button
-        const expandBtn = page.locator('button:has-text("Show Full 12 Months"), button:has-text("Show Next 10 Paydays")').first();
-        if (await expandBtn.isVisible()) {
-          await expect(expandBtn).toBeVisible();
-          await expandBtn.click();
-        }
-
-        // Check Category Click to open Slide-Over Drawer
-        const categoryHeader = page.locator('td:has-text("Rent"), td:has-text("Everyday"), td:has-text("Goal")').first();
-        if (await categoryHeader.isVisible()) {
-          await categoryHeader.click();
-          // Escape key dismissal for slide-over drawer
-          await page.keyboard.press('Escape');
-        }
-      }
-
-      // Switch to Tab 3: Setup & Sources
+      // Switch to Setup Schedule Tab
       if (await setupTab.isVisible()) {
         await setupTab.click();
         const addIncomeBtn = page.locator('button:has-text("Add Income")').first();
@@ -465,6 +444,10 @@ test.describe('100% Comprehensive Field-by-Field Screen-by-Screen E2E Master Sui
           await expect(addIncomeBtn).toBeVisible();
         }
       }
+
+      // Check Forward-Looking Matrix on /dashboard/income-split
+      await page.goto('/dashboard/income-split');
+      await expect(page.locator('main')).toBeVisible();
     });
   });
 

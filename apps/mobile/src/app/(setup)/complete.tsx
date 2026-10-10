@@ -6,6 +6,7 @@ import { usePostHog } from 'posthog-react-native';
 import { t } from '@money-matters/i18n';
 import { DESIGN_TOKENS } from '@money-matters/ui/mobile';
 import { MobilePaydaySandboxModal } from '../../components/setup/MobilePaydaySandboxModal';
+import { useSetupWizard } from '../../context/SetupWizardContext';
 import { trpc } from '../../lib/trpc';
 
 export default function SetupCompleteScreen() {
@@ -14,6 +15,7 @@ export default function SetupCompleteScreen() {
   const posthog = usePostHog();
   const utils = trpc.useUtils();
   const updatePref = trpc.updateUserPreferences.useMutation();
+  const { totalRegularMonthly, totalGoalMonthly, incomes } = useSetupWizard();
   const [loading, setLoading] = useState(false);
   const [sandboxVisible, setSandboxVisible] = useState(false);
 
@@ -72,6 +74,9 @@ export default function SetupCompleteScreen() {
         visible={sandboxVisible}
         onClose={() => setSandboxVisible(false)}
         onFinish={handleFinish}
+        estimatedBills={totalRegularMonthly}
+        estimatedGoals={totalGoalMonthly}
+        defaultPaycheck={incomes[0]?.amount || 2500}
       />
     </View>
   );
