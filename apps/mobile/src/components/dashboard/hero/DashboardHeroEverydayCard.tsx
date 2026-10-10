@@ -15,6 +15,7 @@ interface DashboardHeroEverydayCardProps {
   readonly isBillsRisk: boolean;
   readonly isPacingTight: boolean;
   readonly onEverydayPress?: () => void;
+  readonly onAlignBalance?: () => void;
 }
 
 export const DashboardHeroEverydayCard: React.FC<DashboardHeroEverydayCardProps> = ({
@@ -28,6 +29,7 @@ export const DashboardHeroEverydayCard: React.FC<DashboardHeroEverydayCardProps>
   isBillsRisk,
   isPacingTight,
   onEverydayPress,
+  onAlignBalance,
 }) => {
   return (
     <TouchableOpacity
@@ -37,7 +39,7 @@ export const DashboardHeroEverydayCard: React.FC<DashboardHeroEverydayCardProps>
     >
       <View style={styles.heroTopRow}>
         <Text style={styles.sectionTag}>
-          {t('dashboard.hero.everydayDailyRateLabel')}
+          {t('dashboard.hero.everydayEnvelopeTitle')}
         </Text>
 
         {isBillsRisk ? (
@@ -63,10 +65,20 @@ export const DashboardHeroEverydayCard: React.FC<DashboardHeroEverydayCardProps>
 
       <View style={styles.metricRow}>
         <Text style={styles.heroAmount}>{formatAUD(everydayBalance)}</Text>
+        {onAlignBalance && (
+          <TouchableOpacity
+            activeOpacity={0.7}
+            onPress={onAlignBalance}
+            style={styles.alignButton}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          >
+            <Text style={styles.alignButtonText}>{t('dashboard.hero.alignBalance')}</Text>
+          </TouchableOpacity>
+        )}
       </View>
 
       <Text style={styles.pacingSubtitle}>
-        {t('dashboard.hero.dailyPaceSubtext', { amount: formatAUD(dailySpendable) })} · {
+        {t('dashboard.hero.safeToSpendLabel')} · {t('dashboard.hero.dailyPaceSubtext', { amount: formatAUD(dailySpendable) })} · {
           daysUntilPayday !== undefined && daysUntilPayday <= 0
             ? t('dashboard.hero.estRemainingToday', {
                 amount: formatAUD(everydayBalance),
@@ -170,7 +182,8 @@ const styles = StyleSheet.create({
   },
   metricRow: {
     flexDirection: 'row',
-    alignItems: 'baseline',
+    alignItems: 'center',
+    justifyContent: 'space-between',
     gap: 6,
     marginTop: 2,
   },
@@ -179,6 +192,17 @@ const styles = StyleSheet.create({
     fontWeight: '900',
     fontFamily: 'monospace',
     color: DESIGN_TOKENS.colors.primary,
+  },
+  alignButton: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
+    backgroundColor: '#EFF6FF',
+  },
+  alignButtonText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: DESIGN_TOKENS.colors.accent,
   },
   perDayText: {
     fontSize: 14,

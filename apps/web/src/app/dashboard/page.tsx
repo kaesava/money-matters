@@ -14,6 +14,7 @@ import { AttentionItemsList, WebAttentionItem } from "./components/AttentionItem
 import { MissingSchedulesBanner } from "./components/MissingSchedulesBanner";
 import { QuickActionDrawer } from "../../components/web/QuickExpenseDrawer";
 import { AffordCheckModal } from "../../components/web/AffordCheckModal";
+import { ReconciliationModal, PoolItem } from "../../components/ReconciliationModal";
 import { useDashboardData } from "./hooks/useDashboardData";
 import { useLocale } from "../../providers/LocaleProvider";
 import posthog from "../../lib/posthog-client";
@@ -197,7 +198,81 @@ export default function DashboardPage() {
   const [isMoveMoneyOpen, setIsMoveMoneyOpen] = useState(false);
   const [isAffordModalOpen, setIsAffordModalOpen] = useState(false);
   const [isQuickActionMenuOpen, setIsQuickActionMenuOpen] = useState(false);
+  const [reconcileState, setReconcileState] = useState<{
+    accountName: string;
+    accountId: string;
+    newBalance: number;
+    expectedBalance: number;
+    unbudgetedBuffer: number;
+    pools: PoolItem[];
+  } | null>(null);
+  const reconcileMut = trpc.reconcileBankBalance.useMutation();
   const quickActionMenuRef = useRef<HTMLDivElement>(null);
+
+  const handleOpenEverydayReconciliation = () => {
+    const everydayPool = pools.find((p) => p.poolType === "EVERYDAY");
+    const matchedAccount = bankAccounts.find(
+      (b) => b.id === everydayPool?.bankAccountId
+    ) || bankAccounts[0];
+
+    if (!matchedAccount) {
+      toast.error(t("common.error"));
+      return;
+    }
+
+    const linkedPools = pools
+      .filter((p) => p.bankAccountId === matchedAccount.id)
+      .map((p) => ({
+        id: p.id,
+        name: p.name,
+        poolType: p.poolType,
+        currentBalance: parseFloat(String(p.currentBalance ?? 0)),
+        isSurplusTarget: Boolean(p.isSurplusTarget),
+      }));
+
+    const actualBal = parseFloat(matchedAccount.lastKnownBalance || "0");
+    const buf = parseFloat(matchedAccount.unbudgetedBuffer || "0");
+    const expected = linkedPools.reduce((sum, p) => sum + p.currentBalance, 0);
+
+    setReconcileState({
+      accountName: matchedAccount.name,
+      accountId: matchedAccount.id,
+      newBalance: actualBal,
+      expectedBalance: expected,
+      unbudgetedBuffer: buf,
+      pools: linkedPools,
+    });
+  };
+
+  const handleConfirmReconcile = async (
+    splits: Array<{ poolId: string; adjustment: string }>,
+    reason?: string
+  ) => {
+    if (!reconcileState) return;
+    const diff = Number(
+      (
+        Math.max(0, reconcileState.newBalance - reconcileState.unbudgetedBuffer) -
+        reconcileState.expectedBalance
+      ).toFixed(2)
+    );
+
+    if (Math.abs(diff) > 0.009 && splits.length > 0) {
+      await reconcileMut.mutateAsync({
+        accountId: reconcileState.accountId,
+        actualBalance: reconcileState.newBalance.toFixed(2),
+        clientIdempotencyToken: crypto.randomUUID(),
+        splits,
+        note: reason?.trim() || undefined,
+      });
+      toast.success(t("toasts.saved"));
+    }
+
+    utils.listPools.invalidate();
+    utils.listTransactions.invalidate();
+    await bankAccountsQuery.refetch();
+    await summaryQuery.refetch();
+    setReconcileState(null);
+  };
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -359,6 +434,7 @@ export default function DashboardPage() {
             billsDue14DaysCount={billsDue14Days.length}
             totalBillsDue14Days={totalBillsDue14Days}
             onMoveMoney={() => setIsMoveMoneyOpen(true)}
+            onAlignEverydayBalance={handleOpenEverydayReconciliation}
             formatAUD={fmt}
           />
         </div>
@@ -470,6 +546,23 @@ export default function DashboardPage() {
         <AffordCheckModal
           isOpen={isAffordModalOpen}
           onClose={() => setIsAffordModalOpen(false)}
+        />
+      )}
+
+      {reconcileState && (
+        <ReconciliationModal
+          isOpen={Boolean(reconcileState)}
+          onClose={() => setReconcileState(null)}
+          accountName={reconcileState.accountName}
+          expectedBalance={reconcileState.expectedBalance}
+          newBalance={reconcileState.newBalance}
+          unbudgetedBuffer={reconcileState.unbudgetedBuffer}
+          pools={reconcileState.pools}
+          onConfirm={handleConfirmReconcile}
+          onOpenTransferModal={() => {
+            setReconcileState(null);
+            setIsMoveMoneyOpen(true);
+          }}
         />
       )}
     </div>

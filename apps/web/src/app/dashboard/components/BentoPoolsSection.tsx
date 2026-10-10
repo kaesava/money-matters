@@ -18,6 +18,7 @@ export interface BentoPoolsSectionProps {
   readonly totalBillsDue14Days: number;
 
   readonly onMoveMoney: () => void;
+  readonly onAlignEverydayBalance?: () => void;
   readonly formatAUD?: (val: number | string) => string;
 }
 
@@ -32,6 +33,7 @@ export const BentoPoolsSection: React.FC<BentoPoolsSectionProps> = ({
   billsDue14DaysCount,
   totalBillsDue14Days,
   onMoveMoney,
+  onAlignEverydayBalance,
   formatAUD,
 }) => {
   const { fmt } = useLocale();
@@ -60,7 +62,7 @@ export const BentoPoolsSection: React.FC<BentoPoolsSectionProps> = ({
           <div className="space-y-3">
             <div className="flex justify-between items-center">
               <span className="text-[11px] font-extrabold uppercase tracking-widest text-gray-500">
-                {t('dashboard.hero.everydayDailyRateLabel')}
+                {t('dashboard.hero.everydayEnvelopeTitle')}
               </span>
               {isBillsRisk ? (
                 <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-rose-100 text-rose-700 border border-rose-200">
@@ -78,13 +80,23 @@ export const BentoPoolsSection: React.FC<BentoPoolsSectionProps> = ({
             </div>
 
             <div>
-              <div className="flex items-baseline gap-1.5">
+              <div className="flex items-center justify-between gap-2">
                 <span className="text-3xl font-extrabold font-mono tabular-nums tracking-tight text-[#1B2B4B] dark:text-zinc-100">
                   {format(everydayBalance)}
                 </span>
+                {onAlignEverydayBalance && (
+                  <button
+                    type="button"
+                    onClick={onAlignEverydayBalance}
+                    className="text-xs font-bold text-[#2563eb] hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 hover:underline px-2 py-1 rounded-lg hover:bg-blue-50 dark:hover:bg-zinc-800 transition-colors cursor-pointer"
+                    title={t('dashboard.hero.alignBalanceTooltip')}
+                  >
+                    {t('dashboard.hero.alignBalance')}
+                  </button>
+                )}
               </div>
               <p className="text-xs text-gray-500 mt-1 font-medium">
-                {t('dashboard.hero.dailyPaceSubtext', { amount: format(dailySpendable) })} · {
+                {t('dashboard.hero.safeToSpendLabel')} · {t('dashboard.hero.dailyPaceSubtext', { amount: format(dailySpendable) })} · {
                   daysUntilPayday !== undefined && daysUntilPayday <= 0
                     ? t('dashboard.hero.estRemainingToday', { amount: format(everydayBalance) })
                     : t('dashboard.hero.estRemaining', { amount: format(everydayBalance), days: effectiveDays })

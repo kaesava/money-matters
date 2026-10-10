@@ -16,6 +16,7 @@ export interface DashboardHeroCardProps {
   readonly totalBillsDue14Days: number;
   readonly onMoveMoney: () => void;
   readonly onEverydayPress?: () => void;
+  readonly onAlignEverydayBalance?: () => void;
   readonly onBillsPress?: () => void;
 }
 
@@ -31,6 +32,7 @@ export const DashboardHeroCard: React.FC<DashboardHeroCardProps> = ({
   totalBillsDue14Days,
   onMoveMoney,
   onEverydayPress,
+  onAlignEverydayBalance,
   onBillsPress,
 }) => {
   const today = new Date();
@@ -70,6 +72,7 @@ export const DashboardHeroCard: React.FC<DashboardHeroCardProps> = ({
         isBillsRisk={isBillsRisk}
         isPacingTight={isPacingTight}
         onEverydayPress={onEverydayPress}
+        onAlignBalance={onAlignEverydayBalance}
       />
 
       <DashboardHeroBillsCard

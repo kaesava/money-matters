@@ -17,19 +17,6 @@ export function useDashboardData() {
   const [moveMoneyOpen, setMoveMoneyOpen] = useState(false);
   const [paydayPreviewEventId, setPaydayPreviewEventId] = useState<string | null>(null);
 
-  const [quickType, setQuickType] = useState<"DEBIT" | "CREDIT">("DEBIT");
-  const [quickName, setQuickName] = useState("");
-  const [quickCategoryId, setQuickCategoryId] = useState("");
-  const [quickReceivingAccountId, setQuickReceivingAccountId] = useState("");
-  const [quickAmount, setQuickAmount] = useState("");
-  const [quickDate, setQuickDate] = useState(() => todayStr);
-  const [quickNote, setQuickNote] = useState("");
-  const [quickMsg, setQuickMsg] = useState<string | null>(null);
-
-  const [reconcilingAccountId, setReconcilingAccountId] = useState<string | null>(null);
-  const [reconcileActualAmount, setReconcileActualAmount] = useState("");
-  const [reconcileTargetCategoryId, setReconcileTargetCategoryId] = useState("");
-
   const summaryQuery = trpc.getMonthlySummary.useQuery({ year: todayYear, month: todayMonth });
   const poolsQuery = trpc.listPools.useQuery();
   const bankAccountsQuery = trpc.listBankAccountsWithExpected.useQuery();
@@ -39,27 +26,10 @@ export function useDashboardData() {
 
   const reconcileMutation = trpc.reconcileBankBalance.useMutation({
     onSuccess: () => {
-      setReconcilingAccountId(null);
-      setReconcileActualAmount("");
-      setReconcileTargetCategoryId("");
       bankAccountsQuery.refetch();
       poolsQuery.refetch();
       summaryQuery.refetch();
       posthog.capture("bank_account_reconciled");
-    },
-  });
-
-
-  const recordExpenseMutation = trpc.recordExpense.useMutation({
-    onSuccess: (_, variables) => {
-      utils.listTransactions.invalidate();
-      poolsQuery.refetch();
-      summaryQuery.refetch();
-      setQuickName("");
-      setQuickAmount("");
-      setQuickNote("");
-      setQuickMsg(variables.flowType === "CREDIT" ? "Income recorded successfully!" : "Expense recorded successfully!");
-      setTimeout(() => setQuickMsg(null), 3000);
     },
   });
 
@@ -126,27 +96,6 @@ export function useDashboardData() {
     setMoveMoneyOpen,
     paydayPreviewEventId,
     setPaydayPreviewEventId,
-    quickType,
-    setQuickType,
-    quickName,
-    setQuickName,
-    quickCategoryId,
-    setQuickCategoryId,
-    quickReceivingAccountId,
-    setQuickReceivingAccountId,
-    quickAmount,
-    setQuickAmount,
-    quickDate,
-    setQuickDate,
-    quickNote,
-    setQuickNote,
-    quickMsg,
-    reconcilingAccountId,
-    setReconcilingAccountId,
-    reconcileActualAmount,
-    setReconcileActualAmount,
-    reconcileTargetCategoryId,
-    setReconcileTargetCategoryId,
     summaryQuery,
     categoriesQuery: poolsQuery,
     poolsQuery,
@@ -155,7 +104,6 @@ export function useDashboardData() {
     expenseEventsQuery,
     transferEventsQuery,
     reconcileMutation,
-    recordExpenseMutation,
     markPaidMutation,
     markExpensePaidMutation,
     deleteExpenseEventMutation,

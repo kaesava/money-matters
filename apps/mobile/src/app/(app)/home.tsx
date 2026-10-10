@@ -18,6 +18,10 @@ import { MobileMissingSchedulesBanner } from '../../components/dashboard/MobileM
 import { MarkPaidModal, MarkPaidEvent } from '../../components/MarkPaidModal';
 import { QuickExpenseModal, QuickActionType } from '../../components/QuickExpenseModal';
 import { MobileAffordCheckModal } from '../../components/afford-check/MobileAffordCheckModal';
+import {
+  MobileReconciliationModal,
+  MobileReconciliationModalProps,
+} from '../../components/categories/MobileReconciliationModal';
 import { useHomeData } from '../../components/dashboard/useHomeData';
 
 export default function HomeScreen() {
@@ -29,10 +33,12 @@ export default function HomeScreen() {
   const [quickModalType, setQuickModalType] = useState<QuickActionType>('DEBIT');
   const [affordModalVisible, setAffordModalVisible] = useState(false);
   const [markPaidEvent, setMarkPaidEvent] = useState<MarkPaidEvent | null>(null);
+  const [reconcileAccount, setReconcileAccount] = useState<MobileReconciliationModalProps['account'] | null>(null);
 
   const {
     refreshing,
     onRefresh,
+    pools,
     bankAccounts,
     incomeCount,
     billsCount,
@@ -56,6 +62,40 @@ export default function HomeScreen() {
     deleteIncomeMutation,
     refetchAll,
   } = useHomeData(token);
+
+  const handleOpenEverydayReconciliation = () => {
+    const matchedAccount = bankAccounts.find(
+      (b) => b.id === everydayPool?.bankAccountId
+    ) || bankAccounts[0];
+
+    if (!matchedAccount) {
+      return;
+    }
+
+    const linkedPools = pools
+      .filter((p) => p.bankAccountId === matchedAccount.id)
+      .map((p) => ({
+        id: p.id,
+        name: p.name,
+        poolType: p.poolType,
+        currentBalance: p.currentBalance || 0,
+        isSurplusTarget: Boolean(p.isSurplusTarget),
+      }));
+
+    const expected = linkedPools.reduce(
+      (sum, p) => sum + (parseFloat(String(p.currentBalance)) || 0),
+      0
+    );
+
+    setReconcileAccount({
+      id: matchedAccount.id,
+      name: matchedAccount.name,
+      lastKnownBalance: matchedAccount.lastKnownBalance || '0.00',
+      unbudgetedBuffer: matchedAccount.unbudgetedBuffer || '0.00',
+      expectedBalance: expected,
+      linkedPools,
+    });
+  };
 
   const openQuickModal = (type: QuickActionType) => {
     setQuickModalType(type);
@@ -105,6 +145,7 @@ export default function HomeScreen() {
               ? router.push(`/(app)/pools/${everydayPool.id}` as never)
               : router.push('/(app)/categories')
           }
+          onAlignEverydayBalance={handleOpenEverydayReconciliation}
           onBillsPress={() =>
             billsPool
               ? router.push(`/(app)/pools/${billsPool.id}` as never)
@@ -171,6 +212,19 @@ export default function HomeScreen() {
         visible={affordModalVisible}
         onClose={() => setAffordModalVisible(false)}
       />
+
+      {reconcileAccount && (
+        <MobileReconciliationModal
+          visible={Boolean(reconcileAccount)}
+          account={reconcileAccount}
+          onClose={() => setReconcileAccount(null)}
+          onSuccess={refetchAll}
+          onOpenTransfer={() => {
+            setReconcileAccount(null);
+            openQuickModal('TRANSFER');
+          }}
+        />
+      )}
     </AppScreenWrapper>
   );
 }
