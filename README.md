@@ -61,6 +61,10 @@ pnpm test
 
 # Run automated version bump CLI (major | minor | patch | beta)
 pnpm version:bump --type=patch --app=all
+
+# Apply pending database migrations (development / production)
+pnpm db:migrate
+pnpm db:migrate:prod
 ```
 
 ### Running Local Development Servers
