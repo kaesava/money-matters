@@ -8,9 +8,11 @@ import { trpc } from "../../../../lib/trpc";
 import { IncomeSplitHeader } from "./IncomeSplitHeader";
 import { IncomeSplitCommandPanel } from "./IncomeSplitCommandPanel";
 import { IncomeSplitPoolTable } from "./IncomeSplitPoolTable";
+import { PaydayCelebrationCard } from "./PaydayCelebrationCard";
 import { SlideOverCategoryDrawer } from "../../income-and-bills/components/SlideOverCategoryDrawer";
 import { CategoryFormModal } from "../../../../components/web/CategoryFormModal";
 import { useLocale } from "../../../../providers/LocaleProvider";
+import { ChevronDown } from "lucide-react";
 
 export interface IncomeSplitScreenProps {
   readonly incomeEventId: string;
@@ -85,6 +87,7 @@ export function IncomeSplitScreen({ incomeEventId, returnTo = "/dashboard" }: In
   const [activeDrawerPool, setActiveDrawerPool] = useState<{ id: string; name: string } | null>(null);
   const [poolToEdit, setPoolToEdit] = useState<React.ComponentProps<typeof CategoryFormModal>["categoryToEdit"] | null>(null);
   const [isPoolModalOpen, setIsPoolModalOpen] = useState(false);
+  const [showTableDetails, setShowTableDetails] = useState(false);
 
   const todayStr = useMemo(() => new Intl.DateTimeFormat("en-CA", { timeZone: activeTz }).format(new Date()), [activeTz]);
 
@@ -395,7 +398,30 @@ export function IncomeSplitScreen({ incomeEventId, returnTo = "/dashboard" }: In
         onConfirmSplit={() => setShowConfirmWarning(true)}
       />
 
-      <div className="flex-1 w-full">
+      {/* Level 1: Payday Celebration & 1-Tap Lock In Card */}
+      <PaydayCelebrationCard
+        billsAllocated={billsAllocated}
+        goalsAllocated={goalsAllocated}
+        safeToSpend={Math.max(0, sweepPoolRemainder)}
+        isConfirmed={isConfirmedPlan}
+        submitting={submitting}
+        onConfirm={() => setShowConfirmWarning(true)}
+        formatAUD={(amount) => `$${amount.toLocaleString("en-AU", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
+      />
+
+      <div className="flex-1 w-full space-y-4">
+        {/* Progressive Disclosure Toggle Button for Detailed Table */}
+        <div className="flex justify-end">
+          <button
+            type="button"
+            onClick={() => setShowTableDetails((prev) => !prev)}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold text-slate-600 dark:text-zinc-300 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-slate-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer"
+          >
+            <span>{showTableDetails ? t("paydayDrawer.hideDetailedAllocations") : t("paydayDrawer.showDetailedAllocations")}</span>
+            <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-200 ${showTableDetails ? "rotate-180" : ""}`} />
+          </button>
+        </div>
+
         <div className="flex flex-col lg:flex-row items-start gap-8">
           <IncomeSplitCommandPanel
             sourceName={sourceName}
@@ -423,20 +449,22 @@ export function IncomeSplitScreen({ incomeEventId, returnTo = "/dashboard" }: In
             isConfirmedPlan={isConfirmedPlan}
           />
 
-          <IncomeSplitPoolTable
-            groups={groupedLines}
-            pools={pools}
-            sweepPoolId={sweepPool?.id}
-            sweepPoolRemainder={sweepPoolRemainder}
-            linesMap={linesMap}
-            initialLinesMap={initialLinesMap}
-            reasoningMap={reasoningMap}
-            numericActual={numericActual}
-            isReadOnly={isReadOnly}
-            onLineAmountChange={handleLineAmountChange}
-            onLineReasoningChange={handleLineReasoningChange}
-            onOpenPoolDrawer={(poolId, poolName) => setActiveDrawerPool({ id: poolId, name: poolName })}
-          />
+          {showTableDetails && (
+            <IncomeSplitPoolTable
+              groups={groupedLines}
+              pools={pools}
+              sweepPoolId={sweepPool?.id}
+              sweepPoolRemainder={sweepPoolRemainder}
+              linesMap={linesMap}
+              initialLinesMap={initialLinesMap}
+              reasoningMap={reasoningMap}
+              numericActual={numericActual}
+              isReadOnly={isReadOnly}
+              onLineAmountChange={handleLineAmountChange}
+              onLineReasoningChange={handleLineReasoningChange}
+              onOpenPoolDrawer={(poolId, poolName) => setActiveDrawerPool({ id: poolId, name: poolName })}
+            />
+          )}
         </div>
       </div>
 

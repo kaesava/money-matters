@@ -319,19 +319,19 @@ test.describe('100% Comprehensive Field-by-Field Screen-by-Screen E2E Master Sui
       }
     });
 
-    test('4.3 "Can We Afford This?" Hero Button & Modal Audit', async ({ page }) => {
+    test('4.3 "Can I Afford It?" Header Button & Instant Modal Audit', async ({ page }) => {
       await page.goto('/dashboard');
 
-      const affordBtn = page.locator('button:has-text("Can We Afford This")').first();
+      const affordBtn = page.locator('button:has-text("Can I Afford"), a:has-text("Can I Afford")').first();
 
       if (await affordBtn.isVisible()) {
         await affordBtn.click();
         
         // Modal popup should open
-        const affordModalTitle = page.locator('h3:has-text("Can We Afford This")').first();
+        const affordModalTitle = page.locator('h3:has-text("Can I Afford")').first();
         await expect(affordModalTitle).toBeVisible();
 
-        const amountInput = page.locator('input[type="number"]').first();
+        const amountInput = page.locator('input[type="text"]').first();
         if (await amountInput.isVisible()) {
           await amountInput.fill('180.00');
         }

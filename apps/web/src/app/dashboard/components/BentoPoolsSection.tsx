@@ -80,14 +80,15 @@ export const BentoPoolsSection: React.FC<BentoPoolsSectionProps> = ({
             <div>
               <div className="flex items-baseline gap-1.5">
                 <span className="text-3xl font-extrabold font-mono tabular-nums tracking-tight text-[#1B2B4B] dark:text-zinc-100">
-                  {format(dailySpendable)}
+                  {format(everydayBalance)}
                 </span>
-                <span className="text-xs font-sans font-bold text-gray-400">/ day</span>
               </div>
               <p className="text-xs text-gray-500 mt-1 font-medium">
-                {daysUntilPayday !== undefined && daysUntilPayday <= 0
-                  ? t('dashboard.hero.estRemainingToday', { amount: format(everydayBalance) })
-                  : t('dashboard.hero.estRemaining', { amount: format(everydayBalance), days: effectiveDays })}
+                {t('dashboard.hero.dailyPaceSubtext', { amount: format(dailySpendable) })} · {
+                  daysUntilPayday !== undefined && daysUntilPayday <= 0
+                    ? t('dashboard.hero.estRemainingToday', { amount: format(everydayBalance) })
+                    : t('dashboard.hero.estRemaining', { amount: format(everydayBalance), days: effectiveDays })
+                }
               </p>
             </div>
           </div>

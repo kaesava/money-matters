@@ -5,14 +5,17 @@ import {
   ScrollView,
   StyleSheet,
   ActivityIndicator,
+  TouchableOpacity,
 } from 'react-native';
 import { useLocalSearchParams } from 'expo-router';
+import { Feather } from '@expo/vector-icons';
 import {
   DESIGN_TOKENS,
   MobileScreenWrapper,
   MobileCategoryDetailSheet,
 } from '@money-matters/ui/mobile';
 import { t } from '@money-matters/i18n';
+import { MobilePaydayCelebrationCard } from '../../../components/paychecks/MobilePaydayCelebrationCard';
 import { MobileBankTransferRollupCard } from '../../../components/paychecks/MobileBankTransferRollupCard';
 import { MobileIncomeSplitCommandPanel } from '../../../components/paychecks/MobileIncomeSplitCommandPanel';
 import { MobileIncomeSplitPoolList } from '../../../components/paychecks/MobileIncomeSplitPoolList';
@@ -24,6 +27,7 @@ import { trpc } from '../../../lib/trpc';
 export default function IncomeSplitStudioScreen() {
   const { id, returnTo } = useLocalSearchParams<{ id: string; returnTo?: string }>();
   const [selectedPoolForSheet, setSelectedPoolForSheet] = useState<string | null>(null);
+  const [showTableDetails, setShowTableDetails] = useState(false);
 
   const {
     session,
@@ -108,6 +112,16 @@ export default function IncomeSplitStudioScreen() {
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
         >
+          {/* Level 1: Payday Celebration & 1-Tap Lock In Card */}
+          <MobilePaydayCelebrationCard
+            billsAllocated={billsAllocated}
+            goalsAllocated={goalsAllocated}
+            safeToSpend={Math.max(0, sweepPoolRemainder)}
+            isConfirmed={isConfirmedPlan}
+            submitting={submitting}
+            onConfirm={handleConfirmSplit}
+          />
+
           <MobileIncomeSplitCommandPanel
             sourceName={sourceName}
             onSourceNameChange={setSourceName}
@@ -129,18 +143,36 @@ export default function IncomeSplitStudioScreen() {
             isConfirmedPlan={isConfirmedPlan}
           />
 
-          <MobileIncomeSplitPoolList
-            groups={groupedLines}
-            pools={pools}
-            sweepPoolId={sweepPool?.id}
-            sweepPoolRemainder={sweepPoolRemainder}
-            linesMap={linesMap}
-            reasoningMap={reasoningMap}
-            isReadOnly={isReadOnly}
-            onPoolPress={(poolId) => setSelectedPoolForSheet(poolId)}
-            onLineAmountChange={handleLineAmountChange}
-            onLineReasoningChange={handleLineReasoningChange}
-          />
+          {/* Progressive Disclosure Toggle Button for Detailed Breakdown */}
+          <TouchableOpacity
+            activeOpacity={0.7}
+            onPress={() => setShowTableDetails((prev) => !prev)}
+            style={styles.detailsToggleBtn}
+          >
+            <Text style={styles.detailsToggleText}>
+              {showTableDetails ? t('paydayDrawer.hideDetailedAllocations') : t('paydayDrawer.showDetailedAllocations')}
+            </Text>
+            <Feather
+              name={showTableDetails ? 'chevron-up' : 'chevron-down'}
+              size={16}
+              color={DESIGN_TOKENS.colors.sereneBlue}
+            />
+          </TouchableOpacity>
+
+          {showTableDetails && (
+            <MobileIncomeSplitPoolList
+              groups={groupedLines}
+              pools={pools}
+              sweepPoolId={sweepPool?.id}
+              sweepPoolRemainder={sweepPoolRemainder}
+              linesMap={linesMap}
+              reasoningMap={reasoningMap}
+              isReadOnly={isReadOnly}
+              onPoolPress={(poolId) => setSelectedPoolForSheet(poolId)}
+              onLineAmountChange={handleLineAmountChange}
+              onLineReasoningChange={handleLineReasoningChange}
+            />
+          )}
 
           {!isConfirmedPlan && (
             <MobileBankTransferRollupCard
@@ -206,5 +238,22 @@ const styles = StyleSheet.create({
     padding: 16,
     gap: 16,
     paddingBottom: 90,
+  },
+  detailsToggleBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  detailsToggleText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: DESIGN_TOKENS.colors.sereneBlue,
   },
 });

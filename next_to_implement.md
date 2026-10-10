@@ -219,7 +219,8 @@ Bills|Goals & All|Shared|Private, pagination, History link, Progress)
 * Header & Total
 * Splits (all readonly)
 
-
+****** Notifications - Setup, text
+****** Milestone celebration
 
 ******* "Bank Accounts"
 Edit Modal 

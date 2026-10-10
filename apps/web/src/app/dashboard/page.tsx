@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useState, useRef, useEffect } from "react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ChevronDown, ArrowUpRight, ArrowDownLeft, ArrowLeftRight, Plus, Sparkles } from "lucide-react";
 
@@ -14,6 +13,7 @@ import { NextPaydayCard, WebIncomeItem } from "./components/NextPaydayCard";
 import { AttentionItemsList, WebAttentionItem } from "./components/AttentionItemsList";
 import { MissingSchedulesBanner } from "./components/MissingSchedulesBanner";
 import { QuickActionDrawer } from "../../components/web/QuickExpenseDrawer";
+import { AffordCheckModal } from "../../components/web/AffordCheckModal";
 import { useDashboardData } from "./hooks/useDashboardData";
 import { useLocale } from "../../providers/LocaleProvider";
 import posthog from "../../lib/posthog-client";
@@ -195,6 +195,7 @@ export default function DashboardPage() {
   const [quickDrawerOpen, setQuickDrawerOpen] = useState(false);
   const [quickDrawerInitialTab, setQuickDrawerInitialTab] = useState<"DEBIT" | "CREDIT" | "TRANSFER">("DEBIT");
   const [isMoveMoneyOpen, setIsMoveMoneyOpen] = useState(false);
+  const [isAffordModalOpen, setIsAffordModalOpen] = useState(false);
   const [isQuickActionMenuOpen, setIsQuickActionMenuOpen] = useState(false);
   const quickActionMenuRef = useRef<HTMLDivElement>(null);
 
@@ -327,13 +328,14 @@ export default function DashboardPage() {
             )}
           </div>
 
-          <Link
-            href="/dashboard/afford-check"
+          <button
+            type="button"
+            onClick={() => setIsAffordModalOpen(true)}
             className="px-3.5 py-2 h-9 bg-white dark:bg-zinc-900 hover:bg-slate-50 dark:hover:bg-zinc-800/80 border border-slate-300/80 dark:border-zinc-700 text-[#1B2B4B] dark:text-zinc-100 font-extrabold text-xs rounded-xl transition-all shadow-xs flex items-center gap-1.5 cursor-pointer shrink-0"
           >
             <Sparkles className="w-3.5 h-3.5 text-[#2563eb] shrink-0" />
             <span>{t("canIAfford.title")}</span>
-          </Link>
+          </button>
         </div>
       </div>
 
@@ -461,6 +463,13 @@ export default function DashboardPage() {
             setIncomeToDelete(null);
           }}
           onClose={() => setIncomeToDelete(null)}
+        />
+      )}
+
+      {isAffordModalOpen && (
+        <AffordCheckModal
+          isOpen={isAffordModalOpen}
+          onClose={() => setIsAffordModalOpen(false)}
         />
       )}
     </div>

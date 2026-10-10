@@ -8,9 +8,11 @@ import { SetupGoalsStep } from "./components/SetupGoalsStep";
 import { SetupLifestyleStep } from "./components/SetupLifestyleStep";
 import { SetupCategoriesStep } from "./components/SetupCategoriesStep";
 import { SetupDiscardModal } from "./components/SetupDiscardModal";
+import { PaydaySandboxModal } from "./components/PaydaySandboxModal";
 import { useSetupWizardState } from "./hooks/useSetupWizardState";
 
 function SetupWizardContent() {
+  const [showSandboxModal, setShowSandboxModal] = React.useState(false);
   const {
     isRerun,
     step,
@@ -317,6 +319,7 @@ function SetupWizardContent() {
             isSubmitting={isSubmitting}
             onBack={() => setStep(4)}
             onFinish={handleFinish}
+            onSimulatePayday={() => setShowSandboxModal(true)}
             showIcons={showIcons}
             autoCreateExpenseSchedules={autoCreateExpenseSchedules}
             setAutoCreateExpenseSchedules={setAutoCreateExpenseSchedules}
@@ -328,6 +331,18 @@ function SetupWizardContent() {
           isOpen={showDiscardModal}
           onClose={() => setShowDiscardModal(false)}
           onConfirm={handleDiscard}
+        />
+
+        <PaydaySandboxModal
+          isOpen={showSandboxModal}
+          onClose={() => setShowSandboxModal(false)}
+          onFinish={() => {
+            setShowSandboxModal(false);
+            handleFinish();
+          }}
+          estimatedBills={totalRegularMonthly}
+          estimatedGoals={totalGoalMonthly}
+          defaultPaycheck={incomes[0]?.amount || 2500}
         />
 
         {/* Balance Sweep Modal */}

@@ -45,6 +45,8 @@ export function MarkPaidModal({
     groupedPools,
     expandedGroups,
     transferAmounts,
+    setTransferAmounts,
+    surplusPool,
     totalAllocated,
     shortfallValidation,
     toggleGroup,
@@ -149,6 +151,14 @@ export function MarkPaidModal({
             shortfallValidation={shortfallValidation}
             onToggleGroup={toggleGroup}
             onAmountChange={handleAmountChange}
+            surplusPoolName={surplusPool?.name}
+            onCoverFromSurplus={surplusPool ? () => {
+              const b = typeof surplusPool.currentBalance === 'number'
+                ? surplusPool.currentBalance
+                : parseFloat(String(surplusPool.currentBalance) || '0');
+              const prefill = Math.min(shortfallAmount, b);
+              setTransferAmounts({ [surplusPool.id]: prefill.toFixed(2) });
+            } : undefined}
           />
         ) : (
           <View style={styles.sufficientBanner}>

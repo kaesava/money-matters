@@ -163,27 +163,27 @@ export default function AppLayout() {
           }}
         />
         <Tabs.Screen
-          name="income-split"
-          options={{
-            title: t('nav.splitIncome'),
-            tabBarIcon: ({ color, size }) => (
-              <TabIcon name="repeat" color={color} size={size} />
-            ),
-          }}
-        />
-        <Tabs.Screen
           name="categories"
           options={{
             title: t('nav.categories'),
             tabBarIcon: ({ color, size }) => (
-              <TabIcon name="grid" color={color} size={size} />
+              <TabIcon name="layers" color={color} size={size} />
+            ),
+          }}
+        />
+        <Tabs.Screen
+          name="transactions"
+          options={{
+            title: t('nav.transactions'),
+            tabBarIcon: ({ color, size }) => (
+              <TabIcon name="list" color={color} size={size} />
             ),
           }}
         />
 
         {/* Hidden push routes — not in tab bar */}
+        <Tabs.Screen name="income-split" options={{ href: null }} />
         <Tabs.Screen name="upcoming" options={{ href: null }} />
-        <Tabs.Screen name="transactions" options={{ href: null }} />
         <Tabs.Screen name="settings" options={{ href: null }} />
         <Tabs.Screen name="afford-check" options={{ href: null }} />
         <Tabs.Screen name="pools/[id]" options={{ href: null }} />

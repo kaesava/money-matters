@@ -5,6 +5,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { usePostHog } from 'posthog-react-native';
 import { t } from '@money-matters/i18n';
 import { DESIGN_TOKENS } from '@money-matters/ui/mobile';
+import { MobilePaydaySandboxModal } from '../../components/setup/MobilePaydaySandboxModal';
 import { trpc } from '../../lib/trpc';
 
 export default function SetupCompleteScreen() {
@@ -14,6 +15,7 @@ export default function SetupCompleteScreen() {
   const utils = trpc.useUtils();
   const updatePref = trpc.updateUserPreferences.useMutation();
   const [loading, setLoading] = useState(false);
+  const [sandboxVisible, setSandboxVisible] = useState(false);
 
   const handleFinish = async () => {
     setLoading(true);
@@ -45,6 +47,15 @@ export default function SetupCompleteScreen() {
       <Text style={styles.subtitle}>{t('setup.complete.subtitle')}</Text>
 
       <TouchableOpacity
+        style={styles.sandboxBtn}
+        onPress={() => setSandboxVisible(true)}
+        activeOpacity={0.85}
+        disabled={loading}
+      >
+        <Text style={styles.sandboxBtnText}>✨ {t('setup.complete.simulateFirstPayday')}</Text>
+      </TouchableOpacity>
+
+      <TouchableOpacity
         style={styles.btn}
         onPress={handleFinish}
         activeOpacity={0.85}
@@ -56,6 +67,12 @@ export default function SetupCompleteScreen() {
           <Text style={styles.btnText}>{t('setup.complete.goDashboard')}</Text>
         )}
       </TouchableOpacity>
+
+      <MobilePaydaySandboxModal
+        visible={sandboxVisible}
+        onClose={() => setSandboxVisible(false)}
+        onFinish={handleFinish}
+      />
     </View>
   );
 }
@@ -70,6 +87,8 @@ const styles = StyleSheet.create({
   icon: { fontSize: 64, marginBottom: 20 },
   title: { fontSize: 26, fontWeight: '700', color: D.colors.primary, textAlign: 'center', marginBottom: 12 },
   subtitle: { fontSize: 14, color: D.colors.textMuted, textAlign: 'center', lineHeight: 20, maxWidth: 300, marginBottom: 40 },
-  btn: { backgroundColor: D.colors.accent, paddingVertical: 15, paddingHorizontal: 40, borderRadius: D.radius.md },
+  btn: { backgroundColor: D.colors.accent, paddingVertical: 15, paddingHorizontal: 40, borderRadius: D.radius.md, width: '100%', maxWidth: 300, alignItems: 'center' },
   btnText: { color: D.colors.onAccent, fontWeight: '700', fontSize: 16 },
+  sandboxBtn: { backgroundColor: '#EFF6FF', borderWidth: 1, borderColor: '#BFDBFE', paddingVertical: 14, paddingHorizontal: 24, borderRadius: D.radius.md, width: '100%', maxWidth: 300, alignItems: 'center', marginBottom: 12 },
+  sandboxBtnText: { color: D.colors.sereneBlue, fontWeight: '800', fontSize: 14 },
 });

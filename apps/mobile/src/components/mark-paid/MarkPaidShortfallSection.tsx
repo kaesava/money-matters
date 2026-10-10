@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { DESIGN_TOKENS } from '@money-matters/ui/mobile';
 import { t } from '@money-matters/i18n';
@@ -23,6 +23,8 @@ interface MarkPaidShortfallSectionProps {
   };
   onToggleGroup: (typeKey: string) => void;
   onAmountChange: (poolId: string, maxBal: number, rawVal: string) => void;
+  onCoverFromSurplus?: () => void;
+  surplusPoolName?: string;
 }
 
 export function MarkPaidShortfallSection({
@@ -37,6 +39,8 @@ export function MarkPaidShortfallSection({
   shortfallValidation,
   onToggleGroup,
   onAmountChange,
+  onCoverFromSurplus,
+  surplusPoolName,
 }: MarkPaidShortfallSectionProps) {
   return (
     <View style={styles.shortfallSection}>
@@ -50,6 +54,20 @@ export function MarkPaidShortfallSection({
             amount: formatAUD(shortfallAmount),
           })}
         </Text>
+        {onCoverFromSurplus && surplusPoolName && (
+          <TouchableOpacity
+            style={styles.coverChip}
+            onPress={onCoverFromSurplus}
+            activeOpacity={0.8}
+          >
+            <Text style={styles.coverChipText}>
+              ⚡ {t('incomeBillsTabs.coverShortfallChip', {
+                amount: formatAUD(shortfallAmount),
+                poolName: surplusPoolName,
+              })}
+            </Text>
+          </TouchableOpacity>
+        )}
       </View>
 
       <View style={styles.fundingHeaderRow}>
@@ -131,21 +149,30 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   shortfallBanner: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: 8,
+    gap: 10,
     backgroundColor: DESIGN_TOKENS.colors.warningLight,
     borderWidth: 1,
     borderColor: DESIGN_TOKENS.colors.warningBorder,
-    borderRadius: 10,
-    padding: 10,
+    borderRadius: 12,
+    padding: 12,
   },
   shortfallBannerText: {
-    flex: 1,
     fontSize: 12,
     lineHeight: 17,
     color: DESIGN_TOKENS.colors.warningDark,
     fontWeight: '600',
+  },
+  coverChip: {
+    alignSelf: 'flex-start',
+    backgroundColor: DESIGN_TOKENS.colors.sereneBlue,
+    paddingVertical: 7,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+  },
+  coverChipText: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: '#FFFFFF',
   },
   fundingHeaderRow: {
     gap: 2,

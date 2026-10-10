@@ -63,18 +63,20 @@ export function useQuickActionState(
     const poolsList = rawPools ?? [];
     const catList = rawSubCategories ?? [];
 
-    return poolsList.map((p) => {
-      const childCategories = catList
-        .filter((c) => c.poolId === p.id)
-        .map((c) => ({ id: c.id, name: c.name }));
+    return poolsList
+      .filter((p) => isIncome || isTransfer || p.poolType === "REGULAR" || p.poolType === "GOAL")
+      .map((p) => {
+        const childCategories = catList
+          .filter((c) => c.poolId === p.id)
+          .map((c) => ({ id: c.id, name: c.name }));
 
-      return {
-        ...p,
-        type: p.poolType,
-        categories: childCategories,
-      };
-    });
-  }, [rawPools, rawSubCategories]);
+        return {
+          ...p,
+          type: p.poolType,
+          categories: childCategories,
+        };
+      });
+  }, [rawPools, rawSubCategories, isIncome, isTransfer]);
 
   const rawBankAccounts = bankAccountsQuery.data;
   const bankAccounts = useMemo(() => rawBankAccounts ?? [], [rawBankAccounts]);

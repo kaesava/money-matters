@@ -163,7 +163,7 @@ export function useMarkPaidForm(
   return {
     actualAmount, setActualAmount, actualDate, setActualDate, wasFutureDate, originalDate,
     currentPool, poolBal, shortfallAmount, hasShortfall, groupedPools, expandedGroups,
-    transferAmounts, totalAllocated, shortfallValidation, toggleGroup, handleAmountChange,
+    transferAmounts, setTransferAmounts, surplusPool, totalAllocated, shortfallValidation, toggleGroup, handleAmountChange,
     handleConfirm, submitting, generalError, isValid, isAmountValid, isDateValid,
   };
 }

@@ -10,7 +10,6 @@ import { DESIGN_TOKENS } from '@money-matters/ui/mobile';
 import { t } from '@money-matters/i18n';
 import { AppScreenWrapper } from '../../components/AppScreenWrapper';
 import { DashboardHeroCard } from '../../components/DashboardHeroCard';
-import { HomeAffordBannerCard } from '../../components/dashboard/HomeAffordBannerCard';
 import { MobileNextPaydayCard } from '../../components/dashboard/MobileNextPaydayCard';
 import { AttentionItemsList } from '../../components/AttentionItemsList';
 import { GoalsProgressStrip } from '../../components/dashboard/GoalsProgressStrip';
@@ -18,6 +17,7 @@ import { TrialBanner } from '../../components/dashboard/TrialBanner';
 import { MobileMissingSchedulesBanner } from '../../components/dashboard/MobileMissingSchedulesBanner';
 import { MarkPaidModal, MarkPaidEvent } from '../../components/MarkPaidModal';
 import { QuickExpenseModal, QuickActionType } from '../../components/QuickExpenseModal';
+import { MobileAffordCheckModal } from '../../components/afford-check/MobileAffordCheckModal';
 import { useHomeData } from '../../components/dashboard/useHomeData';
 
 export default function HomeScreen() {
@@ -27,6 +27,7 @@ export default function HomeScreen() {
 
   const [quickModalVisible, setQuickModalVisible] = useState(false);
   const [quickModalType, setQuickModalType] = useState<QuickActionType>('DEBIT');
+  const [affordModalVisible, setAffordModalVisible] = useState(false);
   const [markPaidEvent, setMarkPaidEvent] = useState<MarkPaidEvent | null>(null);
 
   const {
@@ -111,8 +112,6 @@ export default function HomeScreen() {
           }
         />
 
-        <HomeAffordBannerCard />
-
         <MobileNextPaydayCard
           upcomingIncomes={upcomingIncomeList}
           onPressRunSplit={(id: string) => {
@@ -166,6 +165,11 @@ export default function HomeScreen() {
         event={markPaidEvent}
         onClose={() => setMarkPaidEvent(null)}
         onSuccess={refetchAll}
+      />
+
+      <MobileAffordCheckModal
+        visible={affordModalVisible}
+        onClose={() => setAffordModalVisible(false)}
       />
     </AppScreenWrapper>
   );

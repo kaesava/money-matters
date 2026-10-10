@@ -62,19 +62,20 @@ export const DashboardHeroEverydayCard: React.FC<DashboardHeroEverydayCardProps>
       </View>
 
       <View style={styles.metricRow}>
-        <Text style={styles.heroAmount}>{formatAUD(dailySpendable)}</Text>
-        <Text style={styles.perDayText}>/ day</Text>
+        <Text style={styles.heroAmount}>{formatAUD(everydayBalance)}</Text>
       </View>
 
       <Text style={styles.pacingSubtitle}>
-        {daysUntilPayday !== undefined && daysUntilPayday <= 0
-          ? t('dashboard.hero.estRemainingToday', {
-              amount: formatAUD(everydayBalance),
-            })
-          : t('dashboard.hero.estRemaining', {
-              amount: formatAUD(everydayBalance),
-              days: effectiveDays,
-            })}
+        {t('dashboard.hero.dailyPaceSubtext', { amount: formatAUD(dailySpendable) })} · {
+          daysUntilPayday !== undefined && daysUntilPayday <= 0
+            ? t('dashboard.hero.estRemainingToday', {
+                amount: formatAUD(everydayBalance),
+              })
+            : t('dashboard.hero.estRemaining', {
+                amount: formatAUD(everydayBalance),
+                days: effectiveDays,
+              })
+        }
       </Text>
 
       {/* Progress Bar & Buffer Protection */}

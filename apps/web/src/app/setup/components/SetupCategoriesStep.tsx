@@ -32,6 +32,7 @@ interface SetupCategoriesStepProps {
   isSubmitting: boolean;
   onBack: () => void;
   onFinish: () => void;
+  onSimulatePayday?: () => void;
   showIcons?: boolean;
   autoCreateExpenseSchedules?: boolean;
   setAutoCreateExpenseSchedules?: (val: boolean) => void;
@@ -64,6 +65,7 @@ export function SetupCategoriesStep({
   isSubmitting,
   onBack,
   onFinish,
+  onSimulatePayday,
   showIcons = true,
   autoCreateExpenseSchedules = true,
   setAutoCreateExpenseSchedules,
@@ -384,13 +386,24 @@ export function SetupCategoriesStep({
         >
           ← Back to Lifestyle
         </button>
-        <Button
-          type="button"
-          onClick={onFinish}
-          loading={isSubmitting}
-        >
-          {showIcons ? "🚀 " : ""}Save &amp; Complete Setup
-        </Button>
+        <div className="flex items-center gap-3">
+          {onSimulatePayday && !isRerun && (
+            <button
+              type="button"
+              onClick={onSimulatePayday}
+              className="px-4 py-2.5 bg-blue-50 hover:bg-blue-100 border border-blue-200 text-[#2563eb] text-xs font-bold rounded-xl transition-colors cursor-pointer"
+            >
+              ✨ {t("setup.complete.simulateFirstPayday")}
+            </button>
+          )}
+          <Button
+            type="button"
+            onClick={onFinish}
+            loading={isSubmitting}
+          >
+            {showIcons ? "🚀 " : ""}Save &amp; Complete Setup
+          </Button>
+        </div>
       </div>
     </div>
   );

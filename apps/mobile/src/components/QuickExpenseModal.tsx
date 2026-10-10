@@ -131,7 +131,7 @@ export function QuickExpenseModal({
               setSelectedPoolId={state.setSelectedPoolId}
               selectedSubCategoryId={state.selectedSubCategoryId}
               setSelectedSubCategoryId={state.setSelectedSubCategoryId}
-              pools={state.pools}
+              pools={state.pools.filter((p) => p.poolType === 'REGULAR' || p.poolType === 'GOAL')}
               categories={state.rawCategories}
               presets={state.expensePresets}
               onSelectPreset={state.handleSelectPreset}

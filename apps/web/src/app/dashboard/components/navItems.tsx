@@ -26,16 +26,6 @@ export const NAV_ITEMS: readonly NavItem[] = [
     ),
   },
   {
-    key: "split-income",
-    label: () => t("nav.splitIncome"),
-    href: "/dashboard/income-split",
-    icon: (active: boolean) => (
-      <svg className="w-5 h-5 transition-transform group-hover:scale-105" fill={active ? "currentColor" : "none"} viewBox="0 0 24 24" stroke="currentColor" strokeWidth={active ? 0 : 2}>
-        <path strokeLinecap="round" strokeLinejoin="round" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
-      </svg>
-    ),
-  },
-  {
     key: "categories",
     label: () => t("nav.categories"),
     href: "/dashboard/pools",
