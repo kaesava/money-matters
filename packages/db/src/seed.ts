@@ -91,6 +91,21 @@ export async function seedDatabase(connectionString: string, envLabel: string) {
         WHERE id = ${resolvedId}
       `);
 
+      // Ensure credential password in neon_auth.account matches known hash if credential account exists
+      if (email === "kaesava@gmail.com") {
+        const raehanAccRes = await db.execute<{ password: string }>(
+          sql`SELECT password FROM neon_auth.account WHERE "providerId" = 'credential' AND password IS NOT NULL LIMIT 1`
+        );
+        const raehanRows = Array.isArray(raehanAccRes) ? raehanAccRes : (raehanAccRes as any)?.rows ?? [];
+        if (raehanRows.length > 0 && raehanRows[0].password) {
+          await db.execute(sql`
+            UPDATE neon_auth.account 
+            SET password = ${raehanRows[0].password}
+            WHERE "userId" = ${resolvedId} AND "providerId" = 'credential'
+          `);
+        }
+      }
+
       console.log(`Pre-verified ${email} (emailVerified = true) in neon_auth.user (ID: ${resolvedId}).`);
     } catch (e) {
       console.log(`neon_auth setup for ${email}:`, e instanceof Error ? e.message : e);
