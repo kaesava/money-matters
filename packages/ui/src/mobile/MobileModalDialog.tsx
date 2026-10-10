@@ -25,6 +25,7 @@ export interface MobileModalDialogProps {
   children: React.ReactNode;
 }
 
+export { MobileModalDialog };
 export default function MobileModalDialog({
   visible,
   onClose,

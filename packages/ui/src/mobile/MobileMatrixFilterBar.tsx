@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, ScrollView, StyleSheet } from 'react-native';
-import { DESIGN_TOKENS } from './index.js';
+import { DESIGN_TOKENS } from '../tokens';
 import { t } from '@money-matters/i18n';
 
 export interface MobileMatrixFilterBarProps {
