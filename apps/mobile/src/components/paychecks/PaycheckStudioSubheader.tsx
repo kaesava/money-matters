@@ -13,6 +13,7 @@ interface PaycheckStudioSubheaderProps {
   isDirty: boolean;
   submitting: boolean;
   onRecalculate: () => void;
+  onResetPlan?: () => void;
   onResetEdits: () => void;
   onDeleteIncome: () => void;
 }
@@ -25,6 +26,7 @@ export function PaycheckStudioSubheader({
   isDirty,
   submitting,
   onRecalculate,
+  onResetPlan,
   onResetEdits,
   onDeleteIncome,
 }: PaycheckStudioSubheaderProps) {
@@ -57,7 +59,19 @@ export function PaycheckStudioSubheader({
       </View>
 
       <View style={styles.headerActionsRow}>
-        {!isReadOnly && (
+        {!isReadOnly && isSavedPlan && onResetPlan && (
+          <TouchableOpacity
+            onPress={onResetPlan}
+            disabled={submitting}
+            style={styles.resetPlanBtn}
+            accessibilityLabel={t('common.reset')}
+          >
+            <Feather name="rotate-ccw" size={13} color={DESIGN_TOKENS.colors.sereneBlue} />
+            <Text style={styles.resetPlanText}>{t('common.reset')}</Text>
+          </TouchableOpacity>
+        )}
+
+        {!isReadOnly && !isSavedPlan && (
           <TouchableOpacity
             onPress={onRecalculate}
             disabled={submitting}
@@ -159,6 +173,22 @@ const styles = StyleSheet.create({
     backgroundColor: DESIGN_TOKENS.colors.slate[50],
     borderWidth: 1,
     borderColor: DESIGN_TOKENS.colors.slate[200],
+  },
+  resetPlanBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 6,
+    borderRadius: 8,
+    backgroundColor: DESIGN_TOKENS.colors.accentLight,
+    borderWidth: 1,
+    borderColor: DESIGN_TOKENS.colors.accentBorder,
+  },
+  resetPlanText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: DESIGN_TOKENS.colors.sereneBlue,
   },
   resetEditsBtn: {
     paddingHorizontal: 8,

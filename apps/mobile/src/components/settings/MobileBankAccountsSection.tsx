@@ -22,7 +22,10 @@ import {
   BankAccountFormModal,
   BankAccountItemToEdit,
 } from '../BankAccountFormModal';
-import { MobileReconciliationModal } from '../categories/MobileReconciliationModal';
+import {
+  MobileReconciliationModal,
+  MobileReconciliationModalProps,
+} from '../categories/MobileReconciliationModal';
 import { BankAccountCard } from '../bank-accounts/BankAccountCard';
 import {
   LinkedPoolsModalSheet,
@@ -36,7 +39,7 @@ export function MobileBankAccountsSection() {
   const [formModalVisible, setFormModalVisible] = useState(false);
   const [accountToEdit, setAccountToEdit] = useState<BankAccountItemToEdit | null>(null);
 
-  const [reconcileAccount, setReconcileAccount] = useState<any | null>(null);
+  const [reconcileAccount, setReconcileAccount] = useState<MobileReconciliationModalProps['account'] | null>(null);
   const [poolsSheetAccount, setPoolsSheetAccount] = useState<{
     name: string;
     pools: LinkedPoolItem[];
@@ -135,6 +138,32 @@ export function MobileBankAccountsSection() {
         </TouchableOpacity>
       </View>
 
+      {/* Household Banking Optimizer banner */}
+      {accounts.length <= 1 && (
+        <View style={styles.optimizerBanner}>
+          <View style={styles.optimizerContent}>
+            <View style={styles.optimizerHeaderRow}>
+              <Text style={styles.optimizerIcon}>💡</Text>
+              <Text style={styles.optimizerTitle}>
+                {t('bankAccounts.optimizerBannerTitle')}
+              </Text>
+            </View>
+            <Text style={styles.optimizerDesc}>
+              {t('bankAccounts.optimizerBannerDesc')}
+            </Text>
+          </View>
+          <TouchableOpacity
+            style={styles.optimizerActionBtn}
+            onPress={() => router.push('/(setup)?mode=rerun' as never)}
+            activeOpacity={0.8}
+          >
+            <Text style={styles.optimizerActionText}>
+              {t('bankAccounts.optimizerBannerAction')}
+            </Text>
+          </TouchableOpacity>
+        </View>
+      )}
+
       {/* Search and Filter Controls */}
       <View style={styles.searchAndFilterRow}>
         <View style={styles.flex1}>
@@ -227,7 +256,13 @@ export function MobileBankAccountsSection() {
                     lastKnownBalance: acc.lastKnownBalance,
                     unbudgetedBuffer: acc.unbudgetedBuffer,
                     expectedBalance: acc.expectedBalance,
-                    linkedPools,
+                    linkedPools: linkedPools.map((p) => ({
+                      id: p.id,
+                      name: p.name,
+                      poolType: p.poolType,
+                      currentBalance: p.currentBalance ?? 0,
+                      isSurplusTarget: p.isSurplusTarget,
+                    })),
                   })
                 }
                 onPressPool={(poolId) => router.push(`/(app)/pools/${poolId}` as never)}
@@ -370,6 +405,47 @@ const styles = StyleSheet.create({
   },
   flex1: {
     flex: 1,
+  },
+  optimizerBanner: {
+    backgroundColor: DESIGN_TOKENS.colors.accentLight,
+    borderWidth: 1,
+    borderColor: DESIGN_TOKENS.colors.accentBorder,
+    borderRadius: 16,
+    padding: 14,
+    gap: 10,
+  },
+  optimizerContent: {
+    gap: 4,
+  },
+  optimizerHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  optimizerIcon: {
+    fontSize: 14,
+  },
+  optimizerTitle: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: DESIGN_TOKENS.colors.primary,
+  },
+  optimizerDesc: {
+    fontSize: 11,
+    color: DESIGN_TOKENS.colors.slate[600],
+    lineHeight: 16,
+  },
+  optimizerActionBtn: {
+    alignSelf: 'flex-start',
+    backgroundColor: DESIGN_TOKENS.colors.sereneBlue,
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+  },
+  optimizerActionText: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: '#FFFFFF',
   },
   searchAndFilterRow: {
     flexDirection: 'row',

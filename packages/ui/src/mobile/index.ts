@@ -105,3 +105,17 @@ export { SwitchRow } from './SwitchRow';
 export type { SwitchRowProps } from './SwitchRow';
 export { TypedConfirmDialog, TypedConfirmDialog as MobileTypedConfirmDialog } from './TypedConfirmDialog';
 export type { TypedConfirmDialogProps, TypedConfirmDialogProps as MobileTypedConfirmDialogProps } from './TypedConfirmDialog';
+
+export { GoalDelayCard } from './GoalDelayCard';
+export type { GoalDelayCardProps } from './GoalDelayCard';
+
+export { MobileCategoryDetailSheet } from './MobileCategoryDetailSheet';
+export type {
+  MobileCategoryDetailSheetProps,
+  MobileCategoryDetailItem,
+  MobileSubcategoryItem,
+  MobileActivityItem,
+} from './MobileCategoryDetailSheet';
+
+export { MobileMatrixFilterBar } from './MobileMatrixFilterBar';
+export type { MobileMatrixFilterBarProps } from './MobileMatrixFilterBar';

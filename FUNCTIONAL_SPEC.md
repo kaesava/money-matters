@@ -648,6 +648,7 @@ This section provides the authoritative, exhaustive breakdown of every functiona
   - Displays Household Greeting, AEST formatted localized date, Total Net Worth / Available Balance.
   - Pacing meter: Everyday Spending card with daily spendable pace (`$XX / day`), days-until-payday countdown, and pacing status (`On Track ✓`, `Pace Tightened`, `Bills at Risk`).
   - Regular Bills Card: Shortfall alerts (`⚠️ Shortfall of $X` vs `✅ Next 14 days covered!`) and next bill due date.
+  - Home Afford Banner Card (`HomeAffordBannerCard`): Prominent navigational card positioned directly below Hero Card providing 1-tap access to the "Can I Afford It?" studio.
 * **Goals Progress Strip (`GoalsProgressStrip`)**:
   - Horizontal progress strip displaying top 2 goals needing attention with percentage funded, target amount, target date, and vertical time-elapsed pacing needle (Green = on track, Amber = within 20% behind, Red = lagging).
 * **Attention Queue & Action Items (`AttentionItemsList`)**:
@@ -678,7 +679,7 @@ This section provides the authoritative, exhaustive breakdown of every functiona
   - `PACING_TIGHT` (Amber): Affordable, but Everyday balance drops below safe cushion ($X remaining until payday).
   - `BILLS_RISK` (Orange): Unfunded bills due before payday consume the buffer; itemizes upcoming bills.
   - `WAIT_FOR_PAYCYCLE` (Blue): Shortfall today, but projected income by paycycle $N$ accumulates sufficient funds; offers flexible savings alternative.
-  - `GOAL_DELAYED` (Orange): Recurring commitment pushes back target dates of savings goals across 12-month forecast.
+  - `GOAL_DELAYED` (Orange): Recurring commitment pushes back target dates of savings goals across 12-month forecast. Rendered via reusable `<GoalDelayCard>` displaying committed vs optional goal badges and original vs new projected dates.
   - `HARD_NO` (Red): Recurring commitment starves essential Everyday spending below 80% allowance.
 * **Prorated Safe Cushion**: Formatted purely as total dollars remaining until payday (`$X safe cushion`), eliminating technical velocity jargon.
 * **Pure Stateless Execution**: Performs zero database mutations.
@@ -727,16 +728,17 @@ This section provides the authoritative, exhaustive breakdown of every functiona
   - *Add/Edit Schedule Modal (`<IncomeExpenseFormModal>`)*: Name, Amount ($), Recurrence (Weekly, Fortnightly, Monthly, Annually), Interval ("Every N"), Start Date, End Date, Receiving/Paying Bank Account, Category link.
   - *Burst & Re-Burst Engine*: Generates 12 months of forward occurrences. Editing schedule automatically re-bursts unperformed future events while preserving historical paid records.
 
-### 12.12 Dedicated Income Split Studio (`/dashboard/income-split`, `/(app)/paychecks/[id]`)
+### 12.12 Dedicated Income Split Studio (`/dashboard/income-split`, `/(app)/income-split/[id]`)
 * **Layout & Navigation**:
   - *Web*: Dedicated screen route `/dashboard/income-split?id=[incomeEventId]` integrated with standard sidebar and header shell.
-  - *Mobile*: Focused screen `/(app)/paychecks/[id]` with back navigation.
+  - *Mobile*: Dedicated screen `/(app)/income-split/[id]` with back navigation and discard changes confirmation.
 * **Header & Status Badges**:
   - Crystal-clear plan source badges: `✨ Auto-Calculated` (5-step waterfall engine), `💾 Custom Saved Plan`, `✓ Confirmed & Executed`.
-  - Prominent "🔄 Re-calculate" button: refreshes dynamic allocations or prompts confirmation to discard custom overrides.
-* **Structured Serene Pool Table**:
+  - Prominent "🔄 Re-calculate" / "Reset" action: refreshes dynamic allocations or discards custom saved plans via `resetAllocationPlan` to restore live algorithmic waterfall calculations.
+* **Structured Serene Pool Table & Detail Sheets**:
   - Collapsible category groups (`▼ Everyday Pools`, `▼ Bills Pools`, `▼ Goals`) with group subtotals.
   - Direct amount inputs with quick percentage chips (`[100%]`, `[$0]`).
+  - Tapping pool titles opens the reusable 3-tab `MobileCategoryDetailSheet` (Categories, Upcoming Expenses with Mark Paid, Transaction History).
 * **Reactive Auto-Surplus & Deficit Banner**:
   - Designated Surplus pool automatically absorbs residual funds in real time.
   - Active deficit alert banner (`-$X.XX Deficit`) if allocations exceed net income, disabling Save and Confirm actions.

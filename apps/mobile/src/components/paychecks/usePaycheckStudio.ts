@@ -156,12 +156,14 @@ export function usePaycheckStudio(id: string | undefined, returnTo?: string) {
 
   const handleRecalculateTrigger = () => {
     showMobileConfirm({
-      title: t('paydayDrawer.recalculateConfirmTitle'),
-      message: t('paydayDrawer.recalculateConfirmDescription'),
+      title: isSavedPlan ? t('paydayDrawer.recalculateConfirmTitle') : t('paydayDrawer.recalculateConfirmTitle'),
+      message: isSavedPlan ? t('paydayDrawer.recalculateConfirmDescription') : t('paydayDrawer.recalculateConfirmDescription'),
       confirmText: t('common.confirm'),
       cancelText: t('common.cancel'),
       onConfirm: async () => {
-        if (actualAmount !== initialAmount || isSavedPlan) {
+        if (isSavedPlan) {
+          await mutations.handleResetPlan();
+        } else if (actualAmount !== initialAmount) {
           await mutations.handleRecalculateWaterfall();
         } else {
           setLinesMap({ ...initialLinesMap });
@@ -210,6 +212,7 @@ export function usePaycheckStudio(id: string | undefined, returnTo?: string) {
     everydayAllocated, billsAllocated, goalsAllocated, groupedLines,
     submitting, attemptExit, handleRecalculateTrigger,
     handleRecalculateWaterfall: mutations.handleRecalculateWaterfall,
+    handleResetPlan: mutations.handleResetPlan,
     handleResetAllEdits,
     handleDeleteIncome: mutations.handleDeleteIncome,
     handleSaveSplit: mutations.handleSaveSplit,

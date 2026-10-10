@@ -61,13 +61,13 @@ export async function restoreItemCommand(
       })
       .from(categories)
       .innerJoin(pools, eq(categories.poolId, pools.id))
-      .innerJoin(bankAccounts, eq(pools.bankAccountId, bankAccounts.id))
+      .leftJoin(bankAccounts, eq(pools.bankAccountId, bankAccounts.id))
       .where(and(eq(categories.id, itemId), eq(categories.tenantId, tenantId), eq(categories.appId, appId)));
     if (!cat) throw new Error("Category not found.");
     if (cat.poolArchivedAt !== null) {
       throw new Error("Cannot restore category because its parent pool is archived. Restore the pool first.");
     }
-    if (cat.isPrivate && cat.bankAccountUserId !== userId) {
+    if (cat.isPrivate && cat.bankAccountUserId && cat.bankAccountUserId !== userId) {
       throw new Error("Access unauthorized or private category.");
     }
   } else if (itemType === "INCOME_SOURCE") {
@@ -80,7 +80,7 @@ export async function restoreItemCommand(
       .leftJoin(bankAccounts, eq(incomeSources.receivingAccountId, bankAccounts.id))
       .where(and(eq(incomeSources.id, itemId), eq(incomeSources.tenantId, tenantId), eq(incomeSources.appId, appId)));
     if (!inc) throw new Error("Income source not found.");
-    if (inc.isPrivate && inc.bankAccountUserId !== userId) {
+    if (inc.isPrivate && inc.bankAccountUserId && inc.bankAccountUserId !== userId) {
       throw new Error("Access unauthorized or private income source.");
     }
   } else if (itemType === "EXPENSE_SOURCE") {
@@ -91,10 +91,10 @@ export async function restoreItemCommand(
       })
       .from(expenseSources)
       .innerJoin(pools, eq(expenseSources.poolId, pools.id))
-      .innerJoin(bankAccounts, eq(pools.bankAccountId, bankAccounts.id))
+      .leftJoin(bankAccounts, eq(pools.bankAccountId, bankAccounts.id))
       .where(and(eq(expenseSources.id, itemId), eq(expenseSources.tenantId, tenantId), eq(expenseSources.appId, appId)));
     if (!exp) throw new Error("Expense source not found.");
-    if (exp.isPrivate && exp.bankAccountUserId !== userId) {
+    if (exp.isPrivate && exp.bankAccountUserId && exp.bankAccountUserId !== userId) {
       throw new Error("Access unauthorized or private expense source.");
     }
   }

@@ -17,6 +17,7 @@ interface MobileMatrixScrollableGridProps {
   readonly collapsedGroups: Record<string, boolean>;
   readonly onReview: (colId: string) => void;
   readonly onSave: (colId: string, totalIncome: number) => void;
+  readonly onReset?: (colId: string) => void;
   readonly onDelete: (colId: string) => void;
 }
 
@@ -29,6 +30,7 @@ export const MobileMatrixScrollableGrid: React.FC<MobileMatrixScrollableGridProp
   collapsedGroups,
   onReview,
   onSave,
+  onReset,
   onDelete,
 }) => {
   return (
@@ -53,6 +55,7 @@ export const MobileMatrixScrollableGrid: React.FC<MobileMatrixScrollableGridProp
               isSaving={isSaving}
               onReview={onReview}
               onSave={onSave}
+              onReset={onReset}
               onDelete={onDelete}
             />
 

@@ -15,6 +15,7 @@ export interface MobileSpreadsheetMatrixProps {
   readonly savingColId: string | null;
   readonly onReview: (colId: string) => void;
   readonly onSave: (colId: string, totalIncome: number) => void;
+  readonly onReset?: (colId: string) => void;
   readonly onDelete: (colId: string) => void;
   readonly onOpenCategoryDrawer: (poolId: string, poolName: string) => void;
 }
@@ -28,6 +29,7 @@ export const MobileSpreadsheetMatrix: React.FC<MobileSpreadsheetMatrixProps> = (
   savingColId,
   onReview,
   onSave,
+  onReset,
   onDelete,
   onOpenCategoryDrawer,
 }) => {
@@ -118,6 +120,7 @@ export const MobileSpreadsheetMatrix: React.FC<MobileSpreadsheetMatrixProps> = (
               collapsedGroups={collapsedGroups}
               onReview={onReview}
               onSave={onSave}
+              onReset={onReset}
               onDelete={onDelete}
             />
           </View>

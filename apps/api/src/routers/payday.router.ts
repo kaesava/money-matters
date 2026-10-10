@@ -9,6 +9,7 @@ import {
   overrideEventCommand,
   bulkDeleteEventsCommand,
   deleteUpcomingEventCommand,
+  resetAllocationPlanCommand,
 } from "@money-matters/capability-budgeting";
 import {
   OverrideEventCommand,
@@ -19,6 +20,18 @@ import {
 import { z } from 'zod';
 
 export const paydayRouter = {
+  resetAllocationPlan: privateTenantProcedure
+    .input(z.object({ incomeEventId: z.string().uuid() }).strict())
+    .mutation(async ({ input, ctx }) => {
+      requiresWriteAccess(ctx);
+      return await resetAllocationPlanCommand(
+        input.incomeEventId,
+        ctx.tenantId!,
+        ctx.appId!,
+        ctx.db
+      );
+    }),
+
   previewPayday: privateTenantProcedure
     .input(z.object({ incomeEventId: z.string().uuid() }).strict())
     .query(async ({ input, ctx }) => {

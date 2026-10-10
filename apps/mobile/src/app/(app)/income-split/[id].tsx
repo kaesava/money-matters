@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -10,6 +10,7 @@ import { useLocalSearchParams } from 'expo-router';
 import {
   DESIGN_TOKENS,
   MobileScreenWrapper,
+  MobileCategoryDetailSheet,
 } from '@money-matters/ui/mobile';
 import { t } from '@money-matters/i18n';
 import { MobileBankTransferRollupCard } from '../../../components/paychecks/MobileBankTransferRollupCard';
@@ -18,9 +19,12 @@ import { MobileIncomeSplitPoolList } from '../../../components/paychecks/MobileI
 import { PaycheckStudioSubheader } from '../../../components/paychecks/PaycheckStudioSubheader';
 import { PaycheckStudioFooter } from '../../../components/paychecks/PaycheckStudioFooter';
 import { usePaycheckStudio } from '../../../components/paychecks/usePaycheckStudio';
+import { trpc } from '../../../lib/trpc';
 
 export default function IncomeSplitStudioScreen() {
   const { id, returnTo } = useLocalSearchParams<{ id: string; returnTo?: string }>();
+  const [selectedPoolForSheet, setSelectedPoolForSheet] = useState<string | null>(null);
+
   const {
     session,
     isLoading,
@@ -53,6 +57,7 @@ export default function IncomeSplitStudioScreen() {
     attemptExit,
     handleRecalculateTrigger,
     handleRecalculateWaterfall,
+    handleResetPlan,
     handleResetAllEdits,
     handleDeleteIncome,
     handleSaveSplit,
@@ -60,6 +65,12 @@ export default function IncomeSplitStudioScreen() {
     handleLineAmountChange,
     handleLineReasoningChange,
   } = usePaycheckStudio(id, returnTo);
+
+  const poolCategoriesQuery = trpc.listCategories.useQuery(undefined, {
+    enabled: !!selectedPoolForSheet,
+  });
+
+  const activePoolObj = pools.find((p) => p.id === selectedPoolForSheet);
 
   if (isLoading) {
     return (
@@ -88,6 +99,7 @@ export default function IncomeSplitStudioScreen() {
           isDirty={isDirty}
           submitting={submitting}
           onRecalculate={handleRecalculateTrigger}
+          onResetPlan={handleResetPlan}
           onResetEdits={handleResetAllEdits}
           onDeleteIncome={handleDeleteIncome}
         />
@@ -125,6 +137,7 @@ export default function IncomeSplitStudioScreen() {
             linesMap={linesMap}
             reasoningMap={reasoningMap}
             isReadOnly={isReadOnly}
+            onPoolPress={(poolId) => setSelectedPoolForSheet(poolId)}
             onLineAmountChange={handleLineAmountChange}
             onLineReasoningChange={handleLineReasoningChange}
           />
@@ -148,6 +161,26 @@ export default function IncomeSplitStudioScreen() {
             submitting={submitting}
             onSaveSplit={handleSaveSplit}
             onConfirmSplit={handleConfirmSplit}
+          />
+        )}
+
+        {selectedPoolForSheet && activePoolObj && (
+          <MobileCategoryDetailSheet
+            visible={!!selectedPoolForSheet}
+            poolId={selectedPoolForSheet}
+            poolName={activePoolObj.name}
+            poolType={activePoolObj.poolType}
+            currentBalance={activePoolObj.currentBalance}
+            targetAmount={activePoolObj.targetAmount}
+            targetDate={activePoolObj.targetDate}
+            subcategories={(poolCategoriesQuery.data || [])
+              .filter((c) => c.poolId === selectedPoolForSheet)
+              .map((c) => ({
+                id: c.id,
+                name: c.name,
+                targetAmount: parseFloat(c.enteredAmount || c.monthlyAmount || '0'),
+              }))}
+            onClose={() => setSelectedPoolForSheet(null)}
           />
         )}
       </View>

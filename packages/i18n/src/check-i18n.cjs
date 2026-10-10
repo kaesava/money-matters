@@ -96,6 +96,7 @@ function findJsTsFiles(dir, files = []) {
       if (
         file !== 'node_modules' &&
         file !== '.next' &&
+        file !== '.open-next' &&
         file !== '.expo' &&
         file !== 'dist' &&
         file !== '.gemini' &&

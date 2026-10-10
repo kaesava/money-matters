@@ -13,6 +13,7 @@ interface AffordCheckInputControlsProps {
   setItemName: (val: string) => void;
   rawAmount: string;
   onAmountChange: (val: string) => void;
+  onAmountBlur?: () => void;
   includePersonal: boolean;
   setIncludePersonal: (val: boolean) => void;
 }
@@ -26,6 +27,7 @@ export function AffordCheckInputControls({
   setItemName,
   rawAmount,
   onAmountChange,
+  onAmountBlur,
   includePersonal,
   setIncludePersonal,
 }: AffordCheckInputControlsProps) {
@@ -89,7 +91,7 @@ export function AffordCheckInputControls({
         <Text style={styles.label}>{t('canIAfford.itemNameLabel')}</Text>
         <TextInput
           style={styles.textInput}
-          placeholder={mode === 'ONE_OFF' ? 'e.g. New Headphones' : 'e.g. Netflix, Gym'}
+          placeholder={t('canIAfford.itemNamePlaceholder')}
           value={itemName}
           onChangeText={setItemName}
           placeholderTextColor={DESIGN_TOKENS.colors.slate[400]}
@@ -101,6 +103,7 @@ export function AffordCheckInputControls({
         placeholder="0.00"
         value={rawAmount}
         onChangeText={onAmountChange}
+        onBlur={onAmountBlur}
         autoFocus
       />
 

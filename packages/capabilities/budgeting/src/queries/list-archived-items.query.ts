@@ -39,7 +39,7 @@ export async function listArchivedItemsQuery(
       })
       .from(categories)
       .innerJoin(pools, eq(categories.poolId, pools.id))
-      .innerJoin(bankAccounts, eq(pools.bankAccountId, bankAccounts.id))
+      .leftJoin(bankAccounts, eq(pools.bankAccountId, bankAccounts.id))
       .where(
         and(
           eq(categories.tenantId, tenantId),
@@ -78,7 +78,7 @@ export async function listArchivedItemsQuery(
       })
       .from(expenseSources)
       .innerJoin(pools, eq(expenseSources.poolId, pools.id))
-      .innerJoin(bankAccounts, eq(pools.bankAccountId, bankAccounts.id))
+      .leftJoin(bankAccounts, eq(pools.bankAccountId, bankAccounts.id))
       .where(
         and(
           eq(expenseSources.tenantId, tenantId),

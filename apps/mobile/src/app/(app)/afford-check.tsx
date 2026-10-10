@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useDeferredValue } from 'react';
 import {
   View,
   ScrollView,
@@ -6,7 +6,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { useRouter } from 'expo-router';
-import { DESIGN_TOKENS, MobileScreenWrapper } from '@money-matters/ui/mobile';
+import { DESIGN_TOKENS, MobileScreenWrapper, GoalDelayCard } from '@money-matters/ui/mobile';
 import { t } from '@money-matters/i18n';
 import { trpc } from '../../lib/trpc';
 import { AffordCheckInputControls } from '../../components/afford-check/AffordCheckInputControls';
@@ -24,12 +24,13 @@ export default function AffordCheckScreen() {
   const [itemName, setItemName] = useState('');
   const [includePersonal, setIncludePersonal] = useState(false);
 
-  const parsedAmount = parseFloat(rawAmount);
+  const deferredAmount = useDeferredValue(rawAmount);
+  const parsedAmount = parseFloat(deferredAmount);
   const isValidAmount = !isNaN(parsedAmount) && parsedAmount > 0;
 
   const { data, isLoading } = trpc.canAfford.useQuery(
     {
-      amount: rawAmount,
+      amount: deferredAmount,
       mode,
       frequency,
       itemName: itemName.trim() || undefined,
@@ -43,6 +44,15 @@ export default function AffordCheckScreen() {
   const handleAmountChange = (text: string) => {
     if (text === '' || /^\d{0,12}(\.\d{0,2})?$/.test(text)) {
       setRawAmount(text);
+    }
+  };
+
+  const handleAmountBlur = () => {
+    if (rawAmount !== '') {
+      const num = parseFloat(rawAmount);
+      if (!isNaN(num) && num > 0) {
+        setRawAmount(num.toFixed(2));
+      }
     }
   };
 
@@ -65,6 +75,7 @@ export default function AffordCheckScreen() {
           setItemName={setItemName}
           rawAmount={rawAmount}
           onAmountChange={handleAmountChange}
+          onAmountBlur={handleAmountBlur}
           includePersonal={includePersonal}
           setIncludePersonal={setIncludePersonal}
         />
@@ -76,8 +87,12 @@ export default function AffordCheckScreen() {
             <AffordCheckVerdictCard
               verdict={data.verdict}
               rationaleSteps={data.rationaleSteps}
+              canAffordAt={'canAffordAt' in data ? (data.canAffordAt as string) : null}
             />
             <AffordCheckBreakdownCard data={data} />
+            {data.verdict === 'GOAL_DELAYED' && data.goalDelays && data.goalDelays.length > 0 && (
+              <GoalDelayCard goalDelays={data.goalDelays} />
+            )}
           </View>
         ) : null}
       </ScrollView>

@@ -8,6 +8,7 @@ export * from "./commands/restore-item.command.js";
 export * from "./commands/run-allocation.command.js";
 export * from "./commands/move-money.command.js";
 export * from "./commands/save-setup-budget.command.js";
+export * from "./commands/reset-allocation-plan.command.js";
 export * from "./queries/list-pools.query.js";
 export * from "./queries/list-categories.query.js";
 export * from "./queries/get-category-detail.query.js";

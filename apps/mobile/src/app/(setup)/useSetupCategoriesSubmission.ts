@@ -89,14 +89,20 @@ export function useSetupCategoriesSubmission() {
         };
       });
 
-      const incomesPayload = incomes.map((inc) => ({
-        id: inc.id?.startsWith('inc-') ? undefined : inc.id,
-        name: inc.name,
-        type: 'SALARY' as const,
-        amount: (inc.amount || 0).toFixed(2),
-        frequency: (inc.frequency === 'WEEKLY' || inc.frequency === 'FORTNIGHTLY' || inc.frequency === 'MONTHLY' ? inc.frequency : 'CUSTOM') as any,
-        receivingAccountId: inc.receivingAccountId || null,
-      }));
+      const incomesPayload = incomes.map((inc) => {
+        const freq: 'WEEKLY' | 'FORTNIGHTLY' | 'MONTHLY' | 'CUSTOM' =
+          inc.frequency === 'WEEKLY' || inc.frequency === 'FORTNIGHTLY' || inc.frequency === 'MONTHLY'
+            ? inc.frequency
+            : 'CUSTOM';
+        return {
+          id: inc.id?.startsWith('inc-') ? undefined : inc.id,
+          name: inc.name,
+          type: 'SALARY' as const,
+          amount: (inc.amount || 0).toFixed(2),
+          frequency: freq,
+          receivingAccountId: inc.receivingAccountId || null,
+        };
+      });
 
       const resolvedArchivedCatIds = Array.from(removedCategoryNames)
         .map((name) => (categoriesQuery.data || []).find((c) => c.name === name)?.id)
@@ -122,7 +128,7 @@ export function useSetupCategoriesSubmission() {
         router.replace('/(setup)/complete');
       }
     } catch {
-      toast.error("Couldn't save setup. Please try again.", 'Setup Error');
+      toast.error(t('setup.saveError'), t('setup.saveErrorTitle'));
     } finally {
       setIsSubmitting(false);
     }

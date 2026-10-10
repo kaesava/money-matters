@@ -6,12 +6,22 @@ import { t } from '@money-matters/i18n';
 interface AffordCheckVerdictCardProps {
   verdict: string;
   rationaleSteps?: string[];
+  canAffordAt?: string | null;
 }
 
 export function AffordCheckVerdictCard({
   verdict,
   rationaleSteps,
+  canAffordAt,
 }: AffordCheckVerdictCardProps) {
+  const formattedDate = canAffordAt
+    ? new Intl.DateTimeFormat('en-AU', {
+        timeZone: 'Australia/Sydney',
+        day: 'numeric',
+        month: 'short',
+      }).format(new Date(canAffordAt))
+    : '';
+
   return (
     <View
       style={[
@@ -27,7 +37,7 @@ export function AffordCheckVerdictCard({
         {verdict === 'SAFE_YES' && t('canIAfford.verdictSafeYes')}
         {verdict === 'PACING_TIGHT' && t('canIAfford.verdictPacingTight')}
         {verdict === 'BILLS_RISK' && t('canIAfford.verdictBillsRisk')}
-        {verdict === 'WAIT_FOR_PAYCYCLE' && t('canIAfford.verdictWaitForPaycycle')}
+        {verdict === 'WAIT_FOR_PAYCYCLE' && t('canIAfford.verdictWaitForPaycycle', { date: formattedDate })}
         {verdict === 'GOAL_DELAYED' && t('canIAfford.verdictGoalDelayed')}
         {verdict === 'HARD_NO' && t('canIAfford.verdictHardNo')}
       </Text>

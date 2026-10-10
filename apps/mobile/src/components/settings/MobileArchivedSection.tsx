@@ -90,7 +90,7 @@ export function MobileArchivedSection() {
         try {
           await restoreMutation.mutateAsync({
             itemId: item.id,
-            itemType: item.itemType as any,
+            itemType: item.itemType,
           });
         } catch {
           // Handled in onError

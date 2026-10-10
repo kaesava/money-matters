@@ -20,6 +20,7 @@ interface MobileMatrixPaydayColumnHeaderProps {
   readonly isSaving?: boolean;
   readonly onReview: (colId: string) => void;
   readonly onSave: (colId: string, totalIncome: number) => void;
+  readonly onReset?: (colId: string) => void;
   readonly onDelete: (colId: string) => void;
 }
 
@@ -30,6 +31,7 @@ export const MobileMatrixPaydayColumnHeader: React.FC<MobileMatrixPaydayColumnHe
   isSaving,
   onReview,
   onSave,
+  onReset,
   onDelete,
 }) => {
   const dateStr = col.date ? formatDate(col.date) : col.dateLabel || '';
@@ -75,7 +77,14 @@ export const MobileMatrixPaydayColumnHeader: React.FC<MobileMatrixPaydayColumnHe
             <Text style={styles.reviewText}>{t('matrix.review')}</Text>
           </TouchableOpacity>
 
-          <Text style={styles.separator}>|</Text>
+          {isSaved && onReset && (
+            <>
+              <TouchableOpacity onPress={() => onReset(col.id)} style={styles.resetBtn}>
+                <Text style={styles.resetText}>{t('common.reset')}</Text>
+              </TouchableOpacity>
+              <Text style={styles.separator}>|</Text>
+            </>
+          )}
 
           {!isSaved && (
             <>
@@ -180,6 +189,15 @@ const styles = StyleSheet.create({
   reviewText: {
     fontSize: 11,
     fontWeight: '800',
+    color: DESIGN_TOKENS.colors.sereneBlue,
+  },
+  resetBtn: {
+    paddingVertical: 2,
+    paddingHorizontal: 2,
+  },
+  resetText: {
+    fontSize: 11,
+    fontWeight: '700',
     color: DESIGN_TOKENS.colors.sereneBlue,
   },
   saveBtn: {

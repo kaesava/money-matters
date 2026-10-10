@@ -33,6 +33,7 @@ export interface MobileIncomeSplitPoolListProps {
   linesMap: Record<string, string>;
   reasoningMap: Record<string, string>;
   isReadOnly: boolean;
+  onPoolPress?: (poolId: string) => void;
   onLineAmountChange: (poolId: string, val: string) => void;
   onLineReasoningChange: (poolId: string, reasoning: string) => void;
 }
@@ -45,6 +46,7 @@ export function MobileIncomeSplitPoolList({
   linesMap,
   reasoningMap,
   isReadOnly,
+  onPoolPress,
   onLineAmountChange,
   onLineReasoningChange,
 }: MobileIncomeSplitPoolListProps) {
@@ -98,6 +100,7 @@ export function MobileIncomeSplitPoolList({
                       isReadOnly={isReadOnly}
                       isReasoningOpen={Boolean(openReasoningPools[item.bucketId])}
                       onToggleReasoning={() => toggleReasoning(item.bucketId)}
+                      onPressPool={() => onPoolPress?.(item.bucketId)}
                       onLineAmountChange={onLineAmountChange}
                       onLineReasoningChange={onLineReasoningChange}
                     />

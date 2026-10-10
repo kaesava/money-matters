@@ -3,18 +3,19 @@ import { View, Text, TouchableOpacity, ActivityIndicator, StyleSheet } from 'rea
 import { DESIGN_TOKENS } from '@money-matters/ui/mobile';
 import { t } from '@money-matters/i18n';
 
-export type ArchivedItemType =
-  | 'ALL'
+export type RestorableItemType =
   | 'CATEGORY'
   | 'POOL'
   | 'INCOME_SOURCE'
   | 'EXPENSE_SOURCE'
   | 'BANK_ACCOUNT';
 
+export type ArchivedItemType = 'ALL' | RestorableItemType;
+
 export interface ArchivedItem {
   id: string;
   name: string;
-  itemType: ArchivedItemType;
+  itemType: RestorableItemType;
   subtitle?: string | null;
   archivedAt: string | Date | null;
 }

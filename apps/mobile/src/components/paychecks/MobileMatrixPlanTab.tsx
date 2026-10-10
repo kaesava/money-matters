@@ -33,6 +33,7 @@ export function MobileMatrixPlanTab({ onOpenCategoryModal }: MobileMatrixPlanTab
   const isLoading = projectionLoading || plansLoading || poolsLoading;
 
   const saveAllocationMut = trpc.saveAutoAllocation.useMutation();
+  const resetAllocationPlanMut = trpc.resetAllocationPlan.useMutation();
   const deleteIncomeEventMut = trpc.deleteIncomeEvent.useMutation();
 
   // Column state map: AUTO | SAVED | CONFIRMED
@@ -127,6 +128,26 @@ export function MobileMatrixPlanTab({ onOpenCategoryModal }: MobileMatrixPlanTab
     });
   };
 
+  const handleReset = (incomeEventId: string) => {
+    showMobileConfirm({
+      title: t('paydayDrawer.recalculateConfirmTitle'),
+      message: t('paydayDrawer.recalculateConfirmDescription'),
+      confirmText: t('common.confirm'),
+      cancelText: t('common.cancel'),
+      isDestructive: false,
+      onConfirm: async () => {
+        try {
+          await resetAllocationPlanMut.mutateAsync({ incomeEventId });
+          await utils.getMatrixProjectionData.invalidate();
+          await utils.listAllAllocationPlans.invalidate();
+          toast.success(t('paydayDrawer.recalculateSuccess'));
+        } catch (err: unknown) {
+          toast.error((err as Error).message || t('paydayDrawer.recalculateFailed'));
+        }
+      },
+    });
+  };
+
   const handleDelete = (incomeEventId: string) => {
     showMobileConfirm({
       title: t('common.deleteIncomeTitle'),
@@ -181,6 +202,7 @@ export function MobileMatrixPlanTab({ onOpenCategoryModal }: MobileMatrixPlanTab
         savingColId={savingColId}
         onReview={handleReview}
         onSave={handleSave}
+        onReset={handleReset}
         onDelete={handleDelete}
         onOpenCategoryDrawer={handleOpenCategoryDrawer}
       />

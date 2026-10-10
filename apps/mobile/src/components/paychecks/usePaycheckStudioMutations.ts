@@ -45,7 +45,24 @@ export function usePaycheckStudioMutations({
   const confirmPaydayMut = trpc.confirmPayday.useMutation();
   const overrideEventMut = trpc.overrideEvent.useMutation();
   const saveBulkAllocationsMut = trpc.saveBulkAllocations.useMutation();
+  const resetAllocationPlanMut = trpc.resetAllocationPlan.useMutation();
   const deleteIncomeMut = trpc.deleteIncomeEvent.useMutation();
+
+  const handleResetPlan = async () => {
+    try {
+      setSubmitting(true);
+      await resetAllocationPlanMut.mutateAsync({ incomeEventId: id! });
+      setIsSavedPlan(false);
+      await utils.previewPayday.invalidate({ incomeEventId: id! });
+      await utils.listIncomeEvents.invalidate();
+      await utils.listAllAllocationPlans.invalidate();
+      toast.success(t('paydayDrawer.recalculateSuccess'));
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : t('paydayDrawer.recalculateFailed'));
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
   const handleRecalculateWaterfall = async () => {
     try {
@@ -194,6 +211,7 @@ export function usePaycheckStudioMutations({
   };
 
   return {
+    handleResetPlan,
     handleRecalculateWaterfall,
     handleDeleteIncome,
     handleSaveSplit,

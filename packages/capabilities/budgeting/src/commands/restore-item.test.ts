@@ -29,7 +29,7 @@ describe("restoreItemCommand", () => {
       select: vi.fn().mockReturnValue({
         from: vi.fn().mockReturnValue({
           innerJoin: vi.fn().mockReturnValue({
-            innerJoin: vi.fn().mockReturnValue({
+            leftJoin: vi.fn().mockReturnValue({
               where: vi.fn().mockResolvedValue([
                 {
                   poolArchivedAt: new Date(),

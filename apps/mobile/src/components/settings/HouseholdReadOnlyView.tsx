@@ -42,7 +42,7 @@ export function HouseholdReadOnlyView({
       action={
         isOwner ? (
           <TouchableOpacity onPress={onEdit} style={styles.editBtn}>
-            <Feather name="edit-2" size={13} color="#2563eb" />
+            <Feather name="edit-2" size={13} color={DESIGN_TOKENS.colors.sereneBlue} />
             <Text style={styles.editBtnText}>{t('common.edit')}</Text>
           </TouchableOpacity>
         ) : (
@@ -95,32 +95,32 @@ const styles = StyleSheet.create({
     gap: 4,
     paddingHorizontal: 10,
     paddingVertical: 5,
-    backgroundColor: '#EFF6FF',
+    backgroundColor: DESIGN_TOKENS.colors.accentLight,
     borderRadius: 8,
   },
   editBtnText: {
     fontSize: 12,
     fontWeight: '700',
-    color: '#2563eb',
+    color: DESIGN_TOKENS.colors.sereneBlue,
   },
   memberBadge: {
     paddingHorizontal: 8,
     paddingVertical: 4,
-    backgroundColor: '#F1F5F9',
+    backgroundColor: DESIGN_TOKENS.colors.slate[100],
     borderRadius: 6,
   },
   memberBadgeText: {
     fontSize: 11,
     fontWeight: '600',
-    color: '#64748B',
+    color: DESIGN_TOKENS.colors.slate[600],
   },
   detailsList: {
     gap: 4,
   },
   recalibrateCard: {
-    backgroundColor: '#F8FAFC',
+    backgroundColor: DESIGN_TOKENS.colors.slate[50],
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: DESIGN_TOKENS.colors.slate[200],
     borderRadius: 12,
     padding: 12,
     gap: 10,
@@ -132,18 +132,18 @@ const styles = StyleSheet.create({
   recalibrateTitle: {
     fontSize: 13,
     fontWeight: '700',
-    color: '#1B2B4B',
+    color: DESIGN_TOKENS.colors.primary,
   },
   recalibrateSubtitle: {
     fontSize: 11,
-    color: '#64748B',
+    color: DESIGN_TOKENS.colors.slate[500],
     lineHeight: 15,
   },
   recalibrateBtn: {
     alignSelf: 'flex-start',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: DESIGN_TOKENS.colors.surface,
     borderWidth: 1,
-    borderColor: '#CBD5E1',
+    borderColor: DESIGN_TOKENS.colors.slate[300],
     paddingHorizontal: 12,
     paddingVertical: 7,
     borderRadius: 8,
@@ -151,6 +151,6 @@ const styles = StyleSheet.create({
   recalibrateBtnText: {
     fontSize: 12,
     fontWeight: '700',
-    color: '#1B2B4B',
+    color: DESIGN_TOKENS.colors.primary,
   },
 });

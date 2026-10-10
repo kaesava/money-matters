@@ -3,13 +3,14 @@ import { trpc } from '../../lib/trpc';
 import { useMobileToast, showMobileConfirm } from '@money-matters/ui/mobile';
 import { t } from '@money-matters/i18n';
 import type { BankAccountItemToEdit, SupportedBankProvider } from './bankAccountTypes';
+import type { MobileReconciliationModalProps } from '../categories/MobileReconciliationModal';
 
 export function useBankAccountForm(
   visible: boolean,
   accountToEdit: BankAccountItemToEdit | null | undefined,
   onClose: () => void,
   onSuccess?: () => void,
-  onNeedsReconciliation?: (account: any) => void
+  onNeedsReconciliation?: (account: NonNullable<MobileReconciliationModalProps['account']>) => void
 ) {
   const isEdit = Boolean(accountToEdit?.id);
   const toast = useMobileToast();
@@ -105,7 +106,7 @@ export function useBankAccountForm(
     if (!accountToEdit) return;
     showMobileConfirm({
       title: t('settings.bankAccounts.deleteConfirmTitle'),
-      message: t('settings.bankAccounts.deleteConfirmBody').replace('{name}', accountToEdit.name),
+      message: t('settings.bankAccounts.deleteConfirmBody', { name: accountToEdit.name }),
       confirmText: t('common.archive'),
       isDestructive: true,
       onConfirm: async () => {
@@ -128,7 +129,7 @@ export function useBankAccountForm(
       return;
     }
     if (isNegativeAvailable) {
-      setGeneralError('Unbudgeted buffer cannot exceed total bank account balance.');
+      setGeneralError(t('settings.bankAccountForm.bufferExceedsBalance'));
       return;
     }
 
@@ -136,9 +137,9 @@ export function useBankAccountForm(
     setGeneralError('');
 
     try {
-      let savedAcc: any = null;
+      let savedId = accountToEdit?.id;
       if (isEdit && accountToEdit?.id) {
-        savedAcc = await updateMut.mutateAsync({
+        await updateMut.mutateAsync({
           accountId: accountToEdit.id,
           data: {
             name: name.trim(),
@@ -149,13 +150,14 @@ export function useBankAccountForm(
           },
         });
       } else {
-        savedAcc = await createMut.mutateAsync({
+        const created = await createMut.mutateAsync({
           name: name.trim(),
           bankProvider: provider,
           lastKnownBalance: balNum.toFixed(2),
           unbudgetedBuffer: bufNum.toFixed(2),
           isPrivate,
         });
+        savedId = created.id;
       }
 
       toast.success(t('toasts.saved'));
@@ -163,9 +165,9 @@ export function useBankAccountForm(
       onSuccess?.();
       onClose();
 
-      if (hasVariance && (accountToEdit || savedAcc)) {
+      if (hasVariance && savedId) {
         onNeedsReconciliation?.({
-          id: accountToEdit?.id || savedAcc.id,
+          id: savedId,
           name: name.trim(),
           lastKnownBalance: balNum.toFixed(2),
           unbudgetedBuffer: bufNum.toFixed(2),
@@ -174,7 +176,7 @@ export function useBankAccountForm(
             id: p.id,
             name: p.name,
             poolType: p.poolType,
-            currentBalance: p.currentBalance,
+            currentBalance: p.currentBalance || 0,
             isSurplusTarget: p.isSurplusTarget,
           })),
         });

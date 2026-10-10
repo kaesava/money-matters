@@ -227,6 +227,14 @@ tenants (id PK, appId FK→apps.id, name, subscriptionTier, stripeCustomerId, st
 - **Pool Pacing Progress Bars (`DualPoolBar`)**: Stacked progress bars in Everyday and Bills pool headers on Categories screens tracking month elapsed vs pool spent percentage.
 - **Goal Target Countdown & Pace Math**: Dynamically computes target date countdowns (`daysLeftText`) and required monthly savings pace (`(target - balance) / monthsRemaining`) for Save Toward categories.
 
+- **Payday Split Reset Architecture (`resetAllocationPlanCommand`)**:
+  - tRPC mutation `resetAllocationPlan` (`privateTenantProcedure`) safely removes pending/saved allocation plans and plan lines for an income event, returning the studio and matrix views to automatic engine calculations (`AUTO`).
+  - Mobile Split Pay studio and matrix columns feature a 1-tap "Reset" action to discard custom manual splits and restore algorithmic allocations.
+- **Shared Mobile Parity Primitives (`@money-matters/ui/mobile`)**:
+  - `GoalDelayCard`: Reusable component displaying impacted goals, delay days, and original vs new target completion dates.
+  - `MobileCategoryDetailSheet`: 3-tab drawer (Categories, Upcoming Expenses with Mark Paid action, and Transaction History) shared across Split Pay, Matrix, and Pools.
+  - `MobileMatrixFilterBar`: Segmented filter bar controlling Matrix status (All, Pending, Confirmed), scope (All, Shared, Private), and horizon (Next 5 vs 12 months).
+
 ### #### Bank Account Management
 - **Navigation Bar Label:** "Bank Accounts" (externalized in i18n as `nav.accounts`).
 - **Linked Pools:** Everyday, Bills, and Goal pools map 1-to-1 to primary bank accounts. Pools cannot be unchecked directly in account settings (users must re-assign a pool from another account).

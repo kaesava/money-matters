@@ -1008,6 +1008,8 @@ export const en = {
     cancelSetupConfirmMessage: "Are you sure you want to discard your setup changes and return to the dashboard?",
     surplusTargetDeleteWarning: "Designated Surplus Sweep Target cannot be deleted.",
     recalibrateSuccess: "Budget re-calibrated successfully.",
+    saveError: "Couldn't save setup. Please try again.",
+    saveErrorTitle: "Setup Error",
     sweepModalTitle: "Move Remaining Balance",
     sweepModalDesc: "Pool \"{poolName}\" holds an active balance of {balance}. Where would you like to move this money before removing the pool?",
     sweepDestinationLabel: "Destination Pool",

@@ -10,6 +10,7 @@ import { DESIGN_TOKENS } from '@money-matters/ui/mobile';
 import { t } from '@money-matters/i18n';
 import { AppScreenWrapper } from '../../components/AppScreenWrapper';
 import { DashboardHeroCard } from '../../components/DashboardHeroCard';
+import { HomeAffordBannerCard } from '../../components/dashboard/HomeAffordBannerCard';
 import { MobileNextPaydayCard } from '../../components/dashboard/MobileNextPaydayCard';
 import { AttentionItemsList } from '../../components/AttentionItemsList';
 import { GoalsProgressStrip } from '../../components/dashboard/GoalsProgressStrip';
@@ -109,6 +110,8 @@ export default function HomeScreen() {
               : router.push('/(app)/categories')
           }
         />
+
+        <HomeAffordBannerCard />
 
         <MobileNextPaydayCard
           upcomingIncomes={upcomingIncomeList}

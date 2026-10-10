@@ -18,6 +18,7 @@ interface SplitPoolRowProps {
   isReadOnly: boolean;
   isReasoningOpen: boolean;
   onToggleReasoning: () => void;
+  onPressPool?: () => void;
   onLineAmountChange: (poolId: string, val: string) => void;
   onLineReasoningChange: (poolId: string, val: string) => void;
 }
@@ -33,6 +34,7 @@ export const SplitPoolRow: React.FC<SplitPoolRowProps> = ({
   isReadOnly,
   isReasoningOpen,
   onToggleReasoning,
+  onPressPool,
   onLineAmountChange,
   onLineReasoningChange,
 }) => {
@@ -52,7 +54,11 @@ export const SplitPoolRow: React.FC<SplitPoolRowProps> = ({
   return (
     <View style={[styles.poolItemCard, isSweep && styles.sweepPoolItemCard]}>
       <View style={styles.poolTopRow}>
-        <View style={styles.poolMetaCol}>
+        <TouchableOpacity
+          style={styles.poolMetaCol}
+          onPress={onPressPool}
+          activeOpacity={0.7}
+        >
           <View style={styles.poolTitleRow}>
             <Text style={styles.poolNameText} numberOfLines={1}>
               {item.bucketName}
@@ -93,7 +99,7 @@ export const SplitPoolRow: React.FC<SplitPoolRowProps> = ({
               </Text>
             )}
           </View>
-        </View>
+        </TouchableOpacity>
 
         <View style={styles.amountInputCol}>
           <View style={styles.amountInputWrap}>
