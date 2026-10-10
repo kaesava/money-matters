@@ -40,19 +40,36 @@ export async function archiveCategoryCommand(
   }
 
   // 3. Check for upcoming expense events
-  const pendingEvents = await dbClient
+  // Separate into scheduled (which cascade delete upon category archival) vs one-off manual events (which block)
+  const pendingOneOffEvents = await dbClient
     .select()
     .from(expenseEvents)
     .where(
       and(
         eq(expenseEvents.categoryId, categoryId),
         eq(expenseEvents.status, "PENDING"),
+        eq(expenseEvents.isScheduled, false),
         sql`${expenseEvents.archivedAt} IS NULL`
       )
     );
 
-  if (pendingEvents.length > 0) {
-    throw new Error("Cannot archive a category that has upcoming expenses assigned to it.");
+  if (pendingOneOffEvents.length > 0) {
+    throw new Error("Cannot archive a category that has upcoming one-off expenses assigned to it.");
+  }
+
+  // Cascade delete pending scheduled events for this category
+  if (typeof dbClient.delete === "function") {
+    await dbClient
+      .delete(expenseEvents)
+      .where(
+        and(
+          eq(expenseEvents.categoryId, categoryId),
+          eq(expenseEvents.status, "PENDING"),
+          eq(expenseEvents.isScheduled, true),
+          eq(expenseEvents.tenantId, tenantId),
+          eq(expenseEvents.appId, appId)
+        )
+      );
   }
 
 

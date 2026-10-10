@@ -514,6 +514,9 @@ export const en = {
     bankAccountRequired: "Bank Account selection is mandatory.",
     goalAmountRequired: "Goal amount is required for Goal envelopes and must be greater than $0.",
     goalDateRequired: "Completion date is required for Goal envelopes.",
+    nextDueDateLabel: "Next Due Date",
+    nextDueDateHint: "The date of your next bill payment.",
+    viewSchedule: "View Schedule",
     saveFailed: "Couldn't save. Give it another go.",
     createButton: "Create Category",
     goalSection: "Savings & Future Goals — Set a target, we'll take care of the rest",
@@ -627,6 +630,36 @@ export const en = {
     projectionModeWatermark: "PROJECTION MODE",
     requestedItemNotFound: "Requested item was not found or is archived. Showing all records.",
   },
+  envelopes: {
+    everyday: {
+      title: "Everyday Spending",
+      description: "Spend freely. We tell you what should be in your Everyday account — no receipts, no tracking.",
+    },
+    bills: {
+      title: "Bills & Fixed Commitments",
+      description: "Every bill is ring-fenced on payday and paid on its due date. A bill's budget is its schedule.",
+    },
+    goals: {
+      title: "Savings & Goals",
+      description: "Savings that grow every pay — reach an amount by a date, or keep contributing every month.",
+    },
+  },
+  goalModes: {
+    modeLabel: "Goal Funding Mode",
+    targetDate: "Target Date",
+    targetDateDesc: "Reach an amount by a specific date.",
+    ongoing: "Ongoing Contribution",
+    ongoingDesc: "Contribute a fixed amount every month indefinitely.",
+    monthlyContribution: "Monthly Contribution ($)",
+    targetAmount: "Target Goal Amount ($)",
+  },
+  billCoverage: {
+    covered: "Covered ✓",
+    shortBy: "Short by {amount}",
+    noSchedule: "No Schedule",
+    upcomingBeforePayday: "Upcoming Before Payday",
+    safetyBuffer: "Safety Buffer Floor",
+  },
   landing: {
     earlyAccess: {
       title: "Money Matters is Almost Ready!",
@@ -640,6 +673,8 @@ export const en = {
     heroTitlePart1: "Guilt-free spending.",
     heroTitleSpan: "Zero bill shock.",
     heroTitlePart2: "No daily tracking.",
+    envelopeBlueprintTitle: "The 3-Envelope Blueprint",
+    envelopeBlueprintSubtitle: "Zero friction, zero micro-tracking. Payday automates forward allocation so you spend guilt-free.",
     heroSubtitle: "Money Matters ring-fences your upcoming bills on payday so you never get a nasty bill shock.",
     descriptionExtra: "Your savings grow automatically in the background, leaving you to spend your everyday money with zero guilt and zero micro-tracking.",
     heroCompareOldLabel: "The Traditional Budgeting Way",
@@ -987,6 +1022,7 @@ export const en = {
     autoScheduleBillsLabel: "Automatically schedule recurring bills",
     autoScheduleBillsHelp: "Creates bill schedules starting on the 1st of next month. You can adjust exact due dates anytime in Bills.",
     autoScheduleBillsRerunHelp: "Existing bill schedules are preserved. New categories will be scheduled starting on the 1st of next month.",
+    rerunBillsNotice: "Recalibrating your budget recalculates bill coverage and schedule events for all active bill categories.",
     addCustomCategory: "Add Custom Category",
     addCustomCategoryPlaceholder: "e.g. Pet Insurance",
     addCustomCategoryBtn: "+ Add",

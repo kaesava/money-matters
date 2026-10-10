@@ -36,19 +36,35 @@ export async function archivePoolCommand(
     throw new Error("Cannot archive the designated Surplus Target pool. Please designate another Surplus Target pool first.");
   }
 
-  const pendingEvents = await dbClient
+  const pendingOneOffEvents = await dbClient
     .select()
     .from(expenseEvents)
     .where(
       and(
         eq(expenseEvents.poolId, poolId),
-        sql`${expenseEvents.status} IN ('PENDING', 'PENDING')`,
+        eq(expenseEvents.status, "PENDING"),
+        eq(expenseEvents.isScheduled, false),
         sql`${expenseEvents.archivedAt} IS NULL`
       )
     );
 
-  if (pendingEvents.length > 0) {
-    throw new Error("Cannot archive a pool that has upcoming or pending expenses assigned to it.");
+  if (pendingOneOffEvents.length > 0) {
+    throw new Error("Cannot archive a pool that has upcoming one-off expenses assigned to it.");
+  }
+
+  // Cascade delete pending scheduled events for this pool
+  if (typeof dbClient.delete === "function") {
+    await dbClient
+      .delete(expenseEvents)
+      .where(
+        and(
+          eq(expenseEvents.poolId, poolId),
+          eq(expenseEvents.status, "PENDING"),
+          eq(expenseEvents.isScheduled, true),
+          eq(expenseEvents.tenantId, tenantId),
+          eq(expenseEvents.appId, appId)
+        )
+      );
   }
 
 

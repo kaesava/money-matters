@@ -3,6 +3,7 @@ import { tenantAndTimestamps } from "./base.js";
 import { bankAccounts } from "./bank_account.js";
 
 export const poolTypeEnum = pgEnum("pool_type_enum", ["EVERYDAY", "REGULAR", "GOAL"]);
+export const goalModeEnum = pgEnum("goal_mode_enum", ["TARGET_DATE", "ONGOING"]);
 
 export const pools = pgTable("pools", {
   id: uuid("id").primaryKey().defaultRandom(),
@@ -17,6 +18,7 @@ export const pools = pgTable("pools", {
   safetyBufferFloor: numeric("safety_buffer_floor", { precision: 12, scale: 2 }).default("0.00"),
 
   // GOAL-specific fields
+  goalMode: goalModeEnum("goal_mode").default("TARGET_DATE"),
   targetAmount: numeric("target_amount", { precision: 12, scale: 2 }),
   targetDate: varchar("target_date", { length: 50 }),
 

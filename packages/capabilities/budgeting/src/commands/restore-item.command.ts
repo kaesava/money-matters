@@ -1,4 +1,4 @@
-import { pools, categories, incomeSources, expenseSources, incomeEvents, expenseEvents, bankAccounts, tenants, DbOrTx } from "@money-matters/db";
+import { pools, categories, incomeSources, incomeEvents, expenseEvents, bankAccounts, tenants, DbOrTx } from "@money-matters/db";
 import { eq, and, sql } from "drizzle-orm";
 import { generateBurstDates } from "../engine/burst-engine.js";
 
@@ -6,7 +6,7 @@ import { getTenantDateString } from "@money-matters/core";
 
 export async function restoreItemCommand(
   itemId: string,
-  itemType: "POOL" | "CATEGORY" | "INCOME_SOURCE" | "EXPENSE_SOURCE" | "BANK_ACCOUNT",
+  itemType: "POOL" | "CATEGORY" | "INCOME_SOURCE" | "BANK_ACCOUNT",
   tenantId: string,
   appId: string,
   userId: string,
@@ -83,26 +83,11 @@ export async function restoreItemCommand(
     if (inc.isPrivate && inc.bankAccountUserId && inc.bankAccountUserId !== userId) {
       throw new Error("Access unauthorized or private income source.");
     }
-  } else if (itemType === "EXPENSE_SOURCE") {
-    const [exp] = await dbClient
-      .select({
-        isPrivate: bankAccounts.isPrivate,
-        bankAccountUserId: bankAccounts.userId,
-      })
-      .from(expenseSources)
-      .innerJoin(pools, eq(expenseSources.poolId, pools.id))
-      .leftJoin(bankAccounts, eq(pools.bankAccountId, bankAccounts.id))
-      .where(and(eq(expenseSources.id, itemId), eq(expenseSources.tenantId, tenantId), eq(expenseSources.appId, appId)));
-    if (!exp) throw new Error("Expense source not found.");
-    if (exp.isPrivate && exp.bankAccountUserId && exp.bankAccountUserId !== userId) {
-      throw new Error("Access unauthorized or private expense source.");
-    }
   }
 
-  let table: typeof pools | typeof categories | typeof incomeSources | typeof expenseSources | typeof bankAccounts = categories;
+  let table: typeof pools | typeof categories | typeof incomeSources | typeof bankAccounts = categories;
   if (itemType === "POOL") table = pools;
   if (itemType === "INCOME_SOURCE") table = incomeSources;
-  if (itemType === "EXPENSE_SOURCE") table = expenseSources;
   if (itemType === "BANK_ACCOUNT") table = bankAccounts;
 
   const [restored] = await dbClient
@@ -179,20 +164,20 @@ export async function restoreItemCommand(
           updatedBy: userId,
         });
       }
-    } else if (itemType === "EXPENSE_SOURCE") {
-      const exp = restored as typeof expenseSources.$inferSelect;
-      const startDate = exp.startDate || getLocalDateString();
-      if (exp.rrule) {
-        const dates = generateBurstDates(exp.rrule, startDate, exp.endDate, 12);
+    } else if (itemType === "CATEGORY") {
+      const cat = restored as typeof categories.$inferSelect;
+      const amountVal = cat.enteredAmount || cat.monthlyAmount || "0.00";
+      if (cat.rrule && cat.startDate && parseFloat(amountVal) > 0) {
+        const dates = generateBurstDates(cat.rrule, cat.startDate, cat.endDate, 12);
         if (dates.length > 0) {
           await dbClient.insert(expenseEvents).values(
             dates.map((d) => ({
-              expenseSourceId: exp.id,
-              poolId: exp.poolId,
-              categoryId: exp.categoryId,
-              name: exp.name,
+              poolId: cat.poolId,
+              categoryId: cat.id,
+              name: cat.name,
               expectedDate: getLocalDateString(d),
-              expectedAmount: exp.amount,
+              expectedAmount: amountVal,
+              isScheduled: true,
               status: "PENDING" as const,
               tenantId,
               appId,
@@ -201,20 +186,6 @@ export async function restoreItemCommand(
             }))
           );
         }
-      } else {
-        await dbClient.insert(expenseEvents).values({
-          expenseSourceId: exp.id,
-          poolId: exp.poolId,
-          categoryId: exp.categoryId,
-          name: exp.name,
-          expectedDate: startDate,
-          expectedAmount: exp.amount,
-          status: "PENDING",
-          tenantId,
-          appId,
-          createdBy: userId,
-          updatedBy: userId,
-        });
       }
     }
   }

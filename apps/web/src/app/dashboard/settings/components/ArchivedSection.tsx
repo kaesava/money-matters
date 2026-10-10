@@ -5,7 +5,7 @@ import { trpc } from "../../../../lib/trpc";
 import { t } from "@money-matters/i18n";
 import { PaginationBar, Spinner, InfoTooltip, SearchInput, SkeletonTable, ConfirmDialog, useToast } from "@money-matters/ui/web";
 
-type ArchivedItemType = "POOL" | "CATEGORY" | "INCOME_SOURCE" | "EXPENSE_SOURCE" | "BANK_ACCOUNT";
+type ArchivedItemType = "POOL" | "CATEGORY" | "INCOME_SOURCE" | "BANK_ACCOUNT";
 
 interface ArchivedItem {
   id: string;
@@ -36,7 +36,6 @@ export function ArchivedSection() {
         trpcUtils.listPools.invalidate(),
         trpcUtils.listCategories.invalidate(),
         trpcUtils.listIncomeSources.invalidate(),
-        trpcUtils.listExpenseSources.invalidate(),
         trpcUtils.listBankAccounts.invalidate(),
         trpcUtils.listBankAccountsWithExpected.invalidate(),
         trpcUtils.getMatrixProjectionData.invalidate(),
@@ -93,7 +92,7 @@ export function ArchivedSection() {
 
         {/* Filter Pills */}
         <div className="flex items-center gap-1 bg-zinc-100 p-1 rounded-xl flex-wrap">
-          {(["ALL", "CATEGORY", "POOL", "INCOME_SOURCE", "EXPENSE_SOURCE", "BANK_ACCOUNT"] as const).map((type) => {
+          {(["ALL", "CATEGORY", "POOL", "INCOME_SOURCE", "BANK_ACCOUNT"] as const).map((type) => {
             const label =
               type === "ALL"
                 ? t("common.all")
@@ -103,9 +102,7 @@ export function ArchivedSection() {
                     ? t("settings.archived.pools")
                     : type === "INCOME_SOURCE"
                       ? t("settings.archived.income")
-                      : type === "EXPENSE_SOURCE"
-                        ? t("settings.archived.expenses")
-                        : t("settings.archived.accounts");
+                      : t("settings.archived.accounts");
 
             return (
               <button

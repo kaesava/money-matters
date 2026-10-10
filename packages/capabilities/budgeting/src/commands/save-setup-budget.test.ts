@@ -1,6 +1,6 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import { saveSetupBudgetHandler } from "./save-setup-budget.command";
-import { pools, categories, bankAccounts, incomeSources, expenseSources, expenseEvents, transactionLedger, tenants } from "@money-matters/db";
+import { pools, categories, bankAccounts, incomeSources, expenseEvents, transactionLedger, tenants } from "@money-matters/db";
 
 vi.mock("@money-matters/db", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@money-matters/db")>();
@@ -40,7 +40,7 @@ describe("saveSetupBudgetHandler", () => {
             if (table === pools) return Promise.resolve(existingData?.pools || []);
             if (table === categories) return Promise.resolve(existingData?.categories || []);
             if (table === incomeSources) return Promise.resolve(existingData?.incomes || []);
-            if (table === expenseSources) return Promise.resolve(existingData?.expenseSources || []);
+            if (table === expenseEvents) return Promise.resolve(existingData?.expenseSources || []);
             return Promise.resolve(existingData?.prefs || []);
           }),
           limit: vi.fn().mockImplementation(() => Promise.resolve(existingData?.prefs || [])),
@@ -59,8 +59,6 @@ describe("saveSetupBudgetHandler", () => {
             insertedRows["categories"] = items;
           } else if (table === incomeSources) {
             insertedRows["income_sources"] = items;
-          } else if (table === expenseSources) {
-            insertedRows["expense_sources"] = items;
           } else if (table === expenseEvents) {
             insertedRows["expense_events"] = items;
           }
@@ -119,9 +117,7 @@ describe("saveSetupBudgetHandler", () => {
     expect(result.persistedCounts.bankAccounts).toBe(2);
     expect(result.persistedCounts.pools).toBe(3);
     expect(result.persistedCounts.categories).toBe(2);
-    expect(result.persistedCounts.expenseSources).toBe(1);
-    expect(insertedRows["expense_sources"]).toHaveLength(1);
-    expect(insertedRows["expense_sources"][0].name).toBe("Electricity");
+    expect(result.persistedCounts.expenseSources).toBe(12);
     expect(insertedRows["expense_events"]).toHaveLength(12);
     expect(updatedRows["tenants"]).toBeDefined();
     expect(updatedRows["tenants"][0].setupStatus).toBe("COMPLETED");
@@ -148,17 +144,15 @@ describe("saveSetupBudgetHandler", () => {
 
     expect(result.success).toBe(true);
     expect(result.persistedCounts.expenseSources).toBe(0);
-    expect(insertedRows["expense_sources"]).toBeUndefined();
     expect(insertedRows["expense_events"]).toBeUndefined();
   });
 
   it("enforces Strict Add-Only during re-setup without duplicating or altering existing schedules", async () => {
     const existingCatId = "00000000-0000-0000-0000-000000000010";
-    const existingScheduleId = "00000000-0000-0000-0000-000000000020";
 
     const mockDb = createMockDb({
       categories: [{ id: existingCatId, name: "Electricity", poolType: "REGULAR", monthlyAmount: "150.00" }],
-      expenseSources: [{ id: existingScheduleId, name: "Electricity", categoryId: existingCatId, amount: "150.00" }],
+      expenseSources: [{ id: "evt-1", categoryId: existingCatId }],
     });
     const handler = saveSetupBudgetHandler(mockDb);
 
@@ -182,11 +176,10 @@ describe("saveSetupBudgetHandler", () => {
     );
 
     expect(result.success).toBe(true);
-    // Only Gas should be newly created
-    expect(result.persistedCounts.expenseSources).toBe(1);
-    expect(insertedRows["expense_sources"]).toHaveLength(1);
-    expect(insertedRows["expense_sources"][0].name).toBe("Gas");
+    // Only Gas should be newly created (12 events burst)
+    expect(result.persistedCounts.expenseSources).toBe(12);
     expect(insertedRows["expense_events"]).toHaveLength(12);
+    expect(insertedRows["expense_events"][0].name).toBe("Gas");
   });
 
   it("prevents archiving the EVERYDAY pool", async () => {

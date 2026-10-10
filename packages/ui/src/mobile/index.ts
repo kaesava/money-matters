@@ -119,3 +119,9 @@ export type {
 
 export { MobileMatrixFilterBar } from './MobileMatrixFilterBar';
 export type { MobileMatrixFilterBarProps } from './MobileMatrixFilterBar';
+
+export { MobileEnvelopeExplainer, MobileEnvelopeExplainer as EnvelopeExplainer } from './EnvelopeExplainer';
+export { MobileGoalModeToggle, MobileGoalModeToggle as GoalModeToggle } from './GoalModeToggle';
+export type { MobileGoalModeToggleProps, MobileGoalModeToggleProps as GoalModeToggleProps } from './GoalModeToggle';
+export { MobileBillCoverageBadge, MobileBillCoverageBadge as BillCoverageBadge } from './BillCoverageBadge';
+export type { MobileBillCoverageBadgeProps, MobileBillCoverageBadgeProps as BillCoverageBadgeProps } from './BillCoverageBadge';

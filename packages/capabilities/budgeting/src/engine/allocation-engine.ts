@@ -36,6 +36,7 @@ export interface EngineBucket {
   targetAmount?: number | null;
   everydayAllowanceAmount?: number | null;
   safetyBufferFloor?: number | null;
+  goalMode?: "TARGET_DATE" | "ONGOING" | null;
   targetDate?: string | null;
   dueDate?: string | null;
   currentBalance: number;
@@ -305,7 +306,27 @@ export function runAllocationEngine(input: AllocationEngineInput): AllocationEng
       const targetCents = toCents(bucket.targetAmount ?? 0);
       const currentCents = Math.max(0, toCents(bucket.currentBalance));
       const gapCents = Math.max(0, targetCents - currentCents);
-      if (gapCents <= 0) continue; // Goal is already 100% funded
+
+      if (bucket.goalMode === "ONGOING") {
+        // ONGOING goal: targetAmount represents monthly contribution target, accrued via cycleFactor
+        const neededCents = Math.round(targetCents * cycleFactor);
+        const toAllocate = Math.min(remainingCents, neededCents);
+        if (toAllocate > 0 || neededCents > 0) {
+          if (toAllocate > 0) {
+            allocateToBucket(
+              bucket,
+              toAllocate,
+              `Ongoing goal contribution ($${toDollars(targetCents).toFixed(2)}/mo across ${daysGap} days): $${toDollars(toAllocate).toFixed(2)} allocated.`
+            );
+          } else {
+            const line = linesMap.get(bucket.id)!;
+            line.reasonings.push(`Ongoing goal contribution ($${toDollars(targetCents).toFixed(2)}/mo): $0 allocated (insufficient income).`);
+          }
+        }
+        continue;
+      }
+
+      if (gapCents <= 0) continue; // Target date goal is already 100% funded
 
       let neededCents = gapCents;
       let monthsRemaining = 12;

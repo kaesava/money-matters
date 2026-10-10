@@ -108,7 +108,7 @@ export const budgetingRouter = {
     .input(
       z.object({
         itemId: z.string().uuid(),
-        itemType: z.enum(["POOL", "CATEGORY", "INCOME_SOURCE", "EXPENSE_SOURCE", "BANK_ACCOUNT"]),
+        itemType: z.enum(["POOL", "CATEGORY", "INCOME_SOURCE", "BANK_ACCOUNT"]),
       }).strict()
     )
     .mutation(async ({ input, ctx }) => {

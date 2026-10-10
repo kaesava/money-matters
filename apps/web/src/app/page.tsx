@@ -14,6 +14,7 @@ import { LandingHeader } from "../components/landing/LandingHeader";
 import { LandingHero } from "../components/landing/LandingHero";
 import { ProblemSection } from "../components/landing/ProblemSection";
 import { HowItWorksSection } from "../components/landing/HowItWorksSection";
+import { EnvelopesSection } from "../components/landing/EnvelopesSection";
 import { AdvantagesSection } from "../components/landing/AdvantagesSection";
 import { PricingSection } from "../components/landing/PricingSection";
 import { TrustSection } from "../components/landing/TrustSection";
@@ -109,6 +110,7 @@ export default function Home() {
 
       <LandingHeader onAuthClick={handleOpenAuth} />
       <LandingHero onAuthClick={handleOpenAuth} />
+      <EnvelopesSection />
       <ProblemSection />
       <HowItWorksSection />
 

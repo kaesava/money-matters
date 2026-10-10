@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { t } from '@money-matters/i18n';
+import { BillCoverageBadge } from '@money-matters/ui/web';
 import { useLocale } from '../../../providers/LocaleProvider';
 
 export interface BentoPoolsSectionProps {
@@ -133,6 +134,10 @@ export const BentoPoolsSection: React.FC<BentoPoolsSectionProps> = ({
               <span className="text-[11px] font-extrabold uppercase tracking-widest text-gray-500">
                 {t('dashboard.hero.billsPoolTitle')}
               </span>
+              <BillCoverageBadge
+                status={billsShortfall > 0 ? "SHORT_BY" : "COVERED"}
+                shortfallAmount={billsShortfall > 0 ? format(billsShortfall) : null}
+              />
             </div>
 
             <div>

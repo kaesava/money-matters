@@ -67,3 +67,6 @@ export * from './TypedConfirmDialog';
 export * from './fields/RecurrenceBuilder';
 export * from '../hooks/useRecurrenceBuilder';
 export * from '../hooks/DateLocaleContext';
+export * from './EnvelopeExplainer';
+export * from './GoalModeToggle';
+export * from './BillCoverageBadge';

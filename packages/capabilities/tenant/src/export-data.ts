@@ -3,7 +3,6 @@ import {
   categories, 
   incomeSources, 
   incomeEvents, 
-  expenseSources, 
   expenseEvents, 
   transactionLedger, 
   bankAccounts, 
@@ -104,12 +103,7 @@ export function exportMyDataHandler(db: DbOrTx) {
       .from(incomeEvents)
       .where(and(eq(incomeEvents.tenantId, tenantId), eq(incomeEvents.appId, appId)));
 
-    // 7. Fetch Expense Sources & Events
-    const userExpenseSources = await db
-      .select()
-      .from(expenseSources)
-      .where(and(eq(expenseSources.tenantId, tenantId), eq(expenseSources.appId, appId)));
-
+    // 7. Fetch Expense Events
     const userExpenseEvents = await db
       .select()
       .from(expenseEvents)
@@ -154,11 +148,10 @@ export function exportMyDataHandler(db: DbOrTx) {
       ),
       "Bank_Accounts.csv": arrayToCsv(userBankAccounts, ["id", "name", "bankProvider", "lastKnownBalance", "isPrivate"]),
       "Pools.csv": arrayToCsv(userPools, ["id", "name", "poolType", "bankAccountId", "targetAmount", "everydayAllowanceAmount"]),
-      "Categories.csv": arrayToCsv(userCategories, ["id", "poolId", "name", "monthlyAmount", "budgetFrequency"]),
+      "Categories.csv": arrayToCsv(userCategories, ["id", "poolId", "name", "monthlyAmount", "budgetFrequency", "startDate", "rrule"]),
       "Income_Sources.csv": arrayToCsv(userIncomeSources, ["id", "name", "amount", "rrule", "startDate", "receivingAccountId"]),
       "Income_Events.csv": arrayToCsv(userIncomeEvents, ["id", "incomeSourceId", "expectedDate", "expectedAmount", "status"]),
-      "Bills_and_Expenses.csv": arrayToCsv(userExpenseSources, ["id", "name", "amount", "rrule", "startDate", "poolId", "categoryId"]),
-      "Expense_Events.csv": arrayToCsv(userExpenseEvents, ["id", "expenseSourceId", "expectedDate", "expectedAmount", "poolId", "status"]),
+      "Expense_Events.csv": arrayToCsv(userExpenseEvents, ["id", "expectedDate", "expectedAmount", "poolId", "categoryId", "isScheduled", "status"]),
       "Transactions_Ledger.csv": arrayToCsv(userLedger, ["id", "recordedAt", "amount", "flowType", "poolId", "categoryId", "bankAccountId"]),
       "Income_Split_Plans.csv": arrayToCsv(userAllocationPlans, ["id", "incomeEventId", "totalIncomeAmount", "status"]),
       "Income_Split_Plan_Lines.csv": arrayToCsv(userAllocationPlanLines, ["id", "planId", "poolId", "proposedAmount", "confirmedAmount"]),

@@ -1,26 +1,20 @@
 "use client";
 
 import React, { useState, useEffect, useMemo } from "react";
-import { useToast, ConfirmDialog, InfoTooltip, Input, GenericSelectField, DatePickerField, AmountField, ModalDialog, Button, FormErrorBanner } from "@money-matters/ui/web";
+import { useToast, ConfirmDialog, ModalDialog, Button, FormErrorBanner } from "@money-matters/ui/web";
 import { t } from "@money-matters/i18n";
 import { trpc } from "../../lib/trpc";
+import { CategoryFormFields } from "./CategoryFormFields";
 
 interface CategoryFormModalProps {
   isOpen: boolean;
   onClose: () => void;
   categoryToEdit?: {
-    id: string;
-    poolId?: string;
-    name: string;
-    type?: "EVERYDAY" | "REGULAR" | "GOAL";
-    poolType?: "EVERYDAY" | "REGULAR" | "GOAL";
-    bankAccountId?: string | null;
-    isPrivate?: boolean | null;
-    monthlyAmount?: string | null;
-    everydayAllowanceAmount?: string | null;
-    safetyBufferFloor?: string | null;
-    targetAmount?: string | null;
-    targetDate?: string | null;
+    id: string; poolId?: string; name: string;
+    type?: "EVERYDAY" | "REGULAR" | "GOAL"; poolType?: "EVERYDAY" | "REGULAR" | "GOAL";
+    bankAccountId?: string | null; isPrivate?: boolean | null; monthlyAmount?: string | null;
+    everydayAllowanceAmount?: string | null; safetyBufferFloor?: string | null;
+    targetAmount?: string | null; targetDate?: string | null; goalMode?: "TARGET_DATE" | "ONGOING";
     isSurplusTarget?: boolean | null;
   } | null;
   onSuccess?: () => void;
@@ -46,6 +40,7 @@ export function CategoryFormModal({
   const [safetyBufferFloor, setSafetyBufferFloor] = useState("");
   const [targetAmount, setTargetAmount] = useState("");
   const [targetDate, setTargetDate] = useState("");
+  const [goalMode, setGoalMode] = useState<"TARGET_DATE" | "ONGOING">("TARGET_DATE");
   const [isSurplusTarget, setIsSurplusTarget] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
@@ -63,52 +58,43 @@ export function CategoryFormModal({
       setSafetyBufferFloor(categoryToEdit.safetyBufferFloor || "");
       setTargetAmount(categoryToEdit.targetAmount || "");
       setTargetDate(categoryToEdit.targetDate || "");
+      setGoalMode(categoryToEdit.goalMode || "TARGET_DATE");
       setIsSurplusTarget(categoryToEdit.isSurplusTarget ?? false);
     } else {
       setName("");
       setType("REGULAR");
-      setBankAccountId(""); // Mandatory: No pre-selection
+      setBankAccountId("");
       setSafetyBufferFloor("");
       setTargetAmount("");
       setTargetDate("");
+      setGoalMode("TARGET_DATE");
       setIsSurplusTarget(false);
     }
     setErrorMsg(null);
   }, [categoryToEdit, isOpen]);
 
-  // Compute if form mandatory fields are valid
   const isValid = useMemo(() => {
     if (!name.trim()) return false;
     if (!isEdit && !bankAccountId) return false;
     if (type === "GOAL") {
       if (!targetAmount || parseFloat(targetAmount) <= 0) return false;
-      if (!targetDate) return false;
+      if (goalMode === "TARGET_DATE" && !targetDate) return false;
     }
     return true;
-  }, [name, isEdit, bankAccountId, type, targetAmount, targetDate]);
+  }, [name, isEdit, bankAccountId, type, targetAmount, goalMode, targetDate]);
 
-  // Compute if form state is dirty (has changes)
   const isDirty = useMemo(() => {
-    if (!isEdit) {
-      return Boolean(name.trim() && bankAccountId);
-    }
+    if (!isEdit) return Boolean(name.trim() && bankAccountId);
     if (!categoryToEdit) return false;
-    const initialName = categoryToEdit.name || "";
-    const initialTarget = categoryToEdit.targetAmount || "";
-    const initialFloor = categoryToEdit.safetyBufferFloor || "";
-    const initialDate = categoryToEdit.targetDate || "";
-    const initialSurplus = categoryToEdit.isSurplusTarget ?? false;
-
     return (
-      name.trim() !== initialName ||
-      safetyBufferFloor !== initialFloor ||
-      targetAmount !== initialTarget ||
-      targetDate !== initialDate ||
-      isSurplusTarget !== initialSurplus
+      name.trim() !== (categoryToEdit.name || "") ||
+      safetyBufferFloor !== (categoryToEdit.safetyBufferFloor || "") ||
+      targetAmount !== (categoryToEdit.targetAmount || "") ||
+      targetDate !== (categoryToEdit.targetDate || "") ||
+      goalMode !== (categoryToEdit.goalMode || "TARGET_DATE") ||
+      isSurplusTarget !== (categoryToEdit.isSurplusTarget ?? false)
     );
-  }, [isEdit, categoryToEdit, name, bankAccountId, safetyBufferFloor, targetAmount, targetDate, isSurplusTarget]);
-
-  const isSurplusDisabled = Boolean(isEdit && categoryToEdit?.isSurplusTarget);
+  }, [isEdit, categoryToEdit, name, bankAccountId, safetyBufferFloor, targetAmount, targetDate, goalMode, isSurplusTarget]);
 
   const confirmArchive = async () => {
     if (!categoryToEdit?.id) return;
@@ -120,8 +106,7 @@ export function CategoryFormModal({
       onSuccess?.();
       onClose();
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : t("categories.failedToArchive");
-      toast.error(message);
+      toast.error(err instanceof Error ? err.message : t("categories.failedToArchive"));
     } finally {
       setSubmitting(false);
       setShowArchiveConfirm(false);
@@ -132,25 +117,13 @@ export function CategoryFormModal({
     e.preventDefault();
     setErrorMsg(null);
 
-    if (!name.trim()) {
-      setErrorMsg(t("categories.nameRequired"));
-      return;
+    if (!name.trim()) return setErrorMsg(t("categories.nameRequired"));
+    if (!isEdit && !bankAccountId) return setErrorMsg(t("categories.bankAccountRequired"));
+    if (type === "GOAL" && (!targetAmount || parseFloat(targetAmount) <= 0)) {
+      return setErrorMsg(t("categories.goalAmountRequired"));
     }
-
-    if (!isEdit && !bankAccountId) {
-      setErrorMsg(t("categories.bankAccountRequired"));
-      return;
-    }
-
-    if (type === "GOAL") {
-      if (!targetAmount || parseFloat(targetAmount) <= 0) {
-        setErrorMsg(t("categories.goalAmountRequired"));
-        return;
-      }
-      if (!targetDate) {
-        setErrorMsg(t("categories.goalDateRequired"));
-        return;
-      }
+    if (type === "GOAL" && goalMode === "TARGET_DATE" && !targetDate) {
+      return setErrorMsg(t("categories.goalDateRequired"));
     }
 
     setSubmitting(true);
@@ -162,7 +135,8 @@ export function CategoryFormModal({
             name: name.trim(),
             safetyBufferFloor: type === "EVERYDAY" ? safetyBufferFloor || "0.00" : undefined,
             targetAmount: type === "GOAL" ? targetAmount || undefined : undefined,
-            targetDate: type === "GOAL" ? targetDate || undefined : undefined,
+            targetDate: type === "GOAL" && goalMode === "TARGET_DATE" ? targetDate || undefined : undefined,
+            goalMode: type === "GOAL" ? goalMode : undefined,
             isSurplusTarget: type !== "EVERYDAY" ? isSurplusTarget : undefined,
           },
         });
@@ -170,10 +144,11 @@ export function CategoryFormModal({
         await createPoolMut.mutateAsync({
           name: name.trim(),
           poolType: type,
-          bankAccountId: bankAccountId,
+          bankAccountId,
           safetyBufferFloor: type === "EVERYDAY" ? safetyBufferFloor || "0.00" : undefined,
           targetAmount: type === "GOAL" ? targetAmount || undefined : undefined,
-          targetDate: type === "GOAL" ? targetDate || undefined : undefined,
+          targetDate: type === "GOAL" && goalMode === "TARGET_DATE" ? targetDate || undefined : undefined,
+          goalMode: type === "GOAL" ? goalMode : undefined,
           isSurplusTarget: type !== "EVERYDAY" ? isSurplusTarget : undefined,
         });
       }
@@ -189,20 +164,6 @@ export function CategoryFormModal({
 
   if (!isOpen) return null;
 
-  const poolTypeOptions = [
-    { value: "EVERYDAY", label: t("categories.typeEveryday") },
-    { value: "REGULAR", label: t("categories.typeRegular") },
-    { value: "GOAL", label: t("categories.typeGoal") },
-  ];
-
-  const bankAccountOptions = [
-    ...(!isEdit ? [{ value: "", label: t("categories.selectBankAccount") }] : []),
-    ...bankAccounts.map((acc) => ({
-      value: acc.id,
-      label: `${acc.name} ${acc.isPrivate ? t("categories.privateBadge") : t("categories.householdBadge")}`,
-    })),
-  ];
-
   return (
     <ModalDialog
       isOpen={isOpen}
@@ -214,125 +175,56 @@ export function CategoryFormModal({
       <form onSubmit={handleSubmit} className="space-y-4 text-xs font-medium text-zinc-700">
         <FormErrorBanner message={errorMsg} />
 
-        <Input
-          label={t("categories.poolNameLabel")}
-          required
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          placeholder={t("categories.placeholderPoolName")}
-          autoFocus
+        <CategoryFormFields
+          name={name}
+          setName={setName}
+          type={type}
+          setType={setType}
+          bankAccountId={bankAccountId}
+          setBankAccountId={setBankAccountId}
+          bankAccountOptions={[
+            ...(!isEdit ? [{ value: "", label: t("categories.selectBankAccount") }] : []),
+            ...bankAccounts.map((acc) => ({
+              value: acc.id,
+              label: `${acc.name} ${acc.isPrivate ? t("categories.privateBadge") : t("categories.householdBadge")}`,
+            })),
+          ]}
+          poolTypeOptions={[
+            { value: "EVERYDAY", label: t("categories.typeEveryday") },
+            { value: "REGULAR", label: t("categories.typeRegular") },
+            { value: "GOAL", label: t("categories.typeGoal") },
+          ]}
+          isEdit={isEdit}
+          safetyBufferFloor={safetyBufferFloor}
+          setSafetyBufferFloor={setSafetyBufferFloor}
+          targetAmount={targetAmount}
+          setTargetAmount={setTargetAmount}
+          targetDate={targetDate}
+          setTargetDate={setTargetDate}
+          goalMode={goalMode}
+          setGoalMode={setGoalMode}
+          isSurplusTarget={isSurplusTarget}
+          setIsSurplusTarget={setIsSurplusTarget}
+          isSurplusDisabled={Boolean(isEdit && categoryToEdit?.isSurplusTarget)}
         />
 
-        <GenericSelectField
-          label={t("categories.poolTypeLabel")}
-          value={type}
-          onChange={(val) => setType(val as "EVERYDAY" | "REGULAR" | "GOAL")}
-          options={poolTypeOptions}
-          disabled={isEdit}
-          required
-        />
-
-        <GenericSelectField
-          label={t("categories.linkedAccountLabel")}
-          value={bankAccountId}
-          onChange={setBankAccountId}
-          options={bankAccountOptions}
-          disabled={isEdit}
-          required={!isEdit}
-        />
-
-        {isEdit && (
-          <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl text-amber-900 text-[11px] leading-relaxed font-semibold">
-            {t("categories.immutabilityWarning")}
-          </div>
-        )}
-
-        {(type === "REGULAR" || type === "EVERYDAY") && (
-          <div className="p-3 bg-slate-50 border border-zinc-200 rounded-xl text-zinc-600 text-[11px] leading-relaxed">
-            <span className="font-bold text-[#1B2B4B] block mb-0.5">{t("categories.calculatedTarget")}</span>
-            {t("categories.calculatedTargetNotice")}
-          </div>
-        )}
-
-        {type === "EVERYDAY" && (
-          <AmountField
-            label={t("categories.safetyBufferFloorLabel")}
-            value={safetyBufferFloor}
-            onChange={setSafetyBufferFloor}
-            placeholder="0.00"
-          />
-        )}
-
-        {type === "GOAL" && (
-          <>
-            <AmountField
-              label={t("categories.targetAmountLabel")}
-              required
-              value={targetAmount}
-              onChange={setTargetAmount}
-              placeholder="10000.00"
-            />
-            <DatePickerField
-              label={t("categories.targetCompletionDate")}
-              required
-              value={targetDate}
-              onChange={setTargetDate}
-            />
-          </>
-        )}
-
-        {type !== "EVERYDAY" && (
-          <div className="pt-2">
-            <label className="flex items-center gap-2 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={isSurplusTarget}
-                disabled={isSurplusDisabled}
-                onChange={(e) => setIsSurplusTarget(e.target.checked)}
-                className="w-4 h-4 rounded text-[#2563eb] focus:ring-[#2563eb] disabled:opacity-50"
-              />
-              <span className="font-bold text-zinc-800 flex items-center gap-1.5">
-                <span>{t("categories.sweepSurplus")}</span>
-                <InfoTooltip content={t("categories.shortfallTargetTooltip")} align="left" />
-              </span>
-            </label>
-            {isSurplusDisabled && (
-              <p className="text-[11px] text-zinc-500 mt-1 pl-6">
-                {t("categories.shortfallTargetDisabledWarning")}
-              </p>
-            )}
-          </div>
-        )}
-
-        <div className="flex items-center justify-between pt-4 border-t border-zinc-100">
+        <div className="flex justify-between items-center pt-4 border-t border-zinc-200">
           {isEdit ? (
             <button
               type="button"
               onClick={() => setShowArchiveConfirm(true)}
-              className="text-xs font-semibold text-slate-400 hover:text-slate-600 transition-colors"
+              disabled={submitting}
+              className="px-3 py-2 text-xs font-medium text-slate-400 hover:text-slate-600 dark:text-slate-500 dark:hover:text-slate-400 hover:underline cursor-pointer"
             >
               {t("categories.archivePool")}
             </button>
-          ) : (
-            <div />
-          )}
+          ) : <div />}
 
-          <div className="flex items-center gap-2">
-            <Button
-              type="button"
-              variant="secondary"
-              size="sm"
-              onClick={onClose}
-            >
+          <div className="flex gap-2">
+            <Button type="button" variant="secondary" size="sm" onClick={onClose}>
               {t("categories.cancel")}
             </Button>
-            <Button
-              type="submit"
-              variant="primary"
-              size="sm"
-              disabled={submitting || !isDirty || !isValid}
-              loading={submitting}
-            >
+            <Button type="submit" variant="primary" size="sm" disabled={submitting || !isDirty || !isValid} loading={submitting}>
               {t("categories.savePool")}
             </Button>
           </div>

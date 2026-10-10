@@ -5,93 +5,42 @@ import Link from "next/link";
 import { useSearchParams, useRouter } from "next/navigation";
 import { trpc } from "../../../lib/trpc";
 import { t } from "@money-matters/i18n";
-import {
-  useToast,
-  Spinner,
-  InfoTooltip,
-  SearchInput,
-  ResizableTh,
-  useResizableColumns,
-  Tabs,
-  PoolPicker,
-} from "@money-matters/ui/web";
-import IncomeExpenseFormModal from "../../../components/web/IncomeExpenseFormModal";
+import { Spinner, SearchInput, Tabs } from "@money-matters/ui/web";
+import { IncomeFormModal, IncomeSourceToEdit } from "../../../components/web/IncomeFormModal";
+import { OneOffExpenseModal } from "./components/OneOffExpenseModal";
 import { QuickExpenseDrawer } from "../../../components/web/QuickExpenseDrawer";
-import { UpcomingTimelineTab } from "./components/UpcomingTimelineTab";
-import { useLocale } from "../../../providers/LocaleProvider";
-
-function formatScheduleSummary(
-  {
-    rrule,
-    startDate,
-    endDate,
-  }: {
-    rrule?: string | null;
-    startDate?: string | null;
-    endDate?: string | null;
-  },
-  dateFormatter: (d: string | Date | number | null | undefined) => string = (d) => String(d ?? "")
-): string {
-  if (!rrule && !startDate) return "One-off";
-
-  let freqStr = "Recurring";
-  if (rrule) {
-    const intervalMatch = rrule.match(/INTERVAL=(\d+)/);
-    const interval = intervalMatch ? parseInt(intervalMatch[1], 10) : 1;
-
-    if (rrule.includes("FREQ=WEEKLY;INTERVAL=2") || rrule.includes("FREQ=FORTNIGHTLY")) {
-      freqStr = "every 2 weeks";
-    } else if (rrule.includes("FREQ=WEEKLY")) {
-      freqStr = interval === 1 ? "weekly" : `every ${interval} weeks`;
-    } else if (rrule.includes("FREQ=MONTHLY")) {
-      freqStr = interval === 1 ? "monthly" : `every ${interval} months`;
-    } else if (rrule.includes("FREQ=YEARLY") || rrule.includes("FREQ=ANNUALLY")) {
-      freqStr = interval === 1 ? "yearly" : `every ${interval} years`;
-    }
-  }
-
-  const startFormatted = startDate ? dateFormatter(startDate) : null;
-  const endFormatted = endDate ? dateFormatter(endDate) : null;
-
-  if (startFormatted && endFormatted) {
-    return `${freqStr} from ${startFormatted} to ${endFormatted}`;
-  } else if (startFormatted) {
-    return `${freqStr} from ${startFormatted}`;
-  }
-  return freqStr;
-}
+import { IncomeSchedulesCard } from "./components/IncomeSchedulesCard";
+import { BillSchedulesCard } from "./components/BillSchedulesCard";
+import { TimelineTabWrapper } from "./components/TimelineTabWrapper";
 
 function IncomeAndBillsContent() {
-  const { fmtDate } = useLocale();
   const searchParams = useSearchParams();
-  const poolIdParam = searchParams.get("poolId") || searchParams.get("id") || "";
-  const categoryIdParam = searchParams.get("categoryId") || "";
   const rawTab = searchParams.get("tab");
   const tabParam = rawTab === "MATRIX" ? "EVENTS" : (rawTab || "EVENTS");
-  const typeParam = (searchParams.get("type") || "ALL").toUpperCase();
-  const searchParam = searchParams.get("search") || "";
 
   const router = useRouter();
   const [activeTab, setActiveTab] = useState(tabParam);
   const [isTransferDrawerOpen, setIsTransferDrawerOpen] = useState(false);
+  const [isIncomeModalOpen, setIsIncomeModalOpen] = useState(false);
+  const [incomeToEdit, setIncomeToEdit] = useState<IncomeSourceToEdit | undefined>(undefined);
+  const [isOneOffModalOpen, setIsOneOffModalOpen] = useState(false);
+
+  const [setupSearchQuery, setSetupSearchQuery] = useState("");
+  const [setupScopeFilter, setSetupScopeFilter] = useState<"ALL" | "SHARED" | "PRIVATE">("ALL");
 
   React.useEffect(() => {
     if (rawTab === "MATRIX") {
       router.replace("/dashboard/income-split");
       return;
     }
-    if (tabParam) {
-      setActiveTab(tabParam);
-    }
+    if (tabParam) setActiveTab(tabParam);
   }, [rawTab, tabParam, router]);
-  const toast = useToast();
-  const utils = trpc.useUtils();
 
   const poolsQuery = trpc.listPools.useQuery();
   const categoriesQuery = trpc.listCategories.useQuery();
   const bankAccountsQuery = trpc.listBankAccounts.useQuery();
   const incomeSourcesQuery = trpc.listIncomeSources.useQuery();
-  const expenseSourcesQuery = trpc.listExpenseSources.useQuery();
+  const billSchedulesQuery = trpc.listBillSchedules.useQuery();
   const incomeEventsQuery = trpc.listIncomeEvents.useQuery();
   const expenseEventsQuery = trpc.listExpenseEvents.useQuery();
   const transferEventsQuery = trpc.listTransferEvents.useQuery();
@@ -102,171 +51,45 @@ function IncomeAndBillsContent() {
     categoriesQuery.isLoading ||
     bankAccountsQuery.isLoading ||
     incomeSourcesQuery.isLoading ||
-    expenseSourcesQuery.isLoading ||
+    billSchedulesQuery.isLoading ||
     incomeEventsQuery.isLoading ||
     expenseEventsQuery.isLoading ||
     transferEventsQuery.isLoading;
 
-  const rawPools = poolsQuery.data;
-  const rawBankAccounts = bankAccountsQuery.data;
-  const rawIncomeSources = incomeSourcesQuery.data;
-  const rawExpenseSources = expenseSourcesQuery.data;
-
-  const pools = useMemo(() => rawPools || [], [rawPools]);
-  const bankAccounts = useMemo(() => rawBankAccounts || [], [rawBankAccounts]);
-  const incomeSources = useMemo(() => rawIncomeSources || [], [rawIncomeSources]);
-  const expenseSources = useMemo(() => rawExpenseSources || [], [rawExpenseSources]);
-
-  const rawIncomeEvents = incomeEventsQuery.data;
-  const rawExpenseEvents = expenseEventsQuery.data;
-  const rawTransferEvents = transferEventsQuery.data;
-
-  const incomeEvents = useMemo(() => rawIncomeEvents || [], [rawIncomeEvents]);
-  const expenseEvents = useMemo(() => rawExpenseEvents || [], [rawExpenseEvents]);
-  const transferEvents = useMemo(() => rawTransferEvents || [], [rawTransferEvents]);
+  const pools = useMemo(() => poolsQuery.data || [], [poolsQuery.data]);
+  const categories = useMemo(() => categoriesQuery.data || [], [categoriesQuery.data]);
+  const bankAccounts = useMemo(() => bankAccountsQuery.data || [], [bankAccountsQuery.data]);
+  const incomeSources = useMemo(() => incomeSourcesQuery.data || [], [incomeSourcesQuery.data]);
+  const billSchedules = useMemo(() => billSchedulesQuery.data || [], [billSchedulesQuery.data]);
+  const incomeEvents = useMemo(() => incomeEventsQuery.data || [], [incomeEventsQuery.data]);
+  const expenseEvents = useMemo(() => expenseEventsQuery.data || [], [expenseEventsQuery.data]);
+  const transferEvents = useMemo(() => transferEventsQuery.data || [], [transferEventsQuery.data]);
 
   const savedIncomeEventIds = useMemo(() => {
     const set = new Set<string>();
     if (allPlansQuery.data) {
       for (const plan of allPlansQuery.data) {
-        if (plan.status !== "CONFIRMED") {
-          set.add(plan.incomeEventId);
-        }
+        if (plan.status !== "CONFIRMED") set.add(plan.incomeEventId);
       }
     }
     return set;
   }, [allPlansQuery.data]);
 
-  // Modal State
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [modalMode, setModalMode] = useState<"INCOME" | "EXPENSE">("INCOME");
-  const [sourceToEdit, setSourceToEdit] = useState<React.ComponentProps<typeof IncomeExpenseFormModal>["sourceToEdit"]>(undefined);
-
-  // Setup Tab State (Search & Scope Filter)
-  const [setupSearchQuery, setSetupSearchQuery] = useState("");
-  const [setupScopeFilter, setSetupScopeFilter] = useState<"ALL" | "SHARED" | "PRIVATE">("ALL");
-  const [selectedIncomeBankAccountId, setSelectedIncomeBankAccountId] = useState("");
-  const [selectedExpensePoolId, setSelectedExpensePoolId] = useState("");
-
-  // Setup Tables Sorting State
-  const [incSortField, setIncSortField] = useState<"name" | "account" | "amount">("name");
-  const [incSortOrder, setIncSortOrder] = useState<"asc" | "desc">("asc");
-  const [expSortField, setExpSortField] = useState<"name" | "pool" | "amount">("name");
-  const [expSortOrder, setExpSortOrder] = useState<"asc" | "desc">("asc");
-
-  const { widths: setupWidths, onMouseDown: onSetupMouseDown } = useResizableColumns({
-    name: 220,
-    accountOrPool: 180,
-    amount: 120,
-  });
-
-  // Action Mutations
-  const markExpensePaidMut = trpc.markExpensePaid.useMutation();
-  const deleteIncomeMut = trpc.deleteIncomeEvent.useMutation();
-  const deleteExpenseMut = trpc.deleteExpenseEvent.useMutation();
-  const executeTransferEventMut = trpc.executeTransferEvent.useMutation();
-  const deleteTransferEventMut = trpc.deleteTransferEvent.useMutation();
-  const updateTransferEventMut = trpc.updateTransferEvent.useMutation();
-  const moveMoneyMut = trpc.moveMoney.useMutation();
-
-  // Setup Tab Filtered & Sorted Income Schedules
-  const filteredIncomeSources = useMemo(() => {
-    let result = incomeSources.map((inc) => {
-      const acct = bankAccounts.find((b) => b.id === inc.receivingAccountId);
-      return {
-        ...inc,
-        accountName: acct?.name || "Main Account",
-        isPrivate: acct?.isPrivate || false,
-      };
-    });
-
-    if (setupScopeFilter === "PRIVATE") result = result.filter((inc) => inc.isPrivate);
-    if (setupScopeFilter === "SHARED") result = result.filter((inc) => !inc.isPrivate);
-
-    if (selectedIncomeBankAccountId) {
-      result = result.filter((inc) => inc.receivingAccountId === selectedIncomeBankAccountId);
-    }
-
-    if (setupSearchQuery.trim()) {
-      const q = setupSearchQuery.toLowerCase().trim();
-      result = result.filter(
-        (inc) =>
-          inc.name.toLowerCase().includes(q) ||
-          inc.accountName.toLowerCase().includes(q) ||
-          String(inc.amount).includes(q)
-      );
-    }
-
-    return result.sort((a, b) => {
-      let comp = 0;
-      if (incSortField === "name") comp = a.name.localeCompare(b.name);
-      else if (incSortField === "account") comp = a.accountName.localeCompare(b.accountName);
-      else if (incSortField === "amount") comp = parseFloat(a.amount) - parseFloat(b.amount);
-      return incSortOrder === "asc" ? comp : -comp;
-    });
-  }, [incomeSources, bankAccounts, setupScopeFilter, selectedIncomeBankAccountId, setupSearchQuery, incSortField, incSortOrder]);
-
-  // Setup Tab Filtered & Sorted Expense Schedules
-  const filteredExpenseSources = useMemo(() => {
-    let result = expenseSources.map((exp) => {
-      const pool = pools.find((p) => p.id === (exp.poolId || exp.categoryId));
-      return {
-        ...exp,
-        poolName: exp.poolName || pool?.name || "Uncategorized",
-        isPrivate: pool?.isPrivate || false,
-      };
-    });
-
-    if (setupScopeFilter === "PRIVATE") result = result.filter((exp) => exp.isPrivate);
-    if (setupScopeFilter === "SHARED") result = result.filter((exp) => !exp.isPrivate);
-
-    if (selectedExpensePoolId) {
-      result = result.filter((exp) => (exp.poolId || exp.categoryId) === selectedExpensePoolId);
-    }
-
-    if (setupSearchQuery.trim()) {
-      const q = setupSearchQuery.toLowerCase().trim();
-      result = result.filter(
-        (exp) =>
-          exp.name.toLowerCase().includes(q) ||
-          exp.poolName.toLowerCase().includes(q) ||
-          String(exp.amount).includes(q)
-      );
-    }
-
-    return result.sort((a, b) => {
-      let comp = 0;
-      if (expSortField === "name") comp = a.name.localeCompare(b.name);
-      else if (expSortField === "pool") comp = a.poolName.localeCompare(b.poolName);
-      else if (expSortField === "amount") comp = parseFloat(a.amount) - parseFloat(b.amount);
-      return expSortOrder === "asc" ? comp : -comp;
-    });
-  }, [expenseSources, pools, setupScopeFilter, selectedExpensePoolId, setupSearchQuery, expSortField, expSortOrder]);
-
   if (isLoading) {
-    return (
-      <div className="flex h-96 items-center justify-center">
-        <Spinner />
-      </div>
-    );
+    return <div className="flex h-96 items-center justify-center"><Spinner /></div>;
   }
 
   return (
-    <div className="flex flex-col gap-6">
-      {/* Header */}
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <div className="flex items-center gap-2">
-          <h1 className="text-2xl font-black text-[#1B2B4B]">{t("nav.paychecks")}</h1>
-          <InfoTooltip
-            title={t("nav.paychecks")}
-            content={t("tooltips.incomeBills.content")}
-          />
+    <div className="space-y-6">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-black text-[#1B2B4B] dark:text-white tracking-tight">Income Schedules &amp; Bills</h1>
+          <p className="text-xs text-zinc-500 font-semibold mt-1">Manage scheduled income and track upcoming bill events.</p>
         </div>
-
         <div className="flex items-center gap-2">
           <Link
             href="/dashboard/income-split"
-            className="px-4 py-2.5 rounded-xl font-bold text-xs bg-blue-50 dark:bg-blue-950/60 text-[#2563eb] dark:text-blue-300 hover:bg-blue-100 border border-blue-200 dark:border-blue-800 transition-all flex items-center gap-1.5 shadow-2xs"
+            className="px-4 py-2.5 rounded-xl font-bold text-xs bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-100 border border-emerald-200 dark:border-emerald-800 transition-all flex items-center gap-2 shadow-2xs"
           >
             <span>📅</span>
             <span>{t("incomeBillsTabs.twelveMonthIncomeSplit")}</span>
@@ -285,7 +108,7 @@ function IncomeAndBillsContent() {
       <Tabs
         tabs={[
           { id: "EVENTS", label: t("transactions.tabs.pendingList") },
-          { id: "STREAMS", label: t("transactions.tabs.setup") },
+          { id: "STREAMS", label: "Income Schedules" },
         ]}
         activeTab={activeTab}
         onChange={setActiveTab}
@@ -293,559 +116,102 @@ function IncomeAndBillsContent() {
 
       {activeTab === "STREAMS" && (
         <div className="space-y-6">
-          {/* Top Control Bar: Unified Search + Scope Filter */}
           <div className="flex flex-wrap items-center justify-between gap-4 p-4 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl shadow-xs">
             <div className="flex-1 w-full max-w-full">
-              <SearchInput
-                value={setupSearchQuery}
-                onChange={setSetupSearchQuery}
-                placeholder="Search income or expense schedules..."
-              />
+              <SearchInput value={setupSearchQuery} onChange={setSetupSearchQuery} placeholder="Search income or bill schedules..." />
             </div>
-
-            {/* Scope Filter Pills */}
             <div className="flex items-center gap-1 bg-zinc-100 dark:bg-zinc-800 p-1 rounded-xl">
-              <button
-                type="button"
-                onClick={() => setSetupScopeFilter("ALL")}
-                className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all ${
-                  setupScopeFilter === "ALL"
-                    ? "bg-white dark:bg-zinc-900 text-[#1B2B4B] dark:text-white shadow-xs"
-                    : "text-zinc-500 hover:text-zinc-900 dark:hover:text-white"
-                }`}
-              >
-                All
-              </button>
-              <button
-                type="button"
-                onClick={() => setSetupScopeFilter("SHARED")}
-                className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all ${
-                  setupScopeFilter === "SHARED"
-                    ? "bg-white dark:bg-zinc-900 text-[#1B2B4B] dark:text-white shadow-xs"
-                    : "text-zinc-500 hover:text-zinc-900 dark:hover:text-white"
-                }`}
-              >
-                Shared
-              </button>
-              <button
-                type="button"
-                onClick={() => setSetupScopeFilter("PRIVATE")}
-                className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all ${
-                  setupScopeFilter === "PRIVATE"
-                    ? "bg-white dark:bg-zinc-900 text-[#1B2B4B] dark:text-white shadow-xs"
-                    : "text-zinc-500 hover:text-zinc-900 dark:hover:text-white"
-                }`}
-              >
-                Private
-              </button>
+              {(["ALL", "SHARED", "PRIVATE"] as const).map((sc) => (
+                <button
+                  key={sc}
+                  type="button"
+                  onClick={() => setSetupScopeFilter(sc)}
+                  className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all ${
+                    setupScopeFilter === sc
+                      ? "bg-white dark:bg-zinc-900 text-[#1B2B4B] dark:text-white shadow-xs"
+                      : "text-zinc-500 hover:text-zinc-900 dark:hover:text-white"
+                  }`}
+                >
+                  {sc === "ALL" ? "All" : sc === "SHARED" ? "Shared" : "Private"}
+                </button>
+              ))}
             </div>
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* Income Schedules Card */}
-            <div className="p-6 bg-white/80 dark:bg-zinc-900/80 backdrop-blur-md rounded-2xl border border-zinc-200 dark:border-zinc-800 shadow-sm flex flex-col justify-between">
-              <div>
-                {/* Row 1: Title & Add Button */}
-                <div className="flex items-center justify-between gap-3 mb-3">
-                  <h3 className="font-bold text-[#1B2B4B] dark:text-white text-base">Income Schedules</h3>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setModalMode("INCOME");
-                      setSourceToEdit(undefined);
-                      setIsModalOpen(true);
-                    }}
-                    className="px-3.5 py-2 bg-[#2563eb] text-white rounded-xl font-bold text-xs shadow-2xs hover:bg-[#1d4ed8] transition-colors shrink-0 cursor-pointer"
-                  >
-                    + Add Income Schedule
-                  </button>
-                </div>
-
-                {/* Row 2: Bank Account Filter (Right-aligned, matching style & width) */}
-                <div className="flex justify-end mb-4">
-                  <div className="w-64 sm:w-72 text-xs">
-                    <select
-                      value={selectedIncomeBankAccountId}
-                      onChange={(e) => setSelectedIncomeBankAccountId(e.target.value)}
-                      className="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-left text-xs font-medium text-slate-900 transition-colors cursor-pointer dark:border-slate-800 dark:bg-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#2563eb]"
-                    >
-                      <option value="">All Bank Accounts</option>
-                      {bankAccounts.map((b) => (
-                        <option key={b.id} value={b.id}>
-                          {b.name}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
-
-                {filteredIncomeSources.length === 0 ? (
-                  <div className="py-8 text-center text-xs font-semibold text-zinc-400">
-                    No income schedules found matching filters.
-                  </div>
-                ) : (
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-left border-collapse">
-                      <thead>
-                        <tr className="bg-slate-50/80 dark:bg-zinc-800/80 border-b border-zinc-200/80 dark:border-zinc-700/80 text-[10px] font-bold text-zinc-400 uppercase tracking-wider">
-                          <ResizableTh
-                            width={setupWidths.name}
-                            onResizeMouseDown={(e: React.MouseEvent) => onSetupMouseDown("name", e)}
-                            className="py-2 px-3 text-left"
-                          >
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setIncSortField("name");
-                                setIncSortOrder((prev) => (prev === "asc" ? "desc" : "asc"));
-                              }}
-                              className="flex items-center gap-1 font-bold hover:text-zinc-700"
-                            >
-                              <span>{t("tables.scheduleName")}</span>
-                              {incSortField === "name" && (incSortOrder === "asc" ? "↑" : "↓")}
-                            </button>
-                          </ResizableTh>
-                          <ResizableTh
-                            width={setupWidths.accountOrPool}
-                            onResizeMouseDown={(e: React.MouseEvent) => onSetupMouseDown("accountOrPool", e)}
-                            className="py-2 px-3 text-left"
-                          >
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setIncSortField("account");
-                                setIncSortOrder((prev) => (prev === "asc" ? "desc" : "asc"));
-                              }}
-                              className="flex items-center gap-1 font-bold hover:text-zinc-700"
-                            >
-                              <span>{t("tables.bankAccountUpper")}</span>
-                              {incSortField === "account" && (incSortOrder === "asc" ? "↑" : "↓")}
-                            </button>
-                          </ResizableTh>
-                          <ResizableTh
-                            width={setupWidths.amount}
-                            onResizeMouseDown={(e: React.MouseEvent) => onSetupMouseDown("amount", e)}
-                            className="py-2 px-3 text-right"
-                          >
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setIncSortField("amount");
-                                setIncSortOrder((prev) => (prev === "asc" ? "desc" : "asc"));
-                              }}
-                              className="flex items-center gap-1 justify-end font-bold hover:text-zinc-700 w-full"
-                            >
-                              <span>{t("tables.amountUpper")}</span>
-                              {incSortField === "amount" && (incSortOrder === "asc" ? "↑" : "↓")}
-                            </button>
-                          </ResizableTh>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-zinc-100 dark:divide-zinc-800 text-xs">
-                        {filteredIncomeSources.map((inc) => (
-                          <tr key={inc.id} className="hover:bg-slate-50/50 dark:hover:bg-zinc-800/50 transition-colors">
-                            <td className="py-2.5 px-3 text-left">
-                              <div className="flex flex-col gap-0.5">
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    setModalMode("INCOME");
-                                    setSourceToEdit({
-                                      id: inc.id,
-                                      name: inc.name,
-                                      amount: inc.amount,
-                                      receivingAccountId: inc.receivingAccountId || undefined,
-                                      rrule: inc.rrule,
-                                      startDate: inc.startDate,
-                                      endDate: inc.endDate || undefined,
-                                    });
-                                    setIsModalOpen(true);
-                                  }}
-                                  className="font-bold text-[#2563eb] hover:underline text-left"
-                                >
-                                  {inc.name}
-                                </button>
-                                 <span className="text-[10px] text-zinc-400 font-medium">
-                                   {formatScheduleSummary({ rrule: inc.rrule, startDate: inc.startDate, endDate: inc.endDate }, fmtDate)}
-                                 </span>
-                              </div>
-                            </td>
-                            <td className="py-2.5 px-3 text-left text-zinc-600 dark:text-zinc-300 font-semibold text-[11px]">
-                              {inc.receivingAccountId ? (
-                                <Link
-                                  href={`/dashboard/settings?tab=bank-accounts&id=${inc.receivingAccountId}`}
-                                  className="font-bold text-[#2563eb] hover:underline inline-flex items-center gap-0.5"
-                                >
-                                  <span>{inc.accountName}</span>
-                                  <span className="text-[10px] text-blue-400">↗</span>
-                                </Link>
-                              ) : (
-                                inc.accountName
-                              )}
-                            </td>
-                            <td className="py-2.5 px-3 text-right font-mono font-bold text-emerald-600 dark:text-emerald-400 tabular-nums">
-                              +${parseFloat(inc.amount).toFixed(2)}
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* Expense Schedules Card */}
-            <div className="p-6 bg-white/80 dark:bg-zinc-900/80 backdrop-blur-md rounded-2xl border border-zinc-200 dark:border-zinc-800 shadow-sm flex flex-col justify-between">
-              <div>
-                {/* Row 1: Title & Add Button */}
-                <div className="flex items-center justify-between gap-3 mb-3">
-                  <h3 className="font-bold text-[#1B2B4B] dark:text-white text-base">Expense Schedules</h3>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setModalMode("EXPENSE");
-                      setSourceToEdit(undefined);
-                      setIsModalOpen(true);
-                    }}
-                    className="px-3.5 py-2 bg-[#1B2B4B] dark:bg-zinc-800 text-white rounded-xl font-bold text-xs shadow-2xs hover:bg-slate-800 transition-colors shrink-0 cursor-pointer"
-                  >
-                    + Add Expense Schedule
-                  </button>
-                </div>
-
-                {/* Row 2: Pool Picker Filter (Wider, right-aligned) */}
-                <div className="flex justify-end mb-4">
-                  <div className="w-64 sm:w-72 text-xs">
-                    <PoolPicker
-                      pools={pools.map((p) => ({
-                        id: p.id,
-                        name: p.name,
-                        poolType: p.poolType,
-                        currentBalance: p.currentBalance,
-                        isPrivate: p.isPrivate ?? undefined,
-                      }))}
-                      allowAllOption={true}
-                      selectedPoolId={selectedExpensePoolId || ""}
-                      allowCategorySelection={false}
-                      placeholder={t("common.allPools")}
-                      showBalance={false}
-                      onChange={(sel) => setSelectedExpensePoolId(sel.poolId)}
-                    />
-                  </div>
-                </div>
-
-                {filteredExpenseSources.length === 0 ? (
-                  <div className="py-8 text-center text-xs font-semibold text-zinc-400">
-                    No expense schedules found matching filters.
-                  </div>
-                ) : (
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-left border-collapse">
-                      <thead>
-                        <tr className="bg-slate-50/80 dark:bg-zinc-800/80 border-b border-zinc-200/80 dark:border-zinc-700/80 text-[10px] font-bold text-zinc-400 uppercase tracking-wider">
-                          <ResizableTh
-                            width={setupWidths.name}
-                            onResizeMouseDown={(e: React.MouseEvent) => onSetupMouseDown("name", e)}
-                            className="py-2 px-3 text-left"
-                          >
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setExpSortField("name");
-                                setExpSortOrder((prev) => (prev === "asc" ? "desc" : "asc"));
-                              }}
-                              className="flex items-center gap-1 font-bold hover:text-zinc-700"
-                            >
-                              <span>{t("tables.scheduleName")}</span>
-                              {expSortField === "name" && (expSortOrder === "asc" ? "↑" : "↓")}
-                            </button>
-                          </ResizableTh>
-                          <ResizableTh
-                            width={setupWidths.accountOrPool}
-                            onResizeMouseDown={(e: React.MouseEvent) => onSetupMouseDown("accountOrPool", e)}
-                            className="py-2 px-3 text-left"
-                          >
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setExpSortField("pool");
-                                setExpSortOrder((prev) => (prev === "asc" ? "desc" : "asc"));
-                              }}
-                              className="flex items-center gap-1 font-bold hover:text-zinc-700"
-                            >
-                              <span>{t("tables.assignedEnvelope")}</span>
-                              {expSortField === "pool" && (expSortOrder === "asc" ? "↑" : "↓")}
-                            </button>
-                          </ResizableTh>
-                          <ResizableTh
-                            width={setupWidths.amount}
-                            onResizeMouseDown={(e: React.MouseEvent) => onSetupMouseDown("amount", e)}
-                            className="py-2 px-3 text-right"
-                          >
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setExpSortField("amount");
-                                setExpSortOrder((prev) => (prev === "asc" ? "desc" : "asc"));
-                              }}
-                              className="flex items-center gap-1 justify-end font-bold hover:text-zinc-700 w-full"
-                            >
-                              <span>{t("tables.amountUpper")}</span>
-                              {expSortField === "amount" && (expSortOrder === "asc" ? "↑" : "↓")}
-                            </button>
-                          </ResizableTh>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-zinc-100 dark:divide-zinc-800 text-xs">
-                        {filteredExpenseSources.map((exp) => (
-                          <tr key={exp.id} className="hover:bg-slate-50/50 dark:hover:bg-zinc-800/50 transition-colors">
-                            <td className="py-2.5 px-3 text-left">
-                              <div className="flex flex-col gap-0.5">
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    setModalMode("EXPENSE");
-                                    setSourceToEdit({
-                                      id: exp.id,
-                                      name: exp.name,
-                                      amount: exp.amount,
-                                      poolId: exp.poolId || exp.categoryId || undefined,
-                                      rrule: exp.rrule,
-                                      startDate: exp.startDate,
-                                      endDate: exp.endDate || undefined,
-                                    });
-                                    setIsModalOpen(true);
-                                  }}
-                                  className="font-bold text-[#2563eb] hover:underline text-left"
-                                >
-                                  {exp.name}
-                                </button>
-                                 <span className="text-[10px] text-zinc-400 font-medium">
-                                   {formatScheduleSummary({ rrule: exp.rrule, startDate: exp.startDate, endDate: exp.endDate }, fmtDate)}
-                                 </span>
-                              </div>
-                            </td>
-                            <td className="py-2.5 px-3 text-left text-zinc-600 dark:text-zinc-300 font-semibold text-[11px]">
-                              {exp.poolId || exp.categoryId ? (
-                                <Link
-                                  href={`/dashboard/pools?poolId=${exp.poolId || exp.categoryId}`}
-                                  className="font-bold text-[#2563eb] hover:underline inline-flex items-center gap-0.5"
-                                >
-                                  <span>{exp.poolName}</span>
-                                  <span className="text-[10px] text-blue-400">↗</span>
-                                </Link>
-                              ) : (
-                                exp.poolName
-                              )}
-                            </td>
-                            <td className="py-2.5 px-3 text-right font-mono font-bold text-rose-600 dark:text-rose-400 tabular-nums">
-                              −${parseFloat(exp.amount).toFixed(2)}
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                )}
-              </div>
-            </div>
+            <IncomeSchedulesCard
+              incomeSources={incomeSources}
+              bankAccounts={bankAccounts}
+              searchQuery={setupSearchQuery}
+              scopeFilter={setupScopeFilter}
+              onAdd={() => { setIncomeToEdit(undefined); setIsIncomeModalOpen(true); }}
+              onEdit={(src) => { setIncomeToEdit(src); setIsIncomeModalOpen(true); }}
+            />
+            <BillSchedulesCard
+              billSchedules={billSchedules}
+              searchQuery={setupSearchQuery}
+              scopeFilter={setupScopeFilter}
+              onAddOneOff={() => setIsOneOffModalOpen(true)}
+              onViewSchedule={({ poolId }) => router.push(`/dashboard/pools?poolId=${poolId}`)}
+            />
           </div>
         </div>
       )}
 
       {activeTab === "EVENTS" && (
-        <div className="p-6 bg-white/80 dark:bg-zinc-900/80 backdrop-blur-md rounded-2xl border border-zinc-200 dark:border-zinc-800 shadow-sm">
-          <UpcomingTimelineTab
-            isLoading={isLoading}
-            savedIncomeEventIds={savedIncomeEventIds}
-            initialKindFilter={typeParam === "INCOME" || typeParam === "EXPENSE" || typeParam === "TRANSFER" ? typeParam : (poolIdParam || categoryIdParam ? "EXPENSE" : "ALL")}
-            initialSearchQuery={searchParam}
-            filterPoolId={poolIdParam || undefined}
-            filterCategoryId={categoryIdParam || undefined}
-            onClearFilter={() => {
-              const url = new URL(window.location.href);
-              url.searchParams.delete("poolId");
-              url.searchParams.delete("id");
-              url.searchParams.delete("categoryId");
-              router.push(url.pathname + (url.searchParams.toString() ? `?${url.searchParams.toString()}` : ""));
-            }}
-            incomeEvents={incomeEvents.map((e) => {
-              const rawAccount = e as unknown as { bankAccountId?: string; receivingAccountId?: string };
-              const receivingAccountId = rawAccount.bankAccountId || rawAccount.receivingAccountId;
-              const acct = bankAccounts.find((b) => b.id === receivingAccountId);
-              return {
-                ...e,
-                accountId: receivingAccountId || acct?.id,
-                name: (e as unknown as { name?: string; sourceName?: string }).name || e.sourceName || "Income Deposit",
-                accountName: acct?.name || "Bank Account",
-                isPrivate: acct?.isPrivate || false,
-              };
-            })}
-            expenseEvents={expenseEvents.map((e) => {
-              const pool = pools.find((p) => p.id === (e.poolId || e.categoryId));
-              const acct = bankAccounts.find((b) => b.id === pool?.bankAccountId);
-              return {
-                ...e,
-                poolId: pool?.id || e.poolId || e.categoryId,
-                accountId: acct?.id,
-                accountName: acct?.name,
-                name: e.name || "Scheduled Expense",
-                categoryName: pool?.name || "Pool",
-                isPrivate: pool?.isPrivate || false,
-              };
-            })}
-            transferEvents={transferEvents.map((e) => ({
+        <TimelineTabWrapper
+          isLoading={isLoading}
+          savedIncomeEventIds={savedIncomeEventIds}
+          incomeEvents={incomeEvents.map((e) => {
+            const src = incomeSources.find((s) => s.id === e.incomeSourceId);
+            const acct = bankAccounts.find((b) => b.id === src?.receivingAccountId);
+            return {
               ...e,
-              name: e.name || "Pool Transfer",
-              sourcePoolId: e.sourcePoolId,
-              sourcePoolName: e.sourcePoolName,
-              destinationPoolId: e.destinationPoolId,
-              destinationPoolName: e.destinationPoolName,
-            }))}
-            categories={pools.map((p) => ({
-              id: p.id,
-              name: p.name,
-              poolType: p.poolType,
-              currentBalance: parseFloat(String(p.currentBalance || "0")),
-              isSurplusTarget: p.isSurplusTarget,
-            }))}
-            pools={pools.map((p) => ({
-              id: p.id,
-              name: p.name,
-              poolType: p.poolType,
-              currentBalance: parseFloat(String(p.currentBalance || "0")),
-              isSurplusTarget: p.isSurplusTarget,
-              bankAccountId: p.bankAccountId,
-            }))}
-            onMarkExpensePaid={async (eventId, amount, date) => {
-              try {
-                const evtName = expenseEvents.find((e) => e.id === eventId)?.name;
-                await markExpensePaidMut.mutateAsync({
-                  eventId,
-                  amount: amount ? String(amount) : undefined,
-                  date: date || undefined,
-                  note: evtName ? `${evtName} (Paid on ${date})` : (date ? `Paid on ${date}` : undefined),
-                });
-                toast.success(t("toasts.expenseMarkedPaid"));
-                await utils.listExpenseEvents.invalidate();
-                await utils.listPools.invalidate();
-                await utils.listTransactions.invalidate();
-              } catch (err) {
-                toast.error(err instanceof Error ? err.message : "Failed to mark spent.");
-                throw err;
-              }
-            }}
-            onAllocateIncome={async (eventId) => {
-              router.push(`/dashboard/income-split?id=${eventId}&returnTo=/dashboard/income-and-bills`);
-            }}
-            onSkipExpense={async (eventId) => {
-              try {
-                await deleteExpenseMut.mutateAsync({ eventId });
-                toast.success(t("toasts.expenseDeleted"));
-                utils.listExpenseEvents.invalidate();
-              } catch (err) {
-                toast.error(err instanceof Error ? err.message : "Failed to delete.");
-              }
-            }}
-            onSkipIncome={async (eventId) => {
-              try {
-                await deleteIncomeMut.mutateAsync({ eventId });
-                toast.success(t("toasts.deleted"));
-                utils.listIncomeEvents.invalidate();
-              } catch (err) {
-                toast.error(err instanceof Error ? err.message : "Failed to delete.");
-              }
-            }}
-            onSkipTransfer={async (eventId) => {
-              try {
-                await deleteTransferEventMut.mutateAsync({ eventId });
-                toast.success(t("toasts.transferDeleted"));
-                utils.listTransferEvents.invalidate();
-              } catch (err) {
-                toast.error(err instanceof Error ? err.message : "Failed to delete.");
-              }
-            }}
-            onSaveTransferDraft={async (params) => {
-              try {
-                await updateTransferEventMut.mutateAsync({
-                  eventId: params.eventId,
-                  name: params.name,
-                  amount: params.amount,
-                  expectedDate: params.expectedDate,
-                });
-                toast.success(t("toasts.transferSaved"));
-                utils.listTransferEvents.invalidate();
-              } catch (err) {
-                toast.error(err instanceof Error ? err.message : "Failed to save transfer.");
-              }
-            }}
-            onExecuteTransfer={async (eventId, amount, name, sourcePoolId, destinationPoolId) => {
-              try {
-                await executeTransferEventMut.mutateAsync({
-                  eventId,
-                  amount,
-                  name,
-                  sourcePoolId,
-                  destinationPoolId,
-                });
-                toast.success(t("toasts.transferCompleted"));
-                utils.listTransferEvents.invalidate();
-                utils.listPools.invalidate();
-                utils.listTransactions.invalidate();
-              } catch (err) {
-                toast.error(err instanceof Error ? err.message : "Failed to execute transfer.");
-              }
-            }}
-            onOpenTransferModalWithData={() => {
-              setIsTransferDrawerOpen(true);
-            }}
-            onConfirmTransferAndPay={async (transfers, destinationCategoryId) => {
-              if (!destinationCategoryId) {
-                toast.error("Invalid target pool for transfer.");
-                throw new Error("Invalid target pool for transfer.");
-              }
-              const validTransfers = transfers.filter((t) => parseFloat(t.amount) > 0);
-              if (validTransfers.length === 0) return;
-              try {
-                await Promise.all(
-                  validTransfers.map((t) =>
-                    moveMoneyMut.mutateAsync({
-                      sourcePoolId: t.poolId,
-                      destinationPoolId: destinationCategoryId,
-                      amount: t.amount,
-                      note: "Shortfall Top Up",
-                    })
-                  )
-                );
-                await utils.listPools.invalidate();
-                await utils.listTransactions.invalidate();
-              } catch (err) {
-                toast.error(err instanceof Error ? err.message : "Failed to execute transfers.");
-                throw err;
-              }
-            }}
-          />
-        </div>
+              accountId: acct?.id,
+              name: (e as unknown as { name?: string }).name || e.sourceName || "Income Deposit",
+              accountName: acct?.name || "Bank Account",
+              isPrivate: acct?.isPrivate || false,
+            };
+          })}
+          expenseEvents={expenseEvents.map((e) => {
+            const pool = pools.find((p) => p.id === (e.poolId || e.categoryId));
+            const acct = bankAccounts.find((b) => b.id === pool?.bankAccountId);
+            return {
+              ...e,
+              poolId: pool?.id || e.poolId || e.categoryId,
+              accountId: acct?.id,
+              accountName: acct?.name,
+              name: e.name || "Scheduled Expense",
+              categoryName: pool?.name || "Pool",
+              isPrivate: pool?.isPrivate || false,
+            };
+          })}
+          transferEvents={transferEvents.map((e) => ({ ...e, name: e.name || "Pool Transfer" }))}
+          categories={pools.map((p) => ({ id: p.id, name: p.name, poolType: p.poolType, currentBalance: parseFloat(String(p.currentBalance || "0")), isSurplusTarget: p.isSurplusTarget }))}
+          pools={pools.map((p) => ({ id: p.id, name: p.name, poolType: p.poolType, currentBalance: parseFloat(String(p.currentBalance || "0")), isSurplusTarget: p.isSurplusTarget, bankAccountId: p.bankAccountId }))}
+          onOpenTransferDrawer={() => setIsTransferDrawerOpen(true)}
+        />
       )}
 
-      {isModalOpen && (
-        <IncomeExpenseFormModal
-          isOpen={isModalOpen}
-          onClose={() => {
-            setIsModalOpen(false);
-            setSourceToEdit(undefined);
-          }}
-          mode={modalMode}
-          sourceToEdit={sourceToEdit}
+      {isIncomeModalOpen && (
+        <IncomeFormModal
+          isOpen={isIncomeModalOpen}
+          onClose={() => { setIsIncomeModalOpen(false); setIncomeToEdit(undefined); }}
+          sourceToEdit={incomeToEdit}
+        />
+      )}
+
+      {isOneOffModalOpen && (
+        <OneOffExpenseModal
+          isOpen={isOneOffModalOpen}
+          onClose={() => setIsOneOffModalOpen(false)}
+          pools={pools}
+          categories={categories}
         />
       )}
 
       {isTransferDrawerOpen && (
-        <QuickExpenseDrawer
-          initialTab="TRANSFER"
-          onClose={() => setIsTransferDrawerOpen(false)}
-        />
+        <QuickExpenseDrawer initialTab="TRANSFER" onClose={() => setIsTransferDrawerOpen(false)} />
       )}
     </div>
   );

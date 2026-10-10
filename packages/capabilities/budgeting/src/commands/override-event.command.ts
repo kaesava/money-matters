@@ -1,4 +1,4 @@
-import { incomeEvents, expenseEvents, incomeSources, expenseSources, DbOrTx } from "@money-matters/db";
+import { incomeEvents, expenseEvents, incomeSources, categories, DbOrTx } from "@money-matters/db";
 import { eq, and } from "drizzle-orm";
 import { z } from "zod";
 import { OverrideEventCommand } from "@money-matters/types";
@@ -102,7 +102,8 @@ export async function overrideEventCommand(
     } else {
       const [existingEvt] = await tx
         .select({
-          expenseSourceId: expenseEvents.expenseSourceId,
+          isScheduled: expenseEvents.isScheduled,
+          categoryId: expenseEvents.categoryId,
           expectedDate: expenseEvents.expectedDate,
           expectedAmount: expenseEvents.expectedAmount,
         })
@@ -116,7 +117,7 @@ export async function overrideEventCommand(
         )
         .limit(1);
 
-      const isScheduled = Boolean(existingEvt?.expenseSourceId);
+      const isScheduled = Boolean(existingEvt?.isScheduled);
       const setPayload: Record<string, unknown> = {
         updatedBy: userId,
         updatedAt: new Date(),
@@ -160,24 +161,24 @@ export async function overrideEventCommand(
 
       if (!updatedEvent) throw new Error("Expense event not found.");
 
-      if (input.updateSeries && updatedEvent.expenseSourceId && (input.amount || input.expectedAmount)) {
-        const sourcePayload: Record<string, unknown> = {
-          amount: input.expectedAmount || input.amount,
+      if (input.updateSeries && updatedEvent.categoryId && (input.amount || input.expectedAmount)) {
+        const catPayload: Record<string, unknown> = {
+          enteredAmount: input.expectedAmount || input.amount,
+          monthlyAmount: input.expectedAmount || input.amount,
           updatedBy: userId,
           updatedAt: new Date(),
         };
-        if (input.name) sourcePayload.name = input.name;
-        if (input.poolId) sourcePayload.poolId = input.poolId;
-        if (input.categoryId) sourcePayload.categoryId = input.categoryId;
+        if (input.name) catPayload.name = input.name;
+        if (input.poolId) catPayload.poolId = input.poolId;
 
         await tx
-          .update(expenseSources)
-          .set(sourcePayload)
+          .update(categories)
+          .set(catPayload)
           .where(
             and(
-              eq(expenseSources.id, updatedEvent.expenseSourceId),
-              eq(expenseSources.tenantId, tenantId),
-              eq(expenseSources.appId, appId)
+              eq(categories.id, updatedEvent.categoryId),
+              eq(categories.tenantId, tenantId),
+              eq(categories.appId, appId)
             )
           );
       }

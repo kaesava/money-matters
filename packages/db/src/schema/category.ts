@@ -18,6 +18,11 @@ export const categories = pgTable("categories", {
   isEssential: boolean("is_essential").default(false).notNull(),
   icon: varchar("icon", { length: 100 }),
 
+  // Bill-specific schedule fields
+  startDate: varchar("start_date", { length: 50 }),
+  endDate: varchar("end_date", { length: 50 }),
+  rrule: varchar("rrule", { length: 255 }),
+
   ...tenantAndTimestamps,
 });
 

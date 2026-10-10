@@ -17,7 +17,7 @@ export interface BurstEventItem {
   actualAmount?: string | null;
   status: string;
   incomeSourceId?: string | null;
-  expenseSourceId?: string | null;
+  categoryId?: string | null;
   name?: string | null;
   note?: string | null;
 }

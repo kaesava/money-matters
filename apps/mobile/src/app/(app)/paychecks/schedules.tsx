@@ -81,7 +81,6 @@ export default function RecurringSchedulesScreen() {
         expectedAmount: evt.expectedAmount,
         actualAmount: null,
         status: evt.status,
-        expenseSourceId: evt.expenseSourceId,
         name: evt.name,
         note: null,
       }));

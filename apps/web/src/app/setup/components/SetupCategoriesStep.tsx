@@ -1,7 +1,7 @@
 import React, { useState, useId } from "react";
 import { t } from "@money-matters/i18n";
 import { EstimatedCategoryItem } from "@money-matters/types";
-import { InfoTooltip, Button, AmountField } from "@money-matters/ui/web";
+import { InfoTooltip, Button, AmountField, EnvelopeExplainer } from "@money-matters/ui/web";
 import { UserGoalItem } from "./SetupGoalsStep";
 
 interface SetupCategoriesStepProps {
@@ -108,13 +108,12 @@ export function SetupCategoriesStep({
       </div>
 
       {warningMsg && (
-        <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl text-xs font-bold text-amber-800 flex items-center justify-between shadow-xs">
-          <span>⚠️ {warningMsg}</span>
-          <button type="button" onClick={() => setWarningMsg(null)} className="text-amber-600 hover:text-amber-900">
-            ✕
-          </button>
+        <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl text-xs font-semibold text-amber-900 shadow-xs">
+          ⚠️ {warningMsg}
         </div>
       )}
+
+      <EnvelopeExplainer compact className="mb-1" />
 
       {/* Top Waterfall Summary Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">

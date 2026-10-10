@@ -45,6 +45,7 @@ export const UpdateBankAccountCommand = z.object({
 export const CreatePoolCommand = z.object({
   name: z.string().min(1, "Pool name is required"),
   poolType: z.enum(["EVERYDAY", "REGULAR", "GOAL"]),
+  goalMode: z.enum(["TARGET_DATE", "ONGOING"]).optional().default("TARGET_DATE"),
   bankAccountId: z.string().uuid("Please select a bank account"),
   everydayAllowanceAmount: z.string().regex(/^(\d{1,12}(\.\d{1,2})?)?$/, { message: "Amount must be a valid positive number" }).optional().nullable(),
   safetyBufferFloor: z.string().regex(/^(\d{1,12}(\.\d{1,2})?)?$/, { message: "Safety buffer must be a valid positive number" }).optional().nullable(),
@@ -61,10 +62,10 @@ export const CreatePoolCommand = z.object({
         path: ["targetAmount"],
       });
     }
-    if (!data.targetDate) {
+    if (data.goalMode === "TARGET_DATE" && !data.targetDate) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
-        message: "Completion date is required for Goal pools",
+        message: "Completion date is required for Target Date Goal pools",
         path: ["targetDate"],
       });
     }
@@ -73,6 +74,7 @@ export const CreatePoolCommand = z.object({
 
 export const UpdatePoolCommand = z.object({
   name: z.string().min(1, "Pool name is required").optional(),
+  goalMode: z.enum(["TARGET_DATE", "ONGOING"]).optional(),
   everydayAllowanceAmount: z.string().regex(/^(\d{1,12}(\.\d{1,2})?)?$/, { message: "Amount must be a valid positive number" }).optional().nullable(),
   safetyBufferFloor: z.string().regex(/^(\d{1,12}(\.\d{1,2})?)?$/, { message: "Safety buffer must be a valid positive number" }).optional().nullable(),
   targetAmount: z.string().regex(/^(\d{1,12}(\.\d{1,2})?)?$/, { message: "Target amount must be a valid positive number" }).optional().nullable(),
@@ -89,6 +91,9 @@ export const CreateCategoryCommand = z.object({
   enteredAmount: z.string().regex(/^(\d{1,12}(\.\d{1,2})?)?$/, { message: "Target amount must be a valid positive number" }).optional().nullable(),
   budgetFrequency: z.enum(["WEEKLY", "FORTNIGHTLY", "MONTHLY", "ANNUALLY"]).optional(),
   icon: z.string().optional().nullable(),
+  startDate: z.string().optional().nullable(),
+  endDate: z.string().optional().nullable(),
+  rrule: z.string().optional().nullable(),
 }).strict();
 
 export const UpdateCategoryCommand = z.object({
@@ -98,6 +103,9 @@ export const UpdateCategoryCommand = z.object({
   enteredAmount: z.string().regex(/^(\d{1,12}(\.\d{1,2})?)?$/, { message: "Target amount must be a valid positive number" }).optional().nullable(),
   budgetFrequency: z.enum(["WEEKLY", "FORTNIGHTLY", "MONTHLY", "ANNUALLY"]).optional(),
   icon: z.string().optional().nullable(),
+  startDate: z.string().optional().nullable(),
+  endDate: z.string().optional().nullable(),
+  rrule: z.string().optional().nullable(),
 }).strict();
 
 export const CreateIncomeSourceCommand = z.object({
@@ -309,6 +317,7 @@ export const SaveSetupBudgetCommand = z.object({
     bankAccountId: z.string().optional().nullable(),
     name: z.string().min(1).max(100),
     poolType: z.enum(["EVERYDAY", "REGULAR", "GOAL"]),
+    goalMode: z.enum(["TARGET_DATE", "ONGOING"]).optional(),
     targetAmount: z.string().regex(/^(\d{1,12}(\.\d{1,2})?)?$/).optional().nullable(),
     targetDate: z.string().optional().nullable(),
     everydayAllowanceAmount: z.string().regex(/^(\d{1,12}(\.\d{1,2})?)?$/).optional().nullable(),
@@ -327,6 +336,9 @@ export const SaveSetupBudgetCommand = z.object({
     enteredAmount: z.string().regex(/^(\d{1,12}(\.\d{1,2})?)?$/).optional().nullable(),
     budgetFrequency: z.enum(["WEEKLY", "FORTNIGHTLY", "MONTHLY", "ANNUALLY"]).default("MONTHLY"),
     isEssential: z.boolean().default(false),
+    startDate: z.string().optional().nullable(),
+    endDate: z.string().optional().nullable(),
+    rrule: z.string().optional().nullable(),
   })),
   archivedPools: z.array(z.object({
     poolId: z.string(),
@@ -335,5 +347,14 @@ export const SaveSetupBudgetCommand = z.object({
   archivedCategoryIds: z.array(z.string()).default([]),
   archetypeApplied: z.enum(["AUSSIE_2_ACCOUNT", "COUPLES_HYBRID", "ALL_IN_ONE_CUSTOM"]).optional(),
   autoCreateExpenseSchedules: z.boolean().default(true),
+}).strict();
+
+export const CreateOneOffExpenseCommand = z.object({
+  poolId: z.string().uuid("Please select a pool"),
+  categoryId: z.string().uuid().optional().nullable(),
+  name: z.string().min(1, "Expense description is required"),
+  amount: z.string().regex(/^\d{1,12}(\.\d{1,2})?$/, "Amount must be a valid positive number").refine((val) => parseFloat(val) > 0, "Amount must be greater than 0"),
+  expectedDate: z.string().min(1, "Expected date is required"),
+  note: z.string().optional().nullable(),
 }).strict();
 

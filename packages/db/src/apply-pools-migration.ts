@@ -89,10 +89,6 @@ async function run() {
   `;
 
   await sql`
-    ALTER TABLE public.expense_sources ADD COLUMN IF NOT EXISTS pool_id uuid REFERENCES public.pools(id) ON DELETE CASCADE;
-  `;
-
-  await sql`
     ALTER TABLE public.transaction_ledger ADD COLUMN IF NOT EXISTS pool_id uuid REFERENCES public.pools(id) ON DELETE SET NULL;
   `;
 

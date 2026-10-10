@@ -35,7 +35,6 @@ export function MobileArchivedSection() {
         utils.listPools.invalidate(),
         utils.listCategories.invalidate(),
         utils.listIncomeSources.invalidate(),
-        utils.listExpenseSources.invalidate(),
         utils.listBankAccounts.invalidate(),
         utils.listBankAccountsWithExpected.invalidate(),
         utils.getMatrixProjectionData.invalidate(),

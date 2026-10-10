@@ -57,7 +57,7 @@ export function MobileBurstModal({
   const isIncome = mode === 'INCOME';
 
   const sourceEvents = events.filter((e) =>
-    isIncome ? e.incomeSourceId === source.id : e.expenseSourceId === source.id
+    isIncome ? e.incomeSourceId === source.id : e.categoryId === source.id
   );
 
   const startEdit = (evt: BurstEventItem) => {

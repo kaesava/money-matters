@@ -93,7 +93,7 @@ export function PaychecksModalManager({
   const updateTransferMut = trpc.updateTransferEvent.useMutation();
   const overrideEventMut = trpc.overrideEvent.useMutation();
   const archiveIncomeSourceMut = trpc.archiveIncomeSource.useMutation();
-  const archiveExpenseSourceMut = trpc.archiveExpenseSource.useMutation();
+  const archiveCategoryMut = trpc.archiveCategory.useMutation();
 
   return (
     <>
@@ -206,7 +206,7 @@ export function PaychecksModalManager({
           if (burstMode === 'INCOME') {
             await archiveIncomeSourceMut.mutateAsync({ id: src.id });
           } else {
-            await archiveExpenseSourceMut.mutateAsync({ id: src.id });
+            await archiveCategoryMut.mutateAsync({ categoryId: src.id });
           }
           onCloseBurst();
           await onRefresh();

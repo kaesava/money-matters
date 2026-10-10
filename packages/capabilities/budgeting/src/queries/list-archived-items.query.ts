@@ -1,4 +1,4 @@
-import { pools, categories, incomeSources, expenseSources, bankAccounts, DbOrTx } from "@money-matters/db";
+import { pools, categories, incomeSources, bankAccounts, DbOrTx } from "@money-matters/db";
 import { eq, and, sql } from "drizzle-orm";
 
 export async function listArchivedItemsQuery(
@@ -7,7 +7,7 @@ export async function listArchivedItemsQuery(
   dbClient: DbOrTx,
   userId?: string
 ) {
-  const [archivedPools, archivedCats, archivedIncome, archivedExpenses, archivedAccounts] = await Promise.all([
+  const [archivedPools, archivedCats, archivedIncome, archivedAccounts] = await Promise.all([
     dbClient
       .select({
         id: pools.id,
@@ -68,26 +68,6 @@ export async function listArchivedItemsQuery(
       ),
     dbClient
       .select({
-        id: expenseSources.id,
-        name: expenseSources.name,
-        itemType: sql<string>`'EXPENSE_SOURCE'`,
-        subtitle: expenseSources.amount,
-        archivedAt: expenseSources.archivedAt,
-        isPrivate: bankAccounts.isPrivate,
-        bankAccountUserId: bankAccounts.userId,
-      })
-      .from(expenseSources)
-      .innerJoin(pools, eq(expenseSources.poolId, pools.id))
-      .leftJoin(bankAccounts, eq(pools.bankAccountId, bankAccounts.id))
-      .where(
-        and(
-          eq(expenseSources.tenantId, tenantId),
-          eq(expenseSources.appId, appId),
-          sql`${expenseSources.archivedAt} IS NOT NULL`
-        )
-      ),
-    dbClient
-      .select({
         id: bankAccounts.id,
         name: bankAccounts.name,
         itemType: sql<string>`'BANK_ACCOUNT'`,
@@ -115,7 +95,6 @@ export async function listArchivedItemsQuery(
     ...filterVisible(archivedPools),
     ...filterVisible(archivedCats),
     ...filterVisible(archivedIncome),
-    ...filterVisible(archivedExpenses),
     ...filterVisible(archivedAccounts),
   ].map(({ id, name, itemType, subtitle, archivedAt }) => ({
     id,

@@ -4,7 +4,6 @@ import {
   categories, 
   incomeSources, 
   incomeEvents, 
-  expenseSources, 
   expenseEvents, 
   transactionLedger, 
   bankAccounts, 
@@ -87,7 +86,6 @@ export function deleteMyAccountHandler(db: DbOrTx) {
       await tx.delete(allocationPlans).where(and(eq(allocationPlans.tenantId, tenantId), eq(allocationPlans.appId, appId)));
 
       await tx.delete(expenseEvents).where(and(eq(expenseEvents.tenantId, tenantId), eq(expenseEvents.appId, appId)));
-      await tx.delete(expenseSources).where(and(eq(expenseSources.tenantId, tenantId), eq(expenseSources.appId, appId)));
 
       await tx.delete(incomeEvents).where(and(eq(incomeEvents.tenantId, tenantId), eq(incomeEvents.appId, appId)));
       await tx.delete(incomeSources).where(and(eq(incomeSources.tenantId, tenantId), eq(incomeSources.appId, appId)));

@@ -47,13 +47,12 @@ export function useQuickExpenseSubmissions({
     state.setIsSubmitting(true);
     try {
       if (state.date > state.todayStr) {
-        await state.createExpenseSourceMut.mutateAsync({
+        await state.createOneOffExpenseMut.mutateAsync({
           name: state.name.trim(),
           amount: numAmount.toFixed(2),
           poolId: state.selectedPoolId,
           categoryId: state.selectedSubCategoryId || undefined,
-          isRecurring: false,
-          startDate: state.date.trim(),
+          expectedDate: state.date.trim(),
         });
       } else {
         await state.recordExpenseMutation.mutateAsync({

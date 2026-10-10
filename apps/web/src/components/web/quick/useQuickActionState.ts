@@ -191,7 +191,7 @@ export function useQuickActionState(
     onError: (err) => setError(err.message),
   });
 
-  const createExpenseSourceMut = trpc.createExpenseSource.useMutation({
+  const createOneOffExpenseMut = trpc.createOneOffExpense.useMutation({
     onSuccess: () => handleDone(),
     onError: (err) => setError(err.message),
   });
@@ -210,7 +210,6 @@ export function useQuickActionState(
     utils.listPools.invalidate();
     utils.listCategories.invalidate();
     utils.listIncomeSources.invalidate();
-    utils.listExpenseSources.invalidate();
     utils.listIncomeEvents.invalidate();
     utils.listExpenseEvents.invalidate();
     utils.listTransferEvents.invalidate();
@@ -345,13 +344,12 @@ export function useQuickActionState(
 
 
       if (isFutureDate) {
-        createExpenseSourceMut.mutate({
+        createOneOffExpenseMut.mutate({
           name,
           amount: amountNum.toFixed(2),
           poolId: categoryId,
           categoryId: selectedSubCategoryId || undefined,
-          isRecurring: false,
-          startDate: date,
+          expectedDate: date,
         });
       } else {
         recordExpenseMutation.mutate({
@@ -394,7 +392,7 @@ export function useQuickActionState(
   const isSubmitting =
     recordExpenseMutation.isPending ||
     moveMoneyMutation.isPending ||
-    createExpenseSourceMut.isPending ||
+    createOneOffExpenseMut.isPending ||
     createIncomeSourceMut.isPending;
 
   return {

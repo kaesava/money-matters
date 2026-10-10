@@ -11,7 +11,6 @@ import {
   allocationPlans,
   allocationPlanLines,
   transactionLedger,
-  expenseSources,
   expenseEvents,
   transferSources,
   transferEvents,
@@ -158,7 +157,6 @@ export async function seedDatabase(connectionString: string, envLabel: string) {
   await db.delete(allocationPlanLines);
   await db.delete(allocationPlans);
   await db.delete(expenseEvents);
-  await db.delete(expenseSources);
   await db.delete(transferEvents);
   await db.delete(transferSources);
   await db.delete(incomeEvents);
@@ -357,6 +355,7 @@ export async function seedDatabase(connectionString: string, envLabel: string) {
     poolDefinitions.map((p) => ({
       name: p.name,
       poolType: p.poolType,
+      goalMode: (p as any).goalMode ?? (p.poolType === "GOAL" ? "TARGET_DATE" : undefined),
       bankAccountId: p.bankAccountId,
       everydayAllowanceAmount: p.everydayAllowanceAmount,
       safetyBufferFloor: (p as any).safetyBufferFloor ?? "0.00",
@@ -399,12 +398,12 @@ export async function seedDatabase(connectionString: string, envLabel: string) {
   ];
 
   const billsCategories = [
-    { name: "Home Loan Minimum Repayment", monthlyAmount: "0.00", enteredAmount: "0.00", budgetFrequency: "MONTHLY", isEssential: true, icon: "home" },
-    { name: "Personal Health Insurance (Couple) & Ambulance", monthlyAmount: "415.00", enteredAmount: "191.54", budgetFrequency: "FORTNIGHTLY", isEssential: true, icon: "heart-pulse" },
-    { name: "Gas & Electricity", monthlyAmount: "291.67", enteredAmount: "134.62", budgetFrequency: "FORTNIGHTLY", isEssential: true, icon: "zap" },
-    { name: "Mobile Phone, Home Phone & Internet", monthlyAmount: "220.00", enteredAmount: "101.54", budgetFrequency: "FORTNIGHTLY", isEssential: true, icon: "wifi" },
-    { name: "Water & Sewage", monthlyAmount: "133.33", enteredAmount: "61.54", budgetFrequency: "FORTNIGHTLY", isEssential: true, icon: "droplet" },
-    { name: "Charity / CareFlight", monthlyAmount: "39.00", enteredAmount: "18.00", budgetFrequency: "FORTNIGHTLY", isEssential: false, icon: "heart-handshake" },
+    { name: "Home Loan Minimum Repayment", monthlyAmount: "0.00", enteredAmount: "0.00", budgetFrequency: "MONTHLY", isEssential: true, icon: "home", startDate: "2026-07-01", rrule: "FREQ=MONTHLY;INTERVAL=1" },
+    { name: "Personal Health Insurance (Couple) & Ambulance", monthlyAmount: "415.00", enteredAmount: "191.54", budgetFrequency: "FORTNIGHTLY", isEssential: true, icon: "heart-pulse", startDate: "2026-07-02", rrule: "FREQ=WEEKLY;INTERVAL=2" },
+    { name: "Gas & Electricity", monthlyAmount: "291.67", enteredAmount: "134.62", budgetFrequency: "FORTNIGHTLY", isEssential: true, icon: "zap", startDate: "2026-07-02", rrule: "FREQ=WEEKLY;INTERVAL=2" },
+    { name: "Mobile Phone, Home Phone & Internet", monthlyAmount: "220.00", enteredAmount: "101.54", budgetFrequency: "FORTNIGHTLY", isEssential: true, icon: "wifi", startDate: "2026-07-02", rrule: "FREQ=WEEKLY;INTERVAL=2" },
+    { name: "Water & Sewage", monthlyAmount: "133.33", enteredAmount: "61.54", budgetFrequency: "FORTNIGHTLY", isEssential: true, icon: "droplet", startDate: "2026-07-02", rrule: "FREQ=WEEKLY;INTERVAL=2" },
+    { name: "Charity / CareFlight", monthlyAmount: "39.00", enteredAmount: "18.00", budgetFrequency: "FORTNIGHTLY", isEssential: false, icon: "heart-handshake", startDate: "2026-07-02", rrule: "FREQ=WEEKLY;INTERVAL=2" },
   ];
 
   const vaultPool = poolMap.get("kaesava_vault")!;
@@ -754,46 +753,17 @@ export async function seedDatabase(connectionString: string, envLabel: string) {
     ...historicalDebitRows,
   ]);
 
-  // 11. Recurring Expense Sources & Upcoming Events for the Next 90 Days
+  // 11. Scheduled Bill Events & Upcoming Events for the Next 90 Days
   const ratesPool = poolMap.get("council_rates")!;
   const schoolPool = poolMap.get("school_fees")!;
-  const [ratesSource] = await db
-    .insert(expenseSources)
-    .values({
-      name: "Council Rates (Quarterly)",
-      amount: "675.00",
-      poolId: ratesPool.id,
-      rrule: "FREQ=MONTHLY;INTERVAL=3",
-      startDate: "2026-09-30",
-      tenantId,
-      appId,
-      createdBy: userId,
-      updatedBy: userId,
-    })
-    .returning();
-
-  const [schoolSource] = await db
-    .insert(expenseSources)
-    .values({
-      name: "School Fees (Quarterly)",
-      amount: "7500.00",
-      poolId: schoolPool.id,
-      rrule: "FREQ=MONTHLY;INTERVAL=3",
-      startDate: "2026-10-01",
-      tenantId,
-      appId,
-      createdBy: userId,
-      updatedBy: userId,
-    })
-    .returning();
 
   await db.insert(expenseEvents).values([
     {
-      expenseSourceId: ratesSource.id,
       poolId: ratesPool.id,
       name: "Council Rates Q1 Instalment",
       expectedDate: "2026-09-30",
       expectedAmount: "675.00",
+      isScheduled: true,
       status: "PENDING" as const,
       tenantId,
       appId,
@@ -801,11 +771,11 @@ export async function seedDatabase(connectionString: string, envLabel: string) {
       updatedBy: userId,
     },
     {
-      expenseSourceId: schoolSource.id,
       poolId: schoolPool.id,
       name: "School Fees Q4 Instalment",
       expectedDate: "2026-10-01",
       expectedAmount: "3750.00",
+      isScheduled: true,
       status: "PENDING" as const,
       tenantId,
       appId,
@@ -814,7 +784,6 @@ export async function seedDatabase(connectionString: string, envLabel: string) {
     },
     // Ad-hoc One-off Expense Event 1: Overdue Bill
     {
-      expenseSourceId: null,
       poolId: billsPool.id,
       categoryId: billsHealthCat.id,
       name: "Dental Checkup & Cleaning",
@@ -822,6 +791,7 @@ export async function seedDatabase(connectionString: string, envLabel: string) {
       actualDate: null,
       expectedAmount: "280.00",
       actualAmount: null,
+      isScheduled: false,
       note: "Annual checkup and dental x-rays (overdue)",
       status: "PENDING" as const,
       tenantId,
@@ -831,13 +801,13 @@ export async function seedDatabase(connectionString: string, envLabel: string) {
     },
     // Ad-hoc One-off Expense Event 2: Imminent Pending Bill
     {
-      expenseSourceId: null,
       poolId: ratesPool.id,
       name: "Supplementary Water Rates Adjustment",
       expectedDate: "2026-10-15",
       actualDate: null,
       expectedAmount: "145.50",
       actualAmount: null,
+      isScheduled: false,
       note: "Yarra Valley Water supplementary drainage charge",
       status: "PENDING" as const,
       tenantId,
@@ -847,13 +817,13 @@ export async function seedDatabase(connectionString: string, envLabel: string) {
     },
     // Ad-hoc One-off Expense Event 3: Confirmed Goal Drawdown
     {
-      expenseSourceId: null,
       poolId: poolMap.get("charu_travel")!.id,
       name: "Charu Aunty Flight Booking",
       expectedDate: "2026-09-15",
       actualDate: "2026-09-15",
       expectedAmount: "1450.00",
       actualAmount: "1450.00",
+      isScheduled: false,
       note: "Singapore Airlines Melbourne to New Delhi return flight",
       status: "CONFIRMED" as const,
       tenantId,

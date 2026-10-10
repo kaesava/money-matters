@@ -4,7 +4,7 @@ import {
   categories,
   bankAccounts,
   incomeSources,
-  expenseSources,
+  expenseEvents,
   transactionLedger,
   tenants,
   getPoolBalancesMap,
@@ -15,8 +15,10 @@ import { SaveSetupBudgetCommand } from "@money-matters/types";
 import { randomUUID } from "crypto";
 import {
   CategoryScheduleCandidate,
-  buildExpenseSchedulePayloads,
-  insertExpenseSchedulesBulk,
+  buildCategoryEventPayloads,
+  insertCategoryEventsBulk,
+  deriveRrule,
+  computeBillScheduleAnchorDate,
 } from "./save-setup-budget-helpers.js";
 
 export interface SaveSetupBudgetResult {
@@ -252,6 +254,7 @@ export function saveSetupBudgetHandler(dbClient: DbOrTx) {
             .update(pools)
             .set({
               name: poolInput.name,
+              goalMode: poolInput.goalMode ?? matchedExisting.goalMode,
               targetAmount: poolInput.targetAmount,
               targetDate: poolInput.targetDate,
               everydayAllowanceAmount: poolInput.everydayAllowanceAmount,
@@ -276,6 +279,7 @@ export function saveSetupBudgetHandler(dbClient: DbOrTx) {
             bankAccountId: resolvedBankAccountId,
             name: poolInput.name,
             poolType: poolInput.poolType,
+            goalMode: poolInput.goalMode ?? (poolInput.poolType === "GOAL" ? "TARGET_DATE" : null),
             targetAmount: poolInput.targetAmount || null,
             targetDate: poolInput.targetDate || null,
             everydayAllowanceAmount: poolInput.everydayAllowanceAmount || null,
@@ -340,6 +344,15 @@ export function saveSetupBudgetHandler(dbClient: DbOrTx) {
           catInput.poolId ||
           (catInput.poolType === "EVERYDAY" ? defaultEverydayPoolId : defaultRegularPoolId);
 
+        const isRegular = (catInput.poolType || (resolvedPoolId === defaultRegularPoolId ? "REGULAR" : undefined)) === "REGULAR";
+        const rrule = isRegular
+          ? catInput.rrule || deriveRrule(catInput.budgetFrequency || "MONTHLY")
+          : catInput.rrule || null;
+        const startDate = isRegular
+          ? catInput.startDate || computeBillScheduleAnchorDate(catInput.budgetFrequency || "MONTHLY", now)
+          : catInput.startDate || null;
+        const endDate = catInput.endDate || null;
+
         if (matchedCat) {
           // In-place update
           await tx
@@ -352,6 +365,9 @@ export function saveSetupBudgetHandler(dbClient: DbOrTx) {
               icon: catInput.icon || matchedCat.icon,
               isEssential: catInput.isEssential ?? matchedCat.isEssential,
               poolId: resolvedPoolId || matchedCat.poolId,
+              startDate: startDate || matchedCat.startDate,
+              endDate: endDate !== undefined ? endDate : matchedCat.endDate,
+              rrule: rrule || matchedCat.rrule,
               updatedAt: now,
               updatedBy: userId,
             })
@@ -372,6 +388,9 @@ export function saveSetupBudgetHandler(dbClient: DbOrTx) {
             enteredAmount: catInput.enteredAmount || catInput.monthlyAmount || "0.00",
             budgetFrequency: catInput.budgetFrequency || "MONTHLY",
             isEssential: catInput.isEssential ?? false,
+            startDate,
+            endDate,
+            rrule,
             createdAt: now,
             createdBy: userId,
             updatedAt: now,
@@ -443,22 +462,22 @@ export function saveSetupBudgetHandler(dbClient: DbOrTx) {
       }
 
       // =========================================================================
-      // 5b. Auto-create Expense Schedules for REGULAR categories (Strict Add-Only)
+      // 5b. Auto-create Scheduled Events for REGULAR categories (Strict Add-Only)
       // =========================================================================
-      let createdExpenseSourcesCount = 0;
+      let createdEventsCount = 0;
       if (input.autoCreateExpenseSchedules !== false) {
-        const existingExpenseSources = await tx
+        const existingScheduledEvents = await tx
           .select({
-            id: expenseSources.id,
-            name: expenseSources.name,
-            categoryId: expenseSources.categoryId,
+            id: expenseEvents.id,
+            categoryId: expenseEvents.categoryId,
           })
-          .from(expenseSources)
+          .from(expenseEvents)
           .where(
             and(
-              eq(expenseSources.tenantId, tenantId),
-              eq(expenseSources.appId, appId),
-              sql`${expenseSources.archivedAt} IS NULL`
+              eq(expenseEvents.tenantId, tenantId),
+              eq(expenseEvents.appId, appId),
+              eq(expenseEvents.isScheduled, true),
+              sql`${expenseEvents.archivedAt} IS NULL`
             )
           );
 
@@ -474,12 +493,8 @@ export function saveSetupBudgetHandler(dbClient: DbOrTx) {
           const catRecord = categoryRecordMap.get(catInput.name);
           if (!catRecord) continue;
 
-          // Strict Add-Only: Never duplicate or modify if category already has an active schedule
-          const hasExisting = existingExpenseSources.some(
-            (es) =>
-              es.categoryId === catRecord.id ||
-              es.name.trim().toLowerCase() === catInput.name.trim().toLowerCase()
-          );
+          // Strict Add-Only: Never duplicate if category already has active scheduled events
+          const hasExisting = existingScheduledEvents.some((e) => e.categoryId === catRecord.id);
           if (hasExisting) continue;
 
           candidates.push({
@@ -488,22 +503,21 @@ export function saveSetupBudgetHandler(dbClient: DbOrTx) {
             budgetFrequency: catInput.budgetFrequency || "MONTHLY",
             poolId: catRecord.poolId,
             categoryId: catRecord.id,
+            startDate: catInput.startDate,
+            endDate: catInput.endDate,
+            rrule: catInput.rrule,
           });
         }
 
         if (candidates.length > 0) {
-          const { sourcesToInsert, eventsToInsert } = buildExpenseSchedulePayloads(
+          const { eventsToInsert } = buildCategoryEventPayloads(
             candidates,
             tenantId,
             appId,
             userId,
             now
           );
-          createdExpenseSourcesCount = await insertExpenseSchedulesBulk(
-            tx,
-            sourcesToInsert,
-            eventsToInsert
-          );
+          createdEventsCount = await insertCategoryEventsBulk(tx, eventsToInsert);
         }
       }
 
@@ -531,7 +545,7 @@ export function saveSetupBudgetHandler(dbClient: DbOrTx) {
           categories: input.categories.length,
           sweptPools: sweptPoolsCount,
           sweptTotalAmount,
-          expenseSources: createdExpenseSourcesCount,
+          expenseSources: createdEventsCount,
         },
       };
     });

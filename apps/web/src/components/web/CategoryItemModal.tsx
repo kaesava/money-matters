@@ -1,10 +1,11 @@
 "use client";
 
 import React, { useState, useEffect, useMemo } from "react";
-import { useToast, ConfirmDialog, InfoTooltip, AmountField, ModalDialog, Button, Input, GenericSelectField, FormErrorBanner } from "@money-matters/ui/web";
+import { useToast, ConfirmDialog, ModalDialog, Button, FormErrorBanner } from "@money-matters/ui/web";
 import { t } from "@money-matters/i18n";
 import { trpc } from "../../lib/trpc";
 import { CategoryItem } from "../../app/dashboard/pools/types";
+import { CategoryItemFormFields, FrequencyOption } from "./CategoryItemFormFields";
 
 interface CategoryItemModalProps {
   isOpen: boolean;
@@ -14,7 +15,11 @@ interface CategoryItemModalProps {
   onSuccess?: () => void;
 }
 
-type FrequencyOption = "WEEKLY" | "FORTNIGHTLY" | "MONTHLY" | "ANNUALLY";
+function getDefaultStartDateAest(): string {
+  const d = new Date();
+  const nextMonth = new Date(d.getFullYear(), d.getMonth() + 1, 1);
+  return new Intl.DateTimeFormat('en-CA', { timeZone: 'Australia/Sydney' }).format(nextMonth);
+}
 
 export function CategoryItemModal({
   isOpen,
@@ -27,7 +32,6 @@ export function CategoryItemModal({
   const utils = trpc.useUtils();
 
   const poolsQuery = trpc.listPools.useQuery(undefined, { enabled: isOpen });
-  // Filter out Goal pools as categories are only for Everyday/Bills pools
   const availablePools = useMemo(() => {
     return (poolsQuery.data ?? []).filter((p) => p.poolType !== "GOAL");
   }, [poolsQuery.data]);
@@ -38,6 +42,7 @@ export function CategoryItemModal({
   const [selectedPoolId, setSelectedPoolId] = useState("");
   const [enteredAmount, setEnteredAmount] = useState("");
   const [frequency, setFrequency] = useState<FrequencyOption>("MONTHLY");
+  const [startDate, setStartDate] = useState(getDefaultStartDateAest());
   const [isEssential, setIsEssential] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
@@ -46,6 +51,9 @@ export function CategoryItemModal({
   const createCategoryMut = trpc.createCategory.useMutation();
   const updateCategoryMut = trpc.updateCategory.useMutation();
   const archiveCategoryMut = trpc.archiveCategory.useMutation();
+
+  const activePool = availablePools.find((p) => p.id === selectedPoolId);
+  const isBillsPool = activePool?.poolType === "REGULAR";
 
   useEffect(() => {
     if (categoryToEdit) {
@@ -59,12 +67,12 @@ export function CategoryItemModal({
       setSelectedPoolId(initialPoolId || availablePools[0]?.id || "");
       setEnteredAmount("");
       setFrequency("MONTHLY");
+      setStartDate(getDefaultStartDateAest());
       setIsEssential(false);
     }
     setErrorMsg(null);
   }, [categoryToEdit, isOpen, initialPoolId, availablePools]);
 
-  // Compute calculated monthly amount for display
   const calculatedMonthly = useMemo(() => {
     const val = parseFloat(enteredAmount);
     if (isNaN(val) || val <= 0) return "0.00";
@@ -75,7 +83,6 @@ export function CategoryItemModal({
     return monthly.toFixed(2);
   }, [enteredAmount, frequency]);
 
-  // Check if form is dirty (has modifications)
   const isDirty = useMemo(() => {
     if (!isEdit) {
       return Boolean(name.trim() && selectedPoolId && enteredAmount && parseFloat(enteredAmount) > 0);
@@ -100,18 +107,9 @@ export function CategoryItemModal({
     e.preventDefault();
     setErrorMsg(null);
 
-    if (!name.trim()) {
-      setErrorMsg(t("categories.nameRequired"));
-      return;
-    }
-    if (!selectedPoolId) {
-      setErrorMsg(t("categories.targetPoolRequired"));
-      return;
-    }
-    if (!enteredAmount || parseFloat(enteredAmount) <= 0) {
-      setErrorMsg(t("categories.targetAmountRequired"));
-      return;
-    }
+    if (!name.trim()) return setErrorMsg(t("categories.nameRequired"));
+    if (!selectedPoolId) return setErrorMsg(t("categories.targetPoolRequired"));
+    if (!enteredAmount || parseFloat(enteredAmount) <= 0) return setErrorMsg(t("categories.targetAmountRequired"));
 
     setSubmitting(true);
     try {
@@ -123,6 +121,7 @@ export function CategoryItemModal({
             monthlyAmount: calculatedMonthly,
             enteredAmount: enteredAmount.trim() || undefined,
             budgetFrequency: frequency,
+            startDate: isBillsPool ? startDate : undefined,
             isEssential,
           },
         });
@@ -134,6 +133,7 @@ export function CategoryItemModal({
           monthlyAmount: calculatedMonthly,
           enteredAmount: enteredAmount.trim() || undefined,
           budgetFrequency: frequency,
+          startDate: isBillsPool ? startDate : undefined,
           isEssential,
         });
         toast.success(t("categories.createdSuccess"));
@@ -160,8 +160,7 @@ export function CategoryItemModal({
       onSuccess?.();
       onClose();
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : t("categories.failedToArchive");
-      toast.error(message);
+      toast.error(err instanceof Error ? err.message : t("categories.failedToArchive"));
     } finally {
       setSubmitting(false);
       setShowArchiveConfirm(false);
@@ -183,81 +182,24 @@ export function CategoryItemModal({
       <form onSubmit={handleSubmit} className="space-y-4 text-xs font-medium text-zinc-700">
         <FormErrorBanner message={errorMsg} />
 
-        <Input
-          label={t("categories.nameLabel")}
-          required
-          autoFocus
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          placeholder="e.g. Groceries, Electricity, Fuel"
+        <CategoryItemFormFields
+          name={name}
+          setName={setName}
+          selectedPoolId={selectedPoolId}
+          setSelectedPoolId={setSelectedPoolId}
+          availablePools={availablePools}
+          isEdit={isEdit}
+          isBillsPool={isBillsPool}
+          enteredAmount={enteredAmount}
+          setEnteredAmount={setEnteredAmount}
+          frequency={frequency}
+          setFrequency={setFrequency}
+          startDate={startDate}
+          setStartDate={setStartDate}
+          calculatedMonthly={calculatedMonthly}
+          isEssential={isEssential}
+          setIsEssential={setIsEssential}
         />
-
-        <GenericSelectField
-          label={t("categories.targetPoolLabel")}
-          required
-          disabled={isEdit}
-          value={selectedPoolId}
-          onChange={setSelectedPoolId}
-          placeholder={t("categories.selectPool")}
-          options={availablePools.map((p) => ({
-            value: p.id,
-            label: `${p.name} (${p.poolType === "EVERYDAY" ? "Everyday" : "Bills"})`,
-          }))}
-        />
-
-        {isEdit && (
-          <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl text-amber-900 text-[11px] leading-relaxed font-semibold">
-            {t("categories.immutabilityWarningCategory")}
-          </div>
-        )}
-
-        <div className="grid grid-cols-2 gap-3 items-start">
-          <div>
-            <AmountField
-              label={t("categories.targetAmountLabel")}
-              required
-              value={enteredAmount}
-              onChange={setEnteredAmount}
-              placeholder="150.00"
-            />
-          </div>
-          <div>
-            <GenericSelectField
-              label={t("categories.frequencyLabel")}
-              value={frequency}
-              onChange={(val) => setFrequency(val as FrequencyOption)}
-              options={[
-                { value: "WEEKLY", label: t("categories.frequencyWeekly") },
-                { value: "FORTNIGHTLY", label: t("categories.frequencyFortnightly") },
-                { value: "MONTHLY", label: t("categories.frequencyMonthly") },
-                { value: "ANNUALLY", label: t("categories.frequencyAnnually") },
-              ]}
-            />
-          </div>
-        </div>
-
-        {enteredAmount && parseFloat(enteredAmount) > 0 && frequency !== "MONTHLY" && (
-          <div className="p-2.5 bg-blue-50/70 border border-blue-200 rounded-xl text-[11px] font-semibold text-blue-900 flex items-center justify-between font-mono">
-            <span>{t("categories.monthlyEquivalent")}</span>
-            <span className="font-bold text-[#2563eb]">${calculatedMonthly} / mo</span>
-          </div>
-        )}
-
-        <label className="flex items-center gap-2 pt-1 cursor-pointer">
-          <input
-            type="checkbox"
-            checked={isEssential}
-            onChange={(e) => setIsEssential(e.target.checked)}
-            className="w-4 h-4 rounded text-[#2563eb] focus:ring-[#2563eb]"
-          />
-          <span className="font-bold text-zinc-800 flex items-center gap-1.5">
-            <span>{t("categories.prioritiseCategory")}</span>
-            <InfoTooltip
-              title={t("categories.prioritiseCategory")}
-              content={t("categories.priorityCategoryInfo")}
-            />
-          </span>
-        </label>
 
         <div className="flex justify-between items-center pt-4 border-t border-zinc-200">
           {isEdit ? (
@@ -272,21 +214,10 @@ export function CategoryItemModal({
           ) : <div />}
 
           <div className="flex gap-2">
-            <Button
-              type="button"
-              variant="secondary"
-              size="sm"
-              onClick={onClose}
-            >
+            <Button type="button" variant="secondary" size="sm" onClick={onClose}>
               {t("categories.cancel")}
             </Button>
-            <Button
-              type="submit"
-              variant="primary"
-              size="sm"
-              disabled={submitting || !isDirty || !isValid}
-              loading={submitting}
-            >
+            <Button type="submit" variant="primary" size="sm" disabled={submitting || !isDirty || !isValid} loading={submitting}>
               {t("categories.saveCategory")}
             </Button>
           </div>

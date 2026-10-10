@@ -1,4 +1,4 @@
-import { DbOrTx, incomeSources, incomeEvents, expenseSources, expenseEvents, tenants } from "@money-matters/db";
+import { DbOrTx, incomeSources, incomeEvents, categories, expenseEvents, tenants } from "@money-matters/db";
 import { and, eq, sql } from "drizzle-orm";
 import { generateBurstDates } from "../engine/burst-engine.js";
 
@@ -81,30 +81,39 @@ export async function maintainRollingWindowCommand({
     }
   }
 
-  // 2. Sync Expense Sources
-  const expenses = await db
+  // 2. Sync Scheduled Bill Categories
+  const billCategories = await db
     .select()
-    .from(expenseSources)
+    .from(categories)
     .where(
       and(
-        eq(expenseSources.tenantId, tenantId),
-        eq(expenseSources.appId, appId),
-        sql`${expenseSources.archivedAt} IS NULL`
+        eq(categories.tenantId, tenantId),
+        eq(categories.appId, appId),
+        sql`${categories.archivedAt} IS NULL`,
+        sql`${categories.rrule} IS NOT NULL`
       )
     );
 
-  for (const source of expenses) {
-    if (!source.rrule) continue;
+  for (const cat of billCategories) {
+    if (!cat.rrule) continue;
+    const amountVal = cat.enteredAmount || cat.monthlyAmount || "0.00";
+    if (parseFloat(amountVal) <= 0) continue;
 
-    // Check all events previously generated for this source (including archived/deleted) to prevent re-burst resurrection
+    // Check all events previously generated for this category to prevent re-burst resurrection
     const existingEvents = await db
       .select({ expectedDate: expenseEvents.expectedDate })
       .from(expenseEvents)
-      .where(eq(expenseEvents.expenseSourceId, source.id));
+      .where(
+        and(
+          eq(expenseEvents.categoryId, cat.id),
+          eq(expenseEvents.tenantId, tenantId),
+          eq(expenseEvents.appId, appId)
+        )
+      );
 
     const existingDates = new Set(existingEvents.map((e) => e.expectedDate));
-    const startDate = source.startDate || todayStr;
-    const horizonDates = generateBurstDates(source.rrule, startDate, source.endDate, 12);
+    const startDate = cat.startDate || todayStr;
+    const horizonDates = generateBurstDates(cat.rrule, startDate, cat.endDate, 12);
 
     const datesToInsert = horizonDates.filter((d) => {
       const dStr = getLocalDateString(d);
@@ -116,14 +125,12 @@ export async function maintainRollingWindowCommand({
         datesToInsert.map((d) => {
           const dateStr = getLocalDateString(d);
           return {
-            expenseSourceId: source.id,
-            poolId: source.poolId,
-            categoryId: source.categoryId,
-            name: source.name,
+            poolId: cat.poolId,
+            categoryId: cat.id,
+            name: cat.name,
             expectedDate: dateStr,
-            actualDate: dateStr,
-            expectedAmount: source.amount,
-            actualAmount: source.amount,
+            expectedAmount: amountVal,
+            isScheduled: true,
             status: "PENDING" as const,
             tenantId: tenantId,
             appId: appId,

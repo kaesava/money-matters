@@ -74,22 +74,27 @@ Virtual budgeting buckets allocated on payday.
 - `bankAccountId` (uuid, not null): Underlying bank account hosting the funds.
 - `name` (text, not null): Pool title (e.g. "Everyday", "Committed Bills", "Short-term Savings").
 - `poolType` (`EVERYDAY` | `REGULAR` | `GOAL` | `IRREGULAR`, not null): Allocation behavior category.
+- `goalMode` (`TARGET_DATE` | `ONGOING`, nullable): Dual goal operating mode for `GOAL` pools.
 - `isSurplusTarget` (boolean, not null, default `false`): Designates the overflow bucket (usually Everyday).
 - `everydayAllowanceAmount` (numeric(12,2), nullable): Configured monthly allowance for Everyday spending pools.
 - `safetyBufferFloor` (numeric(12,2), default `0.00`): Baseline safety buffer floor for Everyday pools.
-- `targetAmount` (numeric(12,2), nullable): Target balance for savings/reserve pools.
+- `targetAmount` (numeric(12,2), nullable): Target balance for savings/reserve pools or monthly contribution for ongoing goals.
+- `targetDate` (date, nullable): Target completion date for date-driven goals.
 - **Consumers**: `packages/capabilities/budgeting` (waterfall allocation engine, pool management), Dashboard, Categories screen, Simulation engine.
 
 ### 6. `categories` (`packages/db/src/schema/category.ts`)
-Budget categories mapped directly under pools.
+Budget categories mapped directly under pools. For `REGULAR` bill envelopes, each category IS the schedule.
 - `poolId` (uuid, not null): Parent pool.
 - `name` (text, not null): Category label (e.g. "Groceries", "Electricity", "Netflix").
 - `isEssential` (boolean, not null, default `false`): Priority tag during shortfall/deficit repair.
 - `monthlyAmount` (numeric(12,2), nullable): Target monthly spending/allocation amount.
 - `enteredAmount` (numeric(12,2), nullable): Amount entered in original user frequency.
 - `budgetFrequency` (`WEEKLY` | `FORTNIGHTLY` | `MONTHLY` | `ANNUALLY`, default `'MONTHLY'`): Recurrence interval.
+- `startDate` (date, nullable): Next due date anchor for bill schedules.
+- `endDate` (date, nullable): Expiration date for fixed-term bills.
+- `rrule` (text, nullable): RFC 5545 recurrence rule automatically synthesized for schedule bursting.
 - `icon` (text, nullable): Lucide icon identifier.
-- **Consumers**: `packages/capabilities/budgeting`, Categories UI, Allocation preview.
+- **Consumers**: `packages/capabilities/budgeting`, Categories UI, Bill Schedules view, Allocation engine.
 
 ### 7. `income_sources` (`packages/db/src/schema/income.ts`)
 Recurring or scheduled income streams (paychecks, bonuses).
@@ -176,23 +181,12 @@ Scoped preferences per user within a specific household/tenant and application.
 - `appPreferences` (jsonb, not null): Scoped per-user tenant notification delivery preferences (`payday_alerts_enabled`, `shortfall_alerts_enabled`, `bill_reminders_enabled`, `weekly_digest_enabled`).
 - **Consumers**: `packages/capabilities/notifications`, `apps/api` (`tenant.router.ts`), Notification Settings UI.
 
-### 15. `expense_sources` (`packages/db/src/schema/expense_source.ts`)
-Committed bill schedules and recurring expense definitions.
-- `name` (text, not null): Bill/expense title (e.g. "Rent", "Health Insurance").
-- `amount` (numeric(12,2), not null): Expected billing amount.
-- `isRecurring` (boolean, not null, default `true`): Recurring vs one-off flag.
-- `frequency` (`WEEKLY` | `FORTNIGHTLY` | `MONTHLY` | `ANNUALLY`, default `'MONTHLY'`): Recurrence interval.
-- `interval` (integer, default `1`): Recurrence multiplier.
-- `startDate` (date, not null): First due date anchor.
-- `endDate` (date, nullable): Expiration date for fixed-term bills.
-- `rrule` (text, nullable): RFC 5545 recurrence rule.
-- `categoryId` (uuid, nullable): Mapped budgeting category.
-- `targetPoolId` (uuid, nullable): Dedicated pool ring-fencing the bill.
-- **Consumers**: `packages/capabilities/budgeting`, Bills & Committed Spending UI, Timeline projections.
-
-### 16. `expense_events` (`packages/db/src/schema/expense_event.ts`)
-Materialized bill instances projected into future payday cycles.
-- `expenseSourceId` (uuid, not null): Parent expense source.
+### 15. `expense_events` (`packages/db/src/schema/expense_event.ts`)
+Materialized bill instances projected into future payday cycles, burst directly from Category bill schedules or recorded as one-off upcoming expenses.
+- `categoryId` (uuid, nullable): Origin category bill schedule.
+- `poolId` (uuid, not null): Assigned pool / envelope.
+- `name` (text, not null): Expense item title.
+- `isScheduled` (boolean, not null, default `false`): Indicates if generated from recurring schedule bursting.
 - `expectedDate` (date, not null): Due date.
 - `expectedAmount` (numeric(12,2), not null): Due amount.
 - `actualAmount` (numeric(12,2), nullable): Paid amount upon reconciliation.
@@ -260,8 +254,9 @@ The following tables were audited, found to be dead or orphaned (0 reads, 0 writ
 2. `app_versions`: Replaced by static `@money-matters/config` client build constants.
 3. `bug_reports`: Replaced by direct `mailto:info@moneymatters.kaesava.au` client diagnostic dispatches.
 4. `file_notes`: Orphaned stub; no capabilities or UI ever read or wrote to this table.
-5. `category_schedules`: Never populated; schedules live on `expense_sources` and `income_sources`.
+5. `category_schedules`: Never populated; schedules live on `income_sources` and directly on `categories`.
 6. `bank_account_category_mappings`: Replaced by `pools.bankAccountId` and `categories.poolId`.
+7. `expense_sources`: Purged in Migration `0028_unify_bill_categories_and_schedules.sql`. Bill schedules are unified directly into `categories`.
 
 ## Pruned Inert Columns
 The following 21 inert columns were permanently dropped in Migration `0024`:

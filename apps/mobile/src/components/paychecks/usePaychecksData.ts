@@ -22,7 +22,7 @@ export function usePaychecksData() {
   const incomeSourcesQuery = trpc.listIncomeSources.useQuery(undefined, {
     enabled: !!session?.user,
   });
-  const expenseSourcesQuery = trpc.listExpenseSources.useQuery(undefined, {
+  const expenseSourcesQuery = trpc.listBillSchedules.useQuery(undefined, {
     enabled: !!session?.user,
   });
   const poolsQuery = trpc.listPools.useQuery(undefined, {

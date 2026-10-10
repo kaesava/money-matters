@@ -1,4 +1,4 @@
-import { DbOrTx, expenseSources, expenseEvents } from "@money-matters/db";
+import { DbOrTx, expenseEvents } from "@money-matters/db";
 import { randomUUID } from "crypto";
 import { generateBurstDates } from "../engine/burst-engine.js";
 
@@ -8,14 +8,11 @@ export interface CategoryScheduleCandidate {
   budgetFrequency: "WEEKLY" | "FORTNIGHTLY" | "MONTHLY" | "ANNUALLY";
   poolId: string;
   categoryId: string;
+  startDate?: string | null;
+  endDate?: string | null;
+  rrule?: string | null;
 }
 
-/**
- * Calculates the forward-looking anchor start date in AEST.
- * - Monthly/Annually: 1st of next calendar month (avoids Day 1 Cashflow Guard distortion).
- * - Weekly: 7 days ahead.
- * - Fortnightly: 14 days ahead.
- */
 export function computeBillScheduleAnchorDate(
   budgetFrequency: "WEEKLY" | "FORTNIGHTLY" | "MONTHLY" | "ANNUALLY",
   refDate: Date = new Date()
@@ -49,9 +46,6 @@ export function computeBillScheduleAnchorDate(
   return `${nextYear}-${mm}-01`;
 }
 
-/**
- * Derives RRULE string from budgetFrequency
- */
 export function deriveRrule(budgetFrequency: "WEEKLY" | "FORTNIGHTLY" | "MONTHLY" | "ANNUALLY"): string {
   switch (budgetFrequency) {
     case "WEEKLY":
@@ -66,53 +60,31 @@ export function deriveRrule(budgetFrequency: "WEEKLY" | "FORTNIGHTLY" | "MONTHLY
   }
 }
 
-/**
- * Builds bulk records for expenseSources and their 12 burst expenseEvents
- */
-export function buildExpenseSchedulePayloads(
+export function buildCategoryEventPayloads(
   candidates: CategoryScheduleCandidate[],
   tenantId: string,
   appId: string,
   userId: string,
   now: Date
 ) {
-  const sourcesToInsert: Array<typeof expenseSources.$inferInsert> = [];
   const eventsToInsert: Array<typeof expenseEvents.$inferInsert> = [];
 
   for (const item of candidates) {
-    const sourceId = randomUUID();
-    const rrule = deriveRrule(item.budgetFrequency);
-    const startDate = computeBillScheduleAnchorDate(item.budgetFrequency, now);
+    const rrule = item.rrule || deriveRrule(item.budgetFrequency);
+    const startDate = item.startDate || computeBillScheduleAnchorDate(item.budgetFrequency, now);
 
-    sourcesToInsert.push({
-      id: sourceId,
-      tenantId,
-      appId,
-      name: item.name,
-      amount: item.amount,
-      poolId: item.poolId,
-      categoryId: item.categoryId,
-      rrule,
-      startDate,
-      endDate: null,
-      createdAt: now,
-      createdBy: userId,
-      updatedAt: now,
-      updatedBy: userId,
-    });
-
-    const burstDates = generateBurstDates(rrule, startDate, null, 12);
+    const burstDates = generateBurstDates(rrule, startDate, item.endDate || null, 12);
     for (const d of burstDates) {
       eventsToInsert.push({
         id: randomUUID(),
         tenantId,
         appId,
-        expenseSourceId: sourceId,
         poolId: item.poolId,
         categoryId: item.categoryId,
         name: item.name,
         expectedDate: new Intl.DateTimeFormat("en-CA", { timeZone: "Australia/Sydney" }).format(d),
         expectedAmount: item.amount,
+        isScheduled: true,
         status: "PENDING",
         createdAt: now,
         createdBy: userId,
@@ -122,22 +94,15 @@ export function buildExpenseSchedulePayloads(
     }
   }
 
-  return { sourcesToInsert, eventsToInsert };
+  return { eventsToInsert };
 }
 
-/**
- * Performs bulk insert of expense sources and their burst events
- */
-export async function insertExpenseSchedulesBulk(
+export async function insertCategoryEventsBulk(
   tx: DbOrTx,
-  sources: Array<typeof expenseSources.$inferInsert>,
   events: Array<typeof expenseEvents.$inferInsert>
 ): Promise<number> {
-  if (sources.length > 0) {
-    await tx.insert(expenseSources).values(sources);
-  }
   if (events.length > 0) {
     await tx.insert(expenseEvents).values(events);
   }
-  return sources.length;
+  return events.length;
 }

@@ -59,7 +59,7 @@ export function QuickExpenseModal({
     state.utils.listPools.invalidate();
     state.utils.listCategories.invalidate();
     state.utils.listTransactions.invalidate();
-    state.utils.listExpenseSources.invalidate();
+    state.utils.listBillSchedules.invalidate();
     state.utils.listExpenseEvents.invalidate();
     state.utils.listIncomeSources.invalidate();
     state.utils.listIncomeEvents.invalidate();

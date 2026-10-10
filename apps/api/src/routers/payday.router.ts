@@ -382,7 +382,7 @@ export const paydayRouter = {
         .strict()
     )
     .query(async ({ input, ctx }) => {
-      const { pools, categories, incomeEvents, expenseEvents, incomeSources, expenseSources, getPoolBalancesMap } = await import("@money-matters/db");
+      const { pools, categories, incomeEvents, expenseEvents, incomeSources, getPoolBalancesMap } = await import("@money-matters/db");
       const { computeMatrixProjection } = await import("@money-matters/capability-budgeting/engine");
 
       const activePools = await ctx.db
@@ -449,10 +449,9 @@ export const paydayRouter = {
           expectedAmount: expenseEvents.expectedAmount,
           actualAmount: expenseEvents.actualAmount,
           status: expenseEvents.status,
-          name: sql<string>`COALESCE(${expenseEvents.name}, ${expenseSources.name}, 'Bill')`,
+          name: expenseEvents.name,
         })
         .from(expenseEvents)
-        .leftJoin(expenseSources, eq(expenseSources.id, expenseEvents.expenseSourceId))
         .where(
           and(
             eq(expenseEvents.tenantId, ctx.tenantId!),

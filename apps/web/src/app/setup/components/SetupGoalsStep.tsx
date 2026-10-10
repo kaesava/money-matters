@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { InfoTooltip, AmountField } from "@money-matters/ui/web";
+import { InfoTooltip, AmountField, EnvelopeExplainer } from "@money-matters/ui/web";
 
 export interface UserGoalItem {
   id: string;
@@ -113,6 +113,7 @@ export function SetupGoalsStep({
             {goals.length} Active Goals
           </span>
         </div>
+        <EnvelopeExplainer envelopeType="GOAL" compact className="mt-3" />
       </div>
 
       {/* Preset Goal Cards Grid */}

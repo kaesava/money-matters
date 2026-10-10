@@ -24,17 +24,19 @@ export function useIncomeExpenseMutations({
   const updateIncomeMut = trpc.updateIncomeSource.useMutation();
   const archiveIncomeMut = trpc.archiveIncomeSource.useMutation();
 
-  const createExpenseMut = trpc.createExpenseSource.useMutation();
-  const updateExpenseMut = trpc.updateExpenseSource.useMutation();
-  const archiveExpenseMut = trpc.archiveExpenseSource.useMutation();
+  const createCategoryMut = trpc.createCategory.useMutation();
+  const updateCategoryMut = trpc.updateCategory.useMutation();
+  const archiveCategoryMut = trpc.archiveCategory.useMutation();
+  const createOneOffExpenseMut = trpc.createOneOffExpense.useMutation();
 
   const isPending =
     createIncomeMut.isPending ||
     updateIncomeMut.isPending ||
     archiveIncomeMut.isPending ||
-    createExpenseMut.isPending ||
-    updateExpenseMut.isPending ||
-    archiveExpenseMut.isPending;
+    createCategoryMut.isPending ||
+    updateCategoryMut.isPending ||
+    archiveCategoryMut.isPending ||
+    createOneOffExpenseMut.isPending;
 
   const handleArchive = () => {
     if (!sourceToEdit) return;
@@ -54,7 +56,7 @@ export function useIncomeExpenseMutations({
           if (mode === 'INCOME') {
             await archiveIncomeMut.mutateAsync({ id: sourceToEdit.id });
           } else {
-            await archiveExpenseMut.mutateAsync({ id: sourceToEdit.id });
+            await archiveCategoryMut.mutateAsync({ categoryId: sourceToEdit.id });
           }
           toast.success(t('toasts.archived'));
           onSuccess?.();
@@ -112,37 +114,39 @@ export function useIncomeExpenseMutations({
           );
         }
       } else {
-        if (isEdit && sourceToEdit) {
-          await updateExpenseMut.mutateAsync({
-            id: sourceToEdit.id,
-            data: {
-              name: params.name.trim(),
-              amount: formattedAmount,
-              poolId: params.poolId,
-              categoryId: params.categoryId || undefined,
-              isRecurring: params.isRecurring,
-              frequency: params.isRecurring ? params.frequency : undefined,
-              interval: params.isRecurring ? (params.interval || 1) : undefined,
-              startDate: params.startDate || undefined,
-              endDate: params.isRecurring && params.endDate ? params.endDate : undefined,
-            },
-          });
-          toast.success('Expense schedule updated successfully.');
-        } else {
-          await createExpenseMut.mutateAsync({
+        if (!params.isRecurring) {
+          await createOneOffExpenseMut.mutateAsync({
             name: params.name.trim(),
             amount: formattedAmount,
             poolId: params.poolId,
             categoryId: params.categoryId || undefined,
-            isRecurring: params.isRecurring,
-            frequency: params.isRecurring ? params.frequency : undefined,
-            interval: params.isRecurring ? (params.interval || 1) : undefined,
-            startDate: params.startDate || undefined,
-            endDate: params.isRecurring && params.endDate ? params.endDate : undefined,
+            expectedDate: params.startDate || new Date().toISOString().slice(0, 10),
           });
-          toast.success(
-            params.isRecurring ? t('toasts.saved') : 'One-off expense saved to Upcoming Timeline.'
-          );
+          toast.success('One-off expense saved to Upcoming Timeline.');
+        } else if (isEdit && sourceToEdit) {
+          await updateCategoryMut.mutateAsync({
+            categoryId: sourceToEdit.id,
+            data: {
+              name: params.name.trim(),
+              enteredAmount: formattedAmount,
+              monthlyAmount: formattedAmount,
+              budgetFrequency: params.frequency || 'MONTHLY',
+              startDate: params.startDate || undefined,
+              endDate: params.endDate || undefined,
+            },
+          });
+          toast.success('Expense schedule updated successfully.');
+        } else {
+          await createCategoryMut.mutateAsync({
+            name: params.name.trim(),
+            poolId: params.poolId,
+            enteredAmount: formattedAmount,
+            monthlyAmount: formattedAmount,
+            budgetFrequency: params.frequency || 'MONTHLY',
+            startDate: params.startDate || undefined,
+            endDate: params.endDate || undefined,
+          });
+          toast.success(t('toasts.saved'));
         }
       }
       onSuccess?.();

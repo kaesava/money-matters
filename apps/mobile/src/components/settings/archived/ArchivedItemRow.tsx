@@ -7,7 +7,6 @@ export type RestorableItemType =
   | 'CATEGORY'
   | 'POOL'
   | 'INCOME_SOURCE'
-  | 'EXPENSE_SOURCE'
   | 'BANK_ACCOUNT';
 
 export type ArchivedItemType = 'ALL' | RestorableItemType;

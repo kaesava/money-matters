@@ -76,7 +76,7 @@ export function useMobileQuickAction(
   }, [visible, initialType, initialSourcePoolId, todayStr]);
 
   const recordExpenseMutation = trpc.recordExpense.useMutation();
-  const createExpenseSourceMut = trpc.createExpenseSource.useMutation();
+  const createOneOffExpenseMut = trpc.createOneOffExpense.useMutation();
   const createUpcomingIncomeMutation = trpc.createUpcomingIncome.useMutation();
   const createIncomeSourceMut = trpc.createIncomeSource.useMutation();
   const moveMoneyMutation = trpc.moveMoney.useMutation();
@@ -236,7 +236,7 @@ export function useMobileQuickAction(
     posthog,
     utils,
     recordExpenseMutation,
-    createExpenseSourceMut,
+    createOneOffExpenseMut,
     createUpcomingIncomeMutation,
     createIncomeSourceMut,
     moveMoneyMutation,
