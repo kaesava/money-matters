@@ -116,9 +116,10 @@ export default function IncomeSplitStudioScreen() {
           <MobilePaydayCelebrationCard
             billsAllocated={billsAllocated}
             goalsAllocated={goalsAllocated}
-            safeToSpend={Math.max(0, sweepPoolRemainder)}
+            safeToSpend={sweepPoolRemainder}
             isConfirmed={isConfirmedPlan}
             submitting={submitting}
+            isDeficit={isDeficit}
             onConfirm={handleConfirmSplit}
           />
 
@@ -139,6 +140,7 @@ export default function IncomeSplitStudioScreen() {
             isReadOnly={isReadOnly}
             isAmountModified={actualAmount !== initialAmount}
             onRecalculateWaterfall={handleRecalculateWaterfall}
+            onResetEdits={handleResetAllEdits}
             submitting={submitting}
             isConfirmedPlan={isConfirmedPlan}
           />

@@ -162,12 +162,12 @@ export function computeMatrixProjection(input: MatrixProjectionInput): MatrixPro
   const groups: MatrixAccordionGroup[] = [
     {
       id: "everyday",
-      title: "Everyday Pools",
+      title: "Everyday Envelopes",
       rows: everydayRows,
     },
     {
       id: "bills",
-      title: "Bills Pools",
+      title: "Bills Envelopes",
       rows: billsRows,
     },
     {

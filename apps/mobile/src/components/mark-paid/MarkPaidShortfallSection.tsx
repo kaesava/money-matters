@@ -82,7 +82,7 @@ export function MarkPaidShortfallSection({
       <View style={styles.accordionContainer}>
         {Object.keys(groupedPools).length === 0 ? (
           <Text style={styles.noPoolsText}>
-            No other pools with available balances found to cover the shortfall.
+            {t('incomeBillsTabs.coverShortfallNoEnvelopes')}
           </Text>
         ) : (
           Object.entries(groupedPools).map(([typeKey, poolsInGroup]) => (

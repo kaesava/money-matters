@@ -437,7 +437,7 @@ function PoolsPageContent() {
               }}
               className="px-4 py-2.5 rounded-xl font-bold text-xs text-white bg-[#2563eb] hover:bg-blue-700 transition-all shadow-md flex items-center gap-2 cursor-pointer"
             >
-              <span>Add Pool</span>
+              <span>{t("categories.addPool")}</span>
             </button>
           )}
         </div>
@@ -467,7 +467,7 @@ function PoolsPageContent() {
                   onClick={() => setProjectionMonths(0)}
                   className="px-3 py-1 bg-amber-500 hover:bg-amber-600 text-white font-bold text-xs rounded-lg shadow-xs transition-all animate-in fade-in flex items-center gap-1 cursor-pointer"
                 >
-                  <span>Snap to Today</span>
+                  <span>{t("categories.snapToToday")}</span>
                 </button>
               )}
               <span className="text-xs font-bold font-mono text-[#2563eb] bg-white dark:bg-zinc-900 border border-blue-200 dark:border-blue-800 px-3 py-1 rounded-xl shadow-2xs">
@@ -534,7 +534,7 @@ function PoolsPageContent() {
               setSearchQuery(val);
               setPage(1);
             }}
-            placeholder="Search Pool Name, Category, or Bank Account..."
+            placeholder={t("categories.searchPlaceholder")}
           />
 
           <div className="h-6 w-px bg-zinc-200 hidden sm:block" />
@@ -555,7 +555,7 @@ function PoolsPageContent() {
                       : "text-zinc-500 hover:text-zinc-800"
                   }`}
                 >
-                  {fType === "ALL" ? "All" : fType === "EVERYDAY" ? "Everyday" : fType === "REGULAR" ? "Bills" : "Goals"}
+                  {fType === "ALL" ? t("common.all") : fType === "EVERYDAY" ? t("poolTypes.everyday") : fType === "REGULAR" ? t("poolTypes.bills") : t("poolTypes.goals")}
                 </button>
               ))}
             </div>
@@ -577,7 +577,7 @@ function PoolsPageContent() {
                       : "text-zinc-500 hover:text-zinc-800"
                   }`}
                 >
-                  {pType === "ALL" ? "All" : pType === "SHARED" ? "Shared" : "Private"}
+                  {pType === "ALL" ? t("common.all") : pType === "SHARED" ? t("common.shared") : t("common.private")}
                 </button>
               ))}
             </div>
@@ -592,10 +592,10 @@ function PoolsPageContent() {
               poolIdParam
                 ? matchedPool
                   ? `Filtered to Pool: ${matchedPool.name}`
-                  : "Filter: Item unavailable"
+                  : t("categories.requestedItemNotFound")
                 : matchedCategory
                 ? `Filtered to Category: ${matchedCategory.name}`
-                : "Filter: Item unavailable"
+                : t("categories.requestedItemNotFound")
             }
             onClear={() => {
               const url = new URL(window.location.href);

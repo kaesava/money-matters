@@ -178,7 +178,7 @@ export function IncomeSplitHeader({
                   variant="danger"
                   className="px-5 py-2 text-xs font-extrabold shadow-md cursor-pointer"
                 >
-                  {t("paydayDrawer.runIncomeSplit")}
+                  {t("paydayDrawer.confirmIncomeSplit")}
                 </Button>
               </>
             )}

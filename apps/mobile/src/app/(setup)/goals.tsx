@@ -107,7 +107,7 @@ export default function SetupGoalsScreen() {
         <Text style={styles.title}>{t('setup.categories.goalSection')}</Text>
       </View>
 
-      <Text style={styles.sectionHeading}>Popular Goal Presets:</Text>
+      <Text style={styles.sectionHeading}>{t('setup.goals.popularPresets')}</Text>
       <View style={styles.presetsGrid}>
         {PRESET_GOALS.map((preset) => {
           const active = isPresetActive(preset.name);
@@ -125,7 +125,9 @@ export default function SetupGoalsScreen() {
         })}
       </View>
 
-      <Text style={[styles.sectionHeading, styles.marginTop16]}>Your Savings Goals ({goals.length}):</Text>
+      <Text style={[styles.sectionHeading, styles.marginTop16]}>
+        {t('setup.goals.yourSavingsGoals', { count: goals.length })}
+      </Text>
       {goals.map((g) => (
         <SetupGoalCard
           key={g.id}
@@ -136,10 +138,10 @@ export default function SetupGoalsScreen() {
       ))}
 
       <View style={styles.customBox}>
-        <Text style={styles.customHeading}>Add Custom Goal:</Text>
+        <Text style={styles.customHeading}>{t('setup.goals.addCustomGoal')}</Text>
         <TextInput
           style={styles.customInput}
-          placeholder="Goal name (e.g. Wedding, Japan Trip)"
+          placeholder={t('setup.goals.customGoalPlaceholder')}
           placeholderTextColor={DESIGN_TOKENS.colors.textMuted}
           value={customName}
           onChangeText={setCustomName}

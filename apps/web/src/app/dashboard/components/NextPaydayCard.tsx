@@ -80,7 +80,7 @@ export const NextPaydayCard: React.FC<NextPaydayCardProps> = ({
           href="/dashboard/income-split"
           className="text-xs font-bold text-blue-600 hover:text-blue-700 transition-colors"
         >
-          {t('dashboard.nextPay.showMore')} →
+          {t('dashboard.nextPay.twelveMonthSplit')} →
         </Link>
       </div>
 

@@ -46,7 +46,7 @@ export function PaycheckStudioFooter({
             <ActivityIndicator color={DESIGN_TOKENS.colors.onPrimary} size="small" />
           ) : (
             <Text style={styles.confirmSplitFooterText}>
-              {t('paydayDrawer.runIncomeSplit')}
+              {t('paydayDrawer.confirmIncomeSplit')}
             </Text>
           )}
         </TouchableOpacity>

@@ -30,11 +30,11 @@ export interface PoolsTableProps {
   isProjectionMode?: boolean;
 }
 
-const POOL_TYPE_LABELS: Record<"EVERYDAY" | "REGULAR" | "GOAL", string> = {
-  EVERYDAY: "Everyday Pools",
-  REGULAR: "Bills Pools",
-  GOAL: "Goals",
-};
+const getPoolTypeLabels = (): Record<"EVERYDAY" | "REGULAR" | "GOAL", string> => ({
+  EVERYDAY: t("categories.everydayEnvelopesUpper"),
+  REGULAR: t("categories.billsEnvelopesUpper"),
+  GOAL: t("categories.goalsUpper"),
+});
 
 export function PoolsTable({
   pools,
@@ -133,7 +133,7 @@ export function PoolsTable({
       const totalTarget = items.reduce((sum, p) => sum + (p.targetAmount || 0), 0);
       return {
         type,
-        label: POOL_TYPE_LABELS[type],
+        label: getPoolTypeLabels()[type],
         items,
         totalBalance,
         totalTarget,
@@ -176,7 +176,7 @@ export function PoolsTable({
                 onClick={() => toggleSort("bankAccountName")}
               >
                 <div className="flex items-center gap-1">
-                  <span>Bank Account</span>
+                  <span>{t("tables.bankAccount")}</span>
                   {sortField === "bankAccountName" && <span>{sortDir === "asc" ? "▲" : "▼"}</span>}
                 </div>
               </ResizableTh>
@@ -189,7 +189,7 @@ export function PoolsTable({
                 onClick={() => toggleSort("currentBalance")}
               >
                 <div className="flex items-center justify-end gap-1">
-                  <span>Current Balance</span>
+                  <span>{t("tables.currentBalance")}</span>
                   {sortField === "currentBalance" && <span>{sortDir === "asc" ? "▲" : "▼"}</span>}
                 </div>
               </ResizableTh>
@@ -202,7 +202,7 @@ export function PoolsTable({
                 onClick={() => toggleSort("targetAmount")}
               >
                 <div className="flex items-center justify-end gap-1">
-                  <span>Target</span>
+                  <span>{t("tables.target")}</span>
                   {sortField === "targetAmount" && <span>{sortDir === "asc" ? "▲" : "▼"}</span>}
                 </div>
               </ResizableTh>
@@ -213,7 +213,7 @@ export function PoolsTable({
                 onResizeMouseDown={(e) => onMouseDown("progress", e)}
                 className="py-3.5 px-4 text-center"
               >
-                <span>Progress</span>
+                <span>{t("tables.progress")}</span>
               </ResizableTh>
 
               {/* Actions */}
@@ -222,7 +222,7 @@ export function PoolsTable({
                 onResizeMouseDown={(e) => onMouseDown("actions", e)}
                 className="py-3.5 px-4 text-center"
               >
-                <span>Actions</span>
+                <span>{t("tables.actions")}</span>
               </ResizableTh>
             </tr>
           </thead>
@@ -236,7 +236,7 @@ export function PoolsTable({
             ) : pools.length === 0 ? (
               <tr>
                 <td colSpan={6} className="py-12 text-center text-zinc-400 font-medium">
-                  No pools found matching your criteria.
+                  {t("categories.noEnvelopesFound")}
                 </td>
               </tr>
             ) : (
@@ -343,7 +343,7 @@ export function PoolsTable({
                                       type="button"
                                       onClick={() => onAddCategoryForPool(pool.id)}
                                       className="px-1 py-0.5 text-[9px] font-bold text-[#2563eb] hover:bg-blue-50 rounded border border-blue-200 transition-colors cursor-pointer"
-                                      title="Add Category within Pool"
+                                      title={t("categories.addCategoryWithinEnvelope")}
                                     >
                                       +
                                     </button>
@@ -411,9 +411,7 @@ export function PoolsTable({
                                     <Link
                                       href={`/dashboard/history?poolId=${pool.id}`}
                                       className="text-[#2563eb] hover:underline"
-                                    >
-                                      History
-                                    </Link>
+                                    >{t("tables.history")}</Link>
                                   )}
                                   {pool.hasHistory && pool.hasUpcomingExpenses && (
                                     <span className="text-zinc-300 font-normal">|</span>
@@ -422,9 +420,7 @@ export function PoolsTable({
                                     <Link
                                       href={`/dashboard/income-and-bills?tab=EVENTS&type=EXPENSE&poolId=${pool.id}`}
                                       className="text-[#2563eb] hover:underline"
-                                    >
-                                      Expenses
-                                    </Link>
+                                    >{t("tables.expenses")}</Link>
                                   )}
                                   {!pool.hasHistory && !pool.hasUpcomingExpenses && (
                                     <span className="text-zinc-400 font-normal">—</span>
@@ -485,9 +481,7 @@ export function PoolsTable({
                                         <Link
                                           href={`/dashboard/history?categoryId=${cat.id}`}
                                           className="text-zinc-500 hover:text-[#2563eb] hover:underline"
-                                        >
-                                          History
-                                        </Link>
+                                        >{t("tables.history")}</Link>
                                       )}
                                       {cat.hasHistory && cat.hasUpcomingExpenses && (
                                         <span className="text-zinc-300 font-normal">|</span>
@@ -496,9 +490,7 @@ export function PoolsTable({
                                         <Link
                                           href={`/dashboard/income-and-bills?tab=EVENTS&type=EXPENSE&categoryId=${cat.id}`}
                                           className="text-zinc-500 hover:text-[#2563eb] hover:underline"
-                                        >
-                                          Expenses
-                                        </Link>
+                                        >{t("tables.expenses")}</Link>
                                       )}
                                       {!cat.hasHistory && !cat.hasUpcomingExpenses && (
                                         <span className="text-zinc-400 font-normal">—</span>

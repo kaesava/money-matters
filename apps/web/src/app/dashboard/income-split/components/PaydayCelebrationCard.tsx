@@ -11,6 +11,7 @@ interface PaydayCelebrationCardProps {
   safeToSpend: number;
   isConfirmed: boolean;
   submitting: boolean;
+  isDeficit?: boolean;
   onConfirm: () => void;
   formatAUD: (amount: number) => string;
 }
@@ -21,6 +22,7 @@ export function PaydayCelebrationCard({
   safeToSpend,
   isConfirmed,
   submitting,
+  isDeficit = false,
   onConfirm,
   formatAUD,
 }: PaydayCelebrationCardProps) {
@@ -46,10 +48,11 @@ export function PaydayCelebrationCard({
               type="button"
               onClick={onConfirm}
               loading={submitting}
-              className="px-6 py-3 bg-[#22c55e] hover:bg-emerald-600 text-white font-extrabold text-sm rounded-xl shadow-lg shadow-emerald-950/30 cursor-pointer flex items-center gap-2"
+              disabled={isDeficit || submitting}
+              className="px-6 py-3 bg-[#22c55e] hover:bg-emerald-600 disabled:opacity-50 disabled:cursor-not-allowed text-white font-extrabold text-sm rounded-xl shadow-lg shadow-emerald-950/30 cursor-pointer flex items-center gap-2"
             >
               <CheckCircle2 className="w-4 h-4 stroke-[2.5]" />
-              <span>{t("paydayDrawer.confirmAndLockIn")}</span>
+              <span>{t("paydayDrawer.confirmIncomeSplit")}</span>
             </Button>
           </div>
         )}
@@ -84,15 +87,27 @@ export function PaydayCelebrationCard({
           </div>
         </div>
 
-        <div className="p-4 rounded-xl bg-emerald-500/10 border border-emerald-400/30 flex items-center gap-3.5">
-          <div className="w-10 h-10 rounded-xl bg-emerald-500/20 border border-emerald-400/30 flex items-center justify-center text-emerald-300 shrink-0">
+        <div className={`p-4 rounded-xl border flex items-center gap-3.5 ${
+          isDeficit
+            ? "bg-rose-500/10 border-rose-400/30"
+            : "bg-emerald-500/10 border-emerald-400/30"
+        }`}>
+          <div className={`w-10 h-10 rounded-xl border flex items-center justify-center shrink-0 ${
+            isDeficit
+              ? "bg-rose-500/20 border-rose-400/30 text-rose-300"
+              : "bg-emerald-500/20 border-emerald-400/30 text-emerald-300"
+          }`}>
             <Wallet className="w-5 h-5" />
           </div>
           <div className="min-w-0">
-            <span className="text-[11px] font-bold text-emerald-200/90 uppercase tracking-wider block">
-              {t("paydayDrawer.safeToSpend")}
+            <span className={`text-[11px] font-bold uppercase tracking-wider block ${
+              isDeficit ? "text-rose-200/90" : "text-emerald-200/90"
+            }`}>
+              {isDeficit ? t("paydayDrawer.metricDeficit") : t("paydayDrawer.metricSurplus")}
             </span>
-            <span className="font-mono text-base sm:text-lg font-black text-emerald-300 tabular-nums">
+            <span className={`font-mono text-base sm:text-lg font-black tabular-nums ${
+              isDeficit ? "text-rose-300" : "text-emerald-300"
+            }`}>
               {formatAUD(safeToSpend)}
             </span>
           </div>

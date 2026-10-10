@@ -3,6 +3,7 @@
 import React, { useEffect } from "react";
 import Link from "next/link";
 import { PaginationBar, SkeletonTable } from "@money-matters/ui/web";
+import { t } from "@money-matters/i18n";
 
 export type BankName = "CBA" | "Westpac" | "ANZ" | "NAB" | "ING" | "Macquarie" | "Other";
 export type CategoryType = "EVERYDAY" | "REGULAR" | "GOAL";
@@ -83,18 +84,18 @@ export function BankAccountTable({
             <tr className="border-b border-zinc-200 bg-zinc-50/70 text-zinc-500 font-bold uppercase tracking-wider">
               <th className="py-3.5 px-4 cursor-pointer hover:text-zinc-800 transition-colors text-left" onClick={() => toggleSort("name")}>
                 <div className="flex items-center gap-1">
-                  <span>Account Details</span>
+                  <span>{t("bankAccounts.accountDetails")}</span>
                   {sortField === "name" && <span>{sortDir === "asc" ? "▲" : "▼"}</span>}
                 </div>
               </th>
               <th className="py-3.5 px-4 cursor-pointer hover:text-zinc-800 transition-colors text-right" onClick={() => toggleSort("lastKnownBalance")}>
                 <div className="flex items-center justify-end gap-1">
-                  <span>Available Balance</span>
+                  <span>{t("bankAccounts.availableBalance")}</span>
                   {sortField === "lastKnownBalance" && <span>{sortDir === "asc" ? "▲" : "▼"}</span>}
                 </div>
               </th>
               <th className="py-3.5 px-4 text-center">
-                <span>Linked Pools</span>
+                <span>{t("bankAccounts.linkedPools")}</span>
               </th>
             </tr>
           </thead>
@@ -102,7 +103,7 @@ export function BankAccountTable({
             {accounts.length === 0 ? (
               <tr>
                 <td colSpan={3} className="py-12 text-center text-zinc-400">
-                  No bank accounts found matching your search.
+                  {t("bankAccounts.noAccountsFoundMatching")}
                 </td>
               </tr>
             ) : (

@@ -65,9 +65,9 @@ function renderCategoryIcon(icon?: string | null, type?: "EVERYDAY" | "REGULAR" 
 }
 
 const POOL_TYPE_LABELS: Record<"EVERYDAY" | "REGULAR" | "GOAL", string> = {
-  EVERYDAY: "Everyday Pools",
-  REGULAR: "Bills Pools",
-  GOAL: "Goal Pools",
+  EVERYDAY: "Everyday Envelopes",
+  REGULAR: "Bills Envelopes",
+  GOAL: "Goals",
 };
 
 export function SearchableCategorySelect({

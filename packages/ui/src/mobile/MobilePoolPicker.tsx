@@ -107,7 +107,7 @@ export const MobilePoolPicker: React.FC<MobilePoolPickerProps> = ({
   const sections = useMemo(() => {
     const regularGroup = {
       type: 'REGULAR',
-      title: t('categories.billsPoolsUpper') || t('categories.regularBills') || 'BILLS POOLS',
+      title: t('categories.billsPoolsUpper') || t('categories.regularBills') || 'BILLS ENVELOPES',
       data: [] as MobilePoolOption[],
     };
     const goalGroup = {
@@ -117,12 +117,12 @@ export const MobilePoolPicker: React.FC<MobilePoolPickerProps> = ({
     };
     const everydayGroup = {
       type: 'EVERYDAY',
-      title: t('categories.everydayPoolsUpper') || t('categories.typeEveryday') || 'EVERYDAY POOLS',
+      title: t('categories.everydayPoolsUpper') || t('categories.typeEveryday') || 'EVERYDAY ENVELOPES',
       data: [] as MobilePoolOption[],
     };
     const otherGroup = {
       type: 'OTHER',
-      title: 'OTHER POOLS',
+      title: 'OTHER ENVELOPES',
       data: [] as MobilePoolOption[],
     };
 

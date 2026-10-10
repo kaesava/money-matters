@@ -27,10 +27,10 @@ export interface PoolPickerProps {
 }
 
 export const POOL_TYPE_LABELS: Record<string, string> = {
-  EVERYDAY: "Everyday Pools",
-  REGULAR: "Bills Pools",
+  EVERYDAY: "Everyday Envelopes",
+  REGULAR: "Bills Envelopes",
   GOAL: "Goals",
-  OTHER: "Other Pools",
+  OTHER: "Other Envelopes",
 };
 
 export function formatPoolBalance(val: number | string | null | undefined): string | null {

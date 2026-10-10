@@ -32,6 +32,7 @@ export interface IncomeSplitCommandPanelProps {
   readonly bankAccounts: BankTransferAccount[];
   readonly isAmountModified?: boolean;
   readonly onRecalculateWaterfall?: () => void;
+  readonly onResetEdits?: () => void;
   readonly submitting?: boolean;
   readonly isConfirmedPlan?: boolean;
 }
@@ -47,7 +48,7 @@ export function IncomeSplitCommandPanel({
   sweepPoolName,
   sweepPoolRemainder,
   isDeficit,
-  everydayAllocated,
+  everydayAllocated: _everydayAllocated,
   billsAllocated,
   goalsAllocated,
   isReadOnly,
@@ -58,6 +59,7 @@ export function IncomeSplitCommandPanel({
   bankAccounts,
   isAmountModified,
   onRecalculateWaterfall,
+  onResetEdits,
   submitting,
   isConfirmedPlan = false,
 }: IncomeSplitCommandPanelProps) {
@@ -145,7 +147,7 @@ export function IncomeSplitCommandPanel({
         )}
       </div>
 
-      {/* 2. Reactive Live Safe-to-Spend / Surplus Gauge Card */}
+      {/* 2. Reactive Live Surplus / Deficit Gauge Card */}
       {!isConfirmedPlan && (
         <div
           className={`border rounded-2xl p-5 shadow-xs space-y-4 transition-colors ${
@@ -156,7 +158,7 @@ export function IncomeSplitCommandPanel({
         >
           <div className="flex items-center justify-between">
             <span className="text-xs font-black uppercase tracking-wider text-zinc-500">
-              {t("paydayDrawer.safeToSpendRemaining")}
+              {isDeficit ? t("paydayDrawer.deficitTitle") : t("paydayDrawer.safeToSpendRemaining")}
             </span>
             <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300">
               {sweepPoolName}
@@ -173,19 +175,41 @@ export function IncomeSplitCommandPanel({
             </div>
             <p className="text-xs text-zinc-500 font-medium">
               {isDeficit
-                ? t("paydayDrawer.activeDeficitWarning")
-                : t("paydayDrawer.totalSafeToSpendAllocated", { amount: fmt(everydayAllocated) })}
+                ? t("paydayDrawer.deficitExplicitWarning", {
+                    amount: fmt(Math.abs(sweepPoolRemainder)),
+                    incomeAmount: fmt(numericActual),
+                  })
+                : t("paydayDrawer.surplusWillGoInto", {
+                    amount: fmt(Math.max(0, sweepPoolRemainder)),
+                    name: sweepPoolName,
+                  })}
             </p>
           </div>
 
-          {/* Deficit Alert Banner */}
+          {/* Deficit Alert Banner with Reset Edits button */}
           {isDeficit && (
-            <div className="p-3 bg-red-100 dark:bg-red-950/80 border border-red-300 dark:border-red-800 rounded-xl text-xs text-red-800 dark:text-red-200 font-bold space-y-1">
-              <span>
-                ⚠️ {t("paydayDrawer.deficitAlert", {
-                  amount: fmt(Math.abs(sweepPoolRemainder)),
-                })}
-              </span>
+            <div className="p-3.5 bg-red-100 dark:bg-red-950/80 border border-red-300 dark:border-red-800 rounded-xl text-xs text-red-800 dark:text-red-200 font-medium space-y-2">
+              <div className="flex items-start gap-2">
+                <span className="shrink-0 text-sm">⚠️</span>
+                <span>
+                  {t("paydayDrawer.deficitAlert", {
+                    amount: fmt(Math.abs(sweepPoolRemainder)),
+                    incomeAmount: fmt(numericActual),
+                  })}
+                </span>
+              </div>
+              {onResetEdits && !isReadOnly && (
+                <div className="pt-1">
+                  <button
+                    type="button"
+                    onClick={onResetEdits}
+                    disabled={submitting}
+                    className="px-3 py-1.5 bg-red-700 hover:bg-red-800 text-white font-bold rounded-lg text-xs shadow-xs transition-colors cursor-pointer"
+                  >
+                    {t("paydayDrawer.resetEdits")}
+                  </button>
+                </div>
+              )}
             </div>
           )}
 

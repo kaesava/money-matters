@@ -95,14 +95,16 @@ export function MobileNextPaydayCard({
         </View>
 
         {upcomingIncomes.length > 0 && (
-          <TouchableOpacity
-            onPress={() => router.push('/(app)/paychecks' as never)}
-            style={styles.showMoreBtn}
-            activeOpacity={0.7}
-          >
-            <Text style={styles.showMoreText}>{t('dashboard.nextPay.showMore')}</Text>
-            <Feather name="chevron-right" size={14} color={DESIGN_TOKENS.colors.accent} />
-          </TouchableOpacity>
+          <View style={styles.headerLinksWrap}>
+            <TouchableOpacity
+              onPress={() => router.push('/(app)/income-split' as never)}
+              style={styles.showMoreBtn}
+              activeOpacity={0.7}
+            >
+              <Text style={styles.showMoreText}>{t('dashboard.nextPay.twelveMonthSplit')}</Text>
+              <Feather name="chevron-right" size={14} color={DESIGN_TOKENS.colors.accent} />
+            </TouchableOpacity>
+          </View>
         )}
       </View>
 
@@ -164,6 +166,11 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '800',
     color: DESIGN_TOKENS.colors.primary,
+  },
+  headerLinksWrap: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
   },
   showMoreBtn: {
     flexDirection: 'row',

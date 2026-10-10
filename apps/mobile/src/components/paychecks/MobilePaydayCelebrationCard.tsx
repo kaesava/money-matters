@@ -11,6 +11,7 @@ interface MobilePaydayCelebrationCardProps {
   safeToSpend: number;
   isConfirmed: boolean;
   submitting: boolean;
+  isDeficit?: boolean;
   onConfirm: () => void;
 }
 
@@ -20,6 +21,7 @@ export function MobilePaydayCelebrationCard({
   safeToSpend,
   isConfirmed,
   submitting,
+  isDeficit = false,
   onConfirm,
 }: MobilePaydayCelebrationCardProps) {
   return (
@@ -39,11 +41,11 @@ export function MobilePaydayCelebrationCard({
         <TouchableOpacity
           activeOpacity={0.85}
           onPress={onConfirm}
-          disabled={submitting}
-          style={styles.confirmBtn}
+          disabled={isDeficit || submitting}
+          style={[styles.confirmBtn, (isDeficit || submitting) && styles.disabledBtn]}
         >
           <Feather name="check-circle" size={18} color="#FFFFFF" />
-          <Text style={styles.confirmBtnText}>{t('paydayDrawer.confirmAndLockIn')}</Text>
+          <Text style={styles.confirmBtnText}>{t('paydayDrawer.confirmIncomeSplit')}</Text>
         </TouchableOpacity>
       )}
 
@@ -56,9 +58,13 @@ export function MobilePaydayCelebrationCard({
           <Text style={styles.metricLabel}>{t('paydayDrawer.fundedGoals')}</Text>
           <Text style={styles.metricValue}>{formatAUD(goalsAllocated)}</Text>
         </View>
-        <View style={[styles.metricItem, styles.metricHighlight]}>
-          <Text style={styles.metricHighlightLabel}>{t('paydayDrawer.safeToSpend')}</Text>
-          <Text style={styles.metricHighlightValue}>{formatAUD(safeToSpend)}</Text>
+        <View style={[styles.metricItem, isDeficit ? styles.metricDeficitHighlight : styles.metricHighlight]}>
+          <Text style={isDeficit ? styles.metricDeficitHighlightLabel : styles.metricHighlightLabel}>
+            {isDeficit ? t('paydayDrawer.metricDeficit') : t('paydayDrawer.metricSurplus')}
+          </Text>
+          <Text style={isDeficit ? styles.metricDeficitHighlightValue : styles.metricHighlightValue}>
+            {formatAUD(safeToSpend)}
+          </Text>
         </View>
       </View>
     </View>
@@ -119,6 +125,9 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     borderRadius: 14,
   },
+  disabledBtn: {
+    opacity: 0.5,
+  },
   confirmBtnText: {
     fontSize: 15,
     fontWeight: '800',
@@ -144,6 +153,11 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: 'rgba(34, 197, 94, 0.3)',
   },
+  metricDeficitHighlight: {
+    backgroundColor: 'rgba(244, 63, 94, 0.15)',
+    borderWidth: 1,
+    borderColor: 'rgba(244, 63, 94, 0.3)',
+  },
   metricLabel: {
     fontSize: 10,
     fontWeight: '700',
@@ -166,6 +180,18 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '900',
     color: '#4ADE80',
+    fontFamily: 'monospace',
+  },
+  metricDeficitHighlightLabel: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: '#FDA4AF',
+    textAlign: 'center',
+  },
+  metricDeficitHighlightValue: {
+    fontSize: 13,
+    fontWeight: '900',
+    color: '#FB7185',
     fontFamily: 'monospace',
   },
 });

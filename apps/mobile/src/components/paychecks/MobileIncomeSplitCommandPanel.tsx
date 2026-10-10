@@ -20,6 +20,7 @@ export interface MobileIncomeSplitCommandPanelProps {
   isReadOnly: boolean;
   isAmountModified: boolean;
   onRecalculateWaterfall?: () => void;
+  onResetEdits?: () => void;
   submitting?: boolean;
   isConfirmedPlan?: boolean;
 }
@@ -41,6 +42,7 @@ export function MobileIncomeSplitCommandPanel({
   isReadOnly,
   isAmountModified,
   onRecalculateWaterfall,
+  onResetEdits,
   submitting,
   isConfirmedPlan = false,
 }: MobileIncomeSplitCommandPanelProps) {
@@ -73,12 +75,15 @@ export function MobileIncomeSplitCommandPanel({
           sweepPoolName={sweepPoolName}
           sweepPoolRemainder={sweepPoolRemainder}
           isDeficit={isDeficit}
+          numericActual={numericActual}
           everydayAllocated={everydayAllocated}
           billsAllocated={billsAllocated}
           goalsAllocated={goalsAllocated}
           billsPercent={billsPercent}
           goalsPercent={goalsPercent}
           surplusPercent={surplusPercent}
+          onResetEdits={onResetEdits}
+          isReadOnly={isReadOnly}
         />
       )}
     </View>

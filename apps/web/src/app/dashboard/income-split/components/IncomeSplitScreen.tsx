@@ -402,9 +402,10 @@ export function IncomeSplitScreen({ incomeEventId, returnTo = "/dashboard" }: In
       <PaydayCelebrationCard
         billsAllocated={billsAllocated}
         goalsAllocated={goalsAllocated}
-        safeToSpend={Math.max(0, sweepPoolRemainder)}
+        safeToSpend={sweepPoolRemainder}
         isConfirmed={isConfirmedPlan}
         submitting={submitting}
+        isDeficit={isDeficit}
         onConfirm={() => setShowConfirmWarning(true)}
         formatAUD={(amount) => `$${amount.toLocaleString("en-AU", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
       />
@@ -445,6 +446,7 @@ export function IncomeSplitScreen({ incomeEventId, returnTo = "/dashboard" }: In
             bankAccounts={bankAccounts}
             isAmountModified={actualAmount !== initialAmount}
             onRecalculateWaterfall={handleRecalculateWaterfall}
+            onResetEdits={handleResetAllEdits}
             submitting={submitting}
             isConfirmedPlan={isConfirmedPlan}
           />

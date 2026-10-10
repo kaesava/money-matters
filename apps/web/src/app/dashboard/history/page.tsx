@@ -442,7 +442,7 @@ function TransactionsPageContent() {
                         </div>
                       </ResizableTh>
                       <ResizableTh width={widths.category} onResizeMouseDown={(e: React.MouseEvent) => onMouseDown("category", e)} className="py-3 px-4 text-left">
-                        Pool
+                        <span>{t("tables.envelopeOrBankAccount")}</span>
                       </ResizableTh>
                       <ResizableTh
                         width={widths.amount}
@@ -561,7 +561,7 @@ function TransactionsPageContent() {
                 onChange={(e) => setSelectedBankFilter(e.target.value)}
                 className="w-full sm:w-56 px-3 py-2 text-xs bg-white border border-zinc-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 font-semibold text-zinc-700"
               >
-                <option value="ALL">All Bank Accounts</option>
+                <option value="ALL">{t("transactions.allBanks")}</option>
                 {uniqueBankAccounts.map((bName) => (
                   <option key={bName} value={bName}>{bName}</option>
                 ))}
@@ -610,7 +610,7 @@ function TransactionsPageContent() {
               disabled={sortedPaydayPlans.length === 0}
               className="px-4 py-2 rounded-xl text-xs font-bold bg-white text-zinc-700 hover:bg-zinc-100 border border-zinc-200 transition-all flex items-center gap-1.5 shadow-xs disabled:opacity-50"
             >
-              <span>Export Allocations CSV</span>
+              <span>{t("transactions.exportAuditCSV")}</span>
             </button>
           </div>
 
@@ -656,7 +656,7 @@ function TransactionsPageContent() {
                         }}
                       >
                         <div className="flex items-center justify-center gap-1">
-                          <span>INCOME SPLIT DATE</span>
+                          <span>{t("tables.incomeSplitDateUpper")}</span>
                           {planSortColumn === "createdAt" && <span>{planSortDirection === "asc" ? "↑" : "↓"}</span>}
                         </div>
                       </ResizableTh>
@@ -671,7 +671,7 @@ function TransactionsPageContent() {
                         }}
                       >
                         <div className="flex items-center justify-center gap-1">
-                          <span>INCOME DATE</span>
+                          <span>{t("tables.incomeDateUpper")}</span>
                           {planSortColumn === "expectedDate" && <span>{planSortDirection === "asc" ? "↑" : "↓"}</span>}
                         </div>
                       </ResizableTh>
@@ -686,7 +686,7 @@ function TransactionsPageContent() {
                         }}
                       >
                         <div className="flex items-center gap-1">
-                          <span>Income</span>
+                          <span>{t("transactions.typeCredit")}</span>
                           {planSortColumn === "incomeName" && <span>{planSortDirection === "asc" ? "↑" : "↓"}</span>}
                         </div>
                       </ResizableTh>
@@ -701,7 +701,7 @@ function TransactionsPageContent() {
                         }}
                       >
                         <div className="flex items-center gap-1">
-                          <span>Bank Account</span>
+                          <span>{t("tables.bankAccount")}</span>
                           {planSortColumn === "receivingAccount" && <span>{planSortDirection === "asc" ? "↑" : "↓"}</span>}
                         </div>
                       </ResizableTh>
@@ -716,13 +716,13 @@ function TransactionsPageContent() {
                         }}
                       >
                         <div className="flex items-center justify-end gap-1">
-                          <span>Total Amount</span>
+                          <span>{t("tables.totalAmount")}</span>
                           {planSortColumn === "amount" && <span>{planSortDirection === "asc" ? "↑" : "↓"}</span>}
                         </div>
                       </ResizableTh>
 
                       <th className="py-3 px-4 text-center font-bold text-zinc-400 uppercase tracking-wider text-[11px] w-24">
-                        <span>{t("transactions.details") || "Details"}</span>
+                        <span>{t("tables.details")}</span>
                       </th>
                     </tr>
                   </thead>
@@ -756,7 +756,7 @@ function TransactionsPageContent() {
                             onClick={() => setActivePlanForDrawer(plan)}
                             className="font-bold text-[#2563eb] hover:underline inline-flex items-center text-xs cursor-pointer"
                           >
-                            <span>{t("transactions.details") || "Details"}</span>
+                            <span>{t("tables.details")}</span>
                           </button>
                         </td>
                       </tr>

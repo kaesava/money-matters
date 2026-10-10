@@ -115,10 +115,10 @@ export function IncomeSplitOverview() {
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div className="flex items-center gap-2">
           <h1 className="text-2xl font-black text-[#1B2B4B] flex items-center gap-2">
-            <span>{t("nav.splitIncome") || "Split Income"}</span>
+            <span>{t("incomeBillsTabs.twelveMonthIncomeSplit")}</span>
             <InfoTooltip
-              title={t("tooltips.incomeBills.title")}
-              content={t("tooltips.incomeBills.content")}
+              title={t("incomeBillsTabs.twelveMonthIncomeSplit")}
+              content={t("incomeBillsTabs.twelveMonthIncomeSplitTooltip")}
             />
           </h1>
         </div>

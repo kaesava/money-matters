@@ -263,14 +263,23 @@ function IncomeAndBillsContent() {
           />
         </div>
 
-        <button
-          type="button"
-          onClick={() => setIsTransferDrawerOpen(true)}
-          className="px-4 py-2.5 rounded-xl font-bold text-xs bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-100 border border-indigo-200 dark:border-indigo-800 transition-all flex items-center gap-2 shadow-2xs cursor-pointer"
-        >
-          <span>🔄</span>
-          <span>{t("dashboard.transferBetweenPools")}</span>
-        </button>
+        <div className="flex items-center gap-2">
+          <Link
+            href="/dashboard/income-split"
+            className="px-4 py-2.5 rounded-xl font-bold text-xs bg-blue-50 dark:bg-blue-950/60 text-[#2563eb] dark:text-blue-300 hover:bg-blue-100 border border-blue-200 dark:border-blue-800 transition-all flex items-center gap-1.5 shadow-2xs"
+          >
+            <span>📅</span>
+            <span>{t("incomeBillsTabs.twelveMonthIncomeSplit")}</span>
+          </Link>
+          <button
+            type="button"
+            onClick={() => setIsTransferDrawerOpen(true)}
+            className="px-4 py-2.5 rounded-xl font-bold text-xs bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-100 border border-indigo-200 dark:border-indigo-800 transition-all flex items-center gap-2 shadow-2xs cursor-pointer"
+          >
+            <span>🔄</span>
+            <span>{t("dashboard.transferBetweenPools")}</span>
+          </button>
+        </div>
       </div>
 
       <Tabs
@@ -392,7 +401,7 @@ function IncomeAndBillsContent() {
                               }}
                               className="flex items-center gap-1 font-bold hover:text-zinc-700"
                             >
-                              <span>SCHEDULE NAME</span>
+                              <span>{t("tables.scheduleName")}</span>
                               {incSortField === "name" && (incSortOrder === "asc" ? "↑" : "↓")}
                             </button>
                           </ResizableTh>
@@ -409,7 +418,7 @@ function IncomeAndBillsContent() {
                               }}
                               className="flex items-center gap-1 font-bold hover:text-zinc-700"
                             >
-                              <span>BANK ACCOUNT</span>
+                              <span>{t("tables.bankAccountUpper")}</span>
                               {incSortField === "account" && (incSortOrder === "asc" ? "↑" : "↓")}
                             </button>
                           </ResizableTh>
@@ -426,7 +435,7 @@ function IncomeAndBillsContent() {
                               }}
                               className="flex items-center gap-1 justify-end font-bold hover:text-zinc-700 w-full"
                             >
-                              <span>AMOUNT</span>
+                              <span>{t("tables.amountUpper")}</span>
                               {incSortField === "amount" && (incSortOrder === "asc" ? "↑" : "↓")}
                             </button>
                           </ResizableTh>
@@ -548,7 +557,7 @@ function IncomeAndBillsContent() {
                               }}
                               className="flex items-center gap-1 font-bold hover:text-zinc-700"
                             >
-                              <span>SCHEDULE NAME</span>
+                              <span>{t("tables.scheduleName")}</span>
                               {expSortField === "name" && (expSortOrder === "asc" ? "↑" : "↓")}
                             </button>
                           </ResizableTh>
@@ -565,7 +574,7 @@ function IncomeAndBillsContent() {
                               }}
                               className="flex items-center gap-1 font-bold hover:text-zinc-700"
                             >
-                              <span>ASSIGNED POOL</span>
+                              <span>{t("tables.assignedEnvelope")}</span>
                               {expSortField === "pool" && (expSortOrder === "asc" ? "↑" : "↓")}
                             </button>
                           </ResizableTh>
@@ -582,7 +591,7 @@ function IncomeAndBillsContent() {
                               }}
                               className="flex items-center gap-1 justify-end font-bold hover:text-zinc-700 w-full"
                             >
-                              <span>AMOUNT</span>
+                              <span>{t("tables.amountUpper")}</span>
                               {expSortField === "amount" && (expSortOrder === "asc" ? "↑" : "↓")}
                             </button>
                           </ResizableTh>

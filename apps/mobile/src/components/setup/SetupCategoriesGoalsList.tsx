@@ -47,7 +47,7 @@ export function SetupCategoriesGoalsList({
                 </Text>
                 {isSurplusTarget && (
                   <View style={styles.surplusBadge}>
-                    <Text style={styles.surplusBadgeText}>Surplus Target</Text>
+                    <Text style={styles.surplusBadgeText}>{t('setup.goals.surplusTargetBadge')}</Text>
                   </View>
                 )}
               </View>

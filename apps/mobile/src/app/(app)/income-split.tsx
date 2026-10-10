@@ -18,11 +18,11 @@ export default function SplitIncomeScreen() {
 
   return (
     <AppScreenWrapper
-      title={t('nav.splitIncome')}
+      title={t('incomeBillsTabs.twelveMonthIncomeSplit')}
       scrollable={false}
       infoTooltip={{
-        title: t('nav.splitIncome'),
-        content: t('tooltips.incomeBills.content'),
+        title: t('incomeBillsTabs.twelveMonthIncomeSplit'),
+        content: t('incomeBillsTabs.twelveMonthIncomeSplitTooltip'),
       }}
     >
       <View style={styles.container}>

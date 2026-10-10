@@ -418,7 +418,7 @@ export function UpcomingTimelineTab({
                       onClick={() => handleSort("date")}
                       className="flex items-center justify-center gap-1 hover:text-zinc-700 dark:hover:text-zinc-200 font-bold w-full"
                     >
-                      <span>Date</span>
+                      <span>{t("tables.date")}</span>
                       {sortField === "date" && (
                         <span>{sortOrder === "asc" ? "↑" : "↓"}</span>
                       )}
@@ -435,7 +435,7 @@ export function UpcomingTimelineTab({
                       onClick={() => handleSort("name")}
                       className="flex items-center gap-1 hover:text-zinc-700 dark:hover:text-zinc-200 font-bold"
                     >
-                      <span>Name</span>
+                      <span>{t("tables.name")}</span>
                       {sortField === "name" && (
                         <span>{sortOrder === "asc" ? "↑" : "↓"}</span>
                       )}
@@ -447,7 +447,7 @@ export function UpcomingTimelineTab({
                     onResizeMouseDown={(e) => onMouseDown("poolAccount", e)}
                     className="py-3 px-4 text-left"
                   >
-                    <span>Pool / Bank Account</span>
+                    <span>{t("tables.envelopeOrBankAccount")}</span>
                   </ResizableTh>
 
                   <ResizableTh
@@ -460,7 +460,7 @@ export function UpcomingTimelineTab({
                       onClick={() => handleSort("amount")}
                       className="flex items-center gap-1 justify-end hover:text-zinc-700 dark:hover:text-zinc-200 font-bold w-full"
                     >
-                      <span>Amount</span>
+                      <span>{t("tables.amount")}</span>
                       {sortField === "amount" && (
                         <span>{sortOrder === "asc" ? "↑" : "↓"}</span>
                       )}
@@ -472,7 +472,7 @@ export function UpcomingTimelineTab({
                     onResizeMouseDown={(e) => onMouseDown("actions", e)}
                     className="py-3 px-4 text-center"
                   >
-                    <span>Actions</span>
+                    <span>{t("tables.actions")}</span>
                   </ResizableTh>
                 </tr>
               </thead>

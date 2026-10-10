@@ -226,11 +226,11 @@ export function MarkPaidModal({
       maxWidth="max-w-xl"
     >
       <div className="flex flex-col gap-4">
-        {/* Target Pool & Current Balance Header Card */}
+        {/* {t("categories.targetPool")} & {t("tables.currentBalance")} Header Card */}
         <div className="p-3.5 bg-slate-50 dark:bg-zinc-800/60 rounded-xl border border-zinc-200/80 dark:border-zinc-700/80 flex items-center justify-between text-xs">
           <div>
             <span className="text-[11px] font-semibold text-zinc-400 uppercase tracking-wider block">
-              Target Pool
+              {t("categories.targetPool")}
             </span>
             <span className="font-bold text-sm text-[#1B2B4B] dark:text-white">
               {formattedPoolName} <span className="text-xs font-normal text-zinc-500">({formattedPoolType})</span>
@@ -238,7 +238,7 @@ export function MarkPaidModal({
           </div>
           <div className="text-right">
             <span className="text-[11px] font-semibold text-zinc-400 uppercase tracking-wider block">
-              Current Balance
+              {t("tables.currentBalance")}
             </span>
             <span className="font-mono font-bold text-sm text-[#2563eb] tabular-nums">
               {fmt(targetBalance)}
@@ -329,7 +329,7 @@ export function MarkPaidModal({
             <div className="max-h-[35vh] overflow-y-auto border border-zinc-200 dark:border-zinc-800 rounded-xl divide-y divide-zinc-200 dark:divide-zinc-800">
               {Object.keys(groupedPools).length === 0 ? (
                 <div className="p-6 text-center text-xs text-zinc-500 font-semibold">
-                  No other pools with available balances found to cover the shortfall.
+                  {t("incomeBillsTabs.coverShortfallNoEnvelopes")}
                 </div>
               ) : (
                 Object.entries(groupedPools).map(([typeKey, poolsInGroup]) => {
@@ -342,7 +342,7 @@ export function MarkPaidModal({
                         className="w-full px-4 py-2.5 flex items-center justify-between bg-zinc-50 dark:bg-zinc-800/60 hover:bg-zinc-100 dark:hover:bg-zinc-800 text-xs font-bold text-zinc-700 dark:text-zinc-300 transition-colors"
                       >
                         <span className="flex items-center gap-2">
-                          <span>{typeKey} Pools</span>
+                          <span>{typeKey} {t("categories.title")}</span>
                           <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-zinc-200 dark:bg-zinc-700 text-zinc-600 dark:text-zinc-300">
                             {poolsInGroup.length}
                           </span>
@@ -354,9 +354,9 @@ export function MarkPaidModal({
                         <table className="w-full text-left border-collapse">
                           <thead>
                             <tr className="border-b border-zinc-100 dark:border-zinc-800 text-[10px] font-bold text-zinc-400 uppercase tracking-wider bg-zinc-50/40 dark:bg-zinc-900">
-                              <th className="py-2 px-4 text-left">Pool</th>
-                              <th className="py-2 px-4 text-right">Available</th>
-                              <th className="py-2 px-4 text-right">Transfer ($)</th>
+                              <th className="py-2 px-4 text-left">{t("tables.name")}</th>
+                              <th className="py-2 px-4 text-right">{t("tables.available")}</th>
+                              <th className="py-2 px-4 text-right">{t("tables.transferAmount")}</th>
                             </tr>
                           </thead>
                           <tbody className="divide-y divide-zinc-100 dark:divide-zinc-800 text-xs">
