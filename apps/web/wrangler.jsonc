@@ -3,7 +3,10 @@
   "name": "money-matters-web",
   "main": ".open-next/worker.js",
   "compatibility_date": "2026-07-27",
-  "compatibility_flags": ["nodejs_compat"],
+  "compatibility_flags": ["nodejs_compat", "global_fetch_strictly_public"],
+  "limits": {
+    "cpu_ms": 30000
+  },
   "assets": {
     "directory": ".open-next/assets",
     "binding": "ASSETS"
@@ -18,7 +21,7 @@
   "vars": {
     "NEXT_PUBLIC_NEON_AUTH_URL": "https://ep-spring-snow-a70f61xz.neonauth.ap-southeast-2.aws.neon.tech/neondb/auth",
     "NEXT_PUBLIC_API_URL": "https://api.moneymatters.kaesava.au",
-    "NEXT_PUBLIC_ENABLE_AUTH": "false",
+    "NEXT_PUBLIC_ENABLE_AUTH": "true",
     "NEXT_PUBLIC_POSTHOG_PROJECT_TOKEN": "phc_tUCUwzeZTkRaNB6RiqsaPf3rbTCAKY2Y9YMApkySf735",
     "NEXT_PUBLIC_SENTRY_DSN": "https://d72687a1414b1e142f6e5c8d815300da@o4511408239738880.ingest.us.sentry.io/4511834184679424"
   },
