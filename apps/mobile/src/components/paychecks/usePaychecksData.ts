@@ -83,27 +83,27 @@ export function usePaychecksData() {
 
   const handleDeleteIncomeEvent = (item: { id: string; name?: string | null }) => {
     showMobileConfirm({
-      title: t('payday.deleteIncomeEvent') || 'Delete Income Event',
-      message: t('payday.deleteIncomeEventConfirm') || 'Are you sure you want to delete this upcoming income event?',
-      confirmText: t('common.delete') || 'Delete',
+      title: t('payday.deleteIncomeEvent'),
+      message: t('payday.deleteIncomeEventConfirm'),
+      confirmText: t('common.delete'),
       onConfirm: () => deleteIncomeEventMut.mutate({ eventId: item.id }),
     });
   };
 
   const handleDeleteExpenseEvent = (item: { id: string; name?: string | null }) => {
     showMobileConfirm({
-      title: 'Delete Expense Event',
-      message: `Are you sure you want to delete "${item.name || 'Expense'}"?`,
-      confirmText: t('common.delete') || 'Delete',
+      title: t('payday.deleteExpenseEvent'),
+      message: t('payday.deleteExpenseEventConfirm', { name: item.name || t('common.expense') }),
+      confirmText: t('common.delete'),
       onConfirm: () => deleteExpenseEventMut.mutate({ eventId: item.id }),
     });
   };
 
   const handleDeleteTransferEvent = (item: { id: string; name?: string | null }) => {
     showMobileConfirm({
-      title: 'Delete Transfer',
-      message: 'Are you sure you want to delete this upcoming transfer?',
-      confirmText: t('common.delete') || 'Delete',
+      title: t('payday.deleteTransferEvent'),
+      message: t('payday.deleteTransferEventConfirm'),
+      confirmText: t('common.delete'),
       onConfirm: () => deleteTransferEventMut.mutate({ eventId: item.id }),
     });
   };

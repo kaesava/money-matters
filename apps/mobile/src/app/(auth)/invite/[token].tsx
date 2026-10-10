@@ -61,7 +61,7 @@ export default function AcceptInviteMobileScreen() {
         {status === 'success' && (
           <View style={styles.stateWrapper}>
             <View style={styles.successIconBadge}>
-              <Feather name="check" size={28} color="#FFFFFF" />
+              <Feather name="check" size={28} color={DESIGN_TOKENS.colors.onPrimary} />
             </View>
             <Text style={styles.title}>{t("partner.acceptSuccessTitle")}</Text>
             <Text style={styles.subtitle}>{t("partner.acceptSuccessMessage")}</Text>
@@ -71,7 +71,7 @@ export default function AcceptInviteMobileScreen() {
         {status === 'error' && (
           <View style={styles.stateWrapper}>
             <View style={styles.errorIconBadge}>
-              <Feather name="alert-triangle" size={28} color="#FFFFFF" />
+              <Feather name="alert-triangle" size={28} color={DESIGN_TOKENS.colors.onPrimary} />
             </View>
             <Text style={styles.title}>{t("partner.acceptErrorTitle")}</Text>
             <Text style={styles.subtitle}>{errorMsg || t("partner.invalidToken")}</Text>
@@ -102,7 +102,7 @@ const styles = StyleSheet.create({
     borderRadius: DESIGN_TOKENS.radius.lg,
     padding: DESIGN_TOKENS.spacing.cardPadding * 1.5,
     alignItems: 'center',
-    shadowColor: '#000',
+    shadowColor: DESIGN_TOKENS.colors.slate[900],
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.05,
     shadowRadius: 8,
@@ -152,7 +152,7 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   actionBtnText: {
-    color: '#FFFFFF',
+    color: DESIGN_TOKENS.colors.onPrimary,
     fontSize: 14,
     fontWeight: '600',
   },

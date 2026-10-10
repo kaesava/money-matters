@@ -184,7 +184,7 @@ export function UpcomingEventsTab({
             title: t('common.type'),
             selectedValue: upcomingKindFilter,
             onSelect: (val) => {
-              setUpcomingKindFilter(val as any);
+              setUpcomingKindFilter(val as 'ALL' | 'INCOME' | 'EXPENSE' | 'TRANSFER');
               setUpcomingPage(1);
             },
             options: [

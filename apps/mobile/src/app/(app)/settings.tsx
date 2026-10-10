@@ -58,7 +58,7 @@ export default function SettingsScreen() {
   const handleCopyDiagnostics = () => {
     const versionInfo = getMobileVersionInfo();
     const jsonStr = JSON.stringify(versionInfo, null, 2);
-    toast.info(jsonStr, 'Diagnostics Copied');
+    toast.info(jsonStr, t('settings.app.diagnosticsCopied'));
   };
 
   const handleSignOut = async () => {

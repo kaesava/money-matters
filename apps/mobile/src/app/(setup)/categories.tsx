@@ -51,7 +51,7 @@ export default function SetupCategoriesScreen() {
   const handleAttemptRemoveCategory = (name: string) => {
     const lower = name.trim().toLowerCase();
     if (lower.includes('emergency') || lower.includes('surplus') || lower.includes('reserve')) {
-      toast.error(t('setup.surplusTargetDeleteWarning'), 'Protected Pool');
+      toast.error(t('setup.surplusTargetDeleteWarning'), t('setup.protectedPoolTitle'));
       return;
     }
     setRemovedCategoryNames((prev) => new Set(prev).add(name));

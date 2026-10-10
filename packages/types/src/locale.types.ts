@@ -123,7 +123,35 @@ export function getCountryDefaults(countryCode: string): CountryDefaults {
   return COUNTRY_DEFAULTS[code] || COUNTRY_DEFAULTS["AU"];
 }
 
+export function detectBestGuessCountry(locale?: string, timezone?: string): string {
+  if (timezone) {
+    if (timezone.startsWith("Australia/")) return "AU";
+    if (timezone.startsWith("Pacific/Auckland") || timezone.startsWith("Pacific/Chatham")) return "NZ";
+    if (timezone.startsWith("Asia/Kolkata") || timezone.startsWith("Asia/Calcutta")) return "IN";
+    if (timezone.startsWith("Europe/London")) return "GB";
+    if (timezone.startsWith("Asia/Tokyo")) return "JP";
+    if (timezone.startsWith("Asia/Singapore")) return "SG";
+    if (timezone.startsWith("America/Toronto") || timezone.startsWith("America/Vancouver") || timezone.startsWith("America/Edmonton") || timezone.startsWith("America/Winnipeg") || timezone.startsWith("America/Halifax")) return "CA";
+    if (timezone.startsWith("America/")) return "US";
+  }
+
+  if (locale) {
+    const clean = locale.replace("_", "-").toUpperCase();
+    if (clean.endsWith("-AU")) return "AU";
+    if (clean.endsWith("-NZ")) return "NZ";
+    if (clean.endsWith("-IN")) return "IN";
+    if (clean.endsWith("-GB")) return "GB";
+    if (clean.endsWith("-CA")) return "CA";
+    if (clean.endsWith("-SG")) return "SG";
+    if (clean.endsWith("-JP") || clean.startsWith("JA")) return "JP";
+    if (clean.endsWith("-US")) return "US";
+  }
+
+  return DEFAULT_COUNTRY;
+}
+
 export const CurrencyCodeSchema = z.string().length(3).refine(
   (val) => val.toUpperCase() in SUPPORTED_CURRENCIES,
   { message: "Unsupported currency code" }
 );
+

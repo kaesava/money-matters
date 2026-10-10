@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
-import { AmountInput } from '@money-matters/ui/mobile';
+import { AmountInput, DESIGN_TOKENS } from '@money-matters/ui/mobile';
 import { formatAUD } from '../../lib/format';
 import { t } from '@money-matters/i18n';
 
@@ -94,10 +94,10 @@ export function ReconciliationPoolRow({
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: '#F8FAFC',
+    backgroundColor: DESIGN_TOKENS.colors.slate[50],
     borderRadius: 14,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: DESIGN_TOKENS.colors.slate[200],
     padding: 12,
     gap: 8,
   },
@@ -113,10 +113,10 @@ const styles = StyleSheet.create({
   name: {
     fontSize: 14,
     fontWeight: '800',
-    color: '#1B2B4B',
+    color: DESIGN_TOKENS.colors.primary,
   },
   sweepBadge: {
-    backgroundColor: '#DBEAFE',
+    backgroundColor: DESIGN_TOKENS.colors.accentLight,
     paddingHorizontal: 6,
     paddingVertical: 1.5,
     borderRadius: 4,
@@ -124,7 +124,7 @@ const styles = StyleSheet.create({
   sweepBadgeText: {
     fontSize: 9,
     fontWeight: '800',
-    color: '#1E40AF',
+    color: DESIGN_TOKENS.colors.accentDark,
   },
   metaRow: {
     flexDirection: 'row',
@@ -137,23 +137,23 @@ const styles = StyleSheet.create({
     borderRadius: 4,
   },
   badgeEveryday: {
-    backgroundColor: '#ECFDF5',
+    backgroundColor: DESIGN_TOKENS.colors.successLight,
   },
   badgeBills: {
-    backgroundColor: '#EFF6FF',
+    backgroundColor: DESIGN_TOKENS.colors.accentLight,
   },
   badgeGoals: {
-    backgroundColor: '#EEF2FF',
+    backgroundColor: DESIGN_TOKENS.colors.slate[100],
   },
   typeText: {
     fontSize: 10,
     fontWeight: '700',
-    color: '#475569',
+    color: DESIGN_TOKENS.colors.slate[600],
   },
   availText: {
     fontSize: 11,
     fontFamily: 'monospace',
-    color: '#64748B',
+    color: DESIGN_TOKENS.colors.textMuted,
   },
   inputCol: {
     marginTop: 2,

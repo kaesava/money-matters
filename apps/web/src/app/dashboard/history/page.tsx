@@ -108,14 +108,14 @@ function TransactionsPageContent() {
 
   const getTransactionTypeLabel = (type?: string): string => {
     switch (type) {
-      case "EXPENSE": return t("transactions.types.expense") || "Expense";
-      case "INCOME_SPLIT": return t("transactions.types.incomeTopup") || "Income Topup";
-      case "INCOME_DIRECT": return t("transactions.types.incomeDirect") || "Direct Income";
-      case "TRANSFER_OUT": return t("transactions.types.transferOut") || "Transfer Out";
-      case "TRANSFER_IN": return t("transactions.types.transferIn") || "Transfer In";
-      case "ACCOUNT_ALIGNMENT": return t("transactions.types.accountAlignment") || "Account Alignment";
-      case "BALANCE_ADJUSTMENT": return t("transactions.types.balanceAdjustment") || "Balance Adjustment";
-      case "OPENING_BALANCE": return t("transactions.types.openingBalance") || "Opening Balance";
+      case "EXPENSE": return t("transactions.types.expense");
+      case "INCOME_SPLIT": return t("transactions.types.incomeTopup");
+      case "INCOME_DIRECT": return t("transactions.types.incomeDirect");
+      case "TRANSFER_OUT": return t("transactions.types.transferOut");
+      case "TRANSFER_IN": return t("transactions.types.transferIn");
+      case "ACCOUNT_ALIGNMENT": return t("transactions.types.accountAlignment");
+      case "BALANCE_ADJUSTMENT": return t("transactions.types.balanceAdjustment");
+      case "OPENING_BALANCE": return t("transactions.types.openingBalance");
       default: return type ? type.replace(/_/g, " ") : "Transaction";
     }
   };
@@ -191,8 +191,8 @@ function TransactionsPageContent() {
   };
 
   const tabsList = [
-    { id: "transactions", label: t("transactions.tabs.transactions") || "History" },
-    { id: "payday-allocations", label: t("transactions.tabs.paydayAllocations") || "Income Splits" },
+    { id: "transactions", label: t("transactions.tabs.transactions") },
+    { id: "payday-allocations", label: t("transactions.tabs.paydayAllocations") },
   ];
 
   // Payday Allocations / Income Splits Table State
@@ -273,7 +273,7 @@ function TransactionsPageContent() {
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <h1 className="text-2xl font-extrabold text-[#1B2B4B]">
-            {t("transactions.title") || "History"}
+            {t("transactions.title")}
           </h1>
           <InfoTooltip
             title={t("tooltips.transactions.title")}
@@ -294,7 +294,7 @@ function TransactionsPageContent() {
               <SearchInput
                 value={searchQuery}
                 onChange={setSearchQuery}
-                placeholder={t("transactions.searchPlaceholder") || "Search description or category name..."}
+                placeholder={t("transactions.searchPlaceholder")}
               />
 
               <div className="h-6 w-px bg-zinc-200 hidden sm:block" />
@@ -409,7 +409,7 @@ function TransactionsPageContent() {
                         }}
                       >
                         <div className="flex items-center justify-center gap-1">
-                          <span>{t("transactions.date") || "Date"}</span>
+                          <span>{t("transactions.date")}</span>
                           {sortColumn === "recordedAt" && <span>{sortDirection === "asc" ? "↑" : "↓"}</span>}
                         </div>
                       </ResizableTh>
@@ -423,7 +423,7 @@ function TransactionsPageContent() {
                         }}
                       >
                         <div className="flex items-center justify-center gap-1">
-                          <span>{t("transactions.type") || "Type"}</span>
+                          <span>{t("transactions.type")}</span>
                           {sortColumn === "transactionType" && <span>{sortDirection === "asc" ? "↑" : "↓"}</span>}
                         </div>
                       </ResizableTh>
@@ -437,7 +437,7 @@ function TransactionsPageContent() {
                         }}
                       >
                         <div className="flex items-center gap-1">
-                          <span>{t("transactions.description") || "Description"}</span>
+                          <span>{t("transactions.description")}</span>
                           {sortColumn === "description" && <span>{sortDirection === "asc" ? "↑" : "↓"}</span>}
                         </div>
                       </ResizableTh>
@@ -454,7 +454,7 @@ function TransactionsPageContent() {
                         }}
                       >
                         <div className="flex items-center justify-end gap-1">
-                          <span>{t("transactions.amount") || "Amount"}</span>
+                          <span>{t("transactions.amount")}</span>
                           {sortColumn === "amount" && <span>{sortDirection === "asc" ? "↑" : "↓"}</span>}
                         </div>
                       </ResizableTh>

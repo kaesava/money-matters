@@ -196,7 +196,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: DESIGN_TOKENS.colors.slate[200],
   },
-  presetCardActive: { borderColor: DESIGN_TOKENS.colors.accent, backgroundColor: '#EFF6FF' },
+  presetCardActive: { borderColor: DESIGN_TOKENS.colors.accent, backgroundColor: DESIGN_TOKENS.colors.accentLight },
   presetIcon: { fontSize: 20, marginBottom: 4 },
   presetName: { fontSize: 12, fontWeight: '700', color: DESIGN_TOKENS.colors.primary },
   presetMeta: { fontSize: 11, color: DESIGN_TOKENS.colors.textMuted, marginTop: 2 },

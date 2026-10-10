@@ -60,19 +60,19 @@ export const BentoPoolsSection: React.FC<BentoPoolsSectionProps> = ({
           <div className="space-y-3">
             <div className="flex justify-between items-center">
               <span className="text-[11px] font-extrabold uppercase tracking-widest text-gray-500">
-                {t('dashboard.hero.everydayDailyRateLabel') || 'Daily Spendable'}
+                {t('dashboard.hero.everydayDailyRateLabel')}
               </span>
               {isBillsRisk ? (
                 <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-rose-100 text-rose-700 border border-rose-200">
-                  {t('dashboard.hero.atRisk') || 'Bills at Risk'}
+                  {t('dashboard.hero.atRisk')}
                 </span>
               ) : isPacingTight ? (
                 <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 border border-amber-200">
-                  {t('dashboard.hero.pacingTightenedBadge') || 'Pace Tightened'}
+                  {t('dashboard.hero.pacingTightenedBadge')}
                 </span>
               ) : (
                 <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-200">
-                  {t('dashboard.hero.trackingOnTrack') || 'On Track ✓'}
+                  {t('dashboard.hero.trackingOnTrack')}
                 </span>
               )}
             </div>
@@ -118,7 +118,7 @@ export const BentoPoolsSection: React.FC<BentoPoolsSectionProps> = ({
           <div className="space-y-3">
             <div className="flex justify-between items-center">
               <span className="text-[11px] font-extrabold uppercase tracking-widest text-gray-500">
-                {t('dashboard.hero.billsPoolTitle') || 'Bills Pool'}
+                {t('dashboard.hero.billsPoolTitle')}
               </span>
             </div>
 
@@ -127,7 +127,7 @@ export const BentoPoolsSection: React.FC<BentoPoolsSectionProps> = ({
                 {format(billsBalance)}
               </div>
               <p className="text-xs text-gray-500 mt-1">
-                {t('dashboard.hero.billsRingFencedSubtitle') || 'Ring-fenced for committed bills'}
+                {t('dashboard.hero.billsRingFencedSubtitle')}
               </p>
             </div>
 
@@ -149,12 +149,12 @@ export const BentoPoolsSection: React.FC<BentoPoolsSectionProps> = ({
                   onClick={onMoveMoney}
                   className="px-2.5 py-1 text-xs font-bold text-white bg-rose-600 hover:bg-rose-700 rounded-xl transition-colors shrink-0 cursor-pointer"
                 >
-                  {t('dashboard.hero.coverShortfall') || 'Cover →'}
+                  {t('dashboard.hero.coverShortfall')}
                 </button>
               </div>
             ) : (
               <div className="p-2.5 bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200/80 dark:border-emerald-900/50 rounded-xl flex items-center gap-2 text-xs font-bold text-emerald-800 dark:text-emerald-300">
-                <span>{t('dashboard.hero.billsFullyCovered') || 'Next 14 days of bills are fully covered!'}</span>
+                <span>{t('dashboard.hero.billsFullyCovered')}</span>
               </div>
             )}
           </div>

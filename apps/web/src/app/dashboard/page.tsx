@@ -3,7 +3,8 @@
 import React, { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ChevronDown, ArrowUpRight, ArrowDownLeft, ArrowLeftRight } from "lucide-react";
+import { ChevronDown, ArrowUpRight, ArrowDownLeft, ArrowLeftRight, Plus, Sparkles } from "lucide-react";
+
 import { trpc } from "../../lib/trpc";
 import { t } from "@money-matters/i18n";
 import { useToast, InfoTooltip, ConfirmDialog } from "@money-matters/ui/web";
@@ -239,22 +240,27 @@ export default function DashboardPage() {
   return (
     <div className="max-w-6xl mx-auto space-y-6 pb-12 px-4 sm:px-6 animate-in fade-in duration-200">
       {/* Top Header Row with Side-by-Side Quick Actions */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div className="flex items-center gap-2">
-          <h1 className="font-heading text-3xl font-extrabold text-[#1B2B4B] tracking-tight">
-            {t("nav.dashboard")}
-          </h1>
-          <InfoTooltip
-            title={t("tooltips.dashboard.title")}
-            content={t("tooltips.dashboard.content")}
-          />
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-1 border-b border-slate-200/60 dark:border-zinc-800/80">
+        <div className="flex flex-col gap-1">
+          <div className="flex items-center gap-2.5">
+            <h1 className="font-heading text-2xl sm:text-3xl font-black text-[#1B2B4B] dark:text-zinc-50 tracking-tight">
+              {t("nav.dashboard")}
+            </h1>
+            <InfoTooltip
+              title={t("tooltips.dashboard.title")}
+              content={t("tooltips.dashboard.content")}
+            />
+          </div>
+          <p className="text-xs font-medium text-slate-500 dark:text-zinc-400">
+            {t("app.tagline")}
+          </p>
         </div>
 
         {/* Header Action Strip */}
-        <div className="flex items-center gap-2.5">
+        <div className="flex flex-wrap sm:flex-nowrap items-center gap-3 shrink-0">
           {/* Quick Action Split / Dropdown Button */}
           <div className="relative" ref={quickActionMenuRef}>
-            <div className="inline-flex items-center rounded-xl shadow-2xs overflow-hidden">
+            <div className="inline-flex items-center rounded-xl shadow-xs overflow-hidden border border-blue-600 bg-[#2563eb]">
               <button
                 type="button"
                 onClick={() => {
@@ -262,14 +268,15 @@ export default function DashboardPage() {
                   setQuickDrawerOpen(true);
                   setIsQuickActionMenuOpen(false);
                 }}
-                className="px-3.5 py-2 h-9 bg-[#2563eb] hover:bg-[#1d4ed8] text-white font-bold text-xs transition-colors flex items-center gap-1.5 cursor-pointer"
+                className="px-3.5 py-2 h-9 bg-[#2563eb] hover:bg-[#1d4ed8] text-white font-extrabold text-xs transition-colors flex items-center gap-1.5 cursor-pointer"
               >
+                <Plus className="w-4 h-4 shrink-0 stroke-[2.5]" />
                 <span>{t("dashboard.quickAction")}</span>
               </button>
               <button
                 type="button"
                 onClick={() => setIsQuickActionMenuOpen((prev) => !prev)}
-                className="px-2 py-2 h-9 bg-[#2563eb] hover:bg-[#1d4ed8] border-l border-blue-400/40 text-white transition-colors flex items-center justify-center cursor-pointer"
+                className="px-2.5 py-2 h-9 bg-[#2563eb] hover:bg-[#1d4ed8] border-l border-blue-400/50 text-white transition-colors flex items-center justify-center cursor-pointer"
                 aria-haspopup="true"
                 aria-expanded={isQuickActionMenuOpen}
                 aria-label={t("dashboard.quickAction")}
@@ -279,7 +286,7 @@ export default function DashboardPage() {
             </div>
 
             {isQuickActionMenuOpen && (
-              <div className="absolute right-0 mt-1.5 w-56 bg-white dark:bg-zinc-900 border border-zinc-200/90 dark:border-zinc-800 rounded-xl shadow-lg py-1.5 z-50 animate-in fade-in zoom-in-95 duration-100">
+              <div className="absolute right-0 mt-1.5 w-56 bg-white dark:bg-zinc-900 border border-zinc-200/90 dark:border-zinc-800 rounded-xl shadow-xl py-1.5 z-50 animate-in fade-in zoom-in-95 duration-100">
                 <button
                   type="button"
                   onClick={() => {
@@ -322,12 +329,14 @@ export default function DashboardPage() {
 
           <Link
             href="/dashboard/afford-check"
-            className="px-3.5 py-2 h-9 bg-white dark:bg-zinc-900 hover:bg-zinc-50 dark:hover:bg-zinc-800/80 border border-zinc-200/90 dark:border-zinc-800 text-[#1B2B4B] dark:text-zinc-100 font-bold text-xs rounded-xl transition-colors shadow-2xs flex items-center cursor-pointer"
+            className="px-3.5 py-2 h-9 bg-white dark:bg-zinc-900 hover:bg-slate-50 dark:hover:bg-zinc-800/80 border border-slate-300/80 dark:border-zinc-700 text-[#1B2B4B] dark:text-zinc-100 font-extrabold text-xs rounded-xl transition-all shadow-xs flex items-center gap-1.5 cursor-pointer shrink-0"
           >
+            <Sparkles className="w-3.5 h-3.5 text-[#2563eb] shrink-0" />
             <span>{t("canIAfford.title")}</span>
           </Link>
         </div>
       </div>
+
 
       <MissingSchedulesBanner
         incomeCount={incomeEventsQuery.data?.length ?? 0}

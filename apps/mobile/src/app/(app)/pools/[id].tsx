@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { View, Text, ScrollView, StyleSheet, ActivityIndicator } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { MobileScreenWrapper, showMobileConfirm, MobileFilterSheet } from '@money-matters/ui/mobile';
+import { MobileScreenWrapper, showMobileConfirm, MobileFilterSheet, DESIGN_TOKENS } from '@money-matters/ui/mobile';
 import { t } from '@money-matters/i18n';
 import { trpc } from '../../../lib/trpc';
 import { authClient } from '../../../lib/auth';
@@ -80,7 +80,7 @@ export default function PoolDetailScreen() {
   if (poolsQuery.isLoading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#2563eb" />
+        <ActivityIndicator size="large" color={DESIGN_TOKENS.colors.accent} />
       </View>
     );
   }
@@ -238,6 +238,6 @@ export default function PoolDetailScreen() {
 const styles = StyleSheet.create({
   loadingContainer: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   notFoundContainer: { padding: 30, alignItems: 'center' },
-  notFoundText: { fontSize: 14, color: '#64748B' },
+  notFoundText: { fontSize: 14, color: DESIGN_TOKENS.colors.textMuted },
   scrollContent: { padding: 20, gap: 16, paddingBottom: 60 },
 });

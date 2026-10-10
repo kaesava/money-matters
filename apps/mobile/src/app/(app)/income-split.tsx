@@ -3,10 +3,7 @@ import { StyleSheet, View } from 'react-native';
 import { t } from '@money-matters/i18n';
 import { AppScreenWrapper } from '../../components/AppScreenWrapper';
 import { MobileMatrixPlanTab } from '../../components/paychecks/MobileMatrixPlanTab';
-import {
-  MobileCategoryDetailModal,
-  CategoryScheduledEvent,
-} from '../../components/paychecks/MobileCategoryDetailModal';
+import { MobileCategoryDetailSheet, MobileCategoryDetailItem } from '@money-matters/ui/mobile';
 
 export default function SplitIncomeScreen() {
   const [categoryModalVisible, setCategoryModalVisible] = useState(false);
@@ -16,7 +13,7 @@ export default function SplitIncomeScreen() {
     poolType?: string;
     currentBalance?: number;
     targetAmount?: number;
-    events: CategoryScheduledEvent[];
+    events: MobileCategoryDetailItem[];
   } | null>(null);
 
   return (
@@ -37,14 +34,14 @@ export default function SplitIncomeScreen() {
         />
 
         {activeCategoryDetail && (
-          <MobileCategoryDetailModal
+          <MobileCategoryDetailSheet
             visible={categoryModalVisible}
             poolId={activeCategoryDetail.poolId}
             poolName={activeCategoryDetail.poolName}
             poolType={activeCategoryDetail.poolType}
             currentBalance={activeCategoryDetail.currentBalance}
             targetAmount={activeCategoryDetail.targetAmount}
-            events={activeCategoryDetail.events}
+            upcomingEvents={activeCategoryDetail.events}
             onClose={() => {
               setCategoryModalVisible(false);
               setActiveCategoryDetail(null);

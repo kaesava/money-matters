@@ -6,7 +6,7 @@ import {
   MobileInput,
   FormLabel,
 } from "@money-matters/ui/mobile";
-import { SUPPORTED_COUNTRIES, SUPPORTED_CURRENCIES, COMMON_TIMEZONES } from "@money-matters/types";
+import { SUPPORTED_COUNTRIES, COMMON_TIMEZONES } from "@money-matters/types";
 import { MobilePasswordStrength } from "./MobilePasswordStrength";
 
 interface SignUpFormFieldsProps {
@@ -16,8 +16,8 @@ interface SignUpFormFieldsProps {
   setEmail: (v: string) => void;
   country: string;
   onCountryChange: (v: string) => void;
-  currency: string;
-  setCurrency: (v: string) => void;
+  currency?: string;
+  setCurrency?: (v: string) => void;
   timezone: string;
   setTimezone: (v: string) => void;
   password: string;
@@ -46,8 +46,6 @@ export function SignUpFormFields({
   setEmail,
   country,
   onCountryChange,
-  currency,
-  setCurrency,
   timezone,
   setTimezone,
   password,
@@ -57,6 +55,7 @@ export function SignUpFormFields({
   fieldErrors,
   setFieldErrors,
 }: SignUpFormFieldsProps) {
+
   const passwordMismatch = confirmPassword.length > 0 && password !== confirmPassword;
 
   return (
@@ -99,28 +98,8 @@ export function SignUpFormFields({
         </ScrollView>
       </View>
 
-      {/* Currency Selector */}
-      <View style={styles.inputGroup}>
-        <FormLabel required={true}>{t("settings.currency")}</FormLabel>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.countryRow}>
-          {Object.values(SUPPORTED_CURRENCIES).map((curr) => {
-            const isSelected = currency === curr.code;
-            return (
-              <TouchableOpacity
-                key={curr.code}
-                onPress={() => setCurrency(curr.code)}
-                style={[styles.countryChip, isSelected && styles.countryChipSelected]}
-              >
-                <Text style={[styles.countryText, isSelected && styles.countryTextSelected]}>
-                  {curr.code} ({curr.symbol})
-                </Text>
-              </TouchableOpacity>
-            );
-          })}
-        </ScrollView>
-      </View>
-
       {/* Timezone Selector */}
+
       <View style={styles.inputGroup}>
         <FormLabel required={true}>{t("settings.timezone")}</FormLabel>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.countryRow}>

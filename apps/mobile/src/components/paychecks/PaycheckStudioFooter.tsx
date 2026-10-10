@@ -67,7 +67,7 @@ const styles = StyleSheet.create({
     padding: 12,
     flexDirection: 'row',
     gap: 10,
-    shadowColor: '#000',
+    shadowColor: DESIGN_TOKENS.colors.slate[900],
     shadowOpacity: 0.05,
     shadowOffset: { width: 0, height: -2 },
     shadowRadius: 4,

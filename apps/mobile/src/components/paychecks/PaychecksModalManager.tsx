@@ -7,9 +7,9 @@ import { MarkPaidModal, MarkPaidEvent } from '../MarkPaidModal';
 import { EventOverrideModal } from '../EventOverrideModal';
 import { MobileTransferModal, TransferEventData } from './MobileTransferModal';
 import {
-  MobileCategoryDetailModal,
-  CategoryScheduledEvent,
-} from './MobileCategoryDetailModal';
+  MobileCategoryDetailSheet,
+  MobileCategoryDetailItem,
+} from '@money-matters/ui/mobile';
 import {
   MobileBurstModal,
   BurstSourceItem,
@@ -44,7 +44,7 @@ export interface PaychecksModalManagerProps {
     poolType?: string;
     currentBalance?: number;
     targetAmount?: number;
-    events: CategoryScheduledEvent[];
+    events: MobileCategoryDetailItem[];
   } | null;
   onCloseCategoryDetail: () => void;
   burstModalVisible: boolean;
@@ -122,9 +122,9 @@ export function PaychecksModalManager({
             onDeleteOverride(evt);
           } else if (evt.eventType === 'INCOME') {
             showMobileConfirm({
-              title: t('payday.deleteIncomeEvent') || 'Delete Income Event',
-              message: t('payday.deleteIncomeEventConfirm') || 'Are you sure you want to delete this upcoming income event?',
-              confirmText: t('common.delete') || 'Delete',
+              title: t('payday.deleteIncomeEvent'),
+              message: t('payday.deleteIncomeEventConfirm'),
+              confirmText: t('common.delete'),
               isDestructive: true,
               onConfirm: () => {
                 deleteIncomeEventMut.mutate({ eventId: evt.id }, { onSuccess: refetchAll });
@@ -132,9 +132,9 @@ export function PaychecksModalManager({
             });
           } else {
             showMobileConfirm({
-              title: 'Delete Expense Event',
-              message: `Are you sure you want to delete "${evt.name || 'Expense'}"?`,
-              confirmText: t('common.delete') || 'Delete',
+              title: t('payday.deleteExpenseEvent'),
+              message: t('payday.deleteExpenseEventConfirm', { name: evt.name || t('common.expense') }),
+              confirmText: t('common.delete'),
               isDestructive: true,
               onConfirm: () => {
                 deleteExpenseEventMut.mutate({ eventId: evt.id }, { onSuccess: refetchAll });
@@ -179,14 +179,14 @@ export function PaychecksModalManager({
       />
 
       {activeCategoryDetail && (
-        <MobileCategoryDetailModal
+        <MobileCategoryDetailSheet
           visible={categoryModalVisible}
           poolId={activeCategoryDetail.poolId}
           poolName={activeCategoryDetail.poolName}
           poolType={activeCategoryDetail.poolType}
           currentBalance={activeCategoryDetail.currentBalance}
           targetAmount={activeCategoryDetail.targetAmount}
-          events={activeCategoryDetail.events}
+          upcomingEvents={activeCategoryDetail.events}
           onClose={onCloseCategoryDetail}
           onMarkPaid={async (eventId, amount, date) => {
             await markExpensePaidMut.mutateAsync({ eventId, amount, date });

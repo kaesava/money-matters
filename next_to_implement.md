@@ -7,12 +7,8 @@
 * I don't need walkthrough at the end. I don't need a fancy report. Just a detail implementation plan that can be unambiguously followed.
 * Aggressively cull un-used code, l18n keys, files and database tables/fields.
 
-# Mobile App
-All changes are for the Mobile App unless explicitly specified as Web App
 
-## Settings > Feedback
-* Ensure parity between mobile and web app. Functionality, User-facing literals, etc.
-* It seems to be sending an email to support@moneymatters.kaesava.au - but not sure that exists, I believe it should be info@moneymatters.kaesava.au. Fix across mobile and web.
+
 
 ## General - the below changes apply to the screens listed in the next section.
 * Important: Align mobile app functionality to web app (this includes required fields, branching logic, data retrieval/setting logic, calculation logic, and any functiona logic used). However, the UX for the mobile app must follow UX best practice, and must used every opportunity for reusable UX/UI so other screens have consistent look and feel. If there is significant capability gaps, check with me.
@@ -24,15 +20,6 @@ All changes are for the Mobile App unless explicitly specified as Web App
 
 ## Screens that the previous section apply to:
 * Every screen, modal, drawer, popup, confirmation/alert/message box, edit screen, screen tab, etc.
-
-* Settings > Bank Accounts > Add/Edit Bank Account Drawer
-* Settings > My Details (including all sub-sections/cards)
-* Settings > Household (including all sub-sections/cards)
-* Settings > Archived Data (including all sub-sections/tabs) - ensuring that all entities that can be archived can be un-archived from here (if there are gaps in mobile/web app - call out)
-* Settings > Data & Subscription
-
-
-
 
 
 
@@ -101,8 +88,6 @@ Bills|Goals & All|Shared|Private, pagination, History link, Progress)
 ### Navigation
 ### Common
 ### Dashboard
-* [x] Pool Picker doesn't seem to be working. Needs to be in parity with web application. Re-use as much code as possible. (Completed: MobilePoolPicker unified with inline mode & web parity, removed local ad-hoc picker)
-
 ### Income & expenses
 #### Income Split
 ##### Pool drawer
@@ -115,13 +100,8 @@ Bills|Goals & All|Shared|Private, pagination, History link, Progress)
 ##### Payday Allocation Details drawer
 
 
-/grill-me
-
-
 
 ################################# KESH currently testing / yet to test
-
-
 
 
 # Home
@@ -136,7 +116,6 @@ Bills|Goals & All|Shared|Private, pagination, History link, Progress)
 
 
 # Archive/Unarchive
-
 
 
 

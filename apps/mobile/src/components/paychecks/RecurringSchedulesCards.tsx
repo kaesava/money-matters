@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, StyleSheet, Text } from 'react-native';
-import { SkeletonCard, MobilePaginationBar } from '@money-matters/ui/mobile';
+import { SkeletonCard, MobilePaginationBar, DESIGN_TOKENS } from '@money-matters/ui/mobile';
 import { t } from '@money-matters/i18n';
 import { IncomeSourceCard, IncomeSourceItem } from './IncomeSourceCard';
 import { ExpenseBillCard, ExpenseSourceItem } from './ExpenseBillCard';
@@ -111,7 +111,7 @@ const styles = StyleSheet.create({
   },
   emptySchedulesText: {
     fontSize: 12,
-    color: '#94A3B8',
+    color: DESIGN_TOKENS.colors.slate[400],
     fontStyle: 'italic',
     paddingVertical: 12,
     textAlign: 'center',

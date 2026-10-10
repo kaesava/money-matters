@@ -89,7 +89,7 @@ export function EventOverrideModal({ visible, eventToEdit, onClose, onSuccess, o
               style={styles.deleteLink}
               hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
             >
-              <Text style={styles.deleteLinkText}>{t('common.delete') || 'Delete'}</Text>
+              <Text style={styles.deleteLinkText}>{t('common.delete')}</Text>
             </TouchableOpacity>
           ) : (
             <View />
@@ -102,7 +102,7 @@ export function EventOverrideModal({ visible, eventToEdit, onClose, onSuccess, o
             activeOpacity={0.8}
           >
             {isPending ? (
-              <ActivityIndicator color="#FFF" size="small" />
+              <ActivityIndicator color={DESIGN_TOKENS.colors.onAccent} size="small" />
             ) : (
               <Text style={styles.submitBtnText}>{t('common.save')}</Text>
             )}
@@ -150,10 +150,10 @@ const styles = StyleSheet.create({
   deleteLinkText: {
     fontSize: 13,
     fontWeight: '600',
-    color: '#94A3B8',
+    color: D.colors.textMuted,
   },
   submitBtn: {
-    backgroundColor: '#2563eb',
+    backgroundColor: D.colors.accent,
     paddingVertical: 10,
     paddingHorizontal: 24,
     borderRadius: D.radius.md,
@@ -161,5 +161,5 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     minWidth: 100,
   },
-  submitBtnText: { color: '#FFF', fontSize: 14, fontWeight: '700' },
+  submitBtnText: { color: D.colors.onAccent, fontSize: 14, fontWeight: '700' },
 });

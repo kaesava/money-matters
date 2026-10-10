@@ -91,8 +91,6 @@ export default function SignUpScreen() {
               setEmail={form.setEmail}
               country={form.country}
               onCountryChange={form.handleCountryChange}
-              currency={form.currency}
-              setCurrency={form.setCurrency}
               timezone={form.timezone}
               setTimezone={form.setTimezone}
               password={form.password}
@@ -102,6 +100,7 @@ export default function SignUpScreen() {
               fieldErrors={form.fieldErrors}
               setFieldErrors={form.setFieldErrors}
             />
+
 
             <SignUpTermsCheckbox
               agreeTerms={form.agreeTerms}

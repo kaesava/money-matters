@@ -1,9 +1,8 @@
 import React, { useState, useMemo } from 'react';
 import { View, ScrollView, StyleSheet } from 'react-native';
-import { DESIGN_TOKENS } from '@money-matters/ui/mobile';
+import { DESIGN_TOKENS, MobileMatrixFilterBar } from '@money-matters/ui/mobile';
 import { MobileMatrixFrozenColumn, MobileMatrixCategoryItem, MobileMatrixGroupData } from './MobileMatrixFrozenColumn';
 import { MobileMatrixScrollableGrid } from './MobileMatrixScrollableGrid';
-import { MobileMatrixFilterBar } from './MobileMatrixFilterBar';
 import type { MobileMatrixColumnData } from './MobileMatrixPaydayColumnHeader';
 
 export interface MobileSpreadsheetMatrixProps {
@@ -87,11 +86,11 @@ export const MobileSpreadsheetMatrix: React.FC<MobileSpreadsheetMatrixProps> = (
       {/* Top Filter & Horizon Bar */}
       <MobileMatrixFilterBar
         statusFilter={statusFilter}
-        onStatusFilterChange={setStatusFilter}
+        onStatusChange={setStatusFilter}
         scopeFilter={scopeFilter}
-        onScopeFilterChange={setScopeFilter}
-        showFull12={showFull12}
-        onToggleHorizon={() => setShowFull12((prev) => !prev)}
+        onScopeChange={setScopeFilter}
+        showFullHorizon={showFull12}
+        onHorizonChange={() => setShowFull12((prev) => !prev)}
       />
 
       {/* Spreadsheet Table Container */}

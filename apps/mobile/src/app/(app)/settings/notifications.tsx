@@ -23,14 +23,14 @@ export default function MobileNotificationSettingsScreen() {
     >
       <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 100, gap: 12 }}>
         {/* Weekly Summary Digest - Email Channel */}
-        <View style={[styles.card, { borderColor: '#2563EB40' }]}>
+        <View style={[styles.card, { borderColor: D.colors.accentBorder }]}>
           <View style={{ flex: 1, gap: 4 }}>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
               <Text style={styles.cardTitle}>
                 {t('notifications.settings.weeklyDigestTitle')}
               </Text>
-              <View style={[styles.badge, { backgroundColor: '#2563EB15' }]}>
-                <Text style={[styles.badgeText, { color: '#2563eb' }]}>
+              <View style={[styles.badge, { backgroundColor: D.colors.accentLight }]}>
+                <Text style={[styles.badgeText, { color: D.colors.accent }]}>
                   {t('notifications.settings.activeEmailBadge')}
                 </Text>
               </View>
@@ -109,7 +109,7 @@ const styles = StyleSheet.create({
     borderRadius: D.radius.md,
     padding: 16,
     borderWidth: 1,
-    borderColor: '#E5E7EB',
+    borderColor: D.colors.border,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
@@ -121,7 +121,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
     paddingVertical: 2,
     borderRadius: 9999,
-    backgroundColor: '#F3F4F6',
+    backgroundColor: D.colors.surfaceVariant,
   },
   badgeText: {
     fontSize: 10,

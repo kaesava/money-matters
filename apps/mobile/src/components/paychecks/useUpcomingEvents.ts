@@ -40,7 +40,8 @@ export function useUpcomingEvents({
 
     rawIncomeEvents.forEach((e) => {
       const source = e.incomeSourceId ? incomeSources.find((s) => s.id === e.incomeSourceId) : null;
-      const targetBankId = (e as any).bankAccountId || (e as any).receivingAccountId || source?.receivingAccountId;
+      const eventWithBank = e as unknown as { bankAccountId?: string | null; receivingAccountId?: string | null };
+      const targetBankId = eventWithBank.bankAccountId || eventWithBank.receivingAccountId || source?.receivingAccountId;
       const acct = targetBankId ? bankAccounts.find((b) => b.id === targetBankId) : null;
       list.push({
         id: e.id,

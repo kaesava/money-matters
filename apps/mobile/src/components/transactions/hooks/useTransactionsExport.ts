@@ -1,5 +1,6 @@
 import * as FileSystem from 'expo-file-system/legacy';
 import * as Sharing from 'expo-sharing';
+import { t } from '@money-matters/i18n';
 import { formatDate, formatIsoDate } from '../../../lib/format';
 import { LedgerTxItem } from '../LedgerHistoryTab';
 import { MobilePaydayAllocationRecord } from '../../paychecks/MobilePaydayAllocationDetailModal';
@@ -26,7 +27,7 @@ export function useTransactionsExport() {
       if (await Sharing.isAvailableAsync()) {
         await Sharing.shareAsync(fileUri, {
           mimeType: 'text/csv',
-          dialogTitle: 'Export Transactions CSV',
+          dialogTitle: t('transactions.exportTransactionsDialog'),
         });
       }
     } catch {
@@ -53,7 +54,7 @@ export function useTransactionsExport() {
       if (await Sharing.isAvailableAsync()) {
         await Sharing.shareAsync(fileUri, {
           mimeType: 'text/csv',
-          dialogTitle: 'Export Splits CSV',
+          dialogTitle: t('transactions.exportSplitsDialog'),
         });
       }
     } catch {

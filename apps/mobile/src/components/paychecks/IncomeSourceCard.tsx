@@ -2,7 +2,7 @@ import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { useRouter, type Href } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
-import { CardDrawerIndicator, EntityLinkChip } from '@money-matters/ui/mobile';
+import { CardDrawerIndicator, EntityLinkChip, DESIGN_TOKENS } from '@money-matters/ui/mobile';
 import { formatAUD, formatScheduleDetail } from '../../lib/format';
 
 export interface IncomeSourceItem {
@@ -46,7 +46,7 @@ export const IncomeSourceCard: React.FC<IncomeSourceCardProps> = ({
           </Text>
         </View>
 
-        <CardDrawerIndicator size={16} color="#94A3B8" />
+        <CardDrawerIndicator size={16} color={DESIGN_TOKENS.colors.slate[400]} />
       </View>
 
       {/* Row 2: Entity Chip on Left, Amount on Right */}
@@ -72,11 +72,11 @@ export const IncomeSourceCard: React.FC<IncomeSourceCardProps> = ({
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: DESIGN_TOKENS.colors.surface,
     borderRadius: 14,
     padding: 14,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: DESIGN_TOKENS.colors.slate[200],
     gap: 10,
   },
   header: {
@@ -94,16 +94,16 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 15,
     fontWeight: '700',
-    color: '#0F172A',
+    color: DESIGN_TOKENS.colors.slate[900],
     flexShrink: 1,
   },
   accountTag: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: DESIGN_TOKENS.colors.slate[50],
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: DESIGN_TOKENS.colors.slate[200],
     borderRadius: 6,
     paddingHorizontal: 6,
     paddingVertical: 2,
@@ -112,7 +112,7 @@ const styles = StyleSheet.create({
   accountText: {
     fontSize: 11,
     fontWeight: '600',
-    color: '#64748B',
+    color: DESIGN_TOKENS.colors.slate[500],
     flexShrink: 1,
   },
   detailRow: {
@@ -129,12 +129,12 @@ const styles = StyleSheet.create({
   amount: {
     fontSize: 16,
     fontWeight: '800',
-    color: '#16a34a',
+    color: DESIGN_TOKENS.colors.success,
     fontFamily: 'monospace',
   },
   freqText: {
     fontSize: 12,
-    color: '#64748B',
+    color: DESIGN_TOKENS.colors.slate[500],
     fontWeight: '500',
     flexShrink: 1,
   },

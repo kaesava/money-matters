@@ -147,7 +147,7 @@ export default function AppLayout() {
         <Tabs.Screen
           name="home"
           options={{
-            title: t('nav.home') || 'Home',
+            title: t('nav.home'),
             tabBarIcon: ({ color, size }) => (
               <TabIcon name="home" color={color} size={size} />
             ),
@@ -156,7 +156,7 @@ export default function AppLayout() {
         <Tabs.Screen
           name="paychecks"
           options={{
-            title: t('nav.incomeExpenses') || 'Income & Expenses',
+            title: t('nav.incomeExpenses'),
             tabBarIcon: ({ color, size }) => (
               <TabIcon name="calendar" color={color} size={size} />
             ),
@@ -165,7 +165,7 @@ export default function AppLayout() {
         <Tabs.Screen
           name="income-split"
           options={{
-            title: t('nav.splitIncome') || 'Split Income',
+            title: t('nav.splitIncome'),
             tabBarIcon: ({ color, size }) => (
               <TabIcon name="repeat" color={color} size={size} />
             ),
@@ -174,7 +174,7 @@ export default function AppLayout() {
         <Tabs.Screen
           name="categories"
           options={{
-            title: t('nav.categories') || 'Pools',
+            title: t('nav.categories'),
             tabBarIcon: ({ color, size }) => (
               <TabIcon name="grid" color={color} size={size} />
             ),

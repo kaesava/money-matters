@@ -1,8 +1,8 @@
 import { useState, useMemo } from "react";
-import { useRouter } from "expo-router";
+import { useRouter, type Href } from "expo-router";
 import { usePostHog } from "posthog-react-native";
 import { t } from "@money-matters/i18n";
-import { SignUpInputSchema, isValidEmail, getCountryDefaults } from "@money-matters/types";
+import { SignUpInputSchema, isValidEmail, getCountryDefaults, detectBestGuessCountry } from "@money-matters/types";
 import { authClient } from "../../lib/auth";
 import { trpc, setActiveSessionToken } from "../../lib/trpc";
 import * as SecureStore from "expo-secure-store";
@@ -20,10 +20,19 @@ export function useSignUpForm() {
     }
   }, []);
 
+  const detectedCountry = useMemo(() => {
+    try {
+      const deviceLocale = Intl.DateTimeFormat().resolvedOptions().locale || "";
+      return detectBestGuessCountry(deviceLocale, detectedTimezone);
+    } catch {
+      return "AU";
+    }
+  }, [detectedTimezone]);
+
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
-  const [country, setCountry] = useState("AU");
-  const [currency, setCurrency] = useState(() => getCountryDefaults("AU").currency);
+  const [country, setCountry] = useState(() => detectedCountry);
+  const [currency, setCurrency] = useState(() => getCountryDefaults(detectedCountry).currency);
   const [timezone, setTimezone] = useState(() => detectedTimezone);
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -51,14 +60,16 @@ export function useSignUpForm() {
 
   const createTenant = trpc.createTenant.useMutation();
   const registerToken = trpc.registerToken.useMutation();
+  const checkEmail = trpc.checkEmailRegistered.useMutation();
 
   const handleSignUp = async () => {
     setError(null);
     setFieldErrors({});
 
+    const normalizedEmail = email.trim().toLowerCase();
     const validation = SignUpInputSchema.safeParse({
       name: name.trim(),
-      email: email.trim().toLowerCase(),
+      email: normalizedEmail,
       password,
       confirmPassword,
       country,
@@ -81,9 +92,22 @@ export function useSignUpForm() {
 
     setLoading(true);
     try {
+      // 1. Check if user already exists
+      try {
+        const checkRes = await checkEmail.mutateAsync({ email: normalizedEmail });
+        if (checkRes.registered) {
+          setError(t("auth.userAlreadyExists"));
+          setLoading(false);
+          router.replace(`/(auth)/sign-in?email=${encodeURIComponent(normalizedEmail)}&reason=existing` as Href);
+          return;
+        }
+      } catch (_checkErr) {
+        // Fallback: Proceed with standard signUp if verification endpoint is temporarily unavailable
+      }
+
       const signUpResult = await authClient.signUp.email({
         name: name.trim(),
-        email: email.trim().toLowerCase(),
+        email: normalizedEmail,
         password,
       });
 
@@ -94,12 +118,12 @@ export function useSignUpForm() {
       }
 
       await authClient.emailOtp.sendVerificationOtp({
-        email: email.trim().toLowerCase(),
+        email: normalizedEmail,
         type: "email-verification",
       });
 
       setPasswordForOtp(password);
-      setUnverifiedEmail(email.trim().toLowerCase());
+      setUnverifiedEmail(normalizedEmail);
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : t("auth.signUpErrorGeneric");
       setError(message);
@@ -107,6 +131,7 @@ export function useSignUpForm() {
       setLoading(false);
     }
   };
+
 
   const handleOtpSuccess = async () => {
     try {

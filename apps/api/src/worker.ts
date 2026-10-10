@@ -1,10 +1,12 @@
 import { fetchRequestHandler } from '@trpc/server/adapters/fetch';
 import { logger, checkRateLimit } from '@money-matters/core';
+import { clearEnvCache } from '@money-matters/config';
 import { appRouter } from './routers/_app.js';
 import { createEdgeContext } from './trpc/edge-context.js';
 import { inngest } from './inngest/client.js';
 import { functions } from './inngest/index.js';
 import { serve } from 'inngest/cloudflare';
+
 
 export interface WorkerEnv {
   MONEY_MATTERS_APP_ID: string;
@@ -171,7 +173,12 @@ export async function handleTrpcRequest(
 
 export default {
   async fetch(request: Request, env: WorkerEnv, ctx: { waitUntil: (promise: Promise<unknown>) => void }): Promise<Response> {
+    if (env && typeof env === "object") {
+      Object.assign(process.env, env);
+      clearEnvCache();
+    }
     const correlationId = request.headers.get('x-correlation-id') || crypto.randomUUID();
+
     const ALLOWED_ORIGINS = [
       "https://moneymatters.kaesava.au",
       "https://www.moneymatters.kaesava.au",

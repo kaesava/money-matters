@@ -4,7 +4,7 @@ import React, { useState } from "react";
 import Link from "next/link";
 import { t } from "@money-matters/i18n";
 import { Button, FormLabel, FormFieldError, FormErrorBanner } from "@money-matters/ui/web";
-import { SUPPORTED_COUNTRIES, SUPPORTED_CURRENCIES, COMMON_TIMEZONES, SignUpInputSchema, isValidEmail, getCountryDefaults } from "@money-matters/types";
+import { SUPPORTED_COUNTRIES, COMMON_TIMEZONES, SignUpInputSchema, isValidEmail, getCountryDefaults, detectBestGuessCountry } from "@money-matters/types";
 import { authClient } from "../../lib/auth";
 import { trpc } from "../../lib/trpc";
 import { PasswordStrengthIndicator } from "./PasswordStrengthIndicator";
@@ -41,15 +41,25 @@ export function SignUpForm({
     }
   }, []);
 
+  const detectedCountry = React.useMemo(() => {
+    try {
+      const browserLocale = typeof navigator !== "undefined" ? (navigator.languages?.[0] || navigator.language || "") : "";
+      return detectBestGuessCountry(browserLocale, detectedTimezone);
+    } catch {
+      return "AU";
+    }
+  }, [detectedTimezone]);
+
   const [name, setName] = useState("");
-  const [country, setCountry] = useState("AU");
-  const [currency, setCurrency] = useState(() => getCountryDefaults("AU").currency);
+  const [country, setCountry] = useState(() => detectedCountry);
+  const [currency, setCurrency] = useState(() => getCountryDefaults(detectedCountry).currency);
   const [timezone, setTimezone] = useState(() => detectedTimezone);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [agreedToTerms, setAgreedToTerms] = useState(false);
   const [loading, setLoading] = useState(false);
+
   const [fieldErrors, setFieldErrors] = useState<{
     name?: string;
     country?: string;
@@ -69,16 +79,18 @@ export function SignUpForm({
   };
 
   const createTenant = trpc.createTenant.useMutation();
+  const checkEmail = trpc.checkEmailRegistered.useMutation();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setFormError(null);
     setFieldErrors({});
 
+    const normalizedEmail = email.trim().toLowerCase();
     const validation = SignUpInputSchema.safeParse({
       name: name.trim(),
       country,
-      email: email.trim().toLowerCase(),
+      email: normalizedEmail,
       password,
       confirmPassword,
       agreedToTerms,
@@ -120,11 +132,29 @@ export function SignUpForm({
     setLoading(true);
 
     try {
+      // 1. Check if email is already registered before attempting sign up
+      try {
+        const checkRes = await checkEmail.mutateAsync({ email: normalizedEmail });
+        if (checkRes.registered) {
+          const displayError = t("auth.userAlreadyExists");
+          setFormError(displayError);
+          onError?.(displayError);
+          setLoading(false);
+          if (onExistingUser) {
+            onExistingUser(normalizedEmail);
+          }
+          return;
+        }
+      } catch (_checkErr) {
+        // Fallback: Proceed with standard signUp if verification endpoint is temporarily unavailable
+      }
+
       const signUpResult = await authClient.signUp.email({
-        email: email.trim().toLowerCase(),
+        email: normalizedEmail,
         password,
         name: name.trim(),
       });
+
 
       if (signUpResult.error) {
         const msg = signUpResult.error.message || "";
@@ -211,6 +241,7 @@ export function SignUpForm({
           id="signup-name"
           type="text"
           autoFocus={autoFocus}
+          autoComplete="name"
           value={name}
           onChange={(e) => {
             setName(e.target.value);
@@ -224,7 +255,7 @@ export function SignUpForm({
         <FormFieldError error={fieldErrors.name} />
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <div>
           <FormLabel required={true} htmlFor="signup-country">
             {t("auth.countryLabel")}
@@ -242,24 +273,6 @@ export function SignUpForm({
             ))}
           </select>
           <FormFieldError error={fieldErrors.country} />
-        </div>
-
-        <div>
-          <FormLabel required={true} htmlFor="signup-currency">
-            {t("settings.currency")}
-          </FormLabel>
-          <select
-            id="signup-currency"
-            value={currency}
-            onChange={(e) => setCurrency(e.target.value)}
-            className="w-full px-3.5 py-2.5 text-sm rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-[#2563eb] bg-white text-slate-900"
-          >
-            {Object.values(SUPPORTED_CURRENCIES).map((curr) => (
-              <option key={curr.code} value={curr.code}>
-                {curr.code} ({curr.symbol})
-              </option>
-            ))}
-          </select>
         </div>
 
         <div>
@@ -288,6 +301,7 @@ export function SignUpForm({
         <input
           id="signup-email"
           type="email"
+          autoComplete="off"
           value={email}
           onChange={(e) => {
             setEmail(e.target.value);
@@ -308,6 +322,7 @@ export function SignUpForm({
         <input
           id="signup-password"
           type="password"
+          autoComplete="new-password"
           value={password}
           onChange={(e) => {
             setPassword(e.target.value);
@@ -329,6 +344,7 @@ export function SignUpForm({
         <input
           id="signup-confirm-password"
           type="password"
+          autoComplete="new-password"
           value={confirmPassword}
           onChange={(e) => {
             setConfirmPassword(e.target.value);
@@ -348,6 +364,7 @@ export function SignUpForm({
           }
         />
       </div>
+
 
       <div className="flex flex-col gap-1 pt-1">
         <div className="flex items-start gap-2.5">

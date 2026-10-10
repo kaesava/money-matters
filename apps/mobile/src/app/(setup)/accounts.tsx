@@ -112,8 +112,8 @@ export default function SetupBankAccountsScreen() {
       <SetupArchetypeCard
         emoji="🇦🇺"
         badge={t('setup.bankAccountsStep.archetype2AccountBadge')}
-        badgeBg="#DCFCE7"
-        badgeColor="#15803D"
+        badgeBg={DESIGN_TOKENS.colors.successLight}
+        badgeColor={DESIGN_TOKENS.colors.successDark}
         title={t('setup.bankAccountsStep.archetype2AccountTitle')}
         description={t('setup.bankAccountsStep.archetype2AccountDesc')}
         isSelected={selectedArchetype === 'AUSSIE_2_ACCOUNT'}
@@ -123,8 +123,8 @@ export default function SetupBankAccountsScreen() {
       <SetupArchetypeCard
         emoji="👥"
         badge={t('setup.bankAccountsStep.archetypeCouplesBadge')}
-        badgeBg="#F3E8FF"
-        badgeColor="#7E22CE"
+        badgeBg={DESIGN_TOKENS.colors.accentLight}
+        badgeColor={DESIGN_TOKENS.colors.accentDark}
         title={t('setup.bankAccountsStep.archetypeCouplesTitle')}
         description={t('setup.bankAccountsStep.archetypeCouplesDesc')}
         isSelected={selectedArchetype === 'COUPLES_HYBRID'}
@@ -134,8 +134,8 @@ export default function SetupBankAccountsScreen() {
       <SetupArchetypeCard
         emoji="📱"
         badge={t('setup.bankAccountsStep.archetype1AccountBadge')}
-        badgeBg="#F1F5F9"
-        badgeColor="#475569"
+        badgeBg={DESIGN_TOKENS.colors.slate[100]}
+        badgeColor={DESIGN_TOKENS.colors.slate[600]}
         title={t('setup.bankAccountsStep.archetype1AccountTitle')}
         description={t('setup.bankAccountsStep.archetype1AccountDesc')}
         isSelected={selectedArchetype === 'ALL_IN_ONE_CUSTOM'}
@@ -205,15 +205,15 @@ const styles = StyleSheet.create({
   sectionHeader: { marginBottom: 12 },
   sectionTitle: { fontSize: 14, fontWeight: '800', color: DESIGN_TOKENS.colors.primary },
   sectionSubtitle: { fontSize: 12, color: DESIGN_TOKENS.colors.textMuted, marginTop: 2 },
-  badgeNeutral: { backgroundColor: '#F1F5F9', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 12 },
-  badgeTextNeutral: { fontSize: 10, fontWeight: '700', color: '#475569' },
-  cheatSheetBanner: { backgroundColor: '#F0FDF4', borderWidth: 1, borderColor: '#BBF7D0', borderRadius: 12, padding: 12, marginVertical: 12 },
-  cheatSheetBannerText: { fontSize: 12, fontWeight: '700', color: '#15803D', textAlign: 'center' },
+  badgeNeutral: { backgroundColor: DESIGN_TOKENS.colors.slate[100], paddingHorizontal: 8, paddingVertical: 2, borderRadius: 12 },
+  badgeTextNeutral: { fontSize: 10, fontWeight: '700', color: DESIGN_TOKENS.colors.slate[600] },
+  cheatSheetBanner: { backgroundColor: DESIGN_TOKENS.colors.successLight, borderWidth: 1, borderColor: DESIGN_TOKENS.colors.successBorder, borderRadius: 12, padding: 12, marginVertical: 12 },
+  cheatSheetBannerText: { fontSize: 12, fontWeight: '700', color: DESIGN_TOKENS.colors.successDark, textAlign: 'center' },
   accountsBox: { backgroundColor: DESIGN_TOKENS.colors.surface, borderRadius: DESIGN_TOKENS.radius.lg, borderWidth: 1, borderColor: DESIGN_TOKENS.colors.slate[200], padding: 14, marginBottom: 20 },
   accountsHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 },
   accountsBoxTitle: { fontSize: 13, fontWeight: '800', color: DESIGN_TOKENS.colors.primary },
   addAccountLink: { fontSize: 12, fontWeight: '700', color: DESIGN_TOKENS.colors.accent },
-  accountRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: '#F1F5F9' },
+  accountRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: DESIGN_TOKENS.colors.slate[100] },
   accountName: { fontSize: 13, fontWeight: '700', color: DESIGN_TOKENS.colors.primary },
   accountBalance: { fontSize: 11, color: DESIGN_TOKENS.colors.textMuted, marginTop: 2 },
   flexOne: { flex: 1 },

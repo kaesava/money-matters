@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { StyleSheet, ScrollView, RefreshControl } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
+import { DESIGN_TOKENS } from '@money-matters/ui/mobile';
 import { AppScreenWrapper } from '../../../components/AppScreenWrapper';
 import { t } from '@money-matters/i18n';
 import { SourceToEdit } from '../../../components/IncomeExpenseFormModal';
@@ -103,7 +104,7 @@ export default function RecurringSchedulesScreen() {
           <RefreshControl
             refreshing={refreshing}
             onRefresh={onRefresh}
-            tintColor="#2563eb"
+            tintColor={DESIGN_TOKENS.colors.accent}
           />
         }
       >

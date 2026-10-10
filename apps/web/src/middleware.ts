@@ -24,10 +24,11 @@ export function middleware(request: NextRequest) {
     return NextResponse.redirect(landingUrl);
   }
 
-  // Bypass session cookie check ONLY for /auth-callback when session verifier is present (let client SDK handle exchange)
-  if (pathname === "/auth-callback" && request.nextUrl.searchParams.has("neon_auth_session_verifier")) {
+  // Bypass session cookie check whenever session verifier is present (let client SDK handle exchange on target page)
+  if (request.nextUrl.searchParams.has("neon_auth_session_verifier")) {
     return NextResponse.next();
   }
+
 
   // Allow root landing page
   if (pathname === "/") {

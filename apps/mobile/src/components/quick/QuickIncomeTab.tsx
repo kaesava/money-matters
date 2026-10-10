@@ -67,7 +67,7 @@ export function QuickIncomeTab({
     }
 
     if (!receivingAccountId) {
-      setBankError(t('drawers.quickExpense.bankAccountRequired') || 'Receiving bank account is required');
+      setBankError(t('drawers.quickExpense.bankAccountRequired'));
       hasError = true;
     } else {
       setBankError('');
@@ -110,12 +110,12 @@ export function QuickIncomeTab({
 
       {/* 2. Mandatory Receiving Bank Account Second */}
       <MobileBankPicker
-        label={t('drawers.quickExpense.receivingAccount') || 'Receiving Bank Account'}
+        label={t('drawers.quickExpense.receivingAccount')}
         required
         displayStyle="field"
         compact={false}
         allowAllOption={false}
-        placeholder={t('drawers.quickExpense.selectBankAccountPlaceholder') || 'Select Bank Account'}
+        placeholder={t('drawers.quickExpense.selectBankAccountPlaceholder')}
         banks={bankAccounts}
         selectedBankId={receivingAccountId}
         error={bankError}

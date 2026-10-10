@@ -121,17 +121,23 @@ export default function PoolsScreen() {
             style={[styles.filterBtn, activeFilterCount > 0 && styles.filterBtnActive]}
             onPress={() => setFilterSheetVisible(true)}
           >
-            <Feather name="sliders" size={15} color={activeFilterCount > 0 ? DESIGN_TOKENS.colors.accent : '#64748B'} />
+            <Feather name="sliders" size={15} color={activeFilterCount > 0 ? DESIGN_TOKENS.colors.accent : DESIGN_TOKENS.colors.slate[500]} />
             {activeFilterCount > 0 && <Text style={styles.filterBtnBadgeText}>({activeFilterCount})</Text>}
           </TouchableOpacity>
           <TouchableOpacity onPress={() => setOverflowMenuVisible(true)} style={styles.overflowBtn}>
-            <Feather name="more-horizontal" size={18} color="#64748B" />
+            <Feather name="more-horizontal" size={18} color={DESIGN_TOKENS.colors.slate[500]} />
           </TouchableOpacity>
         </View>
 
         {(activePoolIdFilter || activeCategoryIdFilter) && (
           <RecordFilterBadge
-            label={matchedActivePool ? `Filtered to Pool: ${matchedActivePool.name}` : matchedActiveCat ? `Filtered to Category: ${matchedActiveCat.name}` : 'Filtered'}
+            label={
+              matchedActivePool
+                ? t('categories.filteredToPool', { name: matchedActivePool.name })
+                : matchedActiveCat
+                ? t('categories.filteredToCategory', { name: matchedActiveCat.name })
+                : t('common.all')
+            }
             onClear={() => {
               setActivePoolIdFilter(null);
               setActiveCategoryIdFilter(null);
@@ -239,10 +245,10 @@ export default function PoolsScreen() {
 const styles = StyleSheet.create({
   scrollContent: { padding: 20, gap: 14, paddingBottom: 90 },
   toolbarRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  filterBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 4, width: 44, height: 44, backgroundColor: DESIGN_TOKENS.colors.surface, borderWidth: 1.5, borderColor: '#E2E8F0', borderRadius: 12 },
-  filterBtnActive: { backgroundColor: '#EFF6FF', borderColor: '#93C5FD' },
+  filterBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 4, width: 44, height: 44, backgroundColor: DESIGN_TOKENS.colors.surface, borderWidth: 1.5, borderColor: DESIGN_TOKENS.colors.slate[200], borderRadius: 12 },
+  filterBtnActive: { backgroundColor: DESIGN_TOKENS.colors.accentLight, borderColor: DESIGN_TOKENS.colors.accentBorder },
   filterBtnBadgeText: { fontSize: 11, fontWeight: '800', color: DESIGN_TOKENS.colors.accent },
-  overflowBtn: { width: 44, height: 44, borderRadius: 12, backgroundColor: DESIGN_TOKENS.colors.surface, borderWidth: 1.5, borderColor: '#E2E8F0', alignItems: 'center', justifyContent: 'center' },
+  overflowBtn: { width: 44, height: 44, borderRadius: 12, backgroundColor: DESIGN_TOKENS.colors.surface, borderWidth: 1.5, borderColor: DESIGN_TOKENS.colors.slate[200], alignItems: 'center', justifyContent: 'center' },
   sectionsContainer: { gap: 4 },
   emptyCard: { backgroundColor: DESIGN_TOKENS.colors.surfaceVariant, padding: 32, borderRadius: 16, alignItems: 'center' },
   emptyCardText: { fontSize: 13, color: DESIGN_TOKENS.colors.textMuted },

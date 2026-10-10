@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { SourceToEdit } from '../../IncomeExpenseFormModal';
 import { MarkPaidEvent } from '../../MarkPaidModal';
 import { TransferEventData } from '../MobileTransferModal';
-import { CategoryScheduledEvent } from '../MobileCategoryDetailModal';
+import { MobileCategoryDetailItem } from '@money-matters/ui/mobile';
 import { BurstSourceItem } from '../MobileBurstModal';
 
 export function usePaychecksModalController() {
@@ -30,7 +30,7 @@ export function usePaychecksModalController() {
     poolType?: string;
     currentBalance?: number;
     targetAmount?: number;
-    events: CategoryScheduledEvent[];
+    events: MobileCategoryDetailItem[];
   } | null>(null);
 
   const [burstModalVisible, setBurstModalVisible] = useState(false);

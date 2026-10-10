@@ -921,4 +921,17 @@ export const tenantRouter = {
 
       return { success: true };
     }),
+
+  checkEmailRegistered: publicProcedure
+    .input(z.object({ email: z.string().email() }).strict())
+    .mutation(async ({ input, ctx }) => {
+      const normalizedEmail = input.email.trim().toLowerCase();
+      const result = await ctx.db.execute<{ count: string | number }>(
+        sql`SELECT count(*)::int as count FROM neon_auth.user WHERE LOWER(email) = ${normalizedEmail}`
+      );
+      const rows = Array.isArray(result) ? result : (result as { rows?: { count: string | number }[] }).rows ?? [];
+      const count = Number(rows[0]?.count ?? 0);
+      return { registered: count > 0 };
+    }),
 };
+

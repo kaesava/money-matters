@@ -103,7 +103,7 @@ const styles = StyleSheet.create({
   headerCard: { alignItems: 'center', padding: 20 },
   celebrationText: { fontSize: 44, marginBottom: 8 },
   successHeading: { fontSize: 20, fontWeight: '800', color: D.colors.primary, textAlign: 'center' },
-  successSubtext: { fontSize: 13, color: '#64748B', textAlign: 'center', marginTop: 4 },
+  successSubtext: { fontSize: 13, color: D.colors.textMuted, textAlign: 'center', marginTop: 4 },
   doneBtn: {
     backgroundColor: D.colors.accent,
     paddingVertical: 14,
@@ -111,5 +111,5 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginTop: 8,
   },
-  doneBtnText: { color: '#FFF', fontWeight: '800', fontSize: 15 },
+  doneBtnText: { color: D.colors.onAccent, fontWeight: '800', fontSize: 15 },
 });

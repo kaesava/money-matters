@@ -77,7 +77,7 @@ export function MobileCategoryDetailSheet({
       visible={visible}
       onClose={onClose}
       title={poolName}
-      subtitle={poolType ? t(`poolTypes.${poolType.toLowerCase()}`) || poolType : undefined}
+      subtitle={poolType ? t(`poolTypes.${poolType.toLowerCase()}`) : undefined}
     >
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.container}>
         {/* Balance & Target Stat Cards */}
