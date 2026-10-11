@@ -132,6 +132,14 @@ All tables MUST include:
   - Monetary amount inputs MUST use `<AmountField />` (web) or `<AmountInput />` (mobile), enforcing `$` prefix, monospace font (`font-mono tabular-nums`), non-negative values, max 12 digits, and max 2 decimal places.
 - **Modal Component Consolidation & Discard Confirmation Parity**: Proactively merge separate Create and Edit modals for the same entity into single unified components using an `isEdit` flag. All modals MUST use `<ModalDialog />` (web) or `<MobileModalDialog />` (mobile) and wire the `isDirty` prop. Closing a modal via Cancel button, Escape key, or backdrop click MUST trigger a Discard Changes confirmation dialog whenever form state is dirty (`isDirty`).
 - **Universal Table Skeleton Loading & Conditional Pagination**: Table loading states MUST use `<SkeletonTable />` (web) or `<SkeletonCard />` (mobile). Pagination controls (`<PaginationBar />` on web, `<MobilePaginationBar />` on mobile) MUST be conditionally rendered under tables/lists ONLY if total record count is 5 or more (`totalItems >= 5` or `data.length >= 5`).
+- **Product Tour & Target Element Integrity (Web & Mobile)**:
+  - Both Web and Mobile apps provide a 7-step onboarding product tour introducing the core screens and capabilities (`hero-metric`, `payday-card`, `envelopes-bento`, `quick-actions`, `bank-accounts`, `matrix-plan`, `history-ledger`).
+  - **Tour Target Anchors**: On Web, highlighted elements rely on `data-tour="<id>"` attributes. On Mobile, step sequences rely on routes (`MOBILE_TOUR_STEPS`) and active dashboard components.
+  - **In-Flight Tour Impact Audit**: Whenever modifying, renaming, refactoring, re-architecting, or restructuring pages, components, layouts, or routes that host or target product tour steps (e.g. `BentoPoolsSection`, `NextPaydayCard`, `QuickActionFab`, `/dashboard/income-and-bills`, `/dashboard/history`, and mobile equivalents):
+    1. The agent MUST verify that all corresponding `data-tour="<id>"` attributes remain intact and attached to valid rendered elements.
+    2. The agent MUST verify that cross-page step routes match current route structures in both `apps/web/src/providers/ProductTourContext.tsx` and `apps/mobile/src/context/ProductTourContext.tsx`.
+    3. If any targeted UI element, component, or screen is renamed, moved, replaced, or deleted, the agent MUST immediately update the corresponding step selector, route, title/desc i18n keys, and E2E tour test (`apps/web/e2e/screen-by-screen.spec.ts`) as part of the change.
+    4. The settings re-trigger button ("Take Product Tour") on both platforms must always remain operational.
 - **Continuous In-Flight i18n & Theme Hygiene (Zero Retrospective Remediation)**:
   - While writing or modifying any component, NEVER introduce temporary hardcoded string literals (`>Save<`, `title="Save"`, `placeholder="Search..."`, `error="Required"`), fallback strings (`t('x') || 'y'`, `defaultValue: '...'`), or inline hex color codes (`#2563EB`, `#64748B`, etc.).
   - MUST resolve user-facing copy to canonical `t(...)` keys and colors to `DESIGN_TOKENS.colors` immediately at point of authoring. Deferring localization or tokenization to a retrospective cleanup pass is strictly forbidden.
@@ -230,7 +238,7 @@ Must include:
 
 ## 26. Definition of Done
 A change is complete ONLY IF:
-- Tenant isolation enforced, Types strict, Validation strict, Tests passing, CI passing, No hardcoded strings, Observability in place, Security enforced, Documentation updated.
+- Tenant isolation enforced, Types strict, Validation strict, Tests passing, CI passing, No hardcoded strings, Product tour anchors & routes intact, Observability in place, Security enforced, Documentation updated.
 
 ## 27. Documentation Integrity & Spec Synchronization
 - After any change (functional, technical, architectural, or schema), you MUST immediately update all relevant system markdown documents (`TECHNICAL_SPEC.md`, `FUNCTIONAL_SPEC.md`, `SCHEMA_DATA_DICTIONARY.md`, `README.md`) to keep them 100% current and synchronized with the codebase state.
