@@ -10,7 +10,6 @@ import { CategoryFormModal } from '../../../components/CategoryFormModal';
 import { QuickExpenseModal } from '../../../components/QuickExpenseModal';
 import { MarkPaidModal, MarkPaidEvent } from '../../../components/MarkPaidModal';
 import { PoolSummaryCard } from '../../../components/pools/PoolSummaryCard';
-import { PoolCategoriesSection } from '../../../components/pools/PoolCategoriesSection';
 import { PoolUpcomingSection } from '../../../components/pools/PoolUpcomingSection';
 import { PoolHistorySection } from '../../../components/pools/PoolHistorySection';
 
