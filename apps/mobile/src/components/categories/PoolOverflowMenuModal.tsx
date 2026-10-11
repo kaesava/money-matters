@@ -48,7 +48,7 @@ export function PoolOverflowMenuModal({
             style={styles.menuItem}
             onPress={() => {
               onClose();
-              router.push('/(app)/pools/projection' as never);
+              router.push('/(app)/envelopes/projection' as never);
             }}
           >
             <Feather name="trending-up" size={16} color="#475569" />

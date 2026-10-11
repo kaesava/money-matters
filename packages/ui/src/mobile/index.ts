@@ -113,7 +113,6 @@ export { MobileCategoryDetailSheet } from './MobileCategoryDetailSheet';
 export type {
   MobileCategoryDetailSheetProps,
   MobileCategoryDetailItem,
-  MobileSubcategoryItem,
   MobileActivityItem,
 } from './MobileCategoryDetailSheet';
 

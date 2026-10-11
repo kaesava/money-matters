@@ -14,12 +14,6 @@ export interface MobileCategoryDetailItem {
   status?: string;
 }
 
-export interface MobileSubcategoryItem {
-  id: string;
-  name: string;
-  targetAmount: number | string;
-}
-
 export interface MobileActivityItem {
   id: string;
   description: string;
@@ -36,7 +30,6 @@ export interface MobileCategoryDetailSheetProps {
   currentBalance?: number | string | null;
   targetAmount?: number | string | null;
   targetDate?: string | null;
-  subcategories?: MobileSubcategoryItem[];
   upcomingEvents?: MobileCategoryDetailItem[];
   activities?: MobileActivityItem[];
   onClose: () => void;
@@ -55,13 +48,12 @@ export function MobileCategoryDetailSheet({
   currentBalance,
   targetAmount,
   targetDate,
-  subcategories = [],
   upcomingEvents = [],
   activities = [],
   onClose,
   onMarkPaid,
 }: MobileCategoryDetailSheetProps) {
-  const [activeTab, setActiveTab] = useState<'CATEGORIES' | 'UPCOMING' | 'ACTIVITY'>('CATEGORIES');
+  const [activeTab, setActiveTab] = useState<'UPCOMING' | 'ACTIVITY'>('UPCOMING');
 
   if (!visible) return null;
 
@@ -69,7 +61,6 @@ export function MobileCategoryDetailSheet({
   const targetNum = typeof targetAmount === 'number' ? targetAmount : parseFloat(String(targetAmount || '0'));
 
   const tabs = [
-    { key: 'CATEGORIES' as const, label: t('categoryDrawer.tabs.categories') },
     { key: 'UPCOMING' as const, label: `${t('categoryDrawer.tabs.upcomingExpenses')} (${upcomingEvents.length})` },
     { key: 'ACTIVITY' as const, label: t('categoryDrawer.tabs.history') },
   ];
@@ -79,7 +70,15 @@ export function MobileCategoryDetailSheet({
       visible={visible}
       onClose={onClose}
       title={poolName}
-      subtitle={poolType ? t(`poolTypes.${poolType.toLowerCase()}`) : undefined}
+      subtitle={
+        poolType
+          ? poolType.includes('GOAL')
+            ? t('poolTypes.goals')
+            : poolType === 'EVERYDAY'
+            ? t('poolTypes.everyday')
+            : t('poolTypes.bills')
+          : undefined
+      }
     >
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.container}>
         {/* Balance & Target Stat Cards */}
@@ -98,32 +97,12 @@ export function MobileCategoryDetailSheet({
           )}
         </View>
 
-        {/* 3-Tab Selector */}
-        <SegmentedTabs<'CATEGORIES' | 'UPCOMING' | 'ACTIVITY'>
+        {/* 2-Tab Selector */}
+        <SegmentedTabs<'UPCOMING' | 'ACTIVITY'>
           tabs={tabs}
           activeKey={activeTab}
           onChange={(tabKey) => setActiveTab(tabKey)}
         />
-
-        {/* Tab 1: Subcategories */}
-        {activeTab === 'CATEGORIES' && (
-          <View style={styles.tabContent}>
-            {subcategories.length === 0 ? (
-              <View style={styles.emptyBox}>
-                <Text style={styles.emptyText}>{t('categoryDrawer.noCategories')}</Text>
-              </View>
-            ) : (
-              <View style={styles.list}>
-                {subcategories.map((cat) => (
-                  <View key={cat.id} style={styles.listItem}>
-                    <Text style={styles.itemTitle}>{cat.name}</Text>
-                    <Text style={styles.itemAmount}>{fmtMoney(cat.targetAmount)}</Text>
-                  </View>
-                ))}
-              </View>
-            )}
-          </View>
-        )}
 
         {/* Tab 2: Upcoming with Mark Paid */}
         {activeTab === 'UPCOMING' && (

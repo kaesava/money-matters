@@ -70,7 +70,7 @@ export const GoalProgressStripCard: React.FC<GoalProgressStripCardProps> = ({
   return (
     <TouchableOpacity
       activeOpacity={0.8}
-      onPress={() => router.push(`/(app)/pools/${item.id}` as never)}
+      onPress={() => router.push(`/(app)/envelopes/${item.id}` as never)}
       style={styles.goalCard}
     >
       <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>

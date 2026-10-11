@@ -33,7 +33,7 @@ export function PoolHistorySection({
         <TouchableOpacity
           onPress={() =>
             router.push(
-              `/(app)/transactions?poolId=${poolId}&returnTo=${encodeURIComponent(`/(app)/pools/${poolId}`)}` as never
+              `/(app)/transactions?poolId=${poolId}&returnTo=${encodeURIComponent(`/(app)/envelopes/${poolId}`)}` as never
             )
           }
           style={styles.viewHistoryBtn}

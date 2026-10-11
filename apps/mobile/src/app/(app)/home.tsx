@@ -142,13 +142,13 @@ export default function HomeScreen() {
           onMoveMoney={() => openQuickModal('TRANSFER')}
           onEverydayPress={() =>
             everydayPool
-              ? router.push(`/(app)/pools/${everydayPool.id}` as never)
+              ? router.push(`/(app)/envelopes/${everydayPool.id}` as never)
               : router.push('/(app)/categories')
           }
           onAlignEverydayBalance={handleOpenEverydayReconciliation}
           onBillsPress={() =>
             billsPool
-              ? router.push(`/(app)/pools/${billsPool.id}` as never)
+              ? router.push(`/(app)/envelopes/${billsPool.id}` as never)
               : router.push('/(app)/categories')
           }
         />

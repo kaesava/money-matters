@@ -34,7 +34,7 @@ export const PaycheckEventEntityLink: React.FC<PaycheckEventEntityLinkProps> = (
           label={item.categoryName || t('categories.title')}
           icon="folder"
           onPress={() => {
-            router.push(`/(app)/pools/${item.poolId}?returnTo=/(app)/paychecks` as Href);
+            router.push(`/(app)/envelopes/${item.poolId}?returnTo=/(app)/paychecks` as Href);
           }}
         />
       </View>
@@ -49,7 +49,7 @@ export const PaycheckEventEntityLink: React.FC<PaycheckEventEntityLinkProps> = (
             label={item.sourcePoolName || t('common.source')}
             icon="folder"
             onPress={() => {
-              router.push(`/(app)/pools/${item.sourcePoolId}?returnTo=/(app)/paychecks` as Href);
+              router.push(`/(app)/envelopes/${item.sourcePoolId}?returnTo=/(app)/paychecks` as Href);
             }}
           />
           <Text style={styles.transferArrow}>➔</Text>
@@ -58,7 +58,7 @@ export const PaycheckEventEntityLink: React.FC<PaycheckEventEntityLinkProps> = (
               label={item.destinationPoolName || t('common.destination')}
               icon="folder"
               onPress={() => {
-                router.push(`/(app)/pools/${item.destinationPoolId}?returnTo=/(app)/paychecks` as Href);
+                router.push(`/(app)/envelopes/${item.destinationPoolId}?returnTo=/(app)/paychecks` as Href);
               }}
             />
           )}

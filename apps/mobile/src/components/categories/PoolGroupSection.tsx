@@ -10,6 +10,8 @@ interface PoolGroupSectionProps {
   isCollapsed: boolean;
   onToggleCollapse: () => void;
   bankAccounts: any[];
+  groupType?: 'EVERYDAY' | 'REGULAR' | 'GOAL';
+  onAddPool?: (type: 'EVERYDAY' | 'REGULAR' | 'GOAL') => void;
 }
 
 export function PoolGroupSection({
@@ -18,26 +20,39 @@ export function PoolGroupSection({
   isCollapsed,
   onToggleCollapse,
   bankAccounts,
+  groupType,
+  onAddPool,
 }: PoolGroupSectionProps) {
   if (pools.length === 0) return null;
 
   return (
     <View style={styles.group}>
-      <TouchableOpacity
-        activeOpacity={0.7}
-        onPress={onToggleCollapse}
-        style={styles.header}
-      >
-        <View style={styles.titleWrap}>
+      <View style={styles.header}>
+        <TouchableOpacity
+          activeOpacity={0.7}
+          onPress={onToggleCollapse}
+          style={styles.titleWrap}
+        >
           <Feather
             name={isCollapsed ? 'chevron-right' : 'chevron-down'}
             size={16}
             color="#1B2B4B"
           />
           <Text style={styles.title}>{title}</Text>
-        </View>
-        <Text style={styles.count}>{pools.length}</Text>
-      </TouchableOpacity>
+          <Text style={styles.count}>({pools.length})</Text>
+        </TouchableOpacity>
+
+        {groupType && onAddPool && (
+          <TouchableOpacity
+            activeOpacity={0.7}
+            onPress={() => onAddPool(groupType)}
+            style={styles.addBtn}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          >
+            <Feather name="plus" size={15} color={DESIGN_TOKENS.colors.sereneBlue} />
+          </TouchableOpacity>
+        )}
+      </View>
 
       {!isCollapsed &&
         pools.map((p) => (
@@ -61,7 +76,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 2,
     marginBottom: 4,
   },
-  titleWrap: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  titleWrap: { flexDirection: 'row', alignItems: 'center', gap: 6, flex: 1 },
   title: { fontSize: 13, fontWeight: '800', color: DESIGN_TOKENS.colors.primary, textTransform: 'uppercase', letterSpacing: 0.5 },
   count: { fontSize: 12, fontWeight: '700', color: DESIGN_TOKENS.colors.textMuted },
+  addBtn: {
+    padding: 4,
+    borderRadius: 6,
+    backgroundColor: DESIGN_TOKENS.colors.slate[100],
+  },
 });

@@ -36,10 +36,10 @@ export function PoolSummaryCard({
     : pool.envelopeType === 'ONGOING_GOAL'
     ? t('categories.ongoingGoalBadge')
     : pool.envelopeType === 'EVERYDAY' || pool.poolType === 'EVERYDAY'
-    ? t('poolTypes.EVERYDAY')
+    ? t('poolTypes.everyday')
     : pool.poolType === 'GOAL'
-    ? t('poolTypes.SAVINGS')
-    : t('poolTypes.REGULAR');
+    ? t('poolTypes.goals')
+    : t('poolTypes.bills');
 
   return (
     <View style={styles.card}>

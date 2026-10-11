@@ -2628,11 +2628,6 @@ export const en = {
     everyday: "Everyday",
     bills: "Bills",
     goals: "Goals",
-    regular: "Bills",
-    goal: "Savings Goals",
-    EVERYDAY: "Everyday",
-    REGULAR: "Bills",
-    SAVINGS: "Savings Goals",
   },
   paydayDrawer: {
     title: "Income Split",

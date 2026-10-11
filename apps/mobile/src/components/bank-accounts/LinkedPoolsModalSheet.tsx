@@ -51,7 +51,7 @@ export function LinkedPoolsModalSheet({
                 key={pool.id}
                 onPress={() => {
                   onClose();
-                  router.push(`/(app)/pools/${pool.id}` as never);
+                  router.push(`/(app)/envelopes/${pool.id}` as never);
                 }}
                 style={styles.poolCard}
               >

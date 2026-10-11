@@ -36,7 +36,7 @@ export const ProjectionPoolCard: React.FC<ProjectionPoolCardProps> = ({
   return (
     <TouchableOpacity
       activeOpacity={0.8}
-      onPress={() => router.push(`/(app)/pools/${pool.id}` as never)}
+      onPress={() => router.push(`/(app)/envelopes/${pool.id}` as never)}
       style={styles.poolCard}
     >
       <View style={styles.cardHeader}>

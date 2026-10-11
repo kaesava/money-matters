@@ -63,7 +63,7 @@ export const ExpenseBillCard: React.FC<ExpenseBillCardProps> = ({
               label={displayBucket}
               icon="folder"
               onPress={() => {
-                router.push(`/(app)/pools/${targetPoolId}?returnTo=/(app)/paychecks` as Href);
+                router.push(`/(app)/envelopes/${targetPoolId}?returnTo=/(app)/paychecks` as Href);
               }}
             />
           ) : null}

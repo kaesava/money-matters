@@ -37,7 +37,7 @@ export function PoolUpcomingSection({
           <TouchableOpacity
             onPress={() =>
               router.push(
-                `/(app)/paychecks?tab=EVENTS&type=EXPENSE&poolId=${poolId}&returnTo=${encodeURIComponent(`/(app)/pools/${poolId}`)}` as never
+                `/(app)/paychecks?tab=EVENTS&type=EXPENSE&poolId=${poolId}&returnTo=${encodeURIComponent(`/(app)/envelopes/${poolId}`)}` as never
               )
             }
             style={styles.viewHistoryBtn}

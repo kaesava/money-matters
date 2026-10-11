@@ -273,7 +273,7 @@ export function MobileBankAccountsSection() {
                     })),
                   })
                 }
-                onPressPool={(poolId) => router.push(`/(app)/pools/${poolId}` as never)}
+                onPressPool={(poolId) => router.push(`/(app)/envelopes/${poolId}` as never)}
                 onPressMorePools={() =>
                   setPoolsSheetAccount({
                     name: acc.name,

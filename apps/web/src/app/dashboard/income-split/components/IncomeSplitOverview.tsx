@@ -94,13 +94,13 @@ export function IncomeSplitOverview() {
     <div className="flex flex-col gap-6 max-w-7xl mx-auto pb-16 animate-in fade-in duration-200">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div className="flex items-center gap-2">
-          <h1 className="text-2xl font-black text-[#1B2B4B] flex items-center gap-2">
-            <span>{t("incomeBillsTabs.twelveMonthIncomeSplit")}</span>
-            <InfoTooltip
-              title={t("incomeBillsTabs.twelveMonthIncomeSplit")}
-              content={t("incomeBillsTabs.twelveMonthIncomeSplitTooltip")}
-            />
+          <h1 className="text-2xl font-black text-[#1B2B4B]">
+            {t("incomeBillsTabs.twelveMonthIncomeSplit")}
           </h1>
+          <InfoTooltip
+            title={t("incomeBillsTabs.twelveMonthIncomeSplit")}
+            content={t("incomeBillsTabs.twelveMonthIncomeSplitTooltip")}
+          />
         </div>
       </div>
 

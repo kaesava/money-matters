@@ -19,7 +19,7 @@ import { PoolOverflowMenuModal } from '../../components/categories/PoolOverflowM
 import { PoolGroupSection } from '../../components/categories/PoolGroupSection';
 
 export type PoolSortField = 'name' | 'currentBalance' | 'targetAmount';
-export type PoolTypeFilter = 'ALL' | 'EVERYDAY' | 'REGULAR' | 'SAVINGS';
+export type PoolTypeFilter = 'ALL' | 'EVERYDAY' | 'REGULAR' | 'GOAL';
 export type PrivacyFilter = 'ALL' | 'SHARED' | 'PRIVATE';
 
 export default function PoolsScreen() {
@@ -37,6 +37,7 @@ export default function PoolsScreen() {
 
   const [refreshing, setRefreshing] = useState(false);
   const [poolModalVisible, setPoolModalVisible] = useState(false);
+  const [defaultPoolType, setDefaultPoolType] = useState<'EVERYDAY' | 'REGULAR' | 'GOAL'>('REGULAR');
   const [moveMoneyVisible, setMoveMoneyVisible] = useState(false);
   const [overflowMenuVisible, setOverflowMenuVisible] = useState(false);
   const [filterSheetVisible, setFilterSheetVisible] = useState(false);
@@ -149,6 +150,11 @@ export default function PoolsScreen() {
               isCollapsed={!!collapsedTypes['EVERYDAY']}
               onToggleCollapse={() => toggleTypeCollapse('EVERYDAY')}
               bankAccounts={bankAccounts}
+              groupType="EVERYDAY"
+              onAddPool={(gType) => {
+                setDefaultPoolType(gType);
+                setPoolModalVisible(true);
+              }}
             />
             <PoolGroupSection
               title={t('categories.billsPoolsUpper')}
@@ -156,6 +162,11 @@ export default function PoolsScreen() {
               isCollapsed={!!collapsedTypes['REGULAR']}
               onToggleCollapse={() => toggleTypeCollapse('REGULAR')}
               bankAccounts={bankAccounts}
+              groupType="REGULAR"
+              onAddPool={(gType) => {
+                setDefaultPoolType(gType);
+                setPoolModalVisible(true);
+              }}
             />
             <PoolGroupSection
               title={t('categories.goalsUpper')}
@@ -163,6 +174,11 @@ export default function PoolsScreen() {
               isCollapsed={!!collapsedTypes['GOAL']}
               onToggleCollapse={() => toggleTypeCollapse('GOAL')}
               bankAccounts={bankAccounts}
+              groupType="GOAL"
+              onAddPool={(gType) => {
+                setDefaultPoolType(gType);
+                setPoolModalVisible(true);
+              }}
             />
             {filteredPools.length === 0 && (
               <View style={styles.emptyCard}>
@@ -201,8 +217,10 @@ export default function PoolsScreen() {
             selectedValue: typeFilter,
             onSelect: (val) => setTypeFilter(val as PoolTypeFilter),
             options: [
-              { id: 'ALL', label: t('common.all') }, { id: 'EVERYDAY', label: t('poolTypes.EVERYDAY') },
-              { id: 'REGULAR', label: t('poolTypes.REGULAR') }, { id: 'SAVINGS', label: t('poolTypes.SAVINGS') },
+              { id: 'ALL', label: t('common.all') },
+              { id: 'EVERYDAY', label: t('poolTypes.everyday') },
+              { id: 'REGULAR', label: t('poolTypes.bills') },
+              { id: 'GOAL', label: t('poolTypes.goals') },
             ],
           },
           {
@@ -220,7 +238,12 @@ export default function PoolsScreen() {
         }}
       />
 
-      <CategoryFormModal visible={poolModalVisible} onClose={() => setPoolModalVisible(false)} onSuccess={() => poolsQuery.refetch()} />
+      <CategoryFormModal
+        visible={poolModalVisible}
+        defaultType={defaultPoolType}
+        onClose={() => setPoolModalVisible(false)}
+        onSuccess={() => poolsQuery.refetch()}
+      />
       <QuickExpenseModal visible={moveMoneyVisible} initialType="TRANSFER" onClose={() => setMoveMoneyVisible(false)} onSuccess={() => poolsQuery.refetch()} />
     </AppScreenWrapper>
   );

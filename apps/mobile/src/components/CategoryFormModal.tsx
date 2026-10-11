@@ -36,11 +36,12 @@ export interface CategoryItem {
 interface CategoryFormModalProps {
   visible: boolean;
   categoryToEdit?: CategoryItem | null;
+  defaultType?: 'GOAL' | 'REGULAR' | 'EVERYDAY';
   onClose: () => void;
   onSuccess?: () => void;
 }
 
-export function CategoryFormModal({ visible, categoryToEdit, onClose, onSuccess }: CategoryFormModalProps) {
+export function CategoryFormModal({ visible, categoryToEdit, defaultType, onClose, onSuccess }: CategoryFormModalProps) {
   const toast = useMobileToast();
   const utils = trpc.useUtils();
 
@@ -51,7 +52,7 @@ export function CategoryFormModal({ visible, categoryToEdit, onClose, onSuccess 
 
   const [name, setName] = useState('');
   const [nameError, setNameError] = useState('');
-  const [type, setType] = useState<'GOAL' | 'REGULAR' | 'EVERYDAY'>('REGULAR');
+  const [type, setType] = useState<'GOAL' | 'REGULAR' | 'EVERYDAY'>(defaultType || 'REGULAR');
   const [safetyBufferFloor, setSafetyBufferFloor] = useState('');
   const [targetAmount, setTargetAmount] = useState('');
   const [targetDate, setTargetDate] = useState('');
@@ -91,7 +92,7 @@ export function CategoryFormModal({ visible, categoryToEdit, onClose, onSuccess 
       setIsSurplusTarget(categoryToEdit.isSurplusTarget ?? false);
     } else {
       setName('');
-      setType('REGULAR');
+      setType(defaultType || 'REGULAR');
       setBillMode('SCHEDULED_BILL');
       setBankAccountId('');
       setSafetyBufferFloor('');
@@ -104,7 +105,7 @@ export function CategoryFormModal({ visible, categoryToEdit, onClose, onSuccess 
       setIsSurplusTarget(false);
     }
     setNameError('');
-  }, [categoryToEdit, visible]);
+  }, [categoryToEdit, defaultType, visible]);
 
   const calculatedMonthly = useMemo(() => {
     const val = parseFloat(targetAmount);
