@@ -5,7 +5,8 @@ interface ReconciliationPoolsParams {
   linkedPools?: Array<{
     id: string;
     name: string;
-    poolType: string;
+    envelopeType?: string;
+    poolType?: string;
     currentBalance: string | number;
     isSurplusTarget?: boolean | null;
   }>;
@@ -20,7 +21,7 @@ export function useReconciliationCalculations({
     return (linkedPools ?? []).map((p) => ({
       id: p.id,
       name: p.name,
-      poolType: p.poolType,
+      poolType: p.envelopeType || p.poolType || '',
       currentBalance:
         typeof p.currentBalance === 'number'
           ? p.currentBalance

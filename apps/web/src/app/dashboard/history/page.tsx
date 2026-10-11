@@ -39,7 +39,6 @@ function TransactionsPageContent() {
     amount: 140,
   });
 
-  const categoriesQuery = trpc.listCategories.useQuery();
   const poolsQuery = trpc.listPools.useQuery();
   const bankAccountsQuery = trpc.getBankAccountsWithMappings.useQuery();
   const transactionsQuery = trpc.listTransactions.useQuery({ limit: 500, offset: 0 });
@@ -56,22 +55,21 @@ function TransactionsPageContent() {
     router.replace(`/dashboard/history?tab=${tabId}`, { scroll: false });
   };
 
-  const categories = useMemo(() => categoriesQuery.data ?? [], [categoriesQuery.data]);
   const pools = useMemo(() => poolsQuery.data ?? [], [poolsQuery.data]);
   const bankAccounts = useMemo(() => bankAccountsQuery.data ?? [], [bankAccountsQuery.data]);
   const poolMap = useMemo(() => new Map(pools.map((p) => [p.id, p.name])), [pools]);
 
-
   // Map transaction ledger items for spacious display without grouping transfer pairs
   const allTransactions = useMemo(() => {
     const rawTransactions = transactionsQuery.data ?? [];
-    const categoryMap = new Map(categories.map((c) => [c.name, (c as unknown as { poolType?: string; type?: string }).poolType || (c as unknown as { poolType?: string; type?: string }).type]));
+    const envelopeTypeMap = new Map(pools.map((p) => [p.name, p.envelopeType]));
 
     return rawTransactions.map((tx) => {
-      const txObj = tx as unknown as { poolId?: string; poolName?: string; categoryName?: string };
-      const pName = txObj.poolName || (tx.poolId ? poolMap.get(tx.poolId) : undefined) || "";
+      const txObj = tx as unknown as { envelopeId?: string; envelopeName?: string; poolId?: string; poolName?: string; categoryName?: string };
+      const envId = txObj.envelopeId || txObj.poolId || "";
+      const pName = txObj.poolName || (envId ? poolMap.get(envId) : undefined) || "";
       const cName = txObj.categoryName || "";
-      const displayLabel = pName && cName ? `${pName} (${cName})` : pName || cName || "Everyday Pool";
+      const displayLabel = pName || cName || "Everyday Envelope";
 
       const isTransfer = Boolean(tx.transferGroupId) || tx.note?.startsWith("Transferred") || tx.note?.startsWith("Transfer from") || tx.note?.includes("➔");
 
@@ -81,28 +79,26 @@ function TransactionsPageContent() {
         date: fmtDate(tx.recordedAt),
         description: tx.note || `Transaction (${tx.source || "MANUAL"})`,
         categoryName: displayLabel,
-        poolId: tx.poolId,
-        categoryId: tx.categoryId,
+        poolId: envId,
+        envelopeId: envId,
         bankAccountId: tx.bankAccountId,
         transactionType: tx.transactionType,
         poolName: pName,
         rawCategoryName: cName,
-        categoryType: categoryMap.get(pName || cName) as "EVERYDAY" | "REGULAR" | "GOAL" | undefined,
+        categoryType: envelopeTypeMap.get(pName),
         amount: tx.amount,
         type: isTransfer ? ("TRANSFER" as const) : (tx.flowType as "DEBIT" | "CREDIT"),
         flowType: tx.flowType as "DEBIT" | "CREDIT",
         source: tx.source || "MANUAL",
       };
     });
-  }, [transactionsQuery.data, categories, poolMap, fmtDate]);
+  }, [transactionsQuery.data, pools, poolMap, fmtDate]);
 
   const matchedPool = poolIdParam ? pools.find((p) => p.id === poolIdParam) : null;
-  const matchedCategory = categoryIdParam ? categories.find((c) => c.id === categoryIdParam) : null;
   const matchedBankAccount = bankAccountIdParam ? bankAccounts.find((b: { id: string }) => b.id === bankAccountIdParam) : null;
 
   const isFilterParamInvalid = Boolean(
     (poolIdParam && !matchedPool) ||
-    (categoryIdParam && !matchedCategory) ||
     (bankAccountIdParam && !matchedBankAccount)
   );
 
@@ -124,7 +120,6 @@ function TransactionsPageContent() {
     return allTransactions.filter((tx) => {
       if (filterType !== "ALL" && tx.type !== filterType) return false;
       if (poolIdParam && matchedPool && tx.poolId !== poolIdParam) return false;
-      if (categoryIdParam && matchedCategory && tx.categoryId !== categoryIdParam) return false;
       if (bankAccountIdParam && matchedBankAccount && tx.bankAccountId !== bankAccountIdParam) return false;
       if (selectedPool !== "ALL") {
         const selectedPoolObj = pools.find((p) => p.id === selectedPool);
@@ -144,7 +139,7 @@ function TransactionsPageContent() {
       }
       return true;
     });
-  }, [allTransactions, filterType, selectedPool, searchQuery, pools, poolIdParam, matchedPool, categoryIdParam, matchedCategory, bankAccountIdParam, matchedBankAccount]);
+  }, [allTransactions, filterType, selectedPool, searchQuery, pools, poolIdParam, matchedPool, bankAccountIdParam, matchedBankAccount]);
 
   const sortedTransactions = useMemo(() => {
     return [...filteredTransactions].sort((a, b) => {
@@ -304,7 +299,7 @@ function TransactionsPageContent() {
                   pools={pools.map((p) => ({
                     id: p.id,
                     name: p.name,
-                    poolType: p.poolType,
+                    poolType: p.envelopeType,
                     currentBalance: p.currentBalance,
                     isPrivate: p.isPrivate ?? undefined,
                   }))}
@@ -357,13 +352,9 @@ function TransactionsPageContent() {
             <div className="flex items-center gap-3 flex-wrap">
               <RecordFilterBadge
                 label={
-                  poolIdParam
+                  poolIdParam || categoryIdParam
                     ? matchedPool
-                      ? `Filtered to Pool: ${matchedPool.name}`
-                      : "Filter: Item unavailable"
-                    : categoryIdParam
-                    ? matchedCategory
-                      ? `Filtered to Category: ${matchedCategory.name}`
+                      ? `Filtered to Envelope: ${matchedPool.name}`
                       : "Filter: Item unavailable"
                     : matchedBankAccount
                     ? `Filtered to Account: ${matchedBankAccount.name}`
@@ -480,7 +471,7 @@ function TransactionsPageContent() {
                             return (
                               <span className="font-semibold text-[#1B2B4B] flex items-center gap-1">
                                 <Link
-                                  href={fromPool ? `/dashboard/pools?poolId=${fromPool.id}` : `/dashboard/pools`}
+                                  href={fromPool ? `/dashboard/envelopes?poolId=${fromPool.id}` : `/dashboard/envelopes`}
                                   className="text-[#2563eb] hover:underline inline-flex items-center gap-0.5"
                                 >
                                   <span>{fromPart}</span>
@@ -488,7 +479,7 @@ function TransactionsPageContent() {
                                 </Link>
                                 <span className="text-zinc-400">➔</span>
                                 <Link
-                                  href={toPool ? `/dashboard/pools?poolId=${toPool.id}` : `/dashboard/pools`}
+                                  href={toPool ? `/dashboard/envelopes?poolId=${toPool.id}` : `/dashboard/envelopes`}
                                   className="text-[#2563eb] hover:underline inline-flex items-center gap-0.5"
                                 >
                                   <span>{toPart}</span>
@@ -500,10 +491,8 @@ function TransactionsPageContent() {
                             <Link
                               href={
                                 tx.poolId
-                                  ? `/dashboard/pools?poolId=${tx.poolId}`
-                                  : tx.categoryId
-                                  ? `/dashboard/pools?categoryId=${tx.categoryId}`
-                                  : `/dashboard/pools`
+                                  ? `/dashboard/envelopes?poolId=${tx.poolId}`
+                                  : `/dashboard/envelopes`
                               }
                               className="font-semibold text-[#2563eb] hover:underline inline-flex items-center gap-0.5"
                             >

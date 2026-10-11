@@ -1,22 +1,20 @@
 import { describe, it, expect, vi } from "vitest";
-import { categories, transactionLedger, incomeEvents, expenseEvents, pools, bankAccounts } from "@money-matters/db";
+import { transactionLedger, incomeEvents, expenseEvents, envelopes, bankAccounts } from "@money-matters/db";
 import { listBillCoverageQuery } from "./list-bill-coverage.query";
 
 function createMockDb(
-  mockCategories: any[],
   mockTxs: any[],
   mockPaychecks: any[],
   mockUpcomingBills: any[],
-  mockPools: any[] = [
-    { id: "pool-bills-1", name: "Regular Bills", poolType: "REGULAR", bankAccountId: "acc-1", isPrivate: false }
+  mockEnvelopes: any[] = [
+    { id: "env-bills-1", name: "Regular Bills", envelopeType: "SCHEDULED_BILL", bankAccountId: "acc-1", isPrivate: false }
   ]
 ) {
   return {
     select: vi.fn().mockImplementation(() => ({
       from: vi.fn().mockImplementation((table: any) => {
         let data: any[] = [];
-        if (table === pools) data = mockPools;
-        else if (table === categories) data = mockCategories;
+        if (table === envelopes) data = mockEnvelopes;
         else if (table === transactionLedger) data = mockTxs;
         else if (table === incomeEvents) data = mockPaychecks;
         else if (table === expenseEvents) data = mockUpcomingBills;
@@ -29,6 +27,9 @@ function createMockDb(
         };
 
         return {
+          leftJoin: vi.fn().mockImplementation(() => ({
+            where: vi.fn().mockReturnValue(resultPromise),
+          })),
           innerJoin: vi.fn().mockImplementation(() => ({
             where: vi.fn().mockReturnValue(resultPromise),
           })),
@@ -46,44 +47,40 @@ describe("listBillCoverageQuery", () => {
   const tenantId = "00000000-0000-0000-0000-000000000001";
   const appId = "00000000-0000-0000-0000-000000000002";
 
-  it("returns NO_SCHEDULE for bill categories with no upcoming events", async () => {
-    const mockCategories = [
-      { id: "cat-1", name: "Netflix", type: "REGULAR", poolId: "pool-bills-1", monthlyAmount: "20.00" },
-    ];
+  it("returns NO_SCHEDULE for bill envelopes with no upcoming events", async () => {
     const mockTxs: any[] = [];
     const mockPaychecks: any[] = [];
     const mockUpcomingBills: any[] = [];
-
-    const mockPools = [
-      { id: "pool-bills-1", name: "Netflix", poolType: "REGULAR", bankAccountId: "acc-1", isPrivate: false }
+    const mockEnvelopes = [
+      { id: "env-bills-1", name: "Netflix", envelopeType: "SCHEDULED_BILL", bankAccountId: "acc-1", isPrivate: false }
     ];
-    const mockDb = createMockDb(mockCategories, mockTxs, mockPaychecks, mockUpcomingBills, mockPools);
+    const mockDb = createMockDb(mockTxs, mockPaychecks, mockUpcomingBills, mockEnvelopes);
 
     const result = await listBillCoverageQuery(tenantId, appId, mockDb as any);
 
     expect(result).toBeDefined();
     expect(result.billsPoolBalance).toBe(0);
     expect(result.items.length).toBe(1);
-    expect(result.items[0].poolName || result.items[0].categoryName).toBe("Netflix");
+    expect(result.items[0].envelopeName).toBe("Netflix");
     expect(result.items[0].coverageStatus).toBe("NO_SCHEDULE");
     expect(result.items[0].shortfallAmount).toBeNull();
   });
 
-  it("returns COVERED when bills pool balance is sufficient for upcoming bills", async () => {
-    const mockCategories = [
-      { id: "cat-1", name: "Power", type: "REGULAR", monthlyAmount: "150.00" },
+  it("returns COVERED when bills balance is sufficient for upcoming bills", async () => {
+    const mockEnvelopes = [
+      { id: "env-bills-1", name: "Power", envelopeType: "SCHEDULED_BILL", bankAccountId: "acc-1", isPrivate: false }
     ];
     const mockTxs = [
-      { poolId: "pool-bills-1", categoryId: "cat-1", amount: "200.00", flowType: "CREDIT" },
+      { envelopeId: "env-bills-1", amount: "200.00", flowType: "CREDIT" },
     ];
     const mockPaychecks = [
       { expectedDate: "2026-09-01", expectedAmount: "2000.00", status: "PENDING" },
     ];
     const mockUpcomingBills = [
-      { poolId: "pool-bills-1", categoryId: "cat-1", expectedDate: "2026-08-28", expectedAmount: "150.00", status: "PENDING" },
+      { envelopeId: "env-bills-1", expectedDate: "2026-08-28", expectedAmount: "150.00", status: "PENDING" },
     ];
 
-    const mockDb = createMockDb(mockCategories, mockTxs, mockPaychecks, mockUpcomingBills);
+    const mockDb = createMockDb(mockTxs, mockPaychecks, mockUpcomingBills, mockEnvelopes);
 
     const result = await listBillCoverageQuery(tenantId, appId, mockDb as any);
 
@@ -95,21 +92,21 @@ describe("listBillCoverageQuery", () => {
     expect(result.items[0].nextDueAmount).toBe("150.00");
   });
 
-  it("returns SHORT_BY when bills pool balance is insufficient for upcoming bills", async () => {
-    const mockCategories = [
-      { id: "cat-1", name: "Rent", type: "REGULAR", monthlyAmount: "500.00" },
+  it("returns SHORT_BY when bills balance is insufficient for upcoming bills", async () => {
+    const mockEnvelopes = [
+      { id: "env-bills-1", name: "Rent", envelopeType: "SCHEDULED_BILL", bankAccountId: "acc-1", isPrivate: false }
     ];
     const mockTxs = [
-      { poolId: "pool-bills-1", categoryId: "cat-1", amount: "100.00", flowType: "CREDIT" },
+      { envelopeId: "env-bills-1", amount: "100.00", flowType: "CREDIT" },
     ];
     const mockPaychecks = [
       { expectedDate: "2026-09-01", expectedAmount: "2000.00", status: "PENDING" },
     ];
     const mockUpcomingBills = [
-      { poolId: "pool-bills-1", categoryId: "cat-1", expectedDate: "2026-08-28", expectedAmount: "500.00", status: "PENDING" },
+      { envelopeId: "env-bills-1", expectedDate: "2026-08-28", expectedAmount: "500.00", status: "PENDING" },
     ];
 
-    const mockDb = createMockDb(mockCategories, mockTxs, mockPaychecks, mockUpcomingBills);
+    const mockDb = createMockDb(mockTxs, mockPaychecks, mockUpcomingBills, mockEnvelopes);
 
     const result = await listBillCoverageQuery(tenantId, appId, mockDb as any);
 

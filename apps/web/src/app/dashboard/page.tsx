@@ -46,20 +46,20 @@ export default function DashboardPage() {
 
   const [incomeToDelete, setIncomeToDelete] = useState<{ id: string; name: string } | null>(null);
 
-  const goalCategories = pools.filter((p) => p.poolType === "GOAL");
+  const goalCategories = pools.filter((p) => p.envelopeType === "TARGET_GOAL" || p.envelopeType === "ONGOING_GOAL");
   const everydayBalance = parseFloat(summaryQuery.data?.everydayRemaining || "0");
   const everydayMonthlyBudget = pools
-    .filter((p) => p.poolType === "EVERYDAY")
-    .reduce((sum, p) => sum + parseFloat(p.everydayAllowanceAmount || p.targetAmount || "0"), 0);
+    .filter((p) => p.envelopeType === "EVERYDAY")
+    .reduce((sum, p) => sum + parseFloat(p.monthlyAmount || p.targetAmount || "0"), 0);
 
   const everydaySafetyBuffer = pools
-    .filter((p) => p.poolType === "EVERYDAY")
+    .filter((p) => p.envelopeType === "EVERYDAY")
     .reduce((sum, p) => sum + parseFloat(p.safetyBufferFloor || "0"), 0);
 
   const billsBalance = parseFloat(summaryQuery.data?.billsRemaining || "0");
   const billsMonthlyBudget = pools
-    .filter((p) => p.poolType === "REGULAR")
-    .reduce((sum, p) => sum + parseFloat(p.targetAmount || "0"), 0);
+    .filter((p) => p.envelopeType === "SCHEDULED_BILL" || p.envelopeType === "FLEXIBLE_BILL")
+    .reduce((sum, p) => sum + parseFloat(p.monthlyAmount || p.targetAmount || "0"), 0);
 
   const bankAccounts = bankAccountsQuery.data ?? [];
 
@@ -93,7 +93,7 @@ export default function DashboardPage() {
   const expenseAttentionItems: WebAttentionItem[] = (expenseEventsQuery.data ?? [])
     .filter((e) => e.status === "PENDING")
     .map((e) => {
-      const pool = pools.find((p) => p.id === e.poolId);
+      const pool = pools.find((p) => p.id === e.envelopeId);
       const catBal = pool ? parseFloat(String(pool.currentBalance)) : 0;
       const isOverdue = new Date(e.expectedDate) < todayObj;
 
@@ -210,7 +210,7 @@ export default function DashboardPage() {
   const quickActionMenuRef = useRef<HTMLDivElement>(null);
 
   const handleOpenEverydayReconciliation = () => {
-    const everydayPool = pools.find((p) => p.poolType === "EVERYDAY");
+    const everydayPool = pools.find((p) => p.envelopeType === "EVERYDAY");
     const matchedAccount = bankAccounts.find(
       (b) => b.id === everydayPool?.bankAccountId
     ) || bankAccounts[0];
@@ -225,7 +225,8 @@ export default function DashboardPage() {
       .map((p) => ({
         id: p.id,
         name: p.name,
-        poolType: p.poolType,
+        poolType: p.envelopeType,
+        envelopeType: p.envelopeType,
         currentBalance: parseFloat(String(p.currentBalance ?? 0)),
         isSurplusTarget: Boolean(p.isSurplusTarget),
       }));
@@ -467,7 +468,7 @@ export default function DashboardPage() {
             availableCategories={pools.map((p) => ({
               id: p.id,
               name: p.name,
-              poolType: p.poolType,
+              poolType: p.envelopeType,
               currentBalance: parseFloat(String(p.currentBalance || "0")),
               isSurplusTarget: p.isSurplusTarget,
               bankAccountId: p.bankAccountId,
@@ -481,8 +482,8 @@ export default function DashboardPage() {
               await Promise.all(
                 transfers.map((t) =>
                   moveMoneyMut.mutateAsync({
-                    sourcePoolId: t.poolId,
-                    destinationPoolId: destinationCategoryId,
+                    sourceEnvelopeId: t.poolId,
+                    destinationEnvelopeId: destinationCategoryId,
                     amount: t.amount,
                     note: "Shortfall Top Up",
                   })

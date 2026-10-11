@@ -175,7 +175,7 @@ export function useBankAccountForm(
           linkedPools: linkedPools.map((p) => ({
             id: p.id,
             name: p.name,
-            poolType: p.poolType,
+            envelopeType: p.envelopeType,
             currentBalance: p.currentBalance || 0,
             isSurplusTarget: p.isSurplusTarget,
           })),

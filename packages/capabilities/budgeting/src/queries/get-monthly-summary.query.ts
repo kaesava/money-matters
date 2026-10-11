@@ -1,6 +1,5 @@
-import { pools, transactionLedger, getPoolBalancesMap, DbOrTx } from "@money-matters/db";
+import { envelopes, transactionLedger, getEnvelopeBalancesMap, DbOrTx } from "@money-matters/db";
 import { eq, and, sql } from "drizzle-orm";
-
 
 export async function getMonthlySummaryQuery(
   year: number,
@@ -12,43 +11,40 @@ export async function getMonthlySummaryQuery(
   const startDate = new Date(Date.UTC(year, month - 1, 1, 0, 0, 0));
   const endDate = new Date(Date.UTC(year, month, 1, 0, 0, 0));
 
-  const dbPools = await dbClient
+  const dbEnvelopes = await dbClient
     .select({
-      id: pools.id,
-      poolType: pools.poolType,
+      id: envelopes.id,
+      envelopeType: envelopes.envelopeType,
     })
-    .from(pools)
+    .from(envelopes)
     .where(
       and(
-        eq(pools.tenantId, tenantId),
-        eq(pools.appId, appId),
-        sql`${pools.archivedAt} IS NULL`
+        eq(envelopes.tenantId, tenantId),
+        eq(envelopes.appId, appId),
+        sql`${envelopes.archivedAt} IS NULL`
       )
     );
 
-  const poolMap = new Map(dbPools.map((p) => [p.id, p.poolType]));
-
-  // 1. Fetch pre-aggregated pool balances (single query)
-  const balancesMap = await getPoolBalancesMap(tenantId, appId, dbClient);
+  const envMap = new Map(dbEnvelopes.map((e) => [e.id, e.envelopeType]));
+  const balancesMap = await getEnvelopeBalancesMap(tenantId, appId, dbClient);
 
   let everydayRemaining = 0;
   let billsRemaining = 0;
 
-  for (const pool of dbPools) {
-    const bal = balancesMap[pool.id] || 0;
-    if (pool.poolType === "EVERYDAY") {
+  for (const env of dbEnvelopes) {
+    const bal = balancesMap[env.id] || 0;
+    if (env.envelopeType === "EVERYDAY") {
       everydayRemaining += bal;
-    } else if (pool.poolType === "REGULAR") {
+    } else if (env.envelopeType === "SCHEDULED_BILL" || env.envelopeType === "FLEXIBLE_BILL") {
       billsRemaining += bal;
     }
   }
 
-  // 2. Fetch month-filtered transactions for month's totalIncome, totalSpent, totalSaved
   const txs = await dbClient
     .select({
       flowType: transactionLedger.flowType,
       amount: transactionLedger.amount,
-      poolId: transactionLedger.poolId,
+      envelopeId: transactionLedger.envelopeId,
     })
     .from(transactionLedger)
     .where(
@@ -66,13 +62,13 @@ export async function getMonthlySummaryQuery(
   let totalSaved = 0;
 
   for (const tx of txs) {
-    if (!tx.poolId) continue;
+    if (!tx.envelopeId) continue;
     const val = parseFloat(tx.amount);
-    const poolType = poolMap.get(tx.poolId);
-    
+    const envType = envMap.get(tx.envelopeId);
+
     if (tx.flowType === "CREDIT") {
       totalIncome += val;
-      if (poolType === "GOAL") {
+      if (envType === "TARGET_GOAL" || envType === "ONGOING_GOAL") {
         totalSaved += val;
       }
     } else {
@@ -90,4 +86,3 @@ export async function getMonthlySummaryQuery(
     billsRemaining: billsRemaining.toFixed(2),
   };
 }
-

@@ -35,7 +35,7 @@ export interface PaychecksModalManagerProps {
   onDeleteOverride?: (event: { id: string; eventType: 'INCOME' | 'EXPENSE'; name: string }) => void;
   transferModalVisible: boolean;
   activeTransfer: TransferEventData | null;
-  pools: { id: string; name: string; poolType?: string; currentBalance?: string | number | null; isPrivate?: boolean | null }[];
+  pools: { id: string; name: string; envelopeType?: string; poolType?: string; currentBalance?: string | number | null; isPrivate?: boolean | null }[];
   onCloseTransfer: () => void;
   categoryModalVisible: boolean;
   activeCategoryDetail: {
@@ -93,7 +93,7 @@ export function PaychecksModalManager({
   const updateTransferMut = trpc.updateTransferEvent.useMutation();
   const overrideEventMut = trpc.overrideEvent.useMutation();
   const archiveIncomeSourceMut = trpc.archiveIncomeSource.useMutation();
-  const archiveCategoryMut = trpc.archiveCategory.useMutation();
+  const archiveEnvelopeMut = trpc.archiveEnvelope.useMutation();
 
   return (
     <>
@@ -206,7 +206,7 @@ export function PaychecksModalManager({
           if (burstMode === 'INCOME') {
             await archiveIncomeSourceMut.mutateAsync({ id: src.id });
           } else {
-            await archiveCategoryMut.mutateAsync({ categoryId: src.id });
+            await archiveEnvelopeMut.mutateAsync({ envelopeId: src.id });
           }
           onCloseBurst();
           await onRefresh();

@@ -50,16 +50,14 @@ export function useMobileQuickAction(
   } | null>(null);
 
   const poolsQuery = trpc.listPools.useQuery(undefined, { enabled: visible });
-  const categoriesQuery = trpc.listCategories.useQuery(undefined, { enabled: visible });
   const bankAccountsQuery = trpc.listBankAccountsWithExpected.useQuery(undefined, { enabled: visible });
   const transactionsQuery = trpc.listTransactions.useQuery({ limit: 100 }, { enabled: visible });
 
   const pools = poolsQuery.data ?? [];
-  const rawCategories = categoriesQuery.data ?? [];
   const bankAccounts = bankAccountsQuery.data ?? [];
   const txList = transactionsQuery.data ?? [];
 
-  const everydayPool = useMemo(() => pools.find((p) => p.poolType === 'EVERYDAY'), [pools]);
+  const everydayPool = useMemo(() => pools.find((p) => p.envelopeType === 'EVERYDAY'), [pools]);
 
   useEffect(() => {
     if (visible) {
@@ -92,7 +90,7 @@ export function useMobileQuickAction(
       (tx) => ({
         name: tx.note!.trim(),
         amount: tx.amount ? parseFloat(tx.amount).toFixed(2) : undefined,
-        categoryId: tx.categoryId || tx.poolId || undefined,
+        categoryId: tx.envelopeId || undefined,
       }),
       (tx) => (tx.recordedAt ? new Date(tx.recordedAt).getTime() : Date.now())
     );
@@ -130,9 +128,9 @@ export function useMobileQuickAction(
           timestamp: tx.recordedAt ? new Date(tx.recordedAt).getTime() : Date.now(),
         };
         if (tx.flowType === 'DEBIT') {
-          existing.sourceCatId = tx.categoryId || tx.poolId || undefined;
+          existing.sourceCatId = tx.envelopeId || undefined;
         } else if (tx.flowType === 'CREDIT') {
-          existing.destCatId = tx.categoryId || tx.poolId || undefined;
+          existing.destCatId = tx.envelopeId || undefined;
         }
         transferMap.set(groupKey, existing);
       }
@@ -167,17 +165,8 @@ export function useMobileQuickAction(
     if (preset.name) setName(preset.name);
     if (preset.amount) setAmount(preset.amount);
     if (preset.categoryId) {
-      const isPool = pools.some((p) => p.id === preset.categoryId);
-      if (isPool) {
-        setSelectedPoolId(preset.categoryId);
-        setSelectedSubCategoryId(null);
-      } else {
-        const cat = rawCategories.find((c) => c.id === preset.categoryId);
-        if (cat) {
-          setSelectedPoolId(cat.poolId);
-          setSelectedSubCategoryId(cat.id);
-        }
-      }
+      setSelectedPoolId(preset.categoryId);
+      setSelectedSubCategoryId(null);
     }
     if (preset.sourceCategoryId) setSelectedPoolId(preset.sourceCategoryId);
     if (preset.destinationCategoryId) setDestPoolId(preset.destinationCategoryId);
@@ -226,7 +215,7 @@ export function useMobileQuickAction(
     setCrossBankData,
     todayStr,
     pools,
-    rawCategories,
+    rawCategories: [] as unknown[],
     bankAccounts,
     everydayPool,
     expensePresets,

@@ -29,10 +29,11 @@ export interface QuickExpenseTabProps {
   pools: Array<{
     id: string;
     name: string;
-    poolType: string;
+    envelopeType?: string;
+    poolType?: string;
     currentBalance?: number | string;
   }>;
-  categories: Array<{ id: string; name: string; poolId: string }>;
+  categories?: Array<{ id: string; name: string; poolId?: string }>;
   presets: { recent: QuickPresetItem[]; frequent: QuickPresetItem[] };
   onSelectPreset: (preset: QuickPresetItem) => void;
   isSubmitting: boolean;
@@ -77,7 +78,7 @@ export function QuickExpenseTab({
 
   const enrichedPools = pools.map((p) => ({
     ...p,
-    categories: categories.filter((c) => c.poolId === p.id),
+    categories: (categories ?? []).filter((c) => c.poolId === p.id),
   }));
 
   const handleValidateAndSubmit = () => {

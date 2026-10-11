@@ -5,14 +5,13 @@ describe("tRPC App Router procedure definitions", () => {
   it("defines all V2 3-bucket procedures cleanly", () => {
     const caller = appRouter._def.procedures;
 
-    expect(caller).toHaveProperty("createCategory");
-    expect(caller).toHaveProperty("updateCategory");
-    expect(caller).toHaveProperty("archiveCategory");
-    expect(caller).toHaveProperty("listCategories");
+    expect(caller).toHaveProperty("createEnvelope");
+    expect(caller).toHaveProperty("updateEnvelope");
+    expect(caller).toHaveProperty("archiveEnvelope");
+    expect(caller).toHaveProperty("listEnvelopes");
     expect(caller).toHaveProperty("getMonthlySummary");
     expect(caller).toHaveProperty("listArchivedItems");
     expect(caller).toHaveProperty("restoreItem");
-    expect(caller).toHaveProperty("runAllocation");
     expect(caller).toHaveProperty("canAfford");
     expect(caller).toHaveProperty("recordExpense");
   });

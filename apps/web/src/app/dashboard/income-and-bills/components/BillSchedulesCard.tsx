@@ -186,7 +186,7 @@ export function BillSchedulesCard({
                       </div>
                     </td>
                     <td className="py-2.5 px-3 text-left text-zinc-600 dark:text-zinc-300 font-semibold text-[11px]">
-                      <Link href={`/dashboard/pools?poolId=${b.poolId}`} className="font-bold text-[#2563eb] hover:underline inline-flex items-center gap-0.5">
+                      <Link href={`/dashboard/envelopes?poolId=${b.poolId}`} className="font-bold text-[#2563eb] hover:underline inline-flex items-center gap-0.5">
                         <span>{b.poolName}</span>
                         <span className="text-[10px] text-blue-400">↗</span>
                       </Link>

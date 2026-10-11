@@ -1,6 +1,6 @@
-import { pools, categories, incomeEvents, incomeSources, expenseEvents, getPoolBalancesMap, tenants, DbOrTx } from "@money-matters/db";
+import { envelopes, incomeEvents, incomeSources, expenseEvents, getEnvelopeBalancesMap, DbOrTx } from "@money-matters/db";
 import { eq, and, sql } from "drizzle-orm";
-import { runAllocationEngine, EngineBucket, UpcomingExpenseItem } from "../engine/allocation-engine.js";
+import { runAllocationEngine, EngineBucket } from "../engine/allocation-engine.js";
 import { parseRruleFrequencyDays } from "../commands/run-allocation.command.js";
 import { getTenantDateString } from "@money-matters/core";
 
@@ -9,85 +9,49 @@ export async function previewAllocationQuery(
   appId: string,
   incomeEventId: string,
   incomeAmount: number,
-  dbClient: DbOrTx
+  dbClient: DbOrTx,
+  runwayDays?: number
 ) {
-  // 1. Fetch Pools
-  const dbPools = await dbClient
+  // 1. Fetch Envelopes
+  const dbEnvelopes = await dbClient
     .select()
-    .from(pools)
+    .from(envelopes)
     .where(
       and(
-        eq(pools.tenantId, tenantId),
-        eq(pools.appId, appId),
-        sql`${pools.archivedAt} IS NULL`
+        eq(envelopes.tenantId, tenantId),
+        eq(envelopes.appId, appId),
+        sql`${envelopes.archivedAt} IS NULL`
       )
     );
 
-  // 2. Fetch Categories
-  const dbCats = await dbClient
-    .select()
-    .from(categories)
-    .where(
-      and(
-        eq(categories.tenantId, tenantId),
-        eq(categories.appId, appId),
-        sql`${categories.archivedAt} IS NULL`
-      )
-    );
+  // 2. Compute balances using DB-side aggregate SUM(CASE WHEN...)
+  const balancesMap = await getEnvelopeBalancesMap(tenantId, appId, dbClient);
 
-  // Map sub-category monthly amounts to pool
-  const poolCategoryTargetsMap = new Map<string, number>();
-  const poolIsEssentialMap = new Map<string, boolean>();
-  for (const cat of dbCats) {
-    if (cat.monthlyAmount) {
-      const val = parseFloat(cat.monthlyAmount);
-      poolCategoryTargetsMap.set(cat.poolId, (poolCategoryTargetsMap.get(cat.poolId) || 0) + val);
-    }
-    if (cat.isEssential) {
-      poolIsEssentialMap.set(cat.poolId, true);
-    }
-  }
-
-  // 3. Compute balances using DB-side aggregate SUM(CASE WHEN...)
-  const balancesMap = await getPoolBalancesMap(tenantId, appId, dbClient);
-
-  // 4. Fetch income event joined with income source to resolve dates & recurrence
+  // 3. Fetch income event joined with income source
   const [event] = await dbClient
-    .select()
+    .select({
+      id: incomeEvents.id,
+      expectedDate: incomeEvents.expectedDate,
+      rrule: incomeSources.rrule,
+      incomeType: incomeSources.incomeType,
+    })
     .from(incomeEvents)
+    .leftJoin(incomeSources, eq(incomeEvents.incomeSourceId, incomeSources.id))
     .where(eq(incomeEvents.id, incomeEventId));
 
   let freqDays = 14;
-  if (event && event.incomeSourceId) {
-    const [source] = await dbClient
-      .select()
-      .from(incomeSources)
-      .where(eq(incomeSources.id, event.incomeSourceId));
-    if (source?.rrule) {
-      freqDays = parseRruleFrequencyDays(source.rrule);
-    }
+  if (event?.rrule) {
+    freqDays = parseRruleFrequencyDays(event.rrule);
   }
 
-  const [tenantRecord] = typeof (dbClient as any).select === "function"
-    ? await dbClient
-        .select({ timezone: tenants.timezone })
-        .from(tenants)
-        .where(eq(tenants.id, tenantId))
-        .limit(1)
-    : [null];
-  const tenantTz = tenantRecord?.timezone || "Australia/Sydney";
+  const todayStr = getTenantDateString(new Date(), { timezone: "Australia/Sydney" });
+  const eventTime = event ? new Date(event.expectedDate + "T00:00:00").getTime() : Date.now();
+  const nextCutoffDateStr = getTenantDateString(new Date(eventTime + freqDays * 24 * 60 * 60 * 1000), { timezone: "Australia/Sydney" });
 
-  const todayStr = getTenantDateString(new Date(), { timezone: tenantTz });
-  const eventDateStr = event ? event.expectedDate : todayStr;
-  const eventTime = event ? new Date(event.expectedDate + "T12:00:00Z").getTime() : Date.now();
-  const nextCutoffDateStr = getTenantDateString(new Date(eventTime + freqDays * 24 * 60 * 60 * 1000), { timezone: tenantTz });
-
-  // 5. Fetch upcoming expenses due before next cycle cutoff for Cashflow Guard parity
   const pendingExpenses = await dbClient
     .select({
       id: expenseEvents.id,
-      poolId: expenseEvents.poolId,
-      categoryId: expenseEvents.categoryId,
+      envelopeId: expenseEvents.envelopeId,
       name: expenseEvents.name,
       amount: expenseEvents.expectedAmount,
       dueDate: expenseEvents.expectedDate,
@@ -103,62 +67,39 @@ export async function previewAllocationQuery(
       )
     );
 
-  const upcomingExpenses: UpcomingExpenseItem[] = pendingExpenses.map((e) => ({
-    id: e.id,
-    poolId: e.poolId,
-    categoryId: e.categoryId,
-    name: e.name || undefined,
-    amount: parseFloat(e.amount),
-    dueDate: e.dueDate,
+  const engineBuckets: EngineBucket[] = dbEnvelopes.map((env) => ({
+    id: env.id,
+    name: env.name,
+    type: env.envelopeType,
+    envelopeType: env.envelopeType,
+    isEssential: env.isEssential,
+    isCommitted: env.isCommitted,
+    isSurplusTarget: env.isSurplusTarget,
+    monthlyAmount: env.monthlyAmount ? parseFloat(env.monthlyAmount) : null,
+    targetAmount: env.targetAmount ? parseFloat(env.targetAmount) : null,
+    everydayAllowanceAmount: env.everydayAllowanceAmount ? parseFloat(env.everydayAllowanceAmount) : null,
+    safetyBufferFloor: env.safetyBufferFloor ? parseFloat(env.safetyBufferFloor) : 0,
+    goalMode: env.goalMode ?? (env.envelopeType === "TARGET_GOAL" ? "TARGET_DATE" : "ONGOING"),
+    targetDate: env.targetDate || null,
+    currentBalance: balancesMap[env.id] || 0,
+    isPrivate: env.isPrivate,
+    userId: env.userId ?? undefined,
   }));
 
-  const engineBuckets: EngineBucket[] = dbPools.map((pool) => {
-    const balance = balancesMap[pool.id] || 0;
-    const catTargetSum = poolCategoryTargetsMap.get(pool.id) || 0;
-
-    const monthlyAmt = pool.poolType === "REGULAR" 
-      ? (catTargetSum > 0 ? catTargetSum : (pool.targetAmount ? parseFloat(pool.targetAmount) : null))
-      : (pool.targetAmount ? parseFloat(pool.targetAmount) : null);
-
-    return {
-      id: pool.id,
-      name: pool.name,
-      type: pool.poolType,
-      isEssential: poolIsEssentialMap.get(pool.id) ?? false,
-      isCommitted: pool.isCommitted,
-      isSurplusTarget: pool.isSurplusTarget,
-      monthlyAmount: monthlyAmt,
-      targetAmount: pool.targetAmount ? parseFloat(pool.targetAmount) : null,
-      everydayAllowanceAmount: pool.everydayAllowanceAmount ? parseFloat(pool.everydayAllowanceAmount) : null,
-      safetyBufferFloor: pool.safetyBufferFloor ? parseFloat(pool.safetyBufferFloor) : 0,
-      targetDate: pool.targetDate || null,
-      currentBalance: balance,
-    };
-  });
-
-  const engineOutput = runAllocationEngine({
+  const output = runAllocationEngine({
     incomeAmount,
+    incomeType: event?.incomeType || "SALARIED",
+    runwayDays: runwayDays ?? 30,
     buckets: engineBuckets,
     paycheckDate: event ? new Date(event.expectedDate + "T00:00:00+10:00") : new Date(),
     paycheckFrequencyDays: freqDays,
-    upcomingExpenses,
+    upcomingExpenses: pendingExpenses.map((e) => ({
+      envelopeId: e.envelopeId,
+      name: e.name,
+      amount: parseFloat(e.amount),
+      dueDate: e.dueDate,
+    })),
   });
 
-  return engineOutput.lines.map((line) => {
-    const pool = dbPools.find((p) => p.id === line.bucketId);
-    const balance = balancesMap[line.bucketId] || 0;
-    const target = pool?.targetAmount ? parseFloat(pool.targetAmount) : (poolCategoryTargetsMap.get(line.bucketId) || null);
-    const progress = target && target > 0 ? Math.min(100, Math.round((balance / target) * 100)) : 0;
-
-    return {
-      poolId: line.bucketId,
-      poolName: line.bucketName,
-      type: pool?.poolType || "REGULAR",
-      currentBalance: balance.toFixed(2),
-      targetAmount: target ? target.toFixed(2) : null,
-      progressPercentage: progress,
-      proposedAmount: line.proposedAmount,
-      reasoning: line.reasoning,
-    };
-  });
+  return output;
 }

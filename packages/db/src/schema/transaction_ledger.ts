@@ -1,6 +1,5 @@
 import { pgTable, uuid, numeric, text, timestamp, pgEnum } from "drizzle-orm/pg-core";
-import { pools } from "./pool.js";
-import { categories } from "./category.js";
+import { envelopes } from "./envelope.js";
 import { bankAccounts } from "./bank_account.js";
 import { allocationPlanLines } from "./allocation_plan_line.js";
 import { tenantAndTimestamps } from "./base.js";
@@ -20,8 +19,7 @@ export const transactionTypeEnum = pgEnum("transaction_type_enum", [
 
 export const transactionLedger = pgTable("transaction_ledger", {
   id: uuid("id").primaryKey().defaultRandom(),
-  poolId: uuid("pool_id").references(() => pools.id).notNull(),
-  categoryId: uuid("category_id").references(() => categories.id), // Nullable optional sub-tag
+  envelopeId: uuid("envelope_id").references(() => envelopes.id).notNull(),
   bankAccountId: uuid("bank_account_id").references(() => bankAccounts.id), // Nullable, tracks associated bank flow
   planLineId: uuid("plan_line_id").references(() => allocationPlanLines.id), // Ties confirmed allocation line splits to ledger credits
   flowType: transactionFlowEnum("flow_type").notNull(),
@@ -34,3 +32,6 @@ export const transactionLedger = pgTable("transaction_ledger", {
   recordedAt: timestamp("recorded_at", { withTimezone: true }).notNull().defaultNow(),
   ...tenantAndTimestamps,
 });
+
+export type TransactionLedger = typeof transactionLedger.$inferSelect;
+export type NewTransactionLedger = typeof transactionLedger.$inferInsert;

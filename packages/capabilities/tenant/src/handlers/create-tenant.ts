@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { tenants, tenantUsers, pools, categories, bankAccounts, apps, users, userPreferences, DbOrTx } from "@money-matters/db";
+import { tenants, tenantUsers, envelopes, bankAccounts, apps, users, userPreferences, DbOrTx } from "@money-matters/db";
 import { CreateTenantCommand, COUNTRY_DEFAULTS } from "@money-matters/types";
 import { eq, and, isNull, or, sql } from "drizzle-orm";
 
@@ -183,74 +183,36 @@ export function createTenantHandler(db: DbOrTx) {
       })
       .returning();
 
-    // 4. Bulk-insert default Pools on Primary Account in one statement.
-    // FK ordering requires primaryAccount.id to exist first (step 3 above).
-    const [everydayPool, billsPool] = await db
-      .insert(pools)
-      .values([
-        {
-          tenantId,
-          appId,
-          name: "Everyday Spending",
-          poolType: "EVERYDAY",
-          bankAccountId: primaryAccount.id,
-          everydayAllowanceAmount: "1000.00",
-          createdBy: userId,
-          updatedBy: userId,
-        },
-        {
-          tenantId,
-          appId,
-          name: "Regular Bills",
-          poolType: "REGULAR",
-          bankAccountId: primaryAccount.id,
-          createdBy: userId,
-          updatedBy: userId,
-        },
-        {
-          tenantId,
-          appId,
-          name: "Emergency Reserve",
-          poolType: "GOAL",
-          bankAccountId: primaryAccount.id,
-          targetAmount: "10000.00",
-          isCommitted: true,
-          isSurplusTarget: true,
-          createdBy: userId,
-          updatedBy: userId,
-        },
-      ])
-      .returning();
-
-    // 5. Seed default sub-tag categories into Everyday and Bills pools
-    const defaultTemplates = [
-      { name: "Groceries & Food Supplies", type: "EVERYDAY" as const, icon: "shopping-cart", monthlyAmount: "1170.00" },
-      { name: "Dining Out & Coffee", type: "EVERYDAY" as const, icon: "coffee", monthlyAmount: "1040.00" },
-      { name: "Petrol & Fuel", type: "EVERYDAY" as const, icon: "navigation", monthlyAmount: "260.00" },
-      { name: "Public Transport & Rideshare", type: "EVERYDAY" as const, icon: "truck", monthlyAmount: "180.00" },
-      { name: "Personal Care & Fun", type: "EVERYDAY" as const, icon: "smile", monthlyAmount: "430.00" },
-      { name: "Everyday Incidental Buffer", type: "EVERYDAY" as const, icon: "wallet", monthlyAmount: "300.00" },
-      { name: "Rent & Housing", type: "REGULAR" as const, icon: "home", monthlyAmount: "2400.00" },
-      { name: "Electricity & Utilities", type: "REGULAR" as const, icon: "zap", monthlyAmount: "300.00" },
+        // 4. Bulk-insert default Envelopes on Primary Account in one statement.
+    const defaultEnvelopes = [
+      { name: "Everyday Spending", envelopeType: "EVERYDAY" as const, everydayAllowanceAmount: "1000.00", orderIndex: 0 },
+      { name: "Groceries & Food", envelopeType: "EVERYDAY" as const, everydayAllowanceAmount: "1170.00", orderIndex: 1 },
+      { name: "Dining Out & Coffee", envelopeType: "EVERYDAY" as const, everydayAllowanceAmount: "1040.00", orderIndex: 2 },
+      { name: "Petrol & Fuel", envelopeType: "EVERYDAY" as const, everydayAllowanceAmount: "260.00", orderIndex: 3 },
+      { name: "Rent & Housing", envelopeType: "SCHEDULED_BILL" as const, monthlyAmount: "2400.00", enteredAmount: "2400.00", budgetFrequency: "MONTHLY", isEssential: true, orderIndex: 4 },
+      { name: "Electricity & Utilities", envelopeType: "SCHEDULED_BILL" as const, monthlyAmount: "300.00", enteredAmount: "300.00", budgetFrequency: "MONTHLY", isEssential: true, orderIndex: 5 },
+      { name: "Emergency Reserve", envelopeType: "ONGOING_GOAL" as const, targetAmount: "10000.00", isCommitted: true, isSurplusTarget: true, orderIndex: 6 },
     ];
 
-    await db.insert(categories).values(
-      defaultTemplates.map((template) => {
-        const poolId = template.type === "EVERYDAY" ? everydayPool.id : (billsPool?.id || everydayPool.id);
-        return {
-          tenantId,
-          appId,
-          poolId,
-          name: template.name,
-          icon: template.icon,
-          monthlyAmount: template.monthlyAmount,
-          enteredAmount: template.monthlyAmount,
-          budgetFrequency: "MONTHLY",
-          isEssential: template.name.includes("Rent") || template.name.includes("Electricity"),
-          createdBy: userId,
-          updatedBy: userId,
-        };
-      })
+    await db.insert(envelopes).values(
+      defaultEnvelopes.map((e) => ({
+        tenantId,
+        appId,
+        bankAccountId: primaryAccount.id,
+        name: e.name,
+        envelopeType: e.envelopeType,
+        everydayAllowanceAmount: e.everydayAllowanceAmount || null,
+        monthlyAmount: e.monthlyAmount || null,
+        enteredAmount: e.enteredAmount || null,
+        budgetFrequency: e.budgetFrequency || "MONTHLY",
+        targetAmount: e.targetAmount || null,
+        isEssential: e.isEssential || false,
+        isCommitted: e.isCommitted || false,
+        isSurplusTarget: e.isSurplusTarget || false,
+        orderIndex: e.orderIndex,
+        createdBy: userId,
+        updatedBy: userId,
+      }))
     );
 
     return {
@@ -261,7 +223,7 @@ export function createTenantHandler(db: DbOrTx) {
 }
 
 /**
- * Fetches tenant details, member users, active bank accounts, and pools.
+ * Fetches tenant details, member users, active bank accounts, and envelopes.
  */
 export function getTenantHandler(db: DbOrTx) {
   return async (tenantId: string, appId: string) => {
@@ -302,12 +264,12 @@ export function getTenantHandler(db: DbOrTx) {
 
     const tenantPools = await db
       .select()
-      .from(pools)
+      .from(envelopes)
       .where(
         and(
-          eq(pools.tenantId, tenant.id),
-          eq(pools.appId, appId),
-          isNull(pools.archivedAt)
+          eq(envelopes.tenantId, tenant.id),
+          eq(envelopes.appId, appId),
+          isNull(envelopes.archivedAt)
         )
       );
 
@@ -315,7 +277,7 @@ export function getTenantHandler(db: DbOrTx) {
       ...tenant,
       users: tenantMemberList,
       bankAccounts: accounts,
-      pools: tenantPools,
+      envelopes: tenantPools,
     };
   };
 }

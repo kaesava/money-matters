@@ -11,7 +11,8 @@ export interface MarkPaidEvent {
 export interface FundingPoolItem {
   id: string;
   name: string;
-  poolType: string;
+  envelopeType?: string;
+  poolType?: string;
   currentBalance: number | string;
   isSurplusTarget?: boolean | null;
 }

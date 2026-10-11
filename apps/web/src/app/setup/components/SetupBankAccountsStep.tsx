@@ -490,7 +490,7 @@ export function SetupBankAccountsStep({ accounts, onNext, onBack }: SetupBankAcc
         pools={pools.map((p) => ({
           id: p.id,
           name: p.name,
-          poolType: p.poolType,
+          poolType: p.envelopeType,
           bankAccountId: p.bankAccountId,
           currentBalance: p.currentBalance || 0,
         }))}

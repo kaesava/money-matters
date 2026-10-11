@@ -142,8 +142,8 @@ export default function IncomeAndBillsScreen() {
                 name: expense.name || 'Expense',
                 expectedAmount: parseFloat(amount),
                 expectedDate: expense.expectedDate,
-                poolId: expense.poolId,
-                categoryId: expense.categoryId,
+                poolId: expense.envelopeId,
+                categoryId: expense.envelopeId,
               });
             }
           }}
@@ -195,7 +195,7 @@ export default function IncomeAndBillsScreen() {
         pools={pools.map((p) => ({
           id: p.id,
           name: p.name,
-          poolType: p.poolType,
+          envelopeType: p.envelopeType,
           currentBalance: p.currentBalance,
           isPrivate: p.isPrivate,
         }))}

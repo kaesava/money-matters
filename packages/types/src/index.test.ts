@@ -4,8 +4,7 @@ import {
   TenantSchema,
   TenantMemberSchema,
   BankAccountSchema,
-  PoolSchema,
-  CategorySchema,
+  EnvelopeSchema,
   IncomeSourceSchema,
   IncomeSourceScheduleSchema,
   IncomeEventSchema,
@@ -13,7 +12,7 @@ import {
   AllocationPlanLineSchema,
   TransactionLedgerSchema,
   ListTransactionsQuery,
-  ListCategoryTransactionsQuery,
+  ListEnvelopeTransactionsQuery,
   CanAffordQuery,
   CanAffordVerdictDto,
   MonthlySummaryDto,
@@ -87,36 +86,29 @@ describe('Domain Schemas Validation', () => {
     expect(bank.unbudgetedBuffer).toBe('0.00');
   });
 
-  it('validates PoolSchema parameters', () => {
-    const pool = PoolSchema.parse({
+  it('validates EnvelopeSchema parameters', () => {
+    const envelope = EnvelopeSchema.parse({
       ...mockBase,
       name: 'Regular Bills',
-      poolType: 'REGULAR',
+      envelopeType: 'SCHEDULED_BILL',
       bankAccountId: '55555555-5555-4555-8555-555555555555',
-    });
-    expect(pool.poolType).toBe('REGULAR');
-
-    const category = CategorySchema.parse({
-      ...mockBase,
-      poolId: pool.id,
-      name: 'Rent & Utilities',
       monthlyAmount: '1200.00',
       enteredAmount: '1200.00',
       budgetFrequency: 'MONTHLY',
       icon: 'home',
     });
-    expect(category.icon).toBe('home');
+    expect(envelope.envelopeType).toBe('SCHEDULED_BILL');
+    expect(envelope.icon).toBe('home');
   });
 
   it('validates IncomeSourceSchema and IncomeSourceScheduleSchema', () => {
     const incSource = IncomeSourceSchema.parse({
       ...mockBase,
       name: 'Tech Corp Salary',
-      type: 'SALARY',
       amount: '5000.00',
       receivingAccountId: null,
     });
-    expect(incSource.type).toBe('SALARY');
+    expect(incSource.incomeType).toBe('SALARIED');
 
     const incSchedule = IncomeSourceScheduleSchema.parse({
       ...mockBase,
@@ -153,7 +145,7 @@ describe('Domain Schemas Validation', () => {
     const planLine = AllocationPlanLineSchema.parse({
       ...mockBase,
       planId: plan.id,
-      poolId: '77777777-7777-4777-8777-777777777777',
+      envelopeId: '77777777-7777-4777-8777-777777777777',
       proposedAmount: '500.00',
       confirmedAmount: null,
       reasoning: 'Fixed monthly obligation',
@@ -164,7 +156,7 @@ describe('Domain Schemas Validation', () => {
   it('validates TransactionLedgerSchema and transaction queries', () => {
     const tx = TransactionLedgerSchema.parse({
       ...mockBase,
-      poolId: '77777777-7777-4777-8777-777777777777',
+      envelopeId: '77777777-7777-4777-8777-777777777777',
       bankAccountId: null,
       planLineId: null,
       flowType: 'DEBIT',
@@ -180,10 +172,10 @@ describe('Domain Schemas Validation', () => {
     expect(listQuery.limit).toBe(50);
     expect(listQuery.offset).toBe(0);
 
-    const catQuery = ListCategoryTransactionsQuery.parse({
-      poolId: '77777777-7777-4777-8777-777777777777',
+    const envQuery = ListEnvelopeTransactionsQuery.parse({
+      envelopeId: '77777777-7777-4777-8777-777777777777',
     });
-    expect(catQuery.limit).toBe(30);
+    expect(envQuery.limit).toBe(30);
   });
 
   it('validates CanAffordQuery and CanAffordVerdictDto discriminated union variants', () => {

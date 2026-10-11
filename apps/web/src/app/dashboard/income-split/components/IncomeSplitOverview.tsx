@@ -8,7 +8,6 @@ import { MatrixPlanTab } from "../../income-and-bills/components/MatrixPlanTab";
 
 export function IncomeSplitOverview() {
   const poolsQuery = trpc.listPools.useQuery();
-  const categoriesQuery = trpc.listCategories.useQuery();
   const bankAccountsQuery = trpc.listBankAccounts.useQuery();
   const incomeEventsQuery = trpc.listIncomeEvents.useQuery();
   const expenseEventsQuery = trpc.listExpenseEvents.useQuery();
@@ -16,7 +15,6 @@ export function IncomeSplitOverview() {
 
   const isLoading =
     poolsQuery.isLoading ||
-    categoriesQuery.isLoading ||
     bankAccountsQuery.isLoading ||
     incomeEventsQuery.isLoading ||
     expenseEventsQuery.isLoading;
@@ -53,7 +51,7 @@ export function IncomeSplitOverview() {
     return expenseEvents
       .filter((e) => e && Boolean(e.expectedDate) && String(e.expectedDate).length >= 10)
       .map((e) => ({
-        categoryId: e.poolId || e.categoryId || "",
+        categoryId: e.envelopeId || "",
         amount: parseFloat(e.expectedAmount || "0"),
         dueDate: e.expectedDate,
         status: (e.status as "PENDING" | "CONFIRMED") || "PENDING",
@@ -61,44 +59,27 @@ export function IncomeSplitOverview() {
   }, [expenseEvents]);
 
   const matrixCategories = useMemo(() => {
-    const catTargetMap = new Map<string, number>();
-    if (categoriesQuery.data) {
-      for (const cat of categoriesQuery.data) {
-        if (cat.monthlyAmount) {
-          const val = parseFloat(cat.monthlyAmount);
-          catTargetMap.set(cat.poolId, (catTargetMap.get(cat.poolId) || 0) + val);
-        }
-      }
-    }
-
     return pools.map((p) => {
-      const catTargetSum = catTargetMap.get(p.id) || 0;
-      const monthlyAmt =
-        p.poolType === "REGULAR"
-          ? catTargetSum > 0
-            ? catTargetSum
-            : p.targetAmount
-            ? parseFloat(p.targetAmount)
-            : null
-          : p.targetAmount
-          ? parseFloat(p.targetAmount)
-          : null;
+      const isGoal = p.envelopeType === "TARGET_GOAL" || p.envelopeType === "ONGOING_GOAL";
+      const isEveryday = p.envelopeType === "EVERYDAY";
+      const typeStr = isEveryday ? "EVERYDAY" : isGoal ? "GOAL" : "REGULAR";
+      const monthlyAmt = p.monthlyAmount ? parseFloat(p.monthlyAmount) : p.targetAmount ? parseFloat(p.targetAmount) : null;
 
       return {
         id: p.id,
         name: p.name,
-        type: p.poolType as "REGULAR" | "GOAL" | "EVERYDAY",
+        type: typeStr as "REGULAR" | "GOAL" | "EVERYDAY",
         currentBalance: parseFloat(String(p.currentBalance || "0")),
         monthlyAmount: monthlyAmt,
         targetAmount: p.targetAmount ? parseFloat(p.targetAmount) : null,
-        everydayAllowanceAmount: p.everydayAllowanceAmount ? parseFloat(p.everydayAllowanceAmount) : null,
+        everydayAllowanceAmount: isEveryday && monthlyAmt ? monthlyAmt : null,
         isCommitted: p.isCommitted ?? undefined,
         isSurplusTarget: p.isSurplusTarget ?? undefined,
         isPrivate: p.isPrivate ?? undefined,
         targetDate: p.targetDate || null,
       };
     });
-  }, [pools, categoriesQuery.data]);
+  }, [pools]);
 
   const currentUserId = userProfileQuery.data?.id || pools[0]?.id || "default-user";
 

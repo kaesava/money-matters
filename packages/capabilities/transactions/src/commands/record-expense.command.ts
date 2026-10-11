@@ -1,4 +1,4 @@
-import { transactionLedger, pools, DbOrTx } from "@money-matters/db";
+import { transactionLedger, envelopes, DbOrTx } from "@money-matters/db";
 import { eq, and } from "drizzle-orm";
 import { z } from "zod";
 import { RecordExpenseCommand } from "@money-matters/types";
@@ -12,29 +12,28 @@ export async function recordExpenseCommand(
   dbClient: DbOrTx
 ) {
   return await dbClient.transaction(async (tx) => {
-    // 1. Confirm pool access
-    const [pool] = await tx
+    // 1. Confirm envelope access
+    const [envelope] = await tx
       .select()
-      .from(pools)
+      .from(envelopes)
       .where(
         and(
-          eq(pools.id, input.poolId),
-          eq(pools.tenantId, tenantId),
-          eq(pools.appId, appId)
+          eq(envelopes.id, input.envelopeId),
+          eq(envelopes.tenantId, tenantId),
+          eq(envelopes.appId, appId)
         )
       );
 
-    if (!pool) {
-      throw new Error("Pool target invalid or access unauthorized.");
+    if (!envelope) {
+      throw new Error("Envelope target invalid or access unauthorized.");
     }
 
     // 2. Insert expense ledger debit
     const [expense] = await tx
       .insert(transactionLedger)
       .values({
-        poolId: input.poolId,
-        categoryId: input.categoryId || null,
-        bankAccountId: input.bankAccountId || null,
+        envelopeId: input.envelopeId,
+        bankAccountId: input.bankAccountId || envelope.bankAccountId || null,
         flowType: input.flowType || "DEBIT",
         transactionType: input.transactionType || "EXPENSE",
         amount: input.amount,

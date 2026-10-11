@@ -35,9 +35,8 @@ export default function PoolDetailScreen() {
   const [catPriorityFilter, setCatPriorityFilter] = useState<'ALL' | 'PRIORITISED' | 'REGULAR'>('ALL');
 
   const poolsQuery = trpc.listPools.useQuery(undefined, { enabled: !!session?.user });
-  const categoriesQuery = trpc.listCategories.useQuery(undefined, { enabled: !!session?.user });
   const bankAccountsQuery = trpc.listBankAccounts.useQuery(undefined, { enabled: !!session?.user });
-  const txLedgerQuery = trpc.listTransactions.useQuery({ poolId: id, limit: 10 }, { enabled: !!session?.user && !!id });
+  const txLedgerQuery = trpc.listTransactions.useQuery({ envelopeId: id, limit: 10 }, { enabled: !!session?.user && !!id });
   const expenseEventsQuery = trpc.listExpenseEvents.useQuery(undefined, { enabled: !!session?.user && !!id });
 
   const archivePoolMut = trpc.archivePool.useMutation({
@@ -48,34 +47,13 @@ export default function PoolDetailScreen() {
   });
 
   const pool = poolsQuery.data?.find((p) => p.id === id);
-  const poolCategories = (categoriesQuery.data ?? []).filter((c) => c.poolId === id);
   const bankAccount = bankAccountsQuery.data?.find((b) => b.id === pool?.bankAccountId);
 
   const upcomingExpenses = useMemo(() => {
-    const poolCatIds = new Set(poolCategories.map((c) => c.id));
     return (expenseEventsQuery.data ?? [])
-      .filter((e) => e.status !== 'CONFIRMED' && (e.poolId === id || (e.categoryId && poolCatIds.has(e.categoryId))))
+      .filter((e) => e.status !== 'CONFIRMED' && e.envelopeId === id)
       .sort((a, b) => a.expectedDate.localeCompare(b.expectedDate));
-  }, [expenseEventsQuery.data, id, poolCategories]);
-
-  const filteredCategories = useMemo(() => {
-    return poolCategories
-      .filter((c) => {
-        if (catPriorityFilter === 'PRIORITISED' && !c.isEssential) return false;
-        if (catPriorityFilter === 'REGULAR' && c.isEssential) return false;
-        if (!catSearchQuery.trim()) return true;
-        return c.name.toLowerCase().includes(catSearchQuery.toLowerCase().trim());
-      })
-      .sort((a, b) => {
-        if (catSortField === 'name') {
-          const res = a.name.localeCompare(b.name);
-          return catSortDir === 'asc' ? res : -res;
-        }
-        const aAmt = parseFloat(a.monthlyAmount || a.enteredAmount || '0');
-        const bAmt = parseFloat(b.monthlyAmount || b.enteredAmount || '0');
-        return catSortDir === 'asc' ? aAmt - bAmt : bAmt - aAmt;
-      });
-  }, [poolCategories, catSearchQuery, catSortField, catSortDir, catPriorityFilter]);
+  }, [expenseEventsQuery.data, id]);
 
   if (poolsQuery.isLoading) {
     return (
@@ -118,24 +96,6 @@ export default function PoolDetailScreen() {
             });
           }}
         />
-
-        {pool.poolType !== 'GOAL' && (
-          <PoolCategoriesSection
-            poolId={pool.id}
-            categories={filteredCategories}
-            allCount={poolCategories.length}
-            expanded={categoriesExpanded}
-            onToggleExpand={() => setCategoriesExpanded((v) => !v)}
-            onAddCategory={() => {
-              setSelectedCatForEdit(null);
-              setCatModalVisible(true);
-            }}
-            searchQuery={catSearchQuery}
-            onSearchChange={setCatSearchQuery}
-            activeFilterCount={catPriorityFilter !== 'ALL' ? 1 : 0}
-            onOpenFilter={() => setCatFilterSheetVisible(true)}
-          />
-        )}
 
         <PoolUpcomingSection
           poolId={pool.id}
@@ -186,23 +146,16 @@ export default function PoolDetailScreen() {
         }}
       />
 
-      <CategoryItemModal
-        visible={catModalVisible}
-        poolId={id!}
-        categoryToEdit={selectedCatForEdit}
-        onClose={() => setCatModalVisible(false)}
-        onSuccess={() => {
-          categoriesQuery.refetch();
-          poolsQuery.refetch();
-        }}
-      />
-
       <CategoryFormModal
         visible={poolModalVisible}
         categoryToEdit={{
           id: pool.id,
           name: pool.name,
-          type: pool.poolType,
+          type: pool.envelopeType === 'EVERYDAY'
+            ? 'EVERYDAY'
+            : pool.envelopeType === 'SCHEDULED_BILL' || pool.envelopeType === 'FLEXIBLE_BILL'
+            ? 'REGULAR'
+            : 'GOAL',
           targetAmount: pool.targetAmount,
           targetDate: pool.targetDate,
           bankAccountId: pool.bankAccountId,

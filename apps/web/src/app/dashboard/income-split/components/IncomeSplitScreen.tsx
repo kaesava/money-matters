@@ -26,24 +26,6 @@ interface AllocationLineItem {
   reasoning: string;
 }
 
-function extractLines(engineResult: unknown): AllocationLineItem[] {
-  if (!engineResult) return [];
-  let raw: Array<Record<string, unknown>> = [];
-  if (Array.isArray(engineResult)) {
-    raw = engineResult;
-  } else if (typeof engineResult === "object" && engineResult !== null && "lines" in engineResult) {
-    raw = Array.isArray((engineResult as { lines?: unknown[] }).lines)
-      ? ((engineResult as { lines: Array<Record<string, unknown>> }).lines)
-      : [];
-  }
-  return raw.map((item) => ({
-    bucketId: String(item.bucketId || item.poolId || ""),
-    bucketName: String(item.bucketName || item.poolName || "Unknown Pool"),
-    proposedAmount: typeof item.proposedAmount === "number" ? item.proposedAmount : parseFloat(String(item.proposedAmount || "0")),
-    reasoning: String(item.reasoning || ""),
-  }));
-}
-
 export function IncomeSplitScreen({ incomeEventId, returnTo = "/dashboard" }: IncomeSplitScreenProps) {
   const router = useRouter();
   const toast = useToast();
@@ -93,14 +75,19 @@ export function IncomeSplitScreen({ incomeEventId, returnTo = "/dashboard" }: In
 
   useEffect(() => {
     if (previewQuery.data) {
-      const evt = previewQuery.data.incomeEvent;
-      setSourceName(evt.name || "Paycheck");
-      const amt = evt.actualAmount || evt.expectedAmount;
+      const pData = previewQuery.data;
+      setSourceName(pData.incomeEventName || "Paycheck");
+      const amt = String(pData.actualAmount ?? pData.expectedAmount);
       setActualAmount(amt);
       setInitialAmount(amt);
-      setSelectedDate(evt.expectedDate);
+      setSelectedDate(pData.expectedDate);
 
-      const rawLines = extractLines(previewQuery.data.engineResult);
+      const rawLines = pData.lines.map((l) => ({
+        bucketId: l.envelopeId,
+        bucketName: l.envelopeName,
+        proposedAmount: l.savedAmount ?? l.proposedAmount,
+        reasoning: l.reasoning ?? "",
+      }));
       const initMap: Record<string, string> = {};
       const initReasoningMap: Record<string, string> = {};
       rawLines.forEach((l) => {
@@ -112,19 +99,26 @@ export function IncomeSplitScreen({ incomeEventId, returnTo = "/dashboard" }: In
       setReasoningMap(initReasoningMap);
       setInitialReasoningMap(initReasoningMap);
 
-      const engineResult = previewQuery.data.engineResult as unknown as { isCustomPlan?: boolean; isConfirmedPlan?: boolean };
-      setIsSavedPlan(engineResult?.isCustomPlan ?? false);
-      setIsConfirmedPlan(engineResult?.isConfirmedPlan ?? false);
+      setIsSavedPlan(pData.hasSavedPlan);
+      setIsConfirmedPlan(pData.planStatus === "CONFIRMED");
     }
   }, [previewQuery.data]);
 
-  const lines = useMemo(() => extractLines(previewQuery.data?.engineResult), [previewQuery.data]);
+  const lines = useMemo(() => {
+    if (!previewQuery.data) return [];
+    return previewQuery.data.lines.map((l) => ({
+      bucketId: l.envelopeId,
+      bucketName: l.envelopeName,
+      proposedAmount: l.savedAmount ?? l.proposedAmount,
+      reasoning: l.reasoning ?? "",
+    }));
+  }, [previewQuery.data]);
   const numericActual = parseFloat(actualAmount) || 0;
 
-  const receivingAccountId = previewQuery.data?.incomeEvent?.receivingAccountId;
+  const receivingAccountId = previewQuery.data?.receivingAccountId;
 
   const sweepPool = useMemo(() => {
-    return pools.find((p) => p.isSurplusTarget) || pools.find((p) => p.poolType === "EVERYDAY") || pools[0];
+    return pools.find((p) => p.isSurplusTarget) || pools.find((p) => p.envelopeType === "EVERYDAY") || pools[0];
   }, [pools]);
 
   const nonSweepAllocatedSum = useMemo(() => {
@@ -145,10 +139,10 @@ export function IncomeSplitScreen({ incomeEventId, returnTo = "/dashboard" }: In
 
   const isDirty = useMemo(() => {
     if (!previewQuery.data) return false;
-    const evt = previewQuery.data.incomeEvent;
-    if (sourceName !== (evt.name || "Paycheck")) return true;
-    if (actualAmount !== (evt.actualAmount || evt.expectedAmount)) return true;
-    if (selectedDate !== evt.expectedDate) return true;
+    const pData = previewQuery.data;
+    if (sourceName !== (pData.incomeEventName || "Paycheck")) return true;
+    if (actualAmount !== String(pData.actualAmount ?? pData.expectedAmount)) return true;
+    if (selectedDate !== pData.expectedDate) return true;
     for (const [pId, val] of Object.entries(linesMap)) {
       if (initialLinesMap[pId] !== val) return true;
     }
@@ -319,7 +313,7 @@ export function IncomeSplitScreen({ incomeEventId, returnTo = "/dashboard" }: In
       const payload = Object.entries(effectiveMap).map(([pId, val]) => {
         const amt = parseFloat(val) || 0;
         return {
-          poolId: pId,
+          envelopeId: pId,
           amount: amt.toFixed(2),
           reasoning: amt <= 0 ? undefined : (reasoningMap[pId] ?? (lines.find((l) => l.bucketId === pId)?.reasoning || undefined)),
         };
@@ -344,15 +338,21 @@ export function IncomeSplitScreen({ incomeEventId, returnTo = "/dashboard" }: In
   };
 
   const everydayAllocated = lines
-    .filter((l) => pools.find((p) => p.id === l.bucketId)?.poolType === "EVERYDAY")
+    .filter((l) => pools.find((p) => p.id === l.bucketId)?.envelopeType === "EVERYDAY")
     .reduce((sum, l) => sum + (parseFloat(linesMap[l.bucketId] ?? l.proposedAmount.toString()) || 0), 0);
 
   const billsAllocated = lines
-    .filter((l) => pools.find((p) => p.id === l.bucketId)?.poolType === "REGULAR")
+    .filter((l) => {
+      const et = pools.find((p) => p.id === l.bucketId)?.envelopeType;
+      return et === "SCHEDULED_BILL" || et === "FLEXIBLE_BILL";
+    })
     .reduce((sum, l) => sum + (parseFloat(linesMap[l.bucketId] ?? l.proposedAmount.toString()) || 0), 0);
 
   const goalsAllocated = lines
-    .filter((l) => pools.find((p) => p.id === l.bucketId)?.poolType === "GOAL")
+    .filter((l) => {
+      const et = pools.find((p) => p.id === l.bucketId)?.envelopeType;
+      return et === "TARGET_GOAL" || et === "ONGOING_GOAL";
+    })
     .reduce((sum, l) => sum + (parseFloat(linesMap[l.bucketId] ?? l.proposedAmount.toString()) || 0), 0);
 
   const groupedLines = useMemo(() => {
@@ -362,9 +362,10 @@ export function IncomeSplitScreen({ incomeEventId, returnTo = "/dashboard" }: In
       { type: "GOAL", label: t("paydayDrawer.goalsPools"), items: [] },
     ];
     for (const l of lines) {
-      const pType = pools.find((pool) => pool.id === l.bucketId)?.poolType || "REGULAR";
-      if (pType === "EVERYDAY") groups[0].items.push(l);
-      else if (pType === "GOAL") groups[2].items.push(l);
+      const p = pools.find((pool) => pool.id === l.bucketId);
+      const et = p?.envelopeType;
+      if (et === "EVERYDAY") groups[0].items.push(l);
+      else if (et === "TARGET_GOAL" || et === "ONGOING_GOAL") groups[2].items.push(l);
       else groups[1].items.push(l);
     }
     return groups.filter((g) => g.items.length > 0);

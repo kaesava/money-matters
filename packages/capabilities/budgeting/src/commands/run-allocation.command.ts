@@ -1,16 +1,8 @@
-import { pools, categories, allocationPlans, allocationPlanLines, transactionLedger, incomeEvents, incomeSources, expenseEvents, getPoolBalancesMap, tenants, DbOrTx } from "@money-matters/db";
+import { envelopes, allocationPlans, allocationPlanLines, transactionLedger, incomeEvents, incomeSources, expenseEvents, getEnvelopeBalancesMap, tenants, DbOrTx } from "@money-matters/db";
 import { eq, and, sql } from "drizzle-orm";
 import { runAllocationEngine, EngineBucket } from "../engine/allocation-engine.js";
-
 import { getTenantDateString } from "@money-matters/core";
 
-/**
- * Resolves frequency interval in days from an RRULE recurrence string.
- * Supports WEEKLY (7d), FORTNIGHTLY (14d), MONTHLY (30d), and ANNUALLY / YEARLY (365d).
- *
- * @param rrule - Recurrence rule string (e.g. 'FREQ=WEEKLY;INTERVAL=2' or 'FREQ=MONTHLY')
- * @returns Frequency duration in calendar days (defaults to 14 if undefined/unmatched)
- */
 export function parseRruleFrequencyDays(rrule?: string | null): number {
   if (!rrule) return 14;
   const upper = rrule.toUpperCase();
@@ -37,53 +29,31 @@ export async function runAllocationCommand(
   incomeAmount: number,
   dbClient: DbOrTx,
   customLines?: { bucketId: string; amount: string; reasoning?: string }[],
-  markAsReceivedToday?: boolean
+  markAsReceivedToday?: boolean,
+  runwayDays?: number
 ) {
-  // 1. Fetch Pools
-  const dbPools = await dbClient
+  // 1. Fetch Envelopes
+  const dbEnvelopes = await dbClient
     .select()
-    .from(pools)
+    .from(envelopes)
     .where(
       and(
-        eq(pools.tenantId, tenantId),
-        eq(pools.appId, appId),
-        sql`${pools.archivedAt} IS NULL`
+        eq(envelopes.tenantId, tenantId),
+        eq(envelopes.appId, appId),
+        sql`${envelopes.archivedAt} IS NULL`
       )
     );
 
-  // 2. Fetch Categories
-  const dbCats = await dbClient
-    .select()
-    .from(categories)
-    .where(
-      and(
-        eq(categories.tenantId, tenantId),
-        eq(categories.appId, appId),
-        sql`${categories.archivedAt} IS NULL`
-      )
-    );
+  // 2. Compute balances using DB-side aggregate SUM(CASE WHEN...)
+  const balancesMap = await getEnvelopeBalancesMap(tenantId, appId, dbClient);
 
-  const poolCategoryTargetsMap = new Map<string, number>();
-  const poolIsEssentialMap = new Map<string, boolean>();
-  for (const cat of dbCats) {
-    if (cat.monthlyAmount) {
-      const val = parseFloat(cat.monthlyAmount);
-      poolCategoryTargetsMap.set(cat.poolId, (poolCategoryTargetsMap.get(cat.poolId) || 0) + val);
-    }
-    if (cat.isEssential) {
-      poolIsEssentialMap.set(cat.poolId, true);
-    }
-  }
-
-  // 3. Compute balances using DB-side aggregate SUM(CASE WHEN...)
-  const balancesMap = await getPoolBalancesMap(tenantId, appId, dbClient);
-
-  // 4. Fetch income event joined with income source to resolve dates & recurrence frequency
+  // 3. Fetch income event joined with income source to resolve dates & recurrence frequency
   const [eventWithSource] = await dbClient
     .select({
       id: incomeEvents.id,
       expectedDate: incomeEvents.expectedDate,
       rrule: incomeSources.rrule,
+      incomeType: incomeSources.incomeType,
     })
     .from(incomeEvents)
     .leftJoin(incomeSources, eq(incomeEvents.incomeSourceId, incomeSources.id))
@@ -108,15 +78,14 @@ export async function runAllocationCommand(
   const eventDateStr = eventWithSource ? eventWithSource.expectedDate : todayStr;
   const isFuturePlanned = eventDateStr > todayStr && !markAsReceivedToday;
 
-  // 5. Fetch upcoming expenses due before the next cycle cutoff
+  // 4. Fetch upcoming expenses due before the next cycle cutoff
   const eventTime = eventWithSource ? new Date(eventWithSource.expectedDate + "T00:00:00").getTime() : Date.now();
   const nextCutoffDateStr = getLocalDateString(new Date(eventTime + freqDays * 24 * 60 * 60 * 1000));
 
   const pendingExpenses = await dbClient
     .select({
       id: expenseEvents.id,
-      poolId: expenseEvents.poolId,
-      categoryId: expenseEvents.categoryId,
+      envelopeId: expenseEvents.envelopeId,
       name: expenseEvents.name,
       amount: expenseEvents.expectedAmount,
       dueDate: expenseEvents.expectedDate,
@@ -133,39 +102,37 @@ export async function runAllocationCommand(
     );
 
   // Map to engine models
-  const engineBuckets: EngineBucket[] = dbPools.map((pool) => {
-    const balance = balancesMap[pool.id] || 0;
-    const catTargetSum = poolCategoryTargetsMap.get(pool.id) || 0;
-
-    const monthlyAmt = pool.poolType === "REGULAR" 
-      ? (catTargetSum > 0 ? catTargetSum : (pool.targetAmount ? parseFloat(pool.targetAmount) : null))
-      : (pool.targetAmount ? parseFloat(pool.targetAmount) : null);
-
+  const engineBuckets: EngineBucket[] = dbEnvelopes.map((env) => {
+    const balance = balancesMap[env.id] || 0;
     return {
-      id: pool.id,
-      name: pool.name,
-      type: pool.poolType,
-      isEssential: poolIsEssentialMap.get(pool.id) ?? false,
-      isCommitted: pool.isCommitted,
-      isSurplusTarget: pool.isSurplusTarget,
-      monthlyAmount: monthlyAmt,
-      targetAmount: pool.targetAmount ? parseFloat(pool.targetAmount) : null,
-      everydayAllowanceAmount: pool.everydayAllowanceAmount ? parseFloat(pool.everydayAllowanceAmount) : null,
-      safetyBufferFloor: pool.safetyBufferFloor ? parseFloat(pool.safetyBufferFloor) : 0,
-      goalMode: pool.goalMode ?? (pool.poolType === "GOAL" ? "TARGET_DATE" : undefined),
-      targetDate: pool.targetDate || null,
+      id: env.id,
+      name: env.name,
+      type: env.envelopeType,
+      envelopeType: env.envelopeType,
+      isEssential: env.isEssential,
+      isCommitted: env.isCommitted,
+      isSurplusTarget: env.isSurplusTarget,
+      monthlyAmount: env.monthlyAmount ? parseFloat(env.monthlyAmount) : null,
+      targetAmount: env.targetAmount ? parseFloat(env.targetAmount) : null,
+      everydayAllowanceAmount: env.everydayAllowanceAmount ? parseFloat(env.everydayAllowanceAmount) : null,
+      safetyBufferFloor: env.safetyBufferFloor ? parseFloat(env.safetyBufferFloor) : 0,
+      goalMode: env.goalMode ?? (env.envelopeType === "TARGET_GOAL" ? "TARGET_DATE" : "ONGOING"),
+      targetDate: env.targetDate || null,
       currentBalance: balance,
+      isPrivate: env.isPrivate,
+      userId: env.userId ?? undefined,
     };
   });
 
   const engineOutput = runAllocationEngine({
     incomeAmount,
+    incomeType: eventWithSource?.incomeType || "SALARIED",
+    runwayDays: runwayDays ?? 30,
     buckets: engineBuckets,
     paycheckDate: eventWithSource ? new Date(eventWithSource.expectedDate + "T00:00:00+10:00") : new Date(),
     paycheckFrequencyDays: freqDays,
     upcomingExpenses: pendingExpenses.map((e) => ({
-      poolId: e.poolId,
-      categoryId: e.categoryId,
+      envelopeId: e.envelopeId,
       name: e.name,
       amount: parseFloat(e.amount),
       dueDate: e.dueDate,
@@ -176,7 +143,6 @@ export async function runAllocationCommand(
     ? new Map(customLines.map((l) => [l.bucketId, { amount: parseFloat(l.amount), reasoning: l.reasoning }]))
     : null;
 
-  // 5. Execute DB writes using caller-supplied DbOrTx (already inside procedure transaction)
   const tx = dbClient;
   const [existingPlan] = await tx
     .select({ id: allocationPlans.id, status: allocationPlans.status })
@@ -214,7 +180,7 @@ export async function runAllocationCommand(
       tenantId,
       appId,
       planId: insertedPlan.id,
-      poolId: line.bucketId,
+      envelopeId: line.bucketId,
       proposedAmount: line.proposedAmount.toFixed(2),
       confirmedAmount: confirmedVal.toFixed(2),
       reasoning: lineReasoning,
@@ -223,7 +189,6 @@ export async function runAllocationCommand(
     };
   });
 
-  // Prune $0 lines upon confirmation; keep all lines in draft/pending so user can adjust them
   const finalLinesToInsert = isFuturePlanned
     ? linesToInsert
     : linesToInsert.filter((l) => parseFloat(l.confirmedAmount) > 0);
@@ -239,12 +204,12 @@ export async function runAllocationCommand(
     const confirmedVal = parseFloat(line.confirmedAmount);
 
     if (!isFuturePlanned && confirmedVal > 0 && insertedLine) {
-      const pool = dbPools.find((p) => p.id === line.poolId);
+      const env = dbEnvelopes.find((e) => e.id === line.envelopeId);
       ledgerEntriesToInsert.push({
         tenantId,
         appId,
-        poolId: line.poolId,
-        bankAccountId: pool?.bankAccountId || null,
+        envelopeId: line.envelopeId,
+        bankAccountId: env?.bankAccountId || null,
         planLineId: insertedLine.id,
         flowType: "CREDIT" as const,
         transactionType: "INCOME_SPLIT" as const,
@@ -263,7 +228,6 @@ export async function runAllocationCommand(
   }
 
   if (!isFuturePlanned) {
-    // Update income event status to CONFIRMED with actualDate; NEVER mutate expectedDate!
     const updateData: {
       status: "CONFIRMED";
       actualAmount: string;
@@ -284,7 +248,5 @@ export async function runAllocationCommand(
   }
 
   const plan = { ...insertedPlan, isFuturePlanned };
-
   return plan;
 }
-

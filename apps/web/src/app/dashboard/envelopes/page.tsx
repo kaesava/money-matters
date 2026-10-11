@@ -35,10 +35,9 @@ function PoolsPageContent() {
   const categoryIdParam = searchParams.get("categoryId") || "";
 
   const poolsQuery = trpc.listPools.useQuery();
-  const categoriesQuery = trpc.listCategories.useQuery();
   const archivedQuery = trpc.listArchivedItems.useQuery();
 
-  const hasArchivedCategories = archivedQuery.data?.some((i) => i.itemType === "POOL" || i.itemType === "CATEGORY") ?? false;
+  const hasArchivedCategories = archivedQuery.data?.some((i) => i.itemType === "POOL" || i.itemType === "CATEGORY" || i.itemType === "ENVELOPE") ?? false;
 
   const [searchQuery, setSearchQuery] = useState(paramSearch);
   const [typeFilter, setTypeFilter] = useState<PoolTypeFilter>(paramType);
@@ -67,7 +66,6 @@ function PoolsPageContent() {
   const archivePoolMut = trpc.archivePool.useMutation({
     onSuccess: () => {
       utils.listPools.invalidate();
-      utils.listCategories.invalidate();
     },
   });
 
@@ -134,7 +132,6 @@ function PoolsPageContent() {
   // Map raw pools + categories into table rows
   const tableRows: PoolTableRow[] = useMemo(() => {
     const rawPools = poolsQuery.data ?? [];
-    const rawCategories = categoriesQuery.data ?? [];
     const rawExpenseEvents = expenseEventsQuery.data ?? [];
     const rawTransactions = transactionsQuery.data ?? [];
     const poolBalances = projectionQuery.data?.poolBalances;
@@ -143,8 +140,7 @@ function PoolsPageContent() {
       const qName = name.toLowerCase();
       return rawTransactions.some(
         (t) =>
-          t.categoryId === id ||
-          t.poolId === id ||
+          t.envelopeId === id ||
           (t.note && t.note.toLowerCase().includes(qName))
       );
     };
@@ -154,35 +150,21 @@ function PoolsPageContent() {
       return rawExpenseEvents.some(
         (e) =>
           e.status !== "CONFIRMED" &&
-          (e.poolId === id ||
-            e.categoryId === id ||
+          (e.envelopeId === id ||
             (e.name && e.name.toLowerCase().includes(qName)))
       );
     };
 
     return rawPools.map((p) => {
-      const poolCats: CategoryItem[] = rawCategories
-        .filter((c) => c.poolId === p.id)
-        .map((c) => ({
-          id: c.id,
-          poolId: c.poolId,
-          name: c.name,
-          monthlyAmount: c.monthlyAmount,
-          enteredAmount: c.enteredAmount,
-          budgetFrequency: c.budgetFrequency,
-          isEssential: c.isEssential,
-          monthlySpent: c.monthlySpent,
-          hasHistory: checkHasHistory(c.id, c.name),
-          hasUpcomingExpenses: checkHasUpcoming(c.id, c.name),
-        }));
+      const isGoal = p.envelopeType === "TARGET_GOAL" || p.envelopeType === "ONGOING_GOAL";
+      const isBill = p.envelopeType === "SCHEDULED_BILL" || p.envelopeType === "FLEXIBLE_BILL";
+      const isEveryday = p.envelopeType === "EVERYDAY";
 
-      let targetAmountNum: number | null = null;
-      if (p.poolType === "GOAL") {
-        targetAmountNum = p.targetAmount ? parseFloat(p.targetAmount) : null;
-      } else {
-        const catSum = poolCats.reduce((sum, c) => sum + (c.monthlyAmount ? parseFloat(c.monthlyAmount) : 0), 0);
-        targetAmountNum = catSum > 0 ? catSum : (p.targetAmount ? parseFloat(p.targetAmount) : null);
-      }
+      const targetAmountNum = p.targetAmount
+        ? parseFloat(p.targetAmount)
+        : p.monthlyAmount
+        ? parseFloat(p.monthlyAmount)
+        : null;
 
       let currentBal = p.currentBalance || 0;
       if (showProjectionMatrix && projectionMonths > 0.05 && activeProjectionColId && poolBalances?.[p.id]) {
@@ -192,8 +174,8 @@ function PoolsPageContent() {
       let progressText = "—";
       let progressPercentage: number | null = null;
 
-      if (p.poolType === "GOAL") {
-        if (p.goalMode === "ONGOING") {
+      if (isGoal) {
+        if (p.envelopeType === "ONGOING_GOAL" || p.goalMode === "ONGOING") {
           progressText = p.budgetFrequency || t("categories.frequencyMonthly");
           progressPercentage = 100;
         } else if (targetAmountNum && targetAmountNum > 0) {
@@ -203,7 +185,7 @@ function PoolsPageContent() {
         } else {
           progressText = "100%";
         }
-      } else if (p.poolType === "REGULAR") {
+      } else if (isBill) {
         const target = targetAmountNum || 0;
         if (target > 0 && currentBal >= target) {
           progressText = t("categories.fullyFunded");
@@ -212,7 +194,7 @@ function PoolsPageContent() {
         } else {
           progressText = t("categories.shortfall");
         }
-      } else if (p.poolType === "EVERYDAY") {
+      } else if (isEveryday) {
         if (currentBal >= 0) {
           progressText = t("categories.readyToSpend");
         } else {
@@ -223,31 +205,31 @@ function PoolsPageContent() {
       const rawSummaryItem: CategorySummaryItem = {
         id: p.id,
         name: p.name,
-        type: p.poolType as "REGULAR" | "GOAL" | "EVERYDAY",
-        poolType: p.poolType as "REGULAR" | "GOAL" | "EVERYDAY",
+        envelopeType: p.envelopeType,
+        type: isEveryday ? "EVERYDAY" : isGoal ? "GOAL" : "REGULAR",
+        poolType: isEveryday ? "EVERYDAY" : isGoal ? "GOAL" : "REGULAR",
         bankAccountId: p.bankAccountId,
         bankAccountName: p.bankAccountName || null,
         isPrivate: p.isPrivate,
         currentBalance: String(currentBal),
-        everydayAllowanceAmount: p.everydayAllowanceAmount,
         targetAmount: p.targetAmount,
         targetDate: p.targetDate,
-        healthStatus: p.healthStatus,
         isSurplusTarget: p.isSurplusTarget,
       };
 
       return {
         id: p.id,
         name: p.name,
-        poolType: p.poolType as "REGULAR" | "GOAL" | "EVERYDAY",
+        envelopeType: p.envelopeType,
+        poolType: isEveryday ? "EVERYDAY" : isGoal ? "GOAL" : "REGULAR",
         bankAccountId: p.bankAccountId,
         bankAccountName: p.bankAccountName || null,
         isPrivate: p.isPrivate,
         currentBalance: currentBal,
         targetAmount: targetAmountNum,
         targetDate: p.targetDate || null,
-        categoryCount: poolCats.length,
-        categories: poolCats,
+        categoryCount: 0,
+        categories: [] as CategoryItem[],
         progressText,
         progressPercentage,
         rawPool: rawSummaryItem,
@@ -255,22 +237,15 @@ function PoolsPageContent() {
         hasUpcomingExpenses: checkHasUpcoming(p.id, p.name),
       };
     });
-  }, [poolsQuery.data, categoriesQuery.data, showProjectionMatrix, projectionMonths, activeProjectionColId, projectionQuery.data, expenseEventsQuery.data, transactionsQuery.data]);
+  }, [poolsQuery.data, showProjectionMatrix, projectionMonths, activeProjectionColId, projectionQuery.data, expenseEventsQuery.data, transactionsQuery.data]);
 
   const matchedPool = poolIdParam ? tableRows.find((r) => r.id === poolIdParam) : null;
-  const matchedCategory = categoryIdParam ? categoriesQuery.data?.find((c) => c.id === categoryIdParam) : null;
-  const isFilterParamInvalid = Boolean(
-    (poolIdParam && !matchedPool) ||
-    (categoryIdParam && !matchedCategory)
-  );
+  const isFilterParamInvalid = Boolean(poolIdParam && !matchedPool);
 
   // Filter logic: Type filter + Privacy filter + Search
   const filteredRows = useMemo(() => {
     return tableRows.filter((row) => {
       if (poolIdParam && matchedPool && row.id !== poolIdParam) {
-        return false;
-      }
-      if (categoryIdParam && matchedCategory && !row.categories.some((c) => c.id === categoryIdParam)) {
         return false;
       }
       if (typeFilter !== "ALL" && row.poolType !== typeFilter) {
@@ -286,18 +261,20 @@ function PoolsPageContent() {
       if (!q) return true;
 
       const poolNameMatch = row.name.toLowerCase().includes(q);
-      const catNameMatch = row.categories.some((c) => c.name.toLowerCase().includes(q));
+      const catNameMatch = (row.categories ?? []).some((c) => c.name.toLowerCase().includes(q));
       const bankNameMatch = row.bankAccountName ? row.bankAccountName.toLowerCase().includes(q) : false;
       return poolNameMatch || catNameMatch || bankNameMatch;
     });
-  }, [tableRows, poolIdParam, matchedPool, categoryIdParam, matchedCategory, typeFilter, privacyFilter, searchQuery]);
+  }, [tableRows, poolIdParam, matchedPool, typeFilter, privacyFilter, searchQuery]);
 
   // Sorting logic
   const sortedRows = useMemo(() => {
     return [...filteredRows].sort((a, b) => {
+      const pTypeA = a.poolType ?? a.envelopeType;
+      const pTypeB = b.poolType ?? b.envelopeType;
       if (sortField !== "poolType") {
-        const orderA = POOL_TYPE_ORDER[a.poolType] ?? 99;
-        const orderB = POOL_TYPE_ORDER[b.poolType] ?? 99;
+        const orderA = POOL_TYPE_ORDER[pTypeA] ?? 99;
+        const orderB = POOL_TYPE_ORDER[pTypeB] ?? 99;
         if (orderA !== orderB) {
           return orderA - orderB;
         }
@@ -313,8 +290,8 @@ function PoolsPageContent() {
         aVal = (a.bankAccountName || "").toLowerCase();
         bVal = (b.bankAccountName || "").toLowerCase();
       } else if (sortField === "poolType") {
-        aVal = a.poolType;
-        bVal = b.poolType;
+        aVal = pTypeA;
+        bVal = pTypeB;
       } else if (sortField === "currentBalance") {
         aVal = a.currentBalance;
         bVal = b.currentBalance;
@@ -382,7 +359,7 @@ function PoolsPageContent() {
 
   const handleOpenEditCategoryModal = (cat: CategoryItem) => {
     setCategoryToEdit(cat);
-    setCategoryInitialPoolId(cat.poolId);
+    setCategoryInitialPoolId(cat.poolId ?? null);
     setIsCategoryModalOpen(true);
   };
 
@@ -592,12 +569,8 @@ function PoolsPageContent() {
         <div className="flex items-center gap-3 flex-wrap">
           <RecordFilterBadge
             label={
-              poolIdParam
-                ? matchedPool
-                  ? `Filtered to Pool: ${matchedPool.name}`
-                  : t("categories.requestedItemNotFound")
-                : matchedCategory
-                ? `Filtered to Category: ${matchedCategory.name}`
+              matchedPool
+                ? `Filtered to Envelope: ${matchedPool.name}`
                 : t("categories.requestedItemNotFound")
             }
             onClear={() => {
@@ -709,7 +682,6 @@ function PoolsPageContent() {
         categoryToEdit={categoryToEdit}
         initialPoolId={categoryInitialPoolId}
         onSuccess={() => {
-          utils.listCategories.invalidate();
           utils.listPools.invalidate();
         }}
       />

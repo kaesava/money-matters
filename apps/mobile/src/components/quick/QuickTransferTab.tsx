@@ -28,7 +28,8 @@ export interface QuickTransferTabProps {
   pools: Array<{
     id: string;
     name: string;
-    poolType: string;
+    envelopeType?: string;
+    poolType?: string;
     currentBalance?: number | string;
   }>;
   presets: { recent: QuickPresetItem[]; frequent: QuickPresetItem[] };

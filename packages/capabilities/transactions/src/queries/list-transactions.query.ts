@@ -1,4 +1,4 @@
-import { transactionLedger, categories, pools, DbOrTx } from "@money-matters/db";
+import { transactionLedger, envelopes, DbOrTx } from "@money-matters/db";
 import { eq, and, sql, desc } from "drizzle-orm";
 
 export async function listTransactionsQuery(
@@ -7,8 +7,7 @@ export async function listTransactionsQuery(
   limit = 50,
   offset = 0,
   dbClient: DbOrTx,
-  categoryId?: string,
-  poolId?: string,
+  envelopeId?: string,
   bankAccountId?: string
 ) {
   const conditions = [
@@ -17,12 +16,8 @@ export async function listTransactionsQuery(
     sql`${transactionLedger.archivedAt} IS NULL`,
   ];
 
-  if (categoryId) {
-    conditions.push(eq(transactionLedger.categoryId, categoryId));
-  }
-
-  if (poolId) {
-    conditions.push(eq(transactionLedger.poolId, poolId));
+  if (envelopeId) {
+    conditions.push(eq(transactionLedger.envelopeId, envelopeId));
   }
 
   if (bankAccountId) {
@@ -32,8 +27,7 @@ export async function listTransactionsQuery(
   return await dbClient
     .select({
       id: transactionLedger.id,
-      categoryId: transactionLedger.categoryId,
-      poolId: transactionLedger.poolId,
+      envelopeId: transactionLedger.envelopeId,
       bankAccountId: transactionLedger.bankAccountId,
       planLineId: transactionLedger.planLineId,
       transferGroupId: transactionLedger.transferGroupId,
@@ -43,20 +37,18 @@ export async function listTransactionsQuery(
       note: transactionLedger.note,
       source: transactionLedger.source,
       recordedAt: transactionLedger.recordedAt,
-      categoryName: categories.name,
-      poolName: pools.name,
+      envelopeName: envelopes.name,
     })
     .from(transactionLedger)
-    .leftJoin(categories, eq(transactionLedger.categoryId, categories.id))
-    .leftJoin(pools, eq(transactionLedger.poolId, pools.id))
+    .leftJoin(envelopes, eq(transactionLedger.envelopeId, envelopes.id))
     .where(and(...conditions))
     .orderBy(desc(transactionLedger.recordedAt))
     .limit(limit)
     .offset(offset);
 }
 
-export async function listCategoryTransactionsQuery(
-  categoryId: string,
+export async function listEnvelopeTransactionsQuery(
+  envelopeId: string,
   tenantId: string,
   appId: string,
   limit = 30,
@@ -66,7 +58,7 @@ export async function listCategoryTransactionsQuery(
   return await dbClient
     .select({
       id: transactionLedger.id,
-      categoryId: transactionLedger.categoryId,
+      envelopeId: transactionLedger.envelopeId,
       bankAccountId: transactionLedger.bankAccountId,
       planLineId: transactionLedger.planLineId,
       flowType: transactionLedger.flowType,
@@ -74,15 +66,15 @@ export async function listCategoryTransactionsQuery(
       note: transactionLedger.note,
       source: transactionLedger.source,
       recordedAt: transactionLedger.recordedAt,
-      categoryName: categories.name,
+      envelopeName: envelopes.name,
     })
     .from(transactionLedger)
-    .leftJoin(categories, eq(transactionLedger.categoryId, categories.id))
+    .leftJoin(envelopes, eq(transactionLedger.envelopeId, envelopes.id))
     .where(
       and(
         eq(transactionLedger.tenantId, tenantId),
         eq(transactionLedger.appId, appId),
-        eq(transactionLedger.categoryId, categoryId),
+        eq(transactionLedger.envelopeId, envelopeId),
         sql`${transactionLedger.archivedAt} IS NULL`
       )
     )

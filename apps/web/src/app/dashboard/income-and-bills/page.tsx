@@ -9,7 +9,7 @@ import { Spinner, SearchInput, Tabs } from "@money-matters/ui/web";
 import { IncomeFormModal, IncomeSourceToEdit } from "../../../components/web/IncomeFormModal";
 import { QuickExpenseDrawer } from "../../../components/web/QuickExpenseDrawer";
 import { CategoryItemModal } from "../../../components/web/CategoryItemModal";
-import { CategoryItem } from "../pools/types";
+import { CategoryItem } from "../envelopes/types";
 import { IncomeSchedulesCard } from "./components/IncomeSchedulesCard";
 import { BillSchedulesCard } from "./components/BillSchedulesCard";
 import { TimelineTabWrapper } from "./components/TimelineTabWrapper";
@@ -149,7 +149,11 @@ function IncomeAndBillsContent() {
               onEdit={(src) => { setIncomeToEdit(src); setIsIncomeModalOpen(true); }}
             />
             <BillSchedulesCard
-              billSchedules={billSchedules}
+              billSchedules={billSchedules.map((b) => ({
+                ...b,
+                poolId: b.envelopeId,
+                poolName: b.envelopeName,
+              }))}
               searchQuery={setupSearchQuery}
               scopeFilter={setupScopeFilter}
               onAddBillSchedule={() => { setCategoryToEdit(null); setIsCategoryModalOpen(true); }}
@@ -188,21 +192,21 @@ function IncomeAndBillsContent() {
               };
             })}
             expenseEvents={expenseEvents.map((e) => {
-              const pool = pools.find((p) => p.id === (e.poolId || e.categoryId));
+              const pool = pools.find((p) => p.id === e.envelopeId);
               const acct = bankAccounts.find((b) => b.id === pool?.bankAccountId);
               return {
                 ...e,
-                poolId: pool?.id || e.poolId || e.categoryId,
+                poolId: pool?.id || e.envelopeId,
                 accountId: acct?.id,
                 accountName: acct?.name,
                 name: e.name || "Scheduled Expense",
-                categoryName: pool?.name || "Pool",
+                categoryName: pool?.name || "Envelope",
                 isPrivate: pool?.isPrivate || false,
               };
             })}
-            transferEvents={transferEvents.map((e) => ({ ...e, name: e.name || "Pool Transfer" }))}
-            categories={pools.map((p) => ({ id: p.id, name: p.name, poolType: p.poolType, currentBalance: parseFloat(String(p.currentBalance || "0")), isSurplusTarget: p.isSurplusTarget }))}
-            pools={pools.map((p) => ({ id: p.id, name: p.name, poolType: p.poolType, currentBalance: parseFloat(String(p.currentBalance || "0")), isSurplusTarget: p.isSurplusTarget, bankAccountId: p.bankAccountId }))}
+            transferEvents={transferEvents.map((e) => ({ ...e, name: e.name || "Envelope Transfer" }))}
+            categories={pools.map((p) => ({ id: p.id, name: p.name, poolType: p.envelopeType, currentBalance: parseFloat(String(p.currentBalance || "0")), isSurplusTarget: p.isSurplusTarget }))}
+            pools={pools.map((p) => ({ id: p.id, name: p.name, poolType: p.envelopeType, currentBalance: parseFloat(String(p.currentBalance || "0")), isSurplusTarget: p.isSurplusTarget, bankAccountId: p.bankAccountId }))}
             onOpenTransferDrawer={() => setQuickActionTab("TRANSFER")}
           />
         </div>
@@ -224,7 +228,7 @@ function IncomeAndBillsContent() {
           limitToPoolType="REGULAR"
           onSuccess={() => {
             utils.listBillSchedules.invalidate();
-            utils.listCategories.invalidate();
+            utils.listPools.invalidate();
             utils.listExpenseEvents.invalidate();
           }}
         />

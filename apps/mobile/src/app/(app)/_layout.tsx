@@ -220,7 +220,6 @@ export default function AppLayout() {
         onClose={() => setPoolModalVisible(false)}
         onSuccess={() => {
           utils.listPools.invalidate();
-          utils.listCategories.invalidate();
         }}
       />
     </View>

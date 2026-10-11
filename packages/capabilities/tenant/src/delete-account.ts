@@ -1,7 +1,6 @@
 import { t } from '@money-matters/i18n';
-import { 
-  pools,
-  categories, 
+import {
+  envelopes, 
   incomeSources, 
   incomeEvents, 
   expenseEvents, 
@@ -90,8 +89,7 @@ export function deleteMyAccountHandler(db: DbOrTx) {
       await tx.delete(incomeEvents).where(and(eq(incomeEvents.tenantId, tenantId), eq(incomeEvents.appId, appId)));
       await tx.delete(incomeSources).where(and(eq(incomeSources.tenantId, tenantId), eq(incomeSources.appId, appId)));
 
-      await tx.delete(categories).where(and(eq(categories.tenantId, tenantId), eq(categories.appId, appId)));
-      await tx.delete(pools).where(and(eq(pools.tenantId, tenantId), eq(pools.appId, appId)));
+      await tx.delete(envelopes).where(and(eq(envelopes.tenantId, tenantId), eq(envelopes.appId, appId)));
 
       await tx.delete(userPreferences).where(eq(userPreferences.userId, userId));
       await tx.delete(tenantUserPreferences).where(eq(tenantUserPreferences.userId, userId));
@@ -188,17 +186,7 @@ export function leaveTenantHandler(db: DbOrTx) {
     const privateBankAccIds = privateBankAccs.map((b) => b.id);
 
     if (privateBankAccIds.length > 0) {
-      const privatePoolsList = await db
-        .select({ id: pools.id })
-        .from(pools)
-        .where(inArray(pools.bankAccountId, privateBankAccIds));
-      
-      const privatePoolIds = privatePoolsList.map((p) => p.id);
-
-      if (privatePoolIds.length > 0) {
-        await db.delete(categories).where(inArray(categories.poolId, privatePoolIds));
-        await db.delete(pools).where(inArray(pools.id, privatePoolIds));
-      }
+      await db.delete(envelopes).where(inArray(envelopes.bankAccountId, privateBankAccIds));
       await db.delete(bankAccounts).where(inArray(bankAccounts.id, privateBankAccIds));
     }
 

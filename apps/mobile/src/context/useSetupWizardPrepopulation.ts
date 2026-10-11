@@ -19,7 +19,6 @@ export function useSetupWizardPrepopulation({
   const tz = getMobileLocaleConfig().timezone;
   const incomeSourcesQuery = trpc.listIncomeSources.useQuery(undefined, { enabled: isRerun });
   const poolsQuery = trpc.listPools.useQuery(undefined, { enabled: isRerun });
-  const categoriesQuery = trpc.listCategories.useQuery(undefined, { enabled: isRerun });
 
   // Pre-populate incomes if in rerun mode
   useEffect(() => {
@@ -46,11 +45,11 @@ export function useSetupWizardPrepopulation({
   // Pre-populate goal pools if in rerun mode
   useEffect(() => {
     if (!isRerun || !poolsQuery.data || poolsQuery.data.length === 0) return;
-    const goalPools = poolsQuery.data.filter((p) => p.poolType === 'GOAL');
+    const goalPools = poolsQuery.data.filter((p) => p.envelopeType === 'TARGET_GOAL' || p.envelopeType === 'ONGOING_GOAL');
     if (goalPools.length > 0) {
       setGoals(
         goalPools.map((g) => {
-          const isOngoing = g.goalMode === 'ONGOING';
+          const isOngoing = g.envelopeType === 'ONGOING_GOAL' || g.goalMode === 'ONGOING';
           const amt = parseFloat(g.targetAmount || '1000');
           return {
             id: g.id,
@@ -75,26 +74,24 @@ export function useSetupWizardPrepopulation({
     }
   }, [isRerun, poolsQuery.data, setGoals, tz]);
 
-  // Pre-populate existing categories if in rerun mode
+  // Pre-populate existing categories/envelopes if in rerun mode
   useEffect(() => {
-    if (!isRerun || !categoriesQuery.data || categoriesQuery.data.length === 0) return;
+    if (!isRerun || !poolsQuery.data || poolsQuery.data.length === 0) return;
+    const billEnvelopes = poolsQuery.data.filter((p) => p.envelopeType === 'SCHEDULED_BILL' || p.envelopeType === 'FLEXIBLE_BILL');
     setCustomCategories(
-      categoriesQuery.data.map((c) => ({
+      billEnvelopes.map((c) => ({
         id: c.id,
         name: c.name,
-        type: (c.poolType === 'EVERYDAY' || c.poolType === 'GOAL' ? c.poolType : 'REGULAR') as
-          | 'REGULAR'
-          | 'GOAL'
-          | 'EVERYDAY',
-        monthlyAud: parseFloat(c.monthlyAmount || '0'),
+        type: 'REGULAR' as const,
+        monthlyAud: parseFloat(c.monthlyAmount || c.targetAmount || '0'),
         icon: c.icon || '📌',
       }))
     );
-  }, [isRerun, categoriesQuery.data, setCustomCategories]);
+  }, [isRerun, poolsQuery.data, setCustomCategories]);
 
   return {
     rawPools: poolsQuery.data || [],
-    rawCategories: categoriesQuery.data || [],
-    isLoading: incomeSourcesQuery.isLoading || poolsQuery.isLoading || categoriesQuery.isLoading,
+    rawCategories: [] as unknown[],
+    isLoading: incomeSourcesQuery.isLoading || poolsQuery.isLoading,
   };
 }

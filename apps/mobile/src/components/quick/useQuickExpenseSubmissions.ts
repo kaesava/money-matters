@@ -50,14 +50,12 @@ export function useQuickExpenseSubmissions({
         await state.createOneOffExpenseMut.mutateAsync({
           name: state.name.trim(),
           amount: numAmount.toFixed(2),
-          poolId: state.selectedPoolId,
-          categoryId: state.selectedSubCategoryId || undefined,
+          envelopeId: state.selectedPoolId,
           expectedDate: state.date.trim(),
         });
       } else {
         await state.recordExpenseMutation.mutateAsync({
-          poolId: state.selectedPoolId,
-          categoryId: state.selectedSubCategoryId || undefined,
+          envelopeId: state.selectedPoolId,
           amount: numAmount.toFixed(2),
           date: state.date.trim(),
           note: state.name.trim(),
@@ -126,15 +124,15 @@ export function useQuickExpenseSubmissions({
       if (state.date > state.todayStr) {
         await state.createTransferSourceMut.mutateAsync({
           name: resolvedName,
-          sourcePoolId: state.selectedPoolId,
-          destinationPoolId: state.destPoolId,
+          sourceEnvelopeId: state.selectedPoolId,
+          destinationEnvelopeId: state.destPoolId,
           amount: numAmount.toFixed(2),
           startDate: state.date.trim(),
         });
       } else {
         await state.moveMoneyMutation.mutateAsync({
-          sourcePoolId: state.selectedPoolId,
-          destinationPoolId: state.destPoolId,
+          sourceEnvelopeId: state.selectedPoolId,
+          destinationEnvelopeId: state.destPoolId,
           amount: numAmount.toFixed(2),
           targetDate: undefined,
           note: resolvedName,

@@ -22,9 +22,7 @@ export function PoolItemCard({
   onToggleExpand,
 }: PoolItemCardProps) {
   const router = useRouter();
-  const poolCats = categories.filter((c) => c.poolId === pool.id);
-  const nestedCount = poolCats.length;
-  const isGoal = pool.poolType === 'GOAL';
+  const isGoal = pool.envelopeType === 'TARGET_GOAL' || pool.envelopeType === 'ONGOING_GOAL' || pool.poolType === 'GOAL';
   const target = pool.targetAmount ? parseFloat(pool.targetAmount) : 0;
   const pct = target > 0 ? Math.min(100, Math.round(((pool.currentBalance || 0) / target) * 100)) : 0;
 
@@ -32,7 +30,7 @@ export function PoolItemCard({
     <View style={styles.card}>
       <TouchableOpacity
         activeOpacity={0.8}
-        onPress={() => router.push(`/(app)/pools/${pool.id}` as never)}
+        onPress={() => router.push(`/(app)/envelopes/${pool.id}` as never)}
         style={styles.cardHeader}
       >
         <View style={{ flex: 1 }}>
@@ -56,13 +54,13 @@ export function PoolItemCard({
             <Text style={styles.balNum}>{formatAUD(pool.currentBalance)}</Text>
             <Text style={styles.balSub}>
               {isGoal
-                ? pool.goalMode === 'ONGOING'
+                ? pool.goalMode === 'ONGOING' || pool.envelopeType === 'ONGOING_GOAL'
                   ? `${formatAUD(target)}/mo (${pool.budgetFrequency || t('categories.frequencyMonthly')})`
                   : target > 0
                   ? `${pct}% of ${formatAUD(target)}`
                   : t('categories.noTarget')
-                : nestedCount > 0
-                ? t('categories.nestedCategories', { count: nestedCount })
+                : target > 0
+                ? `${formatAUD(target)}/mo`
                 : t('categories.mainPool')}
             </Text>
           </View>
@@ -70,54 +68,9 @@ export function PoolItemCard({
         </View>
       </TouchableOpacity>
 
-      {isGoal && target > 0 && pool.goalMode !== 'ONGOING' && (
+      {isGoal && target > 0 && pool.goalMode !== 'ONGOING' && pool.envelopeType !== 'ONGOING_GOAL' && (
         <View style={styles.progressTrack}>
           <View style={[styles.progressFill, { width: `${pct}%` }]} />
-        </View>
-      )}
-
-      {nestedCount > 0 && !isGoal && (
-        <View style={styles.nestedSection}>
-          <TouchableOpacity onPress={onToggleExpand} style={styles.nestedToggleBtn} activeOpacity={0.7}>
-            <Feather name={isExpanded ? 'chevron-down' : 'chevron-right'} size={14} color="#64748B" />
-            <Text style={styles.nestedToggleText}>
-              {t('categories.nestedCategories', { count: nestedCount })}
-            </Text>
-          </TouchableOpacity>
-
-          {isExpanded && (
-            <View style={styles.nestedCategoriesList}>
-              {poolCats.map((cat) => (
-                <TouchableOpacity
-                  key={cat.id}
-                  style={styles.nestedCategoryRow}
-                  activeOpacity={0.7}
-                  onPress={() =>
-                    router.push(
-                      `/(app)/categories/${cat.id}?returnTo=${encodeURIComponent('/(app)/categories')}` as never
-                    )
-                  }
-                >
-                  <View style={{ flex: 1 }}>
-                    <Text style={styles.nestedCatName}>{cat.name}</Text>
-                    <Text style={styles.nestedCatMeta}>
-                      {cat.budgetFrequency || t('categories.frequencyMonthly')}
-                    </Text>
-                  </View>
-                  <View style={styles.nestedCatAmountCol}>
-                    <Text style={styles.nestedCatAmount}>
-                      ${parseFloat(cat.monthlyAmount || '0').toFixed(2)}/mo
-                    </Text>
-                    {cat.enteredAmount && cat.budgetFrequency && cat.budgetFrequency !== 'MONTHLY' && (
-                      <Text style={styles.nestedCatSubAmount}>
-                        (${parseFloat(cat.enteredAmount).toFixed(2)}/{cat.budgetFrequency.toLowerCase()})
-                      </Text>
-                    )}
-                  </View>
-                </TouchableOpacity>
-              ))}
-            </View>
-          )}
         </View>
       )}
     </View>

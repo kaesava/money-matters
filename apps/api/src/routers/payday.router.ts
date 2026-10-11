@@ -1,5 +1,5 @@
 import { privateTenantProcedure, requiresWriteAccess } from '../trpc/trpc.js';
-import { allocationPlans, allocationPlanLines, categories, pools, incomeEvents, transactionLedger } from "@money-matters/db";
+import { allocationPlans, allocationPlanLines, envelopes, incomeEvents, transactionLedger } from "@money-matters/db";
 import { and, eq, sql, desc, inArray } from "drizzle-orm";
 import { posthog } from '../lib/posthog.js';
 import {
@@ -43,7 +43,7 @@ export const paydayRouter = {
     .mutation(async ({ input, ctx }) => {
       requiresWriteAccess(ctx);
       const customLines = input.lines?.map((l) => ({
-        bucketId: l.poolId,
+        bucketId: l.envelopeId,
         amount: l.amount,
         reasoning: l.reasoning,
       }));
@@ -56,8 +56,10 @@ export const paydayRouter = {
         parseFloat(input.actualAmount),
         ctx.db,
         customLines,
-        input.markAsReceivedToday
+        input.markAsReceivedToday,
+        input.runwayDays
       );
+
       if (posthog && ctx.userId) {
         posthog.capture({
           distinctId: ctx.userId,
@@ -117,22 +119,21 @@ export const paydayRouter = {
       const lines = await ctx.db
         .select({
           id: allocationPlanLines.id,
-          poolId: allocationPlanLines.poolId,
-          categoryId: allocationPlanLines.categoryId,
+          envelopeId: allocationPlanLines.envelopeId,
+          poolId: allocationPlanLines.envelopeId,
           proposedAmount: allocationPlanLines.proposedAmount,
           confirmedAmount: allocationPlanLines.confirmedAmount,
           reasoning: allocationPlanLines.reasoning,
-          poolName: pools.name,
-          categoryName: categories.name,
+          envelopeName: envelopes.name,
+          poolName: envelopes.name,
         })
         .from(allocationPlanLines)
-        .leftJoin(pools, eq(pools.id, allocationPlanLines.poolId))
-        .leftJoin(categories, eq(categories.id, allocationPlanLines.categoryId))
+        .leftJoin(envelopes, eq(envelopes.id, allocationPlanLines.envelopeId))
         .where(eq(allocationPlanLines.planId, plan.id));
 
       return {
         ...plan,
-        lines: lines.map(l => ({ ...l, poolName: l.poolName ?? "Unknown Pool" })),
+        lines: lines.map(l => ({ ...l, envelopeName: l.envelopeName ?? "Unknown Envelope", poolName: l.poolName ?? "Unknown Envelope" })),
       };
     }),
 
@@ -172,47 +173,32 @@ export const paydayRouter = {
         .limit(50);
 
       const planIds = plans.map(p => p.id);
-      let lines: Array<{ planId: string; poolId: string; categoryId: string | null; proposedAmount: string; confirmedAmount: string | null; reasoning: string | null; poolName: string | null }> = [];
+      let lines: Array<{ planId: string; envelopeId: string; proposedAmount: string; confirmedAmount: string | null; reasoning: string | null; envelopeName: string | null }> = [];
       if (planIds.length > 0) {
         lines = await ctx.db
           .select({
             planId: allocationPlanLines.planId,
-            poolId: allocationPlanLines.poolId,
-            categoryId: allocationPlanLines.categoryId,
+            envelopeId: allocationPlanLines.envelopeId,
             proposedAmount: allocationPlanLines.proposedAmount,
             confirmedAmount: allocationPlanLines.confirmedAmount,
             reasoning: allocationPlanLines.reasoning,
-            poolName: pools.name,
+            envelopeName: envelopes.name,
           })
           .from(allocationPlanLines)
-          .leftJoin(pools, eq(pools.id, allocationPlanLines.poolId))
+          .leftJoin(envelopes, eq(envelopes.id, allocationPlanLines.envelopeId))
           .where(inArray(allocationPlanLines.planId, planIds));
       }
 
       return plans.map((plan) => ({
         ...plan,
-        lines: lines.filter((l) => l.planId === plan.id),
+        lines: lines
+          .filter((l) => l.planId === plan.id)
+          .map((l) => ({
+            ...l,
+            poolId: l.envelopeId,
+            poolName: l.envelopeName ?? "Unknown Envelope",
+          })),
       }));
-    }),
-
-
-  runAllocation: privateTenantProcedure
-    .input(
-      z.object({
-        incomeAmount: z.number().positive(),
-        incomeEventId: z.string().uuid(),
-      }).strict()
-    )
-    .mutation(async ({ input, ctx }) => {
-      requiresWriteAccess(ctx);
-      return await runAllocationCommand(
-        ctx.tenantId!,
-        ctx.appId!,
-        ctx.userId!,
-        input.incomeEventId,
-        input.incomeAmount,
-        ctx.db
-      );
     }),
 
   saveBulkAllocations: privateTenantProcedure
@@ -221,8 +207,8 @@ export const paydayRouter = {
         incomeEventId: z.string().uuid(),
         totalIncomeAmount: z.string(),
         lines: z.array(z.object({
-          poolId: z.string().uuid(),
-          categoryId: z.string().uuid().optional(),
+          envelopeId: z.string().uuid().optional(),
+          poolId: z.string().uuid().optional(),
           proposedAmount: z.string(),
           reasoning: z.string().optional(),
         }).strict()),
@@ -285,8 +271,7 @@ export const paydayRouter = {
           await tx.insert(allocationPlanLines).values(
             input.lines.map((l) => ({
               planId: plan.id,
-              poolId: l.poolId,
-              categoryId: l.categoryId || null,
+              envelopeId: (l.envelopeId || l.poolId)!,
               proposedAmount: l.proposedAmount,
               reasoning: l.reasoning || null,
               tenantId: ctx.tenantId!,
@@ -311,7 +296,7 @@ export const paydayRouter = {
     .mutation(async ({ input, ctx }) => {
       requiresWriteAccess(ctx);
       const amountNum = parseFloat(input.totalIncomeAmount);
-      const lines = await previewAllocationQuery(
+      const allocationResult = await previewAllocationQuery(
         ctx.tenantId!,
         ctx.appId!,
         input.incomeEventId,
@@ -354,13 +339,13 @@ export const paydayRouter = {
 
         await tx.delete(allocationPlanLines).where(eq(allocationPlanLines.planId, plan.id));
 
-        if (lines.length > 0) {
+        if (allocationResult.lines.length > 0) {
           await tx.insert(allocationPlanLines).values(
-            lines.map((l) => ({
+            allocationResult.lines.map((l) => ({
               planId: plan.id,
-              poolId: l.poolId,
-              categoryId: null,
+              envelopeId: l.bucketId,
               proposedAmount: l.proposedAmount.toFixed(2),
+              reasoning: l.reasoning,
               tenantId: ctx.tenantId!,
               appId: ctx.appId!,
               createdBy: ctx.userId!,
@@ -382,32 +367,21 @@ export const paydayRouter = {
         .strict()
     )
     .query(async ({ input, ctx }) => {
-      const { pools, categories, incomeEvents, expenseEvents, incomeSources, getPoolBalancesMap } = await import("@money-matters/db");
+      const { envelopes, incomeEvents, expenseEvents, incomeSources, getEnvelopeBalancesMap } = await import("@money-matters/db");
       const { computeMatrixProjection } = await import("@money-matters/capability-budgeting/engine");
 
-      const activePools = await ctx.db
+      const activeEnvelopes = await ctx.db
         .select()
-        .from(pools)
+        .from(envelopes)
         .where(
           and(
-            eq(pools.tenantId, ctx.tenantId!),
-            eq(pools.appId, ctx.appId!),
-            sql`${pools.archivedAt} IS NULL`
+            eq(envelopes.tenantId, ctx.tenantId!),
+            eq(envelopes.appId, ctx.appId!),
+            sql`${envelopes.archivedAt} IS NULL`
           )
         );
 
-      const activeCategories = await ctx.db
-        .select()
-        .from(categories)
-        .where(
-          and(
-            eq(categories.tenantId, ctx.tenantId!),
-            eq(categories.appId, ctx.appId!),
-            sql`${categories.archivedAt} IS NULL`
-          )
-        );
-
-      const balancesMap = await getPoolBalancesMap(ctx.tenantId!, ctx.appId!, ctx.db);
+      const balancesMap = await getEnvelopeBalancesMap(ctx.tenantId!, ctx.appId!, ctx.db);
 
       const now = new Date();
       const futureDate = new Date();
@@ -443,7 +417,7 @@ export const paydayRouter = {
       const dbExpenseEvents = await ctx.db
         .select({
           id: expenseEvents.id,
-          categoryId: expenseEvents.categoryId,
+          envelopeId: expenseEvents.envelopeId,
           expectedDate: expenseEvents.expectedDate,
           actualDate: expenseEvents.actualDate,
           expectedAmount: expenseEvents.expectedAmount,
@@ -463,15 +437,16 @@ export const paydayRouter = {
         )
         .orderBy(expenseEvents.expectedDate);
 
-      const engineBuckets = activePools.map((p) => ({
+      const engineBuckets = activeEnvelopes.map((p) => ({
         id: p.id,
         name: p.name,
-        type: p.poolType as "EVERYDAY" | "REGULAR" | "GOAL",
+        type: p.envelopeType,
+        envelopeType: p.envelopeType,
         targetAmount: p.targetAmount ? parseFloat(p.targetAmount) : null,
         currentBalance: balancesMap[p.id] || 0,
-        isPrivate: false,
+        isPrivate: p.isPrivate,
         isSurplusTarget: Boolean(p.isSurplusTarget),
-        userId: undefined,
+        userId: p.userId ?? undefined,
       }));
 
       const matrixIncomeEvents = dbIncomeEvents.map((evt) => ({
@@ -484,10 +459,11 @@ export const paydayRouter = {
       }));
 
       const matrixExpenseEvents = dbExpenseEvents
-        .filter((evt): evt is typeof evt & { categoryId: string } => Boolean(evt.categoryId))
+        .filter((evt): evt is typeof evt & { envelopeId: string } => Boolean(evt.envelopeId))
         .map((evt) => ({
           id: evt.id,
-          categoryId: evt.categoryId,
+          envelopeId: evt.envelopeId,
+          categoryId: evt.envelopeId,
           amount: parseFloat(evt.actualAmount || evt.expectedAmount),
           dueDate: evt.expectedDate,
           status: evt.status as "PENDING" | "CONFIRMED",
@@ -505,8 +481,9 @@ export const paydayRouter = {
         projection,
         rawIncomeEvents: dbIncomeEvents,
         rawExpenseEvents: dbExpenseEvents,
-        pools: activePools,
-        categories: activeCategories,
+        envelopes: activeEnvelopes,
+        pools: activeEnvelopes,
+        categories: [],
       };
     }),
 };

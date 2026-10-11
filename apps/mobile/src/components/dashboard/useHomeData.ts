@@ -78,12 +78,12 @@ export function useHomeData(token?: string) {
 
   const everydayBalance = parseFloat(summaryQuery.data?.everydayRemaining || '0');
   const everydayMonthlyBudget = pools
-    .filter((c) => c.poolType === 'EVERYDAY')
+    .filter((c) => c.envelopeType === 'EVERYDAY')
     .reduce((sum, c) => sum + parseFloat(c.everydayAllowanceAmount || c.targetAmount || '0'), 0);
 
   const billsBalance = parseFloat(summaryQuery.data?.billsRemaining || '0');
   const billsMonthlyBudget = pools
-    .filter((c) => c.poolType === 'REGULAR')
+    .filter((c) => c.envelopeType === 'SCHEDULED_BILL' || c.envelopeType === 'FLEXIBLE_BILL')
     .reduce((sum, c) => sum + parseFloat(c.targetAmount || '0'), 0);
 
   const upcomingIncomeList: MobileIncomeItem[] = useMemo(() => {
@@ -130,7 +130,7 @@ export function useHomeData(token?: string) {
     const expItems: AttentionItem[] = (expenseEventsQuery.data ?? [])
       .filter((e) => e.status === 'PENDING')
       .map((e) => {
-        const pool = pools.find((c) => c.id === (e.categoryId || e.poolId));
+        const pool = pools.find((c) => c.id === e.envelopeId);
         const poolBal = pool ? (typeof pool.currentBalance === 'number' ? pool.currentBalance : parseFloat(String(pool.currentBalance) || '0')) : 0;
         return {
           id: e.id,
@@ -138,7 +138,7 @@ export function useHomeData(token?: string) {
           name: e.name,
           expectedAmount: parseFloat(e.expectedAmount),
           expectedDate: e.expectedDate,
-          categoryId: e.categoryId || e.poolId,
+          categoryId: e.envelopeId,
           categoryName: pool?.name ?? t('poolTypes.bills'),
           isOverdue: new Date(e.expectedDate) < todayObj,
           categoryBalance: poolBal,
@@ -174,9 +174,9 @@ export function useHomeData(token?: string) {
     });
   }, [expenseEventsQuery.data, transferEventsQuery.data, pools, todayObj, todayStr]);
 
-  const goalsList = pools.filter((p) => p.poolType === 'GOAL');
-  const everydayPool = pools.find((p) => p.poolType === 'EVERYDAY');
-  const billsPool = pools.find((p) => p.poolType === 'REGULAR');
+  const goalsList = pools.filter((p) => p.envelopeType === 'TARGET_GOAL' || p.envelopeType === 'ONGOING_GOAL');
+  const everydayPool = pools.find((p) => p.envelopeType === 'EVERYDAY');
+  const billsPool = pools.find((p) => p.envelopeType === 'SCHEDULED_BILL' || p.envelopeType === 'FLEXIBLE_BILL');
 
   return {
     session,
@@ -189,7 +189,7 @@ export function useHomeData(token?: string) {
     everydayBalance,
     everydayMonthlyBudget,
     everydaySafetyBuffer: pools
-      .filter((c) => c.poolType === 'EVERYDAY')
+      .filter((c) => c.envelopeType === 'EVERYDAY')
       .reduce((sum, c) => sum + parseFloat(c.safetyBufferFloor || '0'), 0),
     billsBalance,
     billsMonthlyBudget,

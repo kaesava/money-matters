@@ -119,7 +119,7 @@ export function useBankAccountsList() {
     }
     if (typeFilter !== "ALL") {
       const hasMatchingPool = pools.some(
-        (p) => p.bankAccountId === acc.id && (p.id === typeFilter || p.poolType === typeFilter)
+        (p) => p.bankAccountId === acc.id && (p.id === typeFilter || p.envelopeType === typeFilter)
       );
       if (!hasMatchingPool) return false;
     }
@@ -217,7 +217,7 @@ export function useBankAccountsList() {
       .map((p) => ({
         id: p.id,
         name: p.name,
-        poolType: p.poolType,
+        poolType: p.envelopeType,
         currentBalance: p.currentBalance || 0,
       }));
 

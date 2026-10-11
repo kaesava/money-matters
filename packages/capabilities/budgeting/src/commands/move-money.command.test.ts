@@ -1,12 +1,12 @@
 import { describe, it, expect, vi } from "vitest";
-import { pools, transactionLedger } from "@money-matters/db";
+import { envelopes, transactionLedger } from "@money-matters/db";
 import { moveMoneyCommand } from "./move-money.command";
 
 vi.mock("@money-matters/db", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@money-matters/db")>();
   return {
     ...actual,
-    getPoolBalancesMap: vi.fn().mockResolvedValue({
+    getEnvelopeBalancesMap: vi.fn().mockResolvedValue({
       "pool-src": 500,
       "pool-dst": 100,
     }),
@@ -18,17 +18,17 @@ describe("moveMoneyCommand", () => {
   const appId = "00000000-0000-0000-0000-000000000002";
   const userId = "00000000-0000-0000-0000-000000000003";
 
-  it("throws if source and destination pools are identical", async () => {
+  it("throws if source and destination envelopes are identical", async () => {
     const mockDb: any = {};
     await expect(
       moveMoneyCommand(
-        { sourcePoolId: "pool-1", destinationPoolId: "pool-1", amount: "50.00" },
+        { sourceEnvelopeId: "pool-1", destinationEnvelopeId: "pool-1", amount: "50.00" },
         tenantId,
         appId,
         userId,
         mockDb
       )
-    ).rejects.toThrow("Cannot move money to the same pool.");
+    ).rejects.toThrow("Cannot move money to the same envelope.");
   });
 
   it("generates directional notes when no custom note is provided", async () => {
@@ -72,7 +72,7 @@ describe("moveMoneyCommand", () => {
     };
 
     const res = await moveMoneyCommand(
-      { sourcePoolId: "pool-src", destinationPoolId: "pool-dst", amount: "50.00" },
+      { sourceEnvelopeId: "pool-src", destinationEnvelopeId: "pool-dst", amount: "50.00" },
       tenantId,
       appId,
       userId,
@@ -82,11 +82,11 @@ describe("moveMoneyCommand", () => {
     expect(res.success).toBe(true);
     expect(insertedRows).toHaveLength(2);
     // Source pool debit
-    expect(insertedRows[0].poolId).toBe("pool-src");
+    expect(insertedRows[0].envelopeId).toBe("pool-src");
     expect(insertedRows[0].flowType).toBe("DEBIT");
     expect(insertedRows[0].note).toBe("Transfer to Holiday Savings");
     // Destination pool credit
-    expect(insertedRows[1].poolId).toBe("pool-dst");
+    expect(insertedRows[1].envelopeId).toBe("pool-dst");
     expect(insertedRows[1].flowType).toBe("CREDIT");
     expect(insertedRows[1].note).toBe("Transfer from Everyday");
   });
@@ -122,8 +122,8 @@ describe("moveMoneyCommand", () => {
 
     const res = await moveMoneyCommand(
       {
-        sourcePoolId: "pool-src",
-        destinationPoolId: "pool-dst",
+        sourceEnvelopeId: "pool-src",
+        destinationEnvelopeId: "pool-dst",
         amount: "75.00",
         note: "Top up car insurance fund",
       },

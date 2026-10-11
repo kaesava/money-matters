@@ -9,7 +9,8 @@ interface PoolSummaryCardProps {
   pool: {
     id: string;
     name: string;
-    poolType: string;
+    envelopeType?: string;
+    poolType?: string;
     currentBalance?: number | string | null;
     isSurplusTarget?: boolean | null;
   };
@@ -31,7 +32,7 @@ export function PoolSummaryCard({
       <View style={styles.header}>
         <View style={{ flex: 1 }}>
           <View style={styles.tagsRow}>
-            <Text style={styles.poolTypeTag}>{pool.poolType}</Text>
+            <Text style={styles.poolTypeTag}>{pool.envelopeType || pool.poolType}</Text>
             {pool.isSurplusTarget && (
               <View style={styles.surplusPill}>
                 <Text style={styles.surplusPillText}>{t('categories.surplusBadgeText')}</Text>

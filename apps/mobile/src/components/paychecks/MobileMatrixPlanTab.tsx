@@ -172,7 +172,7 @@ export function MobileMatrixPlanTab({ onOpenCategoryModal }: MobileMatrixPlanTab
     if (!onOpenCategoryModal) return;
     const pool = poolsData?.find((p) => p.id === poolId);
     const events = (data?.rawExpenseEvents ?? [])
-      .filter((e) => e.categoryId === poolId)
+      .filter((e) => e.envelopeId === poolId)
       .map((e) => ({
         id: e.id,
         name: e.name || poolName,
@@ -184,7 +184,7 @@ export function MobileMatrixPlanTab({ onOpenCategoryModal }: MobileMatrixPlanTab
     onOpenCategoryModal({
       poolId,
       poolName,
-      poolType: pool?.poolType,
+      poolType: pool?.envelopeType,
       currentBalance: pool?.currentBalance ?? 0,
       targetAmount: pool?.targetAmount ? parseFloat(pool.targetAmount) : undefined,
       events,

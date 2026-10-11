@@ -51,10 +51,12 @@ export function CategoryItemModal({
   const isEdit = Boolean(categoryToEdit?.id);
 
   const poolsQuery = trpc.listPools.useQuery(undefined, { enabled: visible });
+  const bankAccountsQuery = trpc.listBankAccounts.useQuery(undefined, { enabled: visible });
   const availablePools = useMemo(() => {
     return (poolsQuery.data ?? []).filter((p) => {
-      if (p.poolType === 'GOAL') return false;
-      if (limitToPoolType) return p.poolType === limitToPoolType;
+      const type = p.envelopeType;
+      if (type === 'TARGET_GOAL' || type === 'ONGOING_GOAL') return false;
+      if (limitToPoolType) return type === limitToPoolType;
       return true;
     });
   }, [poolsQuery.data, limitToPoolType]);
@@ -69,7 +71,8 @@ export function CategoryItemModal({
 
   const activePoolId = poolId || selectedPoolId;
   const activePool = availablePools.find((p) => p.id === activePoolId);
-  const isBillsPool = activePool?.poolType === 'REGULAR';
+  const isBillsPool = activePool?.envelopeType === 'SCHEDULED_BILL' || activePool?.envelopeType === 'FLEXIBLE_BILL';
+  const defaultBankAccountId = activePool?.bankAccountId || bankAccountsQuery.data?.[0]?.id || '';
 
   useEffect(() => {
     if (visible) {
@@ -93,8 +96,9 @@ export function CategoryItemModal({
     }
   }, [visible, categoryToEdit, poolId, availablePools]);
 
-  const createMut = trpc.createCategory.useMutation();
-  const updateMut = trpc.updateCategory.useMutation();
+  const createEnvelopeMut = trpc.createEnvelope.useMutation();
+  const updateEnvelopeMut = trpc.updateEnvelope.useMutation();
+  const archiveEnvelopeMut = trpc.archiveEnvelope.useMutation();
 
   const calculatedMonthly = useMemo(() => {
     const numAmt = parseFloat(enteredAmount);
@@ -131,18 +135,14 @@ export function CategoryItemModal({
       toast.error(t('categories.nameRequired'), t('common.error'));
       return;
     }
-    if (!activePoolId) {
-      toast.error(t('categories.targetPoolRequired'), t('common.error'));
-      return;
-    }
 
     const numAmt = parseFloat(enteredAmount);
 
     setSubmitting(true);
     try {
       if (isEdit && categoryToEdit?.id) {
-        await updateMut.mutateAsync({
-          categoryId: categoryToEdit.id,
+        await updateEnvelopeMut.mutateAsync({
+          envelopeId: categoryToEdit.id,
           data: {
             name: name.trim(),
             enteredAmount: !isNaN(numAmt) && numAmt > 0 ? numAmt.toFixed(2) : undefined,
@@ -153,11 +153,12 @@ export function CategoryItemModal({
           },
         });
       } else {
-        await createMut.mutateAsync({
-          poolId: activePoolId,
+        await createEnvelopeMut.mutateAsync({
           name: name.trim(),
-          enteredAmount: !isNaN(numAmt) && numAmt > 0 ? numAmt.toFixed(2) : undefined,
+          bankAccountId: defaultBankAccountId,
+          envelopeType: isBillsPool ? 'SCHEDULED_BILL' : 'EVERYDAY',
           monthlyAmount: !isNaN(parseFloat(calculatedMonthly)) && parseFloat(calculatedMonthly) > 0 ? calculatedMonthly : undefined,
+          enteredAmount: !isNaN(numAmt) && numAmt > 0 ? numAmt.toFixed(2) : undefined,
           budgetFrequency: frequency,
           startDate: isBillsPool ? startDate : undefined,
           isEssential,
@@ -165,7 +166,6 @@ export function CategoryItemModal({
       }
 
       toast.success(isEdit ? t('toasts.saved') : t('toasts.created'));
-      utils.listCategories.invalidate();
       utils.listPools.invalidate();
       utils.listBillSchedules.invalidate();
       utils.listExpenseEvents.invalidate();
@@ -188,21 +188,6 @@ export function CategoryItemModal({
     { key: 'ANNUALLY', label: t('categories.frequencyAnnually') },
   ];
 
-  const archiveMut = trpc.archiveCategory.useMutation({
-    onSuccess: () => {
-      utils.listCategories.invalidate();
-      utils.listPools.invalidate();
-      utils.listBillSchedules.invalidate();
-      utils.listExpenseEvents.invalidate();
-      toast.success(t('toasts.archived'));
-      onSuccess?.();
-      onClose();
-    },
-    onError: (err) => {
-      toast.error(err.message || t('categories.failedToArchive'));
-    },
-  });
-
   const handleArchive = () => {
     if (!categoryToEdit?.id) return;
     showMobileConfirm({
@@ -210,13 +195,23 @@ export function CategoryItemModal({
       message: t('categories.archiveCategoryConfirm', { name: categoryToEdit.name || '' }),
       confirmText: t('categories.archiveCategory'),
       isDestructive: true,
-      onConfirm: () => {
-        archiveMut.mutate({ categoryId: categoryToEdit.id! });
+      onConfirm: async () => {
+        try {
+          await archiveEnvelopeMut.mutateAsync({ envelopeId: categoryToEdit.id! });
+          utils.listPools.invalidate();
+          utils.listBillSchedules.invalidate();
+          utils.listExpenseEvents.invalidate();
+          toast.success(t('toasts.archived'));
+          onSuccess?.();
+          onClose();
+        } catch (err) {
+          toast.error(err instanceof Error ? err.message : t('categories.failedToArchive'));
+        }
       },
     });
   };
 
-  const isPending = submitting || archiveMut.isPending;
+  const isPending = submitting || archiveEnvelopeMut.isPending;
 
   return (
     <MobileModalDialog

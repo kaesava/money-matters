@@ -4,12 +4,12 @@ import { inngest } from '../inngest/client.js';
 import {
   recordExpenseCommand,
   listTransactionsQuery,
-  listCategoryTransactionsQuery,
+  listEnvelopeTransactionsQuery,
 } from "@money-matters/capability-transactions";
 import {
   RecordExpenseCommand,
   ListTransactionsQuery,
-  ListCategoryTransactionsQuery,
+  ListEnvelopeTransactionsQuery,
 } from "@money-matters/types";
 
 export const transactionsRouter = {
@@ -25,8 +25,7 @@ export const transactionsRouter = {
           data: {
             tenantId: ctx.tenantId!,
             appId: ctx.appId!,
-            poolId: input.poolId,
-            categoryId: input.categoryId,
+            envelopeId: input.envelopeId,
             amount: input.amount,
             note: input.note,
           },
@@ -41,8 +40,7 @@ export const transactionsRouter = {
           event: 'expense_recorded',
           properties: {
             tenant_id: ctx.tenantId,
-            pool_id: input.poolId,
-            category_id: input.categoryId,
+            envelope_id: input.envelopeId,
             source: input.source,
             amount: input.amount,
           },
@@ -61,15 +59,14 @@ export const transactionsRouter = {
         input.limit,
         input.offset,
         ctx.db,
-        input.categoryId,
-        input.poolId,
+        input.envelopeId,
         input.bankAccountId
       );
     }),
 
-  listCategoryTransactions: privateTenantProcedure
-    .input(ListCategoryTransactionsQuery)
+  listEnvelopeTransactions: privateTenantProcedure
+    .input(ListEnvelopeTransactionsQuery)
     .query(async ({ input, ctx }) => {
-      return await listCategoryTransactionsQuery(input.categoryId || "", ctx.tenantId!, ctx.appId!, input.limit, input.offset, ctx.db);
+      return await listEnvelopeTransactionsQuery(input.envelopeId || "", ctx.tenantId!, ctx.appId!, input.limit, input.offset, ctx.db);
     }),
 };

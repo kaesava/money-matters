@@ -1,25 +1,30 @@
+export type EnvelopeType = "EVERYDAY" | "SCHEDULED_BILL" | "FLEXIBLE_BILL" | "TARGET_GOAL" | "ONGOING_GOAL";
+
 export interface CategorySummaryItem {
   id: string;
   name: string;
-  type: "REGULAR" | "GOAL" | "EVERYDAY";
-  poolType?: "REGULAR" | "GOAL" | "EVERYDAY";
+  type?: "REGULAR" | "GOAL" | "EVERYDAY" | EnvelopeType;
+  poolType?: "REGULAR" | "GOAL" | "EVERYDAY" | EnvelopeType;
+  envelopeType: EnvelopeType;
   bankAccountId?: string | null;
   bankAccountName?: string | null;
   isPrivate?: boolean | null;
   currentBalance: string;
   monthlyAmount?: string | null;
-  everydayAllowanceAmount?: string | null;
   targetAmount?: string | null;
   targetDate?: string | null;
-  healthStatus?: string | null;
+  safetyBufferFloor?: string | null;
+  goalMode?: "TARGET_DATE" | "ONGOING" | null;
   isEssential?: boolean | null;
   isSurplusTarget?: boolean | null;
   userId?: string | null;
+  progressPercentage?: number;
 }
 
 export interface CategoryItem {
   id: string;
-  poolId: string;
+  poolId?: string;
+  envelopeId?: string;
   name: string;
   monthlyAmount?: string | null;
   enteredAmount?: string | null;
@@ -33,15 +38,17 @@ export interface CategoryItem {
 export interface PoolTableRow {
   id: string;
   name: string;
-  poolType: "EVERYDAY" | "REGULAR" | "GOAL";
+  poolType?: "EVERYDAY" | "REGULAR" | "GOAL" | EnvelopeType;
+  envelopeType: EnvelopeType;
   bankAccountId?: string | null;
   bankAccountName?: string | null;
   isPrivate?: boolean | null;
   currentBalance: number;
   targetAmount: number | null;
   targetDate: string | null;
-  categoryCount: number;
-  categories: CategoryItem[];
+  safetyBufferFloor?: number | null;
+  categoryCount?: number;
+  categories?: CategoryItem[];
   progressText: string;
   progressPercentage?: number | null;
   rawPool: CategorySummaryItem;

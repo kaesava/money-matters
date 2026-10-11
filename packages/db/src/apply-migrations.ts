@@ -6,6 +6,7 @@ import dotenv from "dotenv";
 const MIGRATIONS_TO_RUN = [
   "0028_unify_bill_categories_and_schedules.sql",
   "0029_add_goal_recurrence_to_pools.sql",
+  "0030_unified_flat_envelopes.sql",
 ];
 
 async function applyFiles(client: Client): Promise<void> {

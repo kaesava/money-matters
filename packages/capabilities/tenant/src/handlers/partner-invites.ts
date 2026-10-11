@@ -1,4 +1,4 @@
-import { tenantUsers, bankAccounts, pools, tenants, DbOrTx } from "@money-matters/db";
+import { tenantUsers, bankAccounts, envelopes, tenants, DbOrTx } from "@money-matters/db";
 import { eq, and, sql } from "drizzle-orm";
 import { ensurePremiumAccess } from "@money-matters/core";
 
@@ -123,11 +123,11 @@ export function acceptInviteHandler(db: DbOrTx) {
         })
         .returning();
 
-      await db.insert(pools).values({
+      await db.insert(envelopes).values({
         tenantId: updated.tenantId,
         appId: tenant.appId,
-        name: "Personal Everyday Pool",
-        poolType: "EVERYDAY",
+        name: "Personal Everyday Envelope",
+        envelopeType: "EVERYDAY",
         bankAccountId: partnerAcc.id,
         everydayAllowanceAmount: "200.00",
         createdBy: userId,

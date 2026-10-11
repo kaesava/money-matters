@@ -25,7 +25,8 @@ export interface MobileReconciliationModalProps {
     linkedPools?: Array<{
       id: string;
       name: string;
-      poolType: string;
+      envelopeType?: string;
+      poolType?: string;
       currentBalance: string | number;
       isSurplusTarget?: boolean | null;
     }>;

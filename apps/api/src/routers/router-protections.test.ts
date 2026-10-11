@@ -11,17 +11,17 @@ describe("Router protections & procedure sanity checks", () => {
     expect(tenantRouter.getTenantStatus).toBeDefined();
   });
 
-  it("exports budgetingRouter with required pool and category procedures", () => {
+  it("exports budgetingRouter with required envelope procedures and pool aliases", () => {
     expect(budgetingRouter).toBeDefined();
+    expect(budgetingRouter.createEnvelope).toBeDefined();
+    expect(budgetingRouter.updateEnvelope).toBeDefined();
+    expect(budgetingRouter.archiveEnvelope).toBeDefined();
+    expect(budgetingRouter.listEnvelopes).toBeDefined();
     expect(budgetingRouter.createPool).toBeDefined();
     expect(budgetingRouter.updatePool).toBeDefined();
     expect(budgetingRouter.archivePool).toBeDefined();
     expect(budgetingRouter.listPools).toBeDefined();
     expect(budgetingRouter.moveMoney).toBeDefined();
-    expect(budgetingRouter.createCategory).toBeDefined();
-    expect(budgetingRouter.updateCategory).toBeDefined();
-    expect(budgetingRouter.archiveCategory).toBeDefined();
-    expect(budgetingRouter.listCategories).toBeDefined();
   });
 
   it("exports transfersRouter with required transfer procedures", () => {
@@ -29,7 +29,6 @@ describe("Router protections & procedure sanity checks", () => {
     expect(transfersRouter.listTransferEvents).toBeDefined();
     expect(transfersRouter.createTransferSource).toBeDefined();
     expect(transfersRouter.deleteTransferEvent).toBeDefined();
-    expect(transfersRouter.skipTransferEvent).toBeDefined();
     expect(transfersRouter.executeTransferEvent).toBeDefined();
   });
 

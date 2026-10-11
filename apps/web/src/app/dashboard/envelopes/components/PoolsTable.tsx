@@ -287,7 +287,7 @@ export function PoolsTable({
                       group.items.map((pool) => {
                         const isPoolExpanded = Boolean(expandedPools[pool.id]);
                         const isGoal = pool.poolType === "GOAL";
-                        const hasCategories = !isGoal && pool.categories.length > 0;
+                        const hasCategories = !isGoal && (pool.categories?.length ?? 0) > 0;
 
                         return (
                           <React.Fragment key={pool.id}>
@@ -334,7 +334,7 @@ export function PoolsTable({
 
                                   {!isGoal && (
                                     <span className="text-[10px] font-bold text-zinc-400">
-                                      ({pool.categories.length})
+                                      ({pool.categories?.length ?? 0})
                                     </span>
                                   )}
 
@@ -432,7 +432,7 @@ export function PoolsTable({
                             {/* LEVEL 3: CATEGORY ROWS */}
                             {isPoolExpanded &&
                               hasCategories &&
-                              pool.categories.map((cat) => (
+                              pool.categories?.map((cat) => (
                                 <tr key={cat.id} className="bg-slate-50/50 hover:bg-slate-100/60 transition-colors">
                                   {/* Level 3 Name */}
                                   <td className="py-2 px-4 pl-14">

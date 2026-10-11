@@ -24,18 +24,18 @@ export function useIncomeExpenseMutations({
   const updateIncomeMut = trpc.updateIncomeSource.useMutation();
   const archiveIncomeMut = trpc.archiveIncomeSource.useMutation();
 
-  const createCategoryMut = trpc.createCategory.useMutation();
-  const updateCategoryMut = trpc.updateCategory.useMutation();
-  const archiveCategoryMut = trpc.archiveCategory.useMutation();
+  const createEnvelopeMut = trpc.createEnvelope.useMutation();
+  const updateEnvelopeMut = trpc.updateEnvelope.useMutation();
+  const archiveEnvelopeMut = trpc.archiveEnvelope.useMutation();
   const createOneOffExpenseMut = trpc.createOneOffExpense.useMutation();
 
   const isPending =
     createIncomeMut.isPending ||
     updateIncomeMut.isPending ||
     archiveIncomeMut.isPending ||
-    createCategoryMut.isPending ||
-    updateCategoryMut.isPending ||
-    archiveCategoryMut.isPending ||
+    createEnvelopeMut.isPending ||
+    updateEnvelopeMut.isPending ||
+    archiveEnvelopeMut.isPending ||
     createOneOffExpenseMut.isPending;
 
   const handleArchive = () => {
@@ -56,7 +56,7 @@ export function useIncomeExpenseMutations({
           if (mode === 'INCOME') {
             await archiveIncomeMut.mutateAsync({ id: sourceToEdit.id });
           } else {
-            await archiveCategoryMut.mutateAsync({ categoryId: sourceToEdit.id });
+            await archiveEnvelopeMut.mutateAsync({ envelopeId: sourceToEdit.id });
           }
           toast.success(t('toasts.archived'));
           onSuccess?.();
@@ -118,18 +118,16 @@ export function useIncomeExpenseMutations({
           await createOneOffExpenseMut.mutateAsync({
             name: params.name.trim(),
             amount: formattedAmount,
-            poolId: params.poolId,
-            categoryId: params.categoryId || undefined,
+            envelopeId: params.poolId,
             expectedDate: params.startDate || new Date().toISOString().slice(0, 10),
           });
           toast.success('One-off expense saved to Upcoming Timeline.');
         } else if (isEdit && sourceToEdit) {
-          await updateCategoryMut.mutateAsync({
-            categoryId: sourceToEdit.id,
+          await updateEnvelopeMut.mutateAsync({
+            envelopeId: sourceToEdit.id,
             data: {
               name: params.name.trim(),
-              enteredAmount: formattedAmount,
-              monthlyAmount: formattedAmount,
+              targetAmount: formattedAmount,
               budgetFrequency: params.frequency || 'MONTHLY',
               startDate: params.startDate || undefined,
               endDate: params.endDate || undefined,
@@ -137,11 +135,11 @@ export function useIncomeExpenseMutations({
           });
           toast.success('Expense schedule updated successfully.');
         } else {
-          await createCategoryMut.mutateAsync({
+          await createEnvelopeMut.mutateAsync({
             name: params.name.trim(),
-            poolId: params.poolId,
-            enteredAmount: formattedAmount,
-            monthlyAmount: formattedAmount,
+            envelopeType: 'SCHEDULED_BILL',
+            bankAccountId: params.poolId,
+            targetAmount: formattedAmount,
             budgetFrequency: params.frequency || 'MONTHLY',
             startDate: params.startDate || undefined,
             endDate: params.endDate || undefined,

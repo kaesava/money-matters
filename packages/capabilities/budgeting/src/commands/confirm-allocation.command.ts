@@ -7,8 +7,7 @@ export const ConfirmAllocationInput = z.object({
   incomeAmount: z.number().positive(),
   lines: z.array(
     z.object({
-      poolId: z.string().uuid(),
-      categoryId: z.string().uuid().optional(),
+      envelopeId: z.string().uuid(),
       confirmedAmount: z.string().regex(/^\d+(\.\d{1,2})?$/),
       reasoning: z.string().optional(),
     }).strict()
@@ -44,8 +43,7 @@ export async function confirmAllocationCommand(
       tenantId,
       appId,
       planId: plan.id,
-      poolId: line.poolId,
-      categoryId: line.categoryId,
+      envelopeId: line.envelopeId,
       proposedAmount: line.confirmedAmount,
       confirmedAmount: line.confirmedAmount,
       reasoning: line.reasoning || "Income Split",
@@ -67,8 +65,7 @@ export async function confirmAllocationCommand(
         ledgerEntriesToInsert.push({
           tenantId,
           appId,
-          poolId: line.poolId,
-          categoryId: line.categoryId,
+          envelopeId: line.envelopeId,
           planLineId: insertedLine.id,
           flowType: "CREDIT" as const,
           transactionType: "INCOME_SPLIT" as const,
@@ -86,7 +83,7 @@ export async function confirmAllocationCommand(
       await tx.insert(transactionLedger).values(ledgerEntriesToInsert);
     }
 
-    // 3. Mark income event as CONFIRMED with actualAmount (do not overwrite expectedAmount or expectedDate)
+    // 3. Mark income event as CONFIRMED with actualAmount
     await tx
       .update(incomeEvents)
       .set({

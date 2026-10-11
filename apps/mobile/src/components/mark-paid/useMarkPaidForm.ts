@@ -71,7 +71,7 @@ export function useMarkPaidForm(
   const groupedPools = useMemo(() => {
     const map: Record<string, FundingPoolItem[]> = {};
     for (const p of validFundingPools) {
-      const k = p.poolType || 'OTHER';
+      const k = p.envelopeType || 'OTHER';
       if (!map[k]) map[k] = [];
       map[k].push(p);
     }
@@ -133,7 +133,12 @@ export function useMarkPaidForm(
     try {
       if (hasShortfall && currentPool) {
         const transfers = Object.entries(transferAmounts)
-          .map(([pId, amt]) => ({ sourcePoolId: pId, destinationPoolId: currentPool.id, amount: parseFloat(amt || '0').toFixed(2), note: 'Shortfall Top Up' }))
+          .map(([pId, amt]) => ({
+            sourceEnvelopeId: pId,
+            destinationEnvelopeId: currentPool.id,
+            amount: parseFloat(amt || '0').toFixed(2),
+            note: 'Shortfall Top Up',
+          }))
           .filter((t) => parseFloat(t.amount) > 0);
         if (transfers.length > 0) await Promise.all(transfers.map((t) => moveMoneyMut.mutateAsync(t)));
       }

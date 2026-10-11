@@ -81,7 +81,7 @@ for (const file of schemaFiles) {
   totalTables++;
 
   // Extract column definitions: e.g. "  columnName: text("..."
-  const columnRegex = /^\s+([a-zA-Z0-9_]+):\s*(?:text|varchar|integer|numeric|boolean|timestamp|date|uuid|jsonb|pgEnum|poolTypeEnum|flowTypeEnum|roleEnum)\s*\(/gm;
+  const columnRegex = /^\s+([a-zA-Z0-9_]+):\s*(?:text|varchar|integer|numeric|boolean|timestamp|date|uuid|jsonb|pgEnum|\w+Enum)\s*\(/gm;
   let colMatch;
   const columns = [];
 

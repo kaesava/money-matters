@@ -31,23 +31,17 @@ export default function PoolProjectionScreen() {
   const bankAccountsQuery = trpc.listBankAccounts.useQuery(undefined, {
     enabled: !!session?.user,
   });
-  const categoriesQuery = trpc.listCategories.useQuery(undefined, {
-    enabled: !!session?.user,
-  });
   const projectedBalancesQuery = trpc.getProjectedPoolBalances.useQuery(undefined, {
     enabled: !!session?.user,
   });
-
   const pools = poolsQuery.data ?? [];
   const bankAccounts = bankAccountsQuery.data ?? [];
-  const categories = categoriesQuery.data ?? [];
 
   const onRefresh = async () => {
     setRefreshing(true);
     await Promise.all([
       poolsQuery.refetch(),
       bankAccountsQuery.refetch(),
-      categoriesQuery.refetch(),
       projectedBalancesQuery.refetch(),
     ]);
     setRefreshing(false);
@@ -63,7 +57,8 @@ export default function PoolProjectionScreen() {
         const colIndex = Math.min(selectedHorizon - 1, cols.length - 1);
         const col = cols[colIndex];
         if (col) {
-          const bal = projectedBalancesQuery.data.poolBalances[poolId]?.[col.id];
+          const pb = (projectedBalancesQuery.data as unknown as { envelopeBalances?: Record<string, Record<string, number>>; poolBalances?: Record<string, Record<string, number>> });
+          const bal = (pb.envelopeBalances || pb.poolBalances)?.[poolId]?.[col.id];
           if (typeof bal === 'number') return bal;
         }
       }
@@ -71,9 +66,9 @@ export default function PoolProjectionScreen() {
     return currentBalance;
   };
 
-  const everydayPools = pools.filter((p) => p.poolType === 'EVERYDAY');
-  const billsPools = pools.filter((p) => p.poolType === 'REGULAR');
-  const goalPools = pools.filter((p) => p.poolType === 'GOAL');
+  const everydayPools = pools.filter((p) => p.envelopeType === 'EVERYDAY');
+  const billsPools = pools.filter((p) => p.envelopeType === 'SCHEDULED_BILL' || p.envelopeType === 'FLEXIBLE_BILL');
+  const goalPools = pools.filter((p) => p.envelopeType === 'TARGET_GOAL' || p.envelopeType === 'ONGOING_GOAL');
 
   return (
     <MobileScreenWrapper
@@ -113,7 +108,6 @@ export default function PoolProjectionScreen() {
               pools={everydayPools}
               getBankForPool={getBankForPool}
               getPoolBalance={getPoolBalance}
-              categories={categories}
             />
 
             <ProjectionPoolGroupSection
@@ -121,7 +115,6 @@ export default function PoolProjectionScreen() {
               pools={billsPools}
               getBankForPool={getBankForPool}
               getPoolBalance={getPoolBalance}
-              categories={categories}
             />
 
             <ProjectionPoolGroupSection
@@ -129,7 +122,6 @@ export default function PoolProjectionScreen() {
               pools={goalPools}
               getBankForPool={getBankForPool}
               getPoolBalance={getPoolBalance}
-              categories={categories}
               isGoal
             />
           </View>

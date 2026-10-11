@@ -1,14 +1,14 @@
 import { describe, it, expect, vi } from "vitest";
 import { saveSetupBudgetHandler } from "./save-setup-budget.command";
-import { pools, categories, bankAccounts, incomeSources, expenseEvents, incomeEvents, transactionLedger, tenants } from "@money-matters/db";
+import { envelopes, bankAccounts, incomeSources, expenseEvents, incomeEvents, transactionLedger, tenants } from "@money-matters/db";
 
 vi.mock("@money-matters/db", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@money-matters/db")>();
   return {
     ...actual,
-    getPoolBalancesMap: vi.fn().mockImplementation(async () => ({
-      "pool-holiday": 1200,
-      "pool-zero": 0,
+    getEnvelopeBalancesMap: vi.fn().mockImplementation(async () => ({
+      "env-holiday": 1200,
+      "env-zero": 0,
     })),
   };
 });
@@ -23,8 +23,7 @@ describe("saveSetupBudgetHandler", () => {
 
   const createMockDb = (existingData?: {
     accounts?: any[];
-    pools?: any[];
-    categories?: any[];
+    envelopes?: any[];
     incomes?: any[];
     expenseSources?: any[];
     prefs?: any[];
@@ -37,8 +36,7 @@ describe("saveSetupBudgetHandler", () => {
         from: vi.fn().mockImplementation((table: any) => ({
           where: vi.fn().mockImplementation(() => {
             if (table === bankAccounts) return Promise.resolve(existingData?.accounts || []);
-            if (table === pools) return Promise.resolve(existingData?.pools || []);
-            if (table === categories) return Promise.resolve(existingData?.categories || []);
+            if (table === envelopes) return Promise.resolve(existingData?.envelopes || []);
             if (table === incomeSources) return Promise.resolve(existingData?.incomes || []);
             if (table === expenseEvents) return Promise.resolve(existingData?.expenseSources || []);
             return Promise.resolve(existingData?.prefs || []);
@@ -53,10 +51,8 @@ describe("saveSetupBudgetHandler", () => {
             insertedRows["transaction_ledger"] = items;
           } else if (table === bankAccounts) {
             insertedRows["bank_accounts"] = items;
-          } else if (table === pools) {
-            insertedRows["pools"] = items;
-          } else if (table === categories) {
-            insertedRows["categories"] = items;
+          } else if (table === envelopes) {
+            insertedRows["envelopes"] = items;
           } else if (table === incomeSources) {
             insertedRows["income_sources"] = items;
           } else if (table === incomeEvents) {
@@ -90,23 +86,18 @@ describe("saveSetupBudgetHandler", () => {
     const result = await handler(
       {
         incomes: [
-          { name: "Salary", type: "SALARY", amount: "3200.00", frequency: "FORTNIGHTLY" },
+          { name: "Salary", type: "SALARY", amount: "3200.00", frequency: "FORTNIGHTLY", incomeType: "SALARIED" },
         ],
         bankAccounts: [
           { name: "Everyday Card", bankProvider: "CBA", lastKnownBalance: "1000.00", unbudgetedBuffer: "0.00", isPrivate: false },
           { name: "Bills Account", bankProvider: "CBA", lastKnownBalance: "2500.00", unbudgetedBuffer: "0.00", isPrivate: false },
         ],
-        pools: [
-          { name: "Everyday Spending", poolType: "EVERYDAY", everydayAllowanceAmount: "600.00", isSurplusTarget: false, isCommitted: false, isPrivate: false },
-          { name: "Regular Bills", poolType: "REGULAR", isSurplusTarget: false, isCommitted: false, isPrivate: false },
-          { name: "Emergency Reserve", poolType: "GOAL", targetAmount: "10000.00", isSurplusTarget: true, isCommitted: true, isPrivate: false },
+        envelopes: [
+          { name: "Everyday Spending", envelopeType: "EVERYDAY", everydayAllowanceAmount: "600.00", isSurplusTarget: false, isCommitted: false, isPrivate: false, orderIndex: 0 },
+          { name: "Electricity", envelopeType: "SCHEDULED_BILL", monthlyAmount: "150.00", enteredAmount: "150.00", budgetFrequency: "MONTHLY", isSurplusTarget: false, isCommitted: true, isPrivate: false, orderIndex: 1 },
+          { name: "Emergency Reserve", envelopeType: "ONGOING_GOAL", targetAmount: "10000.00", isSurplusTarget: true, isCommitted: true, isPrivate: false, orderIndex: 2 },
         ],
-        categories: [
-          { name: "Groceries", poolType: "EVERYDAY", monthlyAmount: "600.00", icon: "shopping-cart", budgetFrequency: "MONTHLY", isEssential: true },
-          { name: "Electricity", poolType: "REGULAR", monthlyAmount: "150.00", icon: "zap", budgetFrequency: "MONTHLY", isEssential: true },
-        ],
-        archivedPools: [],
-        archivedCategoryIds: [],
+        archivedEnvelopeIds: [],
         archetypeApplied: "AUSSIE_2_ACCOUNT",
       },
       appId,
@@ -117,8 +108,7 @@ describe("saveSetupBudgetHandler", () => {
     expect(result.success).toBe(true);
     expect(result.persistedCounts.incomes).toBe(1);
     expect(result.persistedCounts.bankAccounts).toBe(2);
-    expect(result.persistedCounts.pools).toBe(3);
-    expect(result.persistedCounts.categories).toBe(2);
+    expect(result.persistedCounts.envelopes).toBe(3);
     expect(result.persistedCounts.expenseSources).toBe(12);
     expect(insertedRows["expense_events"]).toHaveLength(12);
     expect(insertedRows["income_events"]).toHaveLength(27);
@@ -132,12 +122,10 @@ describe("saveSetupBudgetHandler", () => {
 
     const result = await handler(
       {
-        incomes: [{ name: "Salary", type: "SALARY", amount: "3200.00", frequency: "FORTNIGHTLY" }],
+        incomes: [{ name: "Salary", type: "SALARY", amount: "3200.00", frequency: "FORTNIGHTLY", incomeType: "SALARIED" }],
         bankAccounts: [{ name: "Main", bankProvider: "CBA", lastKnownBalance: "1000.00", unbudgetedBuffer: "0.00", isPrivate: false }],
-        pools: [{ name: "Regular Bills", poolType: "REGULAR", isSurplusTarget: false, isCommitted: false, isPrivate: false }],
-        categories: [{ name: "Electricity", poolType: "REGULAR", monthlyAmount: "150.00", icon: "zap", budgetFrequency: "MONTHLY", isEssential: true }],
-        archivedPools: [],
-        archivedCategoryIds: [],
+        envelopes: [{ name: "Electricity", envelopeType: "SCHEDULED_BILL", monthlyAmount: "150.00", enteredAmount: "150.00", budgetFrequency: "MONTHLY", isSurplusTarget: false, isCommitted: false, isPrivate: false, orderIndex: 0 }],
+        archivedEnvelopeIds: [],
         autoCreateExpenseSchedules: false,
       },
       appId,
@@ -151,26 +139,23 @@ describe("saveSetupBudgetHandler", () => {
   });
 
   it("enforces Strict Add-Only during re-setup without duplicating or altering existing schedules", async () => {
-    const existingCatId = "00000000-0000-0000-0000-000000000010";
+    const existingEnvId = "00000000-0000-0000-0000-000000000010";
 
     const mockDb = createMockDb({
-      categories: [{ id: existingCatId, name: "Electricity", poolType: "REGULAR", monthlyAmount: "150.00" }],
-      expenseSources: [{ id: "evt-1", categoryId: existingCatId }],
+      envelopes: [{ id: existingEnvId, name: "Electricity", envelopeType: "SCHEDULED_BILL", monthlyAmount: "150.00" }],
+      expenseSources: [{ id: "evt-1", envelopeId: existingEnvId }],
     });
     const handler = saveSetupBudgetHandler(mockDb);
 
-    // Re-setup: Electricity (existing) amount changed, plus Gas (newly added)
     const result = await handler(
       {
-        incomes: [{ name: "Salary", type: "SALARY", amount: "3200.00", frequency: "FORTNIGHTLY" }],
+        incomes: [{ name: "Salary", type: "SALARY", amount: "3200.00", frequency: "FORTNIGHTLY", incomeType: "SALARIED" }],
         bankAccounts: [{ name: "Main", bankProvider: "CBA", lastKnownBalance: "1000.00", unbudgetedBuffer: "0.00", isPrivate: false }],
-        pools: [{ name: "Regular Bills", poolType: "REGULAR", isSurplusTarget: false, isCommitted: false, isPrivate: false }],
-        categories: [
-          { id: existingCatId, name: "Electricity", poolType: "REGULAR", monthlyAmount: "180.00", icon: "zap", budgetFrequency: "MONTHLY", isEssential: true },
-          { name: "Gas", poolType: "REGULAR", monthlyAmount: "60.00", icon: "flame", budgetFrequency: "MONTHLY", isEssential: true },
+        envelopes: [
+          { id: existingEnvId, name: "Electricity", envelopeType: "SCHEDULED_BILL", monthlyAmount: "180.00", enteredAmount: "180.00", budgetFrequency: "MONTHLY", isSurplusTarget: false, isCommitted: false, isPrivate: false, orderIndex: 0 },
+          { name: "Gas", envelopeType: "SCHEDULED_BILL", monthlyAmount: "60.00", enteredAmount: "60.00", budgetFrequency: "MONTHLY", isSurplusTarget: false, isCommitted: false, isPrivate: false, orderIndex: 1 },
         ],
-        archivedPools: [],
-        archivedCategoryIds: [],
+        archivedEnvelopeIds: [],
         autoCreateExpenseSchedules: true,
       },
       appId,
@@ -179,56 +164,51 @@ describe("saveSetupBudgetHandler", () => {
     );
 
     expect(result.success).toBe(true);
-    // Only Gas should be newly created (12 events burst)
     expect(result.persistedCounts.expenseSources).toBe(12);
     expect(insertedRows["expense_events"]).toHaveLength(12);
     expect(insertedRows["expense_events"][0].name).toBe("Gas");
   });
 
-  it("prevents archiving the EVERYDAY pool", async () => {
+  it("prevents archiving the EVERYDAY envelope", async () => {
     const mockDb = createMockDb({
-      pools: [{ id: "pool-everyday", name: "Everyday Spending", poolType: "EVERYDAY" }],
+      envelopes: [{ id: "env-everyday", name: "Everyday Spending", envelopeType: "EVERYDAY", isPrivate: false }],
     });
     const handler = saveSetupBudgetHandler(mockDb);
 
     await expect(
       handler(
         {
-          incomes: [{ name: "Salary", type: "SALARY", amount: "3000.00", frequency: "MONTHLY" }],
+          incomes: [{ name: "Salary", type: "SALARY", amount: "3000.00", frequency: "MONTHLY", incomeType: "SALARIED" }],
           bankAccounts: [{ name: "Account", bankProvider: "CBA", lastKnownBalance: "500.00", unbudgetedBuffer: "0.00", isPrivate: false }],
-          pools: [{ id: "pool-everyday", name: "Everyday Spending", poolType: "EVERYDAY", isSurplusTarget: false, isCommitted: false, isPrivate: false }],
-          categories: [],
-          archivedPools: [{ poolId: "pool-everyday" }],
-          archivedCategoryIds: [],
+          envelopes: [{ id: "env-everyday", name: "Everyday Spending", envelopeType: "EVERYDAY", isSurplusTarget: false, isCommitted: false, isPrivate: false, orderIndex: 0 }],
+          archivedEnvelopeIds: ["env-everyday"],
         },
         appId,
         userId,
         tenantId
       )
-    ).rejects.toThrow("The default Everyday pool cannot be deleted or archived.");
+    ).rejects.toThrow("The default Everyday envelope cannot be deleted or archived.");
   });
 
-  it("executes an atomic balance sweep when archiving a pool with positive balance", async () => {
+  it("executes an atomic balance sweep when archiving an envelope with positive balance", async () => {
     const mockDb = createMockDb({
-      pools: [
-        { id: "pool-everyday", name: "Everyday Spending", poolType: "EVERYDAY" },
-        { id: "pool-emergency", name: "Emergency Reserve", poolType: "GOAL", isSurplusTarget: true },
-        { id: "pool-holiday", name: "Holiday Fund", poolType: "GOAL" },
+      envelopes: [
+        { id: "env-everyday", name: "Everyday Spending", envelopeType: "EVERYDAY" },
+        { id: "env-emergency", name: "Emergency Reserve", envelopeType: "ONGOING_GOAL", isSurplusTarget: true },
+        { id: "env-holiday", name: "Holiday Fund", envelopeType: "TARGET_GOAL" },
       ],
     });
     const handler = saveSetupBudgetHandler(mockDb);
 
     const result = await handler(
       {
-        incomes: [{ name: "Salary", type: "SALARY", amount: "3000.00", frequency: "MONTHLY" }],
+        incomes: [{ name: "Salary", type: "SALARY", amount: "3000.00", frequency: "MONTHLY", incomeType: "SALARIED" }],
         bankAccounts: [{ name: "Account", bankProvider: "CBA", lastKnownBalance: "500.00", unbudgetedBuffer: "0.00", isPrivate: false }],
-        pools: [
-          { id: "pool-everyday", name: "Everyday Spending", poolType: "EVERYDAY", isSurplusTarget: false, isCommitted: false, isPrivate: false },
-          { id: "pool-emergency", name: "Emergency Reserve", poolType: "GOAL", isSurplusTarget: true, isCommitted: true, isPrivate: false },
+        envelopes: [
+          { id: "env-everyday", name: "Everyday Spending", envelopeType: "EVERYDAY", isSurplusTarget: false, isCommitted: false, isPrivate: false, orderIndex: 0 },
+          { id: "env-emergency", name: "Emergency Reserve", envelopeType: "ONGOING_GOAL", isSurplusTarget: true, isCommitted: true, isPrivate: false, orderIndex: 1 },
         ],
-        categories: [],
-        archivedPools: [{ poolId: "pool-holiday", sweepDestinationPoolId: "pool-emergency" }],
-        archivedCategoryIds: [],
+        archivedEnvelopeIds: ["env-holiday"],
       },
       appId,
       userId,
@@ -236,15 +216,14 @@ describe("saveSetupBudgetHandler", () => {
     );
 
     expect(result.success).toBe(true);
-    expect(result.persistedCounts.sweptPools).toBe(1);
+    expect(result.persistedCounts.sweptEnvelopes).toBe(1);
     expect(result.persistedCounts.sweptTotalAmount).toBe(1200);
 
-    // Verify ledger transactions were created for the sweep
     const ledgerInserts = insertedRows["transaction_ledger"] || [];
     expect(ledgerInserts).toHaveLength(2);
     expect(ledgerInserts[0].flowType).toBe("DEBIT");
     expect(ledgerInserts[0].amount).toBe("1200.00");
     expect(ledgerInserts[1].flowType).toBe("CREDIT");
-    expect(ledgerInserts[1].poolId).toBe("pool-emergency");
+    expect(ledgerInserts[1].envelopeId).toBe("env-emergency");
   });
 });

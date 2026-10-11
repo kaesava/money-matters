@@ -4,10 +4,8 @@ import {
   UpdateTenantCommand,
   CreateBankAccountCommand,
   UpdateBankAccountCommand,
-  CreatePoolCommand,
-  UpdatePoolCommand,
-  CreateCategoryCommand,
-  UpdateCategoryCommand,
+  CreateEnvelopeCommand,
+  UpdateEnvelopeCommand,
   CreateIncomeSourceCommand,
   UpdateIncomeSourceCommand,
   CreateIncomeSourceScheduleCommand,
@@ -46,34 +44,19 @@ describe('Command Schemas Validation', () => {
     expect(updateBank.lastKnownBalance).toBe('1500.25');
   });
 
-  it('validates CreatePoolCommand and UpdatePoolCommand', () => {
-    const poolCmd = CreatePoolCommand.parse({
+  it('validates CreateEnvelopeCommand and UpdateEnvelopeCommand', () => {
+    const envCmd = CreateEnvelopeCommand.parse({
       name: 'Joint Bills',
-      poolType: 'REGULAR',
+      envelopeType: 'SCHEDULED_BILL',
       bankAccountId: '11111111-1111-4111-8111-111111111111',
     });
-    expect(poolCmd.poolType).toBe('REGULAR');
+    expect(envCmd.envelopeType).toBe('SCHEDULED_BILL');
 
-    const updatePool = UpdatePoolCommand.parse({
+    const updateEnv = UpdateEnvelopeCommand.parse({
       isCommitted: true,
       targetAmount: '300.00',
     });
-    expect(updatePool.isCommitted).toBe(true);
-  });
-
-  it('validates CreateCategoryCommand and UpdateCategoryCommand', () => {
-    const catCmd = CreateCategoryCommand.parse({
-      poolId: '11111111-1111-4111-8111-111111111111',
-      name: 'Groceries',
-      icon: 'shopping-cart',
-    });
-    expect(catCmd.name).toBe('Groceries');
-
-    const updateCat = UpdateCategoryCommand.parse({
-      isEssential: true,
-      monthlyAmount: '300.00',
-    });
-    expect(updateCat.isEssential).toBe(true);
+    expect(updateEnv.isCommitted).toBe(true);
   });
 
   it('validates CreateIncomeSourceCommand and UpdateIncomeSourceCommand', () => {
@@ -105,15 +88,15 @@ describe('Command Schemas Validation', () => {
 
   it('validates RecordExpenseCommand and MoveMoneyCommand', () => {
     const expense = RecordExpenseCommand.parse({
-      poolId: '11111111-1111-4111-8111-111111111111',
+      envelopeId: '11111111-1111-4111-8111-111111111111',
       amount: '50.00',
     });
     expect(expense.flowType).toBe('DEBIT');
     expect(expense.source).toBe('MANUAL');
 
     const move = MoveMoneyCommand.parse({
-      sourcePoolId: '11111111-1111-4111-8111-111111111111',
-      destinationPoolId: '22222222-2222-4222-8222-222222222222',
+      sourceEnvelopeId: '11111111-1111-4111-8111-111111111111',
+      destinationEnvelopeId: '22222222-2222-4222-8222-222222222222',
       amount: '100.00',
     });
     expect(move.amount).toBe('100.00');
@@ -158,7 +141,7 @@ describe('Command Schemas Validation', () => {
       actualAmount: '500.00',
       lines: [
         {
-          poolId: '22222222-2222-4222-8222-222222222222',
+          envelopeId: '22222222-2222-4222-8222-222222222222',
           amount: '500.00',
         },
       ],
@@ -177,11 +160,10 @@ describe('Command Schemas Validation', () => {
       ConfirmPaydayCommand.parse({
         incomeEventId: '11111111-1111-4111-8111-111111111111',
         actualAmount: '500.00',
-        lines: [{ poolId: '22222222-2222-4222-8222-222222222222', amount: '100.00' }],
+        lines: [{ envelopeId: '22222222-2222-4222-8222-222222222222', amount: '100.00' }],
       })
     ).toThrow();
   });
-
 
   it('validates InvitePartnerCommand, AcceptInviteCommand, SyncLedgerMutationCommand, and WaterfallExecutionPayload', () => {
     const invite = InvitePartnerCommand.parse({ email: 'partner@example.com' });
@@ -197,7 +179,7 @@ describe('Command Schemas Validation', () => {
       clientMutationId: '11111111-1111-4111-8111-111111111111',
       idempotencyKey: 'mut-12345',
       clientTimestamp: '2026-07-26T00:00:00.000Z',
-      poolId: '22222222-2222-4222-8222-222222222222',
+      envelopeId: '22222222-2222-4222-8222-222222222222',
       amount: '45.50',
       flowType: 'DEBIT',
     });
@@ -221,14 +203,11 @@ describe('Command Schemas Validation', () => {
       bankAccounts: [
         { name: 'Everyday Account', bankProvider: 'CBA', lastKnownBalance: '800.00' },
       ],
-      pools: [
-        { name: 'Everyday Spending', poolType: 'EVERYDAY', everydayAllowanceAmount: '800.00' },
+      envelopes: [
+        { name: 'Everyday Spending', envelopeType: 'EVERYDAY', everydayAllowanceAmount: '800.00' },
+        { name: 'Groceries', envelopeType: 'FLEXIBLE_BILL', monthlyAmount: '600.00', icon: 'shopping-cart' },
       ],
-      categories: [
-        { name: 'Groceries', poolType: 'EVERYDAY', monthlyAmount: '600.00', icon: 'shopping-cart' },
-      ],
-      archivedPools: [],
-      archivedCategoryIds: [],
+      archivedEnvelopeIds: [],
       archetypeApplied: 'AUSSIE_2_ACCOUNT',
     });
     expect(valid.incomes).toHaveLength(1);
@@ -239,8 +218,7 @@ describe('Command Schemas Validation', () => {
       SaveSetupBudgetCommand.parse({
         incomes: [],
         bankAccounts: [{ name: 'Bank' }],
-        pools: [{ name: 'Pool', poolType: 'EVERYDAY' }],
-        categories: [],
+        envelopes: [{ name: 'Envelope', envelopeType: 'EVERYDAY' }],
       })
     ).toThrow();
   });

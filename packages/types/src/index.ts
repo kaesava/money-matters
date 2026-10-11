@@ -111,45 +111,60 @@ export const BankAccountSchema = BaseSchema.extend({
   userId: z.string().uuid().nullable().optional(),
 }).strict();
 
-/**
- * Schema defining Virtual Pools (EVERYDAY, REGULAR, GOAL) linked to Bank Accounts.
- */
-export const PoolSchema = BaseSchema.extend({
-  tenantId: z.string().uuid(),
-  name: z.string().min(1),
-  poolType: z.enum(["EVERYDAY", "REGULAR", "GOAL"]),
-  bankAccountId: z.string().uuid(),
-  everydayAllowanceAmount: z.string().nullable().optional(),
-  targetAmount: z.string().nullable().optional(),
-  targetDate: z.string().nullable().optional(),
-  isCommitted: z.boolean().default(false),
-  isSurplusTarget: z.boolean().default(false),
-}).strict();
+export const EnvelopeTypeEnum = z.enum([
+  "EVERYDAY",
+  "SCHEDULED_BILL",
+  "FLEXIBLE_BILL",
+  "TARGET_GOAL",
+  "ONGOING_GOAL",
+]);
+export type EnvelopeType = z.infer<typeof EnvelopeTypeEnum>;
+
+export const GoalModeEnum = z.enum(["TARGET_DATE", "ONGOING"]);
+export type GoalMode = z.infer<typeof GoalModeEnum>;
 
 /**
- * Schema defining spending sub-categories belonging to a Pool.
+ * Schema defining flat Envelopes directly linked to Bank Accounts.
  */
-export const CategorySchema = BaseSchema.extend({
+export const EnvelopeSchema = BaseSchema.extend({
   tenantId: z.string().uuid(),
-  poolId: z.string().uuid(),
   name: z.string().min(1),
+  envelopeType: EnvelopeTypeEnum,
+  bankAccountId: z.string().uuid(),
+  everydayAllowanceAmount: z.string().nullable().optional(),
+  safetyBufferFloor: z.string().nullable().optional(),
   monthlyAmount: z.string().nullable().optional(),
   enteredAmount: z.string().nullable().optional(),
-  budgetFrequency: z.enum(["WEEKLY", "FORTNIGHTLY", "MONTHLY", "ANNUALLY"]).default("MONTHLY").optional(),
+  budgetFrequency: z.string().default("MONTHLY").optional(),
+  startDate: z.string().nullable().optional(),
+  endDate: z.string().nullable().optional(),
+  rrule: z.string().nullable().optional(),
+  goalMode: GoalModeEnum.default("TARGET_DATE").optional(),
+  targetAmount: z.string().nullable().optional(),
+  targetDate: z.string().nullable().optional(),
   isEssential: z.boolean().default(false),
+  isCommitted: z.boolean().default(false),
+  isSurplusTarget: z.boolean().default(false),
+  isPrivate: z.boolean().default(false),
+  userId: z.string().uuid().nullable().optional(),
   icon: z.string().nullable().optional(),
-  lastNotifiedAt: z.date().nullable().optional(),
+  orderIndex: z.number().int().default(0),
 }).strict();
 
 /**
  * Schema defining income sources (e.g. Salary, Wages, Freelance) linked to receiving accounts.
  */
+export const IncomeTypeEnum = z.enum(["SALARIED", "IRREGULAR"]);
+export type IncomeType = z.infer<typeof IncomeTypeEnum>;
+
 export const IncomeSourceSchema = BaseSchema.extend({
   tenantId: z.string().uuid(),
   name: z.string().min(1),
-  type: z.enum(["SALARY", "WAGES", "FREELANCE", "OTHER"]),
+  incomeType: IncomeTypeEnum.default("SALARIED"),
   amount: z.string(),
   receivingAccountId: z.string().uuid().nullable(),
+  startDate: z.string().nullable().optional(),
+  rrule: z.string().nullable().optional(),
 }).strict();
 
 /**
@@ -173,7 +188,7 @@ export const IncomeEventSchema = BaseSchema.extend({
   expectedDate: z.string(),
   expectedAmount: z.string(),
   actualAmount: z.string().nullable(),
-  status: z.enum(["PENDING", "PENDING", "SKIPPED", "CONFIRMED"]),
+  status: z.enum(["PENDING", "SKIPPED", "CONFIRMED"]),
 }).strict();
 
 /**
@@ -186,14 +201,12 @@ export const AllocationPlanSchema = BaseSchema.extend({
   confirmedAt: z.date().nullable(),
 }).strict();
 
-
 /**
- * Schema for individual pool line-items within a paycheck allocation plan.
+ * Schema for individual envelope line-items within a paycheck allocation plan.
  */
 export const AllocationPlanLineSchema = BaseSchema.extend({
   planId: z.string().uuid(),
-  poolId: z.string().uuid(),
-  categoryId: z.string().uuid().nullable().optional(),
+  envelopeId: z.string().uuid(),
   proposedAmount: z.string(),
   confirmedAmount: z.string().nullable(),
   reasoning: z.string().nullable(),
@@ -203,8 +216,7 @@ export const AllocationPlanLineSchema = BaseSchema.extend({
  * Schema for double-entry or single-entry transaction ledger events.
  */
 export const TransactionLedgerSchema = BaseSchema.extend({
-  poolId: z.string().uuid(),
-  categoryId: z.string().uuid().nullable().optional(),
+  envelopeId: z.string().uuid(),
   bankAccountId: z.string().uuid().nullable(),
   planLineId: z.string().uuid().nullable(),
   transferGroupId: z.string().uuid().nullable().optional(),
@@ -222,17 +234,15 @@ export const TransactionLedgerSchema = BaseSchema.extend({
 export const ListTransactionsQuery = z.object({
   limit: z.number().int().min(1).max(1000).default(50),
   offset: z.number().int().default(0),
-  poolId: z.string().uuid().optional(),
-  categoryId: z.string().uuid().optional(),
+  envelopeId: z.string().uuid().optional(),
   bankAccountId: z.string().uuid().optional(),
 }).strict();
 
 /**
- * Query schema for listing transactions scoped to a specific pool or category.
+ * Query schema for listing transactions scoped to a specific envelope.
  */
-export const ListCategoryTransactionsQuery = z.object({
-  poolId: z.string().uuid().optional(),
-  categoryId: z.string().uuid().optional(),
+export const ListEnvelopeTransactionsQuery = z.object({
+  envelopeId: z.string().uuid().optional(),
   limit: z.number().int().max(100).default(30),
   offset: z.number().int().default(0),
 }).strict();
@@ -372,10 +382,8 @@ export const MonthlySummaryDto = z.object({
  * Bill coverage item and overall result schemas.
  */
 export const BillCoverageItemSchema = z.object({
-  poolId: z.string(),
-  poolName: z.string(),
-  categoryId: z.string().nullable().optional(),
-  categoryName: z.string().nullable().optional(),
+  envelopeId: z.string(),
+  envelopeName: z.string(),
   monthlyAmount: z.string().nullable(),
   nextDueDate: z.string().nullable(),
   nextDueAmount: z.string().nullable(),
@@ -413,8 +421,7 @@ export const UserPreferencesSchema = z.object({
 export type TenantType = z.infer<typeof TenantSchema>;
 export type TenantMemberType = z.infer<typeof TenantMemberSchema>;
 export type BankAccountType = z.infer<typeof BankAccountSchema>;
-export type PoolType = z.infer<typeof PoolSchema>;
-export type CategoryType = z.infer<typeof CategorySchema>;
+export type EnvelopeDtoType = z.infer<typeof EnvelopeSchema>;
 export type IncomeSourceType = z.infer<typeof IncomeSourceSchema>;
 export type IncomeSourceScheduleType = z.infer<typeof IncomeSourceScheduleSchema>;
 export type IncomeEventType = z.infer<typeof IncomeEventSchema>;

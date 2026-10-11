@@ -1,6 +1,6 @@
 import { tenantProcedure, authenticatedProcedure, ownerProcedure, publicProcedure, privateTenantProcedure, requiresWriteAccess } from '../trpc/trpc.js';
 import { MONEY_MATTERS_APP_ID } from '../trpc/context.js';
-import { db, userPreferences, tenantUserPreferences, bankAccounts, pools, categories, transactionLedger, AppPreferencesBlob } from "@money-matters/db";
+import { db, userPreferences, tenantUserPreferences, bankAccounts, envelopes, transactionLedger, AppPreferencesBlob } from "@money-matters/db";
 import { and, eq, sql, or, inArray, asc, isNull } from "drizzle-orm";
 
 import { inngest } from '../inngest/client.js';
@@ -14,12 +14,12 @@ import {
   getBankAccountsWithMappingsHandler,
   invitePartnerHandler,
   acceptInviteHandler,
-  exportMyDataHandler,
+  exportDataHandler,
   deleteMyAccountHandler,
   leaveTenantHandler,
 } from "@money-matters/capability-tenant";
 import {
-  listPoolsQuery,
+  listEnvelopesQuery,
 } from "@money-matters/capability-budgeting";
 import {
   recordExpenseCommand,
@@ -403,16 +403,17 @@ export const tenantRouter = {
           )
         );
 
-      const allPools = await listPoolsQuery(ctx.tenantId!, ctx.appId!, ctx.db, ctx.userId!);
+      const allEnvelopes = await listEnvelopesQuery(ctx.tenantId!, ctx.appId!, ctx.db, ctx.userId!);
 
       return accounts.map((acc) => {
-        const linkedPools = allPools.filter((p) => p.bankAccountId === acc.id);
+        const linkedEnvelopes = allEnvelopes.filter((p) => p.bankAccountId === acc.id);
         const buffer = parseFloat(acc.unbudgetedBuffer || "0");
-        const expectedBalance = linkedPools.reduce((sum, p) => sum + (p.currentBalance || 0), 0) + buffer;
+        const expectedBalance = linkedEnvelopes.reduce((sum, p) => sum + (p.currentBalance || 0), 0) + buffer;
         return {
           ...acc,
           expectedBalance: expectedBalance.toFixed(2),
-          linkedPoolCount: linkedPools.length,
+          linkedPoolCount: linkedEnvelopes.length,
+          linkedEnvelopeCount: linkedEnvelopes.length,
         };
       });
     }),
@@ -427,8 +428,8 @@ export const tenantRouter = {
         note: z.string().optional(),
         splits: z.array(
           z.object({
-            poolId: z.string().uuid(),
-            categoryId: z.string().uuid().optional(),
+            envelopeId: z.string().uuid().optional(),
+            poolId: z.string().uuid().optional(),
             adjustment: z.string(),
           }).strict()
         ),
@@ -444,21 +445,19 @@ export const tenantRouter = {
           .set({ lastKnownBalance: input.actualBalance, updatedAt: new Date(), updatedBy: ctx.userId! })
           .where(eq(bankAccounts.id, accountId));
 
-        const targetPoolIds = input.splits.map((s) => s.poolId);
-        const dbPools = targetPoolIds.length > 0
+        const targetEnvelopeIds = input.splits.map((s) => s.envelopeId || s.poolId).filter((id): id is string => Boolean(id));
+        const dbEnvelopes = targetEnvelopeIds.length > 0
           ? await tx
-              .select({ id: pools.id, name: pools.name })
-              .from(pools)
+              .select({ id: envelopes.id, name: envelopes.name })
+              .from(envelopes)
               .where(
                 and(
-                  inArray(pools.id, targetPoolIds),
-                  eq(pools.tenantId, ctx.tenantId!),
-                  eq(pools.appId, ctx.appId!)
+                  inArray(envelopes.id, targetEnvelopeIds),
+                  eq(envelopes.tenantId, ctx.tenantId!),
+                  eq(envelopes.appId, ctx.appId!)
                 )
               )
           : [];
-
-        const poolNameMap = new Map(dbPools.map((p) => [p.id, p.name]));
 
         const txValues = [];
         const alignmentNote = input.note?.trim() || "Balance Alignment";
@@ -466,16 +465,16 @@ export const tenantRouter = {
           const adj = parseFloat(split.adjustment);
           if (Math.abs(adj) < 0.01) continue;
 
+          const targetEnvId = (split.envelopeId || split.poolId)!;
           txValues.push({
             tenantId: ctx.tenantId!,
             appId: ctx.appId!,
-            poolId: split.poolId,
-            categoryId: split.categoryId || null,
+            envelopeId: targetEnvId,
             bankAccountId: accountId,
             flowType: (adj > 0 ? "CREDIT" : "DEBIT") as "CREDIT" | "DEBIT",
             transactionType: "ACCOUNT_ALIGNMENT" as const,
             amount: Math.abs(adj).toFixed(2),
-            idempotencyKey: `reconcile-${accountId}-${split.poolId}-${input.clientIdempotencyToken}`,
+            idempotencyKey: `reconcile-${accountId}-${targetEnvId}-${input.clientIdempotencyToken}`,
             note: alignmentNote,
             source: "MANUAL" as const,
             createdBy: ctx.userId!,
@@ -494,7 +493,7 @@ export const tenantRouter = {
 
   exportMyData: tenantProcedure
     .query(async ({ ctx }) => {
-      const handler = exportMyDataHandler(ctx.db);
+      const handler = exportDataHandler(ctx.db);
       return await handler(ctx.tenantId!, ctx.userId!, ctx.appId!);
     }),
 
@@ -633,7 +632,7 @@ export const tenantRouter = {
       }).strict()
     )
     .mutation(async ({ ctx, input }) => {
-      const { tenantUsers, bankAccounts, pools, categories, tenantUserPreferences } = await import('@money-matters/db');
+      const { tenantUsers, bankAccounts, envelopes, tenantUserPreferences } = await import('@money-matters/db');
 
       const [caller] = await ctx.db
         .select()
@@ -673,22 +672,18 @@ export const tenantRouter = {
         const privateBankAccIds = privateBankAccs.map((b) => b.id);
 
         if (privateBankAccIds.length > 0) {
-          const privatePoolsList = await ctx.db
-            .select({ id: pools.id })
-            .from(pools)
-            .where(inArray(pools.bankAccountId, privateBankAccIds));
+          const privateEnvelopesList = await ctx.db
+            .select({ id: envelopes.id })
+            .from(envelopes)
+            .where(inArray(envelopes.bankAccountId, privateBankAccIds));
 
-          const privatePoolIds = privatePoolsList.map((p) => p.id);
+          const privateEnvIds = privateEnvelopesList.map((p) => p.id);
 
-          if (privatePoolIds.length > 0) {
+          if (privateEnvIds.length > 0) {
             await ctx.db
-              .update(categories)
+              .update(envelopes)
               .set({ archivedAt: new Date(), updatedAt: new Date(), updatedBy: ctx.userId! })
-              .where(inArray(categories.poolId, privatePoolIds));
-            await ctx.db
-              .update(pools)
-              .set({ archivedAt: new Date(), updatedAt: new Date(), updatedBy: ctx.userId! })
-              .where(inArray(pools.id, privatePoolIds));
+              .where(inArray(envelopes.id, privateEnvIds));
           }
           await ctx.db
             .update(bankAccounts)

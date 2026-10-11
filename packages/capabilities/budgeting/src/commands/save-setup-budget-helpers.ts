@@ -2,12 +2,11 @@ import { DbOrTx, expenseEvents, incomeEvents } from "@money-matters/db";
 import { randomUUID } from "crypto";
 import { generateBurstDates } from "../engine/burst-engine.js";
 
-export interface CategoryScheduleCandidate {
+export interface EnvelopeScheduleCandidate {
   name: string;
   amount: string;
   budgetFrequency: "WEEKLY" | "FORTNIGHTLY" | "MONTHLY" | "ANNUALLY";
-  poolId: string;
-  categoryId: string;
+  envelopeId: string;
   startDate?: string | null;
   endDate?: string | null;
   rrule?: string | null;
@@ -60,8 +59,8 @@ export function deriveRrule(budgetFrequency: "WEEKLY" | "FORTNIGHTLY" | "MONTHLY
   }
 }
 
-export function buildCategoryEventPayloads(
-  candidates: CategoryScheduleCandidate[],
+export function buildEnvelopeEventPayloads(
+  candidates: EnvelopeScheduleCandidate[],
   tenantId: string,
   appId: string,
   userId: string,
@@ -79,8 +78,7 @@ export function buildCategoryEventPayloads(
         id: randomUUID(),
         tenantId,
         appId,
-        poolId: item.poolId,
-        categoryId: item.categoryId,
+        envelopeId: item.envelopeId,
         name: item.name,
         expectedDate: new Intl.DateTimeFormat("en-CA", { timeZone: "Australia/Sydney" }).format(d),
         expectedAmount: item.amount,
@@ -97,7 +95,7 @@ export function buildCategoryEventPayloads(
   return { eventsToInsert };
 }
 
-export async function insertCategoryEventsBulk(
+export async function insertEnvelopeEventsBulk(
   tx: DbOrTx,
   events: Array<typeof expenseEvents.$inferInsert>
 ): Promise<number> {

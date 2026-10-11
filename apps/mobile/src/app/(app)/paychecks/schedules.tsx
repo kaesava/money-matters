@@ -196,7 +196,7 @@ export default function RecurringSchedulesScreen() {
         pools={pools.map((p) => ({
           id: p.id,
           name: p.name,
-          poolType: p.poolType,
+          poolType: p.envelopeType,
           currentBalance: p.currentBalance,
           isPrivate: p.isPrivate,
         }))}

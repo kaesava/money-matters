@@ -231,7 +231,15 @@ export function MobileBankAccountsSection() {
       ) : (
         <View style={styles.accountsList}>
           {paginatedAccounts.map((acc) => {
-            const linkedPools: LinkedPoolItem[] = allPools.filter((p) => p.bankAccountId === acc.id);
+            const linkedPools: LinkedPoolItem[] = allPools
+              .filter((p) => p.bankAccountId === acc.id)
+              .map((p) => ({
+                id: p.id,
+                name: p.name,
+                poolType: p.envelopeType,
+                currentBalance: p.currentBalance,
+                isSurplusTarget: p.isSurplusTarget,
+              }));
 
             return (
               <BankAccountCard
@@ -316,7 +324,7 @@ export function MobileBankAccountsSection() {
                 pools={allPools.map((p) => ({
                   id: p.id,
                   name: p.name,
-                  poolType: p.poolType,
+                  poolType: p.envelopeType,
                   currentBalance: p.currentBalance,
                 }))}
                 selectedPoolId={selectedPoolId}

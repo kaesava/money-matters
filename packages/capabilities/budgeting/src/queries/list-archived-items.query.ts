@@ -1,4 +1,4 @@
-import { pools, categories, incomeSources, bankAccounts, DbOrTx } from "@money-matters/db";
+import { envelopes, incomeSources, bankAccounts, DbOrTx } from "@money-matters/db";
 import { eq, and, sql } from "drizzle-orm";
 
 export async function listArchivedItemsQuery(
@@ -7,44 +7,26 @@ export async function listArchivedItemsQuery(
   dbClient: DbOrTx,
   userId?: string
 ) {
-  const [archivedPools, archivedCats, archivedIncome, archivedAccounts] = await Promise.all([
+  const [archivedEnvelopes, archivedIncome, archivedAccounts] = await Promise.all([
     dbClient
       .select({
-        id: pools.id,
-        name: pools.name,
-        itemType: sql<string>`'POOL'`,
-        subtitle: pools.poolType,
-        archivedAt: pools.archivedAt,
-        isPrivate: bankAccounts.isPrivate,
+        id: envelopes.id,
+        name: envelopes.name,
+        itemType: sql<string>`'ENVELOPE'`,
+        subtitle: envelopes.envelopeType,
+        archivedAt: envelopes.archivedAt,
+        isPrivate: envelopes.isPrivate,
+        userId: envelopes.userId,
+        bankAccountIsPrivate: bankAccounts.isPrivate,
         bankAccountUserId: bankAccounts.userId,
       })
-      .from(pools)
-      .leftJoin(bankAccounts, eq(pools.bankAccountId, bankAccounts.id))
+      .from(envelopes)
+      .leftJoin(bankAccounts, eq(envelopes.bankAccountId, bankAccounts.id))
       .where(
         and(
-          eq(pools.tenantId, tenantId),
-          eq(pools.appId, appId),
-          sql`${pools.archivedAt} IS NOT NULL`
-        )
-      ),
-    dbClient
-      .select({
-        id: categories.id,
-        name: categories.name,
-        itemType: sql<string>`'CATEGORY'`,
-        subtitle: categories.monthlyAmount,
-        archivedAt: categories.archivedAt,
-        isPrivate: bankAccounts.isPrivate,
-        bankAccountUserId: bankAccounts.userId,
-      })
-      .from(categories)
-      .innerJoin(pools, eq(categories.poolId, pools.id))
-      .leftJoin(bankAccounts, eq(pools.bankAccountId, bankAccounts.id))
-      .where(
-        and(
-          eq(categories.tenantId, tenantId),
-          eq(categories.appId, appId),
-          sql`${categories.archivedAt} IS NOT NULL`
+          eq(envelopes.tenantId, tenantId),
+          eq(envelopes.appId, appId),
+          sql`${envelopes.archivedAt} IS NOT NULL`
         )
       ),
     dbClient
@@ -55,6 +37,8 @@ export async function listArchivedItemsQuery(
         subtitle: incomeSources.amount,
         archivedAt: incomeSources.archivedAt,
         isPrivate: bankAccounts.isPrivate,
+        userId: sql<string | null>`NULL`,
+        bankAccountIsPrivate: bankAccounts.isPrivate,
         bankAccountUserId: bankAccounts.userId,
       })
       .from(incomeSources)
@@ -74,6 +58,8 @@ export async function listArchivedItemsQuery(
         subtitle: bankAccounts.lastKnownBalance,
         archivedAt: bankAccounts.archivedAt,
         isPrivate: bankAccounts.isPrivate,
+        userId: bankAccounts.userId,
+        bankAccountIsPrivate: bankAccounts.isPrivate,
         bankAccountUserId: bankAccounts.userId,
       })
       .from(bankAccounts)
@@ -86,14 +72,13 @@ export async function listArchivedItemsQuery(
       ),
   ]);
 
-  const filterVisible = <T extends { isPrivate?: boolean | null; bankAccountUserId?: string | null }>(items: T[]): T[] => {
+  const filterVisible = <T extends { isPrivate?: boolean | null; userId?: string | null; bankAccountUserId?: string | null }>(items: T[]): T[] => {
     if (!userId) return items;
-    return items.filter((item) => !item.isPrivate || item.bankAccountUserId === userId);
+    return items.filter((item) => !item.isPrivate || (item.userId ? item.userId === userId : item.bankAccountUserId === userId));
   };
 
   const allVisible = [
-    ...filterVisible(archivedPools),
-    ...filterVisible(archivedCats),
+    ...filterVisible(archivedEnvelopes),
     ...filterVisible(archivedIncome),
     ...filterVisible(archivedAccounts),
   ].map(({ id, name, itemType, subtitle, archivedAt }) => ({

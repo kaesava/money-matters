@@ -43,25 +43,21 @@ export function IncomeExpenseFormModal({
   const isEdit = Boolean(sourceToEdit);
 
   const poolsQuery = trpc.listPools.useQuery(undefined, { enabled: visible && mode === 'EXPENSE' });
-  const categoriesQuery = trpc.listCategories.useQuery(undefined, { enabled: visible && mode === 'EXPENSE' });
   const bankAccountsQuery = trpc.listBankAccounts.useQuery(undefined, { enabled: visible && mode === 'INCOME' });
 
   const rawPools = poolsQuery.data ?? [];
-  const rawCategories = categoriesQuery.data ?? [];
   const bankAccounts = bankAccountsQuery.data ?? [];
 
   const pickerPools: MobilePoolOption[] = useMemo(() => {
     return rawPools.map((p) => ({
       id: p.id,
       name: p.name,
-      poolType: p.poolType,
+      poolType: p.envelopeType,
       currentBalance: p.currentBalance,
       isPrivate: p.isPrivate,
-      categories: rawCategories
-        .filter((c) => c.poolId === p.id)
-        .map((c) => ({ id: c.id, name: c.name })),
+      categories: [],
     }));
-  }, [rawPools, rawCategories]);
+  }, [rawPools]);
 
   const {
     name,

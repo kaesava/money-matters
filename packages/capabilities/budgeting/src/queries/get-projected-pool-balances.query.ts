@@ -1,8 +1,7 @@
 import {
   incomeEvents,
   incomeSources,
-  pools,
-  categories,
+  envelopes,
   transactionLedger,
   allocationPlans,
   allocationPlanLines,
@@ -21,7 +20,7 @@ export interface ProjectedPoolBalancesOutput {
     totalIncome: number;
     sourceName: string;
   }>;
-  poolBalances: Record<string, Record<string, number>>; // poolId -> (columnId -> projectedBalance)
+  poolBalances: Record<string, Record<string, number>>;
 }
 
 export async function getProjectedPoolBalancesQuery(
@@ -30,40 +29,21 @@ export async function getProjectedPoolBalancesQuery(
   userId: string,
   dbClient: DbOrTx
 ): Promise<ProjectedPoolBalancesOutput> {
-  // 1. Fetch pools, categories, and ledger transactions
-  const dbPools = await dbClient
+  // 1. Fetch envelopes and ledger transactions
+  const dbEnvelopes = await dbClient
     .select()
-    .from(pools)
+    .from(envelopes)
     .where(
       and(
-        eq(pools.tenantId, tenantId),
-        eq(pools.appId, appId),
-        sql`${pools.archivedAt} IS NULL`
+        eq(envelopes.tenantId, tenantId),
+        eq(envelopes.appId, appId),
+        sql`${envelopes.archivedAt} IS NULL`
       )
     );
-
-  const dbCats = await dbClient
-    .select()
-    .from(categories)
-    .where(
-      and(
-        eq(categories.tenantId, tenantId),
-        eq(categories.appId, appId),
-        sql`${categories.archivedAt} IS NULL`
-      )
-    );
-
-  const poolCategoryTargetsMap = new Map<string, number>();
-  for (const cat of dbCats) {
-    if (cat.monthlyAmount) {
-      const val = parseFloat(cat.monthlyAmount);
-      poolCategoryTargetsMap.set(cat.poolId, (poolCategoryTargetsMap.get(cat.poolId) || 0) + val);
-    }
-  }
 
   const txs = await dbClient
     .select({
-      poolId: transactionLedger.poolId,
+      envelopeId: transactionLedger.envelopeId,
       amount: transactionLedger.amount,
       flowType: transactionLedger.flowType,
     })
@@ -76,51 +56,38 @@ export async function getProjectedPoolBalancesQuery(
       )
     );
 
-  const poolBalancesMap: Record<string, number> = {};
-  for (const pool of dbPools) {
-    poolBalancesMap[pool.id] = 0;
+  const envBalancesMap: Record<string, number> = {};
+  for (const env of dbEnvelopes) {
+    envBalancesMap[env.id] = 0;
   }
   for (const tx of txs) {
-    if (!tx.poolId) continue;
+    if (!tx.envelopeId) continue;
     const val = parseFloat(tx.amount);
     if (tx.flowType === "CREDIT") {
-      poolBalancesMap[tx.poolId] = (poolBalancesMap[tx.poolId] || 0) + val;
+      envBalancesMap[tx.envelopeId] = (envBalancesMap[tx.envelopeId] || 0) + val;
     } else {
-      poolBalancesMap[tx.poolId] = (poolBalancesMap[tx.poolId] || 0) - val;
+      envBalancesMap[tx.envelopeId] = (envBalancesMap[tx.envelopeId] || 0) - val;
     }
   }
 
-  const engineBuckets: EngineBucket[] = dbPools.map((pool) => {
-    const balance = poolBalancesMap[pool.id] || 0;
-    const catTargetSum = poolCategoryTargetsMap.get(pool.id) || 0;
-
-    const monthlyAmt =
-      pool.poolType === "REGULAR"
-        ? catTargetSum > 0
-          ? catTargetSum
-          : pool.targetAmount
-          ? parseFloat(pool.targetAmount)
-          : null
-        : pool.targetAmount
-        ? parseFloat(pool.targetAmount)
-        : null;
-
-    return {
-      id: pool.id,
-      name: pool.name,
-      type: pool.poolType,
-      isCommitted: pool.isCommitted,
-      isSurplusTarget: pool.isSurplusTarget,
-      monthlyAmount: monthlyAmt,
-      targetAmount: pool.targetAmount ? parseFloat(pool.targetAmount) : null,
-      everydayAllowanceAmount: pool.everydayAllowanceAmount ? parseFloat(pool.everydayAllowanceAmount) : null,
-      goalMode: pool.goalMode ?? (pool.poolType === "GOAL" ? "TARGET_DATE" : undefined),
-      targetDate: pool.targetDate || null,
-      currentBalance: balance,
-      isPrivate: (pool as unknown as { isPrivate?: boolean }).isPrivate ?? false,
-      userId: (pool as unknown as { userId?: string }).userId ?? undefined,
-    };
-  });
+  const engineBuckets: EngineBucket[] = dbEnvelopes.map((env) => ({
+    id: env.id,
+    name: env.name,
+    type: env.envelopeType,
+    envelopeType: env.envelopeType,
+    isEssential: env.isEssential,
+    isCommitted: env.isCommitted,
+    isSurplusTarget: env.isSurplusTarget,
+    monthlyAmount: env.monthlyAmount ? parseFloat(env.monthlyAmount) : null,
+    targetAmount: env.targetAmount ? parseFloat(env.targetAmount) : null,
+    everydayAllowanceAmount: env.everydayAllowanceAmount ? parseFloat(env.everydayAllowanceAmount) : null,
+    safetyBufferFloor: env.safetyBufferFloor ? parseFloat(env.safetyBufferFloor) : 0,
+    goalMode: env.goalMode ?? (env.envelopeType === "TARGET_GOAL" ? "TARGET_DATE" : "ONGOING"),
+    targetDate: env.targetDate || null,
+    currentBalance: envBalancesMap[env.id] || 0,
+    isPrivate: env.isPrivate,
+    userId: env.userId ?? undefined,
+  }));
 
   // 2. Fetch pending income events
   const pendingIncomesRaw = await dbClient
@@ -130,7 +97,7 @@ export async function getProjectedPoolBalancesQuery(
       expectedAmount: incomeEvents.expectedAmount,
       actualAmount: incomeEvents.actualAmount,
       status: incomeEvents.status,
-      name: sql<string>`COALESCE(NULLIF(${incomeEvents.name}, ''), ${incomeSources.name}, 'Paycheck')`,
+      name: sql`COALESCE(NULLIF(${incomeEvents.name}, ""), ${incomeSources.name}, "Paycheck")`,
       rrule: incomeSources.rrule,
     })
     .from(incomeEvents)
@@ -139,14 +106,14 @@ export async function getProjectedPoolBalancesQuery(
       and(
         eq(incomeEvents.tenantId, tenantId),
         eq(incomeEvents.appId, appId),
-        sql`${incomeEvents.status} != 'CONFIRMED'`,
+        sql`${incomeEvents.status} != "CONFIRMED"`,
         sql`${incomeEvents.archivedAt} IS NULL`
       )
     );
 
   const matrixIncomeEvents: MatrixIncomeEvent[] = pendingIncomesRaw.map((e) => ({
     id: e.id,
-    sourceName: e.name,
+    sourceName: String(e.name || "Paycheck"),
     expectedDate: e.expectedDate,
     expectedAmount: parseFloat(e.expectedAmount),
     actualAmount: e.actualAmount ? parseFloat(e.actualAmount) : null,
@@ -158,8 +125,7 @@ export async function getProjectedPoolBalancesQuery(
   const pendingExpensesRaw = await dbClient
     .select({
       id: expenseEvents.id,
-      poolId: expenseEvents.poolId,
-      categoryId: expenseEvents.categoryId,
+      envelopeId: expenseEvents.envelopeId,
       expectedDate: expenseEvents.expectedDate,
       expectedAmount: expenseEvents.expectedAmount,
       status: expenseEvents.status,
@@ -175,7 +141,7 @@ export async function getProjectedPoolBalancesQuery(
     );
 
   const matrixExpenseEvents: ScheduledExpenseEvent[] = pendingExpensesRaw.map((e) => ({
-    categoryId: e.poolId || e.categoryId || "",
+    categoryId: e.envelopeId,
     dueDate: e.expectedDate,
     amount: parseFloat(e.expectedAmount),
     status: e.status as "PENDING" | "CONFIRMED",
@@ -185,7 +151,7 @@ export async function getProjectedPoolBalancesQuery(
   const pendingPlans = await dbClient
     .select({
       incomeEventId: allocationPlans.incomeEventId,
-      poolId: allocationPlanLines.poolId,
+      envelopeId: allocationPlanLines.envelopeId,
       proposedAmount: allocationPlanLines.proposedAmount,
       confirmedAmount: allocationPlanLines.confirmedAmount,
     })
@@ -202,7 +168,7 @@ export async function getProjectedPoolBalancesQuery(
 
   const cellOverrides: Record<string, number> = {};
   for (const p of pendingPlans) {
-    cellOverrides[`${p.incomeEventId}_${p.poolId}`] = parseFloat(p.confirmedAmount || p.proposedAmount);
+    cellOverrides[`${p.incomeEventId}_${p.envelopeId}`] = parseFloat(p.confirmedAmount || p.proposedAmount);
   }
 
   // 5. Compute matrix projection

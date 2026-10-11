@@ -177,7 +177,7 @@ export function usePaycheckStudioMutations({
           const payload = Object.entries(effectiveMap).map(([pId, val]) => {
             const amt = parseFloat(val) || 0;
             return {
-              poolId: pId,
+              envelopeId: pId,
               amount: amt.toFixed(2),
               reasoning: amt <= 0 ? undefined : (reasoningMap[pId] ?? (lines.find((l) => l.bucketId === pId)?.reasoning || undefined)),
             };

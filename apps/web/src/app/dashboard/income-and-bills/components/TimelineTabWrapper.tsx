@@ -131,8 +131,8 @@ export function TimelineTabWrapper({
             await Promise.all(
               validTransfers.map((t) =>
                 moveMoneyMut.mutateAsync({
-                  sourcePoolId: t.poolId,
-                  destinationPoolId: destinationCategoryId,
+                  sourceEnvelopeId: t.poolId,
+                  destinationEnvelopeId: destinationCategoryId,
                   amount: t.amount,
                   note: "Shortfall Top Up",
                 })

@@ -8,6 +8,7 @@ interface ProjectionPoolGroupSectionProps {
   pools: Array<{
     id: string;
     name: string;
+    envelopeType?: string;
     poolType?: string;
     currentBalance: number;
     targetAmount?: string | number | null;
@@ -15,7 +16,7 @@ interface ProjectionPoolGroupSectionProps {
   }>;
   getBankForPool: (bankAccountId?: string | null) => { id: string; name: string; bankProvider?: string | null } | undefined;
   getPoolBalance: (poolId: string, currentBalance: number) => number;
-  categories: Array<{ id: string; poolId?: string | null }>;
+  categories?: Array<{ id: string; poolId?: string | null }>;
   isGoal?: boolean;
 }
 
@@ -39,7 +40,7 @@ export const ProjectionPoolGroupSection: React.FC<ProjectionPoolGroupSectionProp
       {pools.map((pool) => {
         const bank = getBankForPool(pool.bankAccountId);
         const bal = getPoolBalance(pool.id, pool.currentBalance);
-        const nestedCount = categories.filter((c) => c.poolId === pool.id).length;
+        const nestedCount = categories ? categories.filter((c) => c.poolId === pool.id).length : 0;
 
         return (
           <ProjectionPoolCard

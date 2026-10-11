@@ -4,7 +4,7 @@ import React, { useState, useEffect, useMemo } from "react";
 import { useToast, ConfirmDialog, ModalDialog, Button, FormErrorBanner } from "@money-matters/ui/web";
 import { t } from "@money-matters/i18n";
 import { trpc } from "../../lib/trpc";
-import { CategoryItem } from "../../app/dashboard/pools/types";
+import { CategoryItem } from "../../app/dashboard/envelopes/types";
 import { CategoryItemFormFields, FrequencyOption } from "./CategoryItemFormFields";
 
 interface CategoryItemModalProps {
@@ -27,20 +27,26 @@ export function CategoryItemModal({
   onClose,
   categoryToEdit,
   initialPoolId,
-  limitToPoolType,
+  limitToPoolType: _limitToPoolType,
   onSuccess,
 }: CategoryItemModalProps) {
   const toast = useToast();
   const utils = trpc.useUtils();
 
   const poolsQuery = trpc.listPools.useQuery(undefined, { enabled: isOpen });
+  const bankAccountsQuery = trpc.getBankAccountsWithMappings.useQuery(undefined, { enabled: isOpen });
+  const defaultBankAccountId = bankAccountsQuery.data?.[0]?.id || "";
+
   const availablePools = useMemo(() => {
-    return (poolsQuery.data ?? []).filter((p) => {
-      if (p.poolType === "GOAL") return false;
-      if (limitToPoolType) return p.poolType === limitToPoolType;
+    return (poolsQuery.data ?? []).map((p) => ({
+      id: p.id,
+      name: p.name,
+      poolType: p.envelopeType,
+    })).filter((p) => {
+      if (p.poolType === "TARGET_GOAL" || p.poolType === "ONGOING_GOAL") return false;
       return true;
     });
-  }, [poolsQuery.data, limitToPoolType]);
+  }, [poolsQuery.data]);
 
   const isEdit = Boolean(categoryToEdit?.id);
 
@@ -54,17 +60,17 @@ export function CategoryItemModal({
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [showArchiveConfirm, setShowArchiveConfirm] = useState(false);
 
-  const createCategoryMut = trpc.createCategory.useMutation();
-  const updateCategoryMut = trpc.updateCategory.useMutation();
-  const archiveCategoryMut = trpc.archiveCategory.useMutation();
+  const createEnvelopeMut = trpc.createEnvelope.useMutation();
+  const updateEnvelopeMut = trpc.updateEnvelope.useMutation();
+  const archiveEnvelopeMut = trpc.archiveEnvelope.useMutation();
 
   const activePool = availablePools.find((p) => p.id === selectedPoolId);
-  const isBillsPool = activePool?.poolType === "REGULAR";
+  const isBillsPool = activePool?.poolType === "SCHEDULED_BILL" || activePool?.poolType === "FLEXIBLE_BILL";
 
   useEffect(() => {
     if (categoryToEdit) {
       setName(categoryToEdit.name);
-      setSelectedPoolId(categoryToEdit.poolId);
+      setSelectedPoolId(categoryToEdit.poolId || "");
       setEnteredAmount(categoryToEdit.enteredAmount || categoryToEdit.monthlyAmount || "");
       setFrequency((categoryToEdit.budgetFrequency as FrequencyOption) || "MONTHLY");
       setIsEssential(categoryToEdit.isEssential ?? false);
@@ -120,8 +126,8 @@ export function CategoryItemModal({
     setSubmitting(true);
     try {
       if (isEdit && categoryToEdit) {
-        await updateCategoryMut.mutateAsync({
-          categoryId: categoryToEdit.id,
+        await updateEnvelopeMut.mutateAsync({
+          envelopeId: categoryToEdit.id,
           data: {
             name: name.trim(),
             monthlyAmount: calculatedMonthly,
@@ -133,9 +139,10 @@ export function CategoryItemModal({
         });
         toast.success(t("categories.updatedSuccess"));
       } else {
-        await createCategoryMut.mutateAsync({
-          poolId: selectedPoolId,
+        await createEnvelopeMut.mutateAsync({
+          bankAccountId: defaultBankAccountId,
           name: name.trim(),
+          envelopeType: isBillsPool ? "SCHEDULED_BILL" : "EVERYDAY",
           monthlyAmount: calculatedMonthly,
           enteredAmount: enteredAmount.trim() || undefined,
           budgetFrequency: frequency,
@@ -144,7 +151,6 @@ export function CategoryItemModal({
         });
         toast.success(t("categories.createdSuccess"));
       }
-      await utils.listCategories.invalidate();
       await utils.listPools.invalidate();
       await utils.listBillSchedules.invalidate();
       await utils.listExpenseEvents.invalidate();
@@ -161,8 +167,7 @@ export function CategoryItemModal({
     if (!categoryToEdit?.id) return;
     try {
       setSubmitting(true);
-      await archiveCategoryMut.mutateAsync({ categoryId: categoryToEdit.id });
-      await utils.listCategories.invalidate();
+      await archiveEnvelopeMut.mutateAsync({ envelopeId: categoryToEdit.id });
       await utils.listPools.invalidate();
       await utils.listBillSchedules.invalidate();
       await utils.listExpenseEvents.invalidate();

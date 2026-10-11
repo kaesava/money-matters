@@ -70,10 +70,6 @@ export default function IncomeSplitStudioScreen() {
     handleLineReasoningChange,
   } = usePaycheckStudio(id, returnTo);
 
-  const poolCategoriesQuery = trpc.listCategories.useQuery(undefined, {
-    enabled: !!selectedPoolForSheet,
-  });
-
   const activePoolObj = pools.find((p) => p.id === selectedPoolForSheet);
 
   if (isLoading) {
@@ -85,7 +81,7 @@ export default function IncomeSplitStudioScreen() {
     );
   }
 
-  const receivingAccountId = previewData?.incomeEvent?.receivingAccountId;
+  const receivingAccountId = previewData?.receivingAccountId;
 
   return (
     <MobileScreenWrapper
@@ -203,17 +199,11 @@ export default function IncomeSplitStudioScreen() {
             visible={!!selectedPoolForSheet}
             poolId={selectedPoolForSheet}
             poolName={activePoolObj.name}
-            poolType={activePoolObj.poolType}
+            poolType={activePoolObj.envelopeType}
             currentBalance={activePoolObj.currentBalance}
             targetAmount={activePoolObj.targetAmount}
             targetDate={activePoolObj.targetDate}
-            subcategories={(poolCategoriesQuery.data || [])
-              .filter((c) => c.poolId === selectedPoolForSheet)
-              .map((c) => ({
-                id: c.id,
-                name: c.name,
-                targetAmount: parseFloat(c.enteredAmount || c.monthlyAmount || '0'),
-              }))}
+            subcategories={[]}
             onClose={() => setSelectedPoolForSheet(null)}
           />
         )}

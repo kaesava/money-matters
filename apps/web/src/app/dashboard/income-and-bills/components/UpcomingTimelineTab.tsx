@@ -538,7 +538,7 @@ export function UpcomingTimelineTab({
                         {isTransfer ? (
                           <div className="flex items-center gap-1 font-semibold text-xs">
                             <Link
-                              href={`/dashboard/pools?poolId=${evt.poolId}`}
+                              href={`/dashboard/envelopes?poolId=${evt.poolId}`}
                               className="font-bold text-[#2563eb] hover:underline inline-flex items-center gap-0.5"
                             >
                               <span>{evt.categoryName || "Source"}</span>
@@ -546,7 +546,7 @@ export function UpcomingTimelineTab({
                             </Link>
                             <span className="text-zinc-400">➔</span>
                             <Link
-                              href={`/dashboard/pools?poolId=${evt.destinationPoolId}`}
+                              href={`/dashboard/envelopes?poolId=${evt.destinationPoolId}`}
                               className="font-bold text-[#2563eb] hover:underline inline-flex items-center gap-0.5"
                             >
                               <span>{evt.destinationPoolName || "Destination"}</span>
@@ -571,10 +571,10 @@ export function UpcomingTimelineTab({
                           <div className="flex flex-col gap-0.5">
                             {evt.poolId || evt.categoryId ? (
                               <Link
-                                href={`/dashboard/pools?poolId=${evt.poolId || evt.categoryId}`}
+                                href={`/dashboard/envelopes?poolId=${evt.poolId || evt.categoryId}`}
                                 className="font-bold text-[#2563eb] hover:underline inline-flex items-center gap-0.5"
                               >
-                                <span>{evt.categoryName || "Pool"}</span>
+                                <span>{evt.categoryName || "Envelope"}</span>
                                 <span className="text-[10px] text-blue-400">↗</span>
                               </Link>
                             ) : (

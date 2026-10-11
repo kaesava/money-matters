@@ -144,7 +144,7 @@ export function SlideOverAllocationDrawer({
                 <div className="flex items-center justify-between">
                   {line.poolId ? (
                     <Link
-                      href={`/dashboard/pools?poolId=${line.poolId}`}
+                      href={`/dashboard/envelopes?poolId=${line.poolId}`}
                       className="text-xs font-bold text-[#2563eb] hover:underline inline-flex items-center gap-0.5"
                     >
                       <span>{line.poolName || line.categoryName || t("paydayDrawer.poolAllocationDefault")}</span>

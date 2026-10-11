@@ -6,7 +6,7 @@ import { t } from "@money-matters/i18n";
 import { trpc } from "../../../../lib/trpc";
 import { Tabs } from "@money-matters/ui/web";
 import { useLocale } from "../../../../providers/LocaleProvider";
-import { CategoryItem, CategorySummaryItem } from "../../pools/types";
+import { CategoryItem, CategorySummaryItem } from "../../envelopes/types";
 import { CategoryItemModal } from "../../../../components/web/CategoryItemModal";
 
 export interface CategoryScheduledEvent {
@@ -45,7 +45,6 @@ export function SlideOverCategoryDrawer({
 
   // Fetch pool, categories, transactions, and fallback upcoming events
   const poolsQuery = trpc.listPools.useQuery(undefined, { enabled: isOpen });
-  const categoriesQuery = trpc.listCategories.useQuery(undefined, { enabled: isOpen });
   const transactionsQuery = trpc.listTransactions.useQuery({ limit: 200, offset: 0 }, { enabled: isOpen });
   const expenseEventsQuery = trpc.listExpenseEvents.useQuery(undefined, { enabled: isOpen && !events });
 
@@ -57,57 +56,31 @@ export function SlideOverCategoryDrawer({
     );
   }, [poolsQuery.data, categoryId, categoryName]);
 
-  // Sub-categories belonging to target pool
-  const relatedCategories = useMemo(() => {
-    if (!categoriesQuery.data || !targetPool) return [];
-    return categoriesQuery.data.filter((c) => c.poolId === targetPool.id);
-  }, [categoriesQuery.data, targetPool]);
+  const relatedCategories: CategoryItem[] = [];
 
-  // Sum of category monthly target amounts for this pool
-  const categoryTargetSum = useMemo(() => {
-    return relatedCategories.reduce((sum, c) => {
-      const val = c.monthlyAmount ? parseFloat(c.monthlyAmount) : c.enteredAmount ? parseFloat(c.enteredAmount) : 0;
-      return sum + (isNaN(val) ? 0 : val);
-    }, 0);
-  }, [relatedCategories]);
-
-  // Calculate effective monthly target amount for Everyday & Bills, or pool target amount
+  // Calculate effective monthly target amount for envelope
   const targetAmt = useMemo(() => {
     if (!targetPool) return null;
-    if (targetPool.poolType === "REGULAR") {
-      return categoryTargetSum > 0
-        ? categoryTargetSum
-        : targetPool.targetAmount
-        ? parseFloat(String(targetPool.targetAmount))
-        : null;
-    }
-    if (targetPool.poolType === "EVERYDAY") {
-      return targetPool.everydayAllowanceAmount
-        ? parseFloat(String(targetPool.everydayAllowanceAmount))
-        : categoryTargetSum > 0
-        ? categoryTargetSum
-        : targetPool.targetAmount
-        ? parseFloat(String(targetPool.targetAmount))
-        : null;
-    }
-    return targetPool.targetAmount ? parseFloat(String(targetPool.targetAmount)) : null;
-  }, [targetPool, categoryTargetSum]);
+    return targetPool.monthlyAmount
+      ? parseFloat(String(targetPool.monthlyAmount))
+      : targetPool.targetAmount
+      ? parseFloat(String(targetPool.targetAmount))
+      : null;
+  }, [targetPool]);
 
   // Related transactions
   const relatedTransactions = useMemo(() => {
     if (!transactionsQuery.data || !targetPool) return [];
-    const poolCategoryIds = new Set(relatedCategories.map((c) => c.id));
     return transactionsQuery.data.filter(
-      (tx) => tx.poolId === targetPool.id || (tx.categoryId && poolCategoryIds.has(tx.categoryId))
+      (tx) => tx.envelopeId === targetPool.id || (tx as unknown as { poolId?: string }).poolId === targetPool.id
     );
-  }, [transactionsQuery.data, targetPool, relatedCategories]);
+  }, [transactionsQuery.data, targetPool]);
 
-  // Effective upcoming expenses: props events or fallback query
   const effectiveEvents = useMemo(() => {
     if (events) return events;
     if (!expenseEventsQuery.data || !targetPool) return [];
     return expenseEventsQuery.data
-      .filter((e) => e.status !== "CONFIRMED" && (e.poolId === targetPool.id || e.categoryId === targetPool.id))
+      .filter((e) => e.status !== "CONFIRMED" && e.envelopeId === targetPool.id)
       .map((e) => ({
         id: e.id,
         name: e.name || "Expense",
@@ -168,7 +141,7 @@ export function SlideOverCategoryDrawer({
   if (!isOpen) return null;
 
   const currentBal = targetPool ? parseFloat(String(targetPool.currentBalance || "0")) : 0;
-  const isGoalPool = targetPool?.poolType === "GOAL";
+  const isGoalPool = targetPool?.envelopeType === "TARGET_GOAL" || targetPool?.envelopeType === "ONGOING_GOAL";
 
   const resolvedTabs = isGoalPool
     ? [
@@ -203,7 +176,7 @@ export function SlideOverCategoryDrawer({
                   </span>
                   {targetPool && (
                     <span className="text-[10px] font-extrabold uppercase px-2 py-0.5 rounded bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 border border-zinc-200 dark:border-zinc-700">
-                      {targetPool.poolType}
+                      {targetPool.envelopeType}
                     </span>
                   )}
                   {onEditPool && targetPool && (
@@ -213,14 +186,14 @@ export function SlideOverCategoryDrawer({
                         onEditPool({
                           id: targetPool.id,
                           name: targetPool.name,
-                          type: (targetPool.poolType || "REGULAR") as "REGULAR" | "GOAL" | "EVERYDAY",
-                          poolType: (targetPool.poolType || "REGULAR") as "REGULAR" | "GOAL" | "EVERYDAY",
+                          envelopeType: targetPool.envelopeType,
+                          type: targetPool.envelopeType,
+                          poolType: targetPool.envelopeType,
                           currentBalance: String(targetPool.currentBalance ?? "0.00"),
                           bankAccountId: targetPool.bankAccountId,
                           bankAccountName: targetPool.bankAccountName,
                           isPrivate: targetPool.isPrivate,
                           targetAmount: targetPool.targetAmount ? String(targetPool.targetAmount) : null,
-                          everydayAllowanceAmount: targetPool.everydayAllowanceAmount ? String(targetPool.everydayAllowanceAmount) : null,
                           isSurplusTarget: targetPool.isSurplusTarget,
                         });
                       }}
@@ -258,7 +231,7 @@ export function SlideOverCategoryDrawer({
                   {t("categoryDrawer.targetAmount")}
                 </span>
                 <span className="text-sm font-black font-mono text-zinc-700 dark:text-zinc-300">
-                  {targetAmt ? `$${targetAmt.toFixed(2)}${targetPool?.poolType !== "GOAL" ? ` ${t("categoryDrawer.perMonth")}` : ""}` : "—"}
+                  {targetAmt ? `$${targetAmt.toFixed(2)}${!isGoalPool ? ` ${t("categoryDrawer.perMonth")}` : ""}` : "—"}
                 </span>
               </div>
 
@@ -272,7 +245,7 @@ export function SlideOverCategoryDrawer({
                     ? targetPool?.targetDate
                       ? fmtDate(targetPool.targetDate)
                       : "—"
-                    : targetPool?.poolType ?? "—"}
+                    : targetPool?.envelopeType ?? "—"}
                 </span>
               </div>
 
@@ -474,7 +447,7 @@ export function SlideOverCategoryDrawer({
                       </thead>
                       <tbody className="divide-y divide-zinc-100 dark:divide-zinc-800">
                         {historyTransactionsList.map((tx) => {
-                          const noteText = tx.note || tx.categoryName || tx.poolName || t("categoryDrawer.transactionFallback");
+                          const noteText = tx.note || (tx as unknown as { envelopeName?: string }).envelopeName || t("categoryDrawer.transactionFallback");
                           const isDebit = tx.flowType === "DEBIT";
 
                           return (
@@ -521,7 +494,6 @@ export function SlideOverCategoryDrawer({
           categoryToEdit={internalCategoryToEdit}
           initialPoolId={targetPool?.id}
           onSuccess={() => {
-            categoriesQuery.refetch();
             poolsQuery.refetch();
           }}
         />

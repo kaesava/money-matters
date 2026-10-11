@@ -1,7 +1,6 @@
-import { DbOrTx, incomeSources, incomeEvents, categories, expenseEvents, tenants } from "@money-matters/db";
+import { DbOrTx, incomeSources, incomeEvents, envelopes, expenseEvents, tenants } from "@money-matters/db";
 import { and, eq, sql } from "drizzle-orm";
 import { generateBurstDates } from "../engine/burst-engine.js";
-
 import { getTenantDateString } from "@money-matters/core";
 
 export async function maintainRollingWindowCommand({
@@ -43,7 +42,6 @@ export async function maintainRollingWindowCommand({
   for (const source of incomes) {
     if (!source.rrule) continue;
 
-    // Check all events previously generated for this source (including archived/deleted) to prevent re-burst resurrection
     const existingEvents = await db
       .select({ expectedDate: incomeEvents.expectedDate })
       .from(incomeEvents)
@@ -70,8 +68,8 @@ export async function maintainRollingWindowCommand({
             expectedAmount: source.amount,
             actualAmount: source.amount,
             status: "PENDING" as const,
-            tenantId: tenantId,
-            appId: appId,
+            tenantId,
+            appId,
             createdBy: userId,
             updatedBy: userId,
           };
@@ -81,39 +79,39 @@ export async function maintainRollingWindowCommand({
     }
   }
 
-  // 2. Sync Scheduled Bill Categories
-  const billCategories = await db
+  // 2. Sync Scheduled Bill Envelopes
+  const billEnvelopes = await db
     .select()
-    .from(categories)
+    .from(envelopes)
     .where(
       and(
-        eq(categories.tenantId, tenantId),
-        eq(categories.appId, appId),
-        sql`${categories.archivedAt} IS NULL`,
-        sql`${categories.rrule} IS NOT NULL`
+        eq(envelopes.tenantId, tenantId),
+        eq(envelopes.appId, appId),
+        eq(envelopes.envelopeType, "SCHEDULED_BILL"),
+        sql`${envelopes.archivedAt} IS NULL`,
+        sql`${envelopes.rrule} IS NOT NULL`
       )
     );
 
-  for (const cat of billCategories) {
-    if (!cat.rrule) continue;
-    const amountVal = cat.enteredAmount || cat.monthlyAmount || "0.00";
+  for (const env of billEnvelopes) {
+    if (!env.rrule) continue;
+    const amountVal = env.enteredAmount || env.monthlyAmount || "0.00";
     if (parseFloat(amountVal) <= 0) continue;
 
-    // Check all events previously generated for this category to prevent re-burst resurrection
     const existingEvents = await db
       .select({ expectedDate: expenseEvents.expectedDate })
       .from(expenseEvents)
       .where(
         and(
-          eq(expenseEvents.categoryId, cat.id),
+          eq(expenseEvents.envelopeId, env.id),
           eq(expenseEvents.tenantId, tenantId),
           eq(expenseEvents.appId, appId)
         )
       );
 
     const existingDates = new Set(existingEvents.map((e) => e.expectedDate));
-    const startDate = cat.startDate || todayStr;
-    const horizonDates = generateBurstDates(cat.rrule, startDate, cat.endDate, 12);
+    const startDate = env.startDate || todayStr;
+    const horizonDates = generateBurstDates(env.rrule, startDate, env.endDate, 12);
 
     const datesToInsert = horizonDates.filter((d) => {
       const dStr = getLocalDateString(d);
@@ -125,15 +123,14 @@ export async function maintainRollingWindowCommand({
         datesToInsert.map((d) => {
           const dateStr = getLocalDateString(d);
           return {
-            poolId: cat.poolId,
-            categoryId: cat.id,
-            name: cat.name,
+            envelopeId: env.id,
+            name: env.name,
             expectedDate: dateStr,
             expectedAmount: amountVal,
             isScheduled: true,
             status: "PENDING" as const,
-            tenantId: tenantId,
-            appId: appId,
+            tenantId,
+            appId,
             createdBy: userId,
             updatedBy: userId,
           };

@@ -21,17 +21,17 @@ describe("transactions capability", () => {
 
     await expect(
       recordExpenseCommand(
-        { poolId: "p-invalid", amount: "50.00", flowType: "DEBIT", source: "MANUAL" },
+        { envelopeId: "p-invalid", amount: "50.00", flowType: "DEBIT", source: "MANUAL" },
         tenantId,
         appId,
         userId,
         mockDb
       )
-    ).rejects.toThrow("Pool target invalid or access unauthorized.");
+    ).rejects.toThrow("Envelope target invalid or access unauthorized.");
   });
 
   it("records an expense debit successfully", async () => {
-    const mockExpense = { id: "tx-1", poolId: "p-123", amount: "50.00" };
+    const mockExpense = { id: "tx-1", envelopeId: "p-123", amount: "50.00" };
     const mockTx = {
       select: vi.fn().mockReturnValue({
         from: vi.fn().mockReturnValue({
@@ -49,7 +49,7 @@ describe("transactions capability", () => {
     } as unknown as DbOrTx;
 
     const result = await recordExpenseCommand(
-      { poolId: "p-123", amount: "50.00", flowType: "DEBIT", source: "MANUAL" },
+      { envelopeId: "p-123", amount: "50.00", flowType: "DEBIT", source: "MANUAL" },
       tenantId,
       appId,
       userId,

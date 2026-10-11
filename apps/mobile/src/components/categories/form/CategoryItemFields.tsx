@@ -17,7 +17,7 @@ interface CategoryItemFieldsProps {
   setName: (v: string) => void;
   selectedPoolId?: string;
   setSelectedPoolId?: (v: string) => void;
-  availablePools?: Array<{ id: string; name: string; poolType?: string }>;
+  availablePools?: Array<{ id: string; name: string; envelopeType?: string; poolType?: string }>;
   showPoolPicker?: boolean;
   enteredAmount: string;
   setEnteredAmount: (v: string) => void;
@@ -53,10 +53,13 @@ export const CategoryItemFields: React.FC<CategoryItemFieldsProps> = ({
   isEdit,
   freqOptions,
 }) => {
-  const poolOptions = (availablePools || []).map((p) => ({
-    key: p.id,
-    label: `${p.name} (${p.poolType === 'EVERYDAY' ? t('incomeBillsTabs.everyday') : t('incomeBillsTabs.bills')})`,
-  }));
+  const poolOptions = (availablePools || []).map((p) => {
+    const isEveryday = (p.envelopeType || p.poolType) === 'EVERYDAY';
+    return {
+      key: p.id,
+      label: `${p.name} (${isEveryday ? t('incomeBillsTabs.everyday') : t('incomeBillsTabs.bills')})`,
+    };
+  });
 
   return (
     <View style={styles.form}>

@@ -57,7 +57,6 @@ export function QuickExpenseModal({
 
   const invalidateAllQueries = () => {
     state.utils.listPools.invalidate();
-    state.utils.listCategories.invalidate();
     state.utils.listTransactions.invalidate();
     state.utils.listBillSchedules.invalidate();
     state.utils.listExpenseEvents.invalidate();
@@ -131,8 +130,11 @@ export function QuickExpenseModal({
               setSelectedPoolId={state.setSelectedPoolId}
               selectedSubCategoryId={state.selectedSubCategoryId}
               setSelectedSubCategoryId={state.setSelectedSubCategoryId}
-              pools={state.pools.filter((p) => p.poolType === 'REGULAR' || p.poolType === 'GOAL')}
-              categories={state.rawCategories}
+              pools={state.pools.filter((p) => {
+                const type = p.envelopeType || (p as { poolType?: string }).poolType;
+                return type !== 'TARGET_GOAL' && type !== 'ONGOING_GOAL';
+              })}
+              categories={[]}
               presets={state.expensePresets}
               onSelectPreset={state.handleSelectPreset}
               isSubmitting={state.isSubmitting}

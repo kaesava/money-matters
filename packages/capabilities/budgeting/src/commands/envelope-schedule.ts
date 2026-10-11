@@ -1,5 +1,5 @@
 import { expenseEvents, DbOrTx } from "@money-matters/db";
-import { and, eq, sql } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { generateBurstDates } from "../engine/burst-engine.js";
 
 export function deriveRruleFromFrequency(freq?: string | null): string {
@@ -17,11 +17,10 @@ export function computeDefaultStartDate(): string {
   return new Intl.DateTimeFormat("en-CA", { timeZone: "Australia/Sydney" }).format(targetDate);
 }
 
-export async function burstCategoryEvents(
+export async function burstEnvelopeEvents(
   tx: DbOrTx,
   params: {
-    categoryId: string;
-    poolId: string;
+    envelopeId: string;
     name: string;
     amount: string;
     rrule: string;
@@ -38,8 +37,7 @@ export async function burstCategoryEvents(
   const eventsToInsert = dates.map((d) => ({
     tenantId: params.tenantId,
     appId: params.appId,
-    poolId: params.poolId,
-    categoryId: params.categoryId,
+    envelopeId: params.envelopeId,
     name: params.name,
     expectedDate: new Intl.DateTimeFormat("en-CA", { timeZone: "Australia/Sydney" }).format(d),
     expectedAmount: params.amount,
@@ -53,9 +51,9 @@ export async function burstCategoryEvents(
   return eventsToInsert.length;
 }
 
-export async function clearScheduledCategoryEvents(
+export async function clearScheduledEnvelopeEvents(
   tx: DbOrTx,
-  categoryId: string,
+  envelopeId: string,
   tenantId: string,
   appId: string
 ): Promise<void> {
@@ -63,7 +61,7 @@ export async function clearScheduledCategoryEvents(
     .delete(expenseEvents)
     .where(
       and(
-        eq(expenseEvents.categoryId, categoryId),
+        eq(expenseEvents.envelopeId, envelopeId),
         eq(expenseEvents.isScheduled, true),
         eq(expenseEvents.status, "PENDING"),
         eq(expenseEvents.tenantId, tenantId),

@@ -77,7 +77,7 @@ export default function HomeScreen() {
       .map((p) => ({
         id: p.id,
         name: p.name,
-        poolType: p.poolType,
+        envelopeType: p.envelopeType,
         currentBalance: p.currentBalance || 0,
         isSurplusTarget: Boolean(p.isSurplusTarget),
       }));

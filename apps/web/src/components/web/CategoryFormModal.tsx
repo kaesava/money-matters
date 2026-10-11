@@ -11,10 +11,10 @@ interface CategoryFormModalProps {
   onClose: () => void;
   categoryToEdit?: {
     id: string; poolId?: string; name: string;
-    type?: "EVERYDAY" | "REGULAR" | "GOAL"; poolType?: "EVERYDAY" | "REGULAR" | "GOAL";
+    type?: "EVERYDAY" | "REGULAR" | "GOAL" | string; poolType?: "EVERYDAY" | "REGULAR" | "GOAL" | string;
     bankAccountId?: string | null; isPrivate?: boolean | null; monthlyAmount?: string | null;
     everydayAllowanceAmount?: string | null; safetyBufferFloor?: string | null;
-    targetAmount?: string | null; targetDate?: string | null; goalMode?: "TARGET_DATE" | "ONGOING";
+    targetAmount?: string | null; targetDate?: string | null; goalMode?: "TARGET_DATE" | "ONGOING" | null;
     enteredAmount?: string | null; budgetFrequency?: "WEEKLY" | "FORTNIGHTLY" | "MONTHLY" | "ANNUALLY" | null;
     startDate?: string | null; rrule?: string | null;
     isSurplusTarget?: boolean | null;
@@ -58,7 +58,10 @@ export function CategoryFormModal({
   useEffect(() => {
     if (categoryToEdit) {
       setName(categoryToEdit.name);
-      setType(categoryToEdit.poolType || categoryToEdit.type || "REGULAR");
+      const rawType = categoryToEdit.poolType || categoryToEdit.type || "REGULAR";
+      const resolvedType: "EVERYDAY" | "REGULAR" | "GOAL" =
+        rawType === "EVERYDAY" ? "EVERYDAY" : rawType.includes("GOAL") ? "GOAL" : "REGULAR";
+      setType(resolvedType);
       setBankAccountId(categoryToEdit.bankAccountId || "");
       setSafetyBufferFloor(categoryToEdit.safetyBufferFloor || "");
       setTargetAmount(categoryToEdit.enteredAmount || categoryToEdit.targetAmount || "");
@@ -192,9 +195,18 @@ export function CategoryFormModal({
           },
         });
       } else {
+        const envType =
+          type === "EVERYDAY"
+            ? "EVERYDAY"
+            : type === "GOAL"
+            ? goalMode === "ONGOING"
+              ? "ONGOING_GOAL"
+              : "TARGET_GOAL"
+            : "SCHEDULED_BILL";
+
         await createPoolMut.mutateAsync({
           name: name.trim(),
-          poolType: type,
+          envelopeType: envType,
           bankAccountId,
           safetyBufferFloor: type === "EVERYDAY" ? safetyBufferFloor || "0.00" : undefined,
           targetAmount: finalTargetAmount,

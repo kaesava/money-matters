@@ -52,31 +52,25 @@ export function useQuickActionState(
   const isFutureDate = date > todayStr;
 
   const poolsQuery = trpc.listPools.useQuery();
-  const subCategoriesQuery = trpc.listCategories.useQuery();
   const bankAccountsQuery = trpc.listBankAccountsWithExpected.useQuery();
   const transactionsQuery = trpc.listTransactions.useQuery({ limit: 100 });
 
   const rawPools = poolsQuery.data;
-  const rawSubCategories = subCategoriesQuery.data;
 
   const categories = useMemo(() => {
     const poolsList = rawPools ?? [];
-    const catList = rawSubCategories ?? [];
 
     return poolsList
-      .filter((p) => isIncome || isTransfer || p.poolType === "REGULAR" || p.poolType === "GOAL")
+      .filter((p) => isIncome || isTransfer || p.envelopeType === "SCHEDULED_BILL" || p.envelopeType === "FLEXIBLE_BILL" || p.envelopeType === "TARGET_GOAL" || p.envelopeType === "ONGOING_GOAL")
       .map((p) => {
-        const childCategories = catList
-          .filter((c) => c.poolId === p.id)
-          .map((c) => ({ id: c.id, name: c.name }));
-
         return {
           ...p,
-          type: p.poolType,
-          categories: childCategories,
+          type: p.envelopeType,
+          poolType: p.envelopeType,
+          categories: [] as Array<{ id: string; name: string }>,
         };
       });
-  }, [rawPools, rawSubCategories, isIncome, isTransfer]);
+  }, [rawPools, isIncome, isTransfer]);
 
   const rawBankAccounts = bankAccountsQuery.data;
   const bankAccounts = useMemo(() => rawBankAccounts ?? [], [rawBankAccounts]);
@@ -107,7 +101,7 @@ export function useQuickActionState(
       (tx) => ({
         name: tx.note!.trim(),
         amount: tx.amount ? parseFloat(tx.amount).toFixed(2) : undefined,
-        categoryId: tx.categoryId || undefined,
+        categoryId: tx.envelopeId || undefined,
       }),
       (tx) => (tx.recordedAt ? new Date(tx.recordedAt).getTime() : Date.now())
     );
@@ -146,9 +140,9 @@ export function useQuickActionState(
           timestamp: tx.recordedAt ? new Date(tx.recordedAt).getTime() : Date.now(),
         };
         if (tx.flowType === "DEBIT") {
-          existing.sourceCatId = tx.categoryId || tx.poolId || undefined;
+          existing.sourceCatId = tx.envelopeId || undefined;
         } else if (tx.flowType === "CREDIT") {
-          existing.destCatId = tx.categoryId || tx.poolId || undefined;
+          existing.destCatId = tx.envelopeId || undefined;
         }
         transferMap.set(groupKey, existing);
       }
@@ -208,7 +202,6 @@ export function useQuickActionState(
   function handleDone() {
     utils.listTransactions.invalidate();
     utils.listPools.invalidate();
-    utils.listCategories.invalidate();
     utils.listIncomeSources.invalidate();
     utils.listIncomeEvents.invalidate();
     utils.listExpenseEvents.invalidate();
@@ -297,16 +290,16 @@ export function useQuickActionState(
 
       if (isFutureDate) {
         createTransferSourceMut.mutate({
-          sourcePoolId: sourceCategoryId,
-          destinationPoolId: destinationCategoryId,
+          sourceEnvelopeId: sourceCategoryId,
+          destinationEnvelopeId: destinationCategoryId,
           amount: amountNum.toFixed(2),
           name: name || undefined,
           startDate: date,
         });
       } else {
         moveMoneyMutation.mutate({
-          sourcePoolId: sourceCategoryId,
-          destinationPoolId: destinationCategoryId,
+          sourceEnvelopeId: sourceCategoryId,
+          destinationEnvelopeId: destinationCategoryId,
           amount: amountNum.toFixed(2),
           note: name || undefined,
         });
@@ -347,14 +340,12 @@ export function useQuickActionState(
         createOneOffExpenseMut.mutate({
           name,
           amount: amountNum.toFixed(2),
-          poolId: categoryId,
-          categoryId: selectedSubCategoryId || undefined,
+          envelopeId: categoryId,
           expectedDate: date,
         });
       } else {
         recordExpenseMutation.mutate({
-          poolId: categoryId,
-          categoryId: selectedSubCategoryId || undefined,
+          envelopeId: categoryId,
           amount: amountNum.toFixed(2),
           note: name,
           date,

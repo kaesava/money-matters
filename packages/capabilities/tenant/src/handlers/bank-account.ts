@@ -1,11 +1,11 @@
 import { z } from "zod";
-import { bankAccounts, pools, incomeEvents, incomeSources, DbOrTx } from "@money-matters/db";
+import { bankAccounts, envelopes, incomeEvents, incomeSources, DbOrTx } from "@money-matters/db";
 import { CreateBankAccountCommand, UpdateBankAccountCommand } from "@money-matters/types";
 import { eq, and, sql, or } from "drizzle-orm";
 import { ensurePremiumAccess } from "@money-matters/core";
 
 /**
- * Lists bank accounts for a tenant alongside their associated pools, respecting private bank account ownership.
+ * Lists bank accounts for a tenant alongside their associated envelopes, respecting private bank account ownership.
  */
 export function getBankAccountsWithMappingsHandler(db: DbOrTx) {
   return async (tenantId: string, appId: string, userId?: string) => {
@@ -26,12 +26,12 @@ export function getBankAccountsWithMappingsHandler(db: DbOrTx) {
 
     const tenantPools = await db
       .select()
-      .from(pools)
+      .from(envelopes)
       .where(
         and(
-          eq(pools.tenantId, tenantId),
-          eq(pools.appId, appId),
-          sql`${pools.archivedAt} IS NULL`
+          eq(envelopes.tenantId, tenantId),
+          eq(envelopes.appId, appId),
+          sql`${envelopes.archivedAt} IS NULL`
         )
       );
 
@@ -39,8 +39,8 @@ export function getBankAccountsWithMappingsHandler(db: DbOrTx) {
       const linkedPools = tenantPools.filter((p) => p.bankAccountId === acc.id);
       return {
         ...acc,
-        pools: linkedPools,
-        poolTypes: Array.from(new Set(linkedPools.map((p) => p.poolType))),
+        envelopes: linkedPools,
+        poolTypes: Array.from(new Set(linkedPools.map((p) => p.envelopeType))),
       };
     });
   };
@@ -149,7 +149,7 @@ export function updateBankAccountHandler(db: DbOrTx) {
 }
 
 /**
- * Archives a bank account within the tenant scope after ensuring no active pools are linked to it.
+ * Archives a bank account within the tenant scope after ensuring no active envelopes are linked to it.
  */
 export function archiveBankAccountHandler(db: DbOrTx) {
   return async (
@@ -160,19 +160,19 @@ export function archiveBankAccountHandler(db: DbOrTx) {
   ) => {
     const activePools = await db
       .select()
-      .from(pools)
+      .from(envelopes)
       .where(
         and(
-          eq(pools.tenantId, tenantId),
-          eq(pools.bankAccountId, accountId),
-          sql`${pools.archivedAt} IS NULL`
+          eq(envelopes.tenantId, tenantId),
+          eq(envelopes.bankAccountId, accountId),
+          sql`${envelopes.archivedAt} IS NULL`
         )
       );
 
     if (activePools.length > 0) {
       const linkedNames = activePools.map((p) => p.name).join(", ");
       throw new Error(
-        `Cannot archive bank account because pool(s) [${linkedNames}] are linked to it. Please re-assign them to another bank account first.`
+        `Cannot archive bank account because envelope(s) [${linkedNames}] are linked to it. Please re-assign them to another bank account first.`
       );
     }
 

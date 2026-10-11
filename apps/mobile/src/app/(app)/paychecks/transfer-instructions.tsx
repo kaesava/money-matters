@@ -34,8 +34,8 @@ export default function TransferInstructionsScreen() {
     const map: Record<string, string> = {};
     if (planQuery.data?.lines) {
       planQuery.data.lines.forEach((l) => {
-        const amt = l.confirmedAmount || l.proposedAmount || '0.00';
-        map[l.poolId] = parseFloat(amt).toFixed(2);
+        const amt = l.proposedAmount || '0.00';
+        map[l.envelopeId] = parseFloat(amt).toFixed(2);
       });
     }
     return map;
@@ -44,12 +44,12 @@ export default function TransferInstructionsScreen() {
   const sweepPool = useMemo(() => {
     return (
       pools.find((p) => p.isSurplusTarget) ||
-      pools.find((p) => p.poolType === 'EVERYDAY') ||
+      pools.find((p) => p.envelopeType === 'EVERYDAY') ||
       pools[0]
     );
   }, [pools]);
 
-  const receivingAccountId = previewQuery.data?.incomeEvent?.receivingAccountId;
+  const receivingAccountId = previewQuery.data?.receivingAccountId;
   const sweepPoolRemainder = parseFloat(linesMap[sweepPool?.id || ''] || '0');
 
   if (isLoading) {

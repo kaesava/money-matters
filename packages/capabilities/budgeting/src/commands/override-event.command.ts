@@ -1,4 +1,4 @@
-import { incomeEvents, expenseEvents, incomeSources, categories, DbOrTx } from "@money-matters/db";
+import { incomeEvents, expenseEvents, incomeSources, envelopes, DbOrTx } from "@money-matters/db";
 import { eq, and } from "drizzle-orm";
 import { z } from "zod";
 import { OverrideEventCommand } from "@money-matters/types";
@@ -10,33 +10,12 @@ export async function overrideEventCommand(
   userId: string,
   dbClient: DbOrTx
 ) {
-
-
   if (input.eventType === "EXPENSE" && (input.status as string) === "CONFIRMED") {
     throw new Error("Expense events cannot be set to CONFIRMED status.");
   }
 
   return await dbClient.transaction(async (tx) => {
-
-
     if (input.eventType === "INCOME") {
-      const [existingEvt] = await tx
-        .select({
-          incomeSourceId: incomeEvents.incomeSourceId,
-          expectedDate: incomeEvents.expectedDate,
-          expectedAmount: incomeEvents.expectedAmount,
-        })
-        .from(incomeEvents)
-        .where(
-          and(
-            eq(incomeEvents.id, input.eventId),
-            eq(incomeEvents.tenantId, tenantId),
-            eq(incomeEvents.appId, appId)
-          )
-        )
-        .limit(1);
-
-      const isScheduled = Boolean(existingEvt?.incomeSourceId);
       const setPayload: Record<string, unknown> = {
         updatedBy: userId,
         updatedAt: new Date(),
@@ -58,9 +37,7 @@ export async function overrideEventCommand(
         }
       }
 
-      if (input.status) {
-        setPayload.status = input.status;
-      }
+      if (input.status) setPayload.status = input.status;
       if (input.name) setPayload.name = input.name;
       if (input.note !== undefined) setPayload.note = input.note;
 
@@ -100,24 +77,6 @@ export async function overrideEventCommand(
 
       return updatedEvent;
     } else {
-      const [existingEvt] = await tx
-        .select({
-          isScheduled: expenseEvents.isScheduled,
-          categoryId: expenseEvents.categoryId,
-          expectedDate: expenseEvents.expectedDate,
-          expectedAmount: expenseEvents.expectedAmount,
-        })
-        .from(expenseEvents)
-        .where(
-          and(
-            eq(expenseEvents.id, input.eventId),
-            eq(expenseEvents.tenantId, tenantId),
-            eq(expenseEvents.appId, appId)
-          )
-        )
-        .limit(1);
-
-      const isScheduled = Boolean(existingEvt?.isScheduled);
       const setPayload: Record<string, unknown> = {
         updatedBy: userId,
         updatedAt: new Date(),
@@ -139,12 +98,9 @@ export async function overrideEventCommand(
         }
       }
 
-      if (input.status) {
-        setPayload.status = input.status;
-      }
+      if (input.status) setPayload.status = input.status;
       if (input.name) setPayload.name = input.name;
-      if (input.poolId) setPayload.poolId = input.poolId;
-      if (input.categoryId) setPayload.categoryId = input.categoryId;
+      if (input.envelopeId) setPayload.envelopeId = input.envelopeId;
       if (input.note !== undefined) setPayload.note = input.note;
 
       const [updatedEvent] = await tx
@@ -161,24 +117,23 @@ export async function overrideEventCommand(
 
       if (!updatedEvent) throw new Error("Expense event not found.");
 
-      if (input.updateSeries && updatedEvent.categoryId && (input.amount || input.expectedAmount)) {
-        const catPayload: Record<string, unknown> = {
+      if (input.updateSeries && updatedEvent.envelopeId && (input.amount || input.expectedAmount)) {
+        const envPayload: Record<string, unknown> = {
           enteredAmount: input.expectedAmount || input.amount,
           monthlyAmount: input.expectedAmount || input.amount,
           updatedBy: userId,
           updatedAt: new Date(),
         };
-        if (input.name) catPayload.name = input.name;
-        if (input.poolId) catPayload.poolId = input.poolId;
+        if (input.name) envPayload.name = input.name;
 
         await tx
-          .update(categories)
-          .set(catPayload)
+          .update(envelopes)
+          .set(envPayload)
           .where(
             and(
-              eq(categories.id, updatedEvent.categoryId),
-              eq(categories.tenantId, tenantId),
-              eq(categories.appId, appId)
+              eq(envelopes.id, updatedEvent.envelopeId),
+              eq(envelopes.tenantId, tenantId),
+              eq(envelopes.appId, appId)
             )
           );
       }

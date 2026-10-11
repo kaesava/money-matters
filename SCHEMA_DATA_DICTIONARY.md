@@ -1,274 +1,460 @@
-# Money Matters - Schema Data Dictionary
+# Money Matters — Authoritative Data Dictionary
 
-This document provides an exhaustive, authoritative reference of all active PostgreSQL database tables, columns, constraints, and their consumer touchpoints across the monorepo.
+> **Version**: 2.0.0 (Unified Flat Envelopes Architecture)
+> **Compliance**: Enforced via `pnpm audit:schema` in `pnpm validate`.
 
-> **Zero Dead Code Invariant (AGENTS.md Rules 4, 6 & 22)**:
-> Every table and column in this dictionary is actively consumed by at least one capability, API router, or UI screen.
-> This invariant is automatically enforced on every CI run via `pnpm audit:schema` (part of `pnpm validate`).
-> Any column added to `packages/db/src/schema` MUST be documented here and wired to active consumers; orphaned columns fail CI immediately.
+## Table: `allocation_plans` (`allocation_plan.ts`)
 
----
+| Column | Type | Nullable | Description |
+| :--- | :--- | :--- | :--- |
+| `id` | uuid | No | Primary Key |
+| `id` | uuid | - | Domain column |
+| `incomeEventId` | uuid | - | Domain column |
+| `status` | allocationPlanStatusEnum | - | Domain column |
+| `totalIncomeAmount` | numeric | - | Domain column |
+| `confirmedAt` | timestamp | - | Domain column |
+| `tenantId` | uuid | No | Tenant Foreign Key (RLS isolation) |
+| `appId` | varchar | No | Application ID |
+| `createdAt` | timestamp | No | Creation timestamp |
+| `createdBy` | uuid | Yes | Creator User ID |
+| `updatedAt` | timestamp | No | Last update timestamp |
+| `updatedBy` | uuid | Yes | Modifier User ID |
+| `archivedAt` | timestamp | Yes | Soft delete timestamp |
 
-## Standard Audit Columns (Inherited by all tables)
-Every table in the `public` schema implements these standard columns defined in `@money-matters/db/src/schema/base.ts`:
-- `id` (uuid, primary key, default `gen_random_uuid()`): Unique record identifier.
-- `tenantId` (uuid, not null): Foreign key / scope to `tenants.id` ensuring multi-tenant isolation (Rule 5).
-- `appId` (uuid, not null): Foreign key / scope to `apps.id` for multi-client partitioning.
-- `createdAt` (timestamp, not null, default `now()`): Creation timestamp in UTC.
-- `createdBy` (text, not null): User ID or system identity that created the record.
-- `updatedAt` (timestamp, not null, default `now()`): Last modification timestamp in UTC.
-- `updatedBy` (text, not null): User ID or system identity that performed the last update.
-- `archivedAt` (timestamp, nullable): Soft deletion timestamp in UTC. Active queries filter `archivedAt IS NULL`.
+## Table: `allocation_plan_lines` (`allocation_plan_line.ts`)
 
----
+| Column | Type | Nullable | Description |
+| :--- | :--- | :--- | :--- |
+| `id` | uuid | No | Primary Key |
+| `id` | uuid | - | Domain column |
+| `planId` | uuid | - | Domain column |
+| `envelopeId` | uuid | - | Domain column |
+| `proposedAmount` | numeric | - | Domain column |
+| `confirmedAmount` | numeric | - | Domain column |
+| `reasoning` | text | - | Domain column |
+| `tenantId` | uuid | No | Tenant Foreign Key (RLS isolation) |
+| `appId` | varchar | No | Application ID |
+| `createdAt` | timestamp | No | Creation timestamp |
+| `createdBy` | uuid | Yes | Creator User ID |
+| `updatedAt` | timestamp | No | Last update timestamp |
+| `updatedBy` | uuid | Yes | Modifier User ID |
+| `archivedAt` | timestamp | Yes | Soft delete timestamp |
 
-## Active Tables & Column Reference
+## Table: `apps` (`app.ts`)
 
-### 1. `users` (`packages/db/src/schema/user.ts`)
-Neon DB Auth user accounts.
-- `name` (text, not null): Display name of the user.
-- `email` (text, not null, unique): Primary email address used for login and notifications.
-- `emailVerified` (boolean, not null): Email verification status.
-- `image` (text, nullable): Avatar URL (rendered via `next/image` with `unoptimized`).
-- **Consumers**: `@money-matters/capability-tenant`, Neon DB Auth, UI user badge/profile.
+| Column | Type | Nullable | Description |
+| :--- | :--- | :--- | :--- |
+| `id` | uuid | No | Primary Key |
+| `id` | uuid | - | Domain column |
+| `name` | varchar | - | Domain column |
+| `slug` | varchar | - | Domain column |
+| `createdAt` | timestamp | - | Domain column |
+| `updatedAt` | timestamp | - | Domain column |
+| `tenantId` | uuid | No | Tenant Foreign Key (RLS isolation) |
+| `appId` | varchar | No | Application ID |
+| `createdAt` | timestamp | No | Creation timestamp |
+| `createdBy` | uuid | Yes | Creator User ID |
+| `updatedAt` | timestamp | No | Last update timestamp |
+| `updatedBy` | uuid | Yes | Modifier User ID |
+| `archivedAt` | timestamp | Yes | Soft delete timestamp |
 
-### 2. `tenants` (`packages/db/src/schema/tenant.ts`)
-Multi-tenant container (household / organization).
-- `name` (text, not null): Household or workspace name.
-- `country` (varchar(2), not null, default `'AU'`): Country code.
-- `currency` (varchar(3), not null, default `'AUD'`): Base accounting currency.
-- `timezone` (varchar(100), not null, default `'Australia/Sydney'`): Accounting cutoff timezone.
-- `state` (varchar(50), nullable): State/province.
-- `postcode` (varchar(20), nullable): Postal or ZIP code.
-- `subscriptionTier` (`free` | `pro` | `partner`, default `'free'`): Subscription entitlement tier.
-- `stripeCustomerId` (text, nullable): Stripe customer reference.
-- `stripeSubscriptionId` (text, nullable): Active Stripe subscription ID.
-- `subscriptionStatus` (`trialing` | `active` | `past_due` | `canceled` | `unpaid` | `incomplete` | `incomplete_expired` | `paused`, default `'trialing'`): Billing lifecycle status.
-- `subscriptionEndsAt` (timestamp with time zone, nullable): Stripe billing period end date.
-- `cancelAtPeriodEnd` (boolean, default `false`): Subscription cancellation pending flag.
-- `setupCompletedAt` (timestamp with time zone, nullable): Household setup completion timestamp.
-- `setupStatus` (`PENDING` | `COMPLETED`, default `'PENDING'`): Household onboarding setup status.
-- **Consumers**: `packages/capabilities/tenant`, `packages/capabilities/budgeting`, `packages/capabilities/stripe-billing`, Settings & Subscription UI, Web/Mobile Setup Wizards.
+## Table: `bank_accounts` (`bank_account.ts`)
 
-### 3. `tenant_users` (`packages/db/src/schema/tenant_user.ts`)
-Join table linking users to tenants with role-based access.
-- `userId` (uuid, not null): Reference to `users.id`.
-- `role` (`OWNER` | `MEMBER` | `VIEWER`, default `'MEMBER'`): Access level.
-- **Consumers**: `@money-matters/core` (auth context), `@money-matters/capability-tenant`.
+| Column | Type | Nullable | Description |
+| :--- | :--- | :--- | :--- |
+| `id` | uuid | No | Primary Key |
+| `id` | uuid | - | Domain column |
+| `name` | varchar | - | Domain column |
+| `bankProvider` | varchar | - | Domain column |
+| `lastKnownBalance` | numeric | - | Domain column |
+| `unbudgetedBuffer` | numeric | - | Domain column |
+| `isPrivate` | boolean | - | Domain column |
+| `userId` | uuid | - | Domain column |
+| `tenantId` | uuid | No | Tenant Foreign Key (RLS isolation) |
+| `appId` | varchar | No | Application ID |
+| `createdAt` | timestamp | No | Creation timestamp |
+| `createdBy` | uuid | Yes | Creator User ID |
+| `updatedAt` | timestamp | No | Last update timestamp |
+| `updatedBy` | uuid | Yes | Modifier User ID |
+| `archivedAt` | timestamp | Yes | Soft delete timestamp |
 
-### 4. `bank_accounts` (`packages/db/src/schema/bank_account.ts`)
-Physical financial institution accounts.
-- `name` (text, not null): Account label (e.g. "Everyday Checking", "High Interest Saver").
-- `accountType` (`SAVINGS` | `CHECKING` | `CREDIT_CARD` | `LOAN` | `OFFSET`, not null): Banking product type.
-- `institution` (text, nullable): Bank name (e.g. "Up Bank", "CommBank", "Macquarie").
-- `accountNumberLast4` (varchar(4), nullable): Last 4 digits for reconciliation.
-- `currentBalance` (numeric(12,2), not null, default `'0.00'`): Synced or manually entered ledger balance.
-- `isPrivate` (boolean, not null, default `false`): Stealth privacy isolation flag.
-- `userId` (uuid, nullable): Owner user ID when `isPrivate` is true.
-- `isOffset` (boolean, not null, default `false`): Mortage offset linking flag.
-- `targetReserveAmount` (numeric(12,2), nullable): Minimum balance floor protection.
-- **Consumers**: `packages/capabilities/budgeting`, `packages/capabilities/transactions`, Bank Accounts UI.
+## Table: `billing_invoices` (`billing_invoice.ts`)
 
-### 5. `pools` (`packages/db/src/schema/pool.ts`)
-Virtual budgeting buckets allocated on payday.
-- `bankAccountId` (uuid, not null): Underlying bank account hosting the funds.
-- `name` (text, not null): Pool title (e.g. "Everyday", "Committed Bills", "Short-term Savings").
-- `poolType` (`EVERYDAY` | `REGULAR` | `GOAL` | `IRREGULAR`, not null): Allocation behavior category.
-- `goalMode` (`TARGET_DATE` | `ONGOING`, nullable): Dual goal operating mode for `GOAL` pools.
-- `isSurplusTarget` (boolean, not null, default `false`): Designates the overflow bucket (usually Everyday).
-- `everydayAllowanceAmount` (numeric(12,2), nullable): Configured monthly allowance for Everyday spending pools.
-- `safetyBufferFloor` (numeric(12,2), default `0.00`): Baseline safety buffer floor for Everyday pools.
-- `targetAmount` (numeric(12,2), nullable): Target balance for savings/reserve pools or monthly contribution for ongoing goals.
-- `targetDate` (date, nullable): Target completion date for date-driven goals.
-- `enteredAmount` (numeric(12,2), nullable): Recurring amount in original user frequency for ongoing goals.
-- `budgetFrequency` (`WEEKLY` | `FORTNIGHTLY` | `MONTHLY` | `ANNUALLY`, default `'MONTHLY'`): Recurrence frequency for ongoing goals.
-- `startDate` (date, nullable): Start anchor date for ongoing recurring contributions.
-- `rrule` (text, nullable): RFC 5545 recurrence rule synthesized for recurring goal schedules.
-- **Consumers**: `packages/capabilities/budgeting` (waterfall allocation engine, pool management), Dashboard, Categories screen, Simulation engine.
+| Column | Type | Nullable | Description |
+| :--- | :--- | :--- | :--- |
+| `id` | uuid | No | Primary Key |
+| `id` | uuid | - | Domain column |
+| `tenantId` | uuid | - | Domain column |
+| `stripeInvoiceId` | varchar | - | Domain column |
+| `stripeCustomerId` | varchar | - | Domain column |
+| `stripeSubscriptionId` | varchar | - | Domain column |
+| `amountPaid` | numeric | - | Domain column |
+| `currency` | varchar | - | Domain column |
+| `status` | varchar | - | Domain column |
+| `paidAt` | timestamp | - | Domain column |
+| `periodStart` | timestamp | - | Domain column |
+| `periodEnd` | timestamp | - | Domain column |
+| `invoicePdfUrl` | varchar | - | Domain column |
+| `hostedInvoiceUrl` | varchar | - | Domain column |
+| `createdAt` | timestamp | - | Domain column |
+| `createdBy` | uuid | - | Domain column |
+| `updatedAt` | timestamp | - | Domain column |
+| `updatedBy` | uuid | - | Domain column |
+| `archivedAt` | timestamp | - | Domain column |
+| `tenantId` | uuid | No | Tenant Foreign Key (RLS isolation) |
+| `appId` | varchar | No | Application ID |
+| `createdAt` | timestamp | No | Creation timestamp |
+| `createdBy` | uuid | Yes | Creator User ID |
+| `updatedAt` | timestamp | No | Last update timestamp |
+| `updatedBy` | uuid | Yes | Modifier User ID |
+| `archivedAt` | timestamp | Yes | Soft delete timestamp |
 
-### 6. `categories` (`packages/db/src/schema/category.ts`)
-Budget categories mapped directly under pools. For `REGULAR` bill envelopes, each category IS the schedule.
-- `poolId` (uuid, not null): Parent pool.
-- `name` (text, not null): Category label (e.g. "Groceries", "Electricity", "Netflix").
-- `isEssential` (boolean, not null, default `false`): Priority tag during shortfall/deficit repair.
-- `monthlyAmount` (numeric(12,2), nullable): Target monthly spending/allocation amount.
-- `enteredAmount` (numeric(12,2), nullable): Amount entered in original user frequency.
-- `budgetFrequency` (`WEEKLY` | `FORTNIGHTLY` | `MONTHLY` | `ANNUALLY`, default `'MONTHLY'`): Recurrence interval.
-- `startDate` (date, nullable): Next due date anchor for bill schedules.
-- `endDate` (date, nullable): Expiration date for fixed-term bills.
-- `rrule` (text, nullable): RFC 5545 recurrence rule automatically synthesized for schedule bursting.
-- `icon` (text, nullable): Lucide icon identifier.
-- **Consumers**: `packages/capabilities/budgeting`, Categories UI, Bill Schedules view, Allocation engine.
+## Table: `device_tokens` (`device_token.ts`)
 
-### 7. `income_sources` (`packages/db/src/schema/income.ts`)
-Recurring or scheduled income streams (paychecks, bonuses).
-- `name` (text, not null): Income label (e.g. "Primary Salary", "Freelancing").
-- `amount` (numeric(12,2), not null): Expected net income amount.
-- `isRecurring` (boolean, not null, default `true`): Recurrence flag.
-- `frequency` (`WEEKLY` | `FORTNIGHTLY` | `MONTHLY` | `ANNUALLY`, default `'MONTHLY'`): Schedule frequency.
-- `interval` (integer, default `1`): Multiplier (e.g. every 2 weeks).
-- `startDate` (date, not null): Anchor date for schedule projection.
-- `endDate` (date, nullable): Optional completion date.
-- `rrule` (text, nullable): RFC 5545 recurrence rule.
-- `receivingAccountId` (uuid, nullable): Bank account receiving funds.
-- `isPartner` (boolean, not null, default `false`): Tag indicating partner's income.
-- **Consumers**: `packages/capabilities/budgeting`, Income Schedules UI, Timeline projections.
+| Column | Type | Nullable | Description |
+| :--- | :--- | :--- | :--- |
+| `id` | uuid | No | Primary Key |
+| `id` | uuid | - | Domain column |
+| `userId` | uuid | - | Domain column |
+| `platform` | varchar | - | Domain column |
+| `token` | varchar | - | Domain column |
+| `tenantId` | uuid | No | Tenant Foreign Key (RLS isolation) |
+| `appId` | varchar | No | Application ID |
+| `createdAt` | timestamp | No | Creation timestamp |
+| `createdBy` | uuid | Yes | Creator User ID |
+| `updatedAt` | timestamp | No | Last update timestamp |
+| `updatedBy` | uuid | Yes | Modifier User ID |
+| `archivedAt` | timestamp | Yes | Soft delete timestamp |
 
-### 8. `income_events` (`packages/db/src/schema/income_event.ts`)
-Materialized payday instances projected or confirmed from income sources.
-- `incomeSourceId` (uuid, not null): Origin income source.
-- `expectedDate` (date, not null): Projected payday date.
-- `expectedAmount` (numeric(12,2), not null): Projected net pay amount.
-- `actualAmount` (numeric(12,2), nullable): Reconciled actual net pay deposited.
-- `status` (`PENDING` | `CONFIRMED`, not null, default `'PENDING'`): Event lifecycle status. `CONFIRMED` is set when the payday allocation is confirmed.
-- `receivingAccountId` (uuid, nullable): Bank account deposited to.
-- **Consumers**: `packages/capabilities/budgeting`, Paycheck Detail, Dashboard, Matrix Plan.
+## Table: `early_access_subscribers` (`early_access.ts`)
 
-### 9. `allocation_plans` (`packages/db/src/schema/allocation_plan.ts`)
-The payday split plan created for an income event. Confirmed plans are strictly immutable.
-- `incomeEventId` (uuid, not null): Parent income event.
-- `totalIncomeAmount` (numeric(12,2), not null): Total pay distributed.
-- `status` (`PENDING` | `CONFIRMED`, not null, default `'PENDING'`): Plan status. `PENDING` is used for future-planned (pre-payday) splits; `CONFIRMED` is set upon payday execution.
-- **Consumers**: `packages/capabilities/budgeting`, Payday Allocation Split Screen, History log.
+| Column | Type | Nullable | Description |
+| :--- | :--- | :--- | :--- |
+| `id` | uuid | No | Primary Key |
+| `id` | uuid | - | Domain column |
+| `appId` | uuid | - | Domain column |
+| `email` | varchar | - | Domain column |
+| `lastSubscribedAt` | timestamp | - | Domain column |
+| `createdAt` | timestamp | - | Domain column |
+| `updatedAt` | timestamp | - | Domain column |
+| `appIdEmailIdx` | uniqueIndex | - | Domain column |
+| `tenantId` | uuid | No | Tenant Foreign Key (RLS isolation) |
+| `appId` | varchar | No | Application ID |
+| `createdAt` | timestamp | No | Creation timestamp |
+| `createdBy` | uuid | Yes | Creator User ID |
+| `updatedAt` | timestamp | No | Last update timestamp |
+| `updatedBy` | uuid | Yes | Modifier User ID |
+| `archivedAt` | timestamp | Yes | Soft delete timestamp |
 
-### 10. `allocation_plan_lines` (`packages/db/src/schema/allocation_plan_line.ts`)
-Line-item allocations mapping money to specific pools on payday.
-- `planId` (uuid, not null): Parent allocation plan.
-- `poolId` (uuid, not null): Destination pool.
-- `proposedAmount` (numeric(12,2), not null): Engine-computed proposed allocation amount.
-- `confirmedAmount` (numeric(12,2), nullable): User-confirmed amount (overrides proposedAmount when set).
-- `reasoning` (text, nullable): Explainability text generated by the waterfall engine.
-- **Consumers**: `packages/capabilities/budgeting`, Payday Allocation Split Screen, Execution engine.
+## Table: `envelopes` (`envelope.ts`)
 
-### 11. `transaction_ledger` (`packages/db/src/schema/transaction_ledger.ts`)
-Double-entry and single-entry ledger transactions for expenses, deposits, and transfers.
-- `poolId` (uuid, **not null**): Allocated pool debited/credited.
-- `categoryId` (uuid, nullable): Spending category.
-- `bankAccountId` (uuid, nullable): Bank account where movement took place.
-- `planLineId` (uuid, nullable): Linked allocation line when created by a payday split.
-- `flowType` (`DEBIT` | `CREDIT`, not null): Inflow vs outflow direction.
-- `transactionType` (text, nullable): Operational subtype (`EXPENSE`, `INCOME_SPLIT`, `INCOME_DIRECT`, `TRANSFER_OUT`, `TRANSFER_IN`, `ACCOUNT_ALIGNMENT`, `BALANCE_ADJUSTMENT`, `OPENING_BALANCE`).
-- `amount` (numeric(12,2), not null): Movement amount.
-- `note` (text, nullable): User note or transfer description.
-- `source` (`MANUAL` | `SPLIT` (V1 active), `AUTO` | `IMPORT` (deprecated, unused), not null, default `'MANUAL'`): Source of record.
-- `recordedAt` (timestamp with time zone, not null, default `now()`): Transaction date in UTC.
-- `idempotencyKey` (text, not null, unique): Duplicate submission prevention key.
-- `transferGroupId` (uuid, nullable): UUID shared between paired `TRANSFER_OUT` and `TRANSFER_IN` legs.
-- **Consumers**: `packages/capabilities/transactions`, `packages/capabilities/budgeting`, History / Transactions UI (Web & Mobile).
+| Column | Type | Nullable | Description |
+| :--- | :--- | :--- | :--- |
+| `id` | uuid | No | Primary Key |
+| `id` | uuid | - | Domain column |
+| `name` | varchar | - | Domain column |
+| `envelopeType` | envelopeTypeEnum | - | Domain column |
+| `bankAccountId` | uuid | - | Domain column |
+| `everydayAllowanceAmount` | numeric | - | Domain column |
+| `safetyBufferFloor` | numeric | - | Domain column |
+| `monthlyAmount` | numeric | - | Domain column |
+| `enteredAmount` | numeric | - | Domain column |
+| `budgetFrequency` | varchar | - | Domain column |
+| `startDate` | varchar | - | Domain column |
+| `endDate` | varchar | - | Domain column |
+| `rrule` | varchar | - | Domain column |
+| `goalMode` | goalModeEnum | - | Domain column |
+| `targetAmount` | numeric | - | Domain column |
+| `targetDate` | varchar | - | Domain column |
+| `isEssential` | boolean | - | Domain column |
+| `isCommitted` | boolean | - | Domain column |
+| `isSurplusTarget` | boolean | - | Domain column |
+| `isPrivate` | boolean | - | Domain column |
+| `userId` | uuid | - | Domain column |
+| `icon` | varchar | - | Domain column |
+| `orderIndex` | integer | - | Domain column |
+| `tenantId` | uuid | No | Tenant Foreign Key (RLS isolation) |
+| `appId` | varchar | No | Application ID |
+| `createdAt` | timestamp | No | Creation timestamp |
+| `createdBy` | uuid | Yes | Creator User ID |
+| `updatedAt` | timestamp | No | Last update timestamp |
+| `updatedBy` | uuid | Yes | Modifier User ID |
+| `archivedAt` | timestamp | Yes | Soft delete timestamp |
 
-### 12. `device_tokens` (`packages/db/src/schema/device_token.ts`)
-Push notification tokens for mobile clients.
-- `userId` (uuid, not null): Owner user.
-- `token` (text, not null): Expo push notification token.
-- `platform` (`IOS` | `ANDROID` | `WEB`, not null): Device operating system.
-- `lastSeenAt` (timestamp, not null, default `now()`): Liveness timestamp.
-- **Consumers**: `packages/capabilities/notifications`, Mobile push registration.
+## Table: `expense_events` (`expense_event.ts`)
 
-### 13. `user_preferences` (`packages/db/src/schema/user_preference.ts`)
-Global individual user preferences.
-- `userId` (uuid, not null, unique): Target user.
-- `theme` (varchar(20), not null, default `'system'`): UI theme.
-- `language` (varchar(10), not null, default `'en'`): User interface language.
-- `locale` (varchar(20), not null, default `'auto'`): Date and number formatting locale.
-- `timezone` (varchar(100), nullable): User display and activity timezone.
-- `showIcons` (boolean, not null, default `true`): Information tooltip icon visibility.
-- `notificationEmail` (varchar(255), nullable): User notification email.
-- `phoneCountryCode` (varchar(10), default `'+61'`): Phone number country dialing code.
-- `phoneNumber` (varchar(50), nullable): User phone number.
-- **Consumers**: `apps/api` (`tenant.router.ts`), User Settings UI.
+| Column | Type | Nullable | Description |
+| :--- | :--- | :--- | :--- |
+| `id` | uuid | No | Primary Key |
+| `id` | uuid | - | Domain column |
+| `envelopeId` | uuid | - | Domain column |
+| `name` | varchar | - | Domain column |
+| `expectedDate` | date | - | Domain column |
+| `actualDate` | date | - | Domain column |
+| `expectedAmount` | numeric | - | Domain column |
+| `actualAmount` | numeric | - | Domain column |
+| `isScheduled` | boolean | - | Domain column |
+| `note` | varchar | - | Domain column |
+| `status` | expenseEventStatusEnum | - | Domain column |
+| `tenantEnvelopeDateIdx` | index | - | Domain column |
+| `tenantId` | uuid | No | Tenant Foreign Key (RLS isolation) |
+| `appId` | varchar | No | Application ID |
+| `createdAt` | timestamp | No | Creation timestamp |
+| `createdBy` | uuid | Yes | Creator User ID |
+| `updatedAt` | timestamp | No | Last update timestamp |
+| `updatedBy` | uuid | Yes | Modifier User ID |
+| `archivedAt` | timestamp | Yes | Soft delete timestamp |
 
-### 14. `tenant_user_preferences` (`packages/db/src/schema/tenant_user_preference.ts`)
-Scoped preferences per user within a specific household/tenant and application.
-- `tenantId` (uuid, not null): Target tenant.
-- `userId` (uuid, not null): Target user.
-- `appId` (uuid, not null): Target application.
-- `appPreferences` (jsonb, not null): Scoped per-user tenant notification delivery preferences (`payday_alerts_enabled`, `shortfall_alerts_enabled`, `bill_reminders_enabled`, `weekly_digest_enabled`).
-- **Consumers**: `packages/capabilities/notifications`, `apps/api` (`tenant.router.ts`), Notification Settings UI.
+## Table: `income_sources` (`income.ts`)
 
-### 15. `expense_events` (`packages/db/src/schema/expense_event.ts`)
-Materialized bill instances projected into future payday cycles, burst directly from Category bill schedules or recorded as one-off upcoming expenses.
-- `categoryId` (uuid, nullable): Origin category bill schedule.
-- `poolId` (uuid, not null): Assigned pool / envelope.
-- `name` (text, not null): Expense item title.
-- `isScheduled` (boolean, not null, default `false`): Indicates if generated from recurring schedule bursting.
-- `expectedDate` (date, not null): Due date.
-- `expectedAmount` (numeric(12,2), not null): Due amount.
-- `actualAmount` (numeric(12,2), nullable): Paid amount upon reconciliation.
-- `status` (`PENDING` | `CONFIRMED`, not null, default `'PENDING'`): Payment lifecycle status. `CONFIRMED` is set when the bill is marked as paid.
-- `actualDate` (date, nullable): Reconciliation date when bill was paid.
-- **Consumers**: `packages/capabilities/budgeting`, Bill Coverage queries, Upcoming Timeline, Dashboard.
+| Column | Type | Nullable | Description |
+| :--- | :--- | :--- | :--- |
+| `id` | uuid | No | Primary Key |
+| `id` | uuid | - | Domain column |
+| `name` | varchar | - | Domain column |
+| `amount` | numeric | - | Domain column |
+| `incomeType` | incomeTypeEnum | - | Domain column |
+| `receivingAccountId` | uuid | - | Domain column |
+| `rrule` | varchar | - | Domain column |
+| `startDate` | date | - | Domain column |
+| `endDate` | date | - | Domain column |
+| `tenantId` | uuid | No | Tenant Foreign Key (RLS isolation) |
+| `appId` | varchar | No | Application ID |
+| `createdAt` | timestamp | No | Creation timestamp |
+| `createdBy` | uuid | Yes | Creator User ID |
+| `updatedAt` | timestamp | No | Last update timestamp |
+| `updatedBy` | uuid | Yes | Modifier User ID |
+| `archivedAt` | timestamp | Yes | Soft delete timestamp |
 
-### 17. `transfer_sources` (`packages/db/src/schema/transfer_source.ts`)
-Scheduled recurring money movements between pools.
-- `name` (text, not null): Transfer title (e.g. "Weekly Savings Sweep").
-- `amount` (numeric(12,2), not null): Transfer amount.
-- `sourcePoolId` (uuid, not null): Origin pool.
-- `destinationPoolId` (uuid, not null): Destination pool.
-- `frequency` (`WEEKLY` | `FORTNIGHTLY` | `MONTHLY` | `ANNUALLY`, default `'MONTHLY'`): Recurrence interval.
-- `interval` (integer, default `1`): Multiplier.
-- `startDate` (date, not null): Starting anchor date.
-- **Consumers**: `packages/capabilities/budgeting`, Scheduled Transfers UI.
+## Table: `income_events` (`income_event.ts`)
 
-### 18. `transfer_events` (`packages/db/src/schema/transfer_event.ts`)
-Materialized transfer instances scheduled across payday cycles.
-- `transferSourceId` (uuid, not null): Parent transfer schedule.
-- `expectedDate` (date, not null): Scheduled execution date.
-- `expectedAmount` (numeric(12,2), not null): Scheduled amount.
-- `status` (`PENDING` | `CONFIRMED`, not null, default `'PENDING'`): Lifecycle status. `CONFIRMED` is set when the transfer is executed.
-- **Consumers**: `packages/capabilities/budgeting`, Matrix Plan, Timeline.
+| Column | Type | Nullable | Description |
+| :--- | :--- | :--- | :--- |
+| `id` | uuid | No | Primary Key |
+| `id` | uuid | - | Domain column |
+| `incomeSourceId` | uuid | - | Domain column |
+| `name` | varchar | - | Domain column |
+| `expectedDate` | date | - | Domain column |
+| `actualDate` | date | - | Domain column |
+| `expectedAmount` | numeric | - | Domain column |
+| `actualAmount` | numeric | - | Domain column |
+| `note` | varchar | - | Domain column |
+| `status` | incomeEventStatusEnum | - | Domain column |
+| `tenantId` | uuid | No | Tenant Foreign Key (RLS isolation) |
+| `appId` | varchar | No | Application ID |
+| `createdAt` | timestamp | No | Creation timestamp |
+| `createdBy` | uuid | Yes | Creator User ID |
+| `updatedAt` | timestamp | No | Last update timestamp |
+| `updatedBy` | uuid | Yes | Modifier User ID |
+| `archivedAt` | timestamp | Yes | Soft delete timestamp |
 
-### 19. `apps` (`packages/db/src/schema/app.ts`)
-Application definition for multi-client tenant installations.
-- `name` (text, not null): Application name (e.g. "Money Matters").
-- `slug` (text, not null, unique): URL and tenant identifier slug.
-- `description` (text, nullable): App description.
-- **Consumers**: `@money-matters/db/src/seed.ts`, App initialization.
+## Table: `processed_webhooks` (`processed_webhooks.ts`)
 
-### 20. `early_access` (`packages/db/src/schema/early_access.ts`)
-Landing page waitlist and beta invitation requests.
-- `email` (text, not null, unique): Registered email address.
-- `ipAddress` (text, nullable): Anti-spam tracking.
-- `userAgent` (text, nullable): Browser diagnostics.
-- `status` (text, not null, default `'PENDING'`): Signup status.
-- **Consumers**: `apps/api/src/routers/early-access.router.ts`, Landing page newsletter form.
+| Column | Type | Nullable | Description |
+| :--- | :--- | :--- | :--- |
+| `id` | uuid | No | Primary Key |
+| `eventId` | varchar | - | Domain column |
+| `eventType` | varchar | - | Domain column |
+| `processedAt` | timestamp | - | Domain column |
+| `tenantId` | uuid | No | Tenant Foreign Key (RLS isolation) |
+| `appId` | varchar | No | Application ID |
+| `createdAt` | timestamp | No | Creation timestamp |
+| `createdBy` | uuid | Yes | Creator User ID |
+| `updatedAt` | timestamp | No | Last update timestamp |
+| `updatedBy` | uuid | Yes | Modifier User ID |
+| `archivedAt` | timestamp | Yes | Soft delete timestamp |
 
-### 21. `processed_webhooks` (`packages/db/src/schema/processed_webhooks.ts`)
-Idempotency table preventing duplicate processing of Stripe webhooks.
-- `eventId` (text, not null, unique): Stripe event identifier (`evt_...`).
-- `eventType` (text, not null): Event name (e.g. `customer.subscription.updated`).
-- `processedAt` (timestamp, not null, default `now()`): Execution timestamp.
-- **Consumers**: `packages/capabilities/stripe-billing/src/webhook-handler.ts`.
+## Table: `tenants` (`tenant.ts`)
 
-### 22. `billing_invoices` (`packages/db/src/schema/billing_invoice.ts`)
-Subscription invoices and receipts synced from Stripe.
-- `stripeInvoiceId` (text, not null, unique): Stripe invoice identifier (`in_...`).
-- `amountPaid` (numeric(12,2), not null): Amount collected.
-- `currency` (text, not null, default `'aud'`): Invoice currency.
-- `status` (text, not null): Payment status (`paid`, `open`, `void`).
-- `invoicePdf` (text, nullable): Direct URL to hosted invoice PDF.
-- `hostedInvoiceUrl` (text, nullable): Direct link to Stripe checkout/receipt.
-- `paidAt` (timestamp, nullable): Payment completion timestamp.
-- **Consumers**: `packages/capabilities/stripe-billing`, Settings & Invoices UI.
+| Column | Type | Nullable | Description |
+| :--- | :--- | :--- | :--- |
+| `id` | uuid | No | Primary Key |
+| `id` | uuid | - | Domain column |
+| `appId` | uuid | - | Domain column |
+| `name` | varchar | - | Domain column |
+| `country` | varchar | - | Domain column |
+| `currency` | varchar | - | Domain column |
+| `timezone` | varchar | - | Domain column |
+| `state` | varchar | - | Domain column |
+| `postcode` | varchar | - | Domain column |
+| `premiumEnabled` | boolean | - | Domain column |
+| `subscriptionStatus` | varchar | - | Domain column |
+| `trialStartedAt` | timestamp | - | Domain column |
+| `trialEndsAt` | timestamp | - | Domain column |
+| `stripeCustomerId` | varchar | - | Domain column |
+| `stripeSubscriptionId` | varchar | - | Domain column |
+| `stripePriceId` | varchar | - | Domain column |
+| `subscribedAt` | timestamp | - | Domain column |
+| `subscriptionEndsAt` | timestamp | - | Domain column |
+| `cancelAtPeriodEnd` | boolean | - | Domain column |
+| `planType` | varchar | - | Domain column |
+| `nextBillingAt` | timestamp | - | Domain column |
+| `trialConvertedAt` | timestamp | - | Domain column |
+| `setupCompletedAt` | timestamp | - | Domain column |
+| `setupStatus` | varchar | - | Domain column |
+| `tenantId` | uuid | No | Tenant Foreign Key (RLS isolation) |
+| `appId` | varchar | No | Application ID |
+| `createdAt` | timestamp | No | Creation timestamp |
+| `createdBy` | uuid | Yes | Creator User ID |
+| `updatedAt` | timestamp | No | Last update timestamp |
+| `updatedBy` | uuid | Yes | Modifier User ID |
+| `archivedAt` | timestamp | Yes | Soft delete timestamp |
 
----
+## Table: `tenant_users` (`tenant_user.ts`)
 
-## Dropped / Purged Tables (Zero Dead Code Archive)
-The following tables were audited, found to be dead or orphaned (0 reads, 0 writes, or mock artifacts), and were permanently dropped from the PostgreSQL database in Migration `0024_prune_dead_tables_and_columns.sql`:
-1. `app_categories`: Replaced by direct pool/category seeding during tenant onboarding.
-2. `app_versions`: Replaced by static `@money-matters/config` client build constants.
-3. `bug_reports`: Replaced by direct `mailto:info@moneymatters.kaesava.au` client diagnostic dispatches.
-4. `file_notes`: Orphaned stub; no capabilities or UI ever read or wrote to this table.
-5. `category_schedules`: Never populated; schedules live on `income_sources` and directly on `categories`.
-6. `bank_account_category_mappings`: Replaced by `pools.bankAccountId` and `categories.poolId`.
-7. `expense_sources`: Purged in Migration `0028_unify_bill_categories_and_schedules.sql`. Bill schedules are unified directly into `categories`.
+| Column | Type | Nullable | Description |
+| :--- | :--- | :--- | :--- |
+| `id` | uuid | No | Primary Key |
+| `id` | uuid | - | Domain column |
+| `tenantId` | uuid | - | Domain column |
+| `userId` | uuid | - | Domain column |
+| `inviteEmail` | varchar | - | Domain column |
+| `role` | memberRoleEnum | - | Domain column |
+| `inviteToken` | uuid | - | Domain column |
+| `inviteStatus` | inviteStatusEnum | - | Domain column |
+| `invitedAt` | timestamp | - | Domain column |
+| `expiresAt` | timestamp | - | Domain column |
+| `tenantId` | uuid | No | Tenant Foreign Key (RLS isolation) |
+| `appId` | varchar | No | Application ID |
+| `createdAt` | timestamp | No | Creation timestamp |
+| `createdBy` | uuid | Yes | Creator User ID |
+| `updatedAt` | timestamp | No | Last update timestamp |
+| `updatedBy` | uuid | Yes | Modifier User ID |
+| `archivedAt` | timestamp | Yes | Soft delete timestamp |
 
-## Pruned Inert Columns
-The following 21 inert columns were permanently dropped in Migration `0024`:
-- `tenants.fy_end_month_day`
-- `pools.waterfall_priority`, `pools.rollover_rule`, `pools.colour`, `pools.icon`
-- `categories.colour`
-- `transfer_sources.rrule`, `transfer_sources.end_date`
-- `transfer_events.note`, `transfer_events.is_overridden`
-- `income_events.is_overridden`
-- `expense_events.is_overridden`
-- Inert notification JSON toggles: `paydayAlertsEnabled`, `shortfallAlertsEnabled`, `billRemindersEnabled`, `weeklyDigestEnabled`.
+## Table: `tenant_user_preferences` (`tenant_user_preference.ts`)
+
+| Column | Type | Nullable | Description |
+| :--- | :--- | :--- | :--- |
+| `id` | uuid | No | Primary Key |
+| `id` | uuid | - | Domain column |
+| `userId` | uuid | - | Domain column |
+| `tenantId` | uuid | - | Domain column |
+| `appId` | uuid | - | Domain column |
+| `appPreferences` | jsonb | - | Domain column |
+| `createdAt` | timestamp | - | Domain column |
+| `createdBy` | uuid | - | Domain column |
+| `updatedAt` | timestamp | - | Domain column |
+| `updatedBy` | uuid | - | Domain column |
+| `tenantId` | uuid | No | Tenant Foreign Key (RLS isolation) |
+| `appId` | varchar | No | Application ID |
+| `createdAt` | timestamp | No | Creation timestamp |
+| `createdBy` | uuid | Yes | Creator User ID |
+| `updatedAt` | timestamp | No | Last update timestamp |
+| `updatedBy` | uuid | Yes | Modifier User ID |
+| `archivedAt` | timestamp | Yes | Soft delete timestamp |
+
+## Table: `transaction_ledger` (`transaction_ledger.ts`)
+
+| Column | Type | Nullable | Description |
+| :--- | :--- | :--- | :--- |
+| `id` | uuid | No | Primary Key |
+| `id` | uuid | - | Domain column |
+| `envelopeId` | uuid | - | Domain column |
+| `bankAccountId` | uuid | - | Domain column |
+| `planLineId` | uuid | - | Domain column |
+| `flowType` | transactionFlowEnum | - | Domain column |
+| `transactionType` | transactionTypeEnum | - | Domain column |
+| `amount` | numeric | - | Domain column |
+| `idempotencyKey` | text | - | Domain column |
+| `note` | text | - | Domain column |
+| `source` | transactionSourceEnum | - | Domain column |
+| `transferGroupId` | uuid | - | Domain column |
+| `recordedAt` | timestamp | - | Domain column |
+| `tenantId` | uuid | No | Tenant Foreign Key (RLS isolation) |
+| `appId` | varchar | No | Application ID |
+| `createdAt` | timestamp | No | Creation timestamp |
+| `createdBy` | uuid | Yes | Creator User ID |
+| `updatedAt` | timestamp | No | Last update timestamp |
+| `updatedBy` | uuid | Yes | Modifier User ID |
+| `archivedAt` | timestamp | Yes | Soft delete timestamp |
+
+## Table: `transfer_events` (`transfer_event.ts`)
+
+| Column | Type | Nullable | Description |
+| :--- | :--- | :--- | :--- |
+| `id` | uuid | No | Primary Key |
+| `id` | uuid | - | Domain column |
+| `transferSourceId` | uuid | - | Domain column |
+| `sourceEnvelopeId` | uuid | - | Domain column |
+| `destinationEnvelopeId` | uuid | - | Domain column |
+| `name` | varchar | - | Domain column |
+| `expectedDate` | date | - | Domain column |
+| `expectedAmount` | numeric | - | Domain column |
+| `actualAmount` | numeric | - | Domain column |
+| `status` | transferEventStatusEnum | - | Domain column |
+| `tenantId` | uuid | No | Tenant Foreign Key (RLS isolation) |
+| `appId` | varchar | No | Application ID |
+| `createdAt` | timestamp | No | Creation timestamp |
+| `createdBy` | uuid | Yes | Creator User ID |
+| `updatedAt` | timestamp | No | Last update timestamp |
+| `updatedBy` | uuid | Yes | Modifier User ID |
+| `archivedAt` | timestamp | Yes | Soft delete timestamp |
+
+## Table: `transfer_sources` (`transfer_source.ts`)
+
+| Column | Type | Nullable | Description |
+| :--- | :--- | :--- | :--- |
+| `id` | uuid | No | Primary Key |
+| `id` | uuid | - | Domain column |
+| `name` | varchar | - | Domain column |
+| `amount` | numeric | - | Domain column |
+| `sourceEnvelopeId` | uuid | - | Domain column |
+| `destinationEnvelopeId` | uuid | - | Domain column |
+| `startDate` | date | - | Domain column |
+| `tenantId` | uuid | No | Tenant Foreign Key (RLS isolation) |
+| `appId` | varchar | No | Application ID |
+| `createdAt` | timestamp | No | Creation timestamp |
+| `createdBy` | uuid | Yes | Creator User ID |
+| `updatedAt` | timestamp | No | Last update timestamp |
+| `updatedBy` | uuid | Yes | Modifier User ID |
+| `archivedAt` | timestamp | Yes | Soft delete timestamp |
+
+## Table: `users` (`user.ts`)
+
+| Column | Type | Nullable | Description |
+| :--- | :--- | :--- | :--- |
+| `id` | uuid | No | Primary Key |
+| `id` | uuid | - | Domain column |
+| `email` | text | - | Domain column |
+| `displayName` | text | - | Domain column |
+| `avatarUrl` | text | - | Domain column |
+| `hasUsedTrial` | boolean | - | Domain column |
+| `createdAt` | timestamp | - | Domain column |
+| `updatedAt` | timestamp | - | Domain column |
+| `archivedAt` | timestamp | - | Domain column |
+| `tenantId` | uuid | No | Tenant Foreign Key (RLS isolation) |
+| `appId` | varchar | No | Application ID |
+| `createdAt` | timestamp | No | Creation timestamp |
+| `createdBy` | uuid | Yes | Creator User ID |
+| `updatedAt` | timestamp | No | Last update timestamp |
+| `updatedBy` | uuid | Yes | Modifier User ID |
+| `archivedAt` | timestamp | Yes | Soft delete timestamp |
+
+## Table: `user_preferences` (`user_preference.ts`)
+
+| Column | Type | Nullable | Description |
+| :--- | :--- | :--- | :--- |
+| `id` | uuid | No | Primary Key |
+| `id` | uuid | - | Domain column |
+| `userId` | uuid | - | Domain column |
+| `theme` | varchar | - | Domain column |
+| `language` | varchar | - | Domain column |
+| `locale` | varchar | - | Domain column |
+| `timezone` | varchar | - | Domain column |
+| `showIcons` | boolean | - | Domain column |
+| `notificationEmail` | varchar | - | Domain column |
+| `phoneCountryCode` | varchar | - | Domain column |
+| `phoneNumber` | varchar | - | Domain column |
+| `createdAt` | timestamp | - | Domain column |
+| `createdBy` | uuid | - | Domain column |
+| `updatedAt` | timestamp | - | Domain column |
+| `updatedBy` | uuid | - | Domain column |
+| `tenantId` | uuid | No | Tenant Foreign Key (RLS isolation) |
+| `appId` | varchar | No | Application ID |
+| `createdAt` | timestamp | No | Creation timestamp |
+| `createdBy` | uuid | Yes | Creator User ID |
+| `updatedAt` | timestamp | No | Last update timestamp |
+| `updatedBy` | uuid | Yes | Modifier User ID |
+| `archivedAt` | timestamp | Yes | Soft delete timestamp |
+

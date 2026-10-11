@@ -36,16 +36,19 @@ export function usePaycheckStudio(id: string | undefined, returnTo?: string) {
 
   useEffect(() => {
     if (previewQuery.data) {
-      const evt = previewQuery.data.incomeEvent;
-      if (evt) {
-        setSourceName(evt.name || t('paydayDrawer.incomeDepositDefault'));
-        const amt = evt.actualAmount || evt.expectedAmount || '0.00';
-        setActualAmount(amt);
-        setInitialAmount(amt);
-        setSelectedDate(formatIsoDate(evt.expectedDate || new Date()));
-      }
+      const pData = previewQuery.data;
+      setSourceName(pData.incomeEventName || t('paydayDrawer.incomeDepositDefault'));
+      const amt = String(pData.actualAmount ?? pData.expectedAmount ?? '0.00');
+      setActualAmount(amt);
+      setInitialAmount(amt);
+      setSelectedDate(formatIsoDate(pData.expectedDate || new Date()));
 
-      const rawLines = extractLines(previewQuery.data.engineResult);
+      const rawLines = pData.lines.map((l) => ({
+        bucketId: l.envelopeId,
+        bucketName: l.envelopeName,
+        proposedAmount: l.savedAmount ?? l.proposedAmount,
+        reasoning: l.reasoning ?? '',
+      }));
       const initMap: Record<string, string> = {};
       const initReasoningMap: Record<string, string> = {};
       rawLines.forEach((line) => {
@@ -57,22 +60,26 @@ export function usePaycheckStudio(id: string | undefined, returnTo?: string) {
       setReasoningMap(initReasoningMap);
       setInitialReasoningMap(initReasoningMap);
 
-      const engineResult = previewQuery.data.engineResult as unknown as {
-        isCustomPlan?: boolean;
-        isConfirmedPlan?: boolean;
-      };
-      setIsSavedPlan(engineResult?.isCustomPlan ?? false);
-      setIsConfirmedPlan(engineResult?.isConfirmedPlan ?? false);
+      setIsSavedPlan(pData.hasSavedPlan);
+      setIsConfirmedPlan(pData.planStatus === 'CONFIRMED');
     }
   }, [previewQuery.data]);
 
-  const lines = useMemo(() => extractLines(previewQuery.data?.engineResult), [previewQuery.data]);
+  const lines = useMemo(() => {
+    if (!previewQuery.data) return [];
+    return previewQuery.data.lines.map((l) => ({
+      bucketId: l.envelopeId,
+      bucketName: l.envelopeName,
+      proposedAmount: l.savedAmount ?? l.proposedAmount,
+      reasoning: l.reasoning ?? '',
+    }));
+  }, [previewQuery.data]);
   const numericActual = parseFloat(actualAmount) || 0;
   const isReadOnly = isConfirmedPlan;
   const isFutureDate = selectedDate > todayStr;
 
   const sweepPool = useMemo(() => {
-    return pools.find((p) => p.isSurplusTarget) || pools.find((p) => p.poolType === 'EVERYDAY') || pools[0];
+    return pools.find((p) => p.isSurplusTarget) || pools.find((p) => p.envelopeType === 'EVERYDAY') || pools[0];
   }, [pools]);
 
   const nonSweepAllocatedSum = useMemo(() => {
@@ -91,10 +98,10 @@ export function usePaycheckStudio(id: string | undefined, returnTo?: string) {
 
   const isDirty = useMemo(() => {
     if (!previewQuery.data) return false;
-    const evt = previewQuery.data.incomeEvent;
-    if (sourceName !== (evt.name || t('paydayDrawer.incomeDepositDefault'))) return true;
-    if (actualAmount !== (evt.actualAmount || evt.expectedAmount)) return true;
-    if (selectedDate !== formatIsoDate(evt.expectedDate)) return true;
+    const pData = previewQuery.data;
+    if (sourceName !== (pData.incomeEventName || t('paydayDrawer.incomeDepositDefault'))) return true;
+    if (actualAmount !== String(pData.actualAmount ?? pData.expectedAmount)) return true;
+    if (selectedDate !== formatIsoDate(pData.expectedDate)) return true;
     for (const [pId, val] of Object.entries(linesMap)) {
       if (initialLinesMap[pId] !== val) return true;
     }
@@ -174,15 +181,21 @@ export function usePaycheckStudio(id: string | undefined, returnTo?: string) {
   };
 
   const everydayAllocated = lines
-    .filter((l) => pools.find((p) => p.id === l.bucketId)?.poolType === 'EVERYDAY')
+    .filter((l) => pools.find((p) => p.id === l.bucketId)?.envelopeType === 'EVERYDAY')
     .reduce((sum, l) => sum + (parseFloat(linesMap[l.bucketId] ?? l.proposedAmount.toString()) || 0), 0);
 
   const billsAllocated = lines
-    .filter((l) => pools.find((p) => p.id === l.bucketId)?.poolType === 'REGULAR')
+    .filter((l) => {
+      const et = pools.find((p) => p.id === l.bucketId)?.envelopeType;
+      return et === 'SCHEDULED_BILL' || et === 'FLEXIBLE_BILL';
+    })
     .reduce((sum, l) => sum + (parseFloat(linesMap[l.bucketId] ?? l.proposedAmount.toString()) || 0), 0);
 
   const goalsAllocated = lines
-    .filter((l) => pools.find((p) => p.id === l.bucketId)?.poolType === 'GOAL')
+    .filter((l) => {
+      const et = pools.find((p) => p.id === l.bucketId)?.envelopeType;
+      return et === 'TARGET_GOAL' || et === 'ONGOING_GOAL';
+    })
     .reduce((sum, l) => sum + (parseFloat(linesMap[l.bucketId] ?? l.proposedAmount.toString()) || 0), 0);
 
   const groupedLines = useMemo(() => {
@@ -192,9 +205,10 @@ export function usePaycheckStudio(id: string | undefined, returnTo?: string) {
       { type: 'GOAL', label: t('paydayDrawer.goalsPools'), items: [] },
     ];
     for (const l of lines) {
-      const pType = pools.find((pool) => pool.id === l.bucketId)?.poolType || 'REGULAR';
-      if (pType === 'EVERYDAY') groups[0].items.push(l);
-      else if (pType === 'GOAL') groups[2].items.push(l);
+      const env = pools.find((pool) => pool.id === l.bucketId);
+      const et = env?.envelopeType || 'SCHEDULED_BILL';
+      if (et === 'EVERYDAY') groups[0].items.push(l);
+      else if (et === 'TARGET_GOAL' || et === 'ONGOING_GOAL') groups[2].items.push(l);
       else groups[1].items.push(l);
     }
     return groups.filter((g) => g.items.length > 0);

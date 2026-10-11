@@ -1,27 +1,27 @@
 import { describe, it, expect } from "vitest";
-import { bankAccounts, pools } from "@money-matters/db";
+import { bankAccounts, envelopes } from "@money-matters/db";
 import {
   archiveBankAccountHandler,
   createTenantHandler,
 } from "@money-matters/capability-tenant";
 
 describe("Bank Reconciliation & Mapping Rules", () => {
-  it("should create default bank account and link pools on tenant creation", async () => {
+  it("should create default bank account and link envelopes on tenant creation", async () => {
     const insertedAccounts: any[] = [];
-    const insertedPools: any[] = [];
+    const insertedEnvelopes: any[] = [];
 
     const mockDb: any = {
       insert: (table: any) => ({
         values: (vals: any) => {
-          const generatedId = table === bankAccounts ? "acc-primary-123" : `pool-${insertedPools.length + 1}`;
-          if (table === pools || (Array.isArray(vals) && vals[0]?.poolType)) {
-            if (Array.isArray(vals)) insertedPools.push(...vals);
-            else insertedPools.push(vals);
+          const generatedId = table === bankAccounts ? "acc-primary-123" : `env-${insertedEnvelopes.length + 1}`;
+          if (table === envelopes || (Array.isArray(vals) && vals[0]?.envelopeType)) {
+            if (Array.isArray(vals)) insertedEnvelopes.push(...vals);
+            else insertedEnvelopes.push(vals);
           } else if (table === bankAccounts) {
             insertedAccounts.push({ id: generatedId, ...vals });
           }
           const returnVals = Array.isArray(vals)
-            ? vals.map((v, i) => ({ id: `id-${i}`, name: v.name || "Pool", ...v }))
+            ? vals.map((v, i) => ({ id: `id-${i}`, name: v.name || "Envelope", ...v }))
             : [{ id: generatedId, name: vals?.name || "Primary Account", ...vals }];
           return {
             onConflictDoNothing: () => Promise.resolve(returnVals),
@@ -56,22 +56,22 @@ describe("Bank Reconciliation & Mapping Rules", () => {
     expect(insertedAccounts).toHaveLength(1);
     expect(insertedAccounts[0].name).toBe("Primary Account");
 
-    expect(insertedPools.length).toBeGreaterThanOrEqual(3);
-    const poolTypes = insertedPools.map((p) => p.poolType);
-    expect(poolTypes).toContain("EVERYDAY");
-    expect(poolTypes).toContain("REGULAR");
-    expect(poolTypes).toContain("GOAL");
-    expect(insertedPools.every((p) => p.bankAccountId === "acc-primary-123")).toBe(true);
+    expect(insertedEnvelopes.length).toBeGreaterThanOrEqual(3);
+    const envelopeTypes = insertedEnvelopes.map((p) => p.envelopeType);
+    expect(envelopeTypes).toContain("EVERYDAY");
+    expect(envelopeTypes).toContain("SCHEDULED_BILL");
+    expect(envelopeTypes).toContain("ONGOING_GOAL");
+    expect(insertedEnvelopes.every((p) => p.bankAccountId === "acc-primary-123")).toBe(true);
   });
 
-  it("should block archiving a bank account if active pools are linked to it", async () => {
+  it("should block archiving a bank account if active envelopes are linked to it", async () => {
     const mockDb: any = {
       select: () => ({
         from: () => ({
           where: () =>
             Promise.resolve([
-              { id: "pool-1", poolType: "EVERYDAY", bankAccountId: "acc-1" },
-              { id: "pool-2", poolType: "REGULAR", bankAccountId: "acc-1" },
+              { id: "env-1", envelopeType: "EVERYDAY", bankAccountId: "acc-1" },
+              { id: "env-2", envelopeType: "SCHEDULED_BILL", bankAccountId: "acc-1" },
             ]),
         }),
       }),
@@ -80,8 +80,7 @@ describe("Bank Reconciliation & Mapping Rules", () => {
     const archiveHandler = archiveBankAccountHandler(mockDb);
     await expect(
       archiveHandler("acc-1", "tenant-1", "app-1", "user-1")
-    ).rejects.toThrow("Cannot archive bank account because pool(s)");
-
+    ).rejects.toThrow("Cannot archive bank account because envelope(s)");
   });
 
   it("should calculate expected bank balance correctly including unbudgeted buffer and linked pool balances", () => {

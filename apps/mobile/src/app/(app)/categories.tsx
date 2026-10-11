@@ -52,15 +52,14 @@ export default function PoolsScreen() {
 
   const poolsQuery = trpc.listPools.useQuery(undefined, { enabled: !!session?.user });
   const bankAccountsQuery = trpc.listBankAccounts.useQuery(undefined, { enabled: !!session?.user });
-  const categoriesQuery = trpc.listCategories.useQuery(undefined, { enabled: !!session?.user });
 
   const pools = poolsQuery.data ?? [];
   const bankAccounts = bankAccountsQuery.data ?? [];
-  const categories = categoriesQuery.data ?? [];
+  const categories: unknown[] = [];
 
   const onRefresh = async () => {
     setRefreshing(true);
-    await Promise.all([poolsQuery.refetch(), bankAccountsQuery.refetch(), categoriesQuery.refetch()]);
+    await Promise.all([poolsQuery.refetch(), bankAccountsQuery.refetch()]);
     setRefreshing(false);
   };
 
@@ -73,8 +72,8 @@ export default function PoolsScreen() {
     return pools
       .filter((p) => {
         if (activePoolIdFilter && p.id !== activePoolIdFilter) return false;
-        if (activeCategoryIdFilter && !categories.some((c) => c.poolId === p.id && c.id === activeCategoryIdFilter)) return false;
-        if (typeFilter !== 'ALL' && p.poolType !== typeFilter) return false;
+        const pType = p.envelopeType === 'EVERYDAY' ? 'EVERYDAY' : (p.envelopeType === 'TARGET_GOAL' || p.envelopeType === 'ONGOING_GOAL') ? 'GOAL' : 'REGULAR';
+        if (typeFilter !== 'ALL' && pType !== typeFilter) return false;
         if (privacyFilter === 'SHARED' && p.isPrivate) return false;
         if (privacyFilter === 'PRIVATE' && !p.isPrivate) return false;
         if (!searchQuery.trim()) return true;
@@ -82,8 +81,7 @@ export default function PoolsScreen() {
         const matchesPool = p.name.toLowerCase().includes(q);
         const bank = bankAccounts.find((b) => b.id === p.bankAccountId);
         const matchesBank = bank?.name.toLowerCase().includes(q);
-        const matchesCat = categories.some((c) => c.poolId === p.id && c.name.toLowerCase().includes(q));
-        return matchesPool || matchesBank || matchesCat;
+        return matchesPool || matchesBank;
       })
       .sort((a, b) => {
         if (sortField === 'name') {
@@ -97,10 +95,10 @@ export default function PoolsScreen() {
         const bTgt = b.targetAmount ? parseFloat(b.targetAmount) : 0;
         return sortOrder === 'asc' ? aTgt - bTgt : bTgt - aTgt;
       });
-  }, [pools, activePoolIdFilter, activeCategoryIdFilter, typeFilter, privacyFilter, searchQuery, sortField, sortOrder, bankAccounts, categories]);
+  }, [pools, activePoolIdFilter, typeFilter, privacyFilter, searchQuery, sortField, sortOrder, bankAccounts]);
 
   const matchedActivePool = pools.find((p) => p.id === activePoolIdFilter);
-  const matchedActiveCat = categories.find((c) => c.id === activeCategoryIdFilter);
+  const matchedActiveCat = null;
 
   return (
     <AppScreenWrapper
@@ -134,8 +132,6 @@ export default function PoolsScreen() {
             label={
               matchedActivePool
                 ? t('categories.filteredToPool', { name: matchedActivePool.name })
-                : matchedActiveCat
-                ? t('categories.filteredToCategory', { name: matchedActiveCat.name })
                 : t('common.all')
             }
             onClear={() => {
@@ -152,7 +148,7 @@ export default function PoolsScreen() {
           <View style={styles.sectionsContainer}>
             <PoolGroupSection
               title={t('categories.everydayPoolsUpper')}
-              pools={filteredPools.filter((p) => p.poolType === 'EVERYDAY')}
+              pools={filteredPools.filter((p) => p.envelopeType === 'EVERYDAY')}
               isCollapsed={!!collapsedTypes['EVERYDAY']}
               onToggleCollapse={() => toggleTypeCollapse('EVERYDAY')}
               bankAccounts={bankAccounts}
@@ -162,7 +158,7 @@ export default function PoolsScreen() {
             />
             <PoolGroupSection
               title={t('categories.billsPoolsUpper')}
-              pools={filteredPools.filter((p) => p.poolType === 'REGULAR')}
+              pools={filteredPools.filter((p) => p.envelopeType === 'SCHEDULED_BILL' || p.envelopeType === 'FLEXIBLE_BILL')}
               isCollapsed={!!collapsedTypes['REGULAR']}
               onToggleCollapse={() => toggleTypeCollapse('REGULAR')}
               bankAccounts={bankAccounts}
@@ -172,7 +168,7 @@ export default function PoolsScreen() {
             />
             <PoolGroupSection
               title={t('categories.goalsUpper')}
-              pools={filteredPools.filter((p) => p.poolType === 'GOAL')}
+              pools={filteredPools.filter((p) => p.envelopeType === 'TARGET_GOAL' || p.envelopeType === 'ONGOING_GOAL')}
               isCollapsed={!!collapsedTypes['GOAL']}
               onToggleCollapse={() => toggleTypeCollapse('GOAL')}
               bankAccounts={bankAccounts}

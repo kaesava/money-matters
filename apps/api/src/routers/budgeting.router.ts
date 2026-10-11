@@ -1,61 +1,85 @@
 import { privateTenantProcedure, requiresWriteAccess } from '../trpc/trpc.js';
 import {
-  createPoolCommand,
-  updatePoolCommand,
-  archivePoolCommand,
-  listPoolsQuery,
+  createEnvelopeCommand,
+  updateEnvelopeCommand,
+  archiveEnvelopeCommand,
+  listEnvelopesQuery,
   moveMoneyCommand,
-  createCategoryCommand,
-  updateCategoryCommand,
-  archiveCategoryCommand,
   restoreItemCommand,
-  listCategoriesQuery,
-  listBillCoverageQuery,
   getMonthlySummaryQuery,
   listArchivedItemsQuery,
   getProjectedPoolBalancesQuery,
   saveSetupBudgetHandler,
 } from "@money-matters/capability-budgeting";
 import {
-  CreatePoolCommand,
-  UpdatePoolCommand,
+  CreateEnvelopeCommand,
+  UpdateEnvelopeCommand,
   MoveMoneyCommand,
-  CreateCategoryCommand,
-  UpdateCategoryCommand,
   SaveSetupBudgetCommand,
 } from "@money-matters/types";
 import { z } from 'zod';
 
 export const budgetingRouter = {
-  // Pool procedures
-  createPool: privateTenantProcedure
-    .input(CreatePoolCommand)
+  // Envelope procedures (primary API)
+  createEnvelope: privateTenantProcedure
+    .input(CreateEnvelopeCommand)
     .mutation(async ({ input, ctx }) => {
       requiresWriteAccess(ctx);
-      return await createPoolCommand(input, ctx.tenantId!, ctx.appId!, ctx.userId!, ctx.db);
+      return await createEnvelopeCommand(input, ctx.tenantId!, ctx.appId!, ctx.userId!, ctx.db);
+    }),
+
+  updateEnvelope: privateTenantProcedure
+    .input(z.object({
+      envelopeId: z.string().uuid(),
+      data: UpdateEnvelopeCommand
+    }).strict())
+    .mutation(async ({ input, ctx }) => {
+      requiresWriteAccess(ctx);
+      return await updateEnvelopeCommand(input.envelopeId, input.data, ctx.tenantId!, ctx.appId!, ctx.userId!, ctx.db);
+    }),
+
+  archiveEnvelope: privateTenantProcedure
+    .input(z.object({ envelopeId: z.string().uuid() }).strict())
+    .mutation(async ({ input, ctx }) => {
+      requiresWriteAccess(ctx);
+      await archiveEnvelopeCommand(input.envelopeId, ctx.tenantId!, ctx.appId!, ctx.userId!, ctx.db);
+      return { success: true };
+    }),
+
+  listEnvelopes: privateTenantProcedure
+    .query(async ({ ctx }) => {
+      return await listEnvelopesQuery(ctx.tenantId!, ctx.appId!, ctx.db, ctx.userId);
+    }),
+
+  // Backward-compatible pool aliases for clients still transitioning
+  createPool: privateTenantProcedure
+    .input(CreateEnvelopeCommand)
+    .mutation(async ({ input, ctx }) => {
+      requiresWriteAccess(ctx);
+      return await createEnvelopeCommand(input, ctx.tenantId!, ctx.appId!, ctx.userId!, ctx.db);
     }),
 
   updatePool: privateTenantProcedure
     .input(z.object({
       poolId: z.string().uuid(),
-      data: UpdatePoolCommand
+      data: UpdateEnvelopeCommand
     }).strict())
     .mutation(async ({ input, ctx }) => {
       requiresWriteAccess(ctx);
-      return await updatePoolCommand(input.poolId, input.data, ctx.tenantId!, ctx.appId!, ctx.userId!, ctx.db);
+      return await updateEnvelopeCommand(input.poolId, input.data, ctx.tenantId!, ctx.appId!, ctx.userId!, ctx.db);
     }),
 
   archivePool: privateTenantProcedure
     .input(z.object({ poolId: z.string().uuid() }).strict())
     .mutation(async ({ input, ctx }) => {
       requiresWriteAccess(ctx);
-      const result = await archivePoolCommand(input.poolId, ctx.tenantId!, ctx.appId!, ctx.userId!, ctx.db);
+      await archiveEnvelopeCommand(input.poolId, ctx.tenantId!, ctx.appId!, ctx.userId!, ctx.db);
       return { success: true };
     }),
 
   listPools: privateTenantProcedure
     .query(async ({ ctx }) => {
-      return await listPoolsQuery(ctx.tenantId!, ctx.appId!, ctx.db, ctx.userId);
+      return await listEnvelopesQuery(ctx.tenantId!, ctx.appId!, ctx.db, ctx.userId);
     }),
 
   moveMoney: privateTenantProcedure
@@ -63,40 +87,6 @@ export const budgetingRouter = {
     .mutation(async ({ input, ctx }) => {
       requiresWriteAccess(ctx);
       return await moveMoneyCommand(input, ctx.tenantId!, ctx.appId!, ctx.userId!, ctx.db);
-    }),
-
-  // Category procedures
-  createCategory: privateTenantProcedure
-    .input(CreateCategoryCommand)
-    .mutation(async ({ input, ctx }) => {
-      requiresWriteAccess(ctx);
-      return await createCategoryCommand(input, ctx.tenantId!, ctx.appId!, ctx.userId!, ctx.db);
-    }),
-
-  updateCategory: privateTenantProcedure
-    .input(z.object({
-      categoryId: z.string().uuid(),
-      data: UpdateCategoryCommand
-    }).strict())
-    .mutation(async ({ input, ctx }) => {
-      requiresWriteAccess(ctx);
-      return await updateCategoryCommand(input.categoryId, input.data, ctx.tenantId!, ctx.appId!, ctx.userId!, ctx.db);
-    }),
-
-  archiveCategory: privateTenantProcedure
-    .input(z.object({ categoryId: z.string().uuid() }).strict())
-    .mutation(async ({ input, ctx }) => {
-      requiresWriteAccess(ctx);
-      const result = await archiveCategoryCommand(input.categoryId, ctx.tenantId!, ctx.appId!, ctx.userId!, ctx.db);
-      if (!result) {
-        throw new Error("Category not found or access unauthorized.");
-      }
-      return { success: true };
-    }),
-
-  listCategories: privateTenantProcedure
-    .query(async ({ ctx }) => {
-      return await listCategoriesQuery(ctx.tenantId!, ctx.appId!, ctx.db, ctx.userId!);
     }),
 
   listArchivedItems: privateTenantProcedure
@@ -108,14 +98,15 @@ export const budgetingRouter = {
     .input(
       z.object({
         itemId: z.string().uuid(),
-        itemType: z.enum(["POOL", "CATEGORY", "INCOME_SOURCE", "BANK_ACCOUNT"]),
+        itemType: z.enum(["ENVELOPE", "POOL", "CATEGORY", "INCOME_SOURCE", "BANK_ACCOUNT"]),
       }).strict()
     )
     .mutation(async ({ input, ctx }) => {
       requiresWriteAccess(ctx);
+      const normalizedType = (input.itemType === "POOL" || input.itemType === "CATEGORY") ? "ENVELOPE" : input.itemType;
       const result = await restoreItemCommand(
         input.itemId,
-        input.itemType,
+        normalizedType,
         ctx.tenantId!,
         ctx.appId!,
         ctx.userId!,
@@ -125,11 +116,6 @@ export const budgetingRouter = {
         throw new Error("Item not found or access unauthorized.");
       }
       return { success: true };
-    }),
-
-  listBillCoverage: privateTenantProcedure
-    .query(async ({ ctx }) => {
-      return await listBillCoverageQuery(ctx.tenantId!, ctx.appId!, ctx.db, ctx.userId!);
     }),
 
   getMonthlySummary: privateTenantProcedure

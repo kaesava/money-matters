@@ -101,7 +101,7 @@ export function BankAccountsSection() {
               pools={list.pools.map((p) => ({
                 id: p.id,
                 name: p.name,
-                poolType: p.poolType,
+                poolType: p.envelopeType,
                 currentBalance: p.currentBalance || 0,
               }))}
               showBalance={false}

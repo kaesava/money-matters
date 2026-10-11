@@ -1,23 +1,22 @@
 import {
   DbOrTx,
-  pools,
-  categories,
+  envelopes,
   bankAccounts,
   incomeSources,
   expenseEvents,
   incomeEvents,
   transactionLedger,
   tenants,
-  getPoolBalancesMap,
+  getEnvelopeBalancesMap,
 } from "@money-matters/db";
 import { eq, and, inArray, sql } from "drizzle-orm";
 import { z } from "zod";
 import { SaveSetupBudgetCommand } from "@money-matters/types";
 import { randomUUID } from "crypto";
 import {
-  CategoryScheduleCandidate,
-  buildCategoryEventPayloads,
-  insertCategoryEventsBulk,
+  EnvelopeScheduleCandidate,
+  buildEnvelopeEventPayloads,
+  insertEnvelopeEventsBulk,
   IncomeScheduleCandidate,
   buildIncomeEventPayloads,
   insertIncomeEventsBulk,
@@ -30,9 +29,8 @@ export interface SaveSetupBudgetResult {
   persistedCounts: {
     incomes: number;
     bankAccounts: number;
-    pools: number;
-    categories: number;
-    sweptPools: number;
+    envelopes: number;
+    sweptEnvelopes: number;
     sweptTotalAmount: number;
     expenseSources: number;
   };
@@ -46,7 +44,6 @@ export function saveSetupBudgetHandler(dbClient: DbOrTx) {
     tenantId: string
   ): Promise<SaveSetupBudgetResult> => {
     const input = SaveSetupBudgetCommand.parse(rawInput);
-    // Guard against mock DBs in Vitest without .transaction method
     const runInTx =
       typeof dbClient.transaction === "function"
         ? (cb: (tx: DbOrTx) => Promise<SaveSetupBudgetResult>) => dbClient.transaction(cb)
@@ -69,7 +66,7 @@ export function saveSetupBudgetHandler(dbClient: DbOrTx) {
           )
         );
 
-      const accountIdMap = new Map<string, string>(); // input.id or client-temp-id -> real DB UUID
+      const accountIdMap = new Map<string, string>(); // input.id or idx -> real DB UUID
 
       for (let i = 0; i < input.bankAccounts.length; i++) {
         const accInput = input.bankAccounts[i];
@@ -78,7 +75,6 @@ export function saveSetupBudgetHandler(dbClient: DbOrTx) {
           : null;
 
         if (matchedExisting) {
-          // Update existing account
           await tx
             .update(bankAccounts)
             .set({
@@ -95,7 +91,6 @@ export function saveSetupBudgetHandler(dbClient: DbOrTx) {
           if (accInput.id) accountIdMap.set(accInput.id, matchedExisting.id);
           accountIdMap.set(`idx-${i}`, matchedExisting.id);
         } else {
-          // Insert new account
           const newAccountId = randomUUID();
           await tx.insert(bankAccounts).values({
             id: newAccountId,
@@ -117,7 +112,6 @@ export function saveSetupBudgetHandler(dbClient: DbOrTx) {
         }
       }
 
-      // Default fallback account ID (first available account)
       const primaryBankAccountId =
         accountIdMap.get(input.bankAccounts[0]?.id || "") ||
         accountIdMap.get("idx-0") ||
@@ -125,56 +119,50 @@ export function saveSetupBudgetHandler(dbClient: DbOrTx) {
         "";
 
       // =========================================================================
-      // 2. Fetch Active Pools & Handle Archivals / Balance Sweeps
+      // 2. Fetch Active Envelopes & Handle Archivals / Sweeps
       // =========================================================================
-      const existingPools = await tx
+      const existingEnvelopes = await tx
         .select()
-        .from(pools)
+        .from(envelopes)
         .where(
           and(
-            eq(pools.tenantId, tenantId),
-            eq(pools.appId, appId),
-            sql`${pools.archivedAt} IS NULL`
+            eq(envelopes.tenantId, tenantId),
+            eq(envelopes.appId, appId),
+            sql`${envelopes.archivedAt} IS NULL`
           )
         );
 
-      // Validate: Everyday pool cannot be deleted/archived
-      for (const arch of input.archivedPools) {
-        const targetPool = existingPools.find((p) => p.id === arch.poolId);
-        if (targetPool && targetPool.poolType === "EVERYDAY") {
-          throw new Error("The default Everyday pool cannot be deleted or archived.");
+      // Validate Everyday envelope cannot be archived if shared
+      for (const envId of input.archivedEnvelopeIds) {
+        const targetEnv = existingEnvelopes.find((e) => e.id === envId);
+        if (targetEnv && targetEnv.envelopeType === "EVERYDAY" && !targetEnv.isPrivate) {
+          throw new Error("The default Everyday envelope cannot be deleted or archived.");
         }
       }
 
-      // Compute current balances for pools to detect any funds that must be swept
-      const poolBalancesMap = await getPoolBalancesMap(tenantId, appId, tx);
-
-      let sweptPoolsCount = 0;
+      const envelopeBalancesMap = await getEnvelopeBalancesMap(tenantId, appId, tx);
+      let sweptEnvelopesCount = 0;
       let sweptTotalAmount = 0;
 
-      for (const arch of input.archivedPools) {
-        const poolToArchive = existingPools.find((p) => p.id === arch.poolId);
-        if (!poolToArchive) continue;
+      for (const envId of input.archivedEnvelopeIds) {
+        const envToArchive = existingEnvelopes.find((e) => e.id === envId);
+        if (!envToArchive) continue;
 
-        const currentBalance = poolBalancesMap[arch.poolId] || 0;
-
-        // If pool holds real positive balance, require and execute sweep to destination pool
+        const currentBalance = envelopeBalancesMap[envId] || 0;
         if (currentBalance > 0.005) {
-          const destPoolId =
-            arch.sweepDestinationPoolId ||
-            input.pools.find((p) => p.isSurplusTarget)?.id ||
-            existingPools.find((p) => p.isSurplusTarget && p.id !== arch.poolId)?.id;
+          const destEnvId =
+            input.envelopes.find((e) => e.isSurplusTarget)?.id ||
+            existingEnvelopes.find((e) => e.isSurplusTarget && e.id !== envId)?.id;
 
-          if (!destPoolId) {
+          if (!destEnvId) {
             throw new Error(
-              `Cannot remove pool "${poolToArchive.name}" with positive balance of $${currentBalance.toFixed(
+              `Cannot remove envelope "${envToArchive.name}" with positive balance of $${currentBalance.toFixed(
                 2
-              )} without specifying a valid destination pool for the funds sweep.`
+              )} without specifying a valid destination envelope for the funds sweep.`
             );
           }
 
-          // Generate balanced transfer ledger records
-          const transferNote = `Balance sweep upon archiving pool "${poolToArchive.name}"`;
+          const transferNote = `Balance sweep upon archiving envelope "${envToArchive.name}"`;
           const sweepAmountStr = currentBalance.toFixed(2);
           const transferGroupId = randomUUID();
 
@@ -183,12 +171,12 @@ export function saveSetupBudgetHandler(dbClient: DbOrTx) {
               id: randomUUID(),
               tenantId,
               appId,
-              poolId: arch.poolId,
-              bankAccountId: poolToArchive.bankAccountId,
+              envelopeId: envId,
+              bankAccountId: envToArchive.bankAccountId,
               amount: sweepAmountStr,
               flowType: "DEBIT",
               transactionType: "TRANSFER_OUT",
-              idempotencyKey: `sweep-out-${arch.poolId}-${randomUUID()}`,
+              idempotencyKey: `sweep-out-${envId}-${randomUUID()}`,
               note: transferNote,
               source: "MANUAL",
               transferGroupId,
@@ -202,12 +190,12 @@ export function saveSetupBudgetHandler(dbClient: DbOrTx) {
               id: randomUUID(),
               tenantId,
               appId,
-              poolId: destPoolId,
-              bankAccountId: poolToArchive.bankAccountId,
+              envelopeId: destEnvId,
+              bankAccountId: envToArchive.bankAccountId,
               amount: sweepAmountStr,
               flowType: "CREDIT",
               transactionType: "TRANSFER_IN",
-              idempotencyKey: `sweep-in-${destPoolId}-${randomUUID()}`,
+              idempotencyKey: `sweep-in-${destEnvId}-${randomUUID()}`,
               note: transferNote,
               source: "MANUAL",
               transferGroupId,
@@ -219,202 +207,115 @@ export function saveSetupBudgetHandler(dbClient: DbOrTx) {
             },
           ]);
 
-          sweptPoolsCount++;
+          sweptEnvelopesCount++;
           sweptTotalAmount += currentBalance;
         }
 
-        // Soft-archive the pool
         await tx
-          .update(pools)
+          .update(envelopes)
           .set({
             archivedAt: now,
             archivedBy: userId,
             updatedAt: now,
             updatedBy: userId,
           })
-          .where(eq(pools.id, arch.poolId));
+          .where(eq(envelopes.id, envId));
       }
 
       // =========================================================================
-      // 3. Upsert Active Pools
+      // 3. Upsert Active Envelopes
       // =========================================================================
-      const poolIdMap = new Map<string, string>(); // input.id -> real DB UUID
+      const envelopeIdMap = new Map<string, string>(); // input.id -> real DB UUID
 
-      for (let i = 0; i < input.pools.length; i++) {
-        const poolInput = input.pools[i];
-        const matchedExisting = poolInput.id
-          ? existingPools.find((p) => p.id === poolInput.id && !input.archivedPools.some((a) => a.poolId === p.id))
+      for (let i = 0; i < input.envelopes.length; i++) {
+        const envInput = input.envelopes[i];
+        const matchedExisting = envInput.id
+          ? existingEnvelopes.find((e) => e.id === envInput.id && !input.archivedEnvelopeIds.includes(e.id))
           : null;
 
-        // Resolve linked bank account
         const resolvedBankAccountId =
-          (poolInput.bankAccountId && accountIdMap.get(poolInput.bankAccountId)) ||
-          poolInput.bankAccountId ||
+          (envInput.bankAccountId && accountIdMap.get(envInput.bankAccountId)) ||
+          envInput.bankAccountId ||
           primaryBankAccountId;
 
+        const isScheduled = envInput.envelopeType === "SCHEDULED_BILL";
+        const rrule = isScheduled
+          ? envInput.rrule || deriveRrule(envInput.budgetFrequency || "MONTHLY")
+          : envInput.rrule || null;
+        const startDate = isScheduled
+          ? envInput.startDate || computeBillScheduleAnchorDate(envInput.budgetFrequency || "MONTHLY", now)
+          : envInput.startDate || null;
+
         if (matchedExisting) {
-          // In-place update
           await tx
-            .update(pools)
+            .update(envelopes)
             .set({
-              name: poolInput.name,
-              goalMode: poolInput.goalMode ?? matchedExisting.goalMode,
-              targetAmount: poolInput.targetAmount,
-              targetDate: poolInput.targetDate,
-              enteredAmount: poolInput.enteredAmount !== undefined ? poolInput.enteredAmount : matchedExisting.enteredAmount,
-              budgetFrequency: poolInput.budgetFrequency || matchedExisting.budgetFrequency || "MONTHLY",
-              startDate: poolInput.startDate !== undefined ? poolInput.startDate : matchedExisting.startDate,
-              rrule: poolInput.rrule !== undefined ? poolInput.rrule : matchedExisting.rrule,
-              everydayAllowanceAmount: poolInput.everydayAllowanceAmount,
-              safetyBufferFloor: poolInput.safetyBufferFloor || matchedExisting.safetyBufferFloor || "0.00",
-              isSurplusTarget: poolInput.isSurplusTarget ?? matchedExisting.isSurplusTarget,
-              isCommitted: poolInput.isCommitted ?? matchedExisting.isCommitted,
+              name: envInput.name,
+              envelopeType: envInput.envelopeType,
+              goalMode: envInput.goalMode ?? matchedExisting.goalMode,
+              targetAmount: envInput.targetAmount,
+              targetDate: envInput.targetDate,
+              monthlyAmount: envInput.monthlyAmount || matchedExisting.monthlyAmount,
+              enteredAmount: envInput.enteredAmount !== undefined ? envInput.enteredAmount : matchedExisting.enteredAmount,
+              budgetFrequency: envInput.budgetFrequency || matchedExisting.budgetFrequency || "MONTHLY",
+              startDate,
+              endDate: envInput.endDate !== undefined ? envInput.endDate : matchedExisting.endDate,
+              rrule,
+              everydayAllowanceAmount: envInput.everydayAllowanceAmount,
+              safetyBufferFloor: envInput.safetyBufferFloor || matchedExisting.safetyBufferFloor || "0.00",
+              isSurplusTarget: envInput.isSurplusTarget ?? matchedExisting.isSurplusTarget,
+              isCommitted: envInput.isCommitted ?? matchedExisting.isCommitted,
+              isEssential: envInput.isEssential ?? matchedExisting.isEssential,
+              isPrivate: envInput.isPrivate ?? matchedExisting.isPrivate,
               bankAccountId: resolvedBankAccountId || matchedExisting.bankAccountId,
+              icon: envInput.icon || matchedExisting.icon,
+              orderIndex: envInput.orderIndex ?? matchedExisting.orderIndex,
               updatedAt: now,
               updatedBy: userId,
             })
-            .where(eq(pools.id, matchedExisting.id));
+            .where(eq(envelopes.id, matchedExisting.id));
 
-          if (poolInput.id) poolIdMap.set(poolInput.id, matchedExisting.id);
-          poolIdMap.set(`type-${poolInput.poolType}`, matchedExisting.id);
+          if (envInput.id) envelopeIdMap.set(envInput.id, matchedExisting.id);
+          envelopeIdMap.set(`name-${envInput.name}`, matchedExisting.id);
         } else {
-          // Insert new pool
-          const newPoolId = randomUUID();
-          await tx.insert(pools).values({
-            id: newPoolId,
+          const newEnvId = randomUUID();
+          await tx.insert(envelopes).values({
+            id: newEnvId,
             tenantId,
             appId,
             bankAccountId: resolvedBankAccountId,
-            name: poolInput.name,
-            poolType: poolInput.poolType,
-            goalMode: poolInput.goalMode ?? (poolInput.poolType === "GOAL" ? "TARGET_DATE" : null),
-            targetAmount: poolInput.targetAmount || null,
-            targetDate: poolInput.targetDate || null,
-            enteredAmount: poolInput.enteredAmount || null,
-            budgetFrequency: poolInput.budgetFrequency || "MONTHLY",
-            startDate: poolInput.startDate || null,
-            rrule: poolInput.rrule || null,
-            everydayAllowanceAmount: poolInput.everydayAllowanceAmount || null,
-            safetyBufferFloor: poolInput.safetyBufferFloor || "0.00",
-            isSurplusTarget: poolInput.isSurplusTarget ?? false,
-            isCommitted: poolInput.isCommitted ?? false,
-            createdAt: now,
-            createdBy: userId,
-            updatedAt: now,
-            updatedBy: userId,
-          });
-
-          if (poolInput.id) poolIdMap.set(poolInput.id, newPoolId);
-          poolIdMap.set(`type-${poolInput.poolType}`, newPoolId);
-        }
-      }
-
-      // Default pool fallback maps
-      const defaultEverydayPoolId = poolIdMap.get("type-EVERYDAY") || existingPools.find((p) => p.poolType === "EVERYDAY")?.id || "";
-      const defaultRegularPoolId = poolIdMap.get("type-REGULAR") || existingPools.find((p) => p.poolType === "REGULAR")?.id || defaultEverydayPoolId;
-
-      // =========================================================================
-      // 4. Handle Category Archivals & Upserts
-      // =========================================================================
-      if (input.archivedCategoryIds.length > 0) {
-        await tx
-          .update(categories)
-          .set({
-            archivedAt: now,
-            archivedBy: userId,
-            updatedAt: now,
-            updatedBy: userId,
-          })
-          .where(
-            and(
-              eq(categories.tenantId, tenantId),
-              eq(categories.appId, appId),
-              inArray(categories.id, input.archivedCategoryIds)
-            )
-          );
-      }
-
-      const existingCategories = await tx
-        .select()
-        .from(categories)
-        .where(
-          and(
-            eq(categories.tenantId, tenantId),
-            eq(categories.appId, appId),
-            sql`${categories.archivedAt} IS NULL`
-          )
-        );
-
-      const categoryRecordMap = new Map<string, { id: string; poolId: string }>();
-
-      for (const catInput of input.categories) {
-        const matchedCat = catInput.id ? existingCategories.find((c) => c.id === catInput.id) : null;
-
-        // Resolve poolId
-        const resolvedPoolId =
-          (catInput.poolId && poolIdMap.get(catInput.poolId)) ||
-          catInput.poolId ||
-          (catInput.poolType === "EVERYDAY" ? defaultEverydayPoolId : defaultRegularPoolId);
-
-        const isRegular = (catInput.poolType || (resolvedPoolId === defaultRegularPoolId ? "REGULAR" : undefined)) === "REGULAR";
-        const rrule = isRegular
-          ? catInput.rrule || deriveRrule(catInput.budgetFrequency || "MONTHLY")
-          : catInput.rrule || null;
-        const startDate = isRegular
-          ? catInput.startDate || computeBillScheduleAnchorDate(catInput.budgetFrequency || "MONTHLY", now)
-          : catInput.startDate || null;
-        const endDate = catInput.endDate || null;
-
-        if (matchedCat) {
-          // In-place update
-          await tx
-            .update(categories)
-            .set({
-              name: catInput.name,
-              monthlyAmount: catInput.monthlyAmount || matchedCat.monthlyAmount,
-              enteredAmount: catInput.enteredAmount || catInput.monthlyAmount || matchedCat.enteredAmount,
-              budgetFrequency: catInput.budgetFrequency || matchedCat.budgetFrequency,
-              icon: catInput.icon || matchedCat.icon,
-              isEssential: catInput.isEssential ?? matchedCat.isEssential,
-              poolId: resolvedPoolId || matchedCat.poolId,
-              startDate: startDate || matchedCat.startDate,
-              endDate: endDate !== undefined ? endDate : matchedCat.endDate,
-              rrule: rrule || matchedCat.rrule,
-              updatedAt: now,
-              updatedBy: userId,
-            })
-            .where(eq(categories.id, matchedCat.id));
-
-          categoryRecordMap.set(catInput.name, { id: matchedCat.id, poolId: resolvedPoolId || matchedCat.poolId });
-        } else {
-          // Insert new category
-          const newCatId = randomUUID();
-          await tx.insert(categories).values({
-            id: newCatId,
-            tenantId,
-            appId,
-            poolId: resolvedPoolId,
-            name: catInput.name,
-            icon: catInput.icon || "wallet",
-            monthlyAmount: catInput.monthlyAmount || "0.00",
-            enteredAmount: catInput.enteredAmount || catInput.monthlyAmount || "0.00",
-            budgetFrequency: catInput.budgetFrequency || "MONTHLY",
-            isEssential: catInput.isEssential ?? false,
+            name: envInput.name,
+            envelopeType: envInput.envelopeType,
+            goalMode: envInput.goalMode ?? (envInput.envelopeType === "TARGET_GOAL" ? "TARGET_DATE" : "ONGOING"),
+            targetAmount: envInput.targetAmount || null,
+            targetDate: envInput.targetDate || null,
+            monthlyAmount: envInput.monthlyAmount || null,
+            enteredAmount: envInput.enteredAmount || null,
+            budgetFrequency: envInput.budgetFrequency || "MONTHLY",
             startDate,
-            endDate,
+            endDate: envInput.endDate || null,
             rrule,
+            everydayAllowanceAmount: envInput.everydayAllowanceAmount || null,
+            safetyBufferFloor: envInput.safetyBufferFloor || "0.00",
+            isSurplusTarget: envInput.isSurplusTarget ?? false,
+            isCommitted: envInput.isCommitted ?? false,
+            isEssential: envInput.isEssential ?? false,
+            isPrivate: envInput.isPrivate ?? false,
+            icon: envInput.icon || null,
+            orderIndex: envInput.orderIndex ?? i,
             createdAt: now,
             createdBy: userId,
             updatedAt: now,
             updatedBy: userId,
           });
 
-          categoryRecordMap.set(catInput.name, { id: newCatId, poolId: resolvedPoolId });
+          if (envInput.id) envelopeIdMap.set(envInput.id, newEnvId);
+          envelopeIdMap.set(`name-${envInput.name}`, newEnvId);
         }
       }
 
       // =========================================================================
-      // 5. Upsert Income Schedules
+      // 4. Upsert Income Schedules
       // =========================================================================
       const existingIncomes = await tx
         .select()
@@ -432,13 +333,11 @@ export function saveSetupBudgetHandler(dbClient: DbOrTx) {
 
       for (const incInput of input.incomes) {
         const matchedIncome = incInput.id ? existingIncomes.find((inc) => inc.id === incInput.id) : null;
-
         const resolvedRecvAccount =
           (incInput.receivingAccountId && accountIdMap.get(incInput.receivingAccountId)) ||
           incInput.receivingAccountId ||
           primaryBankAccountId;
 
-        // Format RRULE
         let rrule = "FREQ=MONTHLY";
         if (incInput.frequency === "WEEKLY") rrule = "FREQ=WEEKLY";
         else if (incInput.frequency === "FORTNIGHTLY") rrule = "FREQ=WEEKLY;INTERVAL=2";
@@ -447,11 +346,11 @@ export function saveSetupBudgetHandler(dbClient: DbOrTx) {
         const startDate = incInput.startDate || todayAest;
 
         if (matchedIncome) {
-          // In-place update
           await tx
             .update(incomeSources)
             .set({
               name: incInput.name,
+              incomeType: incInput.incomeType || matchedIncome.incomeType,
               amount: incInput.amount,
               receivingAccountId: resolvedRecvAccount || matchedIncome.receivingAccountId,
               rrule,
@@ -469,13 +368,13 @@ export function saveSetupBudgetHandler(dbClient: DbOrTx) {
             startDate,
           });
         } else {
-          // Insert new income source
           const newIncomeId = randomUUID();
           await tx.insert(incomeSources).values({
             id: newIncomeId,
             tenantId,
             appId,
             name: incInput.name,
+            incomeType: incInput.incomeType || "SALARIED",
             amount: incInput.amount,
             receivingAccountId: resolvedRecvAccount || null,
             rrule,
@@ -496,7 +395,7 @@ export function saveSetupBudgetHandler(dbClient: DbOrTx) {
         }
       }
 
-      // Auto-burst 12 months of income_events for income sources
+      // Auto-burst 12 months of income_events
       if (input.autoCreateIncomeEvents !== false && incomeCandidates.length > 0) {
         const candidateSourceIds = incomeCandidates.map((c) => c.incomeSourceId);
         const existingIncomeEvents = await tx
@@ -535,14 +434,14 @@ export function saveSetupBudgetHandler(dbClient: DbOrTx) {
       }
 
       // =========================================================================
-      // 5b. Auto-create Scheduled Events for REGULAR categories (Strict Add-Only)
+      // 5. Auto-create Scheduled Events for SCHEDULED_BILL Envelopes
       // =========================================================================
       let createdEventsCount = 0;
       if (input.autoCreateExpenseSchedules !== false) {
         const existingScheduledEvents = await tx
           .select({
             id: expenseEvents.id,
-            categoryId: expenseEvents.categoryId,
+            envelopeId: expenseEvents.envelopeId,
           })
           .from(expenseEvents)
           .where(
@@ -554,48 +453,45 @@ export function saveSetupBudgetHandler(dbClient: DbOrTx) {
             )
           );
 
-        const candidates: CategoryScheduleCandidate[] = [];
+        const candidates: EnvelopeScheduleCandidate[] = [];
 
-        for (const catInput of input.categories) {
-          // Only REGULAR pool categories qualify as committed bill schedules
-          if (catInput.poolType !== "REGULAR") continue;
+        for (const envInput of input.envelopes) {
+          if (envInput.envelopeType !== "SCHEDULED_BILL") continue;
 
-          const amountVal = catInput.enteredAmount || catInput.monthlyAmount || "0.00";
+          const amountVal = envInput.enteredAmount || envInput.monthlyAmount || "0.00";
           if (parseFloat(amountVal) <= 0) continue;
 
-          const catRecord = categoryRecordMap.get(catInput.name);
-          if (!catRecord) continue;
+          const envId = (envInput.id && envelopeIdMap.get(envInput.id)) || envelopeIdMap.get(`name-${envInput.name}`);
+          if (!envId) continue;
 
-          // Strict Add-Only: Never duplicate if category already has active scheduled events
-          const hasExisting = existingScheduledEvents.some((e) => e.categoryId === catRecord.id);
+          const hasExisting = existingScheduledEvents.some((e) => e.envelopeId === envId);
           if (hasExisting) continue;
 
           candidates.push({
-            name: catInput.name,
+            name: envInput.name,
             amount: amountVal,
-            budgetFrequency: catInput.budgetFrequency || "MONTHLY",
-            poolId: catRecord.poolId,
-            categoryId: catRecord.id,
-            startDate: catInput.startDate,
-            endDate: catInput.endDate,
-            rrule: catInput.rrule,
+            budgetFrequency: envInput.budgetFrequency || "MONTHLY",
+            envelopeId: envId,
+            startDate: envInput.startDate,
+            endDate: envInput.endDate,
+            rrule: envInput.rrule,
           });
         }
 
         if (candidates.length > 0) {
-          const { eventsToInsert } = buildCategoryEventPayloads(
+          const { eventsToInsert } = buildEnvelopeEventPayloads(
             candidates,
             tenantId,
             appId,
             userId,
             now
           );
-          createdEventsCount = await insertCategoryEventsBulk(tx, eventsToInsert);
+          createdEventsCount = await insertEnvelopeEventsBulk(tx, eventsToInsert);
         }
       }
 
       // =========================================================================
-      // 6. Update Tenant Setup Status and Setup Timestamp (Household Level)
+      // 6. Update Tenant Setup Status
       // =========================================================================
       if (typeof (tx as any).update === "function") {
         await tx
@@ -614,9 +510,8 @@ export function saveSetupBudgetHandler(dbClient: DbOrTx) {
         persistedCounts: {
           incomes: input.incomes.length,
           bankAccounts: input.bankAccounts.length,
-          pools: input.pools.length,
-          categories: input.categories.length,
-          sweptPools: sweptPoolsCount,
+          envelopes: input.envelopes.length,
+          sweptEnvelopes: sweptEnvelopesCount,
           sweptTotalAmount,
           expenseSources: createdEventsCount,
         },

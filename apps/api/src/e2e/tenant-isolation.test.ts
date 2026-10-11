@@ -56,7 +56,7 @@ describe("E2E Core Monorepo Integration & Multi-Tenant Isolation Suite", () => {
 
   it("E2E-02: Transaction Ledger Input Validation & Flow Enforcements", () => {
     const validExpense = RecordExpenseCommand.safeParse({
-      poolId: "11111111-1111-4111-8111-111111111111",
+      envelopeId: "11111111-1111-4111-8111-111111111111",
       amount: "45.20",
       flowType: "DEBIT",
       transactionType: "EXPENSE",
@@ -65,7 +65,7 @@ describe("E2E Core Monorepo Integration & Multi-Tenant Isolation Suite", () => {
     expect(validExpense.success).toBe(true);
 
     const invalidAmount = RecordExpenseCommand.safeParse({
-      poolId: "11111111-1111-4111-8111-111111111111",
+      envelopeId: "11111111-1111-4111-8111-111111111111",
       amount: "invalid-amount",
     });
     expect(invalidAmount.success).toBe(false);

@@ -24,15 +24,11 @@ export function useSetupCategoriesSubmission() {
 
   const bankAccountsQuery = trpc.getBankAccountsWithMappings.useQuery();
   const poolsQuery = trpc.listPools.useQuery();
-  const categoriesQuery = trpc.listCategories.useQuery();
   const saveSetupBudgetMut = trpc.saveSetupBudget.useMutation();
 
   const handleFinish = async () => {
     setIsSubmitting(true);
     try {
-      const existingPools = poolsQuery.data || [];
-      const existingEveryday = existingPools.find((p) => p.poolType === 'EVERYDAY');
-      const existingRegular = existingPools.find((p) => p.poolType === 'REGULAR');
       const accountsPayload = (bankAccountsQuery.data || []).map((acc) => ({
         id: acc.id,
         name: acc.name,
@@ -42,28 +38,32 @@ export function useSetupCategoriesSubmission() {
         isPrivate: Boolean(acc.isPrivate),
       }));
 
-      const poolsPayload = [
-        {
-          id: existingEveryday?.id,
-          name: existingEveryday?.name || 'Everyday Spending',
-          poolType: 'EVERYDAY' as const,
-          everydayAllowanceAmount: (totalEverydayMonthly || 1000).toFixed(2),
-          isSurplusTarget: false,
-          isCommitted: false,
-          isPrivate: false,
-        },
-        {
-          id: existingRegular?.id,
-          name: existingRegular?.name || 'Regular Bills',
-          poolType: 'REGULAR' as const,
-          isSurplusTarget: false,
-          isCommitted: false,
-          isPrivate: false,
-        },
+      const envelopesPayload = [
+        ...activeCategories.map((c, idx) => {
+          const rawFreq = categoryFrequencies[c.name];
+          const budgetFreq: 'WEEKLY' | 'FORTNIGHTLY' | 'MONTHLY' | 'ANNUALLY' =
+            rawFreq === 'YEARLY' ? 'ANNUALLY' : 'MONTHLY';
+          const catId = 'id' in c && typeof c.id === 'string' && !c.id.startsWith('temp-') ? c.id : undefined;
+          const isEveryday = c.type === 'EVERYDAY';
+          const isBill = c.type === 'REGULAR';
+          return {
+            id: catId,
+            bankAccountId: accountsPayload[0]?.id,
+            name: c.name,
+            envelopeType: (isEveryday ? 'EVERYDAY' : isBill ? 'SCHEDULED_BILL' : 'TARGET_GOAL') as 'EVERYDAY' | 'SCHEDULED_BILL' | 'TARGET_GOAL',
+            monthlyAmount: (c.monthlyAud || 0).toFixed(2),
+            enteredAmount: (c.monthlyAud || 0).toFixed(2),
+            budgetFrequency: budgetFreq,
+            icon: c.icon || 'wallet',
+            isEssential: isBill,
+            orderIndex: idx,
+          };
+        }),
         ...goals.map((g, idx) => ({
           id: g.id?.startsWith('g-') ? undefined : g.id,
+          bankAccountId: accountsPayload[0]?.id,
           name: g.name,
-          poolType: 'GOAL' as const,
+          envelopeType: (g.goalMode === 'ONGOING' ? 'ONGOING_GOAL' : 'TARGET_GOAL') as 'ONGOING_GOAL' | 'TARGET_GOAL',
           goalMode: g.goalMode ?? (g.dueDate ? 'TARGET_DATE' : 'ONGOING'),
           targetAmount: (g.goalMode === 'ONGOING'
             ? g.monthlyAmount || g.targetAmount || 250
@@ -77,27 +77,13 @@ export function useSetupCategoriesSubmission() {
           isSurplusTarget: idx === 0,
           isCommitted: true,
           isPrivate: false,
+          orderIndex: activeCategories.length + idx,
         })),
       ];
 
-      const categoriesPayload = activeCategories.map((c) => {
-        const rawFreq = categoryFrequencies[c.name];
-        const budgetFreq: 'WEEKLY' | 'FORTNIGHTLY' | 'MONTHLY' | 'ANNUALLY' =
-          rawFreq === 'YEARLY' ? 'ANNUALLY' : 'MONTHLY';
-        const catId = 'id' in c && typeof c.id === 'string' && !c.id.startsWith('temp-') ? c.id : undefined;
-        return {
-          id: catId,
-          name: c.name,
-          poolType: c.type,
-          monthlyAmount: (c.monthlyAud || 0).toFixed(2),
-          enteredAmount: (c.monthlyAud || 0).toFixed(2),
-          budgetFrequency: budgetFreq,
-          icon: c.icon || 'wallet',
-          isEssential: c.type === 'REGULAR',
-        };
-      });
-
       const incomesPayload = incomes.map((inc) => {
+        const incType: 'SALARY' | 'FREELANCE' | 'INVESTMENT' | 'OTHER' =
+          inc.type === 'BUSINESS' ? 'FREELANCE' : inc.type === 'SALARY' || inc.type === 'OTHER' ? inc.type : 'SALARY';
         const freq: 'WEEKLY' | 'FORTNIGHTLY' | 'MONTHLY' | 'CUSTOM' =
           inc.frequency === 'WEEKLY' || inc.frequency === 'FORTNIGHTLY' || inc.frequency === 'MONTHLY'
             ? inc.frequency
@@ -105,7 +91,7 @@ export function useSetupCategoriesSubmission() {
         return {
           id: inc.id?.startsWith('inc-') ? undefined : inc.id,
           name: inc.name,
-          type: 'SALARY' as const,
+          type: incType,
           amount: (inc.amount || 0).toFixed(2),
           frequency: freq,
           receivingAccountId: inc.receivingAccountId || null,
@@ -113,8 +99,8 @@ export function useSetupCategoriesSubmission() {
         };
       });
 
-      const resolvedArchivedCatIds = Array.from(removedCategoryNames)
-        .map((name) => (categoriesQuery.data || []).find((c) => c.name === name)?.id)
+      const resolvedArchivedEnvelopeIds = Array.from(removedCategoryNames)
+        .map((name) => (poolsQuery.data || []).find((c) => c.name === name)?.id)
         .filter((id): id is string => Boolean(id));
 
       await saveSetupBudgetMut.mutateAsync({
@@ -122,10 +108,10 @@ export function useSetupCategoriesSubmission() {
         bankAccounts: accountsPayload.length > 0 ? accountsPayload : [
           { name: 'Primary Account', bankProvider: 'CBA', lastKnownBalance: '1000.00', unbudgetedBuffer: '0.00', isPrivate: false },
         ],
-        pools: poolsPayload,
-        categories: categoriesPayload,
-        archivedPools: sweepQueue,
-        archivedCategoryIds: resolvedArchivedCatIds,
+        envelopes: envelopesPayload.length > 0 ? envelopesPayload : [
+          { name: 'Everyday Spending', envelopeType: 'EVERYDAY', bankAccountId: accountsPayload[0]?.id, monthlyAmount: '1000.00', isEssential: true },
+        ],
+        archivedEnvelopeIds: [...sweepQueue.map((s) => s.poolId), ...resolvedArchivedEnvelopeIds],
         archetypeApplied: accountsPayload.length >= 2 ? 'AUSSIE_2_ACCOUNT' : 'ALL_IN_ONE_CUSTOM',
         autoCreateExpenseSchedules,
       });

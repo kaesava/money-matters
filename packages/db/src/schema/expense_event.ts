@@ -1,6 +1,5 @@
 import { pgTable, uuid, numeric, pgEnum, date, varchar, boolean, index } from "drizzle-orm/pg-core";
-import { pools } from "./pool.js";
-import { categories } from "./category.js";
+import { envelopes } from "./envelope.js";
 import { tenantAndTimestamps } from "./base.js";
 
 export const expenseEventStatusEnum = pgEnum("expense_event_status_enum", ["PENDING", "CONFIRMED"]);
@@ -9,8 +8,7 @@ export const expenseEvents = pgTable(
   "expense_events",
   {
     id: uuid("id").primaryKey().defaultRandom(),
-    poolId: uuid("pool_id").references(() => pools.id).notNull(),
-    categoryId: uuid("category_id").references(() => categories.id),
+    envelopeId: uuid("envelope_id").references(() => envelopes.id).notNull(),
     name: varchar("name", { length: 255 }).notNull(),
     expectedDate: date("expected_date").notNull(),
     actualDate: date("actual_date"),
@@ -22,9 +20,9 @@ export const expenseEvents = pgTable(
     ...tenantAndTimestamps,
   },
   (table) => ({
-    tenantCategoryDateIdx: index("expense_events_tenant_category_date_idx").on(
+    tenantEnvelopeDateIdx: index("expense_events_tenant_envelope_date_idx").on(
       table.tenantId,
-      table.categoryId,
+      table.envelopeId,
       table.expectedDate
     ),
   })
@@ -32,4 +30,3 @@ export const expenseEvents = pgTable(
 
 export type ExpenseEvent = typeof expenseEvents.$inferSelect;
 export type NewExpenseEvent = typeof expenseEvents.$inferInsert;
-

@@ -14,13 +14,12 @@
  * is a stateless pure-computation layer with zero DB writes.
  */
 import {
-  pools,
+  envelopes,
   bankAccounts,
   incomeEvents,
   incomeSources,
   expenseEvents,
-  categories,
-  getPoolBalancesMap,
+  getEnvelopeBalancesMap,
   type DbOrTx,
 } from "@money-matters/db";
 import { eq, and, sql } from "drizzle-orm";
@@ -73,36 +72,37 @@ export async function canAffordSimulationQuery(
   const todayStr = getAestDateString(today);
 
   // ── 1. PARALLEL DATA FETCH ──────────────────────────────────────────────
-  const [dbPools, poolBalancesMap, pendingIncomesRaw, pendingExpensesRaw, dbCats] =
+  const [dbEnvelopes, envelopeBalancesMap, pendingIncomesRaw, pendingExpensesRaw] =
     await Promise.all([
-      // Pools joined with bank account privacy metadata
+      // Envelopes joined with bank account privacy metadata
       dbClient
         .select({
-          id: pools.id,
-          name: pools.name,
-          poolType: pools.poolType,
-          bankAccountId: pools.bankAccountId,
-          everydayAllowanceAmount: pools.everydayAllowanceAmount,
-          safetyBufferFloor: pools.safetyBufferFloor,
-          goalMode: pools.goalMode,
-          targetAmount: pools.targetAmount,
-          targetDate: pools.targetDate,
-          isCommitted: pools.isCommitted,
-          isSurplusTarget: pools.isSurplusTarget,
-          isPrivate: bankAccounts.isPrivate,
+          id: envelopes.id,
+          name: envelopes.name,
+          envelopeType: envelopes.envelopeType,
+          bankAccountId: envelopes.bankAccountId,
+          everydayAllowanceAmount: envelopes.everydayAllowanceAmount,
+          safetyBufferFloor: envelopes.safetyBufferFloor,
+          goalMode: envelopes.goalMode,
+          monthlyAmount: envelopes.monthlyAmount,
+          targetAmount: envelopes.targetAmount,
+          targetDate: envelopes.targetDate,
+          isCommitted: envelopes.isCommitted,
+          isSurplusTarget: envelopes.isSurplusTarget,
+          isPrivate: envelopes.isPrivate,
+          userId: envelopes.userId,
         })
-        .from(pools)
-        .innerJoin(bankAccounts, eq(pools.bankAccountId, bankAccounts.id))
+        .from(envelopes)
         .where(
           and(
-            eq(pools.tenantId, tenantId),
-            eq(pools.appId, appId),
-            sql`${pools.archivedAt} IS NULL`
+            eq(envelopes.tenantId, tenantId),
+            eq(envelopes.appId, appId),
+            sql`${envelopes.archivedAt} IS NULL`
           )
         ),
 
-      // Pre-aggregated pool balances map
-      getPoolBalancesMap(tenantId, appId, dbClient),
+      // Pre-aggregated envelope balances map
+      getEnvelopeBalancesMap(tenantId, appId, dbClient),
 
       // All PENDING income events sorted ascending by date
       dbClient
@@ -130,8 +130,7 @@ export async function canAffordSimulationQuery(
       dbClient
         .select({
           id: expenseEvents.id,
-          poolId: expenseEvents.poolId,
-          categoryId: expenseEvents.categoryId,
+          envelopeId: expenseEvents.envelopeId,
           name: expenseEvents.name,
           expectedDate: expenseEvents.expectedDate,
           expectedAmount: expenseEvents.expectedAmount,
@@ -146,33 +145,17 @@ export async function canAffordSimulationQuery(
             sql`${expenseEvents.archivedAt} IS NULL`
           )
         ),
-
-      // Categories for monthly amount aggregation per pool
-      dbClient
-        .select({
-          id: categories.id,
-          poolId: categories.poolId,
-          monthlyAmount: categories.monthlyAmount,
-        })
-        .from(categories)
-        .where(
-          and(
-            eq(categories.tenantId, tenantId),
-            eq(categories.appId, appId),
-            sql`${categories.archivedAt} IS NULL`
-          )
-        ),
     ]);
 
-  // ── 2. FILTER POOLS BY PRIVACY ─────────────────────────────────────────
-  const visiblePools = dbPools.filter((p) => includePersonal || !p.isPrivate);
-  const everydayPools = visiblePools.filter((p) => p.poolType === "EVERYDAY");
-  const regularPools = visiblePools.filter((p) => p.poolType === "REGULAR");
-  const goalPools = visiblePools.filter((p) => p.poolType === "GOAL");
+  // ── 2. FILTER ENVELOPES BY PRIVACY ─────────────────────────────────────────
+  const visibleEnvelopes = dbEnvelopes.filter((e) => includePersonal || !e.isPrivate);
+  const everydayEnvelopes = visibleEnvelopes.filter((e) => e.envelopeType === "EVERYDAY");
+  const billEnvelopes = visibleEnvelopes.filter((e) => e.envelopeType === "SCHEDULED_BILL" || e.envelopeType === "FLEXIBLE_BILL");
+  const goalEnvelopes = visibleEnvelopes.filter((e) => e.envelopeType === "TARGET_GOAL" || e.envelopeType === "ONGOING_GOAL");
 
   // ── 3. COMPUTE BALANCES ────────────────────────────────────────────────
-  const everydayBalance = everydayPools.reduce(
-    (sum, p) => sum + (poolBalancesMap[p.id] ?? 0),
+  const everydayBalance = everydayEnvelopes.reduce(
+    (sum, e) => sum + (envelopeBalancesMap[e.id] ?? 0),
     0
   );
 
@@ -196,30 +179,29 @@ export async function canAffordSimulationQuery(
   );
 
   // ── 5. UPCOMING BILLS BEFORE NEXT PAYDAY & UNFUNDED SHORTFALL ─────────
-  const regularPoolIds = new Set(regularPools.map((p) => p.id));
+  const billEnvIds = new Set(billEnvelopes.map((e) => e.id));
   const billsDueBeforePayday = pendingExpensesRaw.filter(
     (e) =>
       e.expectedDate >= todayStr &&
       e.expectedDate <= nextPaycheckDateStr
   );
 
-  const poolBillsSumMap = new Map<string, number>();
+  const envBillsSumMap = new Map<string, number>();
   let unassignedBillsSum = 0;
 
   for (const e of billsDueBeforePayday) {
     const amt = parseFloat(e.expectedAmount);
-    if (e.poolId && regularPoolIds.has(e.poolId)) {
-      poolBillsSumMap.set(e.poolId, (poolBillsSumMap.get(e.poolId) ?? 0) + amt);
+    if (e.envelopeId && billEnvIds.has(e.envelopeId)) {
+      envBillsSumMap.set(e.envelopeId, (envBillsSumMap.get(e.envelopeId) ?? 0) + amt);
     } else {
       unassignedBillsSum += amt;
     }
   }
 
-  // Calculate unfunded shortfall per REGULAR pool (bills due minus current pool balance)
   let unfundedBillsShortfall = unassignedBillsSum;
-  for (const [poolId, billsSum] of poolBillsSumMap.entries()) {
-    const poolBal = poolBalancesMap[poolId] ?? 0;
-    const shortfall = Math.max(0, billsSum - poolBal);
+  for (const [envId, billsSum] of envBillsSumMap.entries()) {
+    const envBal = envelopeBalancesMap[envId] ?? 0;
+    const shortfall = Math.max(0, billsSum - envBal);
     unfundedBillsShortfall += shortfall;
   }
 
@@ -227,16 +209,14 @@ export async function canAffordSimulationQuery(
     (sum, e) => sum + parseFloat(e.expectedAmount),
     0
   );
-  // Effective spendable Everyday cash after subtracting unfunded bill shortfalls
   const effectiveSpendable = Math.max(0, everydayBalance - unfundedBillsShortfall);
 
-  // ── 6. PRORATED EVERYDAY SAFE CUSHION (Total Dollars Until Payday) ────
-  const everydayMonthlyAllowance = everydayPools.reduce((sum, p) => {
-    const amt = parseFloat(p.everydayAllowanceAmount ?? p.targetAmount ?? "0");
+  // ── 6. PRORATED EVERYDAY SAFE CUSHION ─────────────────────────────────
+  const everydayMonthlyAllowance = everydayEnvelopes.reduce((sum, e) => {
+    const amt = parseFloat(e.everydayAllowanceAmount ?? e.targetAmount ?? "0");
     return sum + amt;
   }, 0);
   const dailyAllowance = everydayMonthlyAllowance / 30;
-  // 25% of daily target prorated for days until payday; fallback $15 * days if zero allowance configured
   const safeCushionVal =
     dailyAllowance > 0
       ? Math.round(dailyAllowance * 0.25 * daysUntilPayday)
@@ -244,46 +224,28 @@ export async function canAffordSimulationQuery(
   const safeCushion = safeCushionVal.toFixed(2);
 
   // ── 7. BUILD ENGINE BUCKETS ───────────────────────────────────────────
-  const poolCategoryTargetsMap = new Map<string, number>();
-  for (const cat of dbCats) {
-    if (cat.monthlyAmount) {
-      const val = parseFloat(cat.monthlyAmount);
-      poolCategoryTargetsMap.set(cat.poolId, (poolCategoryTargetsMap.get(cat.poolId) ?? 0) + val);
-    }
-  }
-
-  const engineBuckets: EngineBucket[] = visiblePools.map((pool) => {
-    const balance = poolBalancesMap[pool.id] ?? 0;
-    const catTargetSum = poolCategoryTargetsMap.get(pool.id) ?? 0;
-    const monthlyAmt =
-      pool.poolType === "REGULAR"
-        ? catTargetSum > 0
-          ? catTargetSum
-          : pool.targetAmount
-            ? parseFloat(pool.targetAmount)
-            : null
-        : pool.targetAmount
-          ? parseFloat(pool.targetAmount)
-          : null;
-
+  const engineBuckets: EngineBucket[] = visibleEnvelopes.map((env) => {
+    const balance = envelopeBalancesMap[env.id] ?? 0;
     return {
-      id: pool.id,
-      name: pool.name,
-      type: pool.poolType as "EVERYDAY" | "REGULAR" | "GOAL",
-      isCommitted: pool.isCommitted ?? false,
-      isSurplusTarget: pool.isSurplusTarget ?? false,
-      monthlyAmount: monthlyAmt,
-      targetAmount: pool.targetAmount ? parseFloat(pool.targetAmount) : null,
-      everydayAllowanceAmount: pool.everydayAllowanceAmount
-        ? parseFloat(pool.everydayAllowanceAmount)
+      id: env.id,
+      name: env.name,
+      type: env.envelopeType,
+      envelopeType: env.envelopeType,
+      isCommitted: env.isCommitted ?? false,
+      isSurplusTarget: env.isSurplusTarget ?? false,
+      monthlyAmount: env.monthlyAmount ? parseFloat(env.monthlyAmount) : null,
+      targetAmount: env.targetAmount ? parseFloat(env.targetAmount) : null,
+      everydayAllowanceAmount: env.everydayAllowanceAmount
+        ? parseFloat(env.everydayAllowanceAmount)
         : null,
-      safetyBufferFloor: pool.safetyBufferFloor
-        ? parseFloat(pool.safetyBufferFloor)
+      safetyBufferFloor: env.safetyBufferFloor
+        ? parseFloat(env.safetyBufferFloor)
         : null,
-      goalMode: pool.goalMode ?? (pool.poolType === "GOAL" ? "TARGET_DATE" : undefined),
-      targetDate: pool.targetDate ?? null,
+      goalMode: env.goalMode ?? (env.envelopeType === "TARGET_GOAL" ? "TARGET_DATE" : "ONGOING"),
+      targetDate: env.targetDate ?? null,
       currentBalance: balance,
-      isPrivate: pool.isPrivate ?? false,
+      isPrivate: env.isPrivate ?? false,
+      userId: env.userId ?? undefined,
     };
   });
 
@@ -311,8 +273,7 @@ export async function canAffordSimulationQuery(
     };
 
     const baseExpenses: CumulativeProjectionExpenseEvent[] = pendingExpensesRaw.map((e) => ({
-      poolId: e.poolId,
-      categoryId: e.categoryId,
+      poolId: e.envelopeId,
       dueDate: e.expectedDate,
       amount: parseFloat(e.expectedAmount),
       status: e.status as "PENDING" | "CONFIRMED",
@@ -390,13 +351,13 @@ export async function canAffordSimulationQuery(
     }
 
     // --- CHECK 2: EVERYDAY 80% MINIMUM ALLOWANCE PRESERVATION ---
-    const everydayPoolIds = new Set(everydayPools.map((p) => p.id));
+    const everydayEnvelopeIds = new Set<string>(everydayEnvelopes.map((p) => p.id));
     let minEverydayBalance = Infinity;
 
     for (const step of projectionWith.steps) {
       let everydayAtStep = 0;
-      for (const poolId of everydayPoolIds) {
-        everydayAtStep += step.balancesAfterExpenses.get(poolId) ?? 0;
+      for (const envId of everydayEnvelopeIds) {
+        everydayAtStep += step.balancesAfterExpenses.get(envId) ?? 0;
       }
       if (everydayAtStep < minEverydayBalance) {
         minEverydayBalance = everydayAtStep;
@@ -406,8 +367,8 @@ export async function canAffordSimulationQuery(
     // Sum total everyday allocations across projection steps
     let totalEverydayAllocated = 0;
     for (const step of projectionWith.steps) {
-      for (const poolId of everydayPoolIds) {
-        totalEverydayAllocated += step.allocations.get(poolId)?.proposedAmount ?? 0;
+      for (const envId of everydayEnvelopeIds) {
+        totalEverydayAllocated += step.allocations.get(envId)?.proposedAmount ?? 0;
       }
     }
 
@@ -437,7 +398,7 @@ export async function canAffordSimulationQuery(
       delayDays: number;
     }> = [];
 
-    for (const pool of goalPools) {
+    for (const pool of goalEnvelopes) {
       if (!pool.targetAmount) continue;
 
       const originalFinalBalance = projectionWithout.finalBalances.get(pool.id) ?? 0;
@@ -449,7 +410,7 @@ export async function canAffordSimulationQuery(
       const poolMonthlyContrib =
         pool.goalMode === "ONGOING"
           ? parseFloat(pool.targetAmount)
-          : (poolCategoryTargetsMap.get(pool.id) ?? (parseFloat(pool.targetAmount) / 12));
+          : (pool.monthlyAmount ? parseFloat(pool.monthlyAmount) : parseFloat(pool.targetAmount) / 12);
       const dailyContrib = poolMonthlyContrib > 0 ? poolMonthlyContrib / 30 : 1;
       const delayDays = Math.max(1, Math.round(balanceDrop / dailyContrib));
 
@@ -581,18 +542,18 @@ export async function canAffordSimulationQuery(
   const shortfall = amount - effectiveSpendable;
 
   // Check flexible Savings Goals to see if one can cover the shortfall
-  const flexibleGoals = goalPools.filter((p) => !p.isCommitted && (poolBalancesMap[p.id] ?? 0) > 0);
-  flexibleGoals.sort((a, b) => (poolBalancesMap[b.id] ?? 0) - (poolBalancesMap[a.id] ?? 0));
+  const flexibleGoals = goalEnvelopes.filter((p) => !p.isCommitted && (envelopeBalancesMap[p.id] ?? 0) > 0);
+  flexibleGoals.sort((a, b) => (envelopeBalancesMap[b.id] ?? 0) - (envelopeBalancesMap[a.id] ?? 0));
   const candidateGoal = flexibleGoals[0] ?? null;
 
   let goalAlternative: OneOffGoalAlternative | undefined = undefined;
   if (candidateGoal) {
-    const goalBal = poolBalancesMap[candidateGoal.id] ?? 0;
+    const goalBal = envelopeBalancesMap[candidateGoal.id] ?? 0;
     if (goalBal >= shortfall) {
       const poolMonthlyContrib =
         candidateGoal.goalMode === "ONGOING"
           ? parseFloat(candidateGoal.targetAmount || "0")
-          : (poolCategoryTargetsMap.get(candidateGoal.id) ?? (candidateGoal.targetAmount ? parseFloat(candidateGoal.targetAmount) / 12 : 0));
+          : (candidateGoal.monthlyAmount ? parseFloat(candidateGoal.monthlyAmount) : (candidateGoal.targetAmount ? parseFloat(candidateGoal.targetAmount) / 12 : 0));
       const dailyContrib = poolMonthlyContrib > 0 ? poolMonthlyContrib / 30 : 1;
       const delayDays = Math.max(1, Math.round(shortfall / dailyContrib));
 
@@ -616,8 +577,7 @@ export async function canAffordSimulationQuery(
 
   // Run cumulative projection to find earliest paycycle where Everyday cash accumulates enough
   const cumExpenses: CumulativeProjectionExpenseEvent[] = pendingExpensesRaw.map((e) => ({
-    poolId: e.poolId,
-    categoryId: e.categoryId,
+    poolId: e.envelopeId,
     dueDate: e.expectedDate,
     amount: parseFloat(e.expectedAmount),
     status: e.status as "PENDING" | "CONFIRMED",
@@ -639,14 +599,14 @@ export async function canAffordSimulationQuery(
     expenseEvents: cumExpenses,
   });
 
-  const everydayPoolIds = new Set(everydayPools.map((p) => p.id));
+  const everydayEnvelopeIds = new Set<string>(everydayEnvelopes.map((p) => p.id));
   const ordinals = ["st", "nd", "rd"];
 
   for (let i = 0; i < projection.steps.length; i++) {
     const step = projection.steps[i];
     let everydayAtStep = 0;
-    for (const poolId of everydayPoolIds) {
-      everydayAtStep += step.balancesAfterExpenses.get(poolId) ?? 0;
+    for (const envId of everydayEnvelopeIds) {
+      everydayAtStep += step.balancesAfterExpenses.get(envId) ?? 0;
     }
 
     let daysInStep = 14;

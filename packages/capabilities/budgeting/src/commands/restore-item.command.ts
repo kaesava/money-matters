@@ -1,12 +1,11 @@
-import { pools, categories, incomeSources, incomeEvents, expenseEvents, bankAccounts, tenants, DbOrTx } from "@money-matters/db";
-import { eq, and, sql } from "drizzle-orm";
+import { envelopes, incomeSources, incomeEvents, expenseEvents, bankAccounts, tenants, DbOrTx } from "@money-matters/db";
+import { eq, and } from "drizzle-orm";
 import { generateBurstDates } from "../engine/burst-engine.js";
-
 import { getTenantDateString } from "@money-matters/core";
 
 export async function restoreItemCommand(
   itemId: string,
-  itemType: "POOL" | "CATEGORY" | "INCOME_SOURCE" | "BANK_ACCOUNT",
+  itemType: "ENVELOPE" | "INCOME_SOURCE" | "BANK_ACCOUNT",
   tenantId: string,
   appId: string,
   userId: string,
@@ -21,13 +20,12 @@ export async function restoreItemCommand(
         tenantRecord = rows[0] || null;
       }
     } catch {
-      // Mock db or schema mismatch safe fallback
+      // Mock db safe fallback
     }
   }
   const tenantTz = tenantRecord?.timezone || "Australia/Sydney";
   const getLocalDateString = (d: Date = new Date()) => getTenantDateString(d, { timezone: tenantTz });
-  // 1. Verify existence, stealth privacy, and parent constraints
-  let poolArchivedAt: Date | null = null;
+
   if (itemType === "BANK_ACCOUNT") {
     const [acc] = await dbClient
       .select()
@@ -37,38 +35,20 @@ export async function restoreItemCommand(
     if (acc.isPrivate && acc.userId !== userId) {
       throw new Error("Access unauthorized or private account.");
     }
-  } else if (itemType === "POOL") {
-    const [p] = await dbClient
+  } else if (itemType === "ENVELOPE") {
+    const [env] = await dbClient
       .select({
-        isPrivate: bankAccounts.isPrivate,
-        bankAccountUserId: bankAccounts.userId,
-        archivedAt: pools.archivedAt,
-      })
-      .from(pools)
-      .leftJoin(bankAccounts, eq(pools.bankAccountId, bankAccounts.id))
-      .where(and(eq(pools.id, itemId), eq(pools.tenantId, tenantId), eq(pools.appId, appId)));
-    if (!p) throw new Error("Pool not found.");
-    if (p.isPrivate && p.bankAccountUserId !== userId) {
-      throw new Error("Access unauthorized or private pool.");
-    }
-    poolArchivedAt = p.archivedAt;
-  } else if (itemType === "CATEGORY") {
-    const [cat] = await dbClient
-      .select({
-        poolArchivedAt: pools.archivedAt,
-        isPrivate: bankAccounts.isPrivate,
+        isPrivate: envelopes.isPrivate,
+        userId: envelopes.userId,
+        bankAccountIsPrivate: bankAccounts.isPrivate,
         bankAccountUserId: bankAccounts.userId,
       })
-      .from(categories)
-      .innerJoin(pools, eq(categories.poolId, pools.id))
-      .leftJoin(bankAccounts, eq(pools.bankAccountId, bankAccounts.id))
-      .where(and(eq(categories.id, itemId), eq(categories.tenantId, tenantId), eq(categories.appId, appId)));
-    if (!cat) throw new Error("Category not found.");
-    if (cat.poolArchivedAt !== null) {
-      throw new Error("Cannot restore category because its parent pool is archived. Restore the pool first.");
-    }
-    if (cat.isPrivate && cat.bankAccountUserId && cat.bankAccountUserId !== userId) {
-      throw new Error("Access unauthorized or private category.");
+      .from(envelopes)
+      .leftJoin(bankAccounts, eq(envelopes.bankAccountId, bankAccounts.id))
+      .where(and(eq(envelopes.id, itemId), eq(envelopes.tenantId, tenantId), eq(envelopes.appId, appId)));
+    if (!env) throw new Error("Envelope not found.");
+    if (env.isPrivate && (env.userId ? env.userId !== userId : env.bankAccountUserId !== userId)) {
+      throw new Error("Access unauthorized or private envelope.");
     }
   } else if (itemType === "INCOME_SOURCE") {
     const [inc] = await dbClient
@@ -85,8 +65,7 @@ export async function restoreItemCommand(
     }
   }
 
-  let table: typeof pools | typeof categories | typeof incomeSources | typeof bankAccounts = categories;
-  if (itemType === "POOL") table = pools;
+  let table: typeof envelopes | typeof incomeSources | typeof bankAccounts = envelopes;
   if (itemType === "INCOME_SOURCE") table = incomeSources;
   if (itemType === "BANK_ACCOUNT") table = bankAccounts;
 
@@ -106,31 +85,6 @@ export async function restoreItemCommand(
       )
     )
     .returning();
-
-  if (restored && itemType === "POOL") {
-    // Cascade restore any child categories archived on or after the pool was archived (allowing 2s lag)
-    const poolArchivedTime = (restored as typeof pools.$inferSelect).archivedAt || poolArchivedAt;
-    const cutoff = poolArchivedTime
-      ? new Date(new Date(poolArchivedTime).getTime() - 2000)
-      : new Date(Date.now() - 2000);
-
-    await dbClient
-      .update(categories)
-      .set({
-        archivedAt: null,
-        archivedBy: null,
-        updatedBy: userId,
-        updatedAt: new Date(),
-      })
-      .where(
-        and(
-          eq(categories.poolId, itemId),
-          eq(categories.tenantId, tenantId),
-          eq(categories.appId, appId),
-          sql`${categories.archivedAt} >= ${cutoff}`
-        )
-      );
-  }
 
   if (restored) {
     if (itemType === "INCOME_SOURCE") {
@@ -164,17 +118,16 @@ export async function restoreItemCommand(
           updatedBy: userId,
         });
       }
-    } else if (itemType === "CATEGORY") {
-      const cat = restored as typeof categories.$inferSelect;
-      const amountVal = cat.enteredAmount || cat.monthlyAmount || "0.00";
-      if (cat.rrule && cat.startDate && parseFloat(amountVal) > 0) {
-        const dates = generateBurstDates(cat.rrule, cat.startDate, cat.endDate, 12);
+    } else if (itemType === "ENVELOPE") {
+      const env = restored as typeof envelopes.$inferSelect;
+      const amountVal = env.enteredAmount || env.monthlyAmount || "0.00";
+      if (env.envelopeType === "SCHEDULED_BILL" && env.rrule && env.startDate && parseFloat(amountVal) > 0) {
+        const dates = generateBurstDates(env.rrule, env.startDate, env.endDate, 12);
         if (dates.length > 0) {
           await dbClient.insert(expenseEvents).values(
             dates.map((d) => ({
-              poolId: cat.poolId,
-              categoryId: cat.id,
-              name: cat.name,
+              envelopeId: env.id,
+              name: env.name,
               expectedDate: getLocalDateString(d),
               expectedAmount: amountVal,
               isScheduled: true,
@@ -192,4 +145,3 @@ export async function restoreItemCommand(
 
   return restored;
 }
-

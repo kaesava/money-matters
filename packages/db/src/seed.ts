@@ -4,8 +4,7 @@ import {
   tenants,
   tenantUsers,
   bankAccounts,
-  pools,
-  categories,
+  envelopes,
   incomeSources,
   incomeEvents,
   allocationPlans,
@@ -162,8 +161,7 @@ export async function seedDatabase(connectionString: string, envLabel: string) {
   await db.delete(incomeEvents);
   await db.delete(incomeSources);
   await db.execute(sql`DELETE FROM public.category_schedules`).catch(() => {});
-  await db.delete(categories);
-  await db.delete(pools);
+  await db.delete(envelopes);
   await db.delete(userPreferences);
   await db.delete(tenantUserPreferences);
   await db.delete(bankAccounts);
@@ -311,58 +309,63 @@ export async function seedDatabase(connectionString: string, envLabel: string) {
     .values({ name: "Kaesava Personal Saver", bankProvider: "Macquarie", lastKnownBalance: "500.00", unbudgetedBuffer: "0.00", isPrivate: true, userId, tenantId, appId, createdBy: userId, updatedBy: userId })
     .returning();
 
-  // 5. Pools Definition
-  const poolDefinitions = [
-    // 1. Joint Everyday Pool
-    { key: "everyday", name: "Joint Everyday Pool", poolType: "EVERYDAY" as const, bankAccountId: everydayAccount.id, everydayAllowanceAmount: "2641.54", safetyBufferFloor: "100.00", isCommitted: false, isSurplusTarget: false },
-    // 2. Household Bills Pool
-    { key: "bills", name: "Household Bills Pool", poolType: "REGULAR" as const, bankAccountId: misaAccount.id, isCommitted: true, targetAmount: "1099.00", isSurplusTarget: false },
-    // 3. Private Discretionary Pool
-    { key: "kaesava_vault", name: "Kaesava Personal Vault", poolType: "GOAL" as const, bankAccountId: personalSaverAccount.id, isCommitted: false, targetAmount: "2000.00", targetDate: "2027-06-30", isSurplusTarget: false },
-    // 4. Granular Goal Pools (Linked to MISA Offset)
-    { key: "emergency", name: "Emergency Reserve", poolType: "GOAL" as const, bankAccountId: misaAccount.id, isCommitted: true, targetAmount: "20000.00", targetDate: "2027-06-30", isSurplusTarget: false },
-    { key: "raehan_prev", name: "Raehan Future Fund (Prev FY)", poolType: "GOAL" as const, bankAccountId: misaAccount.id, isCommitted: true, targetAmount: "61029.48", targetDate: "2027-06-30", isSurplusTarget: false },
-    { key: "raehan_gifts", name: "Raehan's Gifts", poolType: "GOAL" as const, bankAccountId: misaAccount.id, isCommitted: true, targetAmount: "25760.79", targetDate: "2027-06-30", isSurplusTarget: false },
-    { key: "raehan_inyear", name: "Raehan FY27 In-Year Savings", poolType: "GOAL" as const, bankAccountId: misaAccount.id, isCommitted: true, targetAmount: "13000.00", targetDate: "2027-06-30", isSurplusTarget: false },
-    { key: "council_rates", name: "Council Rates", poolType: "GOAL" as const, bankAccountId: misaAccount.id, isCommitted: true, targetAmount: "2700.00", targetDate: "2027-06-30", isSurplusTarget: false },
-    { key: "home_insurance", name: "Home/Contents Insurance", poolType: "GOAL" as const, bankAccountId: misaAccount.id, isCommitted: true, targetAmount: "2000.00", targetDate: "2027-06-30", isSurplusTarget: false },
-    { key: "car_rego", name: "Car Registration / Insurance / RACV", poolType: "GOAL" as const, bankAccountId: misaAccount.id, isCommitted: true, targetAmount: "5500.00", targetDate: "2027-06-30", isSurplusTarget: false },
-    { key: "car_servicing", name: "Car Servicing", poolType: "GOAL" as const, bankAccountId: misaAccount.id, isCommitted: true, targetAmount: "3000.00", targetDate: "2027-06-30", isSurplusTarget: false },
-    { key: "car_repairs", name: "Car Ad-hoc Repair & Fines", poolType: "GOAL" as const, bankAccountId: misaAccount.id, isCommitted: true, targetAmount: "4000.00", targetDate: "2027-06-30", isSurplusTarget: false },
-    { key: "medicines", name: "Medicines, GP & Psychology", poolType: "GOAL" as const, bankAccountId: misaAccount.id, isCommitted: true, targetAmount: "14460.00", targetDate: "2027-06-30", isSurplusTarget: false },
-    { key: "clothes", name: "Clothes & Shoes", poolType: "GOAL" as const, bankAccountId: misaAccount.id, isCommitted: true, targetAmount: "2400.00", targetDate: "2027-06-30", isSurplusTarget: false },
-    { key: "costco", name: "Costco Bulk Runs", poolType: "GOAL" as const, bankAccountId: misaAccount.id, isCommitted: true, targetAmount: "1200.00", targetDate: "2027-06-30", isSurplusTarget: false },
-    { key: "charu_melb", name: "Family — Charu Aunty Melbourne", poolType: "GOAL" as const, bankAccountId: misaAccount.id, isCommitted: true, targetAmount: "1200.00", targetDate: "2027-06-30", isSurplusTarget: false },
-    { key: "charu_emerg", name: "Charu Aunty Medical Emergency", poolType: "GOAL" as const, bankAccountId: misaAccount.id, isCommitted: true, targetAmount: "1200.00", targetDate: "2027-06-30", isSurplusTarget: false },
-    { key: "charu_travel", name: "International Travel — Charu Aunty Flight", poolType: "GOAL" as const, bankAccountId: misaAccount.id, isCommitted: true, targetAmount: "2000.00", targetDate: "2026-11-05", isSurplusTarget: false },
-    { key: "seasonal_holidays", name: "Seasonal, School Holidays & Zoo Visits", poolType: "GOAL" as const, bankAccountId: misaAccount.id, isCommitted: true, targetAmount: "9000.00", targetDate: "2027-06-30", isSurplusTarget: false },
-    { key: "int_holiday", name: "International Holiday FY27", poolType: "GOAL" as const, bankAccountId: misaAccount.id, isCommitted: true, targetAmount: "35000.00", targetDate: "2026-11-01", isSurplusTarget: false },
-    { key: "japaneasy", name: "Japaneasy Classes", poolType: "GOAL" as const, bankAccountId: misaAccount.id, isCommitted: true, targetAmount: "500.00", targetDate: "2027-06-30", isSurplusTarget: false },
-    { key: "rae_birthday", name: "Rae Birthday", poolType: "GOAL" as const, bankAccountId: misaAccount.id, isCommitted: true, targetAmount: "1250.00", targetDate: "2026-10-22", isSurplusTarget: false },
-    { key: "classes", name: "Classes & Activities", poolType: "GOAL" as const, bankAccountId: misaAccount.id, isCommitted: true, targetAmount: "16250.00", targetDate: "2027-06-30", isSurplusTarget: false },
-    { key: "school_fees", name: "School Fees", poolType: "GOAL" as const, bankAccountId: misaAccount.id, isCommitted: true, targetAmount: "30000.00", targetDate: "2027-06-30", isSurplusTarget: false },
-    { key: "pet_emerg", name: "Pet Emergency Self-Insurance", poolType: "GOAL" as const, bankAccountId: misaAccount.id, isCommitted: true, targetAmount: "1000.00", targetDate: "2027-06-30", isSurplusTarget: false },
-    { key: "pet_insurance", name: "Pet Insurance, Rego, Vet & Boarding", poolType: "GOAL" as const, bankAccountId: misaAccount.id, isCommitted: true, targetAmount: "7500.00", targetDate: "2027-06-30", isSurplusTarget: false },
-    { key: "inv_property", name: "Investment Property Gap", poolType: "GOAL" as const, bankAccountId: misaAccount.id, isCommitted: true, targetAmount: "2717.16", targetDate: "2027-06-30", isSurplusTarget: false },
-    { key: "unexpected", name: "Unexpected Expenses & Major Repairs", poolType: "GOAL" as const, bankAccountId: misaAccount.id, isCommitted: true, targetAmount: "5000.00", targetDate: "2027-06-30", isSurplusTarget: false },
-    { key: "tax_obligation", name: "Tax Obligation (incl PAYG)", poolType: "GOAL" as const, bankAccountId: misaAccount.id, isCommitted: true, targetAmount: "18500.00", targetDate: "2027-06-30", isSurplusTarget: false },
-    { key: "next_yr_holiday", name: "Save for Next Year's Holiday", poolType: "GOAL" as const, bankAccountId: misaAccount.id, isCommitted: false, targetAmount: "33747.55", targetDate: "2027-06-30", isSurplusTarget: false },
-    { key: "business_idea", name: "Business Idea Fund", poolType: "GOAL" as const, bankAccountId: misaAccount.id, isCommitted: false, targetAmount: "5000.00", targetDate: "2027-06-30", isSurplusTarget: false },
-    { key: "surplus_offset", name: "Surplus & Offset Reserve", poolType: "GOAL" as const, bankAccountId: misaAccount.id, isCommitted: false, targetAmount: "50000.00", targetDate: "2027-06-30", isSurplusTarget: true },
+  // 5. Envelopes Definition (Flat Architecture: EVERYDAY, SCHEDULED_BILL, FLEXIBLE_BILL, TARGET_GOAL, ONGOING_GOAL)
+  const envelopeDefinitions = [
+    // 1. Joint Everyday Envelope
+    { key: "everyday", name: "Joint Everyday Pool", envelopeType: "EVERYDAY" as const, bankAccountId: everydayAccount.id, everydayAllowanceAmount: "2641.54", safetyBufferFloor: "100.00", isCommitted: false, isSurplusTarget: false, isPrivate: false },
+    // 2. Household Bills (Flexible Bills Pool container)
+    { key: "bills", name: "Household Bills Pool", envelopeType: "FLEXIBLE_BILL" as const, bankAccountId: misaAccount.id, monthlyAmount: "1099.00", enteredAmount: "507.23", budgetFrequency: "FORTNIGHTLY", isEssential: true, isCommitted: true, isSurplusTarget: false, isPrivate: false },
+    // 3. Private Discretionary Envelope
+    { key: "kaesava_vault", name: "Kaesava Personal Vault", envelopeType: "TARGET_GOAL" as const, goalMode: "TARGET_DATE" as const, bankAccountId: personalSaverAccount.id, isCommitted: false, targetAmount: "2000.00", targetDate: "2027-06-30", isSurplusTarget: false, isPrivate: true, userId },
+    // 4. Granular Goal Envelopes (Linked to MISA Offset)
+    { key: "emergency", name: "Emergency Reserve", envelopeType: "TARGET_GOAL" as const, goalMode: "TARGET_DATE" as const, bankAccountId: misaAccount.id, isCommitted: true, targetAmount: "20000.00", targetDate: "2027-06-30", isSurplusTarget: false, isPrivate: false },
+    { key: "raehan_prev", name: "Raehan Future Fund (Prev FY)", envelopeType: "TARGET_GOAL" as const, goalMode: "TARGET_DATE" as const, bankAccountId: misaAccount.id, isCommitted: true, targetAmount: "61029.48", targetDate: "2027-06-30", isSurplusTarget: false, isPrivate: false },
+    { key: "raehan_gifts", name: "Raehan's Gifts", envelopeType: "TARGET_GOAL" as const, goalMode: "TARGET_DATE" as const, bankAccountId: misaAccount.id, isCommitted: true, targetAmount: "25760.79", targetDate: "2027-06-30", isSurplusTarget: false, isPrivate: false },
+    { key: "raehan_inyear", name: "Raehan FY27 In-Year Savings", envelopeType: "TARGET_GOAL" as const, goalMode: "TARGET_DATE" as const, bankAccountId: misaAccount.id, isCommitted: true, targetAmount: "13000.00", targetDate: "2027-06-30", isSurplusTarget: false, isPrivate: false },
+    { key: "council_rates", name: "Council Rates", envelopeType: "SCHEDULED_BILL" as const, bankAccountId: misaAccount.id, isCommitted: true, targetAmount: "2700.00", targetDate: "2027-06-30", isSurplusTarget: false, isPrivate: false },
+    { key: "home_insurance", name: "Home/Contents Insurance", envelopeType: "SCHEDULED_BILL" as const, bankAccountId: misaAccount.id, isCommitted: true, targetAmount: "2000.00", targetDate: "2027-06-30", isSurplusTarget: false, isPrivate: false },
+    { key: "car_rego", name: "Car Registration / Insurance / RACV", envelopeType: "SCHEDULED_BILL" as const, bankAccountId: misaAccount.id, isCommitted: true, targetAmount: "5500.00", targetDate: "2027-06-30", isSurplusTarget: false, isPrivate: false },
+    { key: "car_servicing", name: "Car Servicing", envelopeType: "SCHEDULED_BILL" as const, bankAccountId: misaAccount.id, isCommitted: true, targetAmount: "3000.00", targetDate: "2027-06-30", isSurplusTarget: false, isPrivate: false },
+    { key: "car_repairs", name: "Car Ad-hoc Repair & Fines", envelopeType: "FLEXIBLE_BILL" as const, bankAccountId: misaAccount.id, isCommitted: true, targetAmount: "4000.00", targetDate: "2027-06-30", isSurplusTarget: false, isPrivate: false },
+    { key: "medicines", name: "Medicines, GP & Psychology", envelopeType: "FLEXIBLE_BILL" as const, bankAccountId: misaAccount.id, isCommitted: true, targetAmount: "14460.00", targetDate: "2027-06-30", isSurplusTarget: false, isPrivate: false },
+    { key: "clothes", name: "Clothes & Shoes", envelopeType: "FLEXIBLE_BILL" as const, bankAccountId: misaAccount.id, isCommitted: true, targetAmount: "2400.00", targetDate: "2027-06-30", isSurplusTarget: false, isPrivate: false },
+    { key: "costco", name: "Costco Bulk Runs", envelopeType: "FLEXIBLE_BILL" as const, bankAccountId: misaAccount.id, isCommitted: true, targetAmount: "1200.00", targetDate: "2027-06-30", isSurplusTarget: false, isPrivate: false },
+    { key: "charu_melb", name: "Family — Charu Aunty Melbourne", envelopeType: "TARGET_GOAL" as const, goalMode: "TARGET_DATE" as const, bankAccountId: misaAccount.id, isCommitted: true, targetAmount: "1200.00", targetDate: "2027-06-30", isSurplusTarget: false, isPrivate: false },
+    { key: "charu_emerg", name: "Charu Aunty Medical Emergency", envelopeType: "TARGET_GOAL" as const, goalMode: "TARGET_DATE" as const, bankAccountId: misaAccount.id, isCommitted: true, targetAmount: "1200.00", targetDate: "2027-06-30", isSurplusTarget: false, isPrivate: false },
+    { key: "charu_travel", name: "International Travel — Charu Aunty Flight", envelopeType: "TARGET_GOAL" as const, goalMode: "TARGET_DATE" as const, bankAccountId: misaAccount.id, isCommitted: true, targetAmount: "2000.00", targetDate: "2026-11-05", isSurplusTarget: false, isPrivate: false },
+    { key: "seasonal_holidays", name: "Seasonal, School Holidays & Zoo Visits", envelopeType: "TARGET_GOAL" as const, goalMode: "TARGET_DATE" as const, bankAccountId: misaAccount.id, isCommitted: true, targetAmount: "9000.00", targetDate: "2027-06-30", isSurplusTarget: false, isPrivate: false },
+    { key: "int_holiday", name: "International Holiday FY27", envelopeType: "TARGET_GOAL" as const, goalMode: "TARGET_DATE" as const, bankAccountId: misaAccount.id, isCommitted: true, targetAmount: "35000.00", targetDate: "2026-11-01", isSurplusTarget: false, isPrivate: false },
+    { key: "japaneasy", name: "Japaneasy Classes", envelopeType: "TARGET_GOAL" as const, goalMode: "TARGET_DATE" as const, bankAccountId: misaAccount.id, isCommitted: true, targetAmount: "500.00", targetDate: "2027-06-30", isSurplusTarget: false, isPrivate: false },
+    { key: "rae_birthday", name: "Rae Birthday", envelopeType: "TARGET_GOAL" as const, goalMode: "TARGET_DATE" as const, bankAccountId: misaAccount.id, isCommitted: true, targetAmount: "1250.00", targetDate: "2026-10-22", isSurplusTarget: false, isPrivate: false },
+    { key: "classes", name: "Classes & Activities", envelopeType: "SCHEDULED_BILL" as const, bankAccountId: misaAccount.id, isCommitted: true, targetAmount: "16250.00", targetDate: "2027-06-30", isSurplusTarget: false, isPrivate: false },
+    { key: "school_fees", name: "School Fees", envelopeType: "SCHEDULED_BILL" as const, bankAccountId: misaAccount.id, isCommitted: true, targetAmount: "30000.00", targetDate: "2027-06-30", isSurplusTarget: false, isPrivate: false },
+    { key: "pet_emerg", name: "Pet Emergency Self-Insurance", envelopeType: "TARGET_GOAL" as const, goalMode: "TARGET_DATE" as const, bankAccountId: misaAccount.id, isCommitted: true, targetAmount: "1000.00", targetDate: "2027-06-30", isSurplusTarget: false, isPrivate: false },
+    { key: "pet_insurance", name: "Pet Insurance, Rego, Vet & Boarding", envelopeType: "SCHEDULED_BILL" as const, bankAccountId: misaAccount.id, isCommitted: true, targetAmount: "7500.00", targetDate: "2027-06-30", isSurplusTarget: false, isPrivate: false },
+    { key: "inv_property", name: "Investment Property Gap", envelopeType: "SCHEDULED_BILL" as const, bankAccountId: misaAccount.id, isCommitted: true, targetAmount: "2717.16", targetDate: "2027-06-30", isSurplusTarget: false, isPrivate: false },
+    { key: "unexpected", name: "Unexpected Expenses & Major Repairs", envelopeType: "TARGET_GOAL" as const, goalMode: "TARGET_DATE" as const, bankAccountId: misaAccount.id, isCommitted: true, targetAmount: "5000.00", targetDate: "2027-06-30", isSurplusTarget: false, isPrivate: false },
+    { key: "tax_obligation", name: "Tax Obligation (incl PAYG)", envelopeType: "SCHEDULED_BILL" as const, bankAccountId: misaAccount.id, isCommitted: true, targetAmount: "18500.00", targetDate: "2027-06-30", isSurplusTarget: false, isPrivate: false },
+    { key: "next_yr_holiday", name: "Save for Next Year's Holiday", envelopeType: "ONGOING_GOAL" as const, goalMode: "ONGOING" as const, bankAccountId: misaAccount.id, isCommitted: false, targetAmount: "33747.55", targetDate: "2027-06-30", isSurplusTarget: false, isPrivate: false },
+    { key: "business_idea", name: "Business Idea Fund", envelopeType: "ONGOING_GOAL" as const, goalMode: "ONGOING" as const, bankAccountId: misaAccount.id, isCommitted: false, targetAmount: "5000.00", targetDate: "2027-06-30", isSurplusTarget: false, isPrivate: false },
+    { key: "surplus_offset", name: "Surplus & Offset Reserve", envelopeType: "ONGOING_GOAL" as const, goalMode: "ONGOING" as const, bankAccountId: misaAccount.id, isCommitted: false, targetAmount: "50000.00", targetDate: "2027-06-30", isSurplusTarget: true, isPrivate: false },
   ];
 
-  const insertedPools = await db.insert(pools).values(
-    poolDefinitions.map((p) => ({
+  const insertedEnvelopes = await db.insert(envelopes).values(
+    envelopeDefinitions.map((p) => ({
       name: p.name,
-      poolType: p.poolType,
-      goalMode: (p as any).goalMode ?? (p.poolType === "GOAL" ? "TARGET_DATE" : undefined),
+      envelopeType: p.envelopeType,
+      goalMode: (p as any).goalMode ?? (p.envelopeType.endsWith("GOAL") ? "TARGET_DATE" : undefined),
       bankAccountId: p.bankAccountId,
-      everydayAllowanceAmount: p.everydayAllowanceAmount,
+      everydayAllowanceAmount: (p as any).everydayAllowanceAmount,
       safetyBufferFloor: (p as any).safetyBufferFloor ?? "0.00",
-      targetAmount: p.targetAmount,
-      targetDate: p.targetDate ?? undefined,
+      monthlyAmount: (p as any).monthlyAmount,
+      enteredAmount: (p as any).enteredAmount,
+      budgetFrequency: (p as any).budgetFrequency ?? "MONTHLY",
+      targetAmount: (p as any).targetAmount,
+      targetDate: (p as any).targetDate ?? undefined,
       isCommitted: p.isCommitted,
       isSurplusTarget: p.isSurplusTarget,
+      isPrivate: p.isPrivate,
+      userId: (p as any).userId ?? null,
       tenantId,
       appId,
       createdBy: userId,
@@ -370,63 +373,10 @@ export async function seedDatabase(connectionString: string, envLabel: string) {
     }))
   ).returning();
 
-  const poolMap = new Map<string, typeof insertedPools[0]>();
-  for (let i = 0; i < poolDefinitions.length; i++) {
-    poolMap.set(poolDefinitions[i].key, insertedPools[i]);
+  const envelopeMap = new Map<string, typeof insertedEnvelopes[0]>();
+  for (let i = 0; i < envelopeDefinitions.length; i++) {
+    envelopeMap.set(envelopeDefinitions[i].key, insertedEnvelopes[i]);
   }
-
-  const everydayPool = poolMap.get("everyday")!;
-  const billsPool = poolMap.get("bills")!;
-
-  // 6. Sub-tag Categories for Everyday and Bills Pools
-  const everydayCategories = [
-    { name: "Groceries", monthlyAmount: "1083.33", enteredAmount: "500.00", budgetFrequency: "FORTNIGHTLY", isEssential: true, icon: "shopping-cart" },
-    { name: "Eating Out (Weekdays, Weekends & Delivery)", monthlyAmount: "1950.00", enteredAmount: "900.00", budgetFrequency: "FORTNIGHTLY", isEssential: false, icon: "utensils" },
-    { name: "Petrol & Fuel", monthlyAmount: "400.00", enteredAmount: "184.62", budgetFrequency: "FORTNIGHTLY", isEssential: true, icon: "fuel" },
-    { name: "Gym & Fitness Activities", monthlyAmount: "390.00", enteredAmount: "180.00", budgetFrequency: "FORTNIGHTLY", isEssential: false, icon: "dumbbell" },
-    { name: "Haircut, Beauty & Grooming Products", monthlyAmount: "525.00", enteredAmount: "242.31", budgetFrequency: "FORTNIGHTLY", isEssential: false, icon: "sparkles" },
-    { name: "Dog Walking", monthlyAmount: "260.00", enteredAmount: "120.00", budgetFrequency: "FORTNIGHTLY", isEssential: false, icon: "dog" },
-    { name: "Pet Food, Treats & Store", monthlyAmount: "290.00", enteredAmount: "133.85", budgetFrequency: "FORTNIGHTLY", isEssential: true, icon: "paw-print" },
-    { name: "Pet Grooming", monthlyAmount: "120.00", enteredAmount: "55.38", budgetFrequency: "FORTNIGHTLY", isEssential: false, icon: "scissors" },
-    { name: "Movies, Cinema, Streaming & VPN", monthlyAmount: "205.83", enteredAmount: "95.00", budgetFrequency: "FORTNIGHTLY", isEssential: false, icon: "tv" },
-    { name: "Rae Basketball, Books, Clothes & Pocket Money", monthlyAmount: "140.83", enteredAmount: "65.00", budgetFrequency: "FORTNIGHTLY", isEssential: false, icon: "book-open" },
-    { name: "Gardening & Pruning", monthlyAmount: "119.17", enteredAmount: "55.00", budgetFrequency: "FORTNIGHTLY", isEssential: false, icon: "flower-2" },
-    { name: "Public Transport Tickets", monthlyAmount: "108.33", enteredAmount: "50.00", budgetFrequency: "FORTNIGHTLY", isEssential: true, icon: "train" },
-    { name: "Birthday Gifts, House Warmings & Teacher Presents", monthlyAmount: "60.00", enteredAmount: "27.69", budgetFrequency: "FORTNIGHTLY", isEssential: false, icon: "gift" },
-    { name: "Parking", monthlyAmount: "37.50", enteredAmount: "17.31", budgetFrequency: "FORTNIGHTLY", isEssential: false, icon: "circle-parking" },
-    { name: "Car Wash", monthlyAmount: "33.33", enteredAmount: "15.38", budgetFrequency: "FORTNIGHTLY", isEssential: false, icon: "droplets" },
-  ];
-
-  const billsCategories = [
-    { name: "Home Loan Minimum Repayment", monthlyAmount: "0.00", enteredAmount: "0.00", budgetFrequency: "MONTHLY", isEssential: true, icon: "home", startDate: "2026-07-01", rrule: "FREQ=MONTHLY;INTERVAL=1" },
-    { name: "Personal Health Insurance (Couple) & Ambulance", monthlyAmount: "415.00", enteredAmount: "191.54", budgetFrequency: "FORTNIGHTLY", isEssential: true, icon: "heart-pulse", startDate: "2026-07-02", rrule: "FREQ=WEEKLY;INTERVAL=2" },
-    { name: "Gas & Electricity", monthlyAmount: "291.67", enteredAmount: "134.62", budgetFrequency: "FORTNIGHTLY", isEssential: true, icon: "zap", startDate: "2026-07-02", rrule: "FREQ=WEEKLY;INTERVAL=2" },
-    { name: "Mobile Phone, Home Phone & Internet", monthlyAmount: "220.00", enteredAmount: "101.54", budgetFrequency: "FORTNIGHTLY", isEssential: true, icon: "wifi", startDate: "2026-07-02", rrule: "FREQ=WEEKLY;INTERVAL=2" },
-    { name: "Water & Sewage", monthlyAmount: "133.33", enteredAmount: "61.54", budgetFrequency: "FORTNIGHTLY", isEssential: true, icon: "droplet", startDate: "2026-07-02", rrule: "FREQ=WEEKLY;INTERVAL=2" },
-    { name: "Charity / CareFlight", monthlyAmount: "39.00", enteredAmount: "18.00", budgetFrequency: "FORTNIGHTLY", isEssential: false, icon: "heart-handshake", startDate: "2026-07-02", rrule: "FREQ=WEEKLY;INTERVAL=2" },
-  ];
-
-  const vaultPool = poolMap.get("kaesava_vault")!;
-
-  const categoriesToInsert = [
-    ...everydayCategories.map((c) => ({ ...c, poolId: everydayPool.id })),
-    ...billsCategories.map((c) => ({ ...c, poolId: billsPool.id })),
-    { name: "Tech & Gadgets Discretionary", monthlyAmount: "100.00", enteredAmount: "100.00", budgetFrequency: "MONTHLY", isEssential: false, icon: "laptop", poolId: vaultPool.id },
-  ];
-
-  const insertedCats = await db.insert(categories).values(
-    categoriesToInsert.map((c) => ({
-      ...c,
-      tenantId,
-      appId,
-      createdBy: userId,
-      updatedBy: userId,
-    }))
-  ).returning();
-
-  const groceriesCat = insertedCats.find((c) => c.name === "Groceries")!;
-  const billsHealthCat = insertedCats.find((c) => c.name.includes("Health Insurance"))!;
-  const vaultTechCat = insertedCats.find((c) => c.name.includes("Tech & Gadgets"))!;
 
   // 7. Income Sources
   const [keshSalary] = await db
@@ -607,13 +557,13 @@ export async function seedDatabase(connectionString: string, envLabel: string) {
       .returning();
 
     const planLinesToInsert = Object.entries(past.splits).map(([key, amt]) => {
-      const targetPool = poolMap.get(key)!;
+      const targetEnvelope = envelopeMap.get(key)!;
       return {
         planId: plan.id,
-        poolId: targetPool.id,
+        envelopeId: targetEnvelope.id,
         proposedAmount: amt.toFixed(2),
         confirmedAmount: amt.toFixed(2),
-        reasoning: `Confirmed FY27 paycheck allocation split for ${targetPool.name}`,
+        reasoning: `Confirmed FY27 paycheck allocation split for ${targetEnvelope.name}`,
         tenantId,
         appId,
         createdBy: userId,
@@ -663,10 +613,10 @@ export async function seedDatabase(connectionString: string, envLabel: string) {
   ];
 
   const openingLedgerRows = openingBalances.map((ob) => {
-    const targetPool = poolMap.get(ob.key)!;
+    const targetEnvelope = envelopeMap.get(ob.key)!;
     const targetAccount = ob.key === "everyday" ? everydayAccount.id : ob.key === "kaesava_vault" ? personalSaverAccount.id : misaAccount.id;
     return {
-      poolId: targetPool.id,
+      envelopeId: targetEnvelope.id,
       bankAccountId: targetAccount,
       flowType: "CREDIT" as const,
       transactionType: "OPENING_BALANCE" as const,
@@ -685,18 +635,18 @@ export async function seedDatabase(connectionString: string, envLabel: string) {
   // Part B: 6 Confirmed Payday Splits into Transaction Ledger
   const paydayLedgerRows = pastSplitsData.flatMap((past) => {
     return Object.entries(past.splits).map(([key, amt]) => {
-      const targetPool = poolMap.get(key)!;
+      const targetEnvelope = envelopeMap.get(key)!;
       const targetAccount = key === "everyday" ? everydayAccount.id : misaAccount.id;
       const isPositive = amt >= 0;
       const absAmount = Math.abs(amt).toFixed(2);
       return {
-        poolId: targetPool.id,
+        envelopeId: targetEnvelope.id,
         bankAccountId: targetAccount,
         flowType: (isPositive ? "CREDIT" : "DEBIT") as "CREDIT" | "DEBIT",
         transactionType: (isPositive ? "INCOME_SPLIT" : "EXPENSE") as "INCOME_SPLIT" | "EXPENSE",
         amount: absAmount,
         idempotencyKey: `payday-split-${key}-${past.date}`,
-        note: isPositive ? `Payday Allocation — ${targetPool.name}` : `Temporary Cashflow Cushion Drawdown — ${targetPool.name}`,
+        note: isPositive ? `Payday Allocation — ${targetEnvelope.name}` : `Temporary Cashflow Cushion Drawdown — ${targetEnvelope.name}`,
         source: "AUTO" as const,
         recordedAt: new Date(`${past.date}T09:05:00Z`),
         tenantId,
@@ -709,7 +659,7 @@ export async function seedDatabase(connectionString: string, envLabel: string) {
 
   // Part C: Historical Actual Expenses Paid Out in July & August ($12,642.72 MISA Debits + Routine Everyday Living)
   const historicalDebits = [
-    { key: "bills", categoryId: billsHealthCat.id, amount: "2106.92", date: "2026-07-20", note: "Household Utilities, Health Insurance & CareFlight (Jul-Aug)" },
+    { key: "bills", amount: "2106.92", date: "2026-07-20", note: "Household Utilities, Health Insurance & CareFlight (Jul-Aug)" },
     { key: "tax_obligation", amount: "4500.00", date: "2026-08-01", note: "ATO PAYG & Tax Obligation Payment" },
     { key: "school_fees", amount: "2136.00", date: "2026-07-10", note: "Term 3 School Tuition Fees Paid" },
     { key: "classes", amount: "2149.80", date: "2026-08-15", note: "Kids Extracurricular Activities & Classes Paid" },
@@ -717,20 +667,19 @@ export async function seedDatabase(connectionString: string, envLabel: string) {
     { key: "clothes", amount: "450.00", date: "2026-08-10", note: "Winter Clothes & School Shoes Purchase" },
     { key: "costco", amount: "300.00", date: "2026-08-12", note: "Costco Bulk Household Supplies Run" },
     // Routine Everyday living expenses (routine household transactions across the 6 fortnights matching allowances)
-    { key: "everyday", categoryId: groceriesCat.id, amount: "2641.54", date: "2026-07-10", note: "Everyday Living & Groceries (Payday 1 Cycle)" },
-    { key: "everyday", categoryId: groceriesCat.id, amount: "2641.54", date: "2026-07-24", note: "Everyday Living & Groceries (Payday 2 Cycle)" },
-    { key: "everyday", categoryId: groceriesCat.id, amount: "2641.54", date: "2026-08-07", note: "Everyday Living & Groceries (Payday 3 Cycle)" },
-    { key: "everyday", categoryId: groceriesCat.id, amount: "2641.54", date: "2026-08-21", note: "Everyday Living & Groceries (Payday 4 Cycle)" },
-    { key: "everyday", categoryId: groceriesCat.id, amount: "2641.54", date: "2026-09-04", note: "Everyday Living & Groceries (Payday 5 Cycle)" },
-    { key: "everyday", categoryId: groceriesCat.id, amount: "2641.54", date: "2026-09-12", note: "Everyday Living & Groceries (Payday 6 Cycle)" },
+    { key: "everyday", amount: "2641.54", date: "2026-07-10", note: "Everyday Living & Groceries (Payday 1 Cycle)" },
+    { key: "everyday", amount: "2641.54", date: "2026-07-24", note: "Everyday Living & Groceries (Payday 2 Cycle)" },
+    { key: "everyday", amount: "2641.54", date: "2026-08-07", note: "Everyday Living & Groceries (Payday 3 Cycle)" },
+    { key: "everyday", amount: "2641.54", date: "2026-08-21", note: "Everyday Living & Groceries (Payday 4 Cycle)" },
+    { key: "everyday", amount: "2641.54", date: "2026-09-04", note: "Everyday Living & Groceries (Payday 5 Cycle)" },
+    { key: "everyday", amount: "2641.54", date: "2026-09-12", note: "Everyday Living & Groceries (Payday 6 Cycle)" },
   ];
 
   const historicalDebitRows = historicalDebits.map((hd, idx) => {
-    const targetPool = poolMap.get(hd.key)!;
+    const targetEnvelope = envelopeMap.get(hd.key)!;
     const targetAccount = hd.key === "everyday" ? everydayAccount.id : misaAccount.id;
     return {
-      poolId: targetPool.id,
-      categoryId: hd.categoryId || null,
+      envelopeId: targetEnvelope.id,
       bankAccountId: targetAccount,
       flowType: "DEBIT" as const,
       transactionType: "EXPENSE" as const,
@@ -754,12 +703,13 @@ export async function seedDatabase(connectionString: string, envLabel: string) {
   ]);
 
   // 11. Scheduled Bill Events & Upcoming Events for the Next 90 Days
-  const ratesPool = poolMap.get("council_rates")!;
-  const schoolPool = poolMap.get("school_fees")!;
+  const ratesEnvelope = envelopeMap.get("council_rates")!;
+  const schoolEnvelope = envelopeMap.get("school_fees")!;
+  const billsEnvelope = envelopeMap.get("bills")!;
 
   await db.insert(expenseEvents).values([
     {
-      poolId: ratesPool.id,
+      envelopeId: ratesEnvelope.id,
       name: "Council Rates Q1 Instalment",
       expectedDate: "2026-09-30",
       expectedAmount: "675.00",
@@ -771,7 +721,7 @@ export async function seedDatabase(connectionString: string, envLabel: string) {
       updatedBy: userId,
     },
     {
-      poolId: schoolPool.id,
+      envelopeId: schoolEnvelope.id,
       name: "School Fees Q4 Instalment",
       expectedDate: "2026-10-01",
       expectedAmount: "3750.00",
@@ -784,8 +734,7 @@ export async function seedDatabase(connectionString: string, envLabel: string) {
     },
     // Ad-hoc One-off Expense Event 1: Overdue Bill
     {
-      poolId: billsPool.id,
-      categoryId: billsHealthCat.id,
+      envelopeId: billsEnvelope.id,
       name: "Dental Checkup & Cleaning",
       expectedDate: "2026-09-20",
       actualDate: null,
@@ -801,7 +750,7 @@ export async function seedDatabase(connectionString: string, envLabel: string) {
     },
     // Ad-hoc One-off Expense Event 2: Imminent Pending Bill
     {
-      poolId: ratesPool.id,
+      envelopeId: ratesEnvelope.id,
       name: "Supplementary Water Rates Adjustment",
       expectedDate: "2026-10-15",
       actualDate: null,
@@ -817,7 +766,7 @@ export async function seedDatabase(connectionString: string, envLabel: string) {
     },
     // Ad-hoc One-off Expense Event 3: Confirmed Goal Drawdown
     {
-      poolId: poolMap.get("charu_travel")!.id,
+      envelopeId: envelopeMap.get("charu_travel")!.id,
       name: "Charu Aunty Flight Booking",
       expectedDate: "2026-09-15",
       actualDate: "2026-09-15",
@@ -849,14 +798,14 @@ export async function seedDatabase(connectionString: string, envLabel: string) {
     },
   ]);
 
-  // 13. Transfer Sources & Transfer Events (Inter-pool transfers)
+  // 13. Transfer Sources & Transfer Events (Inter-envelope transfers)
   const [savingsSweepSource] = await db
     .insert(transferSources)
     .values({
       name: "Fortnightly Surplus Offset Sweep",
       amount: "500.00",
-      sourcePoolId: poolMap.get("emergency")!.id,
-      destinationPoolId: poolMap.get("surplus_offset")!.id,
+      sourceEnvelopeId: envelopeMap.get("emergency")!.id,
+      destinationEnvelopeId: envelopeMap.get("surplus_offset")!.id,
       startDate: "2026-09-24",
       tenantId,
       appId,
@@ -868,8 +817,8 @@ export async function seedDatabase(connectionString: string, envLabel: string) {
   await db.insert(transferEvents).values([
     {
       transferSourceId: savingsSweepSource.id,
-      sourcePoolId: poolMap.get("emergency")!.id,
-      destinationPoolId: poolMap.get("surplus_offset")!.id,
+      sourceEnvelopeId: envelopeMap.get("emergency")!.id,
+      destinationEnvelopeId: envelopeMap.get("surplus_offset")!.id,
       name: "Scheduled Surplus Sweep",
       expectedDate: "2026-09-24",
       expectedAmount: "500.00",
@@ -881,8 +830,8 @@ export async function seedDatabase(connectionString: string, envLabel: string) {
     },
     {
       transferSourceId: null,
-      sourcePoolId: poolMap.get("emergency")!.id,
-      destinationPoolId: poolMap.get("unexpected")!.id,
+      sourceEnvelopeId: envelopeMap.get("emergency")!.id,
+      destinationEnvelopeId: envelopeMap.get("unexpected")!.id,
       name: "Ad-hoc Reserve Cushioning Transfer",
       expectedDate: "2026-09-18",
       expectedAmount: "250.00",
@@ -898,16 +847,16 @@ export async function seedDatabase(connectionString: string, envLabel: string) {
   // 14. Advanced Ledger Entries (TRANSFER_IN, TRANSFER_OUT, ACCOUNT_ALIGNMENT)
   const transferGroupId = "d3b07384-d113-4ec4-a5a4-000000000088";
   await db.insert(transactionLedger).values([
-    // Paired inter-pool transfer
+    // Paired inter-envelope transfer
     {
-      poolId: poolMap.get("emergency")!.id,
+      envelopeId: envelopeMap.get("emergency")!.id,
       bankAccountId: misaAccount.id,
       flowType: "DEBIT" as const,
       transactionType: "TRANSFER_OUT" as const,
       amount: "250.00",
       transferGroupId,
       idempotencyKey: "transfer-out-emergency-unexpected-2026-09-18",
-      note: "Inter-pool transfer to Unexpected Expenses Reserve",
+      note: "Inter-envelope transfer to Unexpected Expenses Reserve",
       source: "MANUAL" as const,
       recordedAt: new Date("2026-09-18T11:00:00Z"),
       tenantId,
@@ -916,14 +865,14 @@ export async function seedDatabase(connectionString: string, envLabel: string) {
       updatedBy: userId,
     },
     {
-      poolId: poolMap.get("unexpected")!.id,
+      envelopeId: envelopeMap.get("unexpected")!.id,
       bankAccountId: misaAccount.id,
       flowType: "CREDIT" as const,
       transactionType: "TRANSFER_IN" as const,
       amount: "250.00",
       transferGroupId,
       idempotencyKey: "transfer-in-emergency-unexpected-2026-09-18",
-      note: "Inter-pool transfer from Emergency Reserve",
+      note: "Inter-envelope transfer from Emergency Reserve",
       source: "MANUAL" as const,
       recordedAt: new Date("2026-09-18T11:00:00Z"),
       tenantId,
@@ -933,7 +882,7 @@ export async function seedDatabase(connectionString: string, envLabel: string) {
     },
     // Account alignment audit record (e.g. interest or offset bonus alignment)
     {
-      poolId: poolMap.get("emergency")!.id,
+      envelopeId: envelopeMap.get("emergency")!.id,
       bankAccountId: misaAccount.id,
       flowType: "CREDIT" as const,
       transactionType: "ACCOUNT_ALIGNMENT" as const,
@@ -950,8 +899,8 @@ export async function seedDatabase(connectionString: string, envLabel: string) {
   ]);
 
   console.log(`🎉 Seed data successfully populated for [${envLabel}] across all tables!`);
-  console.log(`   - MISA Offset Account accurately reconciled to $167,581.35 across all 30 pools.`);
-  console.log(`   - Joint Everyday Pool initialized with $2,641.54 allowance on Everyday Account.`);
+  console.log(`   - MISA Offset Account accurately reconciled to $167,581.35 across all 30 envelopes.`);
+  console.log(`   - Joint Everyday Envelope initialized with $2,641.54 allowance on Everyday Account.`);
   console.log(`   - 26 Fortnight FY27 plan scheduled with Sneha and Kesh pre-verified.`);
 }
 

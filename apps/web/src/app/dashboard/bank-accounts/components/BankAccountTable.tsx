@@ -206,7 +206,7 @@ export function BankAccountTable({
                               {(acc.linkedPools || []).slice(0, 2).map((pool) => (
                                 <Link
                                   key={pool.id}
-                                  href={`/dashboard/pools?poolId=${pool.id}`}
+                                  href={`/dashboard/envelopes?poolId=${pool.id}`}
                                   className="text-xs font-bold text-[#2563eb] hover:underline inline-flex items-center gap-0.5 bg-blue-50/60 hover:bg-blue-100/80 px-2 py-0.5 rounded-md transition-colors"
                                 >
                                   <span>{pool.name}</span>
@@ -280,7 +280,7 @@ export function BankAccountTable({
                     <div key={p.id} className="flex items-center justify-between p-2.5 rounded-xl border border-zinc-200 bg-zinc-50/70 text-xs">
                       <div className="flex items-center gap-2">
                         <Link
-                          href={`/dashboard/pools?poolId=${p.id}`}
+                          href={`/dashboard/envelopes?poolId=${p.id}`}
                           onClick={() => setSelectedAccForPools(null)}
                           className="font-bold text-[#2563eb] hover:underline cursor-pointer"
                         >

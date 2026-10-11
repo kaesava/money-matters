@@ -236,9 +236,18 @@ export function CategoryFormModal({ visible, categoryToEdit, onClose, onSuccess 
         },
       });
     } else {
+      const envType =
+        type === 'EVERYDAY'
+          ? 'EVERYDAY'
+          : type === 'GOAL'
+          ? goalMode === 'ONGOING'
+            ? 'ONGOING_GOAL'
+            : 'TARGET_GOAL'
+          : 'SCHEDULED_BILL';
+
       createMut.mutate({
         name: name.trim(),
-        poolType: type,
+        envelopeType: envType,
         bankAccountId,
         safetyBufferFloor: type === 'EVERYDAY' ? safetyBufferFloor || '0.00' : undefined,
         targetAmount: finalTargetAmount,

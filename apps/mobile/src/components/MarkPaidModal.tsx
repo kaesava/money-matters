@@ -61,12 +61,13 @@ export function MarkPaidModal({
 
   if (!visible || !event) return null;
 
-  const formattedPoolType = currentPool?.poolType === 'EVERYDAY'
+  const poolType = currentPool?.envelopeType;
+  const formattedPoolType = poolType === 'EVERYDAY'
     ? 'Everyday'
-    : currentPool?.poolType === 'REGULAR'
+    : (poolType === 'SCHEDULED_BILL' || poolType === 'FLEXIBLE_BILL')
     ? 'Bills'
     : 'Goal';
-  const formattedPoolName = currentPool?.name || 'Pool';
+  const formattedPoolName = currentPool?.name || 'Envelope';
 
   return (
     <MobileModalDialog

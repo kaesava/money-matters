@@ -33,7 +33,6 @@ export function MobileArchivedSection() {
       await Promise.all([
         archivedQuery.refetch(),
         utils.listPools.invalidate(),
-        utils.listCategories.invalidate(),
         utils.listIncomeSources.invalidate(),
         utils.listBankAccounts.invalidate(),
         utils.listBankAccountsWithExpected.invalidate(),

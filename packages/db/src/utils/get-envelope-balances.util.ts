@@ -1,20 +1,19 @@
 import { DbOrTx } from "../index.js";
-
 import { transactionLedger } from "../schema/transaction_ledger.js";
 import { and, eq, sql } from "drizzle-orm";
 
 /**
- * Computes net balances per pool using DB-side aggregate SUM(CASE WHEN flowType='CREDIT' ...).
+ * Computes net balances per envelope using DB-side aggregate SUM(CASE WHEN flowType='CREDIT' ...).
  * Replaces O(N) full ledger fetches with a single grouped DB query.
  */
-export async function getPoolBalancesMap(
+export async function getEnvelopeBalancesMap(
   tenantId: string,
   appId: string,
   dbClient: DbOrTx
 ): Promise<Record<string, number>> {
   const query = dbClient
     .select({
-      poolId: transactionLedger.poolId,
+      envelopeId: transactionLedger.envelopeId,
       balance: sql<string>`COALESCE(SUM(CASE WHEN ${transactionLedger.flowType} = 'CREDIT' THEN ${transactionLedger.amount}::numeric ELSE -${transactionLedger.amount}::numeric END), 0)::text`,
     })
     .from(transactionLedger)
@@ -27,23 +26,21 @@ export async function getPoolBalancesMap(
     );
 
   const rows = typeof (query as any).groupBy === "function"
-    ? await (query as any).groupBy(transactionLedger.poolId)
+    ? await (query as any).groupBy(transactionLedger.envelopeId)
     : await (query as any);
 
   const balancesMap: Record<string, number> = {};
   for (const r of (rows || [])) {
-    if (r && r.poolId) {
+    if (r && r.envelopeId) {
       if (r.balance !== undefined) {
         const val = parseFloat(r.balance || "0");
-        balancesMap[r.poolId] = (balancesMap[r.poolId] || 0) + (isNaN(val) ? 0 : val);
+        balancesMap[r.envelopeId] = (balancesMap[r.envelopeId] || 0) + (isNaN(val) ? 0 : val);
       } else if (r.amount !== undefined) {
         const val = parseFloat(r.amount);
         const signed = r.flowType === "CREDIT" ? val : -val;
-        balancesMap[r.poolId] = (balancesMap[r.poolId] || 0) + (isNaN(signed) ? 0 : signed);
+        balancesMap[r.envelopeId] = (balancesMap[r.envelopeId] || 0) + (isNaN(signed) ? 0 : signed);
       }
     }
   }
   return balancesMap;
 }
-
-

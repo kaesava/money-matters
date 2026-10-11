@@ -105,7 +105,7 @@ export const GoalsProgressStrip: React.FC<GoalsProgressStripProps> = ({
           </div>
 
           <Link
-            href="/dashboard/pools?type=GOAL"
+            href="/dashboard/envelopes?type=GOAL"
             className="text-xs font-bold text-blue-600 hover:text-blue-700 transition-colors self-start sm:self-auto"
           >
             {t('dashboard.goals.viewAll')} →

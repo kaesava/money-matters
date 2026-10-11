@@ -29,7 +29,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   const userPrefQuery = trpc.getUserPreferences.useQuery(undefined, { enabled: !!session?.user });
   const userProfileQuery = trpc.getUserProfile.useQuery(undefined, { enabled: !!session?.user });
-  const categoriesQuery = trpc.listCategories.useQuery(undefined, { enabled: !!session?.user });
+  const envelopesQuery = trpc.listPools.useQuery(undefined, { enabled: !!session?.user });
   const tenantsQuery = trpc.listUserTenants.useQuery(undefined, { enabled: !!session?.user });
   const { status: subStatus, isLoading: isSubLoading } = useSubscriptionStatus();
 
@@ -121,7 +121,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     clearGlobalError();
     try {
       await Promise.all([
-        categoriesQuery.refetch(),
+        envelopesQuery.refetch(),
         tenantsQuery.refetch(),
         userPrefQuery.refetch(),
         userProfileQuery.refetch(),
@@ -133,11 +133,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       setIsRetrying(false);
       setCooldownSeconds(3); // 3s anti-spam throttle
     }
-  }, [cooldownSeconds, isRetrying, clearGlobalError, categoriesQuery, tenantsQuery, userPrefQuery, userProfileQuery, utils]);
+  }, [cooldownSeconds, isRetrying, clearGlobalError, envelopesQuery, tenantsQuery, userPrefQuery, userProfileQuery, utils]);
 
-  const isInitialLoading = (!categoriesQuery.data || !tenantsQuery.data) && (categoriesQuery.isLoading || tenantsQuery.isLoading || userPrefQuery.isLoading);
+  const isInitialLoading = (!envelopesQuery.data || !tenantsQuery.data) && (envelopesQuery.isLoading || tenantsQuery.isLoading || userPrefQuery.isLoading);
   const isQueryFetching = isRetrying;
-  const isQueryError = (isGlobalError || categoriesQuery.isError || tenantsQuery.isError || userPrefQuery.isError) && !categoriesQuery.data && !tenantsQuery.data;
+  const isQueryError = (isGlobalError || envelopesQuery.isError || tenantsQuery.isError || userPrefQuery.isError) && !envelopesQuery.data && !tenantsQuery.data;
 
 
   // Unified Keyboard Shortcuts Hook
@@ -394,7 +394,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                         Technical details
                       </summary>
                       <div className="mt-2 p-2.5 bg-zinc-100 dark:bg-zinc-800 rounded-lg font-mono break-all text-[10px]">
-                        {lastErrorMessage || (categoriesQuery.error || tenantsQuery.error || userPrefQuery.error)?.message || "Network unreachable / timeout"}
+                        {lastErrorMessage || (envelopesQuery.error || tenantsQuery.error || userPrefQuery.error)?.message || "Network unreachable / timeout"}
                       </div>
                     </details>
                   </div>

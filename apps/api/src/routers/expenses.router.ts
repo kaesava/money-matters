@@ -1,38 +1,34 @@
 import { privateTenantProcedure, requiresWriteAccess } from '../trpc/trpc.js';
-import { categories, expenseEvents, pools } from "@money-matters/db";
-import { and, eq, sql } from "drizzle-orm";
+import { envelopes, expenseEvents } from "@money-matters/db";
+import { and, eq, sql, inArray } from "drizzle-orm";
 import { recordExpenseCommand } from "@money-matters/capability-transactions";
-import { CreateOneOffExpenseCommand } from "@money-matters/types";
+import { CreateOneOffExpenseCommand, RecordExpenseCommand } from "@money-matters/types";
 import { z } from 'zod';
 import { posthog } from '../lib/posthog.js';
-
-const getAestDateString = (d: Date = new Date()) => new Intl.DateTimeFormat('en-CA', { timeZone: 'Australia/Sydney' }).format(d);
 
 export const expensesRouter = {
   listBillSchedules: privateTenantProcedure
     .query(async ({ ctx }) => {
       return await ctx.db
         .select({
-          id: categories.id,
-          name: categories.name,
-          amount: sql<string>`COALESCE(${categories.enteredAmount}, ${categories.monthlyAmount}, '0.00')`,
-          poolId: categories.poolId,
-          poolName: pools.name,
-          categoryId: categories.id,
-          categoryName: categories.name,
-          rrule: categories.rrule,
-          startDate: categories.startDate,
-          endDate: categories.endDate,
+          id: envelopes.id,
+          name: envelopes.name,
+          amount: sql<string>`COALESCE(${envelopes.enteredAmount}, ${envelopes.monthlyAmount}, '0.00')`,
+          envelopeId: envelopes.id,
+          envelopeName: envelopes.name,
+          envelopeType: envelopes.envelopeType,
+          rrule: envelopes.rrule,
+          startDate: envelopes.startDate,
+          endDate: envelopes.endDate,
         })
-        .from(categories)
-        .innerJoin(pools, eq(categories.poolId, pools.id))
+        .from(envelopes)
         .where(
           and(
-            eq(categories.tenantId, ctx.tenantId!),
-            eq(categories.appId, ctx.appId!),
-            eq(pools.poolType, "REGULAR"),
-            sql`${categories.archivedAt} IS NULL`,
-            sql`${categories.rrule} IS NOT NULL`
+            eq(envelopes.tenantId, ctx.tenantId!),
+            eq(envelopes.appId, ctx.appId!),
+            inArray(envelopes.envelopeType, ["SCHEDULED_BILL", "FLEXIBLE_BILL"]),
+            sql`${envelopes.archivedAt} IS NULL`,
+            sql`${envelopes.rrule} IS NOT NULL`
           )
         );
     }),
@@ -42,28 +38,27 @@ export const expensesRouter = {
     .mutation(async ({ input, ctx }) => {
       requiresWriteAccess(ctx);
 
-      const [targetPool] = await ctx.db
-        .select({ id: pools.id })
-        .from(pools)
+      const [targetEnvelope] = await ctx.db
+        .select({ id: envelopes.id })
+        .from(envelopes)
         .where(
           and(
-            eq(pools.id, input.poolId),
-            eq(pools.tenantId, ctx.tenantId!),
-            eq(pools.appId, ctx.appId!),
-            sql`${pools.archivedAt} IS NULL`
+            eq(envelopes.id, input.envelopeId),
+            eq(envelopes.tenantId, ctx.tenantId!),
+            eq(envelopes.appId, ctx.appId!),
+            sql`${envelopes.archivedAt} IS NULL`
           )
         )
         .limit(1);
 
-      if (!targetPool) {
-        throw new Error("Target pool not found or access unauthorized.");
+      if (!targetEnvelope) {
+        throw new Error("Target envelope not found or access unauthorized.");
       }
 
       const [insertedEvent] = await ctx.db
         .insert(expenseEvents)
         .values({
-          poolId: input.poolId,
-          categoryId: input.categoryId || null,
+          envelopeId: input.envelopeId,
           name: input.name,
           expectedDate: input.expectedDate,
           expectedAmount: input.amount,
@@ -83,8 +78,7 @@ export const expensesRouter = {
           event: 'one_off_expense_created',
           properties: {
             tenant_id: ctx.tenantId,
-            pool_id: input.poolId,
-            category_id: input.categoryId,
+            envelope_id: input.envelopeId,
             amount: input.amount,
           },
         });
@@ -95,27 +89,11 @@ export const expensesRouter = {
     }),
 
   recordExpense: privateTenantProcedure
-    .input(
-      z.object({
-        poolId: z.string().uuid(),
-        categoryId: z.string().uuid().optional(),
-        amount: z.string().regex(/^\d+(\.\d{1,2})?$/),
-        note: z.string().optional(),
-        date: z.string().optional(),
-      }).strict()
-    )
+    .input(RecordExpenseCommand)
     .mutation(async ({ input, ctx }) => {
       requiresWriteAccess(ctx);
       const result = await recordExpenseCommand(
-        {
-          poolId: input.poolId,
-          categoryId: input.categoryId,
-          flowType: "DEBIT",
-          amount: input.amount,
-          source: "MANUAL",
-          note: input.note,
-          date: input.date,
-        },
+        input,
         ctx.tenantId!,
         ctx.appId!,
         ctx.userId!,
@@ -128,8 +106,7 @@ export const expensesRouter = {
           event: 'expense_recorded',
           properties: {
             tenant_id: ctx.tenantId,
-            pool_id: input.poolId,
-            category_id: input.categoryId,
+            envelope_id: input.envelopeId,
             amount: input.amount,
           },
         });
@@ -148,15 +125,12 @@ export const expensesRouter = {
           expectedAmount: expenseEvents.expectedAmount,
           expectedDate: expenseEvents.expectedDate,
           status: expenseEvents.status,
-          poolId: expenseEvents.poolId,
-          poolName: pools.name,
-          categoryId: expenseEvents.categoryId,
-          categoryName: categories.name,
+          envelopeId: expenseEvents.envelopeId,
+          envelopeName: envelopes.name,
           isScheduled: expenseEvents.isScheduled,
         })
         .from(expenseEvents)
-        .leftJoin(pools, eq(expenseEvents.poolId, pools.id))
-        .leftJoin(categories, eq(expenseEvents.categoryId, categories.id))
+        .leftJoin(envelopes, eq(expenseEvents.envelopeId, envelopes.id))
         .where(
           and(
             eq(expenseEvents.tenantId, ctx.tenantId!),
@@ -167,27 +141,6 @@ export const expensesRouter = {
     }),
 
   deleteExpenseEvent: privateTenantProcedure
-    .input(
-      z.object({
-        eventId: z.string().uuid(),
-      }).strict()
-    )
-    .mutation(async ({ input, ctx }) => {
-      requiresWriteAccess(ctx);
-      await ctx.db
-        .update(expenseEvents)
-        .set({ archivedAt: new Date(), updatedBy: ctx.userId!, updatedAt: new Date() })
-        .where(
-          and(
-            eq(expenseEvents.id, input.eventId),
-            eq(expenseEvents.tenantId, ctx.tenantId!),
-            eq(expenseEvents.appId, ctx.appId!)
-          )
-        );
-      return { success: true };
-    }),
-
-  skipExpenseEvent: privateTenantProcedure
     .input(
       z.object({
         eventId: z.string().uuid(),
@@ -247,14 +200,13 @@ export const expensesRouter = {
         })
         .where(eq(expenseEvents.id, input.eventId));
 
-      if (evt.poolId) {
+      if (evt.envelopeId) {
         const cleanUserNote = input.note?.trim();
         const transactionNote = cleanUserNote || evt.name;
 
         await recordExpenseCommand(
           {
-            poolId: evt.poolId,
-            categoryId: evt.categoryId || undefined,
+            envelopeId: evt.envelopeId,
             flowType: "DEBIT",
             amount: paidAmount,
             source: "MANUAL",
