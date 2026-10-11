@@ -174,12 +174,12 @@ When an incoming paycheck (or ad-hoc deposit) is processed, the engine executes 
     - Allocates the cycle pro-rata contribution ($1/26$ fortnightly, $1/52$ weekly, $1/12$ monthly) every single paycycle continuously without artificial completion capping or halting allocations after month 1.
     - Dashboard displays balance accumulated and recurring pace (e.g. `$2,500 accumulated · $250/mo recurring`) rather than a static 100% completion bar.
   - **Target-Date Goals (`TARGET_DATE`)**:
-    - Sorted chronologically by `targetDate` ASC (most urgent deadlines first).
-    - *Imminent Horizon* ($\text{targetDate} \le \text{nextPaydayCutoff}$): The goal deadline arrives before the next paycheck. The full remaining gap must be funded immediately:
+    - Sorted chronologically by `endDate` ASC (most urgent deadlines first).
+    - *Imminent Horizon* ($\text{endDate} \le \text{nextPaydayCutoff}$): The goal deadline arrives before the next paycheck. The full remaining gap must be funded immediately:
       $$\text{Shortfall} = \max(0, \text{targetAmount} - \text{currentBalance})$$
       $$\text{Allocated} = \min(\text{remainingNetPay}, \text{Shortfall})$$
-    - *Future Horizon* ($\text{targetDate} > \text{nextPaydayCutoff}$): The deadline is in the future. The gap is smoothly paced across remaining paychecks:
-      $$\text{Remaining Paychecks} = \max\left(1, \left\lfloor \frac{\text{targetDate} - \text{paydayDate}}{\text{payCycleDays}} \right\rfloor\right)$$
+    - *Future Horizon* ($\text{endDate} > \text{nextPaydayCutoff}$): The deadline is in the future. The gap is smoothly paced across remaining paychecks:
+      $$\text{Remaining Paychecks} = \max\left(1, \left\lfloor \frac{\text{endDate} - \text{paydayDate}}{\text{payCycleDays}} \right\rfloor\right)$$
       $$\text{Paced Need} = \frac{\max(0, \text{targetAmount} - \text{currentBalance})}{\text{Remaining Paychecks}}$$
       $$\text{Allocated} = \min(\text{remainingNetPay}, \text{Paced Need})$$
 

@@ -81,7 +81,7 @@ money-matters/
   - `sendWelcomeEmail`: Listens to `auth/user.signup`, sending a welcome transactional email via Resend (`sendEmail` abstraction).
   - `sendPartnerInviteEmail`: Listens to `partner/invited`, delivering partner invitation links (`https://moneymatters.kaesava.au/invite/[token]`) via Resend with 3 automatic retries.
   - `processAccountDeletion`: Listens to `user/account.delete-requested`, executing background account wipe logging, storage cleanup, and email confirmation dispatch.
-- **Complete Database RLS**: Row-Level Security policies active across 100% of persistent schema tables (`tenants`, `tenant_users`, `bank_accounts`, `envelopes`, `income_sources`, `income_events`, `allocation_plans`, `allocation_plan_lines`, `transaction_ledger`, `user_preferences`, `tenant_user_preferences`, `expense_sources`, `expense_events`, `transfer_sources`, `transfer_events`, `device_tokens`, `billing_invoices`).
+- **Complete Database RLS**: Row-Level Security policies active across 100% of persistent schema tables (`tenants`, `tenant_users`, `bank_accounts`, `envelopes`, `income_sources`, `income_events`, `allocation_plans`, `allocation_plan_lines`, `transaction_ledger`, `user_preferences`, `tenant_user_preferences`, `expense_sources`, `expense_events`, `transfer_events`, `device_tokens`, `billing_invoices`).
 - **Global User Preferences**: `user_preferences` table (1:1 per userId) stores global UI and presentation preferences: `language` (`en`, `ja`), `locale` (`auto`, `en-AU`, `en-US`, `en-GB`, `en-CA`, `ja-JP`), presentation `timezone`, `theme`, and `showIcons` (boolean, default `true`). Toggling "Show information icons" centrally controls `(i)` tooltip icon visibility across all screens, modals, confirmation dialogs, and drawers on both Web and Mobile across all tenants.
 - **Tenant Setup & Household State**: `tenants` stores household-level budget configuration lifecycle via `setup_status` (`PENDING` | `COMPLETED`) and `setup_completed_at` (timestamp). Setup completion is a household property: once established by any member, secondary invited partners immediately enter active household dashboard views rather than blank onboarding flows.
 - **Tenant User Preferences**: `tenant_user_preferences` (scoped to userId, tenantId, appId) stores per-user household delivery and engagement preferences (e.g. `payday_alerts_enabled`, `shortfall_alerts_enabled`, `bill_reminders_enabled`, `weekly_digest_enabled`).
@@ -102,8 +102,7 @@ tenants (id PK, appId FK→apps.id, name, subscriptionTier, stripeCustomerId, st
   │
   ├── tenant_users (tenantId FK→tenants.id, userId FK→users.id, role: OWNER|MEMBER|VIEWER)
   ├── bank_accounts (name, accountType, institution, accountNumberLast4, currentBalance, isPrivate, userId, isOffset, targetReserveAmount)
-  │   └── pools (bankAccountId, name, poolType: EVERYDAY|REGULAR|GOAL|IRREGULAR, isSurplusTarget, targetBalance)
-  │       ├── categories (poolId, name, isEssential, monthlyAmount, enteredAmount, budgetFrequency, icon)
+  │   └── envelopes (bankAccountId, name, envelopeType, safetyBufferFloor, monthlyAmount, enteredAmount, budgetFrequency, startDate, endDate, rrule, goalMode, targetAmount, isEssential, isCommitted, isSurplusTarget, isPrivate, userId, orderIndex)
   │       └── transaction_ledger (poolId, categoryId, bankAccountId, planLineId, flowType: DEBIT|CREDIT, transactionType, amount, note, source, recordedAt, idempotencyKey, transferGroupId)
   ├── user_preferences (userId, theme, locale, showIcons)
   ├── tenant_user_preferences (tenantId, userId, appId, appPreferences: JSONB)
@@ -113,8 +112,7 @@ tenants (id PK, appId FK→apps.id, name, subscriptionTier, stripeCustomerId, st
   │           └── allocation_plan_lines (planId, poolId, amount, ruleApplied)
   ├── expense_sources (name, amount, isRecurring, frequency, interval, startDate, endDate, rrule, categoryId, targetPoolId)
   │   └── expense_events (expenseSourceId, expectedDate, expectedAmount, actualAmount, status: PENDING|PAID|SKIPPED, paidDate)
-  ├── transfer_sources (name, amount, sourcePoolId, destinationPoolId, frequency, interval, startDate)
-  │   └── transfer_events (transferSourceId, expectedDate, expectedAmount, status: PENDING|COMPLETED|SKIPPED)
+  ├── transfer_events (sourceEnvelopeId, destinationEnvelopeId, name, expectedDate, expectedAmount, actualAmount, status: PENDING|CONFIRMED)
   ├── device_tokens (userId, token, platform, lastSeenAt)
   ├── early_access (email, ipAddress, userAgent, status)
   ├── processed_webhooks (eventId, eventType, processedAt)
