@@ -25,7 +25,7 @@ import {
 import {
   MobileReconciliationModal,
   MobileReconciliationModalProps,
-} from '../categories/MobileReconciliationModal';
+} from '../envelopes/MobileReconciliationModal';
 import { BankAccountCard } from '../bank-accounts/BankAccountCard';
 import {
   LinkedPoolsModalSheet,

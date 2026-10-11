@@ -12,7 +12,7 @@ import { IncomeSourceItem } from '../../../components/paychecks/IncomeSourceCard
 import { ExpenseSourceItem } from '../../../components/paychecks/ExpenseBillCard';
 import { PaychecksModalManager } from '../../../components/paychecks/PaychecksModalManager';
 
-import { CategoryFormModal, CategoryItem as PoolToEdit } from '../../../components/CategoryFormModal';
+import { EnvelopeFormModal, EnvelopeItem as PoolToEdit } from '../../../components/EnvelopeFormModal';
 import { QuickExpenseModal, QuickActionType } from '../../../components/QuickExpenseModal';
 
 export default function RecurringSchedulesScreen() {
@@ -163,9 +163,9 @@ export default function RecurringSchedulesScreen() {
         />
       </ScrollView>
 
-      <CategoryFormModal
+      <EnvelopeFormModal
         visible={categoryModalVisible}
-        categoryToEdit={poolToEdit}
+        envelopeToEdit={poolToEdit}
         onClose={() => setCategoryModalVisible(false)}
         onSuccess={() => {
           setCategoryModalVisible(false);

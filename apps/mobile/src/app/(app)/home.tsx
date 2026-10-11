@@ -21,7 +21,7 @@ import { MobileAffordCheckModal } from '../../components/afford-check/MobileAffo
 import {
   MobileReconciliationModal,
   MobileReconciliationModalProps,
-} from '../../components/categories/MobileReconciliationModal';
+} from '../../components/envelopes/MobileReconciliationModal';
 import { useHomeData } from '../../components/dashboard/useHomeData';
 
 export default function HomeScreen() {
@@ -143,13 +143,13 @@ export default function HomeScreen() {
           onEverydayPress={() =>
             everydayPool
               ? router.push(`/(app)/envelopes/${everydayPool.id}` as never)
-              : router.push('/(app)/categories')
+              : router.push('/(app)/envelopes')
           }
           onAlignEverydayBalance={handleOpenEverydayReconciliation}
           onBillsPress={() =>
             billsPool
               ? router.push(`/(app)/envelopes/${billsPool.id}` as never)
-              : router.push('/(app)/categories')
+              : router.push('/(app)/envelopes')
           }
         />
 

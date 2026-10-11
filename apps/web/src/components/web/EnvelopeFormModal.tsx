@@ -4,11 +4,21 @@ import React, { useState, useEffect, useMemo } from "react";
 import { useToast, ConfirmDialog, ModalDialog, Button, FormErrorBanner } from "@money-matters/ui/web";
 import { t } from "@money-matters/i18n";
 import { trpc } from "../../lib/trpc";
-import { CategoryFormFields } from "./CategoryFormFields";
+import { EnvelopeFormFields } from "./EnvelopeFormFields";
 
-interface CategoryFormModalProps {
+export interface EnvelopeFormModalProps {
   isOpen: boolean;
   onClose: () => void;
+  envelopeToEdit?: {
+    id: string; poolId?: string; name: string;
+    type?: "EVERYDAY" | "REGULAR" | "GOAL" | string; poolType?: "EVERYDAY" | "REGULAR" | "GOAL" | string;
+    bankAccountId?: string | null; isPrivate?: boolean | null; monthlyAmount?: string | null;
+    safetyBufferFloor?: string | null;
+    targetAmount?: string | null; endDate?: string | null; targetDate?: string | null; goalMode?: "TARGET_DATE" | "ONGOING" | null;
+    enteredAmount?: string | null; budgetFrequency?: "WEEKLY" | "FORTNIGHTLY" | "MONTHLY" | "ANNUALLY" | null;
+    startDate?: string | null; rrule?: string | null;
+    isSurplusTarget?: boolean | null;
+  } | null;
   categoryToEdit?: {
     id: string; poolId?: string; name: string;
     type?: "EVERYDAY" | "REGULAR" | "GOAL" | string; poolType?: "EVERYDAY" | "REGULAR" | "GOAL" | string;
@@ -22,12 +32,16 @@ interface CategoryFormModalProps {
   onSuccess?: () => void;
 }
 
-export function CategoryFormModal({
+export type CategoryFormModalProps = EnvelopeFormModalProps;
+
+export function EnvelopeFormModal({
   isOpen,
   onClose,
-  categoryToEdit,
+  envelopeToEdit,
+  categoryToEdit: legacyCategoryToEdit,
   onSuccess,
-}: CategoryFormModalProps) {
+}: EnvelopeFormModalProps) {
+  const categoryToEdit = envelopeToEdit ?? legacyCategoryToEdit;
   const toast = useToast();
   const utils = trpc.useUtils();
 
@@ -257,7 +271,7 @@ export function CategoryFormModal({
       <form onSubmit={handleSubmit} className="space-y-4 text-xs font-medium text-zinc-700">
         <FormErrorBanner message={errorMsg} />
 
-        <CategoryFormFields
+        <EnvelopeFormFields
           name={name}
           setName={setName}
           type={type}
@@ -335,3 +349,5 @@ export function CategoryFormModal({
     </ModalDialog>
   );
 }
+
+export const CategoryFormModal = EnvelopeFormModal;

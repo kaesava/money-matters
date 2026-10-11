@@ -32,7 +32,6 @@ export * from './Spinner';
 export * from './Logo';
 export * from './InfoTooltip';
 export * from './SearchInput';
-export * from './SearchableCategorySelect';
 export * from './ListViewToolbar';
 export * from './StatCard';
 export * from '../hooks/IconVisibilityContext';

@@ -12,7 +12,7 @@ import {
 } from '@money-matters/ui/mobile';
 import { t } from '@money-matters/i18n';
 
-interface CategoryFormFieldsProps {
+export interface EnvelopeFormFieldsProps {
   name: string;
   setName: (v: string) => void;
   nameError: string;
@@ -46,7 +46,9 @@ interface CategoryFormFieldsProps {
   bankOptions: Array<{ key: string; label: string }>;
 }
 
-export const CategoryFormFields: React.FC<CategoryFormFieldsProps> = ({
+export type CategoryFormFieldsProps = EnvelopeFormFieldsProps;
+
+export const EnvelopeFormFields: React.FC<EnvelopeFormFieldsProps> = ({
   name,
   setName,
   nameError,
@@ -394,3 +396,6 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
 });
+
+export const CategoryFormFields = EnvelopeFormFields;
+

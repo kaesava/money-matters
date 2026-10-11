@@ -3,7 +3,7 @@
 import React, { useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { computeMatrixProjection, MatrixIncomeEvent, ScheduledExpenseEvent, EngineBucket } from "@money-matters/capability-budgeting/engine";
-import { SlideOverCategoryDrawer, CategoryScheduledEvent } from "./SlideOverCategoryDrawer";
+import { EnvelopeDetailDrawer, CategoryScheduledEvent } from "./EnvelopeDetailDrawer";
 import { t } from "@money-matters/i18n";
 import { trpc } from "../../../../lib/trpc";
 import { useToast, InfoTooltip, ConfirmDialog } from "@money-matters/ui/web";
@@ -544,8 +544,8 @@ export function MatrixPlanTab({
         </table>
       </div>
 
-      {/* Contextual Category Slide-Over Drawer */}
-      <SlideOverCategoryDrawer
+      {/* Contextual Envelope Slide-Over Drawer */}
+      <EnvelopeDetailDrawer
         isOpen={!!activeCategoryForDrawer}
         onClose={() => setActiveCategoryForDrawer(null)}
         categoryName={activeCategoryForDrawer?.name || ""}

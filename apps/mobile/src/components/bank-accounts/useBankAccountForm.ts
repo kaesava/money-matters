@@ -3,7 +3,7 @@ import { trpc } from '../../lib/trpc';
 import { useMobileToast, showMobileConfirm } from '@money-matters/ui/mobile';
 import { t } from '@money-matters/i18n';
 import type { BankAccountItemToEdit, SupportedBankProvider } from './bankAccountTypes';
-import type { MobileReconciliationModalProps } from '../categories/MobileReconciliationModal';
+import type { MobileReconciliationModalProps } from '../envelopes/MobileReconciliationModal';
 
 export function useBankAccountForm(
   visible: boolean,

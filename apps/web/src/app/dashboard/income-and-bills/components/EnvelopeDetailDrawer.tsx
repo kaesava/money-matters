@@ -16,7 +16,7 @@ export interface CategoryScheduledEvent {
   isPaid?: boolean;
 }
 
-interface SlideOverCategoryDrawerProps {
+export interface EnvelopeDetailDrawerProps {
   isOpen: boolean;
   onClose: () => void;
   categoryName: string;
@@ -26,7 +26,9 @@ interface SlideOverCategoryDrawerProps {
   onEditPool?: (pool: CategorySummaryItem) => void;
 }
 
-export function SlideOverCategoryDrawer({
+export type SlideOverCategoryDrawerProps = EnvelopeDetailDrawerProps;
+
+export function EnvelopeDetailDrawer({
   isOpen,
   onClose,
   categoryName,
@@ -34,7 +36,7 @@ export function SlideOverCategoryDrawer({
   events,
   onMarkPaid,
   onEditPool,
-}: SlideOverCategoryDrawerProps) {
+}: EnvelopeDetailDrawerProps) {
   const { fmtDate } = useLocale();
   const [activeTab, setActiveTab] = useState<"expenses" | "activity">("expenses");
 
@@ -379,3 +381,5 @@ export function SlideOverCategoryDrawer({
     </div>
   );
 }
+
+export const SlideOverCategoryDrawer = EnvelopeDetailDrawer;

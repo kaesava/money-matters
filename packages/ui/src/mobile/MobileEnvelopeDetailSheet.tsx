@@ -6,13 +6,15 @@ import { MobileModalDialog } from './MobileModalDialog';
 import { SegmentedTabs } from './SegmentedTabs';
 import { t } from '@money-matters/i18n';
 
-export interface MobileCategoryDetailItem {
+export interface MobileEnvelopeDetailItem {
   id: string;
   name: string;
   amount: number | string;
   dueDate?: string;
   status?: string;
 }
+
+export type MobileCategoryDetailItem = MobileEnvelopeDetailItem;
 
 export interface MobileActivityItem {
   id: string;
@@ -22,7 +24,7 @@ export interface MobileActivityItem {
   type?: 'DEBIT' | 'CREDIT';
 }
 
-export interface MobileCategoryDetailSheetProps {
+export interface MobileEnvelopeDetailSheetProps {
   visible: boolean;
   poolId?: string | null;
   poolName: string;
@@ -30,18 +32,20 @@ export interface MobileCategoryDetailSheetProps {
   currentBalance?: number | string | null;
   targetAmount?: number | string | null;
   targetDate?: string | null;
-  upcomingEvents?: MobileCategoryDetailItem[];
+  upcomingEvents?: MobileEnvelopeDetailItem[];
   activities?: MobileActivityItem[];
   onClose: () => void;
   onMarkPaid?: (eventId: string, amount: string, date: string) => void;
 }
+
+export type MobileCategoryDetailSheetProps = MobileEnvelopeDetailSheetProps;
 
 function fmtMoney(val: number | string | undefined | null): string {
   const num = typeof val === 'number' ? val : parseFloat(String(val || '0'));
   return `$${num.toLocaleString('en-AU', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
-export function MobileCategoryDetailSheet({
+export function MobileEnvelopeDetailSheet({
   visible,
   poolName,
   poolType,

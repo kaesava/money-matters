@@ -149,7 +149,7 @@ export default function TransactionsScreen() {
             pools={pools}
             bankAccounts={bankAccounts}
             onExportCsv={() => exportLedgerCsv(sortedTransactions)}
-            onNavigateToPool={(pId) => router.push(`/(app)/categories?poolId=${pId}` as never)}
+            onNavigateToPool={(pId) => router.push(`/(app)/envelopes?poolId=${pId}` as never)}
           />
         ) : (
           <IncomeSplitsTab

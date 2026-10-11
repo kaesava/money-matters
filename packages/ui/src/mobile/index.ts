@@ -109,12 +109,17 @@ export type { TypedConfirmDialogProps, TypedConfirmDialogProps as MobileTypedCon
 export { GoalDelayCard } from './GoalDelayCard';
 export type { GoalDelayCardProps } from './GoalDelayCard';
 
-export { MobileCategoryDetailSheet } from './MobileCategoryDetailSheet';
+export {
+  MobileEnvelopeDetailSheet,
+  MobileEnvelopeDetailSheet as MobileCategoryDetailSheet,
+} from './MobileEnvelopeDetailSheet';
 export type {
-  MobileCategoryDetailSheetProps,
-  MobileCategoryDetailItem,
+  MobileEnvelopeDetailSheetProps,
+  MobileEnvelopeDetailSheetProps as MobileCategoryDetailSheetProps,
+  MobileEnvelopeDetailItem,
+  MobileEnvelopeDetailItem as MobileCategoryDetailItem,
   MobileActivityItem,
-} from './MobileCategoryDetailSheet';
+} from './MobileEnvelopeDetailSheet';
 
 export { MobileMatrixFilterBar } from './MobileMatrixFilterBar';
 export type { MobileMatrixFilterBarProps } from './MobileMatrixFilterBar';

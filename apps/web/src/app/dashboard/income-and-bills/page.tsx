@@ -8,7 +8,7 @@ import { t } from "@money-matters/i18n";
 import { Spinner, SearchInput, Tabs } from "@money-matters/ui/web";
 import { IncomeFormModal, IncomeSourceToEdit } from "../../../components/web/IncomeFormModal";
 import { QuickExpenseDrawer } from "../../../components/web/QuickExpenseDrawer";
-import { CategoryFormModal } from "../../../components/web/CategoryFormModal";
+import { EnvelopeFormModal } from "../../../components/web/EnvelopeFormModal";
 import { IncomeSchedulesCard } from "./components/IncomeSchedulesCard";
 import { BillSchedulesCard } from "./components/BillSchedulesCard";
 import { TimelineTabWrapper } from "./components/TimelineTabWrapper";
@@ -233,10 +233,10 @@ function IncomeAndBillsContent() {
       )}
 
       {isEnvelopeModalOpen && (
-        <CategoryFormModal
+        <EnvelopeFormModal
           isOpen={isEnvelopeModalOpen}
           onClose={() => { setIsEnvelopeModalOpen(false); setEnvelopeToEdit(null); }}
-          categoryToEdit={envelopeToEdit}
+          envelopeToEdit={envelopeToEdit}
           onSuccess={() => {
             utils.listBillSchedules.invalidate();
             utils.listPools.invalidate();

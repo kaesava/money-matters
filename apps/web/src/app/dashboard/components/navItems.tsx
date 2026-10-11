@@ -26,7 +26,7 @@ export const NAV_ITEMS: readonly NavItem[] = [
     ),
   },
   {
-    key: "categories",
+    key: "envelopes",
     label: () => t("nav.categories"),
     href: "/dashboard/envelopes",
     icon: (active: boolean) => (

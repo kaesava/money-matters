@@ -68,7 +68,7 @@ export function AppScreenWrapper({
         showBack={showBack}
         onBackPress={onBackPress || (() => router.back())}
         onNavigateHome={onNavigateHome || (() => router.push('/(app)/home' as never))}
-        onNavigateCategories={onNavigateCategories || (() => router.push('/(app)/categories' as never))}
+        onNavigateCategories={onNavigateCategories || (() => router.push('/(app)/envelopes' as never))}
         onNavigateSettings={onNavigateSettings || (() => router.push('/(app)/settings' as never))}
         onNavigateBankAccounts={onNavigateBankAccounts || (() => router.push('/(app)/settings/bank-accounts' as never))}
         onNavigateHistory={onNavigateHistory || (() => router.push('/(app)/transactions' as never))}

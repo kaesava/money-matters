@@ -13,10 +13,10 @@ import { AppScreenWrapper } from '../../components/AppScreenWrapper';
 import { t } from '@money-matters/i18n';
 import { trpc } from '../../lib/trpc';
 import { authClient } from '../../lib/auth';
-import { CategoryFormModal } from '../../components/CategoryFormModal';
+import { EnvelopeFormModal } from '../../components/EnvelopeFormModal';
 import { QuickExpenseModal } from '../../components/QuickExpenseModal';
-import { PoolOverflowMenuModal } from '../../components/categories/PoolOverflowMenuModal';
-import { PoolGroupSection } from '../../components/categories/PoolGroupSection';
+import { PoolOverflowMenuModal } from '../../components/envelopes/PoolOverflowMenuModal';
+import { PoolGroupSection } from '../../components/envelopes/PoolGroupSection';
 
 export type PoolSortField = 'name' | 'currentBalance' | 'targetAmount';
 export type PoolTypeFilter = 'ALL' | 'EVERYDAY' | 'REGULAR' | 'GOAL';
@@ -238,7 +238,7 @@ export default function PoolsScreen() {
         }}
       />
 
-      <CategoryFormModal
+      <EnvelopeFormModal
         visible={poolModalVisible}
         defaultType={defaultPoolType}
         onClose={() => setPoolModalVisible(false)}

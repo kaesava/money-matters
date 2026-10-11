@@ -3,7 +3,7 @@ import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { DESIGN_TOKENS, MobileButton } from '@money-matters/ui/mobile';
 import { t } from '@money-matters/i18n';
 
-interface CategoryFormFooterProps {
+export interface EnvelopeFormFooterProps {
   isEdit: boolean;
   isPending: boolean;
   isValid: boolean;
@@ -12,7 +12,9 @@ interface CategoryFormFooterProps {
   onSubmit: () => void;
 }
 
-export const CategoryFormFooter: React.FC<CategoryFormFooterProps> = ({
+export type CategoryFormFooterProps = EnvelopeFormFooterProps;
+
+export const EnvelopeFormFooter: React.FC<EnvelopeFormFooterProps> = ({
   isEdit,
   isPending,
   isValid,
@@ -73,3 +75,6 @@ const styles = StyleSheet.create({
     maxWidth: 200,
   },
 });
+
+export const CategoryFormFooter = EnvelopeFormFooter;
+

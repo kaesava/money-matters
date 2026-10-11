@@ -7,10 +7,10 @@ import {
 import { t } from '@money-matters/i18n';
 import { trpc } from '../lib/trpc';
 import { formatIsoDate } from '../lib/format';
-import { CategoryFormFields } from './categories/form/CategoryFormFields';
-import { CategoryFormFooter } from './categories/form/CategoryFormFooter';
+import { EnvelopeFormFields } from './envelopes/form/EnvelopeFormFields';
+import { EnvelopeFormFooter } from './envelopes/form/EnvelopeFormFooter';
 
-export interface CategoryItem {
+export interface EnvelopeItem {
   id: string;
   name: string;
   type: 'GOAL' | 'REGULAR' | 'EVERYDAY' | string;
@@ -33,15 +33,28 @@ export interface CategoryItem {
   isSurplusTarget?: boolean | null;
 }
 
-interface CategoryFormModalProps {
+export type CategoryItem = EnvelopeItem;
+
+export interface EnvelopeFormModalProps {
   visible: boolean;
-  categoryToEdit?: CategoryItem | null;
+  envelopeToEdit?: EnvelopeItem | null;
+  categoryToEdit?: EnvelopeItem | null;
   defaultType?: 'GOAL' | 'REGULAR' | 'EVERYDAY';
   onClose: () => void;
   onSuccess?: () => void;
 }
 
-export function CategoryFormModal({ visible, categoryToEdit, defaultType, onClose, onSuccess }: CategoryFormModalProps) {
+export type CategoryFormModalProps = EnvelopeFormModalProps;
+
+export function EnvelopeFormModal({
+  visible,
+  envelopeToEdit,
+  categoryToEdit: legacyCategoryToEdit,
+  defaultType,
+  onClose,
+  onSuccess,
+}: EnvelopeFormModalProps) {
+  const categoryToEdit = envelopeToEdit ?? legacyCategoryToEdit;
   const toast = useMobileToast();
   const utils = trpc.useUtils();
 
@@ -328,7 +341,7 @@ export function CategoryFormModal({ visible, categoryToEdit, defaultType, onClos
       isDirty={isDirty}
       title={isEdit ? t('categories.editPoolTitle', { name: categoryToEdit?.name || '' }) : t('categories.createPool')}
       footer={
-        <CategoryFormFooter
+        <EnvelopeFormFooter
           isEdit={isEdit}
           isPending={isPending}
           isValid={isValid}
@@ -338,7 +351,7 @@ export function CategoryFormModal({ visible, categoryToEdit, defaultType, onClos
         />
       }
     >
-      <CategoryFormFields
+      <EnvelopeFormFields
         name={name}
         setName={setName}
         nameError={nameError}
@@ -374,3 +387,5 @@ export function CategoryFormModal({ visible, categoryToEdit, defaultType, onClos
     </MobileModalDialog>
   );
 }
+
+export const CategoryFormModal = EnvelopeFormModal;

@@ -1,6 +1,6 @@
 export type EnvelopeType = "EVERYDAY" | "SCHEDULED_BILL" | "FLEXIBLE_BILL" | "TARGET_GOAL" | "ONGOING_GOAL";
 
-export interface CategorySummaryItem {
+export interface EnvelopeSummaryItem {
   id: string;
   name: string;
   type?: "REGULAR" | "GOAL" | "EVERYDAY" | EnvelopeType;
@@ -21,6 +21,8 @@ export interface CategorySummaryItem {
   userId?: string | null;
   progressPercentage?: number;
 }
+
+export type CategorySummaryItem = EnvelopeSummaryItem;
 
 export interface CategoryItem {
   id: string;

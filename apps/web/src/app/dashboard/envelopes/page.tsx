@@ -7,11 +7,11 @@ import { t } from "@money-matters/i18n";
 
 import { trpc } from "../../../lib/trpc";
 import posthog from "../../../lib/posthog-client";
-import { QuickActionDrawer } from "../../../components/web/QuickExpenseDrawer";
-import { CategoryFormModal } from "../../../components/web/CategoryFormModal";
-import { CategorySummaryItem, PoolTableRow } from "./types";
+import { QuickExpenseDrawer as QuickActionDrawer } from "../../../components/web/QuickExpenseDrawer";
+import { EnvelopeFormModal } from "../../../components/web/EnvelopeFormModal";
+import { EnvelopeSummaryItem, PoolTableRow } from "./types";
 import { PoolsTable } from "./components/PoolsTable";
-import { SlideOverCategoryDrawer } from "../income-and-bills/components/SlideOverCategoryDrawer";
+import { EnvelopeDetailDrawer } from "../income-and-bills/components/EnvelopeDetailDrawer";
 import { useLocale } from "../../../providers/LocaleProvider";
 
 type PoolTypeFilter = "ALL" | "EVERYDAY" | "REGULAR" | "GOAL";
@@ -52,10 +52,10 @@ function PoolsPageContent() {
 
   // Modal & Drawer state
   const [isPoolModalOpen, setIsPoolModalOpen] = useState(false);
-  const [poolToEdit, setPoolToEdit] = useState<CategorySummaryItem | null>(null);
+  const [poolToEdit, setPoolToEdit] = useState<EnvelopeSummaryItem | null>(null);
   const [isMoveMoneyOpen, setIsMoveMoneyOpen] = useState(false);
   const [selectedPoolForDrawer, setSelectedPoolForDrawer] = useState<PoolTableRow | null>(null);
-  const [poolToArchive, setPoolToArchive] = useState<CategorySummaryItem | null>(null);
+  const [poolToArchive, setPoolToArchive] = useState<EnvelopeSummaryItem | null>(null);
 
   const archivePoolMut = trpc.archivePool.useMutation({
     onSuccess: () => {
@@ -196,7 +196,7 @@ function PoolsPageContent() {
         }
       }
 
-      const rawSummaryItem: CategorySummaryItem = {
+      const rawSummaryItem: EnvelopeSummaryItem = {
         id: p.id,
         name: p.name,
         envelopeType: p.envelopeType,
@@ -607,7 +607,7 @@ function PoolsPageContent() {
             showProjectionMatrix
               ? undefined
               : (pType) => {
-                  setPoolToEdit(pType ? ({ id: "", type: pType, poolType: pType, name: "", currentBalance: "0.00" } as CategorySummaryItem) : null);
+                  setPoolToEdit(pType ? ({ id: "", type: pType, poolType: pType, name: "", currentBalance: "0.00" } as EnvelopeSummaryItem) : null);
                   setIsPoolModalOpen(true);
                 }
           }
@@ -641,16 +641,16 @@ function PoolsPageContent() {
         />
       )}
 
-      {/* Create / Edit Pool Modal */}
-      <CategoryFormModal
+      {/* Create / Edit Envelope Modal */}
+      <EnvelopeFormModal
         isOpen={isPoolModalOpen}
         onClose={() => setIsPoolModalOpen(false)}
-        categoryToEdit={poolToEdit}
+        envelopeToEdit={poolToEdit}
         onSuccess={() => utils.listPools.invalidate()}
       />
 
-      {/* Category Side Drawer */}
-      <SlideOverCategoryDrawer
+      {/* Envelope Side Drawer */}
+      <EnvelopeDetailDrawer
         isOpen={Boolean(selectedPoolForDrawer)}
         categoryName={selectedPoolForDrawer?.name || ""}
         categoryId={selectedPoolForDrawer?.id}

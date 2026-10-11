@@ -2,7 +2,7 @@ import React from 'react';
 import { Input, GenericSelectField, DatePickerField, AmountField, InfoTooltip, GoalModeToggle } from '@money-matters/ui/web';
 import { t } from '@money-matters/i18n';
 
-export interface CategoryFormFieldsProps {
+export interface EnvelopeFormFieldsProps {
   name: string;
   setName: (val: string) => void;
   type: 'EVERYDAY' | 'REGULAR' | 'GOAL';
@@ -34,7 +34,9 @@ export interface CategoryFormFieldsProps {
   isSurplusDisabled: boolean;
 }
 
-export function CategoryFormFields({
+export type CategoryFormFieldsProps = EnvelopeFormFieldsProps;
+
+export function EnvelopeFormFields({
   name,
   setName,
   type,
@@ -293,3 +295,5 @@ export function CategoryFormFields({
     </>
   );
 }
+
+export const CategoryFormFields = EnvelopeFormFields;

@@ -9,8 +9,8 @@ import { IncomeSplitHeader } from "./IncomeSplitHeader";
 import { IncomeSplitCommandPanel } from "./IncomeSplitCommandPanel";
 import { IncomeSplitPoolTable } from "./IncomeSplitPoolTable";
 import { PaydayCelebrationCard } from "./PaydayCelebrationCard";
-import { SlideOverCategoryDrawer } from "../../income-and-bills/components/SlideOverCategoryDrawer";
-import { CategoryFormModal } from "../../../../components/web/CategoryFormModal";
+import { EnvelopeDetailDrawer } from "../../income-and-bills/components/EnvelopeDetailDrawer";
+import { EnvelopeFormModal } from "../../../../components/web/EnvelopeFormModal";
 import { useLocale } from "../../../../providers/LocaleProvider";
 import { ChevronDown } from "lucide-react";
 
@@ -67,7 +67,7 @@ export function IncomeSplitScreen({ incomeEventId, returnTo = "/dashboard" }: In
   const [isSavedPlan, setIsSavedPlan] = useState(false);
   const [isConfirmedPlan, setIsConfirmedPlan] = useState(false);
   const [activeDrawerPool, setActiveDrawerPool] = useState<{ id: string; name: string } | null>(null);
-  const [poolToEdit, setPoolToEdit] = useState<React.ComponentProps<typeof CategoryFormModal>["categoryToEdit"] | null>(null);
+  const [poolToEdit, setPoolToEdit] = useState<React.ComponentProps<typeof EnvelopeFormModal>["envelopeToEdit"] | null>(null);
   const [isPoolModalOpen, setIsPoolModalOpen] = useState(false);
   const [showTableDetails, setShowTableDetails] = useState(false);
 
@@ -471,8 +471,8 @@ export function IncomeSplitScreen({ incomeEventId, returnTo = "/dashboard" }: In
         </div>
       </div>
 
-      {/* Side-Over Category / Pool Drawer */}
-      <SlideOverCategoryDrawer
+      {/* Side-Over Envelope Drawer */}
+      <EnvelopeDetailDrawer
         isOpen={Boolean(activeDrawerPool)}
         categoryName={activeDrawerPool?.name || ""}
         categoryId={activeDrawerPool?.id}
@@ -483,11 +483,11 @@ export function IncomeSplitScreen({ incomeEventId, returnTo = "/dashboard" }: In
         }}
       />
 
-      {/* Edit Pool Modal */}
-      <CategoryFormModal
+      {/* Edit Envelope Modal */}
+      <EnvelopeFormModal
         isOpen={isPoolModalOpen}
         onClose={() => setIsPoolModalOpen(false)}
-        categoryToEdit={poolToEdit}
+        envelopeToEdit={poolToEdit}
         onSuccess={() => {
           poolsQuery.refetch();
           previewQuery.refetch();

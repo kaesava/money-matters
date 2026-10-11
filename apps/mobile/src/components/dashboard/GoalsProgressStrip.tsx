@@ -55,7 +55,7 @@ export function GoalsProgressStrip({ goals }: GoalsProgressStripProps) {
         </View>
 
         <TouchableOpacity
-          onPress={() => router.push('/(app)/categories' as never)}
+          onPress={() => router.push('/(app)/envelopes' as never)}
           style={styles.seeAllBtn}
           activeOpacity={0.7}
         >

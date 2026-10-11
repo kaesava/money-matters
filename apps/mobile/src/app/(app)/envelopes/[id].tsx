@@ -5,7 +5,7 @@ import { MobileScreenWrapper, showMobileConfirm, DESIGN_TOKENS } from '@money-ma
 import { t } from '@money-matters/i18n';
 import { trpc } from '../../../lib/trpc';
 import { authClient } from '../../../lib/auth';
-import { CategoryFormModal } from '../../../components/CategoryFormModal';
+import { EnvelopeFormModal } from '../../../components/EnvelopeFormModal';
 import { QuickExpenseModal } from '../../../components/QuickExpenseModal';
 import { MarkPaidModal, MarkPaidEvent } from '../../../components/MarkPaidModal';
 import { PoolSummaryCard } from '../../../components/pools/PoolSummaryCard';
@@ -103,7 +103,7 @@ export default function PoolDetailScreen() {
         />
       </ScrollView>
 
-      <CategoryFormModal
+      <EnvelopeFormModal
         visible={poolModalVisible}
         categoryToEdit={{
           id: pool.id,
