@@ -10,7 +10,7 @@ import { SetupProgressBar } from '../../components/setup/SetupProgressBar';
 import { SetupCategoriesCustomInput } from '../../components/setup/SetupCategoriesCustomInput';
 import { SetupCategoriesGoalsList } from '../../components/setup/SetupCategoriesGoalsList';
 import { SetupBalanceSweepModal } from '../../components/setup/SetupBalanceSweepModal';
-import { useSetupCategoriesSubmission } from './useSetupCategoriesSubmission';
+import { useSetupCategoriesSubmission } from '../../context/useSetupCategoriesSubmission';
 
 export default function SetupCategoriesScreen() {
   const insets = useSafeAreaInsets();

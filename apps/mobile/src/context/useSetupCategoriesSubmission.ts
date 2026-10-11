@@ -2,8 +2,8 @@ import { useState } from 'react';
 import { useRouter } from 'expo-router';
 import { t } from '@money-matters/i18n';
 import { useMobileToast } from '@money-matters/ui/mobile';
-import { trpc } from '../../lib/trpc';
-import { useSetupWizard } from '../../context/SetupWizardContext';
+import { trpc } from '../lib/trpc';
+import { useSetupWizard } from './SetupWizardContext';
 
 export function useSetupCategoriesSubmission() {
   const router = useRouter();
