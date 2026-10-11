@@ -5,7 +5,7 @@ import Link from "next/link";
 import { ResizableTh, PaginationBar, SkeletonTable, InfoTooltip } from "@money-matters/ui/web";
 import { t } from "@money-matters/i18n";
 import { useLocale } from "../../../../providers/LocaleProvider";
-import { PoolTableRow, CategoryItem } from "../types";
+import { PoolTableRow } from "../types";
 
 export interface PoolsTableProps {
   pools: PoolTableRow[];
@@ -20,8 +20,6 @@ export interface PoolsTableProps {
   onPageSizeChange: (newSize: number) => void;
   onEditPool: (pool: PoolTableRow["rawPool"]) => void;
   onOpenCategoryDrawer?: (pool: PoolTableRow) => void;
-  onAddCategoryForPool: (poolId: string) => void;
-  onEditCategory?: (category: CategoryItem) => void;
   onAddPool?: (poolType?: "EVERYDAY" | "REGULAR" | "GOAL") => void;
   fmtMoney: (val: number | null | undefined) => string;
   isLoading?: boolean;
@@ -49,8 +47,6 @@ export function PoolsTable({
   onPageSizeChange,
   onEditPool,
   onOpenCategoryDrawer,
-  onAddCategoryForPool,
-  onEditCategory,
   onAddPool,
   fmtMoney,
   isLoading = false,
@@ -68,7 +64,6 @@ export function PoolsTable({
     actions: 100,
   });
 
-  // Expansion state
   // Level 1: Pool Types (expanded by default)
   const [expandedTypes, setExpandedTypes] = useState<Record<string, boolean>>({
     EVERYDAY: true,
@@ -76,27 +71,15 @@ export function PoolsTable({
     GOAL: true,
   });
 
-  // Level 2: Pools (collapsed by default)
-  const [expandedPools, setExpandedPools] = useState<Record<string, boolean>>({});
-
   // Auto expand when search query is active
   useEffect(() => {
     if (searchQuery.trim()) {
       setExpandedTypes({ EVERYDAY: true, REGULAR: true, GOAL: true });
-      const poolExpMap: Record<string, boolean> = {};
-      for (const p of pools) {
-        poolExpMap[p.id] = true;
-      }
-      setExpandedPools(poolExpMap);
     }
-  }, [searchQuery, pools]);
+  }, [searchQuery]);
 
   const toggleType = (type: string) => {
     setExpandedTypes((prev) => ({ ...prev, [type]: !prev[type] }));
-  };
-
-  const togglePool = (poolId: string) => {
-    setExpandedPools((prev) => ({ ...prev, [poolId]: !prev[poolId] }));
   };
 
   const onMouseDown = (col: keyof typeof widths, e: React.MouseEvent) => {
@@ -285,28 +268,24 @@ export function PoolsTable({
                     {/* LEVEL 2: POOL ROWS */}
                     {isTypeExpanded &&
                       group.items.map((pool) => {
-                        const isPoolExpanded = Boolean(expandedPools[pool.id]);
                         const isGoal = pool.poolType === "GOAL";
-                        const hasCategories = !isGoal && (pool.categories?.length ?? 0) > 0;
+
+                        const subTypeBadge = pool.envelopeType === "SCHEDULED_BILL"
+                          ? t("categories.scheduledBillBadge")
+                          : pool.envelopeType === "FLEXIBLE_BILL"
+                          ? t("categories.flexibleBillBadge")
+                          : pool.envelopeType === "TARGET_GOAL"
+                          ? t("categories.targetDateGoalBadge")
+                          : pool.envelopeType === "ONGOING_GOAL"
+                          ? t("categories.ongoingGoalBadge")
+                          : null;
 
                         return (
                           <React.Fragment key={pool.id}>
                             <tr className="hover:bg-slate-50/80 transition-colors group/row">
-                              {/* Level 2 Name */}
-                              <td className="py-2.5 px-4 pl-8">
-                                <div className="flex items-center gap-2">
-                                  {!isGoal ? (
-                                    <button
-                                      type="button"
-                                      onClick={() => togglePool(pool.id)}
-                                      className="p-0.5 hover:bg-zinc-200 rounded text-zinc-400 font-extrabold text-[10px] cursor-pointer"
-                                    >
-                                      {isPoolExpanded ? "▼" : "▶"}
-                                    </button>
-                                  ) : (
-                                    <span className="w-4 inline-block" />
-                                  )}
-
+                              {/* Envelope Name & Badges */}
+                              <td className="py-2.5 px-4 pl-6">
+                                <div className="flex items-center gap-2 flex-wrap">
                                   {isProjectionMode ? (
                                     <span className="font-bold text-zinc-800 text-left">
                                       {pool.name}
@@ -321,6 +300,20 @@ export function PoolsTable({
                                     </button>
                                   )}
 
+                                  {subTypeBadge && (
+                                    <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-bold tracking-wide uppercase ${
+                                      pool.envelopeType === "SCHEDULED_BILL"
+                                        ? "bg-blue-50 text-blue-700 border border-blue-200"
+                                        : pool.envelopeType === "FLEXIBLE_BILL"
+                                        ? "bg-purple-50 text-purple-700 border border-purple-200"
+                                        : pool.envelopeType === "TARGET_GOAL"
+                                        ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
+                                        : "bg-teal-50 text-teal-700 border border-teal-200"
+                                    }`}>
+                                      {subTypeBadge}
+                                    </span>
+                                  )}
+
                                   {pool.rawPool.isSurplusTarget && (
                                     <span className="inline-flex items-center gap-1">
                                       <span title={t("categories.targetPoolShortfallSurplus")} className="text-sm cursor-help">
@@ -332,25 +325,8 @@ export function PoolsTable({
                                     </span>
                                   )}
 
-                                  {!isGoal && (
-                                    <span className="text-[10px] font-bold text-zinc-400">
-                                      ({pool.categories?.length ?? 0})
-                                    </span>
-                                  )}
-
-                                  {!isGoal && !isProjectionMode && (
-                                    <button
-                                      type="button"
-                                      onClick={() => onAddCategoryForPool(pool.id)}
-                                      className="px-1 py-0.5 text-[9px] font-bold text-[#2563eb] hover:bg-blue-50 rounded border border-blue-200 transition-colors cursor-pointer"
-                                      title={t("categories.addCategoryWithinEnvelope")}
-                                    >
-                                      +
-                                    </button>
-                                  )}
-
                                   {pool.isPrivate && (
-                                    <span title="Private" className="text-[10px] cursor-help">
+                                    <span title={t("categories.privateBadge")} className="text-[10px] cursor-help">
                                       🔒
                                     </span>
                                   )}
@@ -396,7 +372,7 @@ export function PoolsTable({
                                   >
                                     {pool.progressText}
                                   </span>
-                                  {pool.poolType === "GOAL" && pool.targetDate && (
+                                  {isGoal && pool.targetDate && (
                                     <span className="text-[10px] font-medium text-zinc-500 dark:text-zinc-400 font-mono">
                                       {fmtDate(pool.targetDate)}
                                     </span>
@@ -428,77 +404,6 @@ export function PoolsTable({
                                 </div>
                               </td>
                             </tr>
-
-                            {/* LEVEL 3: CATEGORY ROWS */}
-                            {isPoolExpanded &&
-                              hasCategories &&
-                              pool.categories?.map((cat) => (
-                                <tr key={cat.id} className="bg-slate-50/50 hover:bg-slate-100/60 transition-colors">
-                                  {/* Level 3 Name */}
-                                  <td className="py-2 px-4 pl-14">
-                                    {isProjectionMode ? (
-                                      <span className="font-semibold text-zinc-700 text-left flex items-center gap-1.5">
-                                        <span>•</span>
-                                        <span>{cat.name}</span>
-                                      </span>
-                                    ) : (
-                                      <button
-                                        type="button"
-                                        onClick={() => onEditCategory?.(cat)}
-                                        className="font-semibold text-zinc-700 hover:text-[#2563eb] hover:underline text-left cursor-pointer flex items-center gap-1.5"
-                                      >
-                                        <span>•</span>
-                                        <span>{cat.name}</span>
-                                      </button>
-                                    )}
-                                  </td>
-
-                                  <td className="py-2 px-4 text-center text-zinc-400">—</td>
-                                  <td className="py-2 px-4 text-center text-zinc-400">—</td>
-
-                                  {/* Category Target */}
-                                  <td className="py-2 px-4 text-right font-mono text-zinc-600">
-                                    <div className="flex flex-col items-end">
-                                      <span className="font-bold">
-                                        ${cat.monthlyAmount ? parseFloat(cat.monthlyAmount).toFixed(2) : "0.00"}/mo
-                                      </span>
-                                      {cat.enteredAmount &&
-                                        cat.budgetFrequency &&
-                                        cat.budgetFrequency !== "MONTHLY" && (
-                                          <span className="text-[10px] text-zinc-400 font-medium">
-                                            (${parseFloat(cat.enteredAmount).toFixed(2)}/{cat.budgetFrequency.toLowerCase()})
-                                          </span>
-                                        )}
-                                    </div>
-                                  </td>
-
-                                  <td className="py-2 px-4 text-center text-zinc-400">—</td>
-
-                                  {/* Category Actions */}
-                                  <td className="py-2 px-4 text-center">
-                                    <div className="flex items-center justify-center gap-1.5 text-[11px] font-bold">
-                                      {cat.hasHistory && (
-                                        <Link
-                                          href={`/dashboard/history?categoryId=${cat.id}`}
-                                          className="text-zinc-500 hover:text-[#2563eb] hover:underline"
-                                        >{t("tables.history")}</Link>
-                                      )}
-                                      {cat.hasHistory && cat.hasUpcomingExpenses && (
-                                        <span className="text-zinc-300 font-normal">|</span>
-                                      )}
-                                      {cat.hasUpcomingExpenses && (
-                                        <Link
-                                          href={`/dashboard/income-and-bills?tab=EVENTS&type=EXPENSE&categoryId=${cat.id}`}
-                                          className="text-zinc-500 hover:text-[#2563eb] hover:underline"
-                                        >{t("tables.expenses")}</Link>
-                                      )}
-                                      {!cat.hasHistory && !cat.hasUpcomingExpenses && (
-                                        <span className="text-zinc-400 font-normal">—</span>
-                                      )}
-                                    </div>
-                                  </td>
-                                </tr>
-                              ))}
                           </React.Fragment>
                         );
                       })}

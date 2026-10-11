@@ -81,12 +81,11 @@ export async function canAffordSimulationQuery(
           name: envelopes.name,
           envelopeType: envelopes.envelopeType,
           bankAccountId: envelopes.bankAccountId,
-          everydayAllowanceAmount: envelopes.everydayAllowanceAmount,
           safetyBufferFloor: envelopes.safetyBufferFloor,
           goalMode: envelopes.goalMode,
           monthlyAmount: envelopes.monthlyAmount,
           targetAmount: envelopes.targetAmount,
-          targetDate: envelopes.targetDate,
+          endDate: envelopes.endDate,
           isCommitted: envelopes.isCommitted,
           isSurplusTarget: envelopes.isSurplusTarget,
           isPrivate: envelopes.isPrivate,
@@ -213,7 +212,7 @@ export async function canAffordSimulationQuery(
 
   // ── 6. PRORATED EVERYDAY SAFE CUSHION ─────────────────────────────────
   const everydayMonthlyAllowance = everydayEnvelopes.reduce((sum, e) => {
-    const amt = parseFloat(e.everydayAllowanceAmount ?? e.targetAmount ?? "0");
+    const amt = parseFloat(e.monthlyAmount ?? e.targetAmount ?? "0");
     return sum + amt;
   }, 0);
   const dailyAllowance = everydayMonthlyAllowance / 30;
@@ -235,14 +234,11 @@ export async function canAffordSimulationQuery(
       isSurplusTarget: env.isSurplusTarget ?? false,
       monthlyAmount: env.monthlyAmount ? parseFloat(env.monthlyAmount) : null,
       targetAmount: env.targetAmount ? parseFloat(env.targetAmount) : null,
-      everydayAllowanceAmount: env.everydayAllowanceAmount
-        ? parseFloat(env.everydayAllowanceAmount)
-        : null,
       safetyBufferFloor: env.safetyBufferFloor
         ? parseFloat(env.safetyBufferFloor)
         : null,
       goalMode: env.goalMode ?? (env.envelopeType === "TARGET_GOAL" ? "TARGET_DATE" : "ONGOING"),
-      targetDate: env.targetDate ?? null,
+      targetDate: env.endDate ?? null,
       currentBalance: balance,
       isPrivate: env.isPrivate ?? false,
       userId: env.userId ?? undefined,
@@ -266,7 +262,6 @@ export async function canAffordSimulationQuery(
       isSurplusTarget: false,
       monthlyAmount,
       targetAmount: null,
-      everydayAllowanceAmount: null,
       targetDate: null,
       currentBalance: 0,
       isPrivate: false,
@@ -415,8 +410,8 @@ export async function canAffordSimulationQuery(
       const delayDays = Math.max(1, Math.round(balanceDrop / dailyContrib));
 
       let newDateStr: string | null = null;
-      if (pool.targetDate) {
-        const originalDate = new Date(pool.targetDate + "T00:00:00+10:00");
+      if (pool.endDate) {
+        const originalDate = new Date(pool.endDate + "T00:00:00+10:00");
         const newDate = new Date(originalDate.getTime() + delayDays * 24 * 60 * 60 * 1000);
         newDateStr = new Intl.DateTimeFormat("en-CA", { timeZone: "Australia/Sydney" }).format(newDate);
       }
@@ -425,7 +420,7 @@ export async function canAffordSimulationQuery(
         goalId: pool.id,
         goalName: pool.name,
         isCommitted: pool.isCommitted ?? false,
-        originalTargetDate: pool.targetDate,
+        originalTargetDate: pool.endDate,
         newTargetDate: newDateStr,
         delayDays,
       });
@@ -558,8 +553,8 @@ export async function canAffordSimulationQuery(
       const delayDays = Math.max(1, Math.round(shortfall / dailyContrib));
 
       let newTargetDate: string | null = null;
-      if (candidateGoal.targetDate) {
-        const origDate = new Date(candidateGoal.targetDate + "T00:00:00+10:00");
+      if (candidateGoal.endDate) {
+        const origDate = new Date(candidateGoal.endDate + "T00:00:00+10:00");
         const nDate = new Date(origDate.getTime() + delayDays * 24 * 60 * 60 * 1000);
         newTargetDate = new Intl.DateTimeFormat("en-CA", { timeZone: "Australia/Sydney" }).format(nDate);
       }

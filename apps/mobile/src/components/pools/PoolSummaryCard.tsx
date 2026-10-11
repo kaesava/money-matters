@@ -27,12 +27,26 @@ export function PoolSummaryCard({
   onEdit,
   onArchive,
 }: PoolSummaryCardProps) {
+  const badgeText = pool.envelopeType === 'SCHEDULED_BILL'
+    ? t('categories.scheduledBillBadge')
+    : pool.envelopeType === 'FLEXIBLE_BILL'
+    ? t('categories.flexibleBillBadge')
+    : pool.envelopeType === 'TARGET_GOAL'
+    ? t('categories.targetDateGoalBadge')
+    : pool.envelopeType === 'ONGOING_GOAL'
+    ? t('categories.ongoingGoalBadge')
+    : pool.envelopeType === 'EVERYDAY' || pool.poolType === 'EVERYDAY'
+    ? t('poolTypes.EVERYDAY')
+    : pool.poolType === 'GOAL'
+    ? t('poolTypes.SAVINGS')
+    : t('poolTypes.REGULAR');
+
   return (
     <View style={styles.card}>
       <View style={styles.header}>
         <View style={{ flex: 1 }}>
           <View style={styles.tagsRow}>
-            <Text style={styles.poolTypeTag}>{pool.envelopeType || pool.poolType}</Text>
+            <Text style={styles.poolTypeTag}>{badgeText}</Text>
             {pool.isSurplusTarget && (
               <View style={styles.surplusPill}>
                 <Text style={styles.surplusPillText}>{t('categories.surplusBadgeText')}</Text>

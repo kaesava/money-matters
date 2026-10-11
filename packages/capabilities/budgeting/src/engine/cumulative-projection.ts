@@ -237,7 +237,7 @@ export function runCumulativeProjection(input: CumulativeProjectionInput): Cumul
     // 1. Pro-Rata Burn for EVERYDAY pools (assumed discretionary spending over daysUntilNext)
     for (const cat of input.categories) {
       if (cat.type === "EVERYDAY") {
-        const monthlyTarget = cat.monthlyAmount ?? cat.targetAmount ?? cat.everydayAllowanceAmount ?? 0;
+        const monthlyTarget = cat.monthlyAmount ?? cat.targetAmount ?? 0;
         const floor = cat.safetyBufferFloor ?? 0;
         if (monthlyTarget > 0) {
           const burnAmount = Number((((monthlyTarget * 12) / 365) * daysUntilNext).toFixed(2));

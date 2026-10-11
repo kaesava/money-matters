@@ -127,7 +127,7 @@ export function exportDataHandler(db: DbOrTx) {
         ["id", "name", "subscriptionStatus", "setupStatus", "subscriptionEndsAt", "cancelAtPeriodEnd"]
       ),
       "Bank_Accounts.csv": arrayToCsv(userBankAccounts, ["id", "name", "bankProvider", "lastKnownBalance", "isPrivate"]),
-      "Envelopes.csv": arrayToCsv(userEnvelopes, ["id", "name", "envelopeType", "bankAccountId", "targetAmount", "everydayAllowanceAmount", "monthlyAmount", "budgetFrequency"]),
+      "Envelopes.csv": arrayToCsv(userEnvelopes, ["id", "name", "envelopeType", "bankAccountId", "targetAmount", "monthlyAmount", "budgetFrequency"]),
       "Income_Sources.csv": arrayToCsv(userIncomeSources, ["id", "name", "amount", "rrule", "startDate", "receivingAccountId"]),
       "Income_Events.csv": arrayToCsv(userIncomeEvents, ["id", "incomeSourceId", "expectedDate", "expectedAmount", "status"]),
       "Expense_Events.csv": arrayToCsv(userExpenseEvents, ["id", "expectedDate", "expectedAmount", "envelopeId", "isScheduled", "status"]),

@@ -9,8 +9,7 @@ import { trpc } from "../../../lib/trpc";
 import posthog from "../../../lib/posthog-client";
 import { QuickActionDrawer } from "../../../components/web/QuickExpenseDrawer";
 import { CategoryFormModal } from "../../../components/web/CategoryFormModal";
-import { CategoryItemModal } from "../../../components/web/CategoryItemModal";
-import { CategorySummaryItem, CategoryItem, PoolTableRow } from "./types";
+import { CategorySummaryItem, PoolTableRow } from "./types";
 import { PoolsTable } from "./components/PoolsTable";
 import { SlideOverCategoryDrawer } from "../income-and-bills/components/SlideOverCategoryDrawer";
 import { useLocale } from "../../../providers/LocaleProvider";
@@ -57,11 +56,6 @@ function PoolsPageContent() {
   const [isMoveMoneyOpen, setIsMoveMoneyOpen] = useState(false);
   const [selectedPoolForDrawer, setSelectedPoolForDrawer] = useState<PoolTableRow | null>(null);
   const [poolToArchive, setPoolToArchive] = useState<CategorySummaryItem | null>(null);
-
-  // Category item modal state
-  const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
-  const [categoryToEdit, setCategoryToEdit] = useState<CategoryItem | null>(null);
-  const [categoryInitialPoolId, setCategoryInitialPoolId] = useState<string | null>(null);
 
   const archivePoolMut = trpc.archivePool.useMutation({
     onSuccess: () => {
@@ -213,7 +207,8 @@ function PoolsPageContent() {
         isPrivate: p.isPrivate,
         currentBalance: String(currentBal),
         targetAmount: p.targetAmount,
-        targetDate: p.targetDate,
+        endDate: p.endDate,
+        targetDate: p.endDate,
         isSurplusTarget: p.isSurplusTarget,
       };
 
@@ -227,9 +222,9 @@ function PoolsPageContent() {
         isPrivate: p.isPrivate,
         currentBalance: currentBal,
         targetAmount: targetAmountNum,
-        targetDate: p.targetDate || null,
+        endDate: p.endDate || null,
+        targetDate: p.endDate || null,
         categoryCount: 0,
-        categories: [] as CategoryItem[],
         progressText,
         progressPercentage,
         rawPool: rawSummaryItem,
@@ -349,18 +344,6 @@ function PoolsPageContent() {
     } finally {
       setPoolToArchive(null);
     }
-  };
-
-  const handleOpenAddCategoryModal = (poolId: string) => {
-    setCategoryToEdit(null);
-    setCategoryInitialPoolId(poolId);
-    setIsCategoryModalOpen(true);
-  };
-
-  const handleOpenEditCategoryModal = (cat: CategoryItem) => {
-    setCategoryToEdit(cat);
-    setCategoryInitialPoolId(cat.poolId ?? null);
-    setIsCategoryModalOpen(true);
   };
 
   return (
@@ -620,15 +603,6 @@ function PoolsPageContent() {
           onOpenCategoryDrawer={(pool) => {
             setSelectedPoolForDrawer(pool);
           }}
-          onAddCategoryForPool={(poolId) => {
-            if (showProjectionMatrix) return;
-            handleOpenAddCategoryModal(poolId);
-          }}
-          onEditCategory={(cat) => {
-            if (showProjectionMatrix) return;
-            setCategoryToEdit(cat);
-            setIsCategoryModalOpen(true);
-          }}
           onAddPool={
             showProjectionMatrix
               ? undefined
@@ -675,17 +649,6 @@ function PoolsPageContent() {
         onSuccess={() => utils.listPools.invalidate()}
       />
 
-      {/* Create / Edit Category Modal */}
-      <CategoryItemModal
-        isOpen={isCategoryModalOpen}
-        onClose={() => setIsCategoryModalOpen(false)}
-        categoryToEdit={categoryToEdit}
-        initialPoolId={categoryInitialPoolId}
-        onSuccess={() => {
-          utils.listPools.invalidate();
-        }}
-      />
-
       {/* Category Side Drawer */}
       <SlideOverCategoryDrawer
         isOpen={Boolean(selectedPoolForDrawer)}
@@ -696,8 +659,6 @@ function PoolsPageContent() {
           setPoolToEdit(pool);
           setIsPoolModalOpen(true);
         }}
-        onEditCategory={handleOpenEditCategoryModal}
-        onAddCategory={handleOpenAddCategoryModal}
       />
 
       {/* Archive Confirmation Dialog */}

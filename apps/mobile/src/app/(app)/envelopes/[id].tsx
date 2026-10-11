@@ -1,11 +1,10 @@
 import React, { useState, useMemo } from 'react';
 import { View, Text, ScrollView, StyleSheet, ActivityIndicator } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { MobileScreenWrapper, showMobileConfirm, MobileFilterSheet, DESIGN_TOKENS } from '@money-matters/ui/mobile';
+import { MobileScreenWrapper, showMobileConfirm, DESIGN_TOKENS } from '@money-matters/ui/mobile';
 import { t } from '@money-matters/i18n';
 import { trpc } from '../../../lib/trpc';
 import { authClient } from '../../../lib/auth';
-import { CategoryItemModal, CategoryItemToEdit } from '../../../components/CategoryItemModal';
 import { CategoryFormModal } from '../../../components/CategoryFormModal';
 import { QuickExpenseModal } from '../../../components/QuickExpenseModal';
 import { MarkPaidModal, MarkPaidEvent } from '../../../components/MarkPaidModal';
@@ -20,18 +19,10 @@ export default function PoolDetailScreen() {
   const utils = trpc.useUtils();
 
   const [poolModalVisible, setPoolModalVisible] = useState(false);
-  const [catModalVisible, setCatModalVisible] = useState(false);
-  const [selectedCatForEdit, setSelectedCatForEdit] = useState<CategoryItemToEdit | null>(null);
   const [moveMoneyVisible, setMoveMoneyVisible] = useState(false);
   const [markPaidEvent, setMarkPaidEvent] = useState<MarkPaidEvent | null>(null);
-  const [catSearchQuery, setCatSearchQuery] = useState('');
-  const [catSortField, setCatSortField] = useState<'name' | 'amount'>('name');
-  const [catSortDir, setCatSortDir] = useState<'asc' | 'desc'>('asc');
-  const [categoriesExpanded, setCategoriesExpanded] = useState(true);
   const [upcomingExpanded, setUpcomingExpanded] = useState(true);
   const [historyExpanded, setHistoryExpanded] = useState(true);
-  const [catFilterSheetVisible, setCatFilterSheetVisible] = useState(false);
-  const [catPriorityFilter, setCatPriorityFilter] = useState<'ALL' | 'PRIORITISED' | 'REGULAR'>('ALL');
 
   const poolsQuery = trpc.listPools.useQuery(undefined, { enabled: !!session?.user });
   const bankAccountsQuery = trpc.listBankAccounts.useQuery(undefined, { enabled: !!session?.user });
@@ -112,39 +103,6 @@ export default function PoolDetailScreen() {
         />
       </ScrollView>
 
-      <MobileFilterSheet
-        visible={catFilterSheetVisible}
-        onClose={() => setCatFilterSheetVisible(false)}
-        title={t('common.filter')}
-        activeCount={catPriorityFilter !== 'ALL' ? 1 : 0}
-        sortField={catSortField}
-        sortOrder={catSortDir}
-        onSortFieldChange={(field) => setCatSortField(field as 'name' | 'amount')}
-        onSortOrderChange={setCatSortDir}
-        sortOptions={[
-          { id: 'name', label: t('common.name') },
-          { id: 'amount', label: t('common.amount') },
-        ]}
-        sections={[
-          {
-            id: 'priority',
-            title: t('categories.priorityLabel'),
-            options: [
-              { id: 'ALL', label: t('transactions.filterAll') },
-              { id: 'PRIORITISED', label: t('categories.priority1') },
-              { id: 'REGULAR', label: t('categories.standardPriority') },
-            ],
-            selectedValue: catPriorityFilter,
-            onSelect: (val) => setCatPriorityFilter(val as 'ALL' | 'PRIORITISED' | 'REGULAR'),
-          },
-        ]}
-        onReset={() => {
-          setCatPriorityFilter('ALL');
-          setCatSortField('name');
-          setCatSortDir('asc');
-        }}
-      />
-
       <CategoryFormModal
         visible={poolModalVisible}
         categoryToEdit={{
@@ -156,9 +114,8 @@ export default function PoolDetailScreen() {
             ? 'REGULAR'
             : 'GOAL',
           targetAmount: pool.targetAmount,
-          targetDate: pool.targetDate,
+          endDate: pool.endDate,
           bankAccountId: pool.bankAccountId,
-          everydayAllowanceAmount: pool.everydayAllowanceAmount,
           isSurplusTarget: pool.isSurplusTarget,
         }}
         onClose={() => setPoolModalVisible(false)}

@@ -168,7 +168,7 @@ export function useSetupWizardState() {
               budgetFrequency: (g.budgetFrequency as "MONTHLY" | "WEEKLY" | "FORTNIGHTLY" | "ANNUALLY" | null) || undefined,
               startDate: g.startDate,
               rrule: g.rrule,
-              dueDate: isOngoing ? null : (g.targetDate || new Intl.DateTimeFormat('en-CA', { timeZone: 'Australia/Sydney' }).format(new Date(Date.now() + 365 * 24 * 60 * 60 * 1000))),
+              dueDate: isOngoing ? null : (g.endDate || new Intl.DateTimeFormat('en-CA', { timeZone: 'Australia/Sydney' }).format(new Date(Date.now() + 365 * 24 * 60 * 60 * 1000))),
             };
           })
         );
@@ -182,7 +182,7 @@ export function useSetupWizardState() {
             name: c.name,
             type: (c.envelopeType === "EVERYDAY" ? "EVERYDAY" : "REGULAR") as "REGULAR" | "GOAL" | "EVERYDAY",
             monthlyAud: parseFloat(c.monthlyAmount || c.targetAmount || "0"),
-            icon: c.icon || "📌",
+            icon: "📌",
           }))
         );
       }

@@ -64,7 +64,7 @@ export function useSetupWizardPrepopulation({
             rrule: g.rrule,
             dueDate: isOngoing
               ? null
-              : g.targetDate ||
+              : g.endDate ||
                 new Intl.DateTimeFormat('en-CA', { timeZone: tz }).format(
                   new Date(Date.now() + 365 * 24 * 60 * 60 * 1000)
                 ),
@@ -84,7 +84,7 @@ export function useSetupWizardPrepopulation({
         name: c.name,
         type: 'REGULAR' as const,
         monthlyAud: parseFloat(c.monthlyAmount || c.targetAmount || '0'),
-        icon: c.icon || '📌',
+        icon: '📌',
       }))
     );
   }, [isRerun, poolsQuery.data, setCustomCategories]);

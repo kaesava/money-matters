@@ -27,6 +27,8 @@ interface CategoryFormFieldsProps {
   setTargetDate: (v: string) => void;
   goalMode?: 'TARGET_DATE' | 'ONGOING';
   setGoalMode?: (v: 'TARGET_DATE' | 'ONGOING') => void;
+  billMode?: 'SCHEDULED_BILL' | 'FLEXIBLE_BILL';
+  setBillMode?: (v: 'SCHEDULED_BILL' | 'FLEXIBLE_BILL') => void;
   frequency?: 'WEEKLY' | 'FORTNIGHTLY' | 'MONTHLY' | 'ANNUALLY';
   setFrequency?: (v: 'WEEKLY' | 'FORTNIGHTLY' | 'MONTHLY' | 'ANNUALLY') => void;
   interval?: number;
@@ -59,6 +61,8 @@ export const CategoryFormFields: React.FC<CategoryFormFieldsProps> = ({
   setTargetDate,
   goalMode = 'TARGET_DATE',
   setGoalMode,
+  billMode = 'SCHEDULED_BILL',
+  setBillMode,
   frequency = 'MONTHLY',
   setFrequency,
   interval = 1,
@@ -118,20 +122,56 @@ export const CategoryFormFields: React.FC<CategoryFormFieldsProps> = ({
         </View>
       )}
 
-      {(type === 'REGULAR' || type === 'EVERYDAY') && (
-        <View style={styles.noticeCard}>
-          <Text style={styles.noticeTitle}>{t('categories.calculatedTarget')}</Text>
-          <Text style={styles.noticeDesc}>{t('categories.calculatedTargetNotice')}</Text>
+      {type === 'REGULAR' && (
+        <View style={styles.billSection}>
+          <View style={styles.formGroup}>
+            <FormLabel>{t('categories.billModeLabel')}</FormLabel>
+            <ChipSelect
+              options={[
+                { key: 'SCHEDULED_BILL', label: t('categories.billModeScheduled') },
+                { key: 'FLEXIBLE_BILL', label: t('categories.billModeFlexible') },
+              ]}
+              value={billMode}
+              onChange={(val) => setBillMode?.(val as 'SCHEDULED_BILL' | 'FLEXIBLE_BILL')}
+              disabled={isEdit}
+            />
+            <Text style={styles.billModeDesc}>
+              {billMode === 'SCHEDULED_BILL'
+                ? t('categories.billModeScheduledDesc')
+                : t('categories.billModeFlexibleDesc')}
+            </Text>
+          </View>
+
+          {billMode === 'FLEXIBLE_BILL' ? (
+            <AmountInput
+              label={t('categories.flexibleTargetAmountLabel')}
+              required
+              value={targetAmount}
+              onChangeText={setTargetAmount}
+              placeholder="150.00"
+            />
+          ) : (
+            <View style={styles.noticeCard}>
+              <Text style={styles.noticeTitle}>{t('categories.calculatedTarget')}</Text>
+              <Text style={styles.noticeDesc}>{t('categories.calculatedTargetNotice')}</Text>
+            </View>
+          )}
         </View>
       )}
 
       {type === 'EVERYDAY' && (
-        <AmountInput
-          label={t('categories.safetyBufferFloorLabel')}
-          value={safetyBufferFloor}
-          onChangeText={setSafetyBufferFloor}
-          placeholder="0.00"
-        />
+        <>
+          <View style={styles.noticeCard}>
+            <Text style={styles.noticeTitle}>{t('categories.calculatedTarget')}</Text>
+            <Text style={styles.noticeDesc}>{t('categories.calculatedTargetNotice')}</Text>
+          </View>
+          <AmountInput
+            label={t('categories.safetyBufferFloorLabel')}
+            value={safetyBufferFloor}
+            onChangeText={setSafetyBufferFloor}
+            placeholder="0.00"
+          />
+        </>
       )}
 
       {type === 'GOAL' && (
@@ -343,5 +383,14 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     color: DESIGN_TOKENS.colors.accent,
     fontFamily: 'monospace',
+  },
+  billSection: {
+    gap: 12,
+  },
+  billModeDesc: {
+    fontSize: 11,
+    color: DESIGN_TOKENS.colors.textMuted,
+    lineHeight: 16,
+    marginTop: 2,
   },
 });

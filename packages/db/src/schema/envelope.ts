@@ -21,7 +21,6 @@ export const envelopes = pgTable("envelopes", {
     .notNull(),
 
   // Living allowance / EVERYDAY fields
-  everydayAllowanceAmount: numeric("everyday_allowance_amount", { precision: 12, scale: 2 }),
   safetyBufferFloor: numeric("safety_buffer_floor", { precision: 12, scale: 2 }).default("0.00"),
 
   // Recurring & Target Fields
@@ -35,7 +34,6 @@ export const envelopes = pgTable("envelopes", {
   // Goals
   goalMode: goalModeEnum("goal_mode").default("TARGET_DATE"),
   targetAmount: numeric("target_amount", { precision: 12, scale: 2 }),
-  targetDate: varchar("target_date", { length: 50 }),
 
   // Flags & Meta
   isEssential: boolean("is_essential").notNull().default(false),
@@ -43,7 +41,6 @@ export const envelopes = pgTable("envelopes", {
   isSurplusTarget: boolean("is_surplus_target").notNull().default(false),
   isPrivate: boolean("is_private").notNull().default(false),
   userId: uuid("user_id"), // Applicable for private envelopes
-  icon: varchar("icon", { length: 100 }),
   orderIndex: integer("order_index").notNull().default(0),
 
   ...tenantAndTimestamps,

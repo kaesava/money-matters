@@ -25,7 +25,6 @@ export interface EngineBucket {
   isSurplusTarget?: boolean;
   monthlyAmount?: number | null;
   targetAmount?: number | null;
-  everydayAllowanceAmount?: number | null;
   safetyBufferFloor?: number | null;
   goalMode?: "TARGET_DATE" | "ONGOING" | null;
   targetDate?: string | null;
@@ -209,7 +208,7 @@ export function runAllocationEngine(input: AllocationEngineInput): AllocationEng
   // STEP 4: BASELINE EVERYDAY LIVING ALLOWANCE
   const everydayBuckets = input.buckets.filter((b) => b.type === "EVERYDAY");
   for (const bucket of everydayBuckets) {
-    const monthlyAllowanceCents = toCents(bucket.everydayAllowanceAmount ?? bucket.monthlyAmount ?? bucket.targetAmount ?? 0);
+    const monthlyAllowanceCents = toCents(bucket.monthlyAmount ?? bucket.targetAmount ?? 0);
     const cycleAllowanceCents = Math.round(monthlyAllowanceCents * cycleFactor);
     const floorCents = toCents(bucket.safetyBufferFloor ?? 0);
     const currentBalanceCents = Math.max(0, toCents(bucket.currentBalance));

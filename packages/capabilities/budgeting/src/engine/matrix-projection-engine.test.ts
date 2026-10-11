@@ -8,7 +8,7 @@ describe("matrix-projection-engine", () => {
       id: "cat-everyday",
       name: "Everyday Expenses",
       type: "EVERYDAY",
-      everydayAllowanceAmount: 500,
+      monthlyAmount: 500,
       currentBalance: 200,
     },
     {

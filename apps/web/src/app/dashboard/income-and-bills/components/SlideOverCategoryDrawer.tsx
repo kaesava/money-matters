@@ -6,8 +6,7 @@ import { t } from "@money-matters/i18n";
 import { trpc } from "../../../../lib/trpc";
 import { Tabs } from "@money-matters/ui/web";
 import { useLocale } from "../../../../providers/LocaleProvider";
-import { CategoryItem, CategorySummaryItem } from "../../envelopes/types";
-import { CategoryItemModal } from "../../../../components/web/CategoryItemModal";
+import { CategorySummaryItem } from "../../envelopes/types";
 
 export interface CategoryScheduledEvent {
   id: string;
@@ -25,8 +24,6 @@ interface SlideOverCategoryDrawerProps {
   events?: CategoryScheduledEvent[];
   onMarkPaid?: (eventId: string, amount: string, date: string) => void;
   onEditPool?: (pool: CategorySummaryItem) => void;
-  onEditCategory?: (category: CategoryItem) => void;
-  onAddCategory?: (poolId: string) => void;
 }
 
 export function SlideOverCategoryDrawer({
@@ -37,11 +34,9 @@ export function SlideOverCategoryDrawer({
   events,
   onMarkPaid,
   onEditPool,
-  onEditCategory,
-  onAddCategory,
 }: SlideOverCategoryDrawerProps) {
   const { fmtDate } = useLocale();
-  const [activeTab, setActiveTab] = useState<"categories" | "expenses" | "activity">("categories");
+  const [activeTab, setActiveTab] = useState<"expenses" | "activity">("expenses");
 
   // Fetch pool, categories, transactions, and fallback upcoming events
   const poolsQuery = trpc.listPools.useQuery(undefined, { enabled: isOpen });
@@ -55,8 +50,6 @@ export function SlideOverCategoryDrawer({
       (p) => (categoryId && p.id === categoryId) || p.name.toLowerCase() === categoryName.toLowerCase()
     );
   }, [poolsQuery.data, categoryId, categoryName]);
-
-  const relatedCategories: CategoryItem[] = [];
 
   // Calculate effective monthly target amount for envelope
   const targetAmt = useMemo(() => {
@@ -104,57 +97,26 @@ export function SlideOverCategoryDrawer({
       .slice(0, 5);
   }, [relatedTransactions]);
 
-  // Fallback local CategoryItemModal state when callbacks not passed
-  const [internalCategoryModalOpen, setInternalCategoryModalOpen] = useState(false);
-  const [internalCategoryToEdit, setInternalCategoryToEdit] = useState<CategoryItem | null>(null);
-
-  const handleEditCategoryClick = (cat: CategoryItem) => {
-    if (onEditCategory) {
-      onEditCategory(cat);
-    } else {
-      setInternalCategoryToEdit(cat);
-      setInternalCategoryModalOpen(true);
-    }
-  };
-
-  const handleAddCategoryClick = () => {
-    if (!targetPool) return;
-    if (onAddCategory) {
-      onAddCategory(targetPool.id);
-    } else {
-      setInternalCategoryToEdit(null);
-      setInternalCategoryModalOpen(true);
-    }
-  };
-
   // ESC key dismissal (AGENTS.md Rule 13)
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape" && isOpen && !internalCategoryModalOpen) {
+      if (e.key === "Escape" && isOpen) {
         onClose();
       }
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [isOpen, onClose, internalCategoryModalOpen]);
+  }, [isOpen, onClose]);
 
   if (!isOpen) return null;
 
   const currentBal = targetPool ? parseFloat(String(targetPool.currentBalance || "0")) : 0;
   const isGoalPool = targetPool?.envelopeType === "TARGET_GOAL" || targetPool?.envelopeType === "ONGOING_GOAL";
 
-  const resolvedTabs = isGoalPool
-    ? [
-        { id: "expenses" as const, label: `${t("categoryDrawer.tabs.upcomingExpenses")} (${effectiveEvents.length})` },
-        { id: "activity" as const, label: `${t("categoryDrawer.tabs.history")} (${relatedTransactions.length})` },
-      ]
-    : [
-        { id: "categories" as const, label: `${t("categoryDrawer.tabs.categories")} (${relatedCategories.length})` },
-        { id: "expenses" as const, label: `${t("categoryDrawer.tabs.upcomingExpenses")} (${effectiveEvents.length})` },
-        { id: "activity" as const, label: `${t("categoryDrawer.tabs.history")} (${relatedTransactions.length})` },
-      ];
-
-  const currentActiveTab = isGoalPool && activeTab === "categories" ? "expenses" : activeTab;
+  const resolvedTabs = [
+    { id: "expenses" as const, label: `${t("categoryDrawer.tabs.upcomingExpenses")} (${effectiveEvents.length})` },
+    { id: "activity" as const, label: `${t("categoryDrawer.tabs.history")} (${relatedTransactions.length})` },
+  ];
 
   return (
     <div className="fixed inset-0 z-50 overflow-hidden">
@@ -242,8 +204,8 @@ export function SlideOverCategoryDrawer({
                 </span>
                 <span className="text-sm font-black font-mono text-zinc-700 dark:text-zinc-300">
                   {isGoalPool
-                    ? targetPool?.targetDate
-                      ? fmtDate(targetPool.targetDate)
+                    ? targetPool?.endDate
+                      ? fmtDate(targetPool.endDate)
                       : "—"
                     : targetPool?.envelopeType ?? "—"}
                 </span>
@@ -272,83 +234,15 @@ export function SlideOverCategoryDrawer({
             {/* Navigation Tabs */}
             <Tabs
               tabs={resolvedTabs}
-              activeTab={currentActiveTab}
-              onChange={(id) => setActiveTab(id as "categories" | "expenses" | "activity")}
+              activeTab={activeTab}
+              onChange={(id) => setActiveTab(id as "expenses" | "activity")}
             />
           </div>
 
           {/* Drawer Body — Tab Content */}
           <div className="flex-1 overflow-y-auto p-6">
-            {/* Tab 1: Categories Table */}
-            {currentActiveTab === "categories" && (
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold text-zinc-700 dark:text-zinc-300">
-                    {t("categoryDrawer.tabs.categories")} ({relatedCategories.length})
-                  </span>
-                  <button
-                    type="button"
-                    onClick={handleAddCategoryClick}
-                    className="px-2 py-0.5 text-xs font-bold text-[#2563eb] hover:bg-blue-50 dark:hover:bg-blue-950/60 rounded border border-blue-200 dark:border-blue-800 transition-colors cursor-pointer inline-flex items-center gap-1"
-                    title={t("categories.addCategory")}
-                  >
-                    <span>+</span>
-                    <span>{t("categories.addCategory")}</span>
-                  </button>
-                </div>
-
-                {relatedCategories.length === 0 ? (
-                  <div className="text-center py-12 text-zinc-400 text-xs font-medium">
-                    {t("categoryDrawer.noCategories")}
-                  </div>
-                ) : (
-                  <div className="w-full overflow-hidden border border-zinc-200 dark:border-zinc-800 rounded-xl bg-white dark:bg-zinc-900 shadow-2xs">
-                    <table className="w-full border-collapse text-left text-xs">
-                      <thead>
-                        <tr className="bg-zinc-50 dark:bg-zinc-800/80 border-b border-zinc-200 dark:border-zinc-800 text-zinc-500 font-bold">
-                          <th className="p-3 text-left">{t("categoryDrawer.categoryName")}</th>
-                          <th className="p-3 text-right">{t("categoryDrawer.targetBudget")}</th>
-                          <th className="p-3 text-center">{t("categoryDrawer.frequency")}</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-zinc-100 dark:divide-zinc-800">
-                        {relatedCategories.map((cat) => {
-                          const budgetAmt = cat.enteredAmount
-                            ? parseFloat(cat.enteredAmount)
-                            : cat.monthlyAmount
-                            ? parseFloat(cat.monthlyAmount)
-                            : null;
-
-                          return (
-                            <tr key={cat.id} className="hover:bg-zinc-50/50 dark:hover:bg-zinc-800/40 transition-colors">
-                              <td className="p-3 font-semibold text-zinc-900 dark:text-zinc-100 text-left">
-                                <button
-                                  type="button"
-                                  onClick={() => handleEditCategoryClick(cat)}
-                                  className="text-zinc-800 dark:text-zinc-200 hover:text-[#2563eb] hover:underline font-semibold text-left transition-colors cursor-pointer"
-                                  title={t("common.edit")}
-                                >
-                                  {cat.name}
-                                </button>
-                              </td>
-                              <td className="p-3 text-right font-mono font-bold text-zinc-700 dark:text-zinc-300">
-                                {budgetAmt !== null ? `$${budgetAmt.toFixed(2)}` : "—"}
-                              </td>
-                              <td className="p-3 text-center font-medium text-zinc-500">
-                                {cat.budgetFrequency || t("categories.frequencyMonthly")}
-                              </td>
-                            </tr>
-                          );
-                        })}
-                      </tbody>
-                    </table>
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* Tab 2: Upcoming Expenses Table */}
-            {currentActiveTab === "expenses" && (
+            {/* Tab 1: Upcoming Expenses Table */}
+            {activeTab === "expenses" && (
               <div className="space-y-4">
                 <div className="flex justify-end">
                   <Link
@@ -416,8 +310,8 @@ export function SlideOverCategoryDrawer({
               </div>
             )}
 
-            {/* Tab 3: History Table */}
-            {currentActiveTab === "activity" && (
+            {/* Tab 2: History Table */}
+            {activeTab === "activity" && (
               <div className="space-y-4">
                 <div className="flex justify-end">
                   <Link
@@ -482,22 +376,6 @@ export function SlideOverCategoryDrawer({
           </div>
         </div>
       </div>
-
-      {/* Internal Category Modal Fallback */}
-      {!onEditCategory && (
-        <CategoryItemModal
-          isOpen={internalCategoryModalOpen}
-          onClose={() => {
-            setInternalCategoryModalOpen(false);
-            setInternalCategoryToEdit(null);
-          }}
-          categoryToEdit={internalCategoryToEdit}
-          initialPoolId={targetPool?.id}
-          onSuccess={() => {
-            poolsQuery.refetch();
-          }}
-        />
-      )}
     </div>
   );
 }

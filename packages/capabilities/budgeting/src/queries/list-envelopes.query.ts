@@ -20,7 +20,6 @@ export async function listEnvelopesQuery(
       name: envelopes.name,
       envelopeType: envelopes.envelopeType,
       bankAccountId: envelopes.bankAccountId,
-      everydayAllowanceAmount: envelopes.everydayAllowanceAmount,
       safetyBufferFloor: envelopes.safetyBufferFloor,
       monthlyAmount: envelopes.monthlyAmount,
       enteredAmount: envelopes.enteredAmount,
@@ -30,13 +29,11 @@ export async function listEnvelopesQuery(
       rrule: envelopes.rrule,
       goalMode: envelopes.goalMode,
       targetAmount: envelopes.targetAmount,
-      targetDate: envelopes.targetDate,
       isEssential: envelopes.isEssential,
       isCommitted: envelopes.isCommitted,
       isSurplusTarget: envelopes.isSurplusTarget,
       isPrivate: envelopes.isPrivate,
       userId: envelopes.userId,
-      icon: envelopes.icon,
       orderIndex: envelopes.orderIndex,
       createdAt: envelopes.createdAt,
       bankAccountName: bankAccounts.name,
@@ -70,8 +67,8 @@ export async function listEnvelopesQuery(
       } else {
         const target = env.targetAmount ? parseFloat(env.targetAmount) : 0;
         progressPercentage = target > 0 ? Math.min(100, Math.round((currentBalance / target) * 100)) : 0;
-        if (env.targetDate) {
-          const targetD = new Date(env.targetDate + "T00:00:00+10:00").getTime();
+        if (env.endDate) {
+          const targetD = new Date(env.endDate + "T00:00:00+10:00").getTime();
           if (today.getTime() > targetD && currentBalance < target) {
             healthStatus = "RED";
           } else if (progressPercentage < 50) {
@@ -95,7 +92,6 @@ export async function listEnvelopesQuery(
       envelopeType: env.envelopeType,
       bankAccountId: env.bankAccountId,
       bankAccountName: env.bankAccountName || null,
-      everydayAllowanceAmount: env.everydayAllowanceAmount,
       safetyBufferFloor: env.safetyBufferFloor,
       monthlyAmount: env.monthlyAmount,
       enteredAmount: env.enteredAmount,
@@ -105,13 +101,11 @@ export async function listEnvelopesQuery(
       rrule: env.rrule,
       goalMode: env.goalMode,
       targetAmount: env.targetAmount,
-      targetDate: env.targetDate,
       isEssential: env.isEssential,
       isCommitted: env.isCommitted,
       isSurplusTarget: env.isSurplusTarget,
       isPrivate: env.isPrivate,
       userId: env.userId,
-      icon: env.icon,
       orderIndex: env.orderIndex,
       createdAt: env.createdAt,
       currentBalance,

@@ -449,7 +449,7 @@ export default function DashboardPage() {
               currentBalance: String(g.currentBalance || "0"),
               healthStatus: g.healthStatus,
               targetAmount: g.targetAmount,
-              targetDate: g.targetDate,
+              endDate: g.endDate,
               goalMode: g.goalMode,
               enteredAmount: g.enteredAmount,
               budgetFrequency: g.budgetFrequency,

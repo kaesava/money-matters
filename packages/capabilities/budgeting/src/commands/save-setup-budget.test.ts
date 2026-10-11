@@ -93,7 +93,7 @@ describe("saveSetupBudgetHandler", () => {
           { name: "Bills Account", bankProvider: "CBA", lastKnownBalance: "2500.00", unbudgetedBuffer: "0.00", isPrivate: false },
         ],
         envelopes: [
-          { name: "Everyday Spending", envelopeType: "EVERYDAY", everydayAllowanceAmount: "600.00", isSurplusTarget: false, isCommitted: false, isPrivate: false, orderIndex: 0 },
+          { name: "Everyday Spending", envelopeType: "EVERYDAY", monthlyAmount: "600.00", isSurplusTarget: false, isCommitted: false, isPrivate: false, orderIndex: 0 },
           { name: "Electricity", envelopeType: "SCHEDULED_BILL", monthlyAmount: "150.00", enteredAmount: "150.00", budgetFrequency: "MONTHLY", isSurplusTarget: false, isCommitted: true, isPrivate: false, orderIndex: 1 },
           { name: "Emergency Reserve", envelopeType: "ONGOING_GOAL", targetAmount: "10000.00", isSurplusTarget: true, isCommitted: true, isPrivate: false, orderIndex: 2 },
         ],

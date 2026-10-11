@@ -72,11 +72,10 @@ export function IncomeSplitOverview() {
         currentBalance: parseFloat(String(p.currentBalance || "0")),
         monthlyAmount: monthlyAmt,
         targetAmount: p.targetAmount ? parseFloat(p.targetAmount) : null,
-        everydayAllowanceAmount: isEveryday && monthlyAmt ? monthlyAmt : null,
         isCommitted: p.isCommitted ?? undefined,
         isSurplusTarget: p.isSurplusTarget ?? undefined,
         isPrivate: p.isPrivate ?? undefined,
-        targetDate: p.targetDate || null,
+        endDate: p.endDate || null,
       };
     });
   }, [pools]);

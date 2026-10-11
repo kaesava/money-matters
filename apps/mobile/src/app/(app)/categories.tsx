@@ -46,16 +46,13 @@ export default function PoolsScreen() {
   const [typeFilter, setTypeFilter] = useState<PoolTypeFilter>('ALL');
   const [privacyFilter, setPrivacyFilter] = useState<PrivacyFilter>('ALL');
   const [collapsedTypes, setCollapsedTypes] = useState<Record<string, boolean>>({});
-  const [expandedPools, setExpandedPools] = useState<Record<string, boolean>>({});
   const toggleTypeCollapse = (type: string) => setCollapsedTypes((prev) => ({ ...prev, [type]: !prev[type] }));
-  const togglePoolExpand = (poolId: string) => setExpandedPools((prev) => ({ ...prev, [poolId]: !prev[poolId] }));
 
   const poolsQuery = trpc.listPools.useQuery(undefined, { enabled: !!session?.user });
   const bankAccountsQuery = trpc.listBankAccounts.useQuery(undefined, { enabled: !!session?.user });
 
   const pools = poolsQuery.data ?? [];
   const bankAccounts = bankAccountsQuery.data ?? [];
-  const categories: unknown[] = [];
 
   const onRefresh = async () => {
     setRefreshing(true);
@@ -152,9 +149,6 @@ export default function PoolsScreen() {
               isCollapsed={!!collapsedTypes['EVERYDAY']}
               onToggleCollapse={() => toggleTypeCollapse('EVERYDAY')}
               bankAccounts={bankAccounts}
-              categories={categories}
-              expandedPools={expandedPools}
-              onTogglePoolExpand={togglePoolExpand}
             />
             <PoolGroupSection
               title={t('categories.billsPoolsUpper')}
@@ -162,9 +156,6 @@ export default function PoolsScreen() {
               isCollapsed={!!collapsedTypes['REGULAR']}
               onToggleCollapse={() => toggleTypeCollapse('REGULAR')}
               bankAccounts={bankAccounts}
-              categories={categories}
-              expandedPools={expandedPools}
-              onTogglePoolExpand={togglePoolExpand}
             />
             <PoolGroupSection
               title={t('categories.goalsUpper')}
@@ -172,9 +163,6 @@ export default function PoolsScreen() {
               isCollapsed={!!collapsedTypes['GOAL']}
               onToggleCollapse={() => toggleTypeCollapse('GOAL')}
               bankAccounts={bankAccounts}
-              categories={categories}
-              expandedPools={expandedPools}
-              onTogglePoolExpand={togglePoolExpand}
             />
             {filteredPools.length === 0 && (
               <View style={styles.emptyCard}>

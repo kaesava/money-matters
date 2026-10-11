@@ -8,8 +8,7 @@ import { t } from "@money-matters/i18n";
 import { Spinner, SearchInput, Tabs } from "@money-matters/ui/web";
 import { IncomeFormModal, IncomeSourceToEdit } from "../../../components/web/IncomeFormModal";
 import { QuickExpenseDrawer } from "../../../components/web/QuickExpenseDrawer";
-import { CategoryItemModal } from "../../../components/web/CategoryItemModal";
-import { CategoryItem } from "../envelopes/types";
+import { CategoryFormModal } from "../../../components/web/CategoryFormModal";
 import { IncomeSchedulesCard } from "./components/IncomeSchedulesCard";
 import { BillSchedulesCard } from "./components/BillSchedulesCard";
 import { TimelineTabWrapper } from "./components/TimelineTabWrapper";
@@ -24,8 +23,18 @@ function IncomeAndBillsContent() {
   const [quickActionTab, setQuickActionTab] = useState<"DEBIT" | "CREDIT" | "TRANSFER" | null>(null);
   const [isIncomeModalOpen, setIsIncomeModalOpen] = useState(false);
   const [incomeToEdit, setIncomeToEdit] = useState<IncomeSourceToEdit | undefined>(undefined);
-  const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
-  const [categoryToEdit, setCategoryToEdit] = useState<CategoryItem | null>(null);
+  const [isEnvelopeModalOpen, setIsEnvelopeModalOpen] = useState(false);
+  const [envelopeToEdit, setEnvelopeToEdit] = useState<{
+    id: string;
+    name: string;
+    bankAccountId?: string | null;
+    monthlyAmount?: string | null;
+    enteredAmount?: string | null;
+    budgetFrequency?: "WEEKLY" | "FORTNIGHTLY" | "MONTHLY" | "ANNUALLY" | null;
+    startDate?: string | null;
+    rrule?: string | null;
+    poolType?: string;
+  } | null>(null);
 
   const [setupSearchQuery, setSetupSearchQuery] = useState("");
   const [setupScopeFilter, setSetupScopeFilter] = useState<"ALL" | "SHARED" | "PRIVATE">("ALL");
@@ -156,19 +165,22 @@ function IncomeAndBillsContent() {
               }))}
               searchQuery={setupSearchQuery}
               scopeFilter={setupScopeFilter}
-              onAddBillSchedule={() => { setCategoryToEdit(null); setIsCategoryModalOpen(true); }}
+              onAddBillSchedule={() => { setEnvelopeToEdit(null); setIsEnvelopeModalOpen(true); }}
               onAddOneOff={() => setQuickActionTab("DEBIT")}
               onEditCategory={(cat) => {
-                setCategoryToEdit({
+                const targetPool = pools.find((p) => p.id === cat.id || p.id === cat.poolId);
+                setEnvelopeToEdit({
                   id: cat.id,
                   name: cat.name,
-                  poolId: cat.poolId,
+                  bankAccountId: targetPool?.bankAccountId,
                   monthlyAmount: cat.monthlyAmount,
                   enteredAmount: cat.enteredAmount,
-                  budgetFrequency: cat.budgetFrequency,
-                  isEssential: cat.isEssential,
+                  budgetFrequency: (cat.budgetFrequency as "WEEKLY" | "FORTNIGHTLY" | "MONTHLY" | "ANNUALLY") || "MONTHLY",
+                  startDate: targetPool?.startDate,
+                  rrule: targetPool?.rrule,
+                  poolType: targetPool?.envelopeType || "REGULAR",
                 });
-                setIsCategoryModalOpen(true);
+                setIsEnvelopeModalOpen(true);
               }}
             />
           </div>
@@ -220,12 +232,11 @@ function IncomeAndBillsContent() {
         />
       )}
 
-      {isCategoryModalOpen && (
-        <CategoryItemModal
-          isOpen={isCategoryModalOpen}
-          onClose={() => { setIsCategoryModalOpen(false); setCategoryToEdit(null); }}
-          categoryToEdit={categoryToEdit}
-          limitToPoolType="REGULAR"
+      {isEnvelopeModalOpen && (
+        <CategoryFormModal
+          isOpen={isEnvelopeModalOpen}
+          onClose={() => { setIsEnvelopeModalOpen(false); setEnvelopeToEdit(null); }}
+          categoryToEdit={envelopeToEdit}
           onSuccess={() => {
             utils.listBillSchedules.invalidate();
             utils.listPools.invalidate();

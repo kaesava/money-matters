@@ -155,7 +155,6 @@
 | `name` | varchar | - | Domain column |
 | `envelopeType` | envelopeTypeEnum | - | Domain column |
 | `bankAccountId` | uuid | - | Domain column |
-| `everydayAllowanceAmount` | numeric | - | Domain column |
 | `safetyBufferFloor` | numeric | - | Domain column |
 | `monthlyAmount` | numeric | - | Domain column |
 | `enteredAmount` | numeric | - | Domain column |
@@ -165,13 +164,11 @@
 | `rrule` | varchar | - | Domain column |
 | `goalMode` | goalModeEnum | - | Domain column |
 | `targetAmount` | numeric | - | Domain column |
-| `targetDate` | varchar | - | Domain column |
 | `isEssential` | boolean | - | Domain column |
 | `isCommitted` | boolean | - | Domain column |
 | `isSurplusTarget` | boolean | - | Domain column |
 | `isPrivate` | boolean | - | Domain column |
 | `userId` | uuid | - | Domain column |
-| `icon` | varchar | - | Domain column |
 | `orderIndex` | integer | - | Domain column |
 | `tenantId` | uuid | No | Tenant Foreign Key (RLS isolation) |
 | `appId` | varchar | No | Application ID |
@@ -375,7 +372,6 @@
 | :--- | :--- | :--- | :--- |
 | `id` | uuid | No | Primary Key |
 | `id` | uuid | - | Domain column |
-| `transferSourceId` | uuid | - | Domain column |
 | `sourceEnvelopeId` | uuid | - | Domain column |
 | `destinationEnvelopeId` | uuid | - | Domain column |
 | `name` | varchar | - | Domain column |
@@ -383,25 +379,6 @@
 | `expectedAmount` | numeric | - | Domain column |
 | `actualAmount` | numeric | - | Domain column |
 | `status` | transferEventStatusEnum | - | Domain column |
-| `tenantId` | uuid | No | Tenant Foreign Key (RLS isolation) |
-| `appId` | varchar | No | Application ID |
-| `createdAt` | timestamp | No | Creation timestamp |
-| `createdBy` | uuid | Yes | Creator User ID |
-| `updatedAt` | timestamp | No | Last update timestamp |
-| `updatedBy` | uuid | Yes | Modifier User ID |
-| `archivedAt` | timestamp | Yes | Soft delete timestamp |
-
-## Table: `transfer_sources` (`transfer_source.ts`)
-
-| Column | Type | Nullable | Description |
-| :--- | :--- | :--- | :--- |
-| `id` | uuid | No | Primary Key |
-| `id` | uuid | - | Domain column |
-| `name` | varchar | - | Domain column |
-| `amount` | numeric | - | Domain column |
-| `sourceEnvelopeId` | uuid | - | Domain column |
-| `destinationEnvelopeId` | uuid | - | Domain column |
-| `startDate` | date | - | Domain column |
 | `tenantId` | uuid | No | Tenant Foreign Key (RLS isolation) |
 | `appId` | varchar | No | Application ID |
 | `createdAt` | timestamp | No | Creation timestamp |

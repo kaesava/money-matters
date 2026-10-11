@@ -8,7 +8,7 @@ describe("cumulative-projection engine", () => {
       id: "pool-everyday",
       name: "Everyday Expenses",
       type: "EVERYDAY",
-      everydayAllowanceAmount: 500,
+      monthlyAmount: 500,
       currentBalance: 200,
     },
     {
@@ -117,7 +117,7 @@ describe("cumulative-projection engine", () => {
           id: "pool-everyday",
           name: "Everyday Expenses",
           type: "EVERYDAY",
-          everydayAllowanceAmount: 600, // $600/mo = $20/day
+          monthlyAmount: 600, // $600/mo = $20/day
           currentBalance: 500,
         },
         {

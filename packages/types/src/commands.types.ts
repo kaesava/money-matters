@@ -52,7 +52,6 @@ export const CreateEnvelopeCommand = z.object({
     "ONGOING_GOAL",
   ]),
   bankAccountId: z.string().uuid("Please select a bank account"),
-  everydayAllowanceAmount: z.string().regex(/^(\d{1,12}(\.\d{1,2})?)?$/, { message: "Amount must be a valid positive number" }).optional().nullable(),
   safetyBufferFloor: z.string().regex(/^(\d{1,12}(\.\d{1,2})?)?$/, { message: "Safety buffer must be a valid positive number" }).optional().nullable(),
   monthlyAmount: z.string().regex(/^(\d{1,12}(\.\d{1,2})?)?$/, { message: "Target amount must be a valid positive number" }).optional().nullable(),
   enteredAmount: z.string().regex(/^(\d{1,12}(\.\d{1,2})?)?$/, { message: "Entered amount must be a valid positive number" }).optional().nullable(),
@@ -62,12 +61,10 @@ export const CreateEnvelopeCommand = z.object({
   rrule: z.string().optional().nullable(),
   goalMode: z.enum(["TARGET_DATE", "ONGOING"]).optional().default("TARGET_DATE"),
   targetAmount: z.string().regex(/^(\d{1,12}(\.\d{1,2})?)?$/, { message: "Target amount must be a valid positive number" }).optional().nullable(),
-  targetDate: z.string().optional().nullable(),
   isEssential: z.boolean().default(false).optional(),
   isCommitted: z.boolean().default(false).optional(),
   isSurplusTarget: z.boolean().default(false).optional(),
   isPrivate: z.boolean().default(false).optional(),
-  icon: z.string().optional().nullable(),
   orderIndex: z.number().int().default(0).optional(),
 }).strict().superRefine((data, ctx) => {
   if (data.envelopeType === "TARGET_GOAL" || data.envelopeType === "ONGOING_GOAL") {
@@ -79,11 +76,11 @@ export const CreateEnvelopeCommand = z.object({
         path: ["targetAmount"],
       });
     }
-    if (data.envelopeType === "TARGET_GOAL" && !data.targetDate) {
+    if (data.envelopeType === "TARGET_GOAL" && !data.endDate) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         message: "Completion date is required for Target Date Goal envelopes",
-        path: ["targetDate"],
+        path: ["endDate"],
       });
     }
   }
@@ -92,7 +89,6 @@ export const CreateEnvelopeCommand = z.object({
 export const UpdateEnvelopeCommand = z.object({
   name: z.string().min(1, "Envelope name is required").optional(),
   bankAccountId: z.string().uuid("Please select a bank account").optional(),
-  everydayAllowanceAmount: z.string().regex(/^(\d{1,12}(\.\d{1,2})?)?$/, { message: "Amount must be a valid positive number" }).optional().nullable(),
   safetyBufferFloor: z.string().regex(/^(\d{1,12}(\.\d{1,2})?)?$/, { message: "Safety buffer must be a valid positive number" }).optional().nullable(),
   monthlyAmount: z.string().regex(/^(\d{1,12}(\.\d{1,2})?)?$/, { message: "Target amount must be a valid positive number" }).optional().nullable(),
   enteredAmount: z.string().regex(/^(\d{1,12}(\.\d{1,2})?)?$/, { message: "Entered amount must be a valid positive number" }).optional().nullable(),
@@ -102,12 +98,10 @@ export const UpdateEnvelopeCommand = z.object({
   rrule: z.string().optional().nullable(),
   goalMode: z.enum(["TARGET_DATE", "ONGOING"]).optional(),
   targetAmount: z.string().regex(/^(\d{1,12}(\.\d{1,2})?)?$/, { message: "Target amount must be a valid positive number" }).optional().nullable(),
-  targetDate: z.string().optional().nullable(),
   isEssential: z.boolean().optional(),
   isCommitted: z.boolean().optional(),
   isSurplusTarget: z.boolean().optional(),
   isPrivate: z.boolean().optional(),
-  icon: z.string().optional().nullable(),
   orderIndex: z.number().int().optional(),
 }).strict();
 
@@ -327,20 +321,17 @@ export const SaveSetupBudgetCommand = z.object({
     ]),
     goalMode: z.enum(["TARGET_DATE", "ONGOING"]).optional(),
     targetAmount: z.string().regex(/^(\d{1,12}(\.\d{1,2})?)?$/).optional().nullable(),
-    targetDate: z.string().optional().nullable(),
     monthlyAmount: z.string().regex(/^(\d{1,12}(\.\d{1,2})?)?$/).optional().nullable(),
     enteredAmount: z.string().regex(/^(\d{1,12}(\.\d{1,2})?)?$/).optional().nullable(),
     budgetFrequency: z.enum(["WEEKLY", "FORTNIGHTLY", "MONTHLY", "ANNUALLY"]).optional(),
     startDate: z.string().optional().nullable(),
     endDate: z.string().optional().nullable(),
     rrule: z.string().optional().nullable(),
-    everydayAllowanceAmount: z.string().regex(/^(\d{1,12}(\.\d{1,2})?)?$/).optional().nullable(),
     safetyBufferFloor: z.string().regex(/^(\d{1,12}(\.\d{1,2})?)?$/).optional().nullable(),
     isSurplusTarget: z.boolean().default(false),
     isCommitted: z.boolean().default(false),
     isEssential: z.boolean().default(false),
     isPrivate: z.boolean().default(false),
-    icon: z.string().optional().nullable(),
     orderIndex: z.number().int().default(0),
   })).min(1),
   archivedEnvelopeIds: z.array(z.string()).default([]),

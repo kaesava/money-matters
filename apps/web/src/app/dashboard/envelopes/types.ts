@@ -13,6 +13,7 @@ export interface CategorySummaryItem {
   monthlyAmount?: string | null;
   targetAmount?: string | null;
   targetDate?: string | null;
+  endDate?: string | null;
   safetyBufferFloor?: string | null;
   goalMode?: "TARGET_DATE" | "ONGOING" | null;
   isEssential?: boolean | null;
@@ -46,6 +47,7 @@ export interface PoolTableRow {
   currentBalance: number;
   targetAmount: number | null;
   targetDate: string | null;
+  endDate?: string | null;
   safetyBufferFloor?: number | null;
   categoryCount?: number;
   categories?: CategoryItem[];

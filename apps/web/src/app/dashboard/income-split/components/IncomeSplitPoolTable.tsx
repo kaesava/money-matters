@@ -19,9 +19,9 @@ interface PoolRecord {
   bankAccountId?: string | null;
   bankAccountName?: string | null;
   currentBalance?: string | number | null;
+  monthlyAmount?: string | number | null;
   targetAmount?: string | number | null;
-  targetDate?: string | null;
-  everydayAllowanceAmount?: string | number | null;
+  endDate?: string | null;
 }
 
 export interface IncomeSplitPoolTableProps {
@@ -137,9 +137,7 @@ export function IncomeSplitPoolTable({
                         const isSweep = Boolean(sweepPoolId && l.bucketId === sweepPoolId);
                         const currentBal = poolObj ? parseFloat(String(poolObj.currentBalance || "0")) : 0;
                         const targetRaw = poolObj
-                          ? poolObj.poolType === "EVERYDAY"
-                            ? poolObj.everydayAllowanceAmount || poolObj.targetAmount
-                            : poolObj.targetAmount
+                          ? poolObj.monthlyAmount || poolObj.targetAmount
                           : null;
                         const targetNum = targetRaw ? parseFloat(String(targetRaw)) : 0;
 
@@ -236,8 +234,8 @@ export function IncomeSplitPoolTable({
                           : (targetNum > 0 ? (
                               <div>
                                 <div>{fmt(targetNum)}</div>
-                                {poolObj?.targetDate && (
-                                  <div className="text-[10px] text-zinc-400 font-sans">{fmtDate(poolObj.targetDate)}</div>
+                                {poolObj?.endDate && (
+                                  <div className="text-[10px] text-zinc-400 font-sans">{fmtDate(poolObj.endDate)}</div>
                                 )}
                               </div>
                             ) : "—");

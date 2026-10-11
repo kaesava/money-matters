@@ -95,10 +95,8 @@ describe('Domain Schemas Validation', () => {
       monthlyAmount: '1200.00',
       enteredAmount: '1200.00',
       budgetFrequency: 'MONTHLY',
-      icon: 'home',
     });
     expect(envelope.envelopeType).toBe('SCHEDULED_BILL');
-    expect(envelope.icon).toBe('home');
   });
 
   it('validates IncomeSourceSchema and IncomeSourceScheduleSchema', () => {

@@ -204,8 +204,8 @@ describe('Command Schemas Validation', () => {
         { name: 'Everyday Account', bankProvider: 'CBA', lastKnownBalance: '800.00' },
       ],
       envelopes: [
-        { name: 'Everyday Spending', envelopeType: 'EVERYDAY', everydayAllowanceAmount: '800.00' },
-        { name: 'Groceries', envelopeType: 'FLEXIBLE_BILL', monthlyAmount: '600.00', icon: 'shopping-cart' },
+        { name: 'Everyday Spending', envelopeType: 'EVERYDAY', monthlyAmount: '800.00' },
+        { name: 'Groceries', envelopeType: 'FLEXIBLE_BILL', monthlyAmount: '600.00' },
       ],
       archivedEnvelopeIds: [],
       archetypeApplied: 'AUSSIE_2_ACCOUNT',

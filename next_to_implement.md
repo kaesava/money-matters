@@ -8,6 +8,10 @@
 * Aggressively cull un-used code, l18n keys, files and database tables/fields.
 
 
+# Web App & Mobile app
+
+## Envelopes
+You will now audit functionality and UX (mobile+web) of the Pools screen and related modals, popups, confirmations, links, messages, information icons, etc. to ensure consistent with philosophy of envelopes, envelop types and modes. Identify gaps 
 
 
 ## General - the below changes apply to the screens listed in the next section.

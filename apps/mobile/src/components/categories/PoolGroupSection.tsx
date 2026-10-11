@@ -10,9 +10,6 @@ interface PoolGroupSectionProps {
   isCollapsed: boolean;
   onToggleCollapse: () => void;
   bankAccounts: any[];
-  categories: any[];
-  expandedPools: Record<string, boolean>;
-  onTogglePoolExpand: (id: string) => void;
 }
 
 export function PoolGroupSection({
@@ -21,9 +18,6 @@ export function PoolGroupSection({
   isCollapsed,
   onToggleCollapse,
   bankAccounts,
-  categories,
-  expandedPools,
-  onTogglePoolExpand,
 }: PoolGroupSectionProps) {
   if (pools.length === 0) return null;
 
@@ -51,9 +45,6 @@ export function PoolGroupSection({
             key={p.id}
             pool={p}
             bank={bankAccounts.find((b) => b.id === p.bankAccountId)}
-            categories={categories}
-            isExpanded={!!expandedPools[p.id]}
-            onToggleExpand={() => onTogglePoolExpand(p.id)}
           />
         ))}
     </View>

@@ -12,7 +12,7 @@ import { IncomeSourceItem } from '../../../components/paychecks/IncomeSourceCard
 import { ExpenseSourceItem } from '../../../components/paychecks/ExpenseBillCard';
 import { PaychecksModalManager } from '../../../components/paychecks/PaychecksModalManager';
 
-import { CategoryItemModal, CategoryItemToEdit } from '../../../components/CategoryItemModal';
+import { CategoryFormModal, CategoryItem as PoolToEdit } from '../../../components/CategoryFormModal';
 import { QuickExpenseModal, QuickActionType } from '../../../components/QuickExpenseModal';
 
 export default function RecurringSchedulesScreen() {
@@ -23,9 +23,9 @@ export default function RecurringSchedulesScreen() {
   const [formMode, setFormMode] = useState<'INCOME' | 'EXPENSE'>('INCOME');
   const [sourceToEdit, setSourceToEdit] = useState<SourceToEdit | null>(null);
 
-  // Category Modal State (for in-place bill category edit/create)
+  // Category/Pool Modal State (for in-place bill envelope edit/create)
   const [categoryModalVisible, setCategoryModalVisible] = useState(false);
-  const [categoryToEdit, setCategoryToEdit] = useState<CategoryItemToEdit | null>(null);
+  const [poolToEdit, setPoolToEdit] = useState<PoolToEdit | null>(null);
 
   // Quick Action Modal State (for one-off income/expense)
   const [quickActionVisible, setQuickActionVisible] = useState(false);
@@ -131,7 +131,7 @@ export default function RecurringSchedulesScreen() {
               setFormMode('INCOME');
               setFormModalVisible(true);
             } else {
-              setCategoryToEdit(null);
+              setPoolToEdit(null);
               setCategoryModalVisible(true);
             }
           }}
@@ -145,10 +145,13 @@ export default function RecurringSchedulesScreen() {
               setFormMode('INCOME');
               setFormModalVisible(true);
             } else {
-              setCategoryToEdit({
+              const targetPool = pools.find((p) => p.id === source.id || p.id === source.poolId);
+              setPoolToEdit({
                 id: source.id,
                 name: source.name,
-                poolId: source.poolId || undefined,
+                type: 'REGULAR',
+                poolType: 'REGULAR',
+                bankAccountId: targetPool?.bankAccountId,
                 monthlyAmount: source.amount,
                 enteredAmount: source.amount,
                 startDate: source.startDate ? String(source.startDate) : undefined,
@@ -160,10 +163,9 @@ export default function RecurringSchedulesScreen() {
         />
       </ScrollView>
 
-      <CategoryItemModal
+      <CategoryFormModal
         visible={categoryModalVisible}
-        categoryToEdit={categoryToEdit}
-        limitToPoolType="REGULAR"
+        categoryToEdit={poolToEdit}
         onClose={() => setCategoryModalVisible(false)}
         onSuccess={() => {
           setCategoryModalVisible(false);

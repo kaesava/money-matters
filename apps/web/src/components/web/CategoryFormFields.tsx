@@ -7,6 +7,8 @@ export interface CategoryFormFieldsProps {
   setName: (val: string) => void;
   type: 'EVERYDAY' | 'REGULAR' | 'GOAL';
   setType: (val: 'EVERYDAY' | 'REGULAR' | 'GOAL') => void;
+  billMode?: 'SCHEDULED_BILL' | 'FLEXIBLE_BILL';
+  setBillMode?: (val: 'SCHEDULED_BILL' | 'FLEXIBLE_BILL') => void;
   bankAccountId: string;
   setBankAccountId: (val: string) => void;
   bankAccountOptions: Array<{ value: string; label: string }>;
@@ -37,6 +39,8 @@ export function CategoryFormFields({
   setName,
   type,
   setType,
+  billMode = 'SCHEDULED_BILL',
+  setBillMode,
   bankAccountId,
   setBankAccountId,
   bankAccountOptions,
@@ -96,20 +100,75 @@ export function CategoryFormFields({
         </div>
       )}
 
-      {(type === 'REGULAR' || type === 'EVERYDAY') && (
-        <div className="p-3 bg-slate-50 border border-zinc-200 rounded-xl text-zinc-600 text-[11px] leading-relaxed">
-          <span className="font-bold text-[#1B2B4B] block mb-0.5">{t('categories.calculatedTarget')}</span>
-          {t('categories.calculatedTargetNotice')}
+      {type === 'REGULAR' && (
+        <div className="space-y-3">
+          <div className="flex flex-col gap-1.5">
+            <label className="text-xs font-bold uppercase tracking-wider text-zinc-500">
+              {t('categories.billModeLabel')}
+            </label>
+            <div className="grid grid-cols-2 gap-2 p-1 bg-zinc-100 rounded-xl">
+              <button
+                type="button"
+                disabled={isEdit}
+                onClick={() => setBillMode?.('SCHEDULED_BILL')}
+                className={`py-2 px-3 text-xs font-bold rounded-lg transition-all text-center cursor-pointer ${
+                  billMode === 'SCHEDULED_BILL'
+                    ? 'bg-white text-[#2563eb] shadow-xs'
+                    : 'text-zinc-600 hover:text-zinc-900'
+                }`}
+              >
+                {t('categories.billModeScheduled')}
+              </button>
+              <button
+                type="button"
+                disabled={isEdit}
+                onClick={() => setBillMode?.('FLEXIBLE_BILL')}
+                className={`py-2 px-3 text-xs font-bold rounded-lg transition-all text-center cursor-pointer ${
+                  billMode === 'FLEXIBLE_BILL'
+                    ? 'bg-white text-[#2563eb] shadow-xs'
+                    : 'text-zinc-600 hover:text-zinc-900'
+                }`}
+              >
+                {t('categories.billModeFlexible')}
+              </button>
+            </div>
+            <span className="text-[11px] text-zinc-500 font-medium">
+              {billMode === 'SCHEDULED_BILL'
+                ? t('categories.billModeScheduledDesc')
+                : t('categories.billModeFlexibleDesc')}
+            </span>
+          </div>
+
+          {billMode === 'FLEXIBLE_BILL' ? (
+            <AmountField
+              label={t('categories.flexibleTargetAmountLabel')}
+              required
+              value={targetAmount}
+              onChange={setTargetAmount}
+              placeholder="150.00"
+            />
+          ) : (
+            <div className="p-3 bg-slate-50 border border-zinc-200 rounded-xl text-zinc-600 text-[11px] leading-relaxed">
+              <span className="font-bold text-[#1B2B4B] block mb-0.5">{t('categories.calculatedTarget')}</span>
+              {t('categories.calculatedTargetNotice')}
+            </div>
+          )}
         </div>
       )}
 
       {type === 'EVERYDAY' && (
-        <AmountField
-          label={t('categories.safetyBufferFloorLabel')}
-          value={safetyBufferFloor}
-          onChange={setSafetyBufferFloor}
-          placeholder="0.00"
-        />
+        <>
+          <div className="p-3 bg-slate-50 border border-zinc-200 rounded-xl text-zinc-600 text-[11px] leading-relaxed">
+            <span className="font-bold text-[#1B2B4B] block mb-0.5">{t('categories.calculatedTarget')}</span>
+            {t('categories.calculatedTargetNotice')}
+          </div>
+          <AmountField
+            label={t('categories.safetyBufferFloorLabel')}
+            value={safetyBufferFloor}
+            onChange={setSafetyBufferFloor}
+            placeholder="0.00"
+          />
+        </>
       )}
 
       {type === 'GOAL' && (

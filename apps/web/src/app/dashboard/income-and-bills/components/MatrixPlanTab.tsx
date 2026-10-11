@@ -493,7 +493,7 @@ export function MatrixPlanTab({
                             {(() => {
                               const cat = categories.find((c) => c.id === row.categoryId);
                               const curBal = cat ? cat.currentBalance : 0;
-                              const targetVal = cat ? cat.monthlyAmount ?? cat.targetAmount ?? cat.everydayAllowanceAmount : null;
+                              const targetVal = cat ? (cat.monthlyAmount ?? cat.targetAmount ?? null) : null;
                               return (
                                 <div className="text-[10px] font-medium text-zinc-500 font-mono mt-0.5">
                                   Bal: ${curBal.toFixed(2)}

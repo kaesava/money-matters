@@ -131,7 +131,6 @@ export const EnvelopeSchema = BaseSchema.extend({
   name: z.string().min(1),
   envelopeType: EnvelopeTypeEnum,
   bankAccountId: z.string().uuid(),
-  everydayAllowanceAmount: z.string().nullable().optional(),
   safetyBufferFloor: z.string().nullable().optional(),
   monthlyAmount: z.string().nullable().optional(),
   enteredAmount: z.string().nullable().optional(),
@@ -141,13 +140,11 @@ export const EnvelopeSchema = BaseSchema.extend({
   rrule: z.string().nullable().optional(),
   goalMode: GoalModeEnum.default("TARGET_DATE").optional(),
   targetAmount: z.string().nullable().optional(),
-  targetDate: z.string().nullable().optional(),
   isEssential: z.boolean().default(false),
   isCommitted: z.boolean().default(false),
   isSurplusTarget: z.boolean().default(false),
   isPrivate: z.boolean().default(false),
   userId: z.string().uuid().nullable().optional(),
-  icon: z.string().nullable().optional(),
   orderIndex: z.number().int().default(0),
 }).strict();
 

@@ -202,7 +202,7 @@ export default function IncomeSplitStudioScreen() {
             poolType={activePoolObj.envelopeType}
             currentBalance={activePoolObj.currentBalance}
             targetAmount={activePoolObj.targetAmount}
-            targetDate={activePoolObj.targetDate}
+            targetDate={activePoolObj.endDate}
             subcategories={[]}
             onClose={() => setSelectedPoolForSheet(null)}
           />

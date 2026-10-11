@@ -214,7 +214,7 @@ describe("paycheck cascade allocation engine", () => {
         id: "everyday-pool",
         name: "Everyday Pool",
         type: "EVERYDAY",
-        everydayAllowanceAmount: 600,
+        monthlyAmount: 600,
         currentBalance: 0,
       },
       {
@@ -376,7 +376,7 @@ describe("paycheck cascade allocation engine", () => {
         id: "everyday-pool",
         name: "Everyday Cash",
         type: "EVERYDAY",
-        everydayAllowanceAmount: 700, // Monthly $700 -> fortnightly cycle is $323.08
+        monthlyAmount: 700, // Monthly $700 -> fortnightly cycle is $323.08
         currentBalance: 200,
       },
       {
@@ -461,7 +461,7 @@ describe("paycheck cascade allocation engine", () => {
         id: "everyday-pool",
         name: "Groceries & Fuel",
         type: "EVERYDAY",
-        everydayAllowanceAmount: 650, // 650 * 12 / 26 = $300
+        monthlyAmount: 650, // 650 * 12 / 26 = $300
         currentBalance: 0,
       },
       {
@@ -518,7 +518,7 @@ describe("paycheck cascade allocation engine", () => {
         id: "everyday-pool",
         name: "Everyday",
         type: "EVERYDAY",
-        everydayAllowanceAmount: 400,
+        monthlyAmount: 400,
         currentBalance: 0,
       },
     ];
@@ -564,7 +564,7 @@ describe("paycheck cascade allocation engine", () => {
         id: "everyday-pool",
         name: "Everyday",
         type: "EVERYDAY",
-        everydayAllowanceAmount: 500,
+        monthlyAmount: 500,
         currentBalance: 0,
       },
       {

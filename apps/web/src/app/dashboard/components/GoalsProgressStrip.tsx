@@ -12,6 +12,7 @@ export interface GoalCategoryItem {
   readonly healthStatus?: string;
   readonly targetAmount?: string | number | null;
   readonly targetDate?: string | null;
+  readonly endDate?: string | null;
   readonly goalMode?: 'TARGET_DATE' | 'ONGOING' | null;
   readonly enteredAmount?: string | null;
   readonly budgetFrequency?: string | null;
@@ -19,6 +20,7 @@ export interface GoalCategoryItem {
   readonly schedule?: {
     targetAmount?: string | null;
     targetDate?: string | null;
+    endDate?: string | null;
   } | null;
 }
 
@@ -51,8 +53,9 @@ export const GoalsProgressStrip: React.FC<GoalsProgressStripProps> = ({
       let timeElapsedPct: number | null = null;
       let isOverdue = false;
 
-      if (!isOngoing && g.targetDate) {
-        const targetTime = new Date(g.targetDate).getTime();
+      const resolvedTargetDate = g.endDate || g.targetDate;
+      if (!isOngoing && resolvedTargetDate) {
+        const targetTime = new Date(resolvedTargetDate).getTime();
         const createdTime = g.createdAt
           ? new Date(g.createdAt).getTime()
           : targetTime - 90 * 24 * 60 * 60 * 1000;

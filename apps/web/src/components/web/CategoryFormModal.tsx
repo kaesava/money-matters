@@ -13,8 +13,8 @@ interface CategoryFormModalProps {
     id: string; poolId?: string; name: string;
     type?: "EVERYDAY" | "REGULAR" | "GOAL" | string; poolType?: "EVERYDAY" | "REGULAR" | "GOAL" | string;
     bankAccountId?: string | null; isPrivate?: boolean | null; monthlyAmount?: string | null;
-    everydayAllowanceAmount?: string | null; safetyBufferFloor?: string | null;
-    targetAmount?: string | null; targetDate?: string | null; goalMode?: "TARGET_DATE" | "ONGOING" | null;
+    safetyBufferFloor?: string | null;
+    targetAmount?: string | null; endDate?: string | null; targetDate?: string | null; goalMode?: "TARGET_DATE" | "ONGOING" | null;
     enteredAmount?: string | null; budgetFrequency?: "WEEKLY" | "FORTNIGHTLY" | "MONTHLY" | "ANNUALLY" | null;
     startDate?: string | null; rrule?: string | null;
     isSurplusTarget?: boolean | null;
@@ -38,6 +38,7 @@ export function CategoryFormModal({
 
   const [name, setName] = useState("");
   const [type, setType] = useState<"EVERYDAY" | "REGULAR" | "GOAL">("REGULAR");
+  const [billMode, setBillMode] = useState<"SCHEDULED_BILL" | "FLEXIBLE_BILL">("SCHEDULED_BILL");
   const [bankAccountId, setBankAccountId] = useState("");
   const [safetyBufferFloor, setSafetyBufferFloor] = useState("");
   const [targetAmount, setTargetAmount] = useState("");
@@ -62,10 +63,11 @@ export function CategoryFormModal({
       const resolvedType: "EVERYDAY" | "REGULAR" | "GOAL" =
         rawType === "EVERYDAY" ? "EVERYDAY" : rawType.includes("GOAL") ? "GOAL" : "REGULAR";
       setType(resolvedType);
+      setBillMode(rawType === "FLEXIBLE_BILL" ? "FLEXIBLE_BILL" : "SCHEDULED_BILL");
       setBankAccountId(categoryToEdit.bankAccountId || "");
       setSafetyBufferFloor(categoryToEdit.safetyBufferFloor || "");
-      setTargetAmount(categoryToEdit.enteredAmount || categoryToEdit.targetAmount || "");
-      setTargetDate(categoryToEdit.targetDate || "");
+      setTargetAmount(categoryToEdit.enteredAmount || categoryToEdit.targetAmount || categoryToEdit.monthlyAmount || "");
+      setTargetDate(categoryToEdit.endDate || categoryToEdit.targetDate || "");
       setGoalMode(categoryToEdit.goalMode || "TARGET_DATE");
       setFrequency(categoryToEdit.budgetFrequency || "MONTHLY");
       setGoalStartDate(categoryToEdit.startDate || "");
@@ -79,6 +81,7 @@ export function CategoryFormModal({
     } else {
       setName("");
       setType("REGULAR");
+      setBillMode("SCHEDULED_BILL");
       setBankAccountId("");
       setSafetyBufferFloor("");
       setTargetAmount("");
@@ -124,23 +127,29 @@ export function CategoryFormModal({
       if (!targetAmount || parseFloat(targetAmount) <= 0) return false;
       if (goalMode === "TARGET_DATE" && !targetDate) return false;
     }
+    if (type === "REGULAR" && billMode === "FLEXIBLE_BILL") {
+      if (!targetAmount || parseFloat(targetAmount) <= 0) return false;
+    }
     return true;
-  }, [name, isEdit, bankAccountId, type, targetAmount, goalMode, targetDate]);
+  }, [name, isEdit, bankAccountId, type, billMode, targetAmount, goalMode, targetDate]);
 
   const isDirty = useMemo(() => {
     if (!isEdit) return Boolean(name.trim() && bankAccountId);
     if (!categoryToEdit) return false;
+    const rawType = categoryToEdit.poolType || categoryToEdit.type || "REGULAR";
+    const origBillMode = rawType === "FLEXIBLE_BILL" ? "FLEXIBLE_BILL" : "SCHEDULED_BILL";
     return (
       name.trim() !== (categoryToEdit.name || "") ||
+      billMode !== origBillMode ||
       safetyBufferFloor !== (categoryToEdit.safetyBufferFloor || "") ||
-      targetAmount !== (categoryToEdit.enteredAmount || categoryToEdit.targetAmount || "") ||
-      targetDate !== (categoryToEdit.targetDate || "") ||
+      targetAmount !== (categoryToEdit.enteredAmount || categoryToEdit.targetAmount || categoryToEdit.monthlyAmount || "") ||
+      targetDate !== (categoryToEdit.endDate || categoryToEdit.targetDate || "") ||
       goalMode !== (categoryToEdit.goalMode || "TARGET_DATE") ||
       frequency !== (categoryToEdit.budgetFrequency || "MONTHLY") ||
       goalStartDate !== (categoryToEdit.startDate || "") ||
       isSurplusTarget !== (categoryToEdit.isSurplusTarget ?? false)
     );
-  }, [isEdit, categoryToEdit, name, bankAccountId, safetyBufferFloor, targetAmount, targetDate, goalMode, frequency, goalStartDate, isSurplusTarget]);
+  }, [isEdit, categoryToEdit, name, billMode, bankAccountId, safetyBufferFloor, targetAmount, targetDate, goalMode, frequency, goalStartDate, isSurplusTarget]);
 
   const confirmArchive = async () => {
     if (!categoryToEdit?.id) return;
@@ -176,6 +185,8 @@ export function CategoryFormModal({
     try {
       const finalTargetAmount = type === "GOAL"
         ? (goalMode === "ONGOING" ? calculatedMonthly : parseFloat(targetAmount).toFixed(2))
+        : type === "REGULAR" && billMode === "FLEXIBLE_BILL"
+        ? parseFloat(targetAmount).toFixed(2)
         : undefined;
 
       if (isEdit && categoryToEdit) {
@@ -185,9 +196,10 @@ export function CategoryFormModal({
             name: name.trim(),
             safetyBufferFloor: type === "EVERYDAY" ? safetyBufferFloor || "0.00" : undefined,
             targetAmount: finalTargetAmount,
-            targetDate: type === "GOAL" && goalMode === "TARGET_DATE" ? targetDate || undefined : undefined,
-            enteredAmount: type === "GOAL" && goalMode === "ONGOING" ? parseFloat(targetAmount).toFixed(2) : undefined,
-            budgetFrequency: type === "GOAL" && goalMode === "ONGOING" ? frequency : undefined,
+            monthlyAmount: type === "REGULAR" && billMode === "FLEXIBLE_BILL" ? finalTargetAmount : undefined,
+            enteredAmount: type === "REGULAR" && billMode === "FLEXIBLE_BILL" ? finalTargetAmount : type === "GOAL" && goalMode === "ONGOING" ? parseFloat(targetAmount).toFixed(2) : undefined,
+            endDate: type === "GOAL" && goalMode === "TARGET_DATE" ? targetDate || undefined : undefined,
+            budgetFrequency: type === "GOAL" && goalMode === "ONGOING" ? frequency : type === "REGULAR" ? "MONTHLY" : undefined,
             startDate: type === "GOAL" && goalMode === "ONGOING" ? goalStartDate || undefined : undefined,
             rrule: type === "GOAL" && goalMode === "ONGOING" ? rruleString || undefined : undefined,
             goalMode: type === "GOAL" ? goalMode : undefined,
@@ -202,6 +214,8 @@ export function CategoryFormModal({
             ? goalMode === "ONGOING"
               ? "ONGOING_GOAL"
               : "TARGET_GOAL"
+            : billMode === "FLEXIBLE_BILL"
+            ? "FLEXIBLE_BILL"
             : "SCHEDULED_BILL";
 
         await createPoolMut.mutateAsync({
@@ -210,9 +224,10 @@ export function CategoryFormModal({
           bankAccountId,
           safetyBufferFloor: type === "EVERYDAY" ? safetyBufferFloor || "0.00" : undefined,
           targetAmount: finalTargetAmount,
-          targetDate: type === "GOAL" && goalMode === "TARGET_DATE" ? targetDate || undefined : undefined,
-          enteredAmount: type === "GOAL" && goalMode === "ONGOING" ? parseFloat(targetAmount).toFixed(2) : undefined,
-          budgetFrequency: type === "GOAL" && goalMode === "ONGOING" ? frequency : undefined,
+          monthlyAmount: type === "REGULAR" && billMode === "FLEXIBLE_BILL" ? finalTargetAmount : undefined,
+          enteredAmount: type === "REGULAR" && billMode === "FLEXIBLE_BILL" ? finalTargetAmount : type === "GOAL" && goalMode === "ONGOING" ? parseFloat(targetAmount).toFixed(2) : undefined,
+          endDate: type === "GOAL" && goalMode === "TARGET_DATE" ? targetDate || undefined : undefined,
+          budgetFrequency: type === "GOAL" && goalMode === "ONGOING" ? frequency : type === "REGULAR" ? "MONTHLY" : undefined,
           startDate: type === "GOAL" && goalMode === "ONGOING" ? goalStartDate || undefined : undefined,
           rrule: type === "GOAL" && goalMode === "ONGOING" ? rruleString || undefined : undefined,
           goalMode: type === "GOAL" ? goalMode : undefined,
@@ -247,6 +262,8 @@ export function CategoryFormModal({
           setName={setName}
           type={type}
           setType={setType}
+          billMode={billMode}
+          setBillMode={setBillMode}
           bankAccountId={bankAccountId}
           setBankAccountId={setBankAccountId}
           bankAccountOptions={[

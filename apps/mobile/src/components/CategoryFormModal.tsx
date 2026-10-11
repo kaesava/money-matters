@@ -13,10 +13,12 @@ import { CategoryFormFooter } from './categories/form/CategoryFormFooter';
 export interface CategoryItem {
   id: string;
   name: string;
-  type: 'GOAL' | 'REGULAR' | 'EVERYDAY';
-  poolType?: 'GOAL' | 'REGULAR' | 'EVERYDAY';
+  type: 'GOAL' | 'REGULAR' | 'EVERYDAY' | string;
+  poolType?: string;
+  envelopeType?: string;
   targetAmount?: string | null;
   targetDate?: string | null;
+  endDate?: string | null;
   enteredAmount?: string | null;
   budgetFrequency?: 'WEEKLY' | 'FORTNIGHTLY' | 'MONTHLY' | 'ANNUALLY' | null;
   startDate?: string | null;
@@ -26,7 +28,6 @@ export interface CategoryItem {
   everydayTargetKeepAmount?: string | null;
   bankAccountId?: string | null;
   currentBalance?: string;
-  everydayAllowanceAmount?: string | null;
   safetyBufferFloor?: string | null;
   healthStatus?: string | null;
   isSurplusTarget?: boolean | null;
@@ -55,6 +56,7 @@ export function CategoryFormModal({ visible, categoryToEdit, onClose, onSuccess 
   const [targetAmount, setTargetAmount] = useState('');
   const [targetDate, setTargetDate] = useState('');
   const [goalMode, setGoalMode] = useState<'TARGET_DATE' | 'ONGOING'>('TARGET_DATE');
+  const [billMode, setBillMode] = useState<'SCHEDULED_BILL' | 'FLEXIBLE_BILL'>('SCHEDULED_BILL');
   const [frequency, setFrequency] = useState<'WEEKLY' | 'FORTNIGHTLY' | 'MONTHLY' | 'ANNUALLY'>('MONTHLY');
   const [interval, setInterval] = useState(1);
   const [goalStartDate, setGoalStartDate] = useState('');
@@ -64,11 +66,19 @@ export function CategoryFormModal({ visible, categoryToEdit, onClose, onSuccess 
   useEffect(() => {
     if (categoryToEdit) {
       setName(categoryToEdit.name);
-      setType(categoryToEdit.poolType || categoryToEdit.type || 'REGULAR');
+      const rawType = categoryToEdit.poolType || categoryToEdit.type || 'REGULAR';
+      if (rawType === 'EVERYDAY') {
+        setType('EVERYDAY');
+      } else if (rawType === 'GOAL') {
+        setType('GOAL');
+      } else {
+        setType('REGULAR');
+      }
+      setBillMode(categoryToEdit.poolType === 'FLEXIBLE_BILL' ? 'FLEXIBLE_BILL' : 'SCHEDULED_BILL');
       setBankAccountId(categoryToEdit.bankAccountId ?? '');
       setSafetyBufferFloor(categoryToEdit.safetyBufferFloor ?? '');
       setTargetAmount((categoryToEdit.enteredAmount || categoryToEdit.targetAmount) ?? '');
-      setTargetDate(categoryToEdit.targetDate ? formatIsoDate(categoryToEdit.targetDate) : '');
+      setTargetDate(categoryToEdit.endDate ? formatIsoDate(categoryToEdit.endDate) : categoryToEdit.targetDate ? formatIsoDate(categoryToEdit.targetDate) : '');
       setGoalMode(categoryToEdit.goalMode || 'TARGET_DATE');
       setFrequency(categoryToEdit.budgetFrequency || 'MONTHLY');
       setGoalStartDate(categoryToEdit.startDate ? formatIsoDate(categoryToEdit.startDate) : '');
@@ -82,6 +92,7 @@ export function CategoryFormModal({ visible, categoryToEdit, onClose, onSuccess 
     } else {
       setName('');
       setType('REGULAR');
+      setBillMode('SCHEDULED_BILL');
       setBankAccountId('');
       setSafetyBufferFloor('');
       setTargetAmount('');
@@ -163,8 +174,11 @@ export function CategoryFormModal({ visible, categoryToEdit, onClose, onSuccess 
       if (!targetAmount || parseFloat(targetAmount) <= 0) return false;
       if (goalMode === 'TARGET_DATE' && !targetDate) return false;
     }
+    if (type === 'REGULAR' && billMode === 'FLEXIBLE_BILL') {
+      if (!targetAmount || parseFloat(targetAmount) <= 0) return false;
+    }
     return true;
-  }, [name, isEdit, bankAccountId, type, targetAmount, goalMode, targetDate]);
+  }, [name, isEdit, bankAccountId, type, billMode, targetAmount, goalMode, targetDate]);
 
   const isDirty = useMemo(() => {
     if (!isEdit) {
@@ -174,9 +188,14 @@ export function CategoryFormModal({ visible, categoryToEdit, onClose, onSuccess 
     const initialName = categoryToEdit.name || '';
     const initialTarget = categoryToEdit.enteredAmount || categoryToEdit.targetAmount || '';
     const initialFloor = categoryToEdit.safetyBufferFloor || '';
-    const initialDate = categoryToEdit.targetDate ? formatIsoDate(categoryToEdit.targetDate) : '';
+    const initialDate = categoryToEdit.endDate
+      ? formatIsoDate(categoryToEdit.endDate)
+      : categoryToEdit.targetDate
+      ? formatIsoDate(categoryToEdit.targetDate)
+      : '';
     const initialSurplus = categoryToEdit.isSurplusTarget ?? false;
     const initialGoalMode = categoryToEdit.goalMode || 'TARGET_DATE';
+    const initialBillMode = categoryToEdit.poolType === 'FLEXIBLE_BILL' ? 'FLEXIBLE_BILL' : 'SCHEDULED_BILL';
     const initialFreq = categoryToEdit.budgetFrequency || 'MONTHLY';
     const initialStartDate = categoryToEdit.startDate ? formatIsoDate(categoryToEdit.startDate) : '';
 
@@ -186,11 +205,12 @@ export function CategoryFormModal({ visible, categoryToEdit, onClose, onSuccess 
       targetAmount !== initialTarget ||
       targetDate !== initialDate ||
       goalMode !== initialGoalMode ||
+      billMode !== initialBillMode ||
       frequency !== initialFreq ||
       goalStartDate !== initialStartDate ||
       isSurplusTarget !== initialSurplus
     );
-  }, [isEdit, categoryToEdit, name, bankAccountId, safetyBufferFloor, targetAmount, targetDate, goalMode, frequency, goalStartDate, isSurplusTarget]);
+  }, [isEdit, categoryToEdit, name, bankAccountId, safetyBufferFloor, targetAmount, targetDate, goalMode, billMode, frequency, goalStartDate, isSurplusTarget]);
 
   const isSurplusDisabled = Boolean(isEdit && categoryToEdit?.isSurplusTarget);
 
@@ -213,10 +233,18 @@ export function CategoryFormModal({ visible, categoryToEdit, onClose, onSuccess 
         return;
       }
     }
+    if (type === 'REGULAR' && billMode === 'FLEXIBLE_BILL') {
+      if (!targetAmount || parseFloat(targetAmount) <= 0) {
+        toast.error(t('categories.goalAmountRequired'));
+        return;
+      }
+    }
     setNameError('');
 
     const finalTargetAmount = type === 'GOAL'
       ? (goalMode === 'ONGOING' ? calculatedMonthly : parseFloat(targetAmount).toFixed(2))
+      : type === 'REGULAR' && billMode === 'FLEXIBLE_BILL'
+      ? parseFloat(targetAmount).toFixed(2)
       : undefined;
 
     if (categoryToEdit) {
@@ -226,9 +254,10 @@ export function CategoryFormModal({ visible, categoryToEdit, onClose, onSuccess 
           name: name.trim(),
           safetyBufferFloor: type === 'EVERYDAY' ? safetyBufferFloor || '0.00' : undefined,
           targetAmount: finalTargetAmount,
-          targetDate: type === 'GOAL' && goalMode === 'TARGET_DATE' ? targetDate || undefined : undefined,
-          enteredAmount: type === 'GOAL' && goalMode === 'ONGOING' ? parseFloat(targetAmount).toFixed(2) : undefined,
-          budgetFrequency: type === 'GOAL' && goalMode === 'ONGOING' ? frequency : undefined,
+          monthlyAmount: type === 'REGULAR' && billMode === 'FLEXIBLE_BILL' ? finalTargetAmount : undefined,
+          enteredAmount: type === 'REGULAR' && billMode === 'FLEXIBLE_BILL' ? finalTargetAmount : type === 'GOAL' && goalMode === 'ONGOING' ? parseFloat(targetAmount).toFixed(2) : undefined,
+          endDate: type === 'GOAL' && goalMode === 'TARGET_DATE' ? targetDate || undefined : undefined,
+          budgetFrequency: type === 'GOAL' && goalMode === 'ONGOING' ? frequency : type === 'REGULAR' ? 'MONTHLY' : undefined,
           startDate: type === 'GOAL' && goalMode === 'ONGOING' ? goalStartDate || undefined : undefined,
           rrule: type === 'GOAL' && goalMode === 'ONGOING' ? rruleString || undefined : undefined,
           goalMode: type === 'GOAL' ? goalMode : undefined,
@@ -243,6 +272,8 @@ export function CategoryFormModal({ visible, categoryToEdit, onClose, onSuccess 
           ? goalMode === 'ONGOING'
             ? 'ONGOING_GOAL'
             : 'TARGET_GOAL'
+          : billMode === 'FLEXIBLE_BILL'
+          ? 'FLEXIBLE_BILL'
           : 'SCHEDULED_BILL';
 
       createMut.mutate({
@@ -251,9 +282,10 @@ export function CategoryFormModal({ visible, categoryToEdit, onClose, onSuccess 
         bankAccountId,
         safetyBufferFloor: type === 'EVERYDAY' ? safetyBufferFloor || '0.00' : undefined,
         targetAmount: finalTargetAmount,
-        targetDate: type === 'GOAL' && goalMode === 'TARGET_DATE' ? targetDate || undefined : undefined,
-        enteredAmount: type === 'GOAL' && goalMode === 'ONGOING' ? parseFloat(targetAmount).toFixed(2) : undefined,
-        budgetFrequency: type === 'GOAL' && goalMode === 'ONGOING' ? frequency : undefined,
+        monthlyAmount: type === 'REGULAR' && billMode === 'FLEXIBLE_BILL' ? finalTargetAmount : undefined,
+        enteredAmount: type === 'REGULAR' && billMode === 'FLEXIBLE_BILL' ? finalTargetAmount : type === 'GOAL' && goalMode === 'ONGOING' ? parseFloat(targetAmount).toFixed(2) : undefined,
+        endDate: type === 'GOAL' && goalMode === 'TARGET_DATE' ? targetDate || undefined : undefined,
+        budgetFrequency: type === 'GOAL' && goalMode === 'ONGOING' ? frequency : type === 'REGULAR' ? 'MONTHLY' : undefined,
         startDate: type === 'GOAL' && goalMode === 'ONGOING' ? goalStartDate || undefined : undefined,
         rrule: type === 'GOAL' && goalMode === 'ONGOING' ? rruleString || undefined : undefined,
         goalMode: type === 'GOAL' ? goalMode : undefined,
@@ -320,6 +352,8 @@ export function CategoryFormModal({ visible, categoryToEdit, onClose, onSuccess 
         setTargetDate={setTargetDate}
         goalMode={goalMode}
         setGoalMode={setGoalMode}
+        billMode={billMode}
+        setBillMode={setBillMode}
         frequency={frequency}
         setFrequency={setFrequency}
         interval={interval}

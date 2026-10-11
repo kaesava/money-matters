@@ -129,7 +129,7 @@ export function acceptInviteHandler(db: DbOrTx) {
         name: "Personal Everyday Envelope",
         envelopeType: "EVERYDAY",
         bankAccountId: partnerAcc.id,
-        everydayAllowanceAmount: "200.00",
+        monthlyAmount: "200.00",
         createdBy: userId,
         updatedBy: userId,
       });

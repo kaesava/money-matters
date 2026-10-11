@@ -7,24 +7,42 @@ import { formatAUD } from '../../lib/format';
 import { useRouter } from 'expo-router';
 
 interface PoolItemCardProps {
-  pool: any;
-  bank?: any;
-  categories: any[];
-  isExpanded: boolean;
-  onToggleExpand: () => void;
+  pool: {
+    id: string;
+    name: string;
+    envelopeType?: string;
+    poolType?: string;
+    goalMode?: string | null;
+    budgetFrequency?: string | null;
+    currentBalance?: number | string | null;
+    targetAmount?: string | null;
+    isSurplusTarget?: boolean | null;
+  };
+  bank?: {
+    id: string;
+    name: string;
+  };
 }
 
 export function PoolItemCard({
   pool,
   bank,
-  categories,
-  isExpanded,
-  onToggleExpand,
 }: PoolItemCardProps) {
   const router = useRouter();
   const isGoal = pool.envelopeType === 'TARGET_GOAL' || pool.envelopeType === 'ONGOING_GOAL' || pool.poolType === 'GOAL';
   const target = pool.targetAmount ? parseFloat(pool.targetAmount) : 0;
-  const pct = target > 0 ? Math.min(100, Math.round(((pool.currentBalance || 0) / target) * 100)) : 0;
+  const currentBal = typeof pool.currentBalance === 'number' ? pool.currentBalance : parseFloat(String(pool.currentBalance || 0));
+  const pct = target > 0 ? Math.min(100, Math.round((currentBal / target) * 100)) : 0;
+
+  const subTypeBadge = pool.envelopeType === 'SCHEDULED_BILL'
+    ? t('categories.scheduledBillBadge')
+    : pool.envelopeType === 'FLEXIBLE_BILL'
+    ? t('categories.flexibleBillBadge')
+    : pool.envelopeType === 'TARGET_GOAL'
+    ? t('categories.targetDateGoalBadge')
+    : pool.envelopeType === 'ONGOING_GOAL'
+    ? t('categories.ongoingGoalBadge')
+    : null;
 
   return (
     <View style={styles.card}>
@@ -36,6 +54,31 @@ export function PoolItemCard({
         <View style={{ flex: 1 }}>
           <View style={styles.titleRow}>
             <Text style={styles.poolName}>{pool.name}</Text>
+            {subTypeBadge && (
+              <View style={[
+                styles.subTypeBadge,
+                pool.envelopeType === 'SCHEDULED_BILL'
+                  ? styles.scheduledBillBadge
+                  : pool.envelopeType === 'FLEXIBLE_BILL'
+                  ? styles.flexibleBillBadge
+                  : pool.envelopeType === 'TARGET_GOAL'
+                  ? styles.targetGoalBadge
+                  : styles.ongoingGoalBadge
+              ]}>
+                <Text style={[
+                  styles.subTypeBadgeText,
+                  pool.envelopeType === 'SCHEDULED_BILL'
+                    ? styles.scheduledBillBadgeText
+                    : pool.envelopeType === 'FLEXIBLE_BILL'
+                    ? styles.flexibleBillBadgeText
+                    : pool.envelopeType === 'TARGET_GOAL'
+                    ? styles.targetGoalBadgeText
+                    : styles.ongoingGoalBadgeText
+                ]}>
+                  {subTypeBadge}
+                </Text>
+              </View>
+            )}
             {pool.isSurplusTarget && (
               <View style={styles.surplusBadge}>
                 <Text style={styles.surplusBadgeText}>{t('categories.surplusBadgeText')}</Text>
@@ -51,7 +94,7 @@ export function PoolItemCard({
 
         <View style={styles.balWrap}>
           <View style={styles.balCol}>
-            <Text style={styles.balNum}>{formatAUD(pool.currentBalance)}</Text>
+            <Text style={styles.balNum}>{formatAUD(pool.currentBalance ?? 0)}</Text>
             <Text style={styles.balSub}>
               {isGoal
                 ? pool.goalMode === 'ONGOING' || pool.envelopeType === 'ONGOING_GOAL'
@@ -87,8 +130,18 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   cardHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 14 },
-  titleRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  titleRow: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: 6 },
   poolName: { fontSize: 14, fontWeight: '800', color: DESIGN_TOKENS.colors.primary },
+  subTypeBadge: { paddingHorizontal: 6, paddingVertical: 1.5, borderRadius: 6, borderWidth: 1 },
+  subTypeBadgeText: { fontSize: 9, fontWeight: '800', letterSpacing: 0.3, textTransform: 'uppercase' },
+  scheduledBillBadge: { backgroundColor: '#EFF6FF', borderColor: '#BFDBFE' },
+  scheduledBillBadgeText: { color: '#1D4ED8' },
+  flexibleBillBadge: { backgroundColor: '#FAF5FF', borderColor: '#E9D5FF' },
+  flexibleBillBadgeText: { color: '#7E22CE' },
+  targetGoalBadge: { backgroundColor: '#ECFDF5', borderColor: '#A7F3D0' },
+  targetGoalBadgeText: { color: '#047857' },
+  ongoingGoalBadge: { backgroundColor: '#F0FDFA', borderColor: '#99F6E4' },
+  ongoingGoalBadgeText: { color: '#0F766E' },
   surplusBadge: { backgroundColor: '#ECFDF5', paddingHorizontal: 6, paddingVertical: 1, borderRadius: 6 },
   surplusBadgeText: { fontSize: 9, fontWeight: '700', color: '#047857' },
   bankBadgeWrap: { marginTop: 3 },
@@ -99,14 +152,4 @@ const styles = StyleSheet.create({
   balSub: { fontSize: 10, color: DESIGN_TOKENS.colors.textMuted, marginTop: 1 },
   progressTrack: { height: 4, backgroundColor: '#F1F5F9', width: '100%' },
   progressFill: { height: '100%', backgroundColor: DESIGN_TOKENS.colors.accent },
-  nestedSection: { borderTopWidth: 1, borderTopColor: '#F1F5F9', paddingHorizontal: 14, paddingVertical: 8 },
-  nestedToggleBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingVertical: 4 },
-  nestedToggleText: { fontSize: 11, fontWeight: '700', color: DESIGN_TOKENS.colors.textMuted },
-  nestedCategoriesList: { marginTop: 6, gap: 6, paddingLeft: 8 },
-  nestedCategoryRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 4 },
-  nestedCatName: { fontSize: 12, fontWeight: '700', color: DESIGN_TOKENS.colors.primary },
-  nestedCatMeta: { fontSize: 10, color: DESIGN_TOKENS.colors.textMuted },
-  nestedCatAmountCol: { alignItems: 'flex-end' },
-  nestedCatAmount: { fontSize: 12, fontWeight: '700', fontFamily: 'monospace', color: DESIGN_TOKENS.colors.primary },
-  nestedCatSubAmount: { fontSize: 10, color: DESIGN_TOKENS.colors.textMuted, fontFamily: 'monospace' },
 });

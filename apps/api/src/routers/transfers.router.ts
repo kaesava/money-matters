@@ -1,5 +1,5 @@
 import { privateTenantProcedure, requiresWriteAccess } from '../trpc/trpc.js';
-import { transferSources, transferEvents, envelopes } from "@money-matters/db";
+import { transferEvents, envelopes } from "@money-matters/db";
 import { and, eq, sql } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 import { moveMoneyCommand } from "@money-matters/capability-budgeting";
@@ -26,7 +26,6 @@ export const transfersRouter = {
           destinationPoolId: transferEvents.destinationEnvelopeId,
           destinationEnvelopeName: destEnvelopes.name,
           destinationPoolName: destEnvelopes.name,
-          transferSourceId: transferEvents.transferSourceId,
         })
         .from(transferEvents)
         .leftJoin(sourceEnvelopes, eq(transferEvents.sourceEnvelopeId, sourceEnvelopes.id))
@@ -93,15 +92,17 @@ export const transfersRouter = {
       }
 
       const transferName = input.name || `Transfer: ${sourceEnv.name} ➔ ${destEnv.name}`;
+      const eventDate = input.startDate || new Intl.DateTimeFormat('en-CA', { timeZone: 'Australia/Sydney' }).format(new Date());
 
-      const [source] = await ctx.db
-        .insert(transferSources)
+      const [insertedEvent] = await ctx.db
+        .insert(transferEvents)
         .values({
-          name: transferName,
-          amount: input.amount,
           sourceEnvelopeId: sourceId,
           destinationEnvelopeId: destId,
-          startDate: input.startDate || null,
+          name: transferName,
+          expectedDate: eventDate,
+          expectedAmount: input.amount,
+          status: "PENDING",
           tenantId: ctx.tenantId!,
           appId: ctx.appId!,
           createdBy: ctx.userId!,
@@ -109,28 +110,15 @@ export const transfersRouter = {
         })
         .returning();
 
-      let firstEventId: string | null = null;
-      if (input.startDate) {
-        const [insertedEvent] = await ctx.db
-          .insert(transferEvents)
-          .values({
-            transferSourceId: source.id,
-            sourceEnvelopeId: sourceId,
-            destinationEnvelopeId: destId,
-            name: transferName,
-            expectedDate: input.startDate,
-            expectedAmount: input.amount,
-            status: "PENDING",
-            tenantId: ctx.tenantId!,
-            appId: ctx.appId!,
-            createdBy: ctx.userId!,
-            updatedBy: ctx.userId!,
-          })
-          .returning();
-        firstEventId = insertedEvent?.id ?? null;
-      }
-
-      return { ...source, firstEventId };
+      return {
+        id: insertedEvent.id,
+        firstEventId: insertedEvent.id,
+        name: transferName,
+        amount: input.amount,
+        sourceEnvelopeId: sourceId,
+        destinationEnvelopeId: destId,
+        startDate: input.startDate || null,
+      };
     }),
 
   deleteTransferEvent: privateTenantProcedure

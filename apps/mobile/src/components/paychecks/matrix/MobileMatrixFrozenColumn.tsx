@@ -11,7 +11,6 @@ export interface MobileMatrixCategoryItem {
   currentBalance: number;
   monthlyAmount?: number | null;
   targetAmount?: number | null;
-  everydayAllowanceAmount?: number | null;
   isPrivate?: boolean;
 }
 
@@ -80,7 +79,7 @@ export const MobileMatrixFrozenColumn: React.FC<MobileMatrixFrozenColumnProps> =
                 const cat = categories.find((c) => c.id === row.categoryId);
                 const curBal = cat ? cat.currentBalance : 0;
                 const targetVal = cat
-                  ? cat.monthlyAmount ?? cat.targetAmount ?? cat.everydayAllowanceAmount
+                  ? cat.monthlyAmount ?? cat.targetAmount
                   : null;
 
                 return (

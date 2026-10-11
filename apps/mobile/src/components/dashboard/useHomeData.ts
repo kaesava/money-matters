@@ -79,7 +79,7 @@ export function useHomeData(token?: string) {
   const everydayBalance = parseFloat(summaryQuery.data?.everydayRemaining || '0');
   const everydayMonthlyBudget = pools
     .filter((c) => c.envelopeType === 'EVERYDAY')
-    .reduce((sum, c) => sum + parseFloat(c.everydayAllowanceAmount || c.targetAmount || '0'), 0);
+    .reduce((sum, c) => sum + parseFloat(c.monthlyAmount || c.targetAmount || '0'), 0);
 
   const billsBalance = parseFloat(summaryQuery.data?.billsRemaining || '0');
   const billsMonthlyBudget = pools

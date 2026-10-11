@@ -17,8 +17,8 @@ export interface PoolRecord {
   poolType?: string;
   currentBalance?: string | number | null;
   targetAmount?: string | number | null;
-  targetDate?: string | null;
-  everydayAllowanceAmount?: string | number | null;
+  monthlyAmount?: string | number | null;
+  endDate?: string | null;
 }
 
 export interface MobileIncomeSplitPoolListProps {

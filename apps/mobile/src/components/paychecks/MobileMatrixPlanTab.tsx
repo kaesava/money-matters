@@ -74,9 +74,8 @@ export function MobileMatrixPlanTab({ onOpenCategoryModal }: MobileMatrixPlanTab
       id: p.id,
       name: p.name,
       currentBalance: p.currentBalance || 0,
-      monthlyAmount: p.targetAmount ? parseFloat(p.targetAmount) : null,
+      monthlyAmount: p.monthlyAmount ? parseFloat(p.monthlyAmount) : p.targetAmount ? parseFloat(p.targetAmount) : null,
       targetAmount: p.targetAmount ? parseFloat(p.targetAmount) : null,
-      everydayAllowanceAmount: p.everydayAllowanceAmount ? parseFloat(p.everydayAllowanceAmount) : null,
       isPrivate: Boolean(p.isPrivate),
     }));
   }, [poolsData]);

@@ -40,7 +40,7 @@ export const SplitPoolRow: React.FC<SplitPoolRowProps> = ({
 }) => {
   const curBal = poolObj ? parseFloat(String(poolObj.currentBalance || '0')) : 0;
   const targetRaw = poolObj?.poolType === 'EVERYDAY'
-    ? poolObj.everydayAllowanceAmount || poolObj.targetAmount
+    ? poolObj.monthlyAmount || poolObj.targetAmount
     : poolObj?.targetAmount;
   const targetNum = targetRaw ? parseFloat(String(targetRaw)) : 0;
 
@@ -95,7 +95,7 @@ export const SplitPoolRow: React.FC<SplitPoolRowProps> = ({
               <Text style={styles.statMetaText}>
                 • {t('paydayDrawer.tableColTarget')}: {formatAUD(targetNum)}
                 {groupType === 'REGULAR' ? t('paydayDrawer.perMonth') : ''}
-                {poolObj?.targetDate ? ` (${formatDate(poolObj.targetDate)})` : ''}
+                {poolObj?.endDate ? ` (${formatDate(poolObj.endDate)})` : ''}
               </Text>
             )}
           </View>

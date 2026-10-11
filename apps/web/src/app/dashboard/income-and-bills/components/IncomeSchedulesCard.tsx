@@ -94,7 +94,7 @@ export function IncomeSchedulesCard({
               onClick={onAdd}
               className="px-3.5 py-2 bg-[#2563eb] text-white rounded-xl font-bold text-xs shadow-2xs hover:bg-[#1d4ed8] transition-colors shrink-0 cursor-pointer"
             >
-              + {t("income.addIncomeSchedule")}
+              + {t("settings.income.addSchedule")}
             </button>
             <button
               type="button"
