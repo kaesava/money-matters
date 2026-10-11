@@ -40,13 +40,16 @@ CREATE TABLE IF NOT EXISTS "envelopes" (
   "icon" varchar(100),
   "order_index" integer NOT NULL DEFAULT 0,
   "tenant_id" uuid NOT NULL REFERENCES "tenants"("id") ON DELETE CASCADE,
-  "app_id" varchar(100) NOT NULL,
+  "app_id" uuid NOT NULL,
   "created_at" timestamp with time zone NOT NULL DEFAULT now(),
-  "created_by" uuid,
+  "created_by" uuid NOT NULL,
   "updated_at" timestamp with time zone NOT NULL DEFAULT now(),
-  "updated_by" uuid,
-  "archived_at" timestamp with time zone
+  "updated_by" uuid NOT NULL,
+  "archived_at" timestamp with time zone,
+  "archived_by" uuid
 );
+
+ALTER TABLE "envelopes" ADD COLUMN IF NOT EXISTS "archived_by" uuid;
 
 -- 3. Enable RLS and Policies on Envelopes
 ALTER TABLE "envelopes" ENABLE ROW LEVEL SECURITY;
@@ -85,7 +88,10 @@ ALTER TABLE "allocation_plan_lines" ADD COLUMN IF NOT EXISTS "envelope_id" uuid 
 ALTER TABLE "allocation_plan_lines" DROP COLUMN IF EXISTS "pool_id";
 ALTER TABLE "allocation_plan_lines" DROP COLUMN IF EXISTS "category_id";
 
--- 8. Update transfer_sources Table
+-- 8. Update transfer_sources Table (truncate synthetic transfer rows before updating not null references)
+TRUNCATE TABLE "transfer_events" CASCADE;
+TRUNCATE TABLE "transfer_sources" CASCADE;
+
 ALTER TABLE "transfer_sources" ADD COLUMN IF NOT EXISTS "source_envelope_id" uuid NOT NULL REFERENCES "envelopes"("id") ON DELETE CASCADE;
 ALTER TABLE "transfer_sources" ADD COLUMN IF NOT EXISTS "destination_envelope_id" uuid NOT NULL REFERENCES "envelopes"("id") ON DELETE CASCADE;
 ALTER TABLE "transfer_sources" DROP COLUMN IF EXISTS "source_pool_id";
