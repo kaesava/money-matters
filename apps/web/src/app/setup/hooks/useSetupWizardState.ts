@@ -56,7 +56,14 @@ export function useSetupWizardState() {
   const [weeklyPersonal, setWeeklyPersonal] = useState(100);
 
   const [incomes, setIncomes] = useState<IncomeItem[]>([
-    { id: "inc-1", name: "Primary Income", amount: 3200, frequency: "FORTNIGHTLY", type: "SALARY" },
+    {
+      id: "inc-1",
+      name: "Primary Income",
+      amount: 3200,
+      frequency: "FORTNIGHTLY",
+      type: "SALARY",
+      startDate: new Intl.DateTimeFormat("en-CA", { timeZone: "Australia/Sydney" }).format(new Date()),
+    },
   ]);
 
   const [housingType, setHousingType] = useState<HousingType>("RENT_SOLO");
@@ -394,6 +401,7 @@ export function useSetupWizardState() {
           amount: (inc.amount || 0).toFixed(2),
           frequency: incFreq,
           receivingAccountId: inc.receivingAccountId || null,
+          startDate: inc.startDate || null,
         };
       });
 

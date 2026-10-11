@@ -19,6 +19,7 @@ export const IncomeItemSchema = z.object({
   frequency: z.enum(["WEEKLY", "FORTNIGHTLY", "MONTHLY", "ANNUALLY"]).default("FORTNIGHTLY"),
   type: z.enum(["SALARY", "BUSINESS", "BENEFIT", "OTHER"]).default("SALARY"),
   receivingAccountId: z.string().optional().nullable(),
+  startDate: z.string().optional().nullable(),
 });
 export type IncomeItem = z.infer<typeof IncomeItemSchema>;
 

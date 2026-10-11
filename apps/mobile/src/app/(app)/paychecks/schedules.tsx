@@ -12,6 +12,9 @@ import { IncomeSourceItem } from '../../../components/paychecks/IncomeSourceCard
 import { ExpenseSourceItem } from '../../../components/paychecks/ExpenseBillCard';
 import { PaychecksModalManager } from '../../../components/paychecks/PaychecksModalManager';
 
+import { CategoryItemModal, CategoryItemToEdit } from '../../../components/CategoryItemModal';
+import { QuickExpenseModal, QuickActionType } from '../../../components/QuickExpenseModal';
+
 export default function RecurringSchedulesScreen() {
   const router = useRouter();
   const searchParams = useLocalSearchParams<{ returnTo?: string }>();
@@ -19,6 +22,14 @@ export default function RecurringSchedulesScreen() {
   const [formModalVisible, setFormModalVisible] = useState(false);
   const [formMode, setFormMode] = useState<'INCOME' | 'EXPENSE'>('INCOME');
   const [sourceToEdit, setSourceToEdit] = useState<SourceToEdit | null>(null);
+
+  // Category Modal State (for in-place bill category edit/create)
+  const [categoryModalVisible, setCategoryModalVisible] = useState(false);
+  const [categoryToEdit, setCategoryToEdit] = useState<CategoryItemToEdit | null>(null);
+
+  // Quick Action Modal State (for one-off income/expense)
+  const [quickActionVisible, setQuickActionVisible] = useState(false);
+  const [quickActionType, setQuickActionType] = useState<QuickActionType>('DEBIT');
 
   const handleBack = () => {
     if (searchParams.returnTo) {
@@ -87,12 +98,12 @@ export default function RecurringSchedulesScreen() {
 
   return (
     <AppScreenWrapper
-      title={t('transactions.tabs.setup')}
+      title={t('incomeBillsTabs.schedules')}
       showBack={true}
       onBackPress={handleBack}
       scrollable={false}
       infoTooltip={{
-        title: t('transactions.tabs.setup'),
+        title: t('incomeBillsTabs.schedules'),
         content: t('tooltips.incomeBills.content'),
       }}
     >
@@ -115,18 +126,60 @@ export default function RecurringSchedulesScreen() {
           isLoadingIncome={isLoadingIncome}
           isLoadingExpense={isLoadingExpense}
           onAddSchedule={(mode) => {
-            setSourceToEdit(null);
-            setFormMode(mode);
-            setFormModalVisible(true);
+            if (mode === 'INCOME') {
+              setSourceToEdit(null);
+              setFormMode('INCOME');
+              setFormModalVisible(true);
+            } else {
+              setCategoryToEdit(null);
+              setCategoryModalVisible(true);
+            }
+          }}
+          onAddOneOff={(mode) => {
+            setQuickActionType(mode === 'INCOME' ? 'CREDIT' : 'DEBIT');
+            setQuickActionVisible(true);
           }}
           onEditSchedule={(source, mode) => {
-            setSourceToEdit(source);
-            setFormMode(mode);
-            setFormModalVisible(true);
+            if (mode === 'INCOME') {
+              setSourceToEdit(source);
+              setFormMode('INCOME');
+              setFormModalVisible(true);
+            } else {
+              setCategoryToEdit({
+                id: source.id,
+                name: source.name,
+                poolId: source.poolId || undefined,
+                monthlyAmount: source.amount,
+                enteredAmount: source.amount,
+                startDate: source.startDate ? String(source.startDate) : undefined,
+              });
+              setCategoryModalVisible(true);
+            }
           }}
           onBurstModal={handleOpenBurstModal}
         />
       </ScrollView>
+
+      <CategoryItemModal
+        visible={categoryModalVisible}
+        categoryToEdit={categoryToEdit}
+        limitToPoolType="REGULAR"
+        onClose={() => setCategoryModalVisible(false)}
+        onSuccess={() => {
+          setCategoryModalVisible(false);
+          refetchAll();
+        }}
+      />
+
+      <QuickExpenseModal
+        visible={quickActionVisible}
+        initialType={quickActionType}
+        onClose={() => setQuickActionVisible(false)}
+        onSuccess={() => {
+          setQuickActionVisible(false);
+          refetchAll();
+        }}
+      />
 
       <PaychecksModalManager
         formModalVisible={formModalVisible}

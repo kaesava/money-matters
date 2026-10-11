@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from "vitest";
 import { saveSetupBudgetHandler } from "./save-setup-budget.command";
-import { pools, categories, bankAccounts, incomeSources, expenseEvents, transactionLedger, tenants } from "@money-matters/db";
+import { pools, categories, bankAccounts, incomeSources, expenseEvents, incomeEvents, transactionLedger, tenants } from "@money-matters/db";
 
 vi.mock("@money-matters/db", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@money-matters/db")>();
@@ -59,6 +59,8 @@ describe("saveSetupBudgetHandler", () => {
             insertedRows["categories"] = items;
           } else if (table === incomeSources) {
             insertedRows["income_sources"] = items;
+          } else if (table === incomeEvents) {
+            insertedRows["income_events"] = items;
           } else if (table === expenseEvents) {
             insertedRows["expense_events"] = items;
           }
@@ -119,6 +121,7 @@ describe("saveSetupBudgetHandler", () => {
     expect(result.persistedCounts.categories).toBe(2);
     expect(result.persistedCounts.expenseSources).toBe(12);
     expect(insertedRows["expense_events"]).toHaveLength(12);
+    expect(insertedRows["income_events"]).toHaveLength(27);
     expect(updatedRows["tenants"]).toBeDefined();
     expect(updatedRows["tenants"][0].setupStatus).toBe("COMPLETED");
   });

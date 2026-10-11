@@ -23,6 +23,7 @@ interface RecurringSchedulesTabProps {
   isLoadingIncome: boolean;
   isLoadingExpense: boolean;
   onAddSchedule?: (mode: 'INCOME' | 'EXPENSE') => void;
+  onAddOneOff?: (mode: 'INCOME' | 'EXPENSE') => void;
   onEditSchedule: (source: SourceToEdit, mode: 'INCOME' | 'EXPENSE') => void;
   onBurstModal?: (source: IncomeSourceItem | ExpenseSourceItem, mode: 'INCOME' | 'EXPENSE') => void;
 }
@@ -35,6 +36,7 @@ export function RecurringSchedulesTab({
   isLoadingIncome,
   isLoadingExpense,
   onAddSchedule,
+  onAddOneOff,
   onEditSchedule,
   onBurstModal,
 }: RecurringSchedulesTabProps) {
@@ -109,6 +111,7 @@ export function RecurringSchedulesTab({
         <AddScheduleButtonRow
           setupSubSegment={setupSubSegment}
           onAddSchedule={onAddSchedule}
+          onAddOneOff={onAddOneOff}
         />
       )}
 

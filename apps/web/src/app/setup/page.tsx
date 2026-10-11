@@ -129,7 +129,14 @@ function SetupWizardContent() {
               const id = `inc-${Date.now()}`;
               setIncomes((prev) => [
                 ...prev,
-                { id, name: `Income ${prev.length + 1}`, amount: 2000, frequency: "MONTHLY", type: "SALARY" },
+                {
+                  id,
+                  name: `Income ${prev.length + 1}`,
+                  amount: 2000,
+                  frequency: "MONTHLY",
+                  type: "SALARY",
+                  startDate: new Intl.DateTimeFormat("en-CA", { timeZone: "Australia/Sydney" }).format(new Date()),
+                },
               ]);
             }}
             onUpdateIncome={(id, field, value) => {

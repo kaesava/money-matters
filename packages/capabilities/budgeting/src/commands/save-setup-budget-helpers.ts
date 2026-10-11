@@ -1,4 +1,4 @@
-import { DbOrTx, expenseEvents } from "@money-matters/db";
+import { DbOrTx, expenseEvents, incomeEvents } from "@money-matters/db";
 import { randomUUID } from "crypto";
 import { generateBurstDates } from "../engine/burst-engine.js";
 
@@ -103,6 +103,65 @@ export async function insertCategoryEventsBulk(
 ): Promise<number> {
   if (events.length > 0) {
     await tx.insert(expenseEvents).values(events);
+  }
+  return events.length;
+}
+
+export interface IncomeScheduleCandidate {
+  incomeSourceId: string;
+  name: string;
+  amount: string;
+  rrule: string;
+  startDate: string;
+  endDate?: string | null;
+}
+
+export function buildIncomeEventPayloads(
+  candidates: IncomeScheduleCandidate[],
+  existingDatesBySource: Map<string, Set<string>>,
+  tenantId: string,
+  appId: string,
+  userId: string,
+  now: Date
+) {
+  const eventsToInsert: Array<typeof incomeEvents.$inferInsert> = [];
+
+  for (const item of candidates) {
+    const existingDates = existingDatesBySource.get(item.incomeSourceId) ?? new Set<string>();
+    const burstDates = generateBurstDates(item.rrule, item.startDate, item.endDate || null, 12);
+
+    for (const d of burstDates) {
+      const dateStr = new Intl.DateTimeFormat("en-CA", { timeZone: "Australia/Sydney" }).format(d);
+      if (existingDates.has(dateStr)) continue;
+
+      eventsToInsert.push({
+        id: randomUUID(),
+        tenantId,
+        appId,
+        incomeSourceId: item.incomeSourceId,
+        name: item.name,
+        expectedDate: dateStr,
+        actualDate: dateStr,
+        expectedAmount: item.amount,
+        actualAmount: item.amount,
+        status: "PENDING",
+        createdAt: now,
+        createdBy: userId,
+        updatedAt: now,
+        updatedBy: userId,
+      });
+    }
+  }
+
+  return { eventsToInsert };
+}
+
+export async function insertIncomeEventsBulk(
+  tx: DbOrTx,
+  events: Array<typeof incomeEvents.$inferInsert>
+): Promise<number> {
+  if (events.length > 0) {
+    await tx.insert(incomeEvents).values(events);
   }
   return events.length;
 }

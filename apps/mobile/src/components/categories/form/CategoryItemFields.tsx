@@ -6,6 +6,7 @@ import {
   AmountInput,
   ChipSelect,
   FormLabel,
+  MobileDatePickerField,
 } from '@money-matters/ui/mobile';
 import { t } from '@money-matters/i18n';
 
@@ -14,10 +15,17 @@ type FrequencyOption = 'WEEKLY' | 'FORTNIGHTLY' | 'MONTHLY' | 'ANNUALLY';
 interface CategoryItemFieldsProps {
   name: string;
   setName: (v: string) => void;
+  selectedPoolId?: string;
+  setSelectedPoolId?: (v: string) => void;
+  availablePools?: Array<{ id: string; name: string; poolType?: string }>;
+  showPoolPicker?: boolean;
   enteredAmount: string;
   setEnteredAmount: (v: string) => void;
   frequency: FrequencyOption;
   setFrequency: (f: FrequencyOption) => void;
+  startDate?: string;
+  setStartDate?: (v: string) => void;
+  isBillsPool?: boolean;
   isEssential: boolean;
   setIsEssential: (v: boolean) => void;
   calculatedMonthly: string;
@@ -28,16 +36,28 @@ interface CategoryItemFieldsProps {
 export const CategoryItemFields: React.FC<CategoryItemFieldsProps> = ({
   name,
   setName,
+  selectedPoolId,
+  setSelectedPoolId,
+  availablePools,
+  showPoolPicker,
   enteredAmount,
   setEnteredAmount,
   frequency,
   setFrequency,
+  startDate,
+  setStartDate,
+  isBillsPool,
   isEssential,
   setIsEssential,
   calculatedMonthly,
   isEdit,
   freqOptions,
 }) => {
+  const poolOptions = (availablePools || []).map((p) => ({
+    key: p.id,
+    label: `${p.name} (${p.poolType === 'EVERYDAY' ? t('incomeBillsTabs.everyday') : t('incomeBillsTabs.bills')})`,
+  }));
+
   return (
     <View style={styles.form}>
       <MobileInput
@@ -48,6 +68,25 @@ export const CategoryItemFields: React.FC<CategoryItemFieldsProps> = ({
         onChangeText={setName}
         autoFocus={!isEdit}
       />
+
+      {showPoolPicker && setSelectedPoolId && poolOptions.length > 0 && (
+        <View style={styles.inputGroup}>
+          <FormLabel required>{t('categories.targetPoolLabel')}</FormLabel>
+          <ChipSelect
+            options={poolOptions}
+            value={selectedPoolId || ''}
+            onChange={setSelectedPoolId}
+          />
+        </View>
+      )}
+
+      {isEdit && (
+        <View style={styles.warningBanner}>
+          <Text style={styles.warningText}>
+            {t('categories.immutabilityWarningCategory')}
+          </Text>
+        </View>
+      )}
 
       <AmountInput
         label={t('categories.targetAmountLabel')}
@@ -65,6 +104,15 @@ export const CategoryItemFields: React.FC<CategoryItemFieldsProps> = ({
           onChange={(val) => setFrequency(val as FrequencyOption)}
         />
       </View>
+
+      {isBillsPool && setStartDate && (
+        <MobileDatePickerField
+          label={t('categories.nextDueDateLabel')}
+          required
+          value={startDate || ''}
+          onChange={setStartDate}
+        />
+      )}
 
       {enteredAmount && parseFloat(enteredAmount) > 0 && frequency !== 'MONTHLY' && (
         <View style={styles.equivBanner}>
@@ -94,6 +142,19 @@ const styles = StyleSheet.create({
   form: {
     gap: 14,
     paddingBottom: 10,
+  },
+  warningBanner: {
+    backgroundColor: DESIGN_TOKENS.colors.warningLight,
+    borderWidth: 1,
+    borderColor: DESIGN_TOKENS.colors.warningBorder,
+    borderRadius: 12,
+    padding: 12,
+  },
+  warningText: {
+    fontSize: 11,
+    lineHeight: 16,
+    fontWeight: '600',
+    color: DESIGN_TOKENS.colors.warningDark,
   },
   inputGroup: {
     gap: 4,

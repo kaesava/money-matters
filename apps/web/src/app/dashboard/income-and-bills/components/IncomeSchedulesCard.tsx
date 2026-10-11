@@ -23,6 +23,7 @@ interface IncomeSchedulesCardProps {
   searchQuery: string;
   scopeFilter: "ALL" | "SHARED" | "PRIVATE";
   onAdd: () => void;
+  onAddOneOff: () => void;
   onEdit: (source: IncomeSourceToEdit) => void;
 }
 
@@ -51,6 +52,7 @@ export function IncomeSchedulesCard({
   searchQuery,
   scopeFilter,
   onAdd,
+  onAddOneOff,
   onEdit,
 }: IncomeSchedulesCardProps) {
   const { fmtDate } = useLocale();
@@ -84,15 +86,24 @@ export function IncomeSchedulesCard({
   return (
     <div className="p-6 bg-white/80 dark:bg-zinc-900/80 backdrop-blur-md rounded-2xl border border-zinc-200 dark:border-zinc-800 shadow-sm flex flex-col justify-between">
       <div>
-        <div className="flex items-center justify-between gap-3 mb-3">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-3">
           <h3 className="font-bold text-[#1B2B4B] dark:text-white text-base">Income Schedules</h3>
-          <button
-            type="button"
-            onClick={onAdd}
-            className="px-3.5 py-2 bg-[#2563eb] text-white rounded-xl font-bold text-xs shadow-2xs hover:bg-[#1d4ed8] transition-colors shrink-0 cursor-pointer"
-          >
-            + Add Income Schedule
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={onAdd}
+              className="px-3.5 py-2 bg-[#2563eb] text-white rounded-xl font-bold text-xs shadow-2xs hover:bg-[#1d4ed8] transition-colors shrink-0 cursor-pointer"
+            >
+              + {t("income.addIncomeSchedule")}
+            </button>
+            <button
+              type="button"
+              onClick={onAddOneOff}
+              className="px-3.5 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-slate-700 dark:text-zinc-200 border border-slate-200 dark:border-zinc-700 rounded-xl font-bold text-xs shadow-2xs transition-colors shrink-0 cursor-pointer"
+            >
+              + {t("incomeBillsTabs.oneOffIncome")}
+            </button>
+          </div>
         </div>
 
         <div className="flex justify-end mb-4">

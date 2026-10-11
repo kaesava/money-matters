@@ -37,10 +37,11 @@ export function useSetupWizardPrepopulation({
           frequency: freq,
           type: 'SALARY',
           receivingAccountId: inc.receivingAccountId,
+          startDate: inc.startDate ? String(inc.startDate) : new Intl.DateTimeFormat('en-CA', { timeZone: tz }).format(new Date()),
         };
       })
     );
-  }, [isRerun, incomeSourcesQuery.data, setIncomes]);
+  }, [isRerun, incomeSourcesQuery.data, setIncomes, tz]);
 
   // Pre-populate goal pools if in rerun mode
   useEffect(() => {

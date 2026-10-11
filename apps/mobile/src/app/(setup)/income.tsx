@@ -10,7 +10,7 @@ import {
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { t } from '@money-matters/i18n';
-import { DESIGN_TOKENS, InfoTooltip, AmountInput } from '@money-matters/ui/mobile';
+import { DESIGN_TOKENS, InfoTooltip, AmountInput, MobileDatePickerField } from '@money-matters/ui/mobile';
 import { useSetupWizard } from '../../context/SetupWizardContext';
 import { IncomeItem } from '@money-matters/types';
 import { SetupProgressBar } from '../../components/setup/SetupProgressBar';
@@ -24,6 +24,10 @@ const FREQ_LABELS: Record<Frequency, string> = {
   MONTHLY: 'setup.income.scheduleMonthly',
 };
 
+function getDefaultStartDateAest(): string {
+  return new Intl.DateTimeFormat('en-CA', { timeZone: 'Australia/Sydney' }).format(new Date());
+}
+
 export default function SetupIncomeScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
@@ -33,7 +37,14 @@ export default function SetupIncomeScreen() {
     const id = `inc-${Date.now()}`;
     setIncomes((prev) => [
       ...prev,
-      { id, name: `Income ${prev.length + 1}`, amount: 2000, frequency: 'FORTNIGHTLY', type: 'SALARY' },
+      {
+        id,
+        name: `Income ${prev.length + 1}`,
+        amount: 2000,
+        frequency: 'FORTNIGHTLY',
+        type: 'SALARY',
+        startDate: getDefaultStartDateAest(),
+      },
     ]);
   };
 
@@ -121,6 +132,14 @@ export default function SetupIncomeScreen() {
               </TouchableOpacity>
             ))}
           </View>
+
+          <View style={styles.datePickerWrap}>
+            <MobileDatePickerField
+              label={t('setup.income.nextPaydayLabel')}
+              value={inc.startDate || getDefaultStartDateAest()}
+              onChange={(d) => handleUpdateIncome(inc.id, 'startDate', d)}
+            />
+          </View>
         </View>
       ))}
 
@@ -170,6 +189,7 @@ const styles = StyleSheet.create({
   label: { fontSize: 13, fontWeight: '600', color: DESIGN_TOKENS.colors.textPrimary, marginBottom: 6 },
   labelGap: { marginTop: 14 },
   amountWrap: { marginTop: 14, marginBottom: 0 },
+  datePickerWrap: { marginTop: 14 },
   input: {
     backgroundColor: DESIGN_TOKENS.colors.surfaceVariant,
     borderWidth: 1,

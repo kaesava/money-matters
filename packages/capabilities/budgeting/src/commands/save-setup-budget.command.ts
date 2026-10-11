@@ -5,6 +5,7 @@ import {
   bankAccounts,
   incomeSources,
   expenseEvents,
+  incomeEvents,
   transactionLedger,
   tenants,
   getPoolBalancesMap,
@@ -17,6 +18,9 @@ import {
   CategoryScheduleCandidate,
   buildCategoryEventPayloads,
   insertCategoryEventsBulk,
+  IncomeScheduleCandidate,
+  buildIncomeEventPayloads,
+  insertIncomeEventsBulk,
   deriveRrule,
   computeBillScheduleAnchorDate,
 } from "./save-setup-budget-helpers.js";
@@ -423,6 +427,9 @@ export function saveSetupBudgetHandler(dbClient: DbOrTx) {
           )
         );
 
+      const todayAest = new Intl.DateTimeFormat("en-CA", { timeZone: "Australia/Sydney" }).format(now);
+      const incomeCandidates: IncomeScheduleCandidate[] = [];
+
       for (const incInput of input.incomes) {
         const matchedIncome = incInput.id ? existingIncomes.find((inc) => inc.id === incInput.id) : null;
 
@@ -437,6 +444,8 @@ export function saveSetupBudgetHandler(dbClient: DbOrTx) {
         else if (incInput.frequency === "FORTNIGHTLY") rrule = "FREQ=WEEKLY;INTERVAL=2";
         else if (incInput.frequency === "CUSTOM") rrule = "FREQ=MONTHLY";
 
+        const startDate = incInput.startDate || todayAest;
+
         if (matchedIncome) {
           // In-place update
           await tx
@@ -446,27 +455,83 @@ export function saveSetupBudgetHandler(dbClient: DbOrTx) {
               amount: incInput.amount,
               receivingAccountId: resolvedRecvAccount || matchedIncome.receivingAccountId,
               rrule,
+              startDate,
               updatedAt: now,
               updatedBy: userId,
             })
             .where(eq(incomeSources.id, matchedIncome.id));
+
+          incomeCandidates.push({
+            incomeSourceId: matchedIncome.id,
+            name: incInput.name,
+            amount: incInput.amount,
+            rrule,
+            startDate,
+          });
         } else {
           // Insert new income source
+          const newIncomeId = randomUUID();
           await tx.insert(incomeSources).values({
-            id: randomUUID(),
+            id: newIncomeId,
             tenantId,
             appId,
             name: incInput.name,
             amount: incInput.amount,
             receivingAccountId: resolvedRecvAccount || null,
             rrule,
-            startDate: new Intl.DateTimeFormat("en-CA", { timeZone: "Australia/Sydney" }).format(now),
+            startDate,
             createdAt: now,
             createdBy: userId,
             updatedAt: now,
             updatedBy: userId,
           });
+
+          incomeCandidates.push({
+            incomeSourceId: newIncomeId,
+            name: incInput.name,
+            amount: incInput.amount,
+            rrule,
+            startDate,
+          });
         }
+      }
+
+      // Auto-burst 12 months of income_events for income sources
+      if (input.autoCreateIncomeEvents !== false && incomeCandidates.length > 0) {
+        const candidateSourceIds = incomeCandidates.map((c) => c.incomeSourceId);
+        const existingIncomeEvents = await tx
+          .select({
+            incomeSourceId: incomeEvents.incomeSourceId,
+            expectedDate: incomeEvents.expectedDate,
+          })
+          .from(incomeEvents)
+          .where(
+            and(
+              eq(incomeEvents.tenantId, tenantId),
+              eq(incomeEvents.appId, appId),
+              inArray(incomeEvents.incomeSourceId, candidateSourceIds),
+              sql`${incomeEvents.archivedAt} IS NULL`
+            )
+          );
+
+        const existingDatesBySource = new Map<string, Set<string>>();
+        for (const ev of existingIncomeEvents) {
+          if (!ev.incomeSourceId) continue;
+          if (!existingDatesBySource.has(ev.incomeSourceId)) {
+            existingDatesBySource.set(ev.incomeSourceId, new Set<string>());
+          }
+          existingDatesBySource.get(ev.incomeSourceId)!.add(ev.expectedDate);
+        }
+
+        const { eventsToInsert } = buildIncomeEventPayloads(
+          incomeCandidates,
+          existingDatesBySource,
+          tenantId,
+          appId,
+          userId,
+          now
+        );
+        await insertIncomeEventsBulk(tx, eventsToInsert);
       }
 
       // =========================================================================

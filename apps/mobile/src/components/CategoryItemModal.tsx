@@ -18,22 +18,31 @@ export interface CategoryItemToEdit {
   enteredAmount?: string | null;
   budgetFrequency?: 'WEEKLY' | 'FORTNIGHTLY' | 'MONTHLY' | 'ANNUALLY' | null;
   isEssential?: boolean;
+  startDate?: string | null;
 }
 
 export interface CategoryItemModalProps {
   visible: boolean;
-  poolId: string;
+  poolId?: string;
   categoryToEdit?: CategoryItemToEdit | null;
+  limitToPoolType?: 'REGULAR' | 'EVERYDAY';
   onClose: () => void;
   onSuccess?: () => void;
 }
 
 type FrequencyOption = 'WEEKLY' | 'FORTNIGHTLY' | 'MONTHLY' | 'ANNUALLY';
 
+function getDefaultStartDateAest(): string {
+  const d = new Date();
+  const nextMonth = new Date(d.getFullYear(), d.getMonth() + 1, 1);
+  return new Intl.DateTimeFormat('en-CA', { timeZone: 'Australia/Sydney' }).format(nextMonth);
+}
+
 export function CategoryItemModal({
   visible,
   poolId,
   categoryToEdit,
+  limitToPoolType,
   onClose,
   onSuccess,
 }: CategoryItemModalProps) {
@@ -41,29 +50,48 @@ export function CategoryItemModal({
   const utils = trpc.useUtils();
   const isEdit = Boolean(categoryToEdit?.id);
 
+  const poolsQuery = trpc.listPools.useQuery(undefined, { enabled: visible });
+  const availablePools = useMemo(() => {
+    return (poolsQuery.data ?? []).filter((p) => {
+      if (p.poolType === 'GOAL') return false;
+      if (limitToPoolType) return p.poolType === limitToPoolType;
+      return true;
+    });
+  }, [poolsQuery.data, limitToPoolType]);
+
   const [name, setName] = useState('');
+  const [selectedPoolId, setSelectedPoolId] = useState('');
   const [enteredAmount, setEnteredAmount] = useState('');
   const [frequency, setFrequency] = useState<FrequencyOption>('MONTHLY');
+  const [startDate, setStartDate] = useState(getDefaultStartDateAest());
   const [isEssential, setIsEssential] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+
+  const activePoolId = poolId || selectedPoolId;
+  const activePool = availablePools.find((p) => p.id === activePoolId);
+  const isBillsPool = activePool?.poolType === 'REGULAR';
 
   useEffect(() => {
     if (visible) {
       if (categoryToEdit) {
         setName(categoryToEdit.name || '');
+        setSelectedPoolId(categoryToEdit.poolId || poolId || '');
         setEnteredAmount(
           categoryToEdit.enteredAmount || categoryToEdit.monthlyAmount || ''
         );
         setFrequency((categoryToEdit.budgetFrequency as FrequencyOption) || 'MONTHLY');
         setIsEssential(Boolean(categoryToEdit.isEssential));
+        setStartDate(categoryToEdit.startDate || getDefaultStartDateAest());
       } else {
         setName('');
+        setSelectedPoolId(poolId || availablePools[0]?.id || '');
         setEnteredAmount('');
         setFrequency('MONTHLY');
+        setStartDate(getDefaultStartDateAest());
         setIsEssential(false);
       }
     }
-  }, [visible, categoryToEdit]);
+  }, [visible, categoryToEdit, poolId, availablePools]);
 
   const createMut = trpc.createCategory.useMutation();
   const updateMut = trpc.updateCategory.useMutation();
@@ -84,21 +112,27 @@ export function CategoryItemModal({
     }
     if (!categoryToEdit) return false;
     const origName = categoryToEdit.name || '';
+    const origPool = categoryToEdit.poolId || poolId || '';
     const origAmount = categoryToEdit.enteredAmount || categoryToEdit.monthlyAmount || '';
     const origFreq = (categoryToEdit.budgetFrequency as FrequencyOption) || 'MONTHLY';
     const origEssential = Boolean(categoryToEdit.isEssential);
 
     return (
       name.trim() !== origName ||
+      selectedPoolId !== origPool ||
       enteredAmount !== origAmount ||
       frequency !== origFreq ||
       isEssential !== origEssential
     );
-  }, [isEdit, categoryToEdit, name, enteredAmount, frequency, isEssential]);
+  }, [isEdit, categoryToEdit, name, selectedPoolId, poolId, enteredAmount, frequency, isEssential]);
 
   const handleSubmit = async () => {
     if (!name.trim()) {
       toast.error(t('categories.nameRequired'), t('common.error'));
+      return;
+    }
+    if (!activePoolId) {
+      toast.error(t('categories.targetPoolRequired'), t('common.error'));
       return;
     }
 
@@ -114,16 +148,18 @@ export function CategoryItemModal({
             enteredAmount: !isNaN(numAmt) && numAmt > 0 ? numAmt.toFixed(2) : undefined,
             monthlyAmount: !isNaN(parseFloat(calculatedMonthly)) && parseFloat(calculatedMonthly) > 0 ? calculatedMonthly : undefined,
             budgetFrequency: frequency,
+            startDate: isBillsPool ? startDate : undefined,
             isEssential,
           },
         });
       } else {
         await createMut.mutateAsync({
-          poolId,
+          poolId: activePoolId,
           name: name.trim(),
           enteredAmount: !isNaN(numAmt) && numAmt > 0 ? numAmt.toFixed(2) : undefined,
           monthlyAmount: !isNaN(parseFloat(calculatedMonthly)) && parseFloat(calculatedMonthly) > 0 ? calculatedMonthly : undefined,
           budgetFrequency: frequency,
+          startDate: isBillsPool ? startDate : undefined,
           isEssential,
         });
       }
@@ -131,6 +167,8 @@ export function CategoryItemModal({
       toast.success(isEdit ? t('toasts.saved') : t('toasts.created'));
       utils.listCategories.invalidate();
       utils.listPools.invalidate();
+      utils.listBillSchedules.invalidate();
+      utils.listExpenseEvents.invalidate();
       onSuccess?.();
       onClose();
     } catch (err) {
@@ -154,6 +192,8 @@ export function CategoryItemModal({
     onSuccess: () => {
       utils.listCategories.invalidate();
       utils.listPools.invalidate();
+      utils.listBillSchedules.invalidate();
+      utils.listExpenseEvents.invalidate();
       toast.success(t('toasts.archived'));
       onSuccess?.();
       onClose();
@@ -203,10 +243,17 @@ export function CategoryItemModal({
         <CategoryItemFields
           name={name}
           setName={setName}
+          selectedPoolId={selectedPoolId}
+          setSelectedPoolId={setSelectedPoolId}
+          availablePools={availablePools}
+          showPoolPicker={!poolId && !isEdit}
           enteredAmount={enteredAmount}
           setEnteredAmount={setEnteredAmount}
           frequency={frequency}
           setFrequency={setFrequency}
+          startDate={startDate}
+          setStartDate={setStartDate}
+          isBillsPool={isBillsPool}
           isEssential={isEssential}
           setIsEssential={setIsEssential}
           calculatedMonthly={calculatedMonthly}

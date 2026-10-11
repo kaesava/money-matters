@@ -109,6 +109,7 @@ export function useSetupCategoriesSubmission() {
           amount: (inc.amount || 0).toFixed(2),
           frequency: freq,
           receivingAccountId: inc.receivingAccountId || null,
+          startDate: inc.startDate || null,
         };
       });
 

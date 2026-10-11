@@ -18,11 +18,22 @@ interface BillSchedulesCardProps {
     startDate?: string | null;
     endDate?: string | null;
     isPrivate?: boolean;
+    budgetFrequency?: string | null;
+    isEssential?: boolean;
   }>;
   searchQuery: string;
   scopeFilter: "ALL" | "SHARED" | "PRIVATE";
+  onAddBillSchedule: () => void;
   onAddOneOff: () => void;
-  onViewSchedule: (schedule: { id: string; name: string; poolId: string }) => void;
+  onEditCategory: (category: {
+    id: string;
+    name: string;
+    poolId: string;
+    monthlyAmount?: string | null;
+    enteredAmount?: string | null;
+    budgetFrequency?: string | null;
+    isEssential?: boolean;
+  }) => void;
 }
 
 function formatScheduleSummary(
@@ -48,8 +59,9 @@ export function BillSchedulesCard({
   billSchedules,
   searchQuery,
   scopeFilter,
+  onAddBillSchedule,
   onAddOneOff,
-  onViewSchedule: _onViewSchedule,
+  onEditCategory,
 }: BillSchedulesCardProps) {
   const { fmtDate } = useLocale();
   const [selectedPoolId, setSelectedPoolId] = React.useState("");
@@ -85,15 +97,24 @@ export function BillSchedulesCard({
   return (
     <div className="p-6 bg-white/80 dark:bg-zinc-900/80 backdrop-blur-md rounded-2xl border border-zinc-200 dark:border-zinc-800 shadow-sm flex flex-col justify-between">
       <div>
-        <div className="flex items-center justify-between gap-3 mb-3">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-3">
           <h3 className="font-bold text-[#1B2B4B] dark:text-white text-base">Bill Schedules</h3>
-          <button
-            type="button"
-            onClick={onAddOneOff}
-            className="px-3.5 py-2 bg-[#1B2B4B] dark:bg-zinc-800 text-white rounded-xl font-bold text-xs shadow-2xs hover:bg-slate-800 transition-colors shrink-0 cursor-pointer"
-          >
-            + Add One-Off Expense
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={onAddBillSchedule}
+              className="px-3.5 py-2 bg-[#2563eb] text-white rounded-xl font-bold text-xs shadow-2xs hover:bg-[#1d4ed8] transition-colors shrink-0 cursor-pointer"
+            >
+              + {t("incomeBillsTabs.addBillSchedule")}
+            </button>
+            <button
+              type="button"
+              onClick={onAddOneOff}
+              className="px-3.5 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-slate-700 dark:text-zinc-200 border border-slate-200 dark:border-zinc-700 rounded-xl font-bold text-xs shadow-2xs transition-colors shrink-0 cursor-pointer"
+            >
+              + {t("incomeBillsTabs.oneOffExpense")}
+            </button>
+          </div>
         </div>
 
         <div className="flex justify-end mb-4">
@@ -141,9 +162,24 @@ export function BillSchedulesCard({
                   <tr key={b.id} className="hover:bg-slate-50/50 dark:hover:bg-zinc-800/50 transition-colors">
                     <td className="py-2.5 px-3 text-left">
                       <div className="flex flex-col gap-0.5">
-                        <Link href={`/dashboard/pools?categoryId=${b.id}`} className="font-bold text-[#2563eb] hover:underline text-left">
-                          {b.name}
-                        </Link>
+                        <button
+                          type="button"
+                          onClick={() =>
+                            onEditCategory({
+                              id: b.id,
+                              name: b.name,
+                              poolId: b.poolId,
+                              monthlyAmount: String(b.amount),
+                              enteredAmount: String(b.amount),
+                              budgetFrequency: b.budgetFrequency || "MONTHLY",
+                              isEssential: b.isEssential ?? false,
+                            })
+                          }
+                          className="font-bold text-[#2563eb] hover:underline text-left cursor-pointer inline-flex items-center gap-1.5"
+                        >
+                          <span>{b.name}</span>
+                          <span className="text-[10px] text-slate-400 dark:text-zinc-500 font-normal">✎</span>
+                        </button>
                         <span className="text-[10px] text-zinc-400 font-medium">
                           {formatScheduleSummary({ rrule: b.rrule, startDate: b.startDate, endDate: b.endDate }, fmtDate)}
                         </span>

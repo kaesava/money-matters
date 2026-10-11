@@ -7,8 +7,9 @@ import { trpc } from "../../../lib/trpc";
 import { t } from "@money-matters/i18n";
 import { Spinner, SearchInput, Tabs } from "@money-matters/ui/web";
 import { IncomeFormModal, IncomeSourceToEdit } from "../../../components/web/IncomeFormModal";
-import { OneOffExpenseModal } from "./components/OneOffExpenseModal";
 import { QuickExpenseDrawer } from "../../../components/web/QuickExpenseDrawer";
+import { CategoryItemModal } from "../../../components/web/CategoryItemModal";
+import { CategoryItem } from "../pools/types";
 import { IncomeSchedulesCard } from "./components/IncomeSchedulesCard";
 import { BillSchedulesCard } from "./components/BillSchedulesCard";
 import { TimelineTabWrapper } from "./components/TimelineTabWrapper";
@@ -20,10 +21,11 @@ function IncomeAndBillsContent() {
 
   const router = useRouter();
   const [activeTab, setActiveTab] = useState(tabParam);
-  const [isTransferDrawerOpen, setIsTransferDrawerOpen] = useState(false);
+  const [quickActionTab, setQuickActionTab] = useState<"DEBIT" | "CREDIT" | "TRANSFER" | null>(null);
   const [isIncomeModalOpen, setIsIncomeModalOpen] = useState(false);
   const [incomeToEdit, setIncomeToEdit] = useState<IncomeSourceToEdit | undefined>(undefined);
-  const [isOneOffModalOpen, setIsOneOffModalOpen] = useState(false);
+  const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
+  const [categoryToEdit, setCategoryToEdit] = useState<CategoryItem | null>(null);
 
   const [setupSearchQuery, setSetupSearchQuery] = useState("");
   const [setupScopeFilter, setSetupScopeFilter] = useState<"ALL" | "SHARED" | "PRIVATE">("ALL");
@@ -36,8 +38,8 @@ function IncomeAndBillsContent() {
     if (tabParam) setActiveTab(tabParam);
   }, [rawTab, tabParam, router]);
 
+  const utils = trpc.useUtils();
   const poolsQuery = trpc.listPools.useQuery();
-  const categoriesQuery = trpc.listCategories.useQuery();
   const bankAccountsQuery = trpc.listBankAccounts.useQuery();
   const incomeSourcesQuery = trpc.listIncomeSources.useQuery();
   const billSchedulesQuery = trpc.listBillSchedules.useQuery();
@@ -48,7 +50,6 @@ function IncomeAndBillsContent() {
 
   const isLoading =
     poolsQuery.isLoading ||
-    categoriesQuery.isLoading ||
     bankAccountsQuery.isLoading ||
     incomeSourcesQuery.isLoading ||
     billSchedulesQuery.isLoading ||
@@ -57,7 +58,6 @@ function IncomeAndBillsContent() {
     transferEventsQuery.isLoading;
 
   const pools = useMemo(() => poolsQuery.data || [], [poolsQuery.data]);
-  const categories = useMemo(() => categoriesQuery.data || [], [categoriesQuery.data]);
   const bankAccounts = useMemo(() => bankAccountsQuery.data || [], [bankAccountsQuery.data]);
   const incomeSources = useMemo(() => incomeSourcesQuery.data || [], [incomeSourcesQuery.data]);
   const billSchedules = useMemo(() => billSchedulesQuery.data || [], [billSchedulesQuery.data]);
@@ -96,7 +96,7 @@ function IncomeAndBillsContent() {
           </Link>
           <button
             type="button"
-            onClick={() => setIsTransferDrawerOpen(true)}
+            onClick={() => setQuickActionTab("TRANSFER")}
             className="px-4 py-2.5 rounded-xl font-bold text-xs bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-100 border border-indigo-200 dark:border-indigo-800 transition-all flex items-center gap-2 shadow-2xs cursor-pointer"
           >
             <span>🔄</span>
@@ -108,7 +108,7 @@ function IncomeAndBillsContent() {
       <Tabs
         tabs={[
           { id: "EVENTS", label: t("transactions.tabs.pendingList") },
-          { id: "STREAMS", label: "Income Schedules" },
+          { id: "STREAMS", label: t("incomeBillsTabs.schedules") },
         ]}
         activeTab={activeTab}
         onChange={setActiveTab}
@@ -145,14 +145,27 @@ function IncomeAndBillsContent() {
               searchQuery={setupSearchQuery}
               scopeFilter={setupScopeFilter}
               onAdd={() => { setIncomeToEdit(undefined); setIsIncomeModalOpen(true); }}
+              onAddOneOff={() => setQuickActionTab("CREDIT")}
               onEdit={(src) => { setIncomeToEdit(src); setIsIncomeModalOpen(true); }}
             />
             <BillSchedulesCard
               billSchedules={billSchedules}
               searchQuery={setupSearchQuery}
               scopeFilter={setupScopeFilter}
-              onAddOneOff={() => setIsOneOffModalOpen(true)}
-              onViewSchedule={({ poolId }) => router.push(`/dashboard/pools?poolId=${poolId}`)}
+              onAddBillSchedule={() => { setCategoryToEdit(null); setIsCategoryModalOpen(true); }}
+              onAddOneOff={() => setQuickActionTab("DEBIT")}
+              onEditCategory={(cat) => {
+                setCategoryToEdit({
+                  id: cat.id,
+                  name: cat.name,
+                  poolId: cat.poolId,
+                  monthlyAmount: cat.monthlyAmount,
+                  enteredAmount: cat.enteredAmount,
+                  budgetFrequency: cat.budgetFrequency,
+                  isEssential: cat.isEssential,
+                });
+                setIsCategoryModalOpen(true);
+              }}
             />
           </div>
         </div>
@@ -161,37 +174,37 @@ function IncomeAndBillsContent() {
       {activeTab === "EVENTS" && (
         <div data-tour="matrix-plan">
           <TimelineTabWrapper
-          isLoading={isLoading}
-          savedIncomeEventIds={savedIncomeEventIds}
-          incomeEvents={incomeEvents.map((e) => {
-            const src = incomeSources.find((s) => s.id === e.incomeSourceId);
-            const acct = bankAccounts.find((b) => b.id === src?.receivingAccountId);
-            return {
-              ...e,
-              accountId: acct?.id,
-              name: (e as unknown as { name?: string }).name || e.sourceName || "Income Deposit",
-              accountName: acct?.name || "Bank Account",
-              isPrivate: acct?.isPrivate || false,
-            };
-          })}
-          expenseEvents={expenseEvents.map((e) => {
-            const pool = pools.find((p) => p.id === (e.poolId || e.categoryId));
-            const acct = bankAccounts.find((b) => b.id === pool?.bankAccountId);
-            return {
-              ...e,
-              poolId: pool?.id || e.poolId || e.categoryId,
-              accountId: acct?.id,
-              accountName: acct?.name,
-              name: e.name || "Scheduled Expense",
-              categoryName: pool?.name || "Pool",
-              isPrivate: pool?.isPrivate || false,
-            };
-          })}
-          transferEvents={transferEvents.map((e) => ({ ...e, name: e.name || "Pool Transfer" }))}
-          categories={pools.map((p) => ({ id: p.id, name: p.name, poolType: p.poolType, currentBalance: parseFloat(String(p.currentBalance || "0")), isSurplusTarget: p.isSurplusTarget }))}
-          pools={pools.map((p) => ({ id: p.id, name: p.name, poolType: p.poolType, currentBalance: parseFloat(String(p.currentBalance || "0")), isSurplusTarget: p.isSurplusTarget, bankAccountId: p.bankAccountId }))}
-          onOpenTransferDrawer={() => setIsTransferDrawerOpen(true)}
-        />
+            isLoading={isLoading}
+            savedIncomeEventIds={savedIncomeEventIds}
+            incomeEvents={incomeEvents.map((e) => {
+              const src = incomeSources.find((s) => s.id === e.incomeSourceId);
+              const acct = bankAccounts.find((b) => b.id === src?.receivingAccountId);
+              return {
+                ...e,
+                accountId: acct?.id,
+                name: (e as unknown as { name?: string }).name || e.sourceName || "Income Deposit",
+                accountName: acct?.name || "Bank Account",
+                isPrivate: acct?.isPrivate || false,
+              };
+            })}
+            expenseEvents={expenseEvents.map((e) => {
+              const pool = pools.find((p) => p.id === (e.poolId || e.categoryId));
+              const acct = bankAccounts.find((b) => b.id === pool?.bankAccountId);
+              return {
+                ...e,
+                poolId: pool?.id || e.poolId || e.categoryId,
+                accountId: acct?.id,
+                accountName: acct?.name,
+                name: e.name || "Scheduled Expense",
+                categoryName: pool?.name || "Pool",
+                isPrivate: pool?.isPrivate || false,
+              };
+            })}
+            transferEvents={transferEvents.map((e) => ({ ...e, name: e.name || "Pool Transfer" }))}
+            categories={pools.map((p) => ({ id: p.id, name: p.name, poolType: p.poolType, currentBalance: parseFloat(String(p.currentBalance || "0")), isSurplusTarget: p.isSurplusTarget }))}
+            pools={pools.map((p) => ({ id: p.id, name: p.name, poolType: p.poolType, currentBalance: parseFloat(String(p.currentBalance || "0")), isSurplusTarget: p.isSurplusTarget, bankAccountId: p.bankAccountId }))}
+            onOpenTransferDrawer={() => setQuickActionTab("TRANSFER")}
+          />
         </div>
       )}
 
@@ -203,17 +216,25 @@ function IncomeAndBillsContent() {
         />
       )}
 
-      {isOneOffModalOpen && (
-        <OneOffExpenseModal
-          isOpen={isOneOffModalOpen}
-          onClose={() => setIsOneOffModalOpen(false)}
-          pools={pools}
-          categories={categories}
+      {isCategoryModalOpen && (
+        <CategoryItemModal
+          isOpen={isCategoryModalOpen}
+          onClose={() => { setIsCategoryModalOpen(false); setCategoryToEdit(null); }}
+          categoryToEdit={categoryToEdit}
+          limitToPoolType="REGULAR"
+          onSuccess={() => {
+            utils.listBillSchedules.invalidate();
+            utils.listCategories.invalidate();
+            utils.listExpenseEvents.invalidate();
+          }}
         />
       )}
 
-      {isTransferDrawerOpen && (
-        <QuickExpenseDrawer initialTab="TRANSFER" onClose={() => setIsTransferDrawerOpen(false)} />
+      {quickActionTab && (
+        <QuickExpenseDrawer
+          initialTab={quickActionTab}
+          onClose={() => setQuickActionTab(null)}
+        />
       )}
     </div>
   );

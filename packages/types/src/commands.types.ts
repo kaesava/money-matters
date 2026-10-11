@@ -312,6 +312,7 @@ export const SaveSetupBudgetCommand = z.object({
     amount: z.string().regex(/^\d{1,12}(\.\d{1,2})?$/),
     frequency: z.enum(["WEEKLY", "FORTNIGHTLY", "MONTHLY", "CUSTOM"]),
     receivingAccountId: z.string().optional().nullable(),
+    startDate: z.string().optional().nullable(),
   })).min(1),
   bankAccounts: z.array(z.object({
     id: z.string().optional(),
@@ -360,6 +361,7 @@ export const SaveSetupBudgetCommand = z.object({
   archivedCategoryIds: z.array(z.string()).default([]),
   archetypeApplied: z.enum(["AUSSIE_2_ACCOUNT", "COUPLES_HYBRID", "ALL_IN_ONE_CUSTOM"]).optional(),
   autoCreateExpenseSchedules: z.boolean().default(true),
+  autoCreateIncomeEvents: z.boolean().default(true),
 }).strict();
 
 export const CreateOneOffExpenseCommand = z.object({

@@ -65,7 +65,7 @@ export function SetupIncomeStep({
                 </button>
               )}
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
               <div className="flex flex-col gap-1">
                 <label className="text-[11px] font-bold text-zinc-500">{t("setup.income.nameLabel")}</label>
                 <input
@@ -94,6 +94,15 @@ export function SetupIncomeStep({
                   <option value="MONTHLY">{t("categories.frequencyMonthly")}</option>
                   <option value="ANNUALLY">{t("categories.frequencyAnnually")}</option>
                 </select>
+              </div>
+              <div className="flex flex-col gap-1">
+                <label className="text-[11px] font-bold text-zinc-500">{t("setup.income.nextPaydayLabel")}</label>
+                <input
+                  type="date"
+                  value={inc.startDate || ""}
+                  onChange={(e) => onUpdateIncome(inc.id, "startDate", e.target.value)}
+                  className="px-3 py-2 text-xs font-bold rounded-xl border border-zinc-200 bg-white text-zinc-800"
+                />
               </div>
             </div>
           </div>

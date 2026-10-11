@@ -21,7 +21,14 @@ export function SetupWizardProvider({ children: reactChildren }: { children: Rea
   const totalSteps = isRerun ? 3 : 5;
 
   const [incomes, setIncomes] = useState<IncomeItem[]>([
-    { id: 'inc-1', name: 'Primary Income', amount: 3200, frequency: 'FORTNIGHTLY', type: 'SALARY' },
+    {
+      id: 'inc-1',
+      name: 'Primary Income',
+      amount: 3200,
+      frequency: 'FORTNIGHTLY',
+      type: 'SALARY',
+      startDate: new Intl.DateTimeFormat('en-CA', { timeZone: 'Australia/Sydney' }).format(new Date()),
+    },
   ]);
 
   const [goals, setGoals] = useState<UserGoalItem[]>([

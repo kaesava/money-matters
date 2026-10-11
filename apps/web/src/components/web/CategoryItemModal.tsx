@@ -12,6 +12,7 @@ interface CategoryItemModalProps {
   onClose: () => void;
   categoryToEdit?: CategoryItem | null;
   initialPoolId?: string | null;
+  limitToPoolType?: "REGULAR" | "EVERYDAY";
   onSuccess?: () => void;
 }
 
@@ -26,6 +27,7 @@ export function CategoryItemModal({
   onClose,
   categoryToEdit,
   initialPoolId,
+  limitToPoolType,
   onSuccess,
 }: CategoryItemModalProps) {
   const toast = useToast();
@@ -33,8 +35,12 @@ export function CategoryItemModal({
 
   const poolsQuery = trpc.listPools.useQuery(undefined, { enabled: isOpen });
   const availablePools = useMemo(() => {
-    return (poolsQuery.data ?? []).filter((p) => p.poolType !== "GOAL");
-  }, [poolsQuery.data]);
+    return (poolsQuery.data ?? []).filter((p) => {
+      if (p.poolType === "GOAL") return false;
+      if (limitToPoolType) return p.poolType === limitToPoolType;
+      return true;
+    });
+  }, [poolsQuery.data, limitToPoolType]);
 
   const isEdit = Boolean(categoryToEdit?.id);
 
@@ -140,6 +146,8 @@ export function CategoryItemModal({
       }
       await utils.listCategories.invalidate();
       await utils.listPools.invalidate();
+      await utils.listBillSchedules.invalidate();
+      await utils.listExpenseEvents.invalidate();
       onSuccess?.();
       onClose();
     } catch (err: unknown) {
@@ -156,6 +164,8 @@ export function CategoryItemModal({
       await archiveCategoryMut.mutateAsync({ categoryId: categoryToEdit.id });
       await utils.listCategories.invalidate();
       await utils.listPools.invalidate();
+      await utils.listBillSchedules.invalidate();
+      await utils.listExpenseEvents.invalidate();
       toast.success(t("toasts.archived"));
       onSuccess?.();
       onClose();
