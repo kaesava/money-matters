@@ -96,7 +96,7 @@ export async function getProjectedPoolBalancesQuery(
       expectedAmount: incomeEvents.expectedAmount,
       actualAmount: incomeEvents.actualAmount,
       status: incomeEvents.status,
-      name: sql`COALESCE(NULLIF(${incomeEvents.name}, ""), ${incomeSources.name}, "Paycheck")`,
+      name: sql`COALESCE(NULLIF(${incomeEvents.name}, ''), ${incomeSources.name}, 'Paycheck')`,
       rrule: incomeSources.rrule,
     })
     .from(incomeEvents)
@@ -105,7 +105,7 @@ export async function getProjectedPoolBalancesQuery(
       and(
         eq(incomeEvents.tenantId, tenantId),
         eq(incomeEvents.appId, appId),
-        sql`${incomeEvents.status} != "CONFIRMED"`,
+        sql`${incomeEvents.status} != 'CONFIRMED'`,
         sql`${incomeEvents.archivedAt} IS NULL`
       )
     );

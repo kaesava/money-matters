@@ -93,9 +93,18 @@ export default function PoolDetailScreen() {
             : pool.envelopeType === 'SCHEDULED_BILL' || pool.envelopeType === 'FLEXIBLE_BILL'
             ? 'REGULAR'
             : 'GOAL',
+          envelopeType: pool.envelopeType,
+          poolType: pool.envelopeType,
           targetAmount: pool.targetAmount,
+          enteredAmount: pool.enteredAmount,
+          monthlyAmount: pool.monthlyAmount,
+          budgetFrequency: pool.budgetFrequency as 'WEEKLY' | 'FORTNIGHTLY' | 'MONTHLY' | 'ANNUALLY' | null,
+          startDate: pool.startDate,
+          rrule: pool.rrule,
+          goalMode: pool.goalMode,
           endDate: pool.endDate,
           bankAccountId: pool.bankAccountId,
+          safetyBufferFloor: pool.safetyBufferFloor,
           isSurplusTarget: pool.isSurplusTarget,
         }}
         onClose={() => setPoolModalVisible(false)}

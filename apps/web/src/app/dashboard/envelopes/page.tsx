@@ -207,8 +207,15 @@ function PoolsPageContent() {
         isPrivate: p.isPrivate,
         currentBalance: String(currentBal),
         targetAmount: p.targetAmount,
+        enteredAmount: p.enteredAmount,
+        monthlyAmount: p.monthlyAmount,
+        budgetFrequency: p.budgetFrequency,
+        startDate: p.startDate,
+        rrule: p.rrule,
         endDate: p.endDate,
         targetDate: p.endDate,
+        safetyBufferFloor: p.safetyBufferFloor,
+        goalMode: p.goalMode,
         isSurplusTarget: p.isSurplusTarget,
       };
 

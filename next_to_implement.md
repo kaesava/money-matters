@@ -11,7 +11,7 @@
 # Web App & Mobile app
 
 ## Envelopes
-You will now audit functionality and UX (mobile+web) of the Pools screen and related modals, popups, confirmations, links, messages, information icons, etc. to ensure consistent with philosophy of envelopes, envelop types and modes. Identify gaps 
+Add to Release 2 scope (.md file)- the ability for the allocation logic to be extracted into a tenant-scoped table of rules with hierarchy that determines how waterfall will run, defaulting to app's rules.
 
 
 ## General - the below changes apply to the screens listed in the next section.

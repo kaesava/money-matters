@@ -20,7 +20,7 @@ export interface EnvelopeItem {
   targetDate?: string | null;
   endDate?: string | null;
   enteredAmount?: string | null;
-  budgetFrequency?: 'WEEKLY' | 'FORTNIGHTLY' | 'MONTHLY' | 'ANNUALLY' | null;
+  budgetFrequency?: 'WEEKLY' | 'FORTNIGHTLY' | 'MONTHLY' | 'ANNUALLY' | string | null;
   startDate?: string | null;
   rrule?: string | null;
   goalMode?: 'TARGET_DATE' | 'ONGOING' | null;
@@ -79,23 +79,29 @@ export function EnvelopeFormModal({
 
   useEffect(() => {
     if (categoryToEdit) {
-      setName(categoryToEdit.name);
-      const rawType = categoryToEdit.poolType || categoryToEdit.type || 'REGULAR';
-      if (rawType === 'EVERYDAY') {
-        setType('EVERYDAY');
-      } else if (rawType === 'GOAL') {
-        setType('GOAL');
-      } else {
-        setType('REGULAR');
-      }
-      setBillMode(categoryToEdit.poolType === 'FLEXIBLE_BILL' ? 'FLEXIBLE_BILL' : 'SCHEDULED_BILL');
+      setName(categoryToEdit.name || '');
+      const rawEnvelopeType = categoryToEdit.envelopeType || categoryToEdit.poolType || categoryToEdit.type || 'REGULAR';
+      const resolvedType: 'GOAL' | 'REGULAR' | 'EVERYDAY' =
+        rawEnvelopeType === 'EVERYDAY'
+          ? 'EVERYDAY'
+          : rawEnvelopeType === 'TARGET_GOAL' || rawEnvelopeType === 'ONGOING_GOAL' || rawEnvelopeType.includes('GOAL')
+          ? 'GOAL'
+          : 'REGULAR';
+      setType(resolvedType);
+      const resolvedBillMode: 'SCHEDULED_BILL' | 'FLEXIBLE_BILL' =
+        rawEnvelopeType === 'FLEXIBLE_BILL' ? 'FLEXIBLE_BILL' : 'SCHEDULED_BILL';
+      setBillMode(resolvedBillMode);
       setBankAccountId(categoryToEdit.bankAccountId ?? '');
       setSafetyBufferFloor(categoryToEdit.safetyBufferFloor ?? '');
       setTargetAmount((categoryToEdit.enteredAmount || categoryToEdit.targetAmount) ?? '');
-      setTargetDate(categoryToEdit.endDate ? formatIsoDate(categoryToEdit.endDate) : categoryToEdit.targetDate ? formatIsoDate(categoryToEdit.targetDate) : '');
-      setGoalMode(categoryToEdit.goalMode || 'TARGET_DATE');
-      setFrequency(categoryToEdit.budgetFrequency || 'MONTHLY');
-      setGoalStartDate(categoryToEdit.startDate ? formatIsoDate(categoryToEdit.startDate) : '');
+      const rawDate = categoryToEdit.endDate || categoryToEdit.targetDate || '';
+      setTargetDate(rawDate ? formatIsoDate(rawDate) : '');
+      const resolvedGoalMode: 'TARGET_DATE' | 'ONGOING' =
+        categoryToEdit.goalMode === 'ONGOING' || rawEnvelopeType === 'ONGOING_GOAL' ? 'ONGOING' : 'TARGET_DATE';
+      setGoalMode(resolvedGoalMode);
+      setFrequency((categoryToEdit.budgetFrequency as 'WEEKLY' | 'FORTNIGHTLY' | 'MONTHLY' | 'ANNUALLY') || 'MONTHLY');
+      const rawStartDate = categoryToEdit.startDate || '';
+      setGoalStartDate(rawStartDate ? formatIsoDate(rawStartDate) : '');
       if (categoryToEdit.rrule) {
         const match = categoryToEdit.rrule.match(/INTERVAL=(\d+)/);
         setInterval(match ? parseInt(match[1], 10) : 1);
@@ -199,77 +205,113 @@ export function EnvelopeFormModal({
 
   const isDirty = useMemo(() => {
     if (!isEdit) {
-      return Boolean(name.trim() || bankAccountId || safetyBufferFloor || targetAmount || targetDate || isSurplusTarget);
+      return Boolean(
+        name.trim() ||
+        bankAccountId ||
+        safetyBufferFloor.trim() ||
+        targetAmount.trim() ||
+        targetDate ||
+        isSurplusTarget ||
+        type !== (defaultType || 'REGULAR') ||
+        billMode !== 'SCHEDULED_BILL' ||
+        goalMode !== 'TARGET_DATE' ||
+        frequency !== 'MONTHLY' ||
+        interval !== 1
+      );
     }
     if (!categoryToEdit) return false;
-    const initialName = categoryToEdit.name || '';
-    const initialTarget = categoryToEdit.enteredAmount || categoryToEdit.targetAmount || '';
-    const initialFloor = categoryToEdit.safetyBufferFloor || '';
-    const initialDate = categoryToEdit.endDate
-      ? formatIsoDate(categoryToEdit.endDate)
-      : categoryToEdit.targetDate
-      ? formatIsoDate(categoryToEdit.targetDate)
-      : '';
+    const initialName = (categoryToEdit.name || '').trim();
+    const initialTarget = ((categoryToEdit.enteredAmount || categoryToEdit.targetAmount) ?? '').trim();
+    const initialFloor = (categoryToEdit.safetyBufferFloor ?? '').trim();
+    const rawDate = categoryToEdit.endDate || categoryToEdit.targetDate || '';
+    const initialDate = rawDate ? formatIsoDate(rawDate) : '';
     const initialSurplus = categoryToEdit.isSurplusTarget ?? false;
-    const initialGoalMode = categoryToEdit.goalMode || 'TARGET_DATE';
-    const initialBillMode = categoryToEdit.poolType === 'FLEXIBLE_BILL' ? 'FLEXIBLE_BILL' : 'SCHEDULED_BILL';
+    const rawEnvelopeType = categoryToEdit.envelopeType || categoryToEdit.poolType || categoryToEdit.type || 'REGULAR';
+    const initialGoalMode: 'TARGET_DATE' | 'ONGOING' =
+      categoryToEdit.goalMode === 'ONGOING' || rawEnvelopeType === 'ONGOING_GOAL' ? 'ONGOING' : 'TARGET_DATE';
+    const initialBillMode: 'SCHEDULED_BILL' | 'FLEXIBLE_BILL' =
+      rawEnvelopeType === 'FLEXIBLE_BILL' ? 'FLEXIBLE_BILL' : 'SCHEDULED_BILL';
     const initialFreq = categoryToEdit.budgetFrequency || 'MONTHLY';
-    const initialStartDate = categoryToEdit.startDate ? formatIsoDate(categoryToEdit.startDate) : '';
+    const rawStartDate = categoryToEdit.startDate || '';
+    const initialStartDate = rawStartDate ? formatIsoDate(rawStartDate) : '';
+    let initialInterval = 1;
+    if (categoryToEdit.rrule) {
+      const match = categoryToEdit.rrule.match(/INTERVAL=(\d+)/);
+      initialInterval = match ? parseInt(match[1], 10) : 1;
+    }
 
     return (
       name.trim() !== initialName ||
-      safetyBufferFloor !== initialFloor ||
-      targetAmount !== initialTarget ||
+      safetyBufferFloor.trim() !== initialFloor ||
+      targetAmount.trim() !== initialTarget ||
       targetDate !== initialDate ||
       goalMode !== initialGoalMode ||
       billMode !== initialBillMode ||
       frequency !== initialFreq ||
+      interval !== initialInterval ||
       goalStartDate !== initialStartDate ||
       isSurplusTarget !== initialSurplus
     );
-  }, [isEdit, categoryToEdit, name, bankAccountId, safetyBufferFloor, targetAmount, targetDate, goalMode, billMode, frequency, goalStartDate, isSurplusTarget]);
+  }, [
+    isEdit,
+    categoryToEdit,
+    name,
+    bankAccountId,
+    safetyBufferFloor,
+    targetAmount,
+    targetDate,
+    goalMode,
+    billMode,
+    frequency,
+    interval,
+    goalStartDate,
+    isSurplusTarget,
+    type,
+    defaultType,
+  ]);
 
   const isSurplusDisabled = Boolean(isEdit && categoryToEdit?.isSurplusTarget);
 
-  const handleSubmit = () => {
+  const validateForm = (): boolean => {
     if (!name.trim()) {
       setNameError(t('categories.nameRequired'));
-      return;
+      return false;
     }
     if (!isEdit && !bankAccountId) {
       toast.error(t('categories.bankAccountRequired'));
-      return;
+      return false;
     }
     if (type === 'GOAL') {
       if (!targetAmount || parseFloat(targetAmount) <= 0) {
         toast.error(t('categories.goalAmountRequired'));
-        return;
+        return false;
       }
       if (goalMode === 'TARGET_DATE' && !targetDate) {
         toast.error(t('categories.goalDateRequired'));
-        return;
+        return false;
       }
     }
     if (type === 'REGULAR') {
       if (!targetAmount || parseFloat(targetAmount) <= 0) {
         toast.error(t('categories.billAmountRequired'));
-        return;
+        return false;
       }
       if (billMode === 'SCHEDULED_BILL' && !goalStartDate) {
         toast.error(t('categories.billStartDateRequired'));
-        return;
+        return false;
       }
     }
     setNameError('');
+    return true;
+  };
 
+  const buildPayload = () => {
     const isScheduledBill = type === 'REGULAR' && billMode === 'SCHEDULED_BILL';
     const isFlexibleBill = type === 'REGULAR' && billMode === 'FLEXIBLE_BILL';
     const isOngoingGoal = type === 'GOAL' && goalMode === 'ONGOING';
     const isTargetGoal = type === 'GOAL' && goalMode === 'TARGET_DATE';
 
-    const finalTargetAmount = isTargetGoal
-      ? parseFloat(targetAmount).toFixed(2)
-      : isFlexibleBill
+    const finalTargetAmount = isTargetGoal || isFlexibleBill
       ? parseFloat(targetAmount).toFixed(2)
       : isScheduledBill || isOngoingGoal
       ? calculatedMonthly
@@ -279,56 +321,40 @@ export function EnvelopeFormModal({
       ? parseFloat(targetAmount).toFixed(2)
       : undefined;
 
-    if (categoryToEdit) {
-      updateMut.mutate({
-        poolId: categoryToEdit.id,
-        data: {
-          name: name.trim(),
-          envelopeType:
-            type === 'GOAL'
-              ? goalMode === 'ONGOING'
-                ? 'ONGOING_GOAL'
-                : 'TARGET_GOAL'
-              : billMode === 'FLEXIBLE_BILL'
-              ? 'FLEXIBLE_BILL'
-              : 'SCHEDULED_BILL',
-          safetyBufferFloor: type === 'EVERYDAY' ? safetyBufferFloor || '0.00' : undefined,
-          targetAmount: finalTargetAmount,
-          monthlyAmount: isFlexibleBill ? finalTargetAmount : isScheduledBill ? calculatedMonthly : undefined,
-          enteredAmount: enteredAmountVal,
-          endDate: isTargetGoal ? targetDate || undefined : undefined,
-          budgetFrequency: (isScheduledBill || isOngoingGoal) ? frequency : isFlexibleBill ? 'MONTHLY' : undefined,
-          startDate: (isScheduledBill || isOngoingGoal) ? goalStartDate || undefined : undefined,
-          rrule: (isScheduledBill || isOngoingGoal) ? rruleString || undefined : undefined,
-          goalMode: type === 'GOAL' ? goalMode : undefined,
-          isSurplusTarget: type !== 'EVERYDAY' ? isSurplusTarget : undefined,
-        },
-      });
-    } else {
-      const envType =
-        type === 'GOAL'
-          ? goalMode === 'ONGOING'
-            ? 'ONGOING_GOAL'
-            : 'TARGET_GOAL'
-          : billMode === 'FLEXIBLE_BILL'
-          ? 'FLEXIBLE_BILL'
-          : 'SCHEDULED_BILL';
+    const envelopeType: 'EVERYDAY' | 'SCHEDULED_BILL' | 'FLEXIBLE_BILL' | 'TARGET_GOAL' | 'ONGOING_GOAL' =
+      type === 'EVERYDAY'
+        ? 'EVERYDAY'
+        : type === 'GOAL'
+        ? goalMode === 'ONGOING'
+          ? 'ONGOING_GOAL'
+          : 'TARGET_GOAL'
+        : billMode === 'FLEXIBLE_BILL'
+        ? 'FLEXIBLE_BILL'
+        : 'SCHEDULED_BILL';
 
-      createMut.mutate({
-        name: name.trim(),
-        envelopeType: envType,
-        bankAccountId,
-        safetyBufferFloor: undefined,
-        targetAmount: finalTargetAmount,
-        monthlyAmount: isFlexibleBill ? finalTargetAmount : isScheduledBill ? calculatedMonthly : undefined,
-        enteredAmount: enteredAmountVal,
-        endDate: isTargetGoal ? targetDate || undefined : undefined,
-        budgetFrequency: (isScheduledBill || isOngoingGoal) ? frequency : isFlexibleBill ? 'MONTHLY' : undefined,
-        startDate: (isScheduledBill || isOngoingGoal) ? goalStartDate || undefined : undefined,
-        rrule: (isScheduledBill || isOngoingGoal) ? rruleString || undefined : undefined,
-        goalMode: type === 'GOAL' ? goalMode : undefined,
-        isSurplusTarget: isSurplusTarget,
-      });
+    return {
+      name: name.trim(),
+      envelopeType,
+      safetyBufferFloor: type === 'EVERYDAY' ? safetyBufferFloor || '0.00' : undefined,
+      targetAmount: finalTargetAmount,
+      monthlyAmount: isFlexibleBill ? finalTargetAmount : isScheduledBill ? calculatedMonthly : undefined,
+      enteredAmount: enteredAmountVal,
+      endDate: isTargetGoal ? targetDate || undefined : undefined,
+      budgetFrequency: (isScheduledBill || isOngoingGoal) ? frequency : isFlexibleBill ? 'MONTHLY' : undefined,
+      startDate: (isScheduledBill || isOngoingGoal) ? goalStartDate || undefined : undefined,
+      rrule: (isScheduledBill || isOngoingGoal) ? rruleString || undefined : undefined,
+      goalMode: type === 'GOAL' ? goalMode : undefined,
+      isSurplusTarget: type !== 'EVERYDAY' ? isSurplusTarget : undefined,
+    };
+  };
+
+  const handleSubmit = () => {
+    if (!validateForm()) return;
+    const payload = buildPayload();
+    if (categoryToEdit) {
+      updateMut.mutate({ poolId: categoryToEdit.id, data: payload });
+    } else {
+      createMut.mutate({ ...payload, bankAccountId });
     }
   };
 

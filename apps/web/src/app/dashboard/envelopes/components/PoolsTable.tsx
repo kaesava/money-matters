@@ -242,7 +242,7 @@ export function PoolsTable({
                           <span className="text-xs font-black uppercase tracking-wide text-[#1B2B4B]">
                             {group.label} ({group.items.length})
                           </span>
-                          {onAddPool && !isProjectionMode && (
+                          {onAddPool && !isProjectionMode && group.type !== "EVERYDAY" && (
                             <button
                               type="button"
                               onClick={() => onAddPool(group.type)}

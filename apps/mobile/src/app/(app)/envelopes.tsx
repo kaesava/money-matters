@@ -151,10 +151,6 @@ export default function PoolsScreen() {
               onToggleCollapse={() => toggleTypeCollapse('EVERYDAY')}
               bankAccounts={bankAccounts}
               groupType="EVERYDAY"
-              onAddPool={(gType) => {
-                setDefaultPoolType(gType);
-                setPoolModalVisible(true);
-              }}
             />
             <PoolGroupSection
               title={t('categories.billsPoolsUpper')}

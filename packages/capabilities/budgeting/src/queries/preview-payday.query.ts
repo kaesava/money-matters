@@ -30,7 +30,7 @@ export async function previewPaydayQuery(
       expectedDate: incomeEvents.expectedDate,
       expectedAmount: incomeEvents.expectedAmount,
       actualAmount: incomeEvents.actualAmount,
-      name: sql`COALESCE(NULLIF(${incomeEvents.name}, ""), ${incomeSources.name}, "Paycheck")`,
+      name: sql`COALESCE(NULLIF(${incomeEvents.name}, ''), ${incomeSources.name}, 'Paycheck')`,
       receivingAccountId: incomeSources.receivingAccountId,
       incomeType: incomeSources.incomeType,
     })

@@ -4,12 +4,30 @@ import { Feather } from '@expo/vector-icons';
 import { DESIGN_TOKENS } from '@money-matters/ui/mobile';
 import { PoolItemCard } from './PoolItemCard';
 
+interface PoolGroupSectionItem {
+  id: string;
+  name: string;
+  envelopeType?: string;
+  poolType?: string;
+  goalMode?: string | null;
+  budgetFrequency?: string | null;
+  currentBalance?: number | string | null;
+  targetAmount?: string | null;
+  isSurplusTarget?: boolean | null;
+  bankAccountId?: string | null;
+}
+
+interface BankAccountItem {
+  id: string;
+  name: string;
+}
+
 interface PoolGroupSectionProps {
   title: string;
-  pools: any[];
+  pools: PoolGroupSectionItem[];
   isCollapsed: boolean;
   onToggleCollapse: () => void;
-  bankAccounts: any[];
+  bankAccounts: BankAccountItem[];
   groupType?: 'EVERYDAY' | 'REGULAR' | 'GOAL';
   onAddPool?: (type: 'EVERYDAY' | 'REGULAR' | 'GOAL') => void;
 }
@@ -42,7 +60,7 @@ export function PoolGroupSection({
           <Text style={styles.count}>({pools.length})</Text>
         </TouchableOpacity>
 
-        {groupType && onAddPool && (
+        {groupType && groupType !== 'EVERYDAY' && onAddPool && (
           <TouchableOpacity
             activeOpacity={0.7}
             onPress={() => onAddPool(groupType)}

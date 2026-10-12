@@ -11,7 +11,11 @@ export interface EnvelopeSummaryItem {
   isPrivate?: boolean | null;
   currentBalance: string;
   monthlyAmount?: string | null;
+  enteredAmount?: string | null;
   targetAmount?: string | null;
+  budgetFrequency?: "WEEKLY" | "FORTNIGHTLY" | "MONTHLY" | "ANNUALLY" | string | null;
+  startDate?: string | null;
+  rrule?: string | null;
   targetDate?: string | null;
   endDate?: string | null;
   safetyBufferFloor?: string | null;

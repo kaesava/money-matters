@@ -63,46 +63,50 @@ export const EnvelopeRecurrenceFields: React.FC<EnvelopeRecurrenceFieldsProps> =
         />
       </View>
 
-      <View style={styles.formGroup}>
-        <FormLabel>{t('forms.every')}</FormLabel>
-        <View style={styles.intervalRow}>
-          <TextInput
-            style={styles.intervalInput}
-            keyboardType="numeric"
-            value={interval === 0 ? '' : String(interval)}
-            onChangeText={(val) => {
-              if (val === '') {
-                setInterval?.(0);
-              } else {
-                const parsed = parseInt(val, 10);
-                if (!isNaN(parsed) && parsed >= 1) {
-                  setInterval?.(Math.min(365, parsed));
+      <View style={styles.inlineRow}>
+        <View style={styles.everyCol}>
+          <FormLabel>{t('forms.every')}</FormLabel>
+          <View style={styles.intervalRow}>
+            <TextInput
+              style={styles.intervalInput}
+              keyboardType="numeric"
+              value={interval === 0 ? '' : String(interval)}
+              onChangeText={(val) => {
+                if (val === '') {
+                  setInterval?.(0);
+                } else {
+                  const parsed = parseInt(val, 10);
+                  if (!isNaN(parsed) && parsed >= 1) {
+                    setInterval?.(Math.min(365, parsed));
+                  }
                 }
-              }
-            }}
-            onBlur={() => {
-              if (interval === 0 || isNaN(interval)) {
-                setInterval?.(1);
-              }
-            }}
+              }}
+              onBlur={() => {
+                if (interval === 0 || isNaN(interval)) {
+                  setInterval?.(1);
+                }
+              }}
+            />
+            <Text style={styles.intervalUnit} numberOfLines={1}>
+              {frequency === 'WEEKLY'
+                ? t('forms.weeks')
+                : frequency === 'FORTNIGHTLY'
+                ? t('forms.fortnights')
+                : frequency === 'MONTHLY'
+                ? t('forms.months')
+                : t('forms.years')}
+            </Text>
+          </View>
+        </View>
+
+        <View style={styles.dateCol}>
+          <DatePickerField
+            label={t('forms.firstDate')}
+            value={startDate}
+            onChange={(val) => setStartDate?.(val)}
           />
-          <Text style={styles.intervalUnit}>
-            {frequency === 'WEEKLY'
-              ? t('forms.weeks')
-              : frequency === 'FORTNIGHTLY'
-              ? t('forms.fortnights')
-              : frequency === 'MONTHLY'
-              ? t('forms.months')
-              : t('forms.years')}
-          </Text>
         </View>
       </View>
-
-      <DatePickerField
-        label={t('forms.firstDate')}
-        value={startDate}
-        onChange={(val) => setStartDate?.(val)}
-      />
 
       {showMonthlyEquiv && (
         <View style={styles.equivBanner}>
@@ -121,34 +125,49 @@ const styles = StyleSheet.create({
   formGroup: {
     gap: 4,
   },
+  inlineRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 12,
+  },
+  everyCol: {
+    flex: 1,
+    gap: 4,
+  },
+  dateCol: {
+    flex: 1.25,
+  },
   intervalRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
+    gap: 8,
+    minHeight: 44,
   },
   intervalInput: {
     backgroundColor: DESIGN_TOKENS.colors.surfaceVariant,
     borderWidth: 1,
     borderColor: DESIGN_TOKENS.colors.slate[200],
     borderRadius: DESIGN_TOKENS.radius.md,
-    paddingHorizontal: 14,
+    paddingHorizontal: 12,
     paddingVertical: 10,
     fontSize: 14,
     fontWeight: '700',
     color: DESIGN_TOKENS.colors.textPrimary,
-    minWidth: 80,
+    width: 52,
+    textAlign: 'center',
   },
   intervalUnit: {
     fontSize: 12,
     fontWeight: '700',
     color: DESIGN_TOKENS.colors.textMuted,
+    flexShrink: 1,
   },
   equivBanner: {
     padding: 10,
-    backgroundColor: '#EFF6FF',
+    backgroundColor: DESIGN_TOKENS.colors.accentLight,
     borderRadius: DESIGN_TOKENS.radius.md,
     borderWidth: 1,
-    borderColor: '#BFDBFE',
+    borderColor: DESIGN_TOKENS.colors.accentBorder,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
@@ -156,7 +175,7 @@ const styles = StyleSheet.create({
   equivLabel: {
     fontSize: 11,
     fontWeight: '700',
-    color: '#1E3A8A',
+    color: DESIGN_TOKENS.colors.primary,
   },
   equivVal: {
     fontSize: 12,
