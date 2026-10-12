@@ -1,12 +1,11 @@
 import React, { useState, useMemo } from 'react';
 import { View, Text, ScrollView, StyleSheet, ActivityIndicator } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { MobileScreenWrapper, showMobileConfirm, DESIGN_TOKENS } from '@money-matters/ui/mobile';
+import { MobileScreenWrapper, DESIGN_TOKENS } from '@money-matters/ui/mobile';
 import { t } from '@money-matters/i18n';
 import { trpc } from '../../../lib/trpc';
 import { authClient } from '../../../lib/auth';
 import { EnvelopeFormModal } from '../../../components/EnvelopeFormModal';
-import { QuickExpenseModal } from '../../../components/QuickExpenseModal';
 import { MarkPaidModal, MarkPaidEvent } from '../../../components/MarkPaidModal';
 import { PoolSummaryCard } from '../../../components/pools/PoolSummaryCard';
 import { PoolUpcomingSection } from '../../../components/pools/PoolUpcomingSection';
@@ -16,10 +15,8 @@ export default function PoolDetailScreen() {
   const { id, returnTo } = useLocalSearchParams<{ id: string; returnTo?: string }>();
   const router = useRouter();
   const { data: session } = authClient.useSession();
-  const utils = trpc.useUtils();
 
   const [poolModalVisible, setPoolModalVisible] = useState(false);
-  const [moveMoneyVisible, setMoveMoneyVisible] = useState(false);
   const [markPaidEvent, setMarkPaidEvent] = useState<MarkPaidEvent | null>(null);
   const [upcomingExpanded, setUpcomingExpanded] = useState(true);
   const [historyExpanded, setHistoryExpanded] = useState(true);
@@ -28,13 +25,6 @@ export default function PoolDetailScreen() {
   const bankAccountsQuery = trpc.listBankAccounts.useQuery(undefined, { enabled: !!session?.user });
   const txLedgerQuery = trpc.listTransactions.useQuery({ envelopeId: id, limit: 10 }, { enabled: !!session?.user && !!id });
   const expenseEventsQuery = trpc.listExpenseEvents.useQuery(undefined, { enabled: !!session?.user && !!id });
-
-  const archivePoolMut = trpc.archivePool.useMutation({
-    onSuccess: () => {
-      utils.listPools.invalidate();
-      router.back();
-    },
-  });
 
   const pool = poolsQuery.data?.find((p) => p.id === id);
   const bankAccount = bankAccountsQuery.data?.find((b) => b.id === pool?.bankAccountId);
@@ -74,17 +64,7 @@ export default function PoolDetailScreen() {
         <PoolSummaryCard
           pool={pool}
           bankAccountName={bankAccount?.name}
-          onMoveMoney={() => setMoveMoneyVisible(true)}
           onEdit={() => setPoolModalVisible(true)}
-          onArchive={() => {
-            showMobileConfirm({
-              title: t('categories.archivePool'),
-              message: t('categories.archivePoolConfirm', { name: pool.name }),
-              confirmText: t('categories.archivePool'),
-              isDestructive: true,
-              onConfirm: () => archivePoolMut.mutate({ poolId: pool.id }),
-            });
-          }}
         />
 
         <PoolUpcomingSection
@@ -119,15 +99,9 @@ export default function PoolDetailScreen() {
           isSurplusTarget: pool.isSurplusTarget,
         }}
         onClose={() => setPoolModalVisible(false)}
-        onSuccess={() => poolsQuery.refetch()}
-      />
-
-      <QuickExpenseModal
-        visible={moveMoneyVisible}
-        initialType="TRANSFER"
-        initialSourcePoolId={pool.id}
-        onClose={() => setMoveMoneyVisible(false)}
-        onSuccess={() => poolsQuery.refetch()}
+        onSuccess={() => {
+          poolsQuery.refetch();
+        }}
       />
 
       <MarkPaidModal

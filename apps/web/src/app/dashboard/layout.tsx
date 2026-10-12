@@ -423,7 +423,13 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
           <QuickActionFab
             pathname={pathname}
-            onOpenModal={() => setQuickExpenseOpen(true)}
+            onOpenModal={() => {
+              if (pathname.startsWith("/dashboard/envelopes")) {
+                window.dispatchEvent(new CustomEvent("open-create-category-modal"));
+              } else {
+                setQuickExpenseOpen(true);
+              }
+            }}
           />
 
           {quickExpenseOpen && (

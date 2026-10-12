@@ -1,4 +1,4 @@
-import { envelopes, DbOrTx } from "@money-matters/db";
+import { envelopes, expenseEvents, DbOrTx } from "@money-matters/db";
 import { eq, and } from "drizzle-orm";
 import { z } from "zod";
 import { UpdateEnvelopeCommand } from "@money-matters/types";
@@ -52,20 +52,24 @@ export async function updateEnvelopeCommand(
         );
     }
 
-    const isScheduled = existing.envelopeType === "SCHEDULED_BILL";
+    const effectiveEnvelopeType = input.envelopeType ?? existing.envelopeType;
+    const isNowScheduled = effectiveEnvelopeType === "SCHEDULED_BILL";
+    const wasScheduled = existing.envelopeType === "SCHEDULED_BILL";
+
     const budgetFrequency = input.budgetFrequency ?? existing.budgetFrequency;
-    const rrule = isScheduled
+    const rrule = isNowScheduled
       ? input.rrule ?? (input.budgetFrequency ? deriveRruleFromFrequency(budgetFrequency) : existing.rrule)
-      : input.rrule ?? existing.rrule;
-    const startDate = isScheduled
+      : input.rrule !== undefined ? input.rrule : existing.rrule;
+    const startDate = isNowScheduled
       ? input.startDate ?? (existing.startDate || computeDefaultStartDate())
-      : input.startDate ?? existing.startDate;
+      : input.startDate !== undefined ? input.startDate : existing.startDate;
     const endDate = input.endDate !== undefined ? input.endDate : existing.endDate;
 
     const [updated] = await tx
       .update(envelopes)
       .set({
         ...input,
+        envelopeType: effectiveEnvelopeType,
         safetyBufferFloor: input.safetyBufferFloor !== undefined ? input.safetyBufferFloor || "0.00" : undefined,
         startDate,
         endDate,
@@ -82,24 +86,33 @@ export async function updateEnvelopeCommand(
       )
       .returning();
 
-    // Re-burst scheduled events if schedule parameters or amount changed
-    const scheduleChanged =
+    // Determine event handling according to the permutation matrix:
+    // 1. If schedule parameters changed or mode switched:
+    const scheduleParametersChanged =
       input.rrule !== undefined ||
       input.startDate !== undefined ||
       input.endDate !== undefined ||
       input.budgetFrequency !== undefined ||
-      input.enteredAmount !== undefined ||
-      input.monthlyAmount !== undefined ||
-      input.name !== undefined;
+      (wasScheduled !== isNowScheduled);
 
-    if (isScheduled && scheduleChanged && rrule && startDate) {
+    const amountChanged =
+      input.enteredAmount !== undefined ||
+      input.monthlyAmount !== undefined;
+
+    const nameChanged = input.name !== undefined;
+
+    const newAmountVal = updated.enteredAmount || updated.monthlyAmount || "0.00";
+
+    if (scheduleParametersChanged) {
+      // Clear all unconfirmed pending events for this envelope
       await clearScheduledEnvelopeEvents(tx, envelopeId, tenantId, appId);
-      const amountVal = updated.enteredAmount || updated.monthlyAmount || "0.00";
-      if (parseFloat(amountVal) > 0) {
+
+      // If envelope is now SCHEDULED_BILL, regenerate fresh burst of 12 cycles
+      if (isNowScheduled && rrule && startDate && parseFloat(newAmountVal) > 0) {
         await burstEnvelopeEvents(tx, {
           envelopeId,
           name: updated.name,
-          amount: amountVal,
+          amount: newAmountVal,
           rrule,
           startDate,
           endDate,
@@ -107,6 +120,27 @@ export async function updateEnvelopeCommand(
           appId,
           userId,
         });
+      }
+    } else if (isNowScheduled && (amountChanged || nameChanged)) {
+      // In-place update of all unconfirmed pending events (both past and future pending events)
+      // Confirmed history events are never modified.
+      if (typeof tx.update === "function") {
+        await tx
+          .update(expenseEvents)
+          .set({
+            name: updated.name,
+            expectedAmount: newAmountVal,
+            updatedBy: userId,
+            updatedAt: new Date(),
+          })
+          .where(
+            and(
+              eq(expenseEvents.envelopeId, envelopeId),
+              eq(expenseEvents.status, "PENDING"),
+              eq(expenseEvents.tenantId, tenantId),
+              eq(expenseEvents.appId, appId)
+            )
+          );
       }
     }
 

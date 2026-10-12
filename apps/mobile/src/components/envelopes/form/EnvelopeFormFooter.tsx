@@ -5,6 +5,7 @@ import { t } from '@money-matters/i18n';
 
 export interface EnvelopeFormFooterProps {
   isEdit: boolean;
+  showArchive?: boolean;
   isPending: boolean;
   isValid: boolean;
   isDirty: boolean;
@@ -16,15 +17,17 @@ export type CategoryFormFooterProps = EnvelopeFormFooterProps;
 
 export const EnvelopeFormFooter: React.FC<EnvelopeFormFooterProps> = ({
   isEdit,
+  showArchive,
   isPending,
   isValid,
   isDirty,
   onArchive,
   onSubmit,
 }) => {
+  const canArchive = showArchive ?? isEdit;
   return (
     <View style={styles.footerContainer}>
-      {isEdit ? (
+      {canArchive ? (
         <TouchableOpacity
           onPress={onArchive}
           disabled={isPending}

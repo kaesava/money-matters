@@ -11,6 +11,10 @@ export async function createEnvelopeCommand(
   userId: string,
   dbClient: DbOrTx
 ) {
+  if (input.envelopeType === "EVERYDAY") {
+    throw new Error("Creation of additional Everyday envelopes is prohibited. Each household has a single shared Everyday envelope.");
+  }
+
   const runInTx =
     typeof dbClient.transaction === "function"
       ? (cb: (tx: DbOrTx) => Promise<typeof envelopes.$inferSelect>) => dbClient.transaction(cb)

@@ -88,6 +88,7 @@ export const CreateEnvelopeCommand = z.object({
 
 export const UpdateEnvelopeCommand = z.object({
   name: z.string().min(1, "Envelope name is required").optional(),
+  envelopeType: z.enum(["EVERYDAY", "SCHEDULED_BILL", "FLEXIBLE_BILL", "TARGET_GOAL", "ONGOING_GOAL"]).optional(),
   bankAccountId: z.string().uuid("Please select a bank account").optional(),
   safetyBufferFloor: z.string().regex(/^(\d{1,12}(\.\d{1,2})?)?$/, { message: "Safety buffer must be a valid positive number" }).optional().nullable(),
   monthlyAmount: z.string().regex(/^(\d{1,12}(\.\d{1,2})?)?$/, { message: "Target amount must be a valid positive number" }).optional().nullable(),

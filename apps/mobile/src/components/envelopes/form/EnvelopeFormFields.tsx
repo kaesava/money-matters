@@ -135,12 +135,11 @@ export const EnvelopeFormFields: React.FC<EnvelopeFormFieldsProps> = ({
               ]}
               value={billMode}
               onChange={(val) => setBillMode?.(val as 'SCHEDULED_BILL' | 'FLEXIBLE_BILL')}
-              disabled={isEdit}
             />
             <Text style={styles.billModeDesc}>
               {billMode === 'SCHEDULED_BILL'
-                ? t('categories.billModeScheduledDesc')
-                : t('categories.billModeFlexibleDesc')}
+                ? t('categories.tooltips.scheduledBill')
+                : t('categories.tooltips.flexibleBill')}
             </Text>
           </View>
 

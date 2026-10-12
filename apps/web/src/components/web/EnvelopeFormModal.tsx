@@ -208,6 +208,14 @@ export function EnvelopeFormModal({
           poolId: categoryToEdit.id,
           data: {
             name: name.trim(),
+            envelopeType:
+              type === "GOAL"
+                ? goalMode === "ONGOING"
+                  ? "ONGOING_GOAL"
+                  : "TARGET_GOAL"
+                : billMode === "FLEXIBLE_BILL"
+                ? "FLEXIBLE_BILL"
+                : "SCHEDULED_BILL",
             safetyBufferFloor: type === "EVERYDAY" ? safetyBufferFloor || "0.00" : undefined,
             targetAmount: finalTargetAmount,
             monthlyAmount: type === "REGULAR" && billMode === "FLEXIBLE_BILL" ? finalTargetAmount : undefined,
@@ -222,9 +230,7 @@ export function EnvelopeFormModal({
         });
       } else {
         const envType =
-          type === "EVERYDAY"
-            ? "EVERYDAY"
-            : type === "GOAL"
+          type === "GOAL"
             ? goalMode === "ONGOING"
               ? "ONGOING_GOAL"
               : "TARGET_GOAL"
@@ -236,7 +242,7 @@ export function EnvelopeFormModal({
           name: name.trim(),
           envelopeType: envType,
           bankAccountId,
-          safetyBufferFloor: type === "EVERYDAY" ? safetyBufferFloor || "0.00" : undefined,
+          safetyBufferFloor: undefined,
           targetAmount: finalTargetAmount,
           monthlyAmount: type === "REGULAR" && billMode === "FLEXIBLE_BILL" ? finalTargetAmount : undefined,
           enteredAmount: type === "REGULAR" && billMode === "FLEXIBLE_BILL" ? finalTargetAmount : type === "GOAL" && goalMode === "ONGOING" ? parseFloat(targetAmount).toFixed(2) : undefined,
@@ -245,7 +251,7 @@ export function EnvelopeFormModal({
           startDate: type === "GOAL" && goalMode === "ONGOING" ? goalStartDate || undefined : undefined,
           rrule: type === "GOAL" && goalMode === "ONGOING" ? rruleString || undefined : undefined,
           goalMode: type === "GOAL" ? goalMode : undefined,
-          isSurplusTarget: type !== "EVERYDAY" ? isSurplusTarget : undefined,
+          isSurplusTarget: isSurplusTarget,
         });
       }
       await utils.listPools.invalidate();
@@ -287,11 +293,18 @@ export function EnvelopeFormModal({
               label: `${acc.name} ${acc.isPrivate ? t("categories.privateBadge") : t("categories.householdBadge")}`,
             })),
           ]}
-          poolTypeOptions={[
-            { value: "EVERYDAY", label: t("categories.typeEveryday") },
-            { value: "REGULAR", label: t("categories.typeRegular") },
-            { value: "GOAL", label: t("categories.typeGoal") },
-          ]}
+          poolTypeOptions={
+            isEdit
+              ? [
+                  { value: "EVERYDAY", label: t("categories.typeEveryday") },
+                  { value: "REGULAR", label: t("categories.typeRegular") },
+                  { value: "GOAL", label: t("categories.typeGoal") },
+                ]
+              : [
+                  { value: "REGULAR", label: t("categories.typeRegular") },
+                  { value: "GOAL", label: t("categories.typeGoal") },
+                ]
+          }
           isEdit={isEdit}
           safetyBufferFloor={safetyBufferFloor}
           setSafetyBufferFloor={setSafetyBufferFloor}
@@ -314,7 +327,7 @@ export function EnvelopeFormModal({
         />
 
         <div className="flex justify-between items-center pt-4 border-t border-zinc-200">
-          {isEdit ? (
+          {isEdit && type !== "EVERYDAY" ? (
             <button
               type="button"
               onClick={() => setShowArchiveConfirm(true)}

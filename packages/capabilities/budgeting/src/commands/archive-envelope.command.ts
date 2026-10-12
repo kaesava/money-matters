@@ -25,40 +25,42 @@ export async function archiveEnvelopeCommand(
     );
 
   if (!envelope) throw new Error("Envelope not found.");
-  if (envelope.envelopeType === "EVERYDAY" && !envelope.isPrivate) {
-    throw new Error("The shared Everyday envelope cannot be deleted or archived.");
-  }
-  if (envelope.isSurplusTarget) {
-    throw new Error("Cannot archive the designated Surplus Target envelope. Please designate another Surplus Target envelope first.");
+  if (envelope.envelopeType === "EVERYDAY") {
+    throw new Error("The Everyday envelope cannot be archived.");
   }
 
-  const pendingOneOffEvents = await dbClient
-    .select()
-    .from(expenseEvents)
-    .where(
-      and(
-        eq(expenseEvents.envelopeId, envelopeId),
-        eq(expenseEvents.status, "PENDING"),
-        eq(expenseEvents.isScheduled, false),
-        sql`${expenseEvents.archivedAt} IS NULL`
-      )
-    );
-
-  if (pendingOneOffEvents.length > 0) {
-    throw new Error("Cannot archive an envelope that has upcoming one-off expenses assigned to it.");
-  }
-
-  // Cascade delete pending scheduled events for this envelope
-  if (typeof dbClient.delete === "function") {
+  // Clear surplus target designation if this envelope was the surplus target
+  if (envelope.isSurplusTarget && typeof dbClient.update === "function") {
     await dbClient
-      .delete(expenseEvents)
+      .update(envelopes)
+      .set({ isSurplusTarget: false })
+      .where(
+        and(
+          eq(envelopes.id, envelopeId),
+          eq(envelopes.tenantId, tenantId),
+          eq(envelopes.appId, appId)
+        )
+      );
+  }
+
+  // Soft-archive all pending (unconfirmed) expense events (both scheduled and one-off)
+  // Confirmed history and bank accounts are never modified or archived.
+  if (typeof dbClient.update === "function") {
+    await dbClient
+      .update(expenseEvents)
+      .set({
+        archivedAt: new Date(),
+        archivedBy: userId,
+        updatedAt: new Date(),
+        updatedBy: userId,
+      })
       .where(
         and(
           eq(expenseEvents.envelopeId, envelopeId),
           eq(expenseEvents.status, "PENDING"),
-          eq(expenseEvents.isScheduled, true),
           eq(expenseEvents.tenantId, tenantId),
-          eq(expenseEvents.appId, appId)
+          eq(expenseEvents.appId, appId),
+          sql`${expenseEvents.archivedAt} IS NULL`
         )
       );
   }

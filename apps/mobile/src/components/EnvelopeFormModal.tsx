@@ -266,6 +266,14 @@ export function EnvelopeFormModal({
         poolId: categoryToEdit.id,
         data: {
           name: name.trim(),
+          envelopeType:
+            type === 'GOAL'
+              ? goalMode === 'ONGOING'
+                ? 'ONGOING_GOAL'
+                : 'TARGET_GOAL'
+              : billMode === 'FLEXIBLE_BILL'
+              ? 'FLEXIBLE_BILL'
+              : 'SCHEDULED_BILL',
           safetyBufferFloor: type === 'EVERYDAY' ? safetyBufferFloor || '0.00' : undefined,
           targetAmount: finalTargetAmount,
           monthlyAmount: type === 'REGULAR' && billMode === 'FLEXIBLE_BILL' ? finalTargetAmount : undefined,
@@ -280,9 +288,7 @@ export function EnvelopeFormModal({
       });
     } else {
       const envType =
-        type === 'EVERYDAY'
-          ? 'EVERYDAY'
-          : type === 'GOAL'
+        type === 'GOAL'
           ? goalMode === 'ONGOING'
             ? 'ONGOING_GOAL'
             : 'TARGET_GOAL'
@@ -294,7 +300,7 @@ export function EnvelopeFormModal({
         name: name.trim(),
         envelopeType: envType,
         bankAccountId,
-        safetyBufferFloor: type === 'EVERYDAY' ? safetyBufferFloor || '0.00' : undefined,
+        safetyBufferFloor: undefined,
         targetAmount: finalTargetAmount,
         monthlyAmount: type === 'REGULAR' && billMode === 'FLEXIBLE_BILL' ? finalTargetAmount : undefined,
         enteredAmount: type === 'REGULAR' && billMode === 'FLEXIBLE_BILL' ? finalTargetAmount : type === 'GOAL' && goalMode === 'ONGOING' ? parseFloat(targetAmount).toFixed(2) : undefined,
@@ -303,7 +309,7 @@ export function EnvelopeFormModal({
         startDate: type === 'GOAL' && goalMode === 'ONGOING' ? goalStartDate || undefined : undefined,
         rrule: type === 'GOAL' && goalMode === 'ONGOING' ? rruleString || undefined : undefined,
         goalMode: type === 'GOAL' ? goalMode : undefined,
-        isSurplusTarget: type !== 'EVERYDAY' ? isSurplusTarget : undefined,
+        isSurplusTarget: isSurplusTarget,
       });
     }
   };
@@ -323,11 +329,16 @@ export function EnvelopeFormModal({
 
   const isPending = createMut.isPending || updateMut.isPending || archiveMut.isPending;
 
-  const typeOptions = [
-    { key: 'EVERYDAY', label: t('categories.typeEveryday') },
-    { key: 'REGULAR', label: t('categories.typeRegular') },
-    { key: 'GOAL', label: t('categories.typeGoal') },
-  ];
+  const typeOptions = isEdit
+    ? [
+        { key: 'EVERYDAY', label: t('categories.typeEveryday') },
+        { key: 'REGULAR', label: t('categories.typeRegular') },
+        { key: 'GOAL', label: t('categories.typeGoal') },
+      ]
+    : [
+        { key: 'REGULAR', label: t('categories.typeRegular') },
+        { key: 'GOAL', label: t('categories.typeGoal') },
+      ];
 
   const bankOptions = bankAccounts.map((acc) => ({
     key: acc.id,
@@ -343,6 +354,7 @@ export function EnvelopeFormModal({
       footer={
         <EnvelopeFormFooter
           isEdit={isEdit}
+          showArchive={isEdit && type !== 'EVERYDAY'}
           isPending={isPending}
           isValid={isValid}
           isDirty={isDirty}

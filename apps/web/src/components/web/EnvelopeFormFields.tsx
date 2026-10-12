@@ -105,13 +105,22 @@ export function EnvelopeFormFields({
       {type === 'REGULAR' && (
         <div className="space-y-3">
           <div className="flex flex-col gap-1.5">
-            <label className="text-xs font-bold uppercase tracking-wider text-zinc-500">
-              {t('categories.billModeLabel')}
-            </label>
+            <div className="flex items-center gap-1.5">
+              <label className="text-xs font-bold uppercase tracking-wider text-zinc-500">
+                {t('categories.billModeLabel')}
+              </label>
+              <InfoTooltip
+                content={
+                  billMode === 'SCHEDULED_BILL'
+                    ? t('categories.tooltips.scheduledBill')
+                    : t('categories.tooltips.flexibleBill')
+                }
+                align="left"
+              />
+            </div>
             <div className="grid grid-cols-2 gap-2 p-1 bg-zinc-100 rounded-xl">
               <button
                 type="button"
-                disabled={isEdit}
                 onClick={() => setBillMode?.('SCHEDULED_BILL')}
                 className={`py-2 px-3 text-xs font-bold rounded-lg transition-all text-center cursor-pointer ${
                   billMode === 'SCHEDULED_BILL'
@@ -123,7 +132,6 @@ export function EnvelopeFormFields({
               </button>
               <button
                 type="button"
-                disabled={isEdit}
                 onClick={() => setBillMode?.('FLEXIBLE_BILL')}
                 className={`py-2 px-3 text-xs font-bold rounded-lg transition-all text-center cursor-pointer ${
                   billMode === 'FLEXIBLE_BILL'

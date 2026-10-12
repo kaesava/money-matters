@@ -15,17 +15,13 @@ interface PoolSummaryCardProps {
     isSurplusTarget?: boolean | null;
   };
   bankAccountName?: string | null;
-  onMoveMoney: () => void;
   onEdit: () => void;
-  onArchive: () => void;
 }
 
 export function PoolSummaryCard({
   pool,
   bankAccountName,
-  onMoveMoney,
   onEdit,
-  onArchive,
 }: PoolSummaryCardProps) {
   const badgeText = pool.envelopeType === 'SCHEDULED_BILL'
     ? t('categories.scheduledBillBadge')
@@ -68,19 +64,9 @@ export function PoolSummaryCard({
       </View>
 
       <View style={styles.actionRow}>
-        <TouchableOpacity onPress={onMoveMoney} style={styles.actionBtn}>
-          <Feather name="repeat" size={14} color={DESIGN_TOKENS.colors.accent} />
-          <Text style={styles.actionBtnText}>{t('dashboard.moveMoney')}</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity onPress={onEdit} style={styles.actionBtn}>
-          <Feather name="edit-2" size={14} color="#64748B" />
-          <Text style={[styles.actionBtnText, { color: '#64748B' }]}>{t('categories.editPool')}</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity onPress={onArchive} style={styles.actionBtn}>
-          <Feather name="archive" size={14} color="#94A3B8" />
-          <Text style={[styles.actionBtnText, { color: '#94A3B8' }]}>{t('common.archive')}</Text>
+        <TouchableOpacity onPress={onEdit} style={styles.primaryActionBtn}>
+          <Feather name="edit-2" size={15} color="#FFFFFF" />
+          <Text style={styles.primaryActionBtnText}>{t('categories.editPool')}</Text>
         </TouchableOpacity>
       </View>
     </View>
@@ -121,17 +107,20 @@ const styles = StyleSheet.create({
   balanceLabel: { fontSize: 10, fontWeight: '700', color: '#94A3B8', textTransform: 'uppercase' },
   balanceAmount: { fontSize: 20, fontWeight: '900', fontFamily: 'monospace', color: DESIGN_TOKENS.colors.accent },
   actionRow: { flexDirection: 'row', gap: 8, borderTopWidth: 1, borderTopColor: '#F1F5F9', paddingTop: 12 },
-  actionBtn: {
+  primaryActionBtn: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 6,
-    backgroundColor: DESIGN_TOKENS.colors.surfaceVariant,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    borderRadius: 10,
-    paddingVertical: 8,
+    gap: 8,
+    backgroundColor: DESIGN_TOKENS.colors.accent,
+    borderRadius: 12,
+    paddingVertical: 10,
+    shadowColor: DESIGN_TOKENS.colors.accent,
+    shadowOpacity: 0.2,
+    shadowOffset: { width: 0, height: 2 },
+    shadowRadius: 4,
+    elevation: 2,
   },
-  actionBtnText: { fontSize: 12, fontWeight: '700', color: DESIGN_TOKENS.colors.accent },
+  primaryActionBtnText: { fontSize: 13, fontWeight: '700', color: '#FFFFFF' },
 });
