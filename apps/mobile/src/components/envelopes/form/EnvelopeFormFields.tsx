@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, TextInput, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet } from 'react-native';
 import {
   DESIGN_TOKENS,
   MobileInput,
@@ -9,8 +9,10 @@ import {
   DatePickerField,
   MobileCheckbox,
   MobileGoalModeToggle,
+  MobileBillModeToggle,
 } from '@money-matters/ui/mobile';
 import { t } from '@money-matters/i18n';
+import { EnvelopeRecurrenceFields } from './EnvelopeRecurrenceFields';
 
 export interface EnvelopeFormFieldsProps {
   name: string;
@@ -126,22 +128,12 @@ export const EnvelopeFormFields: React.FC<EnvelopeFormFieldsProps> = ({
 
       {type === 'REGULAR' && (
         <View style={styles.billSection}>
-          <View style={styles.formGroup}>
-            <FormLabel>{t('categories.billModeLabel')}</FormLabel>
-            <ChipSelect
-              options={[
-                { key: 'SCHEDULED_BILL', label: t('categories.billModeScheduled') },
-                { key: 'FLEXIBLE_BILL', label: t('categories.billModeFlexible') },
-              ]}
+          {setBillMode && (
+            <MobileBillModeToggle
               value={billMode}
-              onChange={(val) => setBillMode?.(val as 'SCHEDULED_BILL' | 'FLEXIBLE_BILL')}
+              onChange={setBillMode}
             />
-            <Text style={styles.billModeDesc}>
-              {billMode === 'SCHEDULED_BILL'
-                ? t('categories.tooltips.scheduledBill')
-                : t('categories.tooltips.flexibleBill')}
-            </Text>
-          </View>
+          )}
 
           {billMode === 'FLEXIBLE_BILL' ? (
             <AmountInput
@@ -152,27 +144,30 @@ export const EnvelopeFormFields: React.FC<EnvelopeFormFieldsProps> = ({
               placeholder="150.00"
             />
           ) : (
-            <View style={styles.noticeCard}>
-              <Text style={styles.noticeTitle}>{t('categories.calculatedTarget')}</Text>
-              <Text style={styles.noticeDesc}>{t('categories.calculatedTargetNotice')}</Text>
-            </View>
+            <EnvelopeRecurrenceFields
+              amountLabel={t('categories.billAmountLabel')}
+              amount={targetAmount}
+              setAmount={setTargetAmount}
+              placeholder="120.00"
+              frequency={frequency}
+              setFrequency={setFrequency}
+              interval={interval}
+              setInterval={setInterval}
+              startDate={goalStartDate}
+              setStartDate={setGoalStartDate}
+              calculatedMonthly={calculatedMonthly}
+            />
           )}
         </View>
       )}
 
       {type === 'EVERYDAY' && (
-        <>
-          <View style={styles.noticeCard}>
-            <Text style={styles.noticeTitle}>{t('categories.calculatedTarget')}</Text>
-            <Text style={styles.noticeDesc}>{t('categories.calculatedTargetNotice')}</Text>
-          </View>
-          <AmountInput
-            label={t('categories.safetyBufferFloorLabel')}
-            value={safetyBufferFloor}
-            onChangeText={setSafetyBufferFloor}
-            placeholder="0.00"
-          />
-        </>
+        <AmountInput
+          label={t('categories.safetyBufferFloorLabel')}
+          value={safetyBufferFloor}
+          onChangeText={setSafetyBufferFloor}
+          placeholder="0.00"
+        />
       )}
 
       {type === 'GOAL' && (
@@ -198,77 +193,19 @@ export const EnvelopeFormFields: React.FC<EnvelopeFormFieldsProps> = ({
               />
             </View>
           ) : (
-            <View style={styles.goalInputsCol}>
-              <AmountInput
-                label={t('goalModes.monthlyContribution')}
-                required
-                value={targetAmount}
-                onChangeText={setTargetAmount}
-                placeholder="250.00"
-              />
-
-              <View style={styles.formGroup}>
-                <FormLabel>{t('categories.frequencyLabel')}</FormLabel>
-                <ChipSelect
-                  options={[
-                    { key: 'WEEKLY', label: t('categories.frequencyWeekly') },
-                    { key: 'FORTNIGHTLY', label: t('categories.frequencyFortnightly') },
-                    { key: 'MONTHLY', label: t('categories.frequencyMonthly') },
-                    { key: 'ANNUALLY', label: t('categories.frequencyAnnually') },
-                  ]}
-                  value={frequency}
-                  onChange={(val) => setFrequency?.(val as 'WEEKLY' | 'FORTNIGHTLY' | 'MONTHLY' | 'ANNUALLY')}
-                />
-              </View>
-
-              <View style={styles.formGroup}>
-                <FormLabel>{t('forms.every')}</FormLabel>
-                <View style={styles.intervalRow}>
-                  <TextInput
-                    style={styles.intervalInput}
-                    keyboardType="numeric"
-                    value={interval === 0 ? '' : String(interval)}
-                    onChangeText={(val) => {
-                      if (val === '') {
-                        setInterval?.(0);
-                      } else {
-                        const parsed = parseInt(val, 10);
-                        if (!isNaN(parsed) && parsed >= 1) {
-                          setInterval?.(Math.min(365, parsed));
-                        }
-                      }
-                    }}
-                    onBlur={() => {
-                      if (interval === 0 || isNaN(interval)) {
-                        setInterval?.(1);
-                      }
-                    }}
-                  />
-                  <Text style={styles.intervalUnit}>
-                    {frequency === 'WEEKLY'
-                      ? t('forms.weeks')
-                      : frequency === 'FORTNIGHTLY'
-                      ? t('forms.fortnights')
-                      : frequency === 'MONTHLY'
-                      ? t('forms.months')
-                      : t('forms.years')}
-                  </Text>
-                </View>
-              </View>
-
-              <DatePickerField
-                label={t('forms.firstDate')}
-                value={goalStartDate}
-                onChange={(val) => setGoalStartDate?.(val)}
-              />
-
-              {targetAmount && parseFloat(targetAmount) > 0 && (frequency !== 'MONTHLY' || interval > 1) && (
-                <View style={styles.equivBanner}>
-                  <Text style={styles.equivLabel}>{t('categories.monthlyEquivalent')}</Text>
-                  <Text style={styles.equivVal}>${calculatedMonthly} / mo</Text>
-                </View>
-              )}
-            </View>
+            <EnvelopeRecurrenceFields
+              amountLabel={t('goalModes.monthlyContribution')}
+              amount={targetAmount}
+              setAmount={setTargetAmount}
+              placeholder="250.00"
+              frequency={frequency}
+              setFrequency={setFrequency}
+              interval={interval}
+              setInterval={setInterval}
+              startDate={goalStartDate}
+              setStartDate={setGoalStartDate}
+              calculatedMonthly={calculatedMonthly}
+            />
           )}
         </>
       )}
@@ -312,24 +249,6 @@ const styles = StyleSheet.create({
     color: DESIGN_TOKENS.colors.warningDark,
     lineHeight: 16,
   },
-  noticeCard: {
-    padding: 12,
-    backgroundColor: DESIGN_TOKENS.colors.slate[50],
-    borderRadius: DESIGN_TOKENS.radius.md,
-    borderWidth: 1,
-    borderColor: DESIGN_TOKENS.colors.slate[200],
-    gap: 4,
-  },
-  noticeTitle: {
-    fontSize: 12,
-    fontWeight: '800',
-    color: DESIGN_TOKENS.colors.primary,
-  },
-  noticeDesc: {
-    fontSize: 11,
-    color: DESIGN_TOKENS.colors.textMuted,
-    lineHeight: 16,
-  },
   surplusRow: {
     paddingTop: 4,
     gap: 4,
@@ -342,59 +261,9 @@ const styles = StyleSheet.create({
   goalInputsCol: {
     gap: 12,
   },
-  intervalRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-  },
-  intervalInput: {
-    backgroundColor: DESIGN_TOKENS.colors.surfaceVariant,
-    borderWidth: 1,
-    borderColor: DESIGN_TOKENS.colors.slate[200],
-    borderRadius: DESIGN_TOKENS.radius.md,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    fontSize: 14,
-    fontWeight: '700',
-    color: DESIGN_TOKENS.colors.textPrimary,
-    minWidth: 80,
-  },
-  intervalUnit: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: DESIGN_TOKENS.colors.textMuted,
-  },
-  equivBanner: {
-    padding: 10,
-    backgroundColor: '#EFF6FF',
-    borderRadius: DESIGN_TOKENS.radius.md,
-    borderWidth: 1,
-    borderColor: '#BFDBFE',
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  equivLabel: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: '#1E3A8A',
-  },
-  equivVal: {
-    fontSize: 12,
-    fontWeight: '800',
-    color: DESIGN_TOKENS.colors.accent,
-    fontFamily: 'monospace',
-  },
   billSection: {
     gap: 12,
-  },
-  billModeDesc: {
-    fontSize: 11,
-    color: DESIGN_TOKENS.colors.textMuted,
-    lineHeight: 16,
-    marginTop: 2,
   },
 });
 
 export const CategoryFormFields = EnvelopeFormFields;
-

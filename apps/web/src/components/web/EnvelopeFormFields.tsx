@@ -1,6 +1,16 @@
 import React from 'react';
-import { Input, GenericSelectField, DatePickerField, AmountField, InfoTooltip, GoalModeToggle } from '@money-matters/ui/web';
+import {
+  Input,
+  FormLabel,
+  GenericSelectField,
+  DatePickerField,
+  AmountField,
+  InfoTooltip,
+  GoalModeToggle,
+  BillModeToggle,
+} from '@money-matters/ui/web';
 import { t } from '@money-matters/i18n';
+import { EnvelopeRecurrenceFields } from './EnvelopeRecurrenceFields';
 
 export interface EnvelopeFormFieldsProps {
   name: string;
@@ -78,14 +88,29 @@ export function EnvelopeFormFields({
         autoFocus
       />
 
-      <GenericSelectField
-        label={t('categories.poolTypeLabel')}
-        value={type}
-        onChange={(val) => setType(val as 'EVERYDAY' | 'REGULAR' | 'GOAL')}
-        options={poolTypeOptions}
-        disabled={isEdit}
-        required
-      />
+      <div className="flex flex-col gap-1.5">
+        <FormLabel required>{t('categories.poolTypeLabel')}</FormLabel>
+        <div className="flex items-center gap-2">
+          {poolTypeOptions.map((opt) => {
+            const isSelected = type === opt.value;
+            return (
+              <button
+                key={opt.value}
+                type="button"
+                disabled={isEdit}
+                onClick={() => setType(opt.value as 'EVERYDAY' | 'REGULAR' | 'GOAL')}
+                className={`py-2 px-3.5 text-xs font-bold rounded-xl transition-all border ${
+                  isSelected
+                    ? 'bg-[#2563eb] text-white border-[#2563eb] shadow-xs'
+                    : 'bg-zinc-100 text-zinc-600 border-zinc-200 hover:text-zinc-900'
+                } ${isEdit ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+              >
+                {opt.label}
+              </button>
+            );
+          })}
+        </div>
+      </div>
 
       <GenericSelectField
         label={t('categories.linkedAccountLabel')}
@@ -104,50 +129,12 @@ export function EnvelopeFormFields({
 
       {type === 'REGULAR' && (
         <div className="space-y-3">
-          <div className="flex flex-col gap-1.5">
-            <div className="flex items-center gap-1.5">
-              <label className="text-xs font-bold uppercase tracking-wider text-zinc-500">
-                {t('categories.billModeLabel')}
-              </label>
-              <InfoTooltip
-                content={
-                  billMode === 'SCHEDULED_BILL'
-                    ? t('categories.tooltips.scheduledBill')
-                    : t('categories.tooltips.flexibleBill')
-                }
-                align="left"
-              />
-            </div>
-            <div className="grid grid-cols-2 gap-2 p-1 bg-zinc-100 rounded-xl">
-              <button
-                type="button"
-                onClick={() => setBillMode?.('SCHEDULED_BILL')}
-                className={`py-2 px-3 text-xs font-bold rounded-lg transition-all text-center cursor-pointer ${
-                  billMode === 'SCHEDULED_BILL'
-                    ? 'bg-white text-[#2563eb] shadow-xs'
-                    : 'text-zinc-600 hover:text-zinc-900'
-                }`}
-              >
-                {t('categories.billModeScheduled')}
-              </button>
-              <button
-                type="button"
-                onClick={() => setBillMode?.('FLEXIBLE_BILL')}
-                className={`py-2 px-3 text-xs font-bold rounded-lg transition-all text-center cursor-pointer ${
-                  billMode === 'FLEXIBLE_BILL'
-                    ? 'bg-white text-[#2563eb] shadow-xs'
-                    : 'text-zinc-600 hover:text-zinc-900'
-                }`}
-              >
-                {t('categories.billModeFlexible')}
-              </button>
-            </div>
-            <span className="text-[11px] text-zinc-500 font-medium">
-              {billMode === 'SCHEDULED_BILL'
-                ? t('categories.billModeScheduledDesc')
-                : t('categories.billModeFlexibleDesc')}
-            </span>
-          </div>
+          {setBillMode && (
+            <BillModeToggle
+              value={billMode}
+              onChange={setBillMode}
+            />
+          )}
 
           {billMode === 'FLEXIBLE_BILL' ? (
             <AmountField
@@ -158,27 +145,30 @@ export function EnvelopeFormFields({
               placeholder="150.00"
             />
           ) : (
-            <div className="p-3 bg-slate-50 border border-zinc-200 rounded-xl text-zinc-600 text-[11px] leading-relaxed">
-              <span className="font-bold text-[#1B2B4B] block mb-0.5">{t('categories.calculatedTarget')}</span>
-              {t('categories.calculatedTargetNotice')}
-            </div>
+            <EnvelopeRecurrenceFields
+              amountLabel={t('categories.billAmountLabel')}
+              amount={targetAmount}
+              setAmount={setTargetAmount}
+              placeholder="120.00"
+              frequency={frequency}
+              setFrequency={setFrequency}
+              interval={interval}
+              setInterval={setInterval}
+              startDate={goalStartDate}
+              setStartDate={setGoalStartDate}
+              calculatedMonthly={calculatedMonthly}
+            />
           )}
         </div>
       )}
 
       {type === 'EVERYDAY' && (
-        <>
-          <div className="p-3 bg-slate-50 border border-zinc-200 rounded-xl text-zinc-600 text-[11px] leading-relaxed">
-            <span className="font-bold text-[#1B2B4B] block mb-0.5">{t('categories.calculatedTarget')}</span>
-            {t('categories.calculatedTargetNotice')}
-          </div>
-          <AmountField
-            label={t('categories.safetyBufferFloorLabel')}
-            value={safetyBufferFloor}
-            onChange={setSafetyBufferFloor}
-            placeholder="0.00"
-          />
-        </>
+        <AmountField
+          label={t('categories.safetyBufferFloorLabel')}
+          value={safetyBufferFloor}
+          onChange={setSafetyBufferFloor}
+          placeholder="0.00"
+        />
       )}
 
       {type === 'GOAL' && (
@@ -202,83 +192,19 @@ export function EnvelopeFormFields({
               />
             </div>
           ) : (
-            <div className="space-y-3">
-              <div className="grid grid-cols-2 gap-3 items-start">
-                <AmountField
-                  label={t('goalModes.monthlyContribution')}
-                  required
-                  value={targetAmount}
-                  onChange={setTargetAmount}
-                  placeholder="250.00"
-                />
-                <GenericSelectField
-                  label={t('categories.frequencyLabel')}
-                  value={frequency}
-                  onChange={(val) => setFrequency?.(val as 'WEEKLY' | 'FORTNIGHTLY' | 'MONTHLY' | 'ANNUALLY')}
-                  options={[
-                    { value: 'WEEKLY', label: t('categories.frequencyWeekly') },
-                    { value: 'FORTNIGHTLY', label: t('categories.frequencyFortnightly') },
-                    { value: 'MONTHLY', label: t('categories.frequencyMonthly') },
-                    { value: 'ANNUALLY', label: t('categories.frequencyAnnually') },
-                  ]}
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-3 items-start">
-                <div className="flex flex-col gap-1">
-                  <label className="text-xs font-bold uppercase tracking-wider text-zinc-500">
-                    {t('forms.every')}
-                  </label>
-                  <div className="flex items-center gap-2">
-                    <input
-                      type="number"
-                      min="1"
-                      max="365"
-                      value={interval === 0 ? '' : interval}
-                      onChange={(e) => {
-                        const val = e.target.value;
-                        if (val === '') {
-                          setInterval?.(0);
-                        } else {
-                          const parsed = parseInt(val, 10);
-                          if (!isNaN(parsed) && parsed >= 1) {
-                            setInterval?.(Math.min(365, parsed));
-                          }
-                        }
-                      }}
-                      onBlur={() => {
-                        if (interval === 0 || isNaN(interval)) {
-                          setInterval?.(1);
-                        }
-                      }}
-                      className="px-4 py-2.5 text-xs font-bold rounded-xl border border-zinc-200 focus:outline-none focus:ring-2 focus:ring-[#2563eb] text-zinc-900 w-full"
-                    />
-                    <span className="text-xs font-bold text-zinc-500 shrink-0">
-                      {frequency === 'WEEKLY'
-                        ? t('forms.weeks')
-                        : frequency === 'FORTNIGHTLY'
-                        ? t('forms.fortnights')
-                        : frequency === 'MONTHLY'
-                        ? t('forms.months')
-                        : t('forms.years')}
-                    </span>
-                  </div>
-                </div>
-
-                <DatePickerField
-                  label={t('forms.firstDate')}
-                  value={goalStartDate}
-                  onChange={(val) => setGoalStartDate?.(val)}
-                />
-              </div>
-
-              {targetAmount && parseFloat(targetAmount) > 0 && (frequency !== 'MONTHLY' || interval > 1) && (
-                <div className="p-2.5 bg-blue-50/70 border border-blue-200 rounded-xl text-[11px] font-semibold text-blue-900 flex items-center justify-between font-mono">
-                  <span>{t('categories.monthlyEquivalent')}</span>
-                  <span className="font-bold text-[#2563eb]">${calculatedMonthly} / mo</span>
-                </div>
-              )}
-            </div>
+            <EnvelopeRecurrenceFields
+              amountLabel={t('goalModes.monthlyContribution')}
+              amount={targetAmount}
+              setAmount={setTargetAmount}
+              placeholder="250.00"
+              frequency={frequency}
+              setFrequency={setFrequency}
+              interval={interval}
+              setInterval={setInterval}
+              startDate={goalStartDate}
+              setStartDate={setGoalStartDate}
+              calculatedMonthly={calculatedMonthly}
+            />
           )}
         </>
       )}

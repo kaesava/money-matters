@@ -183,7 +183,7 @@ export default function PoolsScreen() {
             {filteredPools.length === 0 && (
               <View style={styles.emptyCard}>
                 <Text style={styles.emptyCardText}>
-                  {poolsQuery.isError ? t('common.error') : pools.length === 0 ? t('categories.poolNotFound') : t('categories.noCategoriesMatched')}
+                  {poolsQuery.isError ? t('common.error') : pools.length === 0 ? t('categories.poolNotFound') : t('categories.noEnvelopesFound')}
                 </Text>
               </View>
             )}

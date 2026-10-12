@@ -61,9 +61,7 @@ export const ProjectionPoolCard: React.FC<ProjectionPoolCardProps> = ({
                 ? target > 0
                   ? `${pct}% of ${formatAUD(target)}`
                   : t('categories.noTarget')
-                : nestedCount > 0
-                  ? t('categories.nestedCategories', { count: nestedCount })
-                  : t('categories.mainPool')}
+                : t('categories.mainPool')}
             </Text>
           </View>
           <CardDrawerIndicator size={18} />

@@ -4,6 +4,7 @@ import { t } from '@money-matters/i18n';
 import { Feather } from '@expo/vector-icons';
 import { DESIGN_TOKENS } from '../tokens';
 import FormLabel from './FormLabel';
+import InfoTooltip from './InfoTooltip';
 
 export interface MobileGoalModeToggleProps {
   value: 'TARGET_DATE' | 'ONGOING';
@@ -18,7 +19,18 @@ export function MobileGoalModeToggle({
 }: MobileGoalModeToggleProps) {
   return (
     <View style={styles.container}>
-      <FormLabel>{t('goalModes.modeLabel')}</FormLabel>
+      <View style={styles.labelRow}>
+        <FormLabel containerStyle={styles.formLabelWrap}>
+          {t('goalModes.modeLabel')}
+        </FormLabel>
+        <InfoTooltip
+          content={
+            value === 'TARGET_DATE'
+              ? t('goalModes.targetDateDesc')
+              : t('goalModes.ongoingDesc')
+          }
+        />
+      </View>
       <View style={styles.toggleRow}>
         <TouchableOpacity
           disabled={disabled}
@@ -73,11 +85,6 @@ export function MobileGoalModeToggle({
           </Text>
         </TouchableOpacity>
       </View>
-      <Text style={styles.helpText}>
-        {value === 'TARGET_DATE'
-          ? t('goalModes.targetDateDesc')
-          : t('goalModes.ongoingDesc')}
-      </Text>
     </View>
   );
 }
@@ -85,6 +92,14 @@ export function MobileGoalModeToggle({
 const styles = StyleSheet.create({
   container: {
     gap: 6,
+  },
+  labelRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  formLabelWrap: {
+    marginBottom: 0,
   },
   toggleRow: {
     flexDirection: 'row',
@@ -116,9 +131,5 @@ const styles = StyleSheet.create({
   },
   activeBtnText: {
     color: DESIGN_TOKENS.colors.sereneBlue,
-  },
-  helpText: {
-    fontSize: 11,
-    color: DESIGN_TOKENS.colors.slate[500],
   },
 });

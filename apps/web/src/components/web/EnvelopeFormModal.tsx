@@ -122,7 +122,9 @@ export function EnvelopeFormModal({
   }, [targetAmount, frequency, interval]);
 
   const rruleString = useMemo(() => {
-    if (goalMode !== "ONGOING") return null;
+    const isScheduledBill = type === "REGULAR" && billMode === "SCHEDULED_BILL";
+    const isOngoingGoal = type === "GOAL" && goalMode === "ONGOING";
+    if (!isScheduledBill && !isOngoingGoal) return null;
     let freqStr = "FREQ=MONTHLY";
     let intVal = Math.max(1, interval);
     if (frequency === "WEEKLY") freqStr = "FREQ=WEEKLY";
@@ -132,7 +134,7 @@ export function EnvelopeFormModal({
     }
     if (frequency === "ANNUALLY") freqStr = "FREQ=YEARLY";
     return intVal > 1 ? `${freqStr};INTERVAL=${intVal}` : freqStr;
-  }, [goalMode, frequency, interval]);
+  }, [type, billMode, goalMode, frequency, interval]);
 
   const isValid = useMemo(() => {
     if (!name.trim()) return false;
@@ -141,11 +143,12 @@ export function EnvelopeFormModal({
       if (!targetAmount || parseFloat(targetAmount) <= 0) return false;
       if (goalMode === "TARGET_DATE" && !targetDate) return false;
     }
-    if (type === "REGULAR" && billMode === "FLEXIBLE_BILL") {
+    if (type === "REGULAR") {
       if (!targetAmount || parseFloat(targetAmount) <= 0) return false;
+      if (billMode === "SCHEDULED_BILL" && !goalStartDate) return false;
     }
     return true;
-  }, [name, isEdit, bankAccountId, type, billMode, targetAmount, goalMode, targetDate]);
+  }, [name, isEdit, bankAccountId, type, billMode, targetAmount, goalMode, targetDate, goalStartDate]);
 
   const isDirty = useMemo(() => {
     if (!isEdit) return Boolean(name.trim() && bankAccountId);
@@ -194,12 +197,29 @@ export function EnvelopeFormModal({
     if (type === "GOAL" && goalMode === "TARGET_DATE" && !targetDate) {
       return setErrorMsg(t("categories.goalDateRequired"));
     }
+    if (type === "REGULAR" && (!targetAmount || parseFloat(targetAmount) <= 0)) {
+      return setErrorMsg(t("categories.billAmountRequired"));
+    }
+    if (type === "REGULAR" && billMode === "SCHEDULED_BILL" && !goalStartDate) {
+      return setErrorMsg(t("categories.billStartDateRequired"));
+    }
 
     setSubmitting(true);
     try {
-      const finalTargetAmount = type === "GOAL"
-        ? (goalMode === "ONGOING" ? calculatedMonthly : parseFloat(targetAmount).toFixed(2))
-        : type === "REGULAR" && billMode === "FLEXIBLE_BILL"
+      const isScheduledBill = type === "REGULAR" && billMode === "SCHEDULED_BILL";
+      const isFlexibleBill = type === "REGULAR" && billMode === "FLEXIBLE_BILL";
+      const isOngoingGoal = type === "GOAL" && goalMode === "ONGOING";
+      const isTargetGoal = type === "GOAL" && goalMode === "TARGET_DATE";
+
+      const finalTargetAmount = isTargetGoal
+        ? parseFloat(targetAmount).toFixed(2)
+        : isFlexibleBill
+        ? parseFloat(targetAmount).toFixed(2)
+        : isScheduledBill || isOngoingGoal
+        ? calculatedMonthly
+        : undefined;
+
+      const enteredAmountVal = (isScheduledBill || isFlexibleBill || isOngoingGoal)
         ? parseFloat(targetAmount).toFixed(2)
         : undefined;
 
@@ -218,12 +238,12 @@ export function EnvelopeFormModal({
                 : "SCHEDULED_BILL",
             safetyBufferFloor: type === "EVERYDAY" ? safetyBufferFloor || "0.00" : undefined,
             targetAmount: finalTargetAmount,
-            monthlyAmount: type === "REGULAR" && billMode === "FLEXIBLE_BILL" ? finalTargetAmount : undefined,
-            enteredAmount: type === "REGULAR" && billMode === "FLEXIBLE_BILL" ? finalTargetAmount : type === "GOAL" && goalMode === "ONGOING" ? parseFloat(targetAmount).toFixed(2) : undefined,
-            endDate: type === "GOAL" && goalMode === "TARGET_DATE" ? targetDate || undefined : undefined,
-            budgetFrequency: type === "GOAL" && goalMode === "ONGOING" ? frequency : type === "REGULAR" ? "MONTHLY" : undefined,
-            startDate: type === "GOAL" && goalMode === "ONGOING" ? goalStartDate || undefined : undefined,
-            rrule: type === "GOAL" && goalMode === "ONGOING" ? rruleString || undefined : undefined,
+            monthlyAmount: isFlexibleBill ? finalTargetAmount : isScheduledBill ? calculatedMonthly : undefined,
+            enteredAmount: enteredAmountVal,
+            endDate: isTargetGoal ? targetDate || undefined : undefined,
+            budgetFrequency: (isScheduledBill || isOngoingGoal) ? frequency : isFlexibleBill ? "MONTHLY" : undefined,
+            startDate: (isScheduledBill || isOngoingGoal) ? goalStartDate || undefined : undefined,
+            rrule: (isScheduledBill || isOngoingGoal) ? rruleString || undefined : undefined,
             goalMode: type === "GOAL" ? goalMode : undefined,
             isSurplusTarget: type !== "EVERYDAY" ? isSurplusTarget : undefined,
           },
@@ -244,12 +264,12 @@ export function EnvelopeFormModal({
           bankAccountId,
           safetyBufferFloor: undefined,
           targetAmount: finalTargetAmount,
-          monthlyAmount: type === "REGULAR" && billMode === "FLEXIBLE_BILL" ? finalTargetAmount : undefined,
-          enteredAmount: type === "REGULAR" && billMode === "FLEXIBLE_BILL" ? finalTargetAmount : type === "GOAL" && goalMode === "ONGOING" ? parseFloat(targetAmount).toFixed(2) : undefined,
-          endDate: type === "GOAL" && goalMode === "TARGET_DATE" ? targetDate || undefined : undefined,
-          budgetFrequency: type === "GOAL" && goalMode === "ONGOING" ? frequency : type === "REGULAR" ? "MONTHLY" : undefined,
-          startDate: type === "GOAL" && goalMode === "ONGOING" ? goalStartDate || undefined : undefined,
-          rrule: type === "GOAL" && goalMode === "ONGOING" ? rruleString || undefined : undefined,
+          monthlyAmount: isFlexibleBill ? finalTargetAmount : isScheduledBill ? calculatedMonthly : undefined,
+          enteredAmount: enteredAmountVal,
+          endDate: isTargetGoal ? targetDate || undefined : undefined,
+          budgetFrequency: (isScheduledBill || isOngoingGoal) ? frequency : isFlexibleBill ? "MONTHLY" : undefined,
+          startDate: (isScheduledBill || isOngoingGoal) ? goalStartDate || undefined : undefined,
+          rrule: (isScheduledBill || isOngoingGoal) ? rruleString || undefined : undefined,
           goalMode: type === "GOAL" ? goalMode : undefined,
           isSurplusTarget: isSurplusTarget,
         });
