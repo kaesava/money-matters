@@ -12,12 +12,46 @@ export const BANK_PROVIDERS = [
 
 export type BankProvider = (typeof BANK_PROVIDERS)[number];
 
+export const ACCOUNT_TYPES = [
+  "CREDIT_CARD",
+  "EVERYDAY",
+  "SAVINGS",
+  "LOAN_OFFSET",
+] as const;
+
+export type AccountType = (typeof ACCOUNT_TYPES)[number];
+
+export const ACCOUNT_TYPE_LABELS: Record<AccountType, string> = {
+  EVERYDAY: "Everyday",
+  SAVINGS: "Savings",
+  CREDIT_CARD: "Credit Card",
+  LOAN_OFFSET: "Loan Offset",
+};
+
+export const BANK_PROVIDER_LABELS: Record<BankProvider, string> = {
+  CBA: "Commonwealth Bank",
+  NAB: "National Australia Bank",
+  ANZ: "ANZ Bank",
+  Westpac: "Westpac",
+  ING: "ING Australia",
+  Macquarie: "Macquarie Bank",
+  Other: "Other Financial Institution",
+};
+
+export function getDefaultAccountName(provider?: BankProvider | null, type?: AccountType | null): string {
+  const pLabel = provider ? (BANK_PROVIDER_LABELS[provider] || provider) : "Other Financial Institution";
+  if (!type) return pLabel;
+  const tLabel = ACCOUNT_TYPE_LABELS[type] || "Everyday";
+  return `${pLabel} (${tLabel})`;
+}
+
 const moneyRegex = /^\d{1,12}(\.\d{1,2})?$/;
 
 export const BankAccountFormSchema = z
   .object({
     name: z.string().trim().min(1, "Account name is required").max(100, "Account name cannot exceed 100 characters"),
     bankProvider: z.enum(BANK_PROVIDERS).default("Other"),
+    accountType: z.enum(ACCOUNT_TYPES).default("EVERYDAY"),
     currentBalance: z
       .string()
       .trim()

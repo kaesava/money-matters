@@ -26,17 +26,21 @@ export const UpdateUserPreferencesCommand = z.object({
   appPreferences: z.record(z.string(), z.record(z.string(), z.unknown())).optional(),
 }).strict();
 
+export const AccountTypeSchema = z.enum(["CREDIT_CARD", "EVERYDAY", "SAVINGS", "LOAN_OFFSET"]);
+
 export const CreateBankAccountCommand = z.object({
   name: z.string().min(1),
-  bankProvider: z.enum(["CBA", "Westpac", "ANZ", "NAB", "ING", "Macquarie", "Other"]).default("CBA").optional(),
-  lastKnownBalance: z.string().regex(/^\d{1,12}(\.\d{1,2})?$/).default("0.00").optional(),
-  unbudgetedBuffer: z.string().regex(/^\d{1,12}(\.\d{1,2})?$/).default("0.00").optional(),
-  isPrivate: z.boolean().default(false).optional(),
+  bankProvider: z.enum(["CBA", "Westpac", "ANZ", "NAB", "ING", "Macquarie", "Other"]).default("Other"),
+  accountType: AccountTypeSchema.default("EVERYDAY"),
+  lastKnownBalance: z.string().regex(/^\d{1,12}(\.\d{1,2})?$/).default("0.00"),
+  unbudgetedBuffer: z.string().regex(/^\d{1,12}(\.\d{1,2})?$/).default("0.00"),
+  isPrivate: z.boolean().default(false),
 }).strict();
 
 export const UpdateBankAccountCommand = z.object({
   name: z.string().min(1).optional(),
   bankProvider: z.enum(["CBA", "Westpac", "ANZ", "NAB", "ING", "Macquarie", "Other"]).optional(),
+  accountType: AccountTypeSchema.optional(),
   lastKnownBalance: z.string().regex(/^\d{1,12}(\.\d{1,2})?$/).optional(),
   unbudgetedBuffer: z.string().regex(/^\d{1,12}(\.\d{1,2})?$/).optional(),
   isPrivate: z.boolean().optional(),
@@ -304,7 +308,8 @@ export const SaveSetupBudgetCommand = z.object({
   bankAccounts: z.array(z.object({
     id: z.string().optional(),
     name: z.string().min(1).max(100),
-    bankProvider: z.string().optional().nullable(),
+    bankProvider: z.string().optional().nullable().default("Other"),
+    accountType: AccountTypeSchema.default("EVERYDAY").optional(),
     lastKnownBalance: z.string().regex(/^\d{1,12}(\.\d{1,2})?$/).default("0.00"),
     unbudgetedBuffer: z.string().regex(/^\d{1,12}(\.\d{1,2})?$/).default("0.00"),
     isPrivate: z.boolean().default(false),
@@ -336,7 +341,6 @@ export const SaveSetupBudgetCommand = z.object({
     orderIndex: z.number().int().default(0),
   })).min(1),
   archivedEnvelopeIds: z.array(z.string()).default([]),
-  archetypeApplied: z.enum(["AUSSIE_2_ACCOUNT", "COUPLES_HYBRID", "ALL_IN_ONE_CUSTOM"]).optional(),
   autoCreateExpenseSchedules: z.boolean().default(true),
   autoCreateIncomeEvents: z.boolean().default(true),
 }).strict();

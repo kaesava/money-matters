@@ -160,6 +160,8 @@ export function BankAccountsSection() {
           setAccName={list.setAccName}
           accBankProvider={list.accBankProvider}
           setAccBankProvider={list.setAccBankProvider}
+          accAccountType={list.accAccountType}
+          setAccAccountType={list.setAccAccountType}
           accBalance={list.accBalance}
           setAccBalance={list.setAccBalance}
           accBuffer={list.accBuffer}

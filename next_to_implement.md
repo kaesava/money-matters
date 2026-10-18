@@ -6,13 +6,16 @@
 * If you need clarity, [/grill-me](slashCommand;grill-me) (don't make assumptions). Be critical.
 * I don't need walkthrough at the end. I don't need a fancy report. Just a detail implementation plan that can be unambiguously followed.
 * Aggressively cull un-used code, l18n keys, files and database tables/fields.
+* When you write address a new/change/fix for the Web app, also ensure that the mobile app is in parity and address it there too. When you write address a new/change/fix for the Mobile app, also ensure that the web app is in parity and address it there too. Re-use code as much as possible while keeping native UI experiences.
+* No hardcoding user-facing literals - use en.ts; re-use as much as possible within and across mobile and web apps, and cull un-used keys.
 
+# Web App
 
-# Web App & Mobile app
+## Sign-In
+* I tried signing up but used an existing email address. It correctly redirected me to the Sign-In popup, but it didn't'
 
 ## Envelopes
-Add to Release 2 scope (.md file)- the ability for the allocation logic to be extracted into a tenant-scoped table of rules with hierarchy that determines how waterfall will run, defaulting to app's rules.
-
+* Hover over + new BILLS should say "Create new Bill envelope" and over new GOALS should say "Create new GOAL envelope"
 
 ## General - the below changes apply to the screens listed in the next section.
 * Important: Align mobile app functionality to web app (this includes required fields, branching logic, data retrieval/setting logic, calculation logic, and any functiona logic used). However, the UX for the mobile app must follow UX best practice, and must used every opportunity for reusable UX/UI so other screens have consistent look and feel. If there is significant capability gaps, check with me.

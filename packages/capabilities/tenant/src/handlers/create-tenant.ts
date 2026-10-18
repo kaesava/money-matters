@@ -169,13 +169,15 @@ export function createTenantHandler(db: DbOrTx) {
         .onConflictDoNothing();
     }
 
-    // 6. Create default 'Primary Account'
+    // 6. Create default initial bank account
     const [primaryAccount] = await db
       .insert(bankAccounts)
       .values({
         tenantId,
         appId,
-        name: "Primary Account",
+        name: "Other Financial Institution (Everyday)",
+        bankProvider: "Other",
+        accountType: "EVERYDAY",
         lastKnownBalance: "0.00",
         unbudgetedBuffer: "0.00",
         createdBy: userId,

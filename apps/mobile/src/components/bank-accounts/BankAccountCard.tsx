@@ -10,6 +10,7 @@ export interface BankAccountCardData {
   id: string;
   name: string;
   bankProvider?: string | null;
+  accountType?: string | null;
   lastKnownBalance?: string | null;
   unbudgetedBuffer?: string | null;
   expectedBalance?: string | number | null;
@@ -58,6 +59,7 @@ export function BankAccountCard({
       <BankAccountCardHeader
         name={account.name}
         bankProvider={account.bankProvider}
+        accountType={account.accountType}
         isPrivate={account.isPrivate}
         availBal={availBal}
         actualBal={actualBal}

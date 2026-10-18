@@ -3,260 +3,109 @@
 import React, { useState } from "react";
 import { trpc } from "../../../lib/trpc";
 import { t } from "@money-matters/i18n";
-import { useToast, ConfirmDialog } from "@money-matters/ui/web";
-import { BankAccountFormModal } from "../../dashboard/bank-accounts/components/BankAccountFormModal";
-import { AussieBankCheatSheetModal } from "./AussieBankCheatSheetModal";
-
-
-type BankName = "CBA" | "Westpac" | "ANZ" | "NAB" | "ING" | "Macquarie" | "Other";
-type CategoryType = "EVERYDAY" | "REGULAR" | "GOAL";
-
-interface BankAccount {
-  id: string;
-  name: string;
-  bankProvider?: string | null;
-  lastKnownBalance: string;
-  unbudgetedBuffer?: string | null;
-  isPrivate?: boolean;
-  categoryTypes?: CategoryType[];
-  poolTypes?: CategoryType[];
-}
+import { useToast, ConfirmDialog, InfoTooltip } from "@money-matters/ui/web";
+import {
+  BankProvider,
+  AccountType,
+  getDefaultAccountName,
+} from "@money-matters/types";
+import { SetupBankAccountRow, BankAccountRowItem } from "./SetupBankAccountRow";
 
 interface SetupBankAccountsStepProps {
-  accounts?: BankAccount[];
   onNext: () => void;
   onBack: () => void;
 }
 
-const BANK_OPTIONS: Array<{ key: BankName; label: string; logoBg: string; textColor: string }> = [
-  { key: "CBA", label: "Commonwealth Bank", logoBg: "bg-amber-400", textColor: "text-slate-900" },
-  { key: "NAB", label: "National Australia Bank", logoBg: "bg-rose-600", textColor: "text-white" },
-  { key: "ANZ", label: "ANZ Bank", logoBg: "bg-blue-600", textColor: "text-white" },
-  { key: "Westpac", label: "Westpac", logoBg: "bg-red-700", textColor: "text-white" },
-  { key: "ING", label: "ING Australia", logoBg: "bg-orange-500", textColor: "text-white" },
-  { key: "Macquarie", label: "Macquarie Bank", logoBg: "bg-slate-900", textColor: "text-white" },
-  { key: "Other", label: "Other Financial Institution", logoBg: "bg-slate-500", textColor: "text-white" },
-];
-
-function fmtMoney(val: string | number | undefined | null): string {
-  const num = typeof val === "string" ? parseFloat(val) : typeof val === "number" ? val : 0;
-  return `$${num.toLocaleString("en-AU", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-}
-
-interface AccountLike {
-  id: string;
-  name: string;
-  bankProvider?: string | null;
-  lastKnownBalance?: string | number | null;
-  unbudgetedBuffer?: string | null;
-  isPrivate?: boolean;
-  pools?: Array<{ poolType?: CategoryType }>;
-  poolTypes?: CategoryType[];
-  categoryTypes?: CategoryType[];
-}
-
-function getPoolTypesFromAccount(acc: AccountLike): CategoryType[] {
-  if (Array.isArray(acc.pools)) {
-    return acc.pools.map((p) => p.poolType).filter((pt): pt is CategoryType => Boolean(pt));
-  }
-  return ((acc.poolTypes || acc.categoryTypes || []) as CategoryType[]);
-}
-
-export function SetupBankAccountsStep({ accounts, onNext, onBack }: SetupBankAccountsStepProps) {
+export function SetupBankAccountsStep({ onNext, onBack }: SetupBankAccountsStepProps) {
   const toast = useToast();
   const utils = trpc.useUtils();
 
-  const { data: fetchedAccounts } = trpc.getBankAccountsWithMappings.useQuery();
-  const poolsQuery = trpc.listPools.useQuery();
-  const pools = poolsQuery.data ?? [];
-  const displayAccounts: AccountLike[] = accounts && accounts.length > 0 ? accounts : (fetchedAccounts as unknown as AccountLike[]) || [];
+  const { data: fetchedAccounts = [] } = trpc.getBankAccountsWithMappings.useQuery();
 
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editingAccount, setEditingAccount] = useState<{ id: string; name: string } | null>(null);
-  const [accName, setAccName] = useState("");
-  const [accBankProvider, setAccBankProvider] = useState<BankName>("CBA");
-  const [accBalance, setAccBalance] = useState("1000.00");
-  const [accBuffer, setAccBuffer] = useState("0.00");
-  const [accIsPrivate, setAccIsPrivate] = useState(false);
-  const [selectedPoolIds, setSelectedPoolIds] = useState<string[]>([]);
-  const [isSaving, setIsSaving] = useState(false);
-  const [showCheatSheet, setShowCheatSheet] = useState(false);
-  const [selectedArchetype, setSelectedArchetype] = useState<string>(
-    displayAccounts.length >= 2 ? "AUSSIE_2_ACCOUNT" : "ALL_IN_ONE_CUSTOM"
-  );
-
-  const handlePoolToggle = (poolId: string) => {
-    if (selectedPoolIds.includes(poolId)) {
-      setSelectedPoolIds(selectedPoolIds.filter((id) => id !== poolId));
-    } else {
-      setSelectedPoolIds([...selectedPoolIds, poolId]);
-    }
-  };
-
-  const applyArchetype = async (type: "AUSSIE_2_ACCOUNT" | "COUPLES_HYBRID" | "ALL_IN_ONE_CUSTOM") => {
-    setSelectedArchetype(type);
-    try {
-      if (type === "AUSSIE_2_ACCOUNT") {
-        if (displayAccounts.length === 1) {
-          const first = displayAccounts[0];
-          await updateAccountMut.mutateAsync({
-            accountId: first.id,
-            data: { name: "Everyday Spending Card", bankProvider: (first.bankProvider as BankName) || "CBA" },
-          });
-          await createAccountMut.mutateAsync({
-            name: "Bills & Savings Account",
-            bankProvider: "CBA",
-            lastKnownBalance: "1000.00",
-            unbudgetedBuffer: "0.00",
-            isPrivate: false,
-          });
-        }
-      } else if (type === "COUPLES_HYBRID") {
-        if (displayAccounts.length < 3) {
-          if (displayAccounts[0]) {
-            await updateAccountMut.mutateAsync({
-              accountId: displayAccounts[0].id,
-              data: { name: "Joint Bills & Rent", bankProvider: (displayAccounts[0].bankProvider as BankName) || "CBA" },
-            });
-          }
-          await createAccountMut.mutateAsync({
-            name: "Joint Everyday Spending",
-            bankProvider: "CBA",
-            lastKnownBalance: "500.00",
-            unbudgetedBuffer: "0.00",
-            isPrivate: false,
-          });
-          await createAccountMut.mutateAsync({
-            name: "My Private Spending",
-            bankProvider: "Other",
-            lastKnownBalance: "200.00",
-            unbudgetedBuffer: "0.00",
-            isPrivate: true,
-          });
-        }
-      } else if (type === "ALL_IN_ONE_CUSTOM") {
-        if (displayAccounts.length === 1) {
-          await updateAccountMut.mutateAsync({
-            accountId: displayAccounts[0].id,
-            data: { name: "Primary Account", bankProvider: (displayAccounts[0].bankProvider as BankName) || "CBA" },
-          });
-        }
-      }
-    } catch (_err) {
-      // Handled in mutation onError
-    }
-  };
+  const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null);
 
   const createAccountMut = trpc.createBankAccount.useMutation({
     onSuccess: () => {
       utils.getBankAccountsWithMappings.invalidate();
-      closeModal();
-      toast.success("Bank account created.");
+      toast.success(t("common.success"));
     },
     onError: (err) => {
-      toast.error(err.message || "Failed to save bank account.");
-      setIsSaving(false);
+      toast.error(err.message || t("common.error"));
     },
   });
 
   const updateAccountMut = trpc.updateBankAccount.useMutation({
     onSuccess: () => {
       utils.getBankAccountsWithMappings.invalidate();
-      closeModal();
-      toast.success("Bank account updated.");
     },
     onError: (err) => {
-      toast.error(err.message || "Failed to update bank account.");
-      setIsSaving(false);
+      toast.error(err.message || t("common.error"));
     },
   });
 
   const archiveAccountMut = trpc.archiveBankAccount.useMutation({
     onSuccess: () => {
       utils.getBankAccountsWithMappings.invalidate();
-      closeModal();
-      toast.success("Bank account removed.");
+      setDeleteTargetId(null);
+      toast.success(t("common.success"));
     },
     onError: (err) => {
-      toast.error(err.message || "Cannot delete bank account.");
+      toast.error(err.message || t("common.error"));
     },
   });
 
-  const openAddModal = () => {
-    setEditingAccount(null);
-    setAccName("");
-    setAccBankProvider("CBA");
-    setAccBalance("1000.00");
-    setAccBuffer("0.00");
-    setAccIsPrivate(false);
-    setSelectedPoolIds([]);
-    setIsModalOpen(true);
-  };
+  const handleFieldChange = (
+    acc: BankAccountRowItem,
+    field: "name" | "bankProvider" | "accountType" | "lastKnownBalance" | "unbudgetedBuffer" | "isPrivate",
+    value: string | boolean
+  ) => {
+    let nextName = acc.name;
+    const currentProvider = (acc.bankProvider || "Other") as BankProvider;
+    const currentType = ((acc.accountType as AccountType) || "EVERYDAY") as AccountType;
+    const oldDefaultName = getDefaultAccountName(currentProvider, currentType);
+    const isUntouched = !acc.name.trim() || acc.name.trim() === oldDefaultName;
 
-  const openEditModal = (acc: AccountLike) => {
-    setEditingAccount({ id: acc.id, name: acc.name });
-    setAccName(acc.name);
-    setAccBankProvider((acc.bankProvider as BankName) || "Other");
-    setAccBalance(String(acc.lastKnownBalance ?? "0.00"));
-
-    setAccBuffer(acc.unbudgetedBuffer || "0.00");
-    setAccIsPrivate(acc.isPrivate ?? false);
-    setSelectedPoolIds(pools.filter(p => p.bankAccountId === acc.id).map(p => p.id));
-    setIsModalOpen(true);
-  };
-
-  const closeModal = () => {
-    setIsModalOpen(false);
-    setEditingAccount(null);
-    setIsSaving(false);
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!accName.trim()) {
-      toast.error("Account name is required.");
-      return;
+    if (field === "bankProvider") {
+      const nextProvider = value as BankProvider;
+      if (isUntouched) {
+        nextName = getDefaultAccountName(nextProvider, currentType);
+      }
+    } else if (field === "accountType") {
+      const nextType = value as AccountType;
+      if (isUntouched) {
+        nextName = getDefaultAccountName(currentProvider, nextType);
+      }
+    } else if (field === "name") {
+      nextName = value as string;
     }
 
-    setIsSaving(true);
-
-    if (editingAccount) {
-      updateAccountMut.mutate({
-        accountId: editingAccount.id,
-        data: {
-          name: accName.trim(),
-          bankProvider: accBankProvider,
-          lastKnownBalance: accBalance,
-          unbudgetedBuffer: accBuffer,
-          isPrivate: accIsPrivate,
-        },
-      });
-    } else {
-      createAccountMut.mutate({
-        name: accName.trim(),
-        bankProvider: accBankProvider,
-        lastKnownBalance: accBalance,
-        unbudgetedBuffer: accBuffer,
-        isPrivate: accIsPrivate,
-      });
-    }
+    updateAccountMut.mutate({
+      accountId: acc.id,
+      data: {
+        name: nextName,
+        bankProvider: field === "bankProvider" ? (value as BankProvider) : currentProvider,
+        accountType: field === "accountType" ? (value as AccountType) : currentType,
+        lastKnownBalance: field === "lastKnownBalance" ? String(value) : String(acc.lastKnownBalance || "0.00"),
+        unbudgetedBuffer: field === "unbudgetedBuffer" ? String(value) : String(acc.unbudgetedBuffer || "0.00"),
+        isPrivate: field === "isPrivate" ? Boolean(value) : Boolean(acc.isPrivate),
+      },
+    });
   };
 
-  const [showRemoveConfirm, setShowRemoveConfirm] = useState(false);
-
-  const confirmArchiveAccount = () => {
-    if (!editingAccount) return;
-    archiveAccountMut.mutate({ accountId: editingAccount.id });
-    setShowRemoveConfirm(false);
+  const handleAddAccount = () => {
+    createAccountMut.mutate({
+      name: "",
+      bankProvider: "Other",
+      accountType: "EVERYDAY",
+      lastKnownBalance: "1000.00",
+      unbudgetedBuffer: "0.00",
+      isPrivate: false,
+    });
   };
-
-  const handleArchive = () => {
-    setShowRemoveConfirm(true);
-  };
-
 
   return (
-    <div className="space-y-6">
+    <div className="flex flex-col gap-6 animate-in fade-in duration-200">
+      {/* Header */}
       <div className="flex flex-wrap items-center justify-between gap-3 pb-2 border-b border-slate-100">
         <div>
           <h2 className="text-xl font-black text-[#1B2B4B] tracking-tight">
@@ -266,193 +115,44 @@ export function SetupBankAccountsStep({ accounts, onNext, onBack }: SetupBankAcc
             {t("setup.bankAccountsStep.subtitle")}
           </p>
         </div>
+      </div>
 
+      {/* Serene Finance Tip Card */}
+      <div className="p-4 rounded-2xl border border-blue-100 bg-blue-50/50 flex flex-col gap-1.5 shadow-xs">
+        <div className="flex items-center gap-1.5">
+          <h3 className="text-xs font-black text-[#2563eb] flex items-center gap-1">
+            <span>💡</span>
+            <span>{t("setup.bankAccountsStep.tipTitle")}</span>
+          </h3>
+          <InfoTooltip content={t("setup.bankAccountsStep.envelopesExplainerTooltip")} />
+        </div>
+        <p className="text-xs text-slate-600 leading-relaxed">
+          {t("setup.bankAccountsStep.tipContent")}
+        </p>
+      </div>
+
+      {/* Inline Editable Accounts List */}
+      <div className="flex flex-col gap-4">
+        {fetchedAccounts.map((acc, index) => (
+          <SetupBankAccountRow
+            key={acc.id}
+            acc={acc as BankAccountRowItem}
+            index={index}
+            totalCount={fetchedAccounts.length}
+            onRemove={(id) => setDeleteTargetId(id)}
+            onFieldChange={handleFieldChange}
+          />
+        ))}
+
+        {/* Add Bank Account CTA */}
         <button
           type="button"
-          onClick={openAddModal}
-          className="px-4 py-2 bg-[#2563eb] hover:bg-blue-700 text-white font-bold text-xs rounded-xl shadow-sm transition-all flex items-center gap-1.5 cursor-pointer"
+          onClick={handleAddAccount}
+          disabled={createAccountMut.isPending}
+          className="py-2.5 px-4 bg-blue-50 border border-blue-200 text-[#2563eb] text-xs font-bold rounded-xl hover:bg-blue-100 transition-colors flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
         >
-          <span>➕</span>
-          <span>{t("setup.bankAccountsStep.addAccount")}</span>
+          + {t("setup.bankAccountsStep.addAccount")}
         </button>
-      </div>
-
-      {/* Archetype Selector Section */}
-      <div className="space-y-3 p-4 rounded-2xl border border-blue-100 bg-blue-50/40">
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <div>
-            <h3 className="text-xs font-black uppercase tracking-wider text-[#2563eb]">
-              {t("setup.bankAccountsStep.archetypeTitle")}
-            </h3>
-            <p className="text-[11px] text-slate-500 font-medium mt-0.5">
-              {t("setup.bankAccountsStep.archetypeSubtitle")}
-            </p>
-          </div>
-          <button
-            type="button"
-            onClick={() => setShowCheatSheet(true)}
-            className="text-[11px] font-extrabold text-[#2563eb] hover:text-blue-800 hover:underline cursor-pointer flex items-center gap-1"
-          >
-            {t("setup.bankAccountsStep.cheatSheetLink")}
-          </button>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-          {/* Card 1: 2-Account Blueprint */}
-          <div
-            onClick={() => applyArchetype("AUSSIE_2_ACCOUNT")}
-            className={`p-3.5 rounded-xl border transition-all cursor-pointer flex flex-col justify-between gap-2 ${
-              selectedArchetype === "AUSSIE_2_ACCOUNT"
-                ? "border-[#2563eb] bg-white shadow-xs ring-2 ring-blue-100"
-                : "border-slate-200 bg-white/70 hover:border-slate-300"
-            }`}
-          >
-            <div>
-              <div className="flex items-center justify-between gap-1 mb-1">
-                <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md bg-emerald-100 text-emerald-800">
-                  {t("setup.bankAccountsStep.archetype2AccountBadge")}
-                </span>
-                {selectedArchetype === "AUSSIE_2_ACCOUNT" && (
-                  <span className="text-xs font-black text-[#2563eb]">✓</span>
-                )}
-              </div>
-              <h4 className="text-xs font-extrabold text-[#1B2B4B]">
-                {t("setup.bankAccountsStep.archetype2AccountTitle")}
-              </h4>
-              <p className="text-[11px] text-slate-500 mt-1 leading-normal">
-                {t("setup.bankAccountsStep.archetype2AccountDesc")}
-              </p>
-            </div>
-          </div>
-
-          {/* Card 2: Couples */}
-          <div
-            onClick={() => applyArchetype("COUPLES_HYBRID")}
-            className={`p-3.5 rounded-xl border transition-all cursor-pointer flex flex-col justify-between gap-2 ${
-              selectedArchetype === "COUPLES_HYBRID"
-                ? "border-[#2563eb] bg-white shadow-xs ring-2 ring-blue-100"
-                : "border-slate-200 bg-white/70 hover:border-slate-300"
-            }`}
-          >
-            <div>
-              <div className="flex items-center justify-between gap-1 mb-1">
-                <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md bg-indigo-100 text-indigo-800">
-                  {t("setup.bankAccountsStep.archetypeCouplesBadge")}
-                </span>
-                {selectedArchetype === "COUPLES_HYBRID" && (
-                  <span className="text-xs font-black text-[#2563eb]">✓</span>
-                )}
-              </div>
-              <h4 className="text-xs font-extrabold text-[#1B2B4B]">
-                {t("setup.bankAccountsStep.archetypeCouplesTitle")}
-              </h4>
-              <p className="text-[11px] text-slate-500 mt-1 leading-normal">
-                {t("setup.bankAccountsStep.archetypeCouplesDesc")}
-              </p>
-            </div>
-          </div>
-
-          {/* Card 3: All-in-One */}
-          <div
-            onClick={() => applyArchetype("ALL_IN_ONE_CUSTOM")}
-            className={`p-3.5 rounded-xl border transition-all cursor-pointer flex flex-col justify-between gap-2 ${
-              selectedArchetype === "ALL_IN_ONE_CUSTOM"
-                ? "border-[#2563eb] bg-white shadow-xs ring-2 ring-blue-100"
-                : "border-slate-200 bg-white/70 hover:border-slate-300"
-            }`}
-          >
-            <div>
-              <div className="flex items-center justify-between gap-1 mb-1">
-                <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md bg-slate-200 text-slate-700">
-                  {t("setup.bankAccountsStep.archetype1AccountBadge")}
-                </span>
-                {selectedArchetype === "ALL_IN_ONE_CUSTOM" && (
-                  <span className="text-xs font-black text-[#2563eb]">✓</span>
-                )}
-              </div>
-              <h4 className="text-xs font-extrabold text-[#1B2B4B]">
-                {t("setup.bankAccountsStep.archetype1AccountTitle")}
-              </h4>
-              <p className="text-[11px] text-slate-500 mt-1 leading-normal">
-                {t("setup.bankAccountsStep.archetype1AccountDesc")}
-              </p>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Bank Accounts Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {displayAccounts.map((acc) => {
-          const providerOpt = BANK_OPTIONS.find((b) => b.key === acc.bankProvider) || {
-            label: acc.bankProvider || "Bank",
-            logoBg: "bg-slate-500",
-            textColor: "text-white",
-          };
-
-          const poolTypes = getPoolTypesFromAccount(acc);
-
-          return (
-            <div
-              key={acc.id}
-              className="p-4 rounded-2xl border border-slate-200 bg-slate-50/50 flex flex-col justify-between gap-4 hover:border-slate-300 transition-all shadow-xs"
-            >
-              <div className="flex items-start justify-between gap-2">
-                <div className="flex items-center gap-3">
-                  <div
-                    className={`w-10 h-10 rounded-xl ${providerOpt.logoBg} ${providerOpt.textColor} flex items-center justify-center font-black text-xs shadow-xs shrink-0`}
-                  >
-                    {acc.bankProvider ? acc.bankProvider.slice(0, 3).toUpperCase() : "BNK"}
-                  </div>
-                  <div>
-                    <h3 className="text-sm font-extrabold text-[#1B2B4B]">{acc.name}</h3>
-                    <p className="text-[11px] font-bold text-slate-400">{providerOpt.label}</p>
-                  </div>
-                </div>
-
-                <button
-                  type="button"
-                  onClick={() => openEditModal(acc)}
-                  className="px-2.5 py-1 text-xs font-extrabold text-[#2563eb] hover:bg-blue-50 rounded-lg transition-colors cursor-pointer"
-                >
-                  {t("setup.bankAccountsStep.edit")}
-                </button>
-              </div>
-
-              <div className="flex items-center justify-between pt-2 border-t border-slate-200/60">
-                <div>
-                  <span className="text-[10px] font-bold uppercase text-slate-400 block">{t("setup.bankAccountsStep.balance")}</span>
-                  <span className="text-sm font-black text-[#1B2B4B]">
-                    {fmtMoney(acc.lastKnownBalance)}
-                  </span>
-                </div>
-
-                <div className="flex items-center gap-1 flex-wrap justify-end">
-                  {poolTypes.includes("EVERYDAY") && (
-                    <span className="px-2 py-0.5 text-[9px] font-black uppercase tracking-wider bg-emerald-100 text-emerald-800 rounded-md">
-                      Everyday
-                    </span>
-                  )}
-                  {poolTypes.includes("REGULAR") && (
-                    <span className="px-2 py-0.5 text-[9px] font-black uppercase tracking-wider bg-blue-100 text-blue-800 rounded-md">
-                      Bills
-                    </span>
-                  )}
-                  {poolTypes.includes("GOAL") && (
-                    <span className="px-2 py-0.5 text-[9px] font-black uppercase tracking-wider bg-indigo-100 text-indigo-800 rounded-md">
-                      Goals
-                    </span>
-                  )}
-                  {poolTypes.length === 0 && (
-                    <span className="px-2 py-0.5 text-[9px] font-bold text-slate-400 bg-slate-100 rounded-md">
-                      {t("setup.bankAccountsStep.unlinked")}
-                    </span>
-                  )}
-                </div>
-              </div>
-            </div>
-          );
-        })}
       </div>
 
       {/* Navigation Footer */}
@@ -474,57 +174,17 @@ export function SetupBankAccountsStep({ accounts, onNext, onBack }: SetupBankAcc
         </button>
       </div>
 
-      <BankAccountFormModal
-        isOpen={isModalOpen}
-        editingAccount={editingAccount}
-        accName={accName}
-        setAccName={setAccName}
-        accBankProvider={accBankProvider}
-        setAccBankProvider={setAccBankProvider}
-        accBalance={accBalance}
-        setAccBalance={setAccBalance}
-        accBuffer={accBuffer}
-        setAccBuffer={setAccBuffer}
-        accIsPrivate={accIsPrivate}
-        setAccIsPrivate={setAccIsPrivate}
-        pools={pools.map((p) => ({
-          id: p.id,
-          name: p.name,
-          poolType: p.envelopeType,
-          bankAccountId: p.bankAccountId,
-          currentBalance: p.currentBalance || 0,
-        }))}
-        selectedPoolIds={selectedPoolIds}
-        onPoolToggle={handlePoolToggle}
-        accounts={displayAccounts.map((a) => ({
-          id: a.id,
-          name: a.name,
-        }))}
-        isTrialExpired={false}
-        isSaving={isSaving}
-        bankOptions={BANK_OPTIONS}
-        onClose={closeModal}
-        onSubmit={handleSubmit}
-        fmtMoney={fmtMoney}
-        onArchive={editingAccount ? handleArchive : undefined}
-      />
-
       <ConfirmDialog
-        isOpen={showRemoveConfirm}
-        onClose={() => setShowRemoveConfirm(false)}
-        onConfirm={confirmArchiveAccount}
-        title="Remove Bank Account"
-        description={`Remove bank account "${editingAccount?.name || ""}"?`}
-        confirmLabel="Remove Account"
+        isOpen={Boolean(deleteTargetId)}
+        onClose={() => setDeleteTargetId(null)}
+        onConfirm={() => {
+          if (deleteTargetId) archiveAccountMut.mutate({ accountId: deleteTargetId });
+        }}
+        title={t("settings.bankAccountForm.archiveConfirmTitle")}
+        description={t("settings.bankAccountForm.archiveConfirmBody", { name: "account" })}
+        confirmLabel={t("common.delete")}
         variant="danger"
-      />
-
-      <AussieBankCheatSheetModal
-        isOpen={showCheatSheet}
-        onClose={() => setShowCheatSheet(false)}
       />
     </div>
   );
 }
-
-

@@ -46,7 +46,7 @@ export function MobileOtpVerificationView({
       });
 
       if (res.error) {
-        setError(res.error.message || t("auth.invalidOtp"));
+        setError(t("auth.invalidOtp"));
         setLoading(false);
         return;
       }
@@ -73,8 +73,8 @@ export function MobileOtpVerificationView({
       }
 
       onSuccess();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : t("auth.invalidOtp"));
+    } catch {
+      setError(t("auth.invalidOtp"));
       setLoading(false);
     }
   };
@@ -89,8 +89,8 @@ export function MobileOtpVerificationView({
         type: "email-verification",
       });
       setResendSuccess(true);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to resend code.");
+    } catch {
+      setError(t("common.errorTryAgain"));
     } finally {
       setResending(false);
     }

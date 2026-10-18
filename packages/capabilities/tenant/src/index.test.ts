@@ -87,7 +87,19 @@ describe('Capability Tenant Handlers', () => {
     const mockDb: any = { insert: insertMock };
 
     const handler = createBankAccountHandler(mockDb);
-    const res = await handler({ name: 'Main Checking' }, tenantId, appId, userId);
+    const res = await handler(
+      {
+        name: 'Main Checking',
+        bankProvider: 'Other',
+        accountType: 'EVERYDAY',
+        lastKnownBalance: '1000.00',
+        unbudgetedBuffer: '0.00',
+        isPrivate: false,
+      },
+      tenantId,
+      appId,
+      userId
+    );
 
     expect(res.name).toBe('Main Checking');
     expect(insertMock).toHaveBeenCalledTimes(1);

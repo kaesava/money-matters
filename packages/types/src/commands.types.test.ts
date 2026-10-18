@@ -37,11 +37,14 @@ describe('Command Schemas Validation', () => {
   });
 
   it('validates CreateBankAccountCommand and UpdateBankAccountCommand', () => {
-    const bankCmd = CreateBankAccountCommand.parse({ name: 'Savings' });
+    const bankCmd = CreateBankAccountCommand.parse({ name: 'Savings', accountType: 'SAVINGS' });
     expect(bankCmd.name).toBe('Savings');
+    expect(bankCmd.accountType).toBe('SAVINGS');
+    expect(bankCmd.bankProvider).toBe('Other');
 
-    const updateBank = UpdateBankAccountCommand.parse({ lastKnownBalance: '1500.25' });
+    const updateBank = UpdateBankAccountCommand.parse({ lastKnownBalance: '1500.25', accountType: 'CREDIT_CARD' });
     expect(updateBank.lastKnownBalance).toBe('1500.25');
+    expect(updateBank.accountType).toBe('CREDIT_CARD');
   });
 
   it('validates CreateEnvelopeCommand and UpdateEnvelopeCommand', () => {
@@ -201,17 +204,16 @@ describe('Command Schemas Validation', () => {
         { name: 'Primary Salary', type: 'SALARY', amount: '3500.00', frequency: 'FORTNIGHTLY' },
       ],
       bankAccounts: [
-        { name: 'Everyday Account', bankProvider: 'CBA', lastKnownBalance: '800.00' },
+        { name: 'Everyday Account', bankProvider: 'Other', accountType: 'EVERYDAY', lastKnownBalance: '800.00' },
       ],
       envelopes: [
         { name: 'Everyday Spending', envelopeType: 'EVERYDAY', monthlyAmount: '800.00' },
         { name: 'Groceries', envelopeType: 'FLEXIBLE_BILL', monthlyAmount: '600.00' },
       ],
       archivedEnvelopeIds: [],
-      archetypeApplied: 'AUSSIE_2_ACCOUNT',
     });
     expect(valid.incomes).toHaveLength(1);
-    expect(valid.archetypeApplied).toBe('AUSSIE_2_ACCOUNT');
+    expect(valid.bankAccounts[0].accountType).toBe('EVERYDAY');
 
     // Rejects empty incomes
     expect(() =>

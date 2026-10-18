@@ -4,7 +4,14 @@ import React, { useId, useState } from "react";
 import { InfoTooltip, isFormDirty, ConfirmDialog, Button, Input, AmountField, ModalDialog } from "@money-matters/ui/web";
 import { t } from "@money-matters/i18n";
 import { useLocale } from "../../../../providers/LocaleProvider";
-import { computeAccountAvailability } from "@money-matters/types";
+import {
+  computeAccountAvailability,
+  ACCOUNT_TYPES,
+  AccountType,
+  ACCOUNT_TYPE_LABELS,
+  getDefaultAccountName,
+  BankProvider,
+} from "@money-matters/types";
 
 type BankName = "CBA" | "Westpac" | "ANZ" | "NAB" | "ING" | "Macquarie" | "Other";
 
@@ -15,6 +22,8 @@ export interface BankAccountFormModalProps {
   readonly setAccName: (val: string) => void;
   readonly accBankProvider: BankName;
   readonly setAccBankProvider: (val: BankName) => void;
+  readonly accAccountType?: AccountType;
+  readonly setAccAccountType?: (val: AccountType) => void;
   readonly accBalance: string;
   readonly setAccBalance: (val: string) => void;
   readonly accBuffer: string;
@@ -29,7 +38,6 @@ export interface BankAccountFormModalProps {
   readonly fmtMoney: (val: number | string | undefined) => string;
   readonly onArchive?: () => void;
   readonly errorMsg?: string | null;
-  // Optional legacy props to maintain non-breaking compatibility
   readonly pools?: unknown[];
   readonly selectedPoolIds?: string[];
   readonly onPoolToggle?: (poolId: string) => void;
@@ -43,6 +51,8 @@ export function BankAccountFormModal({
   setAccName,
   accBankProvider,
   setAccBankProvider,
+  accAccountType = "EVERYDAY",
+  setAccAccountType,
   accBalance,
   setAccBalance,
   accBuffer,
@@ -64,9 +74,11 @@ export function BankAccountFormModal({
   const [privacyWarningTarget, setPrivacyWarningTarget] = useState<boolean | null>(null);
   const [showArchiveConfirm, setShowArchiveConfirm] = useState(false);
 
+  const initialAccountType = (editingAccount as unknown as { accountType?: string })?.accountType || "EVERYDAY";
   const initialState = editingAccount ? {
     name: editingAccount.name,
     bankProvider: (editingAccount as unknown as { bankProvider?: string }).bankProvider || "CBA",
+    accountType: initialAccountType,
     balance: (editingAccount as unknown as { lastKnownBalance?: string }).lastKnownBalance || "0",
     buffer: (editingAccount as unknown as { unbudgetedBuffer?: string }).unbudgetedBuffer || "0",
     isPrivate: Boolean((editingAccount as unknown as { isPrivate?: boolean }).isPrivate),
@@ -75,6 +87,7 @@ export function BankAccountFormModal({
   const currentState = {
     name: accName,
     bankProvider: accBankProvider,
+    accountType: accAccountType,
     balance: accBalance,
     buffer: accBuffer,
     isPrivate: accIsPrivate,
@@ -83,6 +96,22 @@ export function BankAccountFormModal({
   const isDirty = isFormDirty(initialState, currentState);
   const { actualBalance, buffer, available } = computeAccountAvailability(accBalance, accBuffer);
   const isBufferInvalid = buffer > actualBalance;
+
+  const handleProviderSelect = (key: BankName) => {
+    setAccBankProvider(key);
+    const oldDefault = getDefaultAccountName(accBankProvider as BankProvider, accAccountType as AccountType);
+    if (!accName.trim() || accName.trim() === oldDefault) {
+      setAccName(getDefaultAccountName(key as BankProvider, accAccountType as AccountType));
+    }
+  };
+
+  const handleAccountTypeSelect = (type: AccountType) => {
+    setAccAccountType?.(type);
+    const oldDefault = getDefaultAccountName(accBankProvider as BankProvider, accAccountType as AccountType);
+    if (!accName.trim() || accName.trim() === oldDefault) {
+      setAccName(getDefaultAccountName(accBankProvider as BankProvider, type));
+    }
+  };
 
   const handlePrivateCheckboxChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const targetValue = e.target.checked;
@@ -115,7 +144,7 @@ export function BankAccountFormModal({
           </div>
         )}
 
-        {/* Bank Institution Chips (Required) */}
+        {/* Bank Institution Chips */}
         <div className="flex flex-col gap-2">
           <label className="text-xs font-bold text-zinc-700">
             {t("settings.bankAccountForm.bankProviderLabel")} <span className="text-rose-500">*</span>
@@ -127,7 +156,7 @@ export function BankAccountFormModal({
                 <button
                   key={b.key}
                   type="button"
-                  onClick={() => setAccBankProvider(b.key)}
+                  onClick={() => handleProviderSelect(b.key)}
                   className={`px-3 py-1.5 rounded-xl text-xs font-bold border transition-all cursor-pointer ${
                     isSelected
                       ? "bg-[#2563eb] text-white border-[#2563eb] shadow-xs"
@@ -135,6 +164,32 @@ export function BankAccountFormModal({
                   }`}
                 >
                   {b.label}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Account Type Chips */}
+        <div className="flex flex-col gap-2">
+          <label className="text-xs font-bold text-zinc-700">
+            {t("settings.bankAccountForm.accountTypeLabel")} <span className="text-rose-500">*</span>
+          </label>
+          <div className="flex flex-wrap gap-2">
+            {ACCOUNT_TYPES.map((type) => {
+              const isSelected = accAccountType === type;
+              return (
+                <button
+                  key={type}
+                  type="button"
+                  onClick={() => handleAccountTypeSelect(type)}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-bold border transition-all cursor-pointer ${
+                    isSelected
+                      ? "bg-[#2563eb] text-white border-[#2563eb] shadow-xs"
+                      : "bg-white text-zinc-700 border-zinc-200 hover:border-zinc-300"
+                  }`}
+                >
+                  {ACCOUNT_TYPE_LABELS[type]}
                 </button>
               );
             })}
@@ -198,17 +253,7 @@ export function BankAccountFormModal({
             <span>{t("settings.bankAccountForm.privacyLabel")}</span>
           </label>
           <InfoTooltip content={t("settings.bankAccountForm.privacyHint")} />
-          {Boolean(editingAccount) ? (
-            <InfoTooltip content={t("settings.bankAccountForm.privacyLockedTooltip")} />
-          ) : isTrialExpired ? (
-            <InfoTooltip content={t("settings.bankAccountForm.privacyUpgradeTooltip")} />
-          ) : null}
         </div>
-
-        {/* Informative note about linking pools */}
-        <p className="text-[11px] text-zinc-500 italic">
-          {t("settings.bankAccountForm.linkPoolNote")}
-        </p>
 
         <div className="flex items-center justify-between gap-2 pt-2 border-t border-zinc-100">
           <div>

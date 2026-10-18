@@ -89,8 +89,8 @@ describe("saveSetupBudgetHandler", () => {
           { name: "Salary", type: "SALARY", amount: "3200.00", frequency: "FORTNIGHTLY", incomeType: "SALARIED" },
         ],
         bankAccounts: [
-          { name: "Everyday Card", bankProvider: "CBA", lastKnownBalance: "1000.00", unbudgetedBuffer: "0.00", isPrivate: false },
-          { name: "Bills Account", bankProvider: "CBA", lastKnownBalance: "2500.00", unbudgetedBuffer: "0.00", isPrivate: false },
+          { name: "Everyday Card", bankProvider: "Other", accountType: "EVERYDAY", lastKnownBalance: "1000.00", unbudgetedBuffer: "0.00", isPrivate: false },
+          { name: "Bills Account", bankProvider: "Other", accountType: "SAVINGS", lastKnownBalance: "2500.00", unbudgetedBuffer: "0.00", isPrivate: false },
         ],
         envelopes: [
           { name: "Everyday Spending", envelopeType: "EVERYDAY", monthlyAmount: "600.00", isSurplusTarget: false, isCommitted: false, isPrivate: false, orderIndex: 0 },
@@ -98,7 +98,6 @@ describe("saveSetupBudgetHandler", () => {
           { name: "Emergency Reserve", envelopeType: "ONGOING_GOAL", targetAmount: "10000.00", isSurplusTarget: true, isCommitted: true, isPrivate: false, orderIndex: 2 },
         ],
         archivedEnvelopeIds: [],
-        archetypeApplied: "AUSSIE_2_ACCOUNT",
       },
       appId,
       userId,

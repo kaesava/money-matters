@@ -247,7 +247,16 @@ export function PoolsTable({
                               type="button"
                               onClick={() => onAddPool(group.type)}
                               className="px-1.5 py-0.5 text-[10px] font-black bg-[#2563eb] hover:bg-blue-700 text-white rounded-md transition-colors cursor-pointer"
-                              title={`Create New ${group.label}`}
+                              title={
+                                group.type === "REGULAR"
+                                  ? t("categories.createBillEnvelopeTooltip")
+                                  : t("categories.createGoalEnvelopeTooltip")
+                              }
+                              aria-label={
+                                group.type === "REGULAR"
+                                  ? t("categories.createBillEnvelopeTooltip")
+                                  : t("categories.createGoalEnvelopeTooltip")
+                              }
                             >
                               +
                             </button>

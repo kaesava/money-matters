@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import { t } from "@money-matters/i18n";
-import { Button, Spinner, OtpInput } from "@money-matters/ui/web";
+import { Button, Spinner, OtpInput, FormErrorBanner } from "@money-matters/ui/web";
 import { authClient } from "../../lib/auth";
 
 interface OtpVerificationViewProps {
@@ -41,7 +41,7 @@ export function OtpVerificationView({
       });
 
       if (res.error) {
-        setError(res.error.message || t("auth.invalidOtp"));
+        setError(t("auth.invalidOtp"));
         setLoading(false);
         return;
       }
@@ -54,8 +54,8 @@ export function OtpVerificationView({
       }
 
       onSuccess();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : t("auth.invalidOtp"));
+    } catch {
+      setError(t("auth.invalidOtp"));
       setLoading(false);
     }
   };
@@ -70,8 +70,8 @@ export function OtpVerificationView({
         type: "email-verification",
       });
       setResendSuccess(true);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to resend code.");
+    } catch {
+      setError(t("common.errorTryAgain"));
     } finally {
       setResending(false);
     }
@@ -86,11 +86,7 @@ export function OtpVerificationView({
         </p>
       </div>
 
-      {error && (
-        <div className="p-3 bg-rose-50 border border-rose-200 text-rose-800 text-xs font-semibold rounded-xl">
-          ⚠️ {error}
-        </div>
-      )}
+      {error && <FormErrorBanner message={error} />}
 
       {resendSuccess && (
         <div className="p-3 bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-semibold rounded-xl">

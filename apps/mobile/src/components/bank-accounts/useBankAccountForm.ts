@@ -4,6 +4,7 @@ import { useMobileToast, showMobileConfirm } from '@money-matters/ui/mobile';
 import { t } from '@money-matters/i18n';
 import type { BankAccountItemToEdit, SupportedBankProvider } from './bankAccountTypes';
 import type { MobileReconciliationModalProps } from '../envelopes/MobileReconciliationModal';
+import { AccountType, getDefaultAccountName, BankProvider } from '@money-matters/types';
 
 export function useBankAccountForm(
   visible: boolean,
@@ -18,6 +19,7 @@ export function useBankAccountForm(
 
   const [name, setName] = useState('');
   const [provider, setProvider] = useState<SupportedBankProvider>('CBA');
+  const [accountType, setAccountType] = useState<AccountType>('EVERYDAY');
   const [balance, setBalance] = useState('0.00');
   const [buffer, setBuffer] = useState('0.00');
   const [isPrivate, setIsPrivate] = useState(false);
@@ -34,6 +36,7 @@ export function useBankAccountForm(
   const initialRef = React.useRef({
     name: '',
     provider: 'CBA' as SupportedBankProvider,
+    accountType: 'EVERYDAY' as AccountType,
     balance: '0.00',
     buffer: '0.00',
     isPrivate: false,
@@ -43,12 +46,14 @@ export function useBankAccountForm(
     if (accountToEdit) {
       const initName = accountToEdit.name || '';
       const initProvider = (accountToEdit.bankProvider as SupportedBankProvider) || 'CBA';
+      const initType = (accountToEdit.accountType as AccountType) || 'EVERYDAY';
       const initBalance = accountToEdit.lastKnownBalance || '0.00';
       const initBuffer = accountToEdit.unbudgetedBuffer || '0.00';
       const initPrivate = Boolean(accountToEdit.isPrivate);
 
       setName(initName);
       setProvider(initProvider);
+      setAccountType(initType);
       setBalance(initBalance);
       setBuffer(initBuffer);
       setIsPrivate(initPrivate);
@@ -56,20 +61,23 @@ export function useBankAccountForm(
       initialRef.current = {
         name: initName,
         provider: initProvider,
+        accountType: initType,
         balance: initBalance,
         buffer: initBuffer,
         isPrivate: initPrivate,
       };
     } else {
       setName('');
-      setProvider('CBA');
+      setProvider('Other');
+      setAccountType('EVERYDAY');
       setBalance('0.00');
       setBuffer('0.00');
       setIsPrivate(false);
 
       initialRef.current = {
         name: '',
-        provider: 'CBA',
+        provider: 'Other',
+        accountType: 'EVERYDAY',
         balance: '0.00',
         buffer: '0.00',
         isPrivate: false,
@@ -79,9 +87,26 @@ export function useBankAccountForm(
     setGeneralError('');
   }, [accountToEdit, visible]);
 
+  const handleProviderChange = (newProvider: SupportedBankProvider) => {
+    setProvider(newProvider);
+    const oldDefault = getDefaultAccountName(provider as BankProvider, accountType);
+    if (!name.trim() || name.trim() === oldDefault) {
+      setName(getDefaultAccountName(newProvider as BankProvider, accountType));
+    }
+  };
+
+  const handleAccountTypeChange = (newType: AccountType) => {
+    setAccountType(newType);
+    const oldDefault = getDefaultAccountName(provider as BankProvider, accountType);
+    if (!name.trim() || name.trim() === oldDefault) {
+      setName(getDefaultAccountName(provider as BankProvider, newType));
+    }
+  };
+
   const isDirty =
     name !== initialRef.current.name ||
     provider !== initialRef.current.provider ||
+    accountType !== initialRef.current.accountType ||
     balance !== initialRef.current.balance ||
     buffer !== initialRef.current.buffer ||
     isPrivate !== initialRef.current.isPrivate;
@@ -144,6 +169,7 @@ export function useBankAccountForm(
           data: {
             name: name.trim(),
             bankProvider: provider,
+            accountType,
             lastKnownBalance: balNum.toFixed(2),
             unbudgetedBuffer: bufNum.toFixed(2),
             isPrivate,
@@ -153,6 +179,7 @@ export function useBankAccountForm(
         const created = await createMut.mutateAsync({
           name: name.trim(),
           bankProvider: provider,
+          accountType,
           lastKnownBalance: balNum.toFixed(2),
           unbudgetedBuffer: bufNum.toFixed(2),
           isPrivate,
@@ -194,7 +221,9 @@ export function useBankAccountForm(
     name,
     setName,
     provider,
-    setProvider,
+    setProvider: handleProviderChange,
+    accountType,
+    setAccountType: handleAccountTypeChange,
     balance,
     setBalance,
     buffer,

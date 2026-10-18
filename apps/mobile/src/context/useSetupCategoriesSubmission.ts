@@ -32,7 +32,8 @@ export function useSetupCategoriesSubmission() {
       const accountsPayload = (bankAccountsQuery.data || []).map((acc) => ({
         id: acc.id,
         name: acc.name,
-        bankProvider: acc.bankProvider || 'CBA',
+        bankProvider: acc.bankProvider || 'Other',
+        accountType: acc.accountType || 'EVERYDAY',
         lastKnownBalance: String(acc.lastKnownBalance || '0.00'),
         unbudgetedBuffer: String(acc.unbudgetedBuffer || '0.00'),
         isPrivate: Boolean(acc.isPrivate),
@@ -106,13 +107,12 @@ export function useSetupCategoriesSubmission() {
       await saveSetupBudgetMut.mutateAsync({
         incomes: incomesPayload,
         bankAccounts: accountsPayload.length > 0 ? accountsPayload : [
-          { name: 'Primary Account', bankProvider: 'CBA', lastKnownBalance: '1000.00', unbudgetedBuffer: '0.00', isPrivate: false },
+          { name: 'Other Financial Institution (Everyday)', bankProvider: 'Other', accountType: 'EVERYDAY', lastKnownBalance: '1000.00', unbudgetedBuffer: '0.00', isPrivate: false },
         ],
         envelopes: envelopesPayload.length > 0 ? envelopesPayload : [
           { name: 'Everyday Spending', envelopeType: 'EVERYDAY', bankAccountId: accountsPayload[0]?.id, monthlyAmount: '1000.00', isEssential: true },
         ],
         archivedEnvelopeIds: [...sweepQueue.map((s) => s.poolId), ...resolvedArchivedEnvelopeIds],
-        archetypeApplied: accountsPayload.length >= 2 ? 'AUSSIE_2_ACCOUNT' : 'ALL_IN_ONE_CUSTOM',
         autoCreateExpenseSchedules,
       });
 

@@ -3,7 +3,8 @@
 import React, { useEffect } from "react";
 import Link from "next/link";
 import { PaginationBar, SkeletonTable } from "@money-matters/ui/web";
-import { t } from "@money-matters/i18n";
+import { t, TranslationKey } from "@money-matters/i18n";
+import type { AccountType } from "@money-matters/types";
 
 export type BankName = "CBA" | "Westpac" | "ANZ" | "NAB" | "ING" | "Macquarie" | "Other";
 export type CategoryType = "EVERYDAY" | "REGULAR" | "GOAL";
@@ -12,6 +13,7 @@ export interface BankAccountItem {
   id: string;
   name: string;
   bankProvider?: string;
+  accountType?: AccountType;
   lastKnownBalance?: string;
   unbudgetedBuffer?: string;
   isPrivate?: boolean;
@@ -124,6 +126,11 @@ export function BankAccountTable({
                           >
                             {acc.name}
                           </button>
+                          {acc.accountType && (
+                            <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md bg-blue-50 text-blue-700 border border-blue-200">
+                              {t(`bankAccounts.accountTypes.${acc.accountType}` as TranslationKey)}
+                            </span>
+                          )}
                           {acc.isPrivate && (
                             <span
                               title="Private"

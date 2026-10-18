@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { trpc } from "../../../../lib/trpc";
 import { useSubscriptionStatus } from "../../../../hooks/useSubscriptionStatus";
 import type { BankAccountItem, BankName, CategoryType } from "../../bank-accounts/components/BankAccountTable";
+import type { AccountType } from "@money-matters/types";
 
 export function useBankAccountsList() {
   const router = useRouter();
@@ -26,6 +27,7 @@ export function useBankAccountsList() {
   const [editingAccount, setEditingAccount] = useState<BankAccountItem | null>(null);
   const [accName, setAccName] = useState("");
   const [accBankProvider, setAccBankProvider] = useState<BankName>("Other");
+  const [accAccountType, setAccAccountType] = useState<AccountType>("EVERYDAY");
   const [accBalance, setAccBalance] = useState("0.00");
   const [accBuffer, setAccBuffer] = useState("0.00");
   const [accIsPrivate, setAccIsPrivate] = useState(false);
@@ -98,6 +100,7 @@ export function useBankAccountsList() {
       id: accId,
       name: acc.name as string,
       bankProvider: (acc.bankProvider as string) ?? undefined,
+      accountType: ((acc.accountType as AccountType) || "EVERYDAY"),
       lastKnownBalance: (acc.lastKnownBalance as string) ?? "0.00",
       unbudgetedBuffer: (acc.unbudgetedBuffer as string) ?? "0.00",
       isPrivate: (acc.isPrivate as boolean) ?? false,
@@ -156,6 +159,7 @@ export function useBankAccountsList() {
     setEditingAccount(null);
     setAccName("");
     setAccBankProvider("Other");
+    setAccAccountType("EVERYDAY");
     setAccBalance("0.00");
     setAccBuffer("0.00");
     setAccIsPrivate(false);
@@ -167,6 +171,7 @@ export function useBankAccountsList() {
     setEditingAccount(acc);
     setAccName(acc.name);
     setAccBankProvider((acc.bankProvider as BankName) || "Other");
+    setAccAccountType(acc.accountType || "EVERYDAY");
     setAccBalance(acc.lastKnownBalance || "0.00");
     setAccBuffer(acc.unbudgetedBuffer || "0.00");
     setAccIsPrivate(Boolean(acc.isPrivate));
@@ -189,6 +194,7 @@ export function useBankAccountsList() {
         data: {
           name: accName.trim(),
           bankProvider: accBankProvider,
+          accountType: accAccountType,
           lastKnownBalance: parseFloat(accBalance || "0").toFixed(2),
           unbudgetedBuffer: parseFloat(accBuffer || "0").toFixed(2),
           isPrivate: accIsPrivate,
@@ -198,6 +204,7 @@ export function useBankAccountsList() {
       createAccountMut.mutate({
         name: accName.trim(),
         bankProvider: accBankProvider,
+        accountType: accAccountType,
         lastKnownBalance: parseFloat(accBalance || "0").toFixed(2),
         unbudgetedBuffer: parseFloat(accBuffer || "0").toFixed(2),
         isPrivate: accIsPrivate,
@@ -286,6 +293,8 @@ export function useBankAccountsList() {
     setAccName,
     accBankProvider,
     setAccBankProvider,
+    accAccountType,
+    setAccAccountType,
     accBalance,
     setAccBalance,
     accBuffer,

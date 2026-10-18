@@ -7,6 +7,7 @@ import { t } from '@money-matters/i18n';
 export interface BankAccountCardHeaderProps {
   name: string;
   bankProvider?: string | null;
+  accountType?: string | null;
   isPrivate?: boolean;
   availBal: number;
   actualBal: number;
@@ -16,6 +17,7 @@ export interface BankAccountCardHeaderProps {
 export function BankAccountCardHeader({
   name,
   bankProvider,
+  accountType,
   isPrivate,
   availBal,
   actualBal,
@@ -29,6 +31,11 @@ export function BankAccountCardHeader({
           <Text style={styles.accountName} numberOfLines={1}>
             {name}
           </Text>
+          {accountType && (
+            <View style={styles.typePill}>
+              <Text style={styles.typeText}>{t(`bankAccounts.accountTypes.${accountType}` as any)}</Text>
+            </View>
+          )}
           {isPrivate && (
             <View style={styles.privatePill}>
               <Text style={styles.privateText}>{t('bankAccounts.privateBadge')}</Text>
@@ -70,6 +77,20 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: '800',
     color: DESIGN_TOKENS.colors.primary,
+  },
+  typePill: {
+    backgroundColor: '#EFF6FF',
+    paddingHorizontal: 6,
+    paddingVertical: 1,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: '#BFDBFE',
+  },
+  typeText: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: '#1D4ED8',
+    textTransform: 'uppercase',
   },
   privatePill: {
     backgroundColor: DESIGN_TOKENS.colors.slate[100],

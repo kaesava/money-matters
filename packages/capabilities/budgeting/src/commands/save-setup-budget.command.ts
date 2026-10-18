@@ -80,6 +80,7 @@ export function saveSetupBudgetHandler(dbClient: DbOrTx) {
             .set({
               name: accInput.name,
               bankProvider: accInput.bankProvider || matchedExisting.bankProvider,
+              accountType: accInput.accountType || matchedExisting.accountType,
               lastKnownBalance: accInput.lastKnownBalance || matchedExisting.lastKnownBalance,
               unbudgetedBuffer: accInput.unbudgetedBuffer || matchedExisting.unbudgetedBuffer,
               isPrivate: accInput.isPrivate ?? matchedExisting.isPrivate,
@@ -97,7 +98,8 @@ export function saveSetupBudgetHandler(dbClient: DbOrTx) {
             tenantId,
             appId,
             name: accInput.name,
-            bankProvider: accInput.bankProvider || "CBA",
+            bankProvider: accInput.bankProvider || "Other",
+            accountType: accInput.accountType || "EVERYDAY",
             lastKnownBalance: accInput.lastKnownBalance || "0.00",
             unbudgetedBuffer: accInput.unbudgetedBuffer || "0.00",
             isPrivate: accInput.isPrivate ?? false,

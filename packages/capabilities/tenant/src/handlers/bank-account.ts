@@ -65,7 +65,8 @@ export function createBankAccountHandler(db: DbOrTx) {
       .values({
         tenantId: tenantId,
         name: input.name,
-        bankProvider: input.bankProvider ?? "CBA",
+        bankProvider: input.bankProvider ?? "Other",
+        accountType: input.accountType ?? "EVERYDAY",
         lastKnownBalance: input.lastKnownBalance,
         unbudgetedBuffer: input.unbudgetedBuffer,
         isPrivate: input.isPrivate ?? false,
@@ -125,6 +126,7 @@ export function updateBankAccountHandler(db: DbOrTx) {
       .set({
         ...(input.name !== undefined ? { name: input.name } : {}),
         ...(input.bankProvider !== undefined ? { bankProvider: input.bankProvider } : {}),
+        ...(input.accountType !== undefined ? { accountType: input.accountType } : {}),
         ...(input.lastKnownBalance !== undefined ? { lastKnownBalance: input.lastKnownBalance } : {}),
         ...(input.unbudgetedBuffer !== undefined ? { unbudgetedBuffer: input.unbudgetedBuffer } : {}),
         updatedBy: userId,

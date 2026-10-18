@@ -251,18 +251,10 @@ test.describe('100% Comprehensive Field-by-Field Screen-by-Screen E2E Master Sui
         await continueBtn.click();
       }
 
-      // Check for Banking Archetypes
-      const blueprintCard = page.locator('text=Aussie 2-Account Blueprint').first();
-      if (await blueprintCard.isVisible()) {
-        await expect(blueprintCard).toBeVisible();
-      }
-
-      // Check for Cheat Sheet Modal Trigger
-      const cheatSheetTrigger = page.locator('button:has-text("60 seconds"), button:has-text("sub-account")').first();
-      if (await cheatSheetTrigger.isVisible()) {
-        await cheatSheetTrigger.click();
-        await expect(page.locator('text=60-Second Australian Bank Cheat Sheet').first()).toBeVisible();
-        await page.keyboard.press('Escape');
+      // Check for Bank Accounts Step Tip Card
+      const tipCard = page.locator('text=Tip: Structuring Your Bank Accounts').first();
+      if (await tipCard.isVisible()) {
+        await expect(tipCard).toBeVisible();
       }
     });
 

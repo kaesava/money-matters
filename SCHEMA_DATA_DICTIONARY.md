@@ -66,6 +66,7 @@
 | `id` | uuid | - | Domain column |
 | `name` | varchar | - | Domain column |
 | `bankProvider` | varchar | - | Domain column |
+| `accountType` | account_type_enum | - | Domain column |
 | `lastKnownBalance` | numeric | - | Domain column |
 | `unbudgetedBuffer` | numeric | - | Domain column |
 | `isPrivate` | boolean | - | Domain column |

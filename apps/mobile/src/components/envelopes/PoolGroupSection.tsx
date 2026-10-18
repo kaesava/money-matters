@@ -2,6 +2,7 @@ import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { DESIGN_TOKENS } from '@money-matters/ui/mobile';
+import { t } from '@money-matters/i18n';
 import { PoolItemCard } from './PoolItemCard';
 
 interface PoolGroupSectionItem {
@@ -66,6 +67,11 @@ export function PoolGroupSection({
             onPress={() => onAddPool(groupType)}
             style={styles.addBtn}
             hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            accessibilityLabel={
+              groupType === 'REGULAR'
+                ? t('categories.createBillEnvelopeTooltip')
+                : t('categories.createGoalEnvelopeTooltip')
+            }
           >
             <Feather name="plus" size={15} color={DESIGN_TOKENS.colors.sereneBlue} />
           </TouchableOpacity>
