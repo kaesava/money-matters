@@ -3,8 +3,7 @@ import fs from "node:fs";
 import path from "node:path";
 import dotenv from "dotenv";
 
-async function applyFiles(client: Client): Promise<void> {
-  // Ensure __drizzle_migrations table exists to track applied migrations idempotently
+async function ensureMigrationsTable(client: Client): Promise<void> {
   await client.query(`
     CREATE TABLE IF NOT EXISTS "__drizzle_migrations" (
       id SERIAL PRIMARY KEY,
@@ -12,30 +11,95 @@ async function applyFiles(client: Client): Promise<void> {
       created_at bigint
     );
   `);
+}
 
+async function getAppliedMigrationHashes(client: Client): Promise<Set<string>> {
   const appliedRes = await client.query(`SELECT hash FROM "__drizzle_migrations"`);
-  const appliedSet = new Set(appliedRes.rows.map((r: { hash: string }) => r.hash));
+  return new Set(appliedRes.rows.map((r: { hash: string }) => r.hash));
+}
+
+async function baselinePreExistingMigrations(
+  client: Client,
+  appliedSet: Set<string>,
+  entries: { tag: string }[]
+): Promise<void> {
+  const tenantsTableRes = await client.query(`
+    SELECT EXISTS (
+      SELECT FROM information_schema.tables 
+      WHERE table_schema = 'public' AND table_name = 'tenants'
+    ) as exists;
+  `);
+  if (!tenantsTableRes.rows[0]?.exists) {
+    return;
+  }
+
+  for (const entry of entries) {
+    if (entry.tag.startsWith("0036") || entry.tag.startsWith("0037")) {
+      break;
+    }
+    if (!appliedSet.has(entry.tag)) {
+      await client.query(
+        `INSERT INTO "__drizzle_migrations" (hash, created_at) VALUES ($1, $2) ON CONFLICT (hash) DO NOTHING`,
+        [entry.tag, Date.now()]
+      );
+      appliedSet.add(entry.tag);
+    }
+  }
+}
+
+async function applySingleMigration(
+  client: Client,
+  entry: { tag: string },
+  drizzleDir: string
+): Promise<void> {
+  const migrationFile = `${entry.tag}.sql`;
+  const filePath = path.join(drizzleDir, migrationFile);
+  if (!fs.existsSync(filePath)) {
+    throw new Error(`Migration file not found: ${filePath}`);
+  }
+
+  console.log(`📄 Running migration: ${migrationFile}...`);
+  const sqlContent = fs.readFileSync(filePath, "utf-8");
+  try {
+    await client.query(sqlContent);
+    await client.query(
+      `INSERT INTO "__drizzle_migrations" (hash, created_at) VALUES ($1, $2) ON CONFLICT (hash) DO NOTHING`,
+      [entry.tag, Date.now()]
+    );
+    console.log(`✅ ${migrationFile} applied successfully!`);
+  } catch (err: unknown) {
+    const dbErr = err as { code?: string; message?: string };
+    if (
+      dbErr.code === "42710" ||
+      dbErr.code === "42P07" ||
+      dbErr.code === "42701" ||
+      dbErr.message?.includes("already exists")
+    ) {
+      console.warn(`⚠️ ${migrationFile} pre-existing (${dbErr.message}). Marking as applied.`);
+      await client.query(
+        `INSERT INTO "__drizzle_migrations" (hash, created_at) VALUES ($1, $2) ON CONFLICT (hash) DO NOTHING`,
+        [entry.tag, Date.now()]
+      );
+    } else {
+      throw err;
+    }
+  }
+}
+
+async function applyFiles(client: Client): Promise<void> {
+  await ensureMigrationsTable(client);
+  const appliedSet = await getAppliedMigrationHashes(client);
 
   const drizzleDir = path.resolve(import.meta.dirname, "../drizzle");
   const journalPath = path.join(drizzleDir, "meta/_journal.json");
   const journal = JSON.parse(fs.readFileSync(journalPath, "utf-8")) as { entries: { tag: string }[] };
 
+  await baselinePreExistingMigrations(client, appliedSet, journal.entries);
+
   for (const entry of journal.entries) {
-    const migrationFile = `${entry.tag}.sql`;
-    if (appliedSet.has(entry.tag)) {
-      continue;
+    if (!appliedSet.has(entry.tag)) {
+      await applySingleMigration(client, entry, drizzleDir);
     }
-
-    const filePath = path.join(drizzleDir, migrationFile);
-    if (!fs.existsSync(filePath)) {
-      throw new Error(`Migration file not found: ${filePath}`);
-    }
-
-    console.log(`📄 Running migration: ${migrationFile}...`);
-    const sqlContent = fs.readFileSync(filePath, "utf-8");
-    await client.query(sqlContent);
-    await client.query(`INSERT INTO "__drizzle_migrations" (hash, created_at) VALUES ($1, $2) ON CONFLICT DO NOTHING`, [entry.tag, Date.now()]);
-    console.log(`✅ ${migrationFile} applied successfully!`);
   }
 }
 
