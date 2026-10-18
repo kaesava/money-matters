@@ -37,6 +37,8 @@ export interface EnvelopeFormFieldsProps {
   setInterval?: (v: number) => void;
   goalStartDate?: string;
   setGoalStartDate?: (v: string) => void;
+  endDate?: string;
+  setEndDate?: (v: string) => void;
   calculatedMonthly?: string;
   bankAccountId: string;
   setBankAccountId: (v: string) => void;
@@ -73,6 +75,8 @@ export const EnvelopeFormFields: React.FC<EnvelopeFormFieldsProps> = ({
   setInterval,
   goalStartDate = '',
   setGoalStartDate,
+  endDate = '',
+  setEndDate,
   calculatedMonthly = '0.00',
   bankAccountId,
   setBankAccountId,
@@ -155,6 +159,8 @@ export const EnvelopeFormFields: React.FC<EnvelopeFormFieldsProps> = ({
               setInterval={setInterval}
               startDate={goalStartDate}
               setStartDate={setGoalStartDate}
+              endDate={endDate}
+              setEndDate={setEndDate}
               calculatedMonthly={calculatedMonthly}
             />
           )}

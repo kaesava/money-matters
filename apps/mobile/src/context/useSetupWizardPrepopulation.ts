@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { trpc } from '../lib/trpc';
 import { IncomeItem, UserGoalItem, EstimatedCategoryItem } from '@money-matters/types';
+import { parseRecurrenceRule } from '@money-matters/ui/mobile';
 import { getMobileLocaleConfig } from '../lib/format';
 import { MobileBankAccountItem } from './setup-wizard-types';
 
@@ -29,15 +30,12 @@ export function useSetupWizardPrepopulation({
     if (!isRerun || !incomeSourcesQuery.data || incomeSourcesQuery.data.length === 0) return;
     setIncomes(
       incomeSourcesQuery.data.map((inc) => {
-        let freq: 'WEEKLY' | 'FORTNIGHTLY' | 'MONTHLY' | 'CUSTOM' = 'FORTNIGHTLY';
-        if (inc.rrule?.includes('INTERVAL=2')) freq = 'FORTNIGHTLY';
-        else if (inc.rrule?.includes('WEEKLY')) freq = 'WEEKLY';
-        else if (inc.rrule?.includes('MONTHLY')) freq = 'MONTHLY';
+        const parsed = parseRecurrenceRule(inc.rrule);
         return {
           id: inc.id,
           name: inc.name,
           amount: parseFloat(inc.amount || '0'),
-          frequency: freq,
+          frequency: parsed.frequency,
           type: 'SALARY',
           receivingAccountId: inc.receivingAccountId,
           startDate: inc.startDate ? String(inc.startDate) : new Intl.DateTimeFormat('en-CA', { timeZone: tz }).format(new Date()),

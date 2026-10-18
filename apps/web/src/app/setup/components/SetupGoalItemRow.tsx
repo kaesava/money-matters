@@ -1,10 +1,9 @@
 "use client";
 
-import React, { useState } from "react";
+import React from "react";
 import { t } from "@money-matters/i18n";
-import { AmountField, ConfirmDialog } from "@money-matters/ui/web";
+import { AmountField } from "@money-matters/ui/web";
 import { UserGoalItem } from "./SetupGoalsStep";
-import { Check } from "lucide-react";
 
 interface SetupGoalItemRowProps {
   goal: UserGoalItem;
@@ -33,31 +32,14 @@ function getFrequencyUnitLabel(freq?: string | null): string {
 
 export function SetupGoalItemRow({
   goal,
-  isRerun = false,
-  isDirty = false,
   onUpdateGoal,
   onRemoveGoal,
-  onSaveGoal,
   onOpenCustomSchedule,
 }: SetupGoalItemRowProps) {
-  const [showConfirm, setShowConfirm] = useState(false);
-  const [isSaving, setIsSaving] = useState(false);
-  const isExisting = !goal.id.startsWith("g-");
-
   const isOngoing = goal.goalMode === "ONGOING";
   const months = isOngoing ? 1 : getMonthsDiff(goal.dueDate);
   const isPast = !isOngoing && goal.dueDate && new Date(goal.dueDate) < new Date(new Date().setHours(0, 0, 0, 0));
   const unitLabel = getFrequencyUnitLabel(goal.budgetFrequency);
-
-  const handleSave = async () => {
-    if (!onSaveGoal) return;
-    setIsSaving(true);
-    try {
-      await onSaveGoal(goal.id);
-    } finally {
-      setIsSaving(false);
-    }
-  };
 
   return (
     <div className="p-3 bg-white rounded-xl border border-zinc-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xs">
@@ -85,18 +67,6 @@ export function SetupGoalItemRow({
       </div>
 
       <div className="flex flex-wrap items-center gap-3 self-end sm:self-auto">
-        {isRerun && isExisting && isDirty && (
-          <button
-            type="button"
-            onClick={handleSave}
-            disabled={isSaving}
-            aria-label={t("common.save")}
-            className="p-1 rounded-md bg-emerald-50 text-emerald-600 hover:bg-emerald-100 transition-colors cursor-pointer"
-          >
-            <Check className="w-3.5 h-3.5 stroke-[3]" />
-          </button>
-        )}
-
         <div className="w-36">
           <AmountField
             value={
@@ -155,31 +125,13 @@ export function SetupGoalItemRow({
 
         <button
           type="button"
-          onClick={() => {
-            if (isRerun && isExisting) {
-              onRemoveGoal(goal.id);
-            } else {
-              onRemoveGoal(goal.id);
-            }
-          }}
+          onClick={() => onRemoveGoal(goal.id)}
           className="text-xs text-red-500 font-bold hover:text-red-700 p-1 cursor-pointer"
         >
           ✕
         </button>
       </div>
 
-      <ConfirmDialog
-        isOpen={showConfirm}
-        onClose={() => setShowConfirm(false)}
-        onConfirm={() => {
-          setShowConfirm(false);
-          onRemoveGoal(goal.id);
-        }}
-        title={t("categories.archivePool")}
-        description={t("categories.archivePoolConfirm", { name: goal.name })}
-        confirmLabel={t("common.archive")}
-        variant="danger"
-      />
     </div>
   );
 }

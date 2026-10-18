@@ -2,7 +2,7 @@
 
 import React, { useMemo } from "react";
 import Link from "next/link";
-import { ResizableTh, useResizableColumns } from "@money-matters/ui/web";
+import { ResizableTh, useResizableColumns, formatScheduleSummary } from "@money-matters/ui/web";
 import { t } from "@money-matters/i18n";
 import { useLocale } from "../../../../providers/LocaleProvider";
 
@@ -14,6 +14,7 @@ interface BillSchedulesCardProps {
     poolId: string;
     poolName: string;
     categoryId?: string;
+    envelopeType?: string | null;
     rrule?: string | null;
     startDate?: string | null;
     endDate?: string | null;
@@ -29,30 +30,12 @@ interface BillSchedulesCardProps {
     id: string;
     name: string;
     poolId: string;
+    envelopeType?: string | null;
     monthlyAmount?: string | null;
     enteredAmount?: string | null;
     budgetFrequency?: string | null;
     isEssential?: boolean;
   }) => void;
-}
-
-function formatScheduleSummary(
-  { rrule, startDate, endDate }: { rrule?: string | null; startDate?: string | null; endDate?: string | null },
-  dateFormatter: (d: string | Date | number | null | undefined) => string
-): string {
-  if (!rrule && !startDate) return "One-off";
-  let freqStr = "Recurring";
-  if (rrule) {
-    if (rrule.includes("FREQ=WEEKLY;INTERVAL=2") || rrule.includes("FREQ=FORTNIGHTLY")) freqStr = "every 2 weeks";
-    else if (rrule.includes("FREQ=WEEKLY")) freqStr = "weekly";
-    else if (rrule.includes("FREQ=MONTHLY")) freqStr = "monthly";
-    else if (rrule.includes("FREQ=YEARLY") || rrule.includes("FREQ=ANNUALLY")) freqStr = "yearly";
-  }
-  const start = startDate ? dateFormatter(startDate) : null;
-  const end = endDate ? dateFormatter(endDate) : null;
-  if (start && end) return `${freqStr} from ${start} to ${end}`;
-  if (start) return `${freqStr} from ${start}`;
-  return freqStr;
 }
 
 export function BillSchedulesCard({
@@ -169,6 +152,7 @@ export function BillSchedulesCard({
                               id: b.id,
                               name: b.name,
                               poolId: b.poolId,
+                              envelopeType: b.envelopeType,
                               monthlyAmount: String(b.amount),
                               enteredAmount: String(b.amount),
                               budgetFrequency: b.budgetFrequency || "MONTHLY",
@@ -181,7 +165,7 @@ export function BillSchedulesCard({
                           <span className="text-[10px] text-slate-400 dark:text-zinc-500 font-normal">✎</span>
                         </button>
                         <span className="text-[10px] text-zinc-400 font-medium">
-                          {formatScheduleSummary({ rrule: b.rrule, startDate: b.startDate, endDate: b.endDate }, fmtDate)}
+                          {formatScheduleSummary({ rrule: b.rrule, startDate: b.startDate, endDate: b.endDate, envelopeType: b.envelopeType }, fmtDate)}
                         </span>
                       </div>
                     </td>

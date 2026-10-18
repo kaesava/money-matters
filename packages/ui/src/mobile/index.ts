@@ -42,6 +42,7 @@ export * from './AlertBanner';
 
 export * from './fields/RecurrenceBuilder';
 export * from '../hooks/useRecurrenceBuilder';
+export * from '../utils/recurrence';
 export * from '../utils/formatDate';
 export { fmtDateTime } from '../lib/format';
 

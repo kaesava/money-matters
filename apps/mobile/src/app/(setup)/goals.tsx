@@ -3,7 +3,7 @@ import { View, Text, TouchableOpacity, ScrollView, TextInput, StyleSheet } from 
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { t } from '@money-matters/i18n';
-import { DESIGN_TOKENS, AmountInput, MobileGoalModeToggle } from '@money-matters/ui/mobile';
+import { DESIGN_TOKENS, AmountInput, MobileGoalModeToggle, useMobileToast } from '@money-matters/ui/mobile';
 import { useSetupWizard } from '../../context/SetupWizardContext';
 import { SetupGoalCard } from '../../components/setup/SetupGoalCard';
 import { getMobileLocaleConfig } from '../../lib/format';
@@ -105,9 +105,12 @@ export default function SetupGoalsScreen() {
 
   const currentStep = isRerun ? 2 : 3;
 
+  const toast = useMobileToast();
+
   const handleNext = async () => {
     if (isRerun && dirtyGoalIds.size > 0) {
       await Promise.all(Array.from(dirtyGoalIds).map((id) => handleSaveGoalImmediate(id)));
+      toast.success(t('toasts.saved'));
     }
     if (isRerun) {
       router.push({ pathname: '/(setup)/categories', params: { mode: 'rerun' } });

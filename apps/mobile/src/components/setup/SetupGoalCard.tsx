@@ -1,6 +1,5 @@
-import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, ActivityIndicator } from 'react-native';
-import { Feather } from '@expo/vector-icons';
+import React from 'react';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet } from 'react-native';
 import { UserGoalItem } from '@money-matters/types';
 import { DESIGN_TOKENS, AmountInput } from '@money-matters/ui/mobile';
 import { t } from '@money-matters/i18n';
@@ -31,30 +30,15 @@ function getFrequencyUnitLabel(freq?: string | null): string {
 
 export function SetupGoalCard({
   goal,
-  isRerun = false,
-  isDirty = false,
   onUpdate,
   onRemove,
-  onSave,
 }: SetupGoalCardProps) {
-  const [isSaving, setIsSaving] = useState(false);
-  const isExisting = !goal.id.startsWith('g-');
   const isOngoing = goal.goalMode === 'ONGOING';
   const months = isOngoing ? 1 : getMonthsDiff(goal.dueDate || '');
   const estMonthly = isOngoing
     ? Math.round(goal.targetAmount || 0)
     : Math.round((goal.targetAmount || 0) / months);
   const unitLabel = getFrequencyUnitLabel(goal.budgetFrequency);
-
-  const handleSave = async () => {
-    if (!onSave) return;
-    setIsSaving(true);
-    try {
-      await onSave(goal.id);
-    } finally {
-      setIsSaving(false);
-    }
-  };
 
   return (
     <View style={styles.card}>
@@ -75,20 +59,6 @@ export function SetupGoalCard({
           </View>
         </View>
         <View style={styles.actionsWrap}>
-          {isRerun && isExisting && isDirty && (
-            <TouchableOpacity
-              style={styles.inlineSaveBtn}
-              onPress={handleSave}
-              disabled={isSaving}
-              accessibilityLabel={t('common.save')}
-            >
-              {isSaving ? (
-                <ActivityIndicator size="small" color={DESIGN_TOKENS.colors.success} />
-              ) : (
-                <Feather name="check" size={16} color={DESIGN_TOKENS.colors.success} />
-              )}
-            </TouchableOpacity>
-          )}
           <TouchableOpacity onPress={() => onRemove(goal.id)} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
             <Text style={styles.removeBtn}>✕</Text>
           </TouchableOpacity>

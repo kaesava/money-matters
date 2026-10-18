@@ -65,6 +65,7 @@ export * from './OtpInput';
 export * from './TypedConfirmDialog';
 export * from './fields/RecurrenceBuilder';
 export * from '../hooks/useRecurrenceBuilder';
+export * from '../utils/recurrence';
 export * from '../hooks/DateLocaleContext';
 export * from './EnvelopeExplainer';
 export * from './GoalModeToggle';

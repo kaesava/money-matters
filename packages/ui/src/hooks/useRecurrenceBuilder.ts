@@ -3,6 +3,8 @@
 import { useState, useEffect } from "react";
 import { fmtDateIso } from "../utils/formatDate";
 
+import { parseRecurrenceRule, buildRecurrenceRule } from "../utils/recurrence";
+
 export type RecurrenceState = {
   isRecurring: boolean;
   frequency: "WEEKLY" | "FORTNIGHTLY" | "MONTHLY" | "ANNUALLY";
@@ -21,49 +23,17 @@ export function useRecurrenceBuilder(initialRrule?: string | null, initialStartD
   // Parse initial rrule if provided
   useEffect(() => {
     if (initialRrule) {
-      setIsRecurring(true);
-      if (initialRrule.includes("FREQ=WEEKLY")) {
-        if (initialRrule.includes("INTERVAL=2")) {
-          setFrequency("FORTNIGHTLY");
-          setInterval(1); // The "2" is baked into Fortnightly for UI simplicity
-        } else {
-          setFrequency("WEEKLY");
-          const match = initialRrule.match(/INTERVAL=(\d+)/);
-          setInterval(match ? parseInt(match[1], 10) : 1);
-        }
-      } else if (initialRrule.includes("FREQ=MONTHLY")) {
-        setFrequency("MONTHLY");
-        const match = initialRrule.match(/INTERVAL=(\d+)/);
-        setInterval(match ? parseInt(match[1], 10) : 1);
-      } else if (initialRrule.includes("FREQ=YEARLY")) {
-        setFrequency("ANNUALLY");
-        const match = initialRrule.match(/INTERVAL=(\d+)/);
-        setInterval(match ? parseInt(match[1], 10) : 1);
-      }
+      const parsed = parseRecurrenceRule(initialRrule);
+      setIsRecurring(parsed.isRecurring);
+      setFrequency(parsed.frequency);
+      setInterval(parsed.interval);
     } else {
       setIsRecurring(false);
     }
   }, [initialRrule]);
 
   // Generate rrule string
-  const rruleString = isRecurring ? (() => {
-    let freqStr = "FREQ=MONTHLY";
-    let intVal = interval;
-
-    if (frequency === "WEEKLY") freqStr = "FREQ=WEEKLY";
-    if (frequency === "FORTNIGHTLY") {
-      freqStr = "FREQ=WEEKLY";
-      intVal = 2; // Override interval for fortnightly
-    }
-    if (frequency === "ANNUALLY") freqStr = "FREQ=YEARLY";
-
-    let rule = freqStr;
-    if (intVal > 1) {
-      rule += `;INTERVAL=${intVal}`;
-    }
-    
-    return rule;
-  })() : null;
+  const rruleString = isRecurring ? buildRecurrenceRule(frequency, interval) : null;
 
   return {
     isRecurring,

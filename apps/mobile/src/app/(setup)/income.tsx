@@ -19,6 +19,7 @@ import {
   MobileDatePickerField,
   showMobileConfirm,
   SkeletonCard,
+  useMobileToast,
 } from '@money-matters/ui/mobile';
 import { useSetupWizard } from '../../context/SetupWizardContext';
 import { IncomeItem } from '@money-matters/types';
@@ -84,18 +85,24 @@ export default function SetupIncomeScreen() {
     }
   };
 
-  const handleSaveItem = async (id: string) => {
-    setSavingId(id);
-    try {
-      await handleSaveIncomeImmediate(id);
-    } finally {
-      setSavingId(null);
-    }
-  };
+  const toast = useMobileToast();
 
   const handleNext = async () => {
     if (isRerun && dirtyIncomeIds.size > 0) {
-      await Promise.all(Array.from(dirtyIncomeIds).map((id) => handleSaveIncomeImmediate(id)));
+      const saveAndProceed = async () => {
+        await Promise.all(Array.from(dirtyIncomeIds).map((id) => handleSaveIncomeImmediate(id)));
+        toast.success(t('toasts.saved'));
+        router.push({ pathname: '/(setup)/goals', params: { mode: 'rerun' } });
+      };
+
+      showMobileConfirm({
+        title: t('modals.updateSchedule.confirmTitleIncome'),
+        message: t('modals.updateSchedule.confirmDescRuleChange', { startDate: incomes[0]?.startDate || '' }),
+        confirmText: t('modals.updateSchedule.confirmCta'),
+        isDestructive: false,
+        onConfirm: saveAndProceed,
+      });
+      return;
     }
     if (isRerun) {
       router.push({ pathname: '/(setup)/goals', params: { mode: 'rerun' } });
@@ -167,20 +174,6 @@ export default function SetupIncomeScreen() {
             <View style={styles.cardHeader}>
               <View style={styles.itemTitleRow}>
                 <Text style={styles.itemTitle}>{t('setup.income.incomeItemNumber', { number: index + 1 })}</Text>
-                {isRerun && isExisting && isDirty && (
-                  <TouchableOpacity
-                    style={styles.inlineSaveBtn}
-                    onPress={() => handleSaveItem(inc.id)}
-                    disabled={isSaving}
-                    accessibilityLabel={t('common.save')}
-                  >
-                    {isSaving ? (
-                      <ActivityIndicator size="small" color={DESIGN_TOKENS.colors.success} />
-                    ) : (
-                      <Feather name="check" size={16} color={DESIGN_TOKENS.colors.success} />
-                    )}
-                  </TouchableOpacity>
-                )}
               </View>
               {incomes.length > 1 && (
                 <TouchableOpacity onPress={() => handlePromptRemove(inc)}>

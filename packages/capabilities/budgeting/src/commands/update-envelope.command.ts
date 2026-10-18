@@ -57,13 +57,31 @@ export async function updateEnvelopeCommand(
     const wasScheduled = existing.envelopeType === "SCHEDULED_BILL";
 
     const budgetFrequency = input.budgetFrequency ?? existing.budgetFrequency;
-    const rrule = isNowScheduled
-      ? input.rrule ?? (input.budgetFrequency ? deriveRruleFromFrequency(budgetFrequency) : existing.rrule)
-      : input.rrule !== undefined ? input.rrule : existing.rrule;
-    const startDate = isNowScheduled
-      ? input.startDate ?? (existing.startDate || computeDefaultStartDate())
-      : input.startDate !== undefined ? input.startDate : existing.startDate;
-    const endDate = input.endDate !== undefined ? input.endDate : existing.endDate;
+    const isTargetGoal = effectiveEnvelopeType === "TARGET_GOAL";
+    const isOngoingGoal = effectiveEnvelopeType === "ONGOING_GOAL";
+
+    let rrule: string | null = null;
+    let startDate: string | null = null;
+    let endDate: string | null = null;
+
+    if (isNowScheduled) {
+      rrule = input.rrule ?? (input.budgetFrequency ? deriveRruleFromFrequency(budgetFrequency) : existing.rrule);
+      startDate = input.startDate ?? (existing.startDate || computeDefaultStartDate());
+      endDate = input.endDate !== undefined ? input.endDate : existing.endDate;
+    } else if (isOngoingGoal) {
+      rrule = input.rrule ?? (input.budgetFrequency ? deriveRruleFromFrequency(budgetFrequency) : existing.rrule);
+      startDate = input.startDate !== undefined ? input.startDate : existing.startDate;
+      endDate = null;
+    } else if (isTargetGoal) {
+      rrule = null;
+      startDate = null;
+      endDate = input.endDate !== undefined ? input.endDate : existing.endDate;
+    } else {
+      // FLEXIBLE_BILL or EVERYDAY
+      rrule = null;
+      startDate = null;
+      endDate = null;
+    }
 
     const [updated] = await tx
       .update(envelopes)

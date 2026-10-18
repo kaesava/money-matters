@@ -13,8 +13,18 @@ export function formatScheduleDetail(
   rrule?: string | null,
   startDate?: string | null,
   locale?: string,
-  timeZone?: string
+  timeZone?: string,
+  envelopeType?: string | null
 ): ScheduleDetail {
+  if (envelopeType === 'FLEXIBLE_BILL') {
+    return {
+      isRecurring: false,
+      badgeText: t('categories.billModeFlexible'),
+      detailText: t('categories.billModeFlexible'),
+      frequencyLabel: t('categories.billModeFlexible'),
+    };
+  }
+
   const currentMobileLocaleConfig = getMobileLocaleConfig();
   const loc = locale || currentMobileLocaleConfig.locale;
   const tz = timeZone || currentMobileLocaleConfig.timezone;

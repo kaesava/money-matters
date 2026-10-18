@@ -20,6 +20,8 @@ export interface EnvelopeRecurrenceFieldsProps {
   setInterval?: (val: number) => void;
   startDate: string;
   setStartDate?: (val: string) => void;
+  endDate?: string;
+  setEndDate?: (val: string) => void;
   calculatedMonthly: string;
 }
 
@@ -34,6 +36,8 @@ export const EnvelopeRecurrenceFields: React.FC<EnvelopeRecurrenceFieldsProps> =
   setInterval,
   startDate,
   setStartDate,
+  endDate = '',
+  setEndDate,
   calculatedMonthly,
 }) => {
   const showMonthlyEquiv =
@@ -104,6 +108,11 @@ export const EnvelopeRecurrenceFields: React.FC<EnvelopeRecurrenceFieldsProps> =
             label={t('forms.firstDate')}
             value={startDate}
             onChange={(val) => setStartDate?.(val)}
+          />
+          <DatePickerField
+            label={t('forms.endDateOptional')}
+            value={endDate}
+            onChange={(val) => setEndDate?.(val)}
           />
         </View>
       </View>

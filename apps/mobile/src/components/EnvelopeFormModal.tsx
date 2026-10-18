@@ -3,6 +3,8 @@ import {
   MobileModalDialog,
   showMobileConfirm,
   useMobileToast,
+  parseRecurrenceRule,
+  buildRecurrenceRule,
 } from '@money-matters/ui/mobile';
 import { t } from '@money-matters/i18n';
 import { trpc } from '../lib/trpc';
@@ -99,15 +101,11 @@ export function EnvelopeFormModal({
       const resolvedGoalMode: 'TARGET_DATE' | 'ONGOING' =
         categoryToEdit.goalMode === 'ONGOING' || rawEnvelopeType === 'ONGOING_GOAL' ? 'ONGOING' : 'TARGET_DATE';
       setGoalMode(resolvedGoalMode);
-      setFrequency((categoryToEdit.budgetFrequency as 'WEEKLY' | 'FORTNIGHTLY' | 'MONTHLY' | 'ANNUALLY') || 'MONTHLY');
+      const parsedRecurrence = parseRecurrenceRule(categoryToEdit.rrule, categoryToEdit.budgetFrequency);
+      setFrequency(parsedRecurrence.frequency);
+      setInterval(parsedRecurrence.interval);
       const rawStartDate = categoryToEdit.startDate || '';
       setGoalStartDate(rawStartDate ? formatIsoDate(rawStartDate) : '');
-      if (categoryToEdit.rrule) {
-        const match = categoryToEdit.rrule.match(/INTERVAL=(\d+)/);
-        setInterval(match ? parseInt(match[1], 10) : 1);
-      } else {
-        setInterval(1);
-      }
       setIsSurplusTarget(categoryToEdit.isSurplusTarget ?? false);
     } else {
       setName('');
@@ -142,15 +140,7 @@ export function EnvelopeFormModal({
     const isScheduledBill = type === 'REGULAR' && billMode === 'SCHEDULED_BILL';
     const isOngoingGoal = type === 'GOAL' && goalMode === 'ONGOING';
     if (!isScheduledBill && !isOngoingGoal) return null;
-    let freqStr = 'FREQ=MONTHLY';
-    let intVal = Math.max(1, interval);
-    if (frequency === 'WEEKLY') freqStr = 'FREQ=WEEKLY';
-    if (frequency === 'FORTNIGHTLY') {
-      freqStr = 'FREQ=WEEKLY';
-      intVal = intVal * 2;
-    }
-    if (frequency === 'ANNUALLY') freqStr = 'FREQ=YEARLY';
-    return intVal > 1 ? `${freqStr};INTERVAL=${intVal}` : freqStr;
+    return buildRecurrenceRule(frequency, interval);
   }, [type, billMode, goalMode, frequency, interval]);
 
   const createMut = trpc.createPool.useMutation({
@@ -231,14 +221,11 @@ export function EnvelopeFormModal({
       categoryToEdit.goalMode === 'ONGOING' || rawEnvelopeType === 'ONGOING_GOAL' ? 'ONGOING' : 'TARGET_DATE';
     const initialBillMode: 'SCHEDULED_BILL' | 'FLEXIBLE_BILL' =
       rawEnvelopeType === 'FLEXIBLE_BILL' ? 'FLEXIBLE_BILL' : 'SCHEDULED_BILL';
-    const initialFreq = categoryToEdit.budgetFrequency || 'MONTHLY';
+    const parsedInitialRecurrence = parseRecurrenceRule(categoryToEdit.rrule, categoryToEdit.budgetFrequency);
+    const initialFreq = parsedInitialRecurrence.frequency;
+    const initialInterval = parsedInitialRecurrence.interval;
     const rawStartDate = categoryToEdit.startDate || '';
     const initialStartDate = rawStartDate ? formatIsoDate(rawStartDate) : '';
-    let initialInterval = 1;
-    if (categoryToEdit.rrule) {
-      const match = categoryToEdit.rrule.match(/INTERVAL=(\d+)/);
-      initialInterval = match ? parseInt(match[1], 10) : 1;
-    }
 
     return (
       name.trim() !== initialName ||
@@ -339,7 +326,7 @@ export function EnvelopeFormModal({
       targetAmount: finalTargetAmount,
       monthlyAmount: isFlexibleBill ? finalTargetAmount : isScheduledBill ? calculatedMonthly : undefined,
       enteredAmount: enteredAmountVal,
-      endDate: isTargetGoal ? targetDate || undefined : undefined,
+      endDate: isTargetGoal ? targetDate || undefined : isScheduledBill ? targetDate || undefined : undefined,
       budgetFrequency: (isScheduledBill || isOngoingGoal) ? frequency : isFlexibleBill ? 'MONTHLY' : undefined,
       startDate: (isScheduledBill || isOngoingGoal) ? goalStartDate || undefined : undefined,
       rrule: (isScheduledBill || isOngoingGoal) ? rruleString || undefined : undefined,
@@ -348,14 +335,50 @@ export function EnvelopeFormModal({
     };
   };
 
-  const handleSubmit = () => {
-    if (!validateForm()) return;
+  const isScheduleRuleChanged = useMemo(() => {
+    if (!isEdit || !categoryToEdit) return false;
+    const rawEnvelopeType = categoryToEdit.envelopeType || categoryToEdit.poolType || categoryToEdit.type || 'REGULAR';
+    const initialBillMode = rawEnvelopeType === 'FLEXIBLE_BILL' ? 'FLEXIBLE_BILL' : 'SCHEDULED_BILL';
+    const parsedInitialRecurrence = parseRecurrenceRule(categoryToEdit.rrule, categoryToEdit.budgetFrequency);
+    const initialFreq = parsedInitialRecurrence.frequency;
+    const initialInterval = parsedInitialRecurrence.interval;
+    const rawStartDate = categoryToEdit.startDate || '';
+    const initialStartDate = rawStartDate ? formatIsoDate(rawStartDate) : '';
+
+    const isCurrentScheduled = type === 'REGULAR' && billMode === 'SCHEDULED_BILL';
+    const wasScheduled = initialBillMode === 'SCHEDULED_BILL';
+
+    if (type === 'REGULAR' && (isCurrentScheduled || wasScheduled)) {
+      if (billMode !== initialBillMode) return true;
+      if (frequency !== initialFreq) return true;
+      if (interval !== initialInterval) return true;
+      if ((goalStartDate || '') !== initialStartDate) return true;
+    }
+    return false;
+  }, [isEdit, categoryToEdit, type, billMode, frequency, interval, goalStartDate]);
+
+  const executeSubmit = () => {
     const payload = buildPayload();
     if (categoryToEdit) {
       updateMut.mutate({ poolId: categoryToEdit.id, data: payload });
     } else {
       createMut.mutate({ ...payload, bankAccountId });
     }
+  };
+
+  const handleSubmit = () => {
+    if (!validateForm()) return;
+    if (isEdit && isScheduleRuleChanged) {
+      showMobileConfirm({
+        title: t('modals.updateSchedule.confirmTitleExpense'),
+        message: t('modals.updateSchedule.confirmDescRuleChange', { startDate: goalStartDate || '' }),
+        confirmText: t('modals.updateSchedule.confirmCta'),
+        isDestructive: false,
+        onConfirm: executeSubmit,
+      });
+      return;
+    }
+    executeSubmit();
   };
 
   const handleArchive = () => {
@@ -430,6 +453,8 @@ export function EnvelopeFormModal({
         setInterval={setInterval}
         goalStartDate={goalStartDate}
         setGoalStartDate={setGoalStartDate}
+        endDate={targetDate}
+        setEndDate={setTargetDate}
         calculatedMonthly={calculatedMonthly}
         bankAccountId={bankAccountId}
         setBankAccountId={setBankAccountId}

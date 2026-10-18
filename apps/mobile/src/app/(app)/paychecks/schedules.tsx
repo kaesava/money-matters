@@ -146,15 +146,20 @@ export default function RecurringSchedulesScreen() {
               setFormModalVisible(true);
             } else {
               const targetPool = pools.find((p) => p.id === source.id || p.id === source.poolId);
+              const resolvedType = targetPool?.envelopeType || 'REGULAR';
               setPoolToEdit({
                 id: source.id,
                 name: source.name,
-                type: 'REGULAR',
-                poolType: 'REGULAR',
+                type: resolvedType,
+                poolType: resolvedType,
+                envelopeType: resolvedType,
                 bankAccountId: targetPool?.bankAccountId,
                 monthlyAmount: source.amount,
                 enteredAmount: source.amount,
-                startDate: source.startDate ? String(source.startDate) : undefined,
+                budgetFrequency: targetPool?.budgetFrequency || 'MONTHLY',
+                rrule: source.rrule || targetPool?.rrule || undefined,
+                startDate: source.startDate ? String(source.startDate) : targetPool?.startDate ? String(targetPool.startDate) : undefined,
+                endDate: targetPool?.endDate ? String(targetPool.endDate) : undefined,
               });
               setCategoryModalVisible(true);
             }

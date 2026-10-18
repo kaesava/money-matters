@@ -158,6 +158,13 @@ export function EnvelopeDetailDrawer({
                           bankAccountName: targetPool.bankAccountName,
                           isPrivate: targetPool.isPrivate,
                           targetAmount: targetPool.targetAmount ? String(targetPool.targetAmount) : null,
+                          enteredAmount: targetPool.enteredAmount ? String(targetPool.enteredAmount) : null,
+                          monthlyAmount: targetPool.monthlyAmount ? String(targetPool.monthlyAmount) : null,
+                          budgetFrequency: targetPool.budgetFrequency,
+                          startDate: targetPool.startDate,
+                          endDate: targetPool.endDate,
+                          rrule: targetPool.rrule,
+                          goalMode: targetPool.goalMode,
                           isSurplusTarget: targetPool.isSurplusTarget,
                         });
                       }}

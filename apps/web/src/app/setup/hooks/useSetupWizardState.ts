@@ -3,6 +3,8 @@
 import { useState, useMemo, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { trpc } from "../../../lib/trpc";
+import { useToast, parseRecurrenceRule } from "@money-matters/ui/web";
+import { t } from "@money-matters/i18n";
 import {
   QuizAnswers,
   EstimatedCategoryItem,
@@ -19,6 +21,7 @@ import { useSetupSweepQueue } from "./useSetupSweepQueue";
 
 export function useSetupWizardState() {
   const router = useRouter();
+  const toast = useToast();
   const searchParams = useSearchParams();
   const userPrefQuery = trpc.getUserPreferences.useQuery();
   const tenantQuery = trpc.getTenant.useQuery();
@@ -277,9 +280,39 @@ export function useSetupWizardState() {
     setGoals((prev) => prev.filter((g) => g.id !== id));
   };
 
+  const [showScheduleRuleWarning, setShowScheduleRuleWarning] = useState(false);
+  const [pendingNextAction, setPendingNextAction] = useState<(() => Promise<void>) | null>(null);
+
   const handleNextFromIncomes = async () => {
     if (isRerun && dirtyIncomeIds.size > 0) {
-      await Promise.all(Array.from(dirtyIncomeIds).map((id) => handleSaveIncomeImmediate(id)));
+      // Check if any existing income has frequency/startDate changes
+      let ruleChanged = false;
+      for (const id of dirtyIncomeIds) {
+        const item = incomes.find((inc) => inc.id === id);
+        const original = prepopulation.incomeSources.find((s) => s.id === id);
+        if (item && original) {
+          const parsed = parseRecurrenceRule(original.rrule);
+          if (item.frequency !== parsed.frequency || (item.startDate || "") !== (original.startDate || "")) {
+            ruleChanged = true;
+            break;
+          }
+        }
+      }
+
+      const saveAndProceed = async () => {
+        await Promise.all(Array.from(dirtyIncomeIds).map((id) => handleSaveIncomeImmediate(id)));
+        toast.success(t("toasts.saved"));
+        setStep(2);
+      };
+
+      if (ruleChanged) {
+        setPendingNextAction(() => saveAndProceed);
+        setShowScheduleRuleWarning(true);
+        return;
+      }
+
+      await saveAndProceed();
+      return;
     }
     setStep(2);
   };
@@ -287,6 +320,7 @@ export function useSetupWizardState() {
   const handleNextFromGoals = async () => {
     if (isRerun && dirtyGoalIds.size > 0) {
       await Promise.all(Array.from(dirtyGoalIds).map((id) => handleSaveGoalImmediate(id)));
+      toast.success(t("toasts.saved"));
     }
     setStep(isRerun ? 3 : 4);
   };
@@ -381,6 +415,18 @@ export function useSetupWizardState() {
     categoryFrequencies,
     setCategoryFrequencies,
     showIcons: userPrefQuery.data?.showIcons ?? true,
+    showScheduleRuleWarning,
+    confirmScheduleRuleWarning: async () => {
+      setShowScheduleRuleWarning(false);
+      if (pendingNextAction) {
+        await pendingNextAction();
+        setPendingNextAction(null);
+      }
+    },
+    cancelScheduleRuleWarning: () => {
+      setShowScheduleRuleWarning(false);
+      setPendingNextAction(null);
+    },
     ...lifestyle,
     ...calculations,
     handleFinish: submission.handleFinish,

@@ -32,8 +32,11 @@ function IncomeAndBillsContent() {
     enteredAmount?: string | null;
     budgetFrequency?: "WEEKLY" | "FORTNIGHTLY" | "MONTHLY" | "ANNUALLY" | null;
     startDate?: string | null;
+    endDate?: string | null;
     rrule?: string | null;
+    envelopeType?: string;
     poolType?: string;
+    type?: string;
   } | null>(null);
 
   const [setupSearchQuery, setSetupSearchQuery] = useState("");
@@ -162,6 +165,9 @@ function IncomeAndBillsContent() {
                 ...b,
                 poolId: b.envelopeId,
                 poolName: b.envelopeName,
+                envelopeType: b.envelopeType,
+                budgetFrequency: b.budgetFrequency,
+                isEssential: b.isEssential,
               }))}
               searchQuery={setupSearchQuery}
               scopeFilter={setupScopeFilter}
@@ -169,16 +175,20 @@ function IncomeAndBillsContent() {
               onAddOneOff={() => setQuickActionTab("DEBIT")}
               onEditCategory={(cat) => {
                 const targetPool = pools.find((p) => p.id === cat.id || p.id === cat.poolId);
+                const resolvedEnvelopeType = cat.envelopeType || targetPool?.envelopeType || "SCHEDULED_BILL";
                 setEnvelopeToEdit({
                   id: cat.id,
                   name: cat.name,
                   bankAccountId: targetPool?.bankAccountId,
                   monthlyAmount: cat.monthlyAmount,
                   enteredAmount: cat.enteredAmount,
-                  budgetFrequency: (cat.budgetFrequency as "WEEKLY" | "FORTNIGHTLY" | "MONTHLY" | "ANNUALLY") || "MONTHLY",
+                  budgetFrequency: (cat.budgetFrequency as "WEEKLY" | "FORTNIGHTLY" | "MONTHLY" | "ANNUALLY") || targetPool?.budgetFrequency || "MONTHLY",
                   startDate: targetPool?.startDate,
+                  endDate: targetPool?.endDate,
                   rrule: targetPool?.rrule,
-                  poolType: targetPool?.envelopeType || "REGULAR",
+                  envelopeType: resolvedEnvelopeType,
+                  poolType: resolvedEnvelopeType,
+                  type: resolvedEnvelopeType,
                 });
                 setIsEnvelopeModalOpen(true);
               }}

@@ -6,10 +6,6 @@ export * from './lib/format';
 export * from './lib/phone-validation';
 export * from './lib/is-dirty';
 export * from './utils/formatDate';
-
-
-
-
-
+export * from './utils/recurrence';
 export * from './hooks/useRecurrenceBuilder';
 export * from './hooks/DateLocaleContext';

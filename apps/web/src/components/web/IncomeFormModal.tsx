@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useMemo } from "react";
-import { useToast, RecurrenceBuilder, useRecurrenceBuilder, ConfirmDialog, Button, AmountField, ModalDialog, Input, GenericSelectField, FormErrorBanner } from "@money-matters/ui/web";
+import { useToast, RecurrenceBuilder, useRecurrenceBuilder, ConfirmDialog, Button, AmountField, ModalDialog, Input, GenericSelectField, FormErrorBanner, parseRecurrenceRule } from "@money-matters/ui/web";
 import { t } from "@money-matters/i18n";
 import { trpc } from "../../lib/trpc";
 import { useLocale } from "../../providers/LocaleProvider";
@@ -27,29 +27,8 @@ interface IncomeFormModalProps {
 }
 
 function cleanAmount(val: string): string {
-  const cleaned = val.replace(/[^0-9.]/g, "");
-  const num = parseFloat(cleaned);
+  const num = parseFloat(val.replace(/[^0-9.]/g, ""));
   return isNaN(num) ? "0.00" : num.toFixed(2);
-}
-
-function parseSourceRecurrence(source?: IncomeSourceToEdit | null) {
-  if (!source) {
-    return { origIsRecurring: true, origFrequency: "MONTHLY" as const, origInterval: 1 };
-  }
-  const origIsRecurring = !!source.rrule || !!source.startDate;
-  if (source.rrule) {
-    const match = source.rrule.match(/INTERVAL=(\d+)/);
-    const parsedInterval = match ? parseInt(match[1], 10) : 1;
-    if (source.rrule.includes("FREQ=WEEKLY")) {
-      if (source.rrule.includes("FREQ=WEEKLY;INTERVAL=2") || (parsedInterval > 1 && parsedInterval % 2 === 0)) {
-        return { origIsRecurring, origFrequency: "FORTNIGHTLY" as const, origInterval: Math.max(1, Math.floor(parsedInterval / 2)) };
-      }
-      return { origIsRecurring, origFrequency: "WEEKLY" as const, origInterval: parsedInterval };
-    } else if (source.rrule.includes("FREQ=YEARLY") || source.rrule.includes("FREQ=ANNUALLY")) {
-      return { origIsRecurring, origFrequency: "ANNUALLY" as const, origInterval: parsedInterval };
-    }
-  }
-  return { origIsRecurring, origFrequency: "MONTHLY" as const, origInterval: 1 };
 }
 
 export function IncomeFormModal({ isOpen, onClose, sourceToEdit }: IncomeFormModalProps) {
@@ -77,15 +56,17 @@ export function IncomeFormModal({ isOpen, onClose, sourceToEdit }: IncomeFormMod
   const [errorMsg, setErrorMsg] = useState("");
   const [showArchiveConfirm, setShowArchiveConfirm] = useState(false);
 
+  const [showRuleChangeConfirm, setShowRuleChangeConfirm] = useState(false);
+
   useEffect(() => {
     if (sourceToEdit) {
       setName(sourceToEdit.name || "");
       setAmount(sourceToEdit.amount || "");
       setReceivingAccountId(sourceToEdit.receivingAccountId || "");
-      const { origIsRecurring, origFrequency, origInterval } = parseSourceRecurrence(sourceToEdit);
-      setIsRecurring(origIsRecurring);
-      setFrequency(origFrequency);
-      setInterval(origInterval);
+      const parsed = parseRecurrenceRule(sourceToEdit.rrule);
+      setIsRecurring(parsed.isRecurring || !!sourceToEdit.startDate);
+      setFrequency(parsed.frequency);
+      setInterval(parsed.interval);
       const today = new Intl.DateTimeFormat('en-CA', { timeZone: 'Australia/Sydney' }).format(new Date());
       setStartDate(sourceToEdit.startDate ? toAestDateString(sourceToEdit.startDate) : today);
       setEndDate(sourceToEdit.endDate ? toAestDateString(sourceToEdit.endDate) : null);
@@ -107,8 +88,7 @@ export function IncomeFormModal({ isOpen, onClose, sourceToEdit }: IncomeFormMod
     setArchiving(true);
     try {
       await archiveIncomeMut.mutateAsync({ id: sourceToEdit.id });
-      await utils.listIncomeSources.invalidate();
-      await utils.listIncomeEvents.invalidate();
+      await Promise.all([utils.listIncomeSources.invalidate(), utils.listIncomeEvents.invalidate()]);
       toast.success(t("toasts.archived"));
       onClose();
     } catch (err) {
@@ -119,51 +99,60 @@ export function IncomeFormModal({ isOpen, onClose, sourceToEdit }: IncomeFormMod
     }
   };
 
-  const handleSave = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!name.trim()) return setErrorMsg("Name is required.");
-    if (!amount || parseFloat(amount) <= 0) return setErrorMsg("Please enter a valid positive amount.");
-    if (isRecurring && endDate && startDate && endDate < startDate) return setErrorMsg("End date cannot be prior to start date.");
+  const isScheduleRuleChanged = useMemo(() => {
+    if (!isEdit || !sourceToEdit) return false;
+    const initialParsed = parseRecurrenceRule(sourceToEdit.rrule);
+    const initialStartDate = sourceToEdit.startDate ? toAestDateString(sourceToEdit.startDate) : "";
+    const currentStart = startDate || "";
+    return (
+      frequency !== initialParsed.frequency ||
+      interval !== initialParsed.interval ||
+      currentStart !== initialStartDate
+    );
+  }, [isEdit, sourceToEdit, frequency, interval, startDate]);
 
+  const executeSave = async () => {
     setSubmitting(true);
     setErrorMsg("");
     try {
       const formattedAmount = cleanAmount(amount);
+      const payload = {
+        name,
+        amount: formattedAmount,
+        receivingAccountId: receivingAccountId || undefined,
+        isRecurring,
+        frequency: isRecurring ? frequency : undefined,
+        interval: isRecurring ? (interval || 1) : undefined,
+        startDate: startDate || undefined,
+        endDate: isRecurring && endDate ? endDate : undefined,
+      };
       if (isEdit && sourceToEdit) {
-        await updateIncomeMut.mutateAsync({
-          id: sourceToEdit.id,
-          data: {
-            name,
-            amount: formattedAmount,
-            receivingAccountId: receivingAccountId || undefined,
-            isRecurring,
-            frequency: isRecurring ? frequency : undefined,
-            interval: isRecurring ? (interval || 1) : undefined,
-            startDate: startDate || undefined,
-            endDate: isRecurring && endDate ? endDate : undefined,
-          },
-        });
+        await updateIncomeMut.mutateAsync({ id: sourceToEdit.id, data: payload });
       } else {
-        await createIncomeMut.mutateAsync({
-          name,
-          amount: formattedAmount,
-          receivingAccountId: receivingAccountId || undefined,
-          isRecurring,
-          frequency: isRecurring ? frequency : undefined,
-          interval: isRecurring ? (interval || 1) : undefined,
-          startDate: startDate || undefined,
-          endDate: isRecurring && endDate ? endDate : undefined,
-        });
+        await createIncomeMut.mutateAsync(payload);
       }
-      await utils.listIncomeSources.invalidate();
-      await utils.listIncomeEvents.invalidate();
-      toast.success(isEdit ? "Income schedule updated successfully." : t("toasts.saved"));
+      await Promise.all([utils.listIncomeSources.invalidate(), utils.listIncomeEvents.invalidate()]);
+      toast.success(t("toasts.saved"));
       onClose();
     } catch (err: unknown) {
-      setErrorMsg((err as Error).message || "Failed to save income schedule");
+      setErrorMsg((err as Error).message || t("categories.saveFailed"));
     } finally {
       setSubmitting(false);
+      setShowRuleChangeConfirm(false);
     }
+  };
+
+  const handleSave = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!name.trim()) return setErrorMsg(t("categories.nameRequired"));
+    if (!amount || parseFloat(amount) <= 0) return setErrorMsg(t("categories.goalAmountRequired"));
+    if (isRecurring && endDate && startDate && endDate < startDate) return setErrorMsg(t("categories.goalPastDateWarning"));
+
+    if (isEdit && isScheduleRuleChanged) {
+      setShowRuleChangeConfirm(true);
+      return;
+    }
+    await executeSave();
   };
 
   const isDirty = Boolean(name.trim() || amount.trim());
@@ -243,6 +232,17 @@ export function IncomeFormModal({ isOpen, onClose, sourceToEdit }: IncomeFormMod
         confirmLabel={t("modals.incomeExpenseForm.archiveSchedule")}
         variant="danger"
         isLoading={archiving}
+      />
+
+      <ConfirmDialog
+        isOpen={showRuleChangeConfirm}
+        onClose={() => setShowRuleChangeConfirm(false)}
+        onConfirm={executeSave}
+        title={t("modals.updateSchedule.confirmTitleIncome")}
+        description={t("modals.updateSchedule.confirmDescRuleChange", { startDate: startDate || "" })}
+        confirmLabel={t("modals.updateSchedule.confirmCta")}
+        variant="warning"
+        isLoading={submitting}
       />
     </ModalDialog>
   );

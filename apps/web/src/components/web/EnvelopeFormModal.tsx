@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useMemo } from "react";
-import { useToast, ConfirmDialog, ModalDialog, Button, FormErrorBanner } from "@money-matters/ui/web";
+import { useToast, ConfirmDialog, ModalDialog, Button, FormErrorBanner, parseRecurrenceRule, buildRecurrenceRule } from "@money-matters/ui/web";
 import { t } from "@money-matters/i18n";
 import { trpc } from "../../lib/trpc";
 import { EnvelopeFormFields } from "./EnvelopeFormFields";
@@ -86,15 +86,11 @@ export function EnvelopeFormModal({
       const rawDate = categoryToEdit.endDate || categoryToEdit.targetDate || "";
       setTargetDate(rawDate ? rawDate.split("T")[0] : "");
       setGoalMode(categoryToEdit.goalMode === "ONGOING" || rawType === "ONGOING_GOAL" ? "ONGOING" : "TARGET_DATE");
-      setFrequency((categoryToEdit.budgetFrequency as "WEEKLY" | "FORTNIGHTLY" | "MONTHLY" | "ANNUALLY") || "MONTHLY");
+      const parsedRecurrence = parseRecurrenceRule(categoryToEdit.rrule, categoryToEdit.budgetFrequency);
+      setFrequency(parsedRecurrence.frequency);
+      setInterval(parsedRecurrence.interval);
       const rawStartDate = categoryToEdit.startDate || "";
       setGoalStartDate(rawStartDate ? rawStartDate.split("T")[0] : "");
-      if (categoryToEdit.rrule) {
-        const match = categoryToEdit.rrule.match(/INTERVAL=(\d+)/);
-        setInterval(match ? parseInt(match[1], 10) : 1);
-      } else {
-        setInterval(1);
-      }
       setIsSurplusTarget(categoryToEdit.isSurplusTarget ?? false);
     } else {
       setName("");
@@ -129,15 +125,7 @@ export function EnvelopeFormModal({
     const isScheduledBill = type === "REGULAR" && billMode === "SCHEDULED_BILL";
     const isOngoingGoal = type === "GOAL" && goalMode === "ONGOING";
     if (!isScheduledBill && !isOngoingGoal) return null;
-    let freqStr = "FREQ=MONTHLY";
-    let intVal = Math.max(1, interval);
-    if (frequency === "WEEKLY") freqStr = "FREQ=WEEKLY";
-    if (frequency === "FORTNIGHTLY") {
-      freqStr = "FREQ=WEEKLY";
-      intVal = intVal * 2;
-    }
-    if (frequency === "ANNUALLY") freqStr = "FREQ=YEARLY";
-    return intVal > 1 ? `${freqStr};INTERVAL=${intVal}` : freqStr;
+    return buildRecurrenceRule(frequency, interval);
   }, [type, billMode, goalMode, frequency, interval]);
 
   const isValid = useMemo(() => {
@@ -179,14 +167,11 @@ export function EnvelopeFormModal({
     const initialTarget = (categoryToEdit.enteredAmount || categoryToEdit.targetAmount || categoryToEdit.monthlyAmount || "").trim();
     const rawDate = categoryToEdit.endDate || categoryToEdit.targetDate || "";
     const initialDate = rawDate ? rawDate.split("T")[0] : "";
-    const initialFreq = categoryToEdit.budgetFrequency || "MONTHLY";
+    const parsedInitialRecurrence = parseRecurrenceRule(categoryToEdit.rrule, categoryToEdit.budgetFrequency);
+    const initialFreq = parsedInitialRecurrence.frequency;
+    const initialInterval = parsedInitialRecurrence.interval;
     const rawStartDate = categoryToEdit.startDate || "";
     const initialStartDate = rawStartDate ? rawStartDate.split("T")[0] : "";
-    let initialInterval = 1;
-    if (categoryToEdit.rrule) {
-      const match = categoryToEdit.rrule.match(/INTERVAL=(\d+)/);
-      initialInterval = match ? parseInt(match[1], 10) : 1;
-    }
     const initialSurplus = categoryToEdit.isSurplusTarget ?? false;
 
     return (
@@ -283,7 +268,7 @@ export function EnvelopeFormModal({
       targetAmount: finalTargetAmount,
       monthlyAmount: isFlexibleBill ? finalTargetAmount : isScheduledBill ? calculatedMonthly : undefined,
       enteredAmount: enteredAmountVal,
-      endDate: isTargetGoal ? targetDate || undefined : undefined,
+      endDate: isTargetGoal ? targetDate || undefined : isScheduledBill ? targetDate || undefined : undefined,
       budgetFrequency: (isScheduledBill || isOngoingGoal) ? frequency : isFlexibleBill ? "MONTHLY" : undefined,
       startDate: (isScheduledBill || isOngoingGoal) ? goalStartDate || undefined : undefined,
       rrule: (isScheduledBill || isOngoingGoal) ? rruleString || undefined : undefined,
@@ -292,12 +277,31 @@ export function EnvelopeFormModal({
     };
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setErrorMsg(null);
-    const err = validateForm();
-    if (err) return setErrorMsg(err);
+  const isScheduleRuleChanged = useMemo(() => {
+    if (!isEdit || !categoryToEdit) return false;
+    const rawType = categoryToEdit.envelopeType || categoryToEdit.poolType || categoryToEdit.type || "REGULAR";
+    const initialBillMode = rawType === "FLEXIBLE_BILL" ? "FLEXIBLE_BILL" : "SCHEDULED_BILL";
+    const parsedInitialRecurrence = parseRecurrenceRule(categoryToEdit.rrule, categoryToEdit.budgetFrequency);
+    const initialFreq = parsedInitialRecurrence.frequency;
+    const initialInterval = parsedInitialRecurrence.interval;
+    const rawStartDate = categoryToEdit.startDate || "";
+    const initialStartDate = rawStartDate ? rawStartDate.split("T")[0] : "";
 
+    const isCurrentScheduled = type === "REGULAR" && billMode === "SCHEDULED_BILL";
+    const wasScheduled = initialBillMode === "SCHEDULED_BILL";
+
+    if (type === "REGULAR" && (isCurrentScheduled || wasScheduled)) {
+      if (billMode !== initialBillMode) return true;
+      if (frequency !== initialFreq) return true;
+      if (interval !== initialInterval) return true;
+      if ((goalStartDate || "") !== initialStartDate) return true;
+    }
+    return false;
+  }, [isEdit, categoryToEdit, type, billMode, frequency, interval, goalStartDate]);
+
+  const [showRuleChangeConfirm, setShowRuleChangeConfirm] = useState(false);
+
+  const executeSubmit = async () => {
     setSubmitting(true);
     try {
       const payload = buildPayload();
@@ -313,7 +317,22 @@ export function EnvelopeFormModal({
       setErrorMsg((submitErr as Error).message || t("categories.saveFailed"));
     } finally {
       setSubmitting(false);
+      setShowRuleChangeConfirm(false);
     }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setErrorMsg(null);
+    const err = validateForm();
+    if (err) return setErrorMsg(err);
+
+    if (isEdit && isScheduleRuleChanged) {
+      setShowRuleChangeConfirm(true);
+      return;
+    }
+
+    await executeSubmit();
   };
 
   if (!isOpen) return null;
@@ -409,6 +428,17 @@ export function EnvelopeFormModal({
         description={t("categories.archivePoolConfirm", { name: categoryToEdit?.name || "" })}
         confirmLabel={t("categories.archivePool")}
         variant="danger"
+        isLoading={submitting}
+      />
+
+      <ConfirmDialog
+        isOpen={showRuleChangeConfirm}
+        onClose={() => setShowRuleChangeConfirm(false)}
+        onConfirm={executeSubmit}
+        title={t("modals.updateSchedule.confirmTitleExpense")}
+        description={t("modals.updateSchedule.confirmDescRuleChange", { startDate: goalStartDate || "" })}
+        confirmLabel={t("modals.updateSchedule.confirmCta")}
+        variant="warning"
         isLoading={submitting}
       />
     </ModalDialog>

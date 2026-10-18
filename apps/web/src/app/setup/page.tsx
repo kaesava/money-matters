@@ -2,6 +2,7 @@
 
 import React from "react";
 import { t } from "@money-matters/i18n";
+import { ConfirmDialog } from "@money-matters/ui/web";
 import { SetupIncomeStep } from "./components/SetupIncomeStep";
 import { SetupBankAccountsStep } from "./components/SetupBankAccountsStep";
 import { SetupGoalsStep } from "./components/SetupGoalsStep";
@@ -237,6 +238,16 @@ function SetupWizardContent() {
           onSelectDest={state.setSelectedSweepDest}
           onCancel={() => state.setActiveSweepPool(null)}
           onConfirm={state.confirmSweepAndRemove}
+        />
+
+        <ConfirmDialog
+          isOpen={state.showScheduleRuleWarning}
+          onClose={state.cancelScheduleRuleWarning}
+          onConfirm={state.confirmScheduleRuleWarning}
+          title={t("modals.updateSchedule.confirmTitleIncome")}
+          description={t("modals.updateSchedule.confirmDescRuleChange", { startDate: state.incomes[0]?.startDate || "" })}
+          confirmLabel={t("modals.updateSchedule.confirmCta")}
+          variant="warning"
         />
       </div>
     </div>

@@ -154,7 +154,6 @@ export function SetupGoalsStep({
 
       {/* Popular Presets Grid */}
       <div className="flex flex-col gap-3">
-        <span className="text-xs font-bold text-[#1B2B4B]">{t("setup.goals.popularPresets")}</span>
         <SetupGoalsPresetsGrid
           isPresetActive={isPresetActive}
           onTogglePreset={togglePreset}

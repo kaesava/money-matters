@@ -17,6 +17,10 @@ export const expensesRouter = {
           envelopeId: envelopes.id,
           envelopeName: envelopes.name,
           envelopeType: envelopes.envelopeType,
+          budgetFrequency: envelopes.budgetFrequency,
+          isPrivate: envelopes.isPrivate,
+          isEssential: envelopes.isEssential,
+          bankAccountId: envelopes.bankAccountId,
           rrule: envelopes.rrule,
           startDate: envelopes.startDate,
           endDate: envelopes.endDate,
@@ -27,8 +31,7 @@ export const expensesRouter = {
             eq(envelopes.tenantId, ctx.tenantId!),
             eq(envelopes.appId, ctx.appId!),
             inArray(envelopes.envelopeType, ["SCHEDULED_BILL", "FLEXIBLE_BILL"]),
-            sql`${envelopes.archivedAt} IS NULL`,
-            sql`${envelopes.rrule} IS NOT NULL`
+            sql`${envelopes.archivedAt} IS NULL`
           )
         );
     }),

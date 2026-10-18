@@ -13,6 +13,7 @@ export interface ExpenseSourceItem {
   categoryId?: string | null;
   poolName?: string | null;
   categoryName?: string | null;
+  envelopeType?: string | null;
   rrule?: string | null;
   startDate?: string | null;
   endDate?: string | null;
@@ -48,7 +49,7 @@ export const ExpenseBillCard: React.FC<ExpenseBillCardProps> = ({
             {exp.name}
           </Text>
           <Text style={styles.freqText} numberOfLines={1}>
-            • {formatScheduleDetail(exp.rrule, exp.startDate).detailText}
+            • {formatScheduleDetail(exp.rrule, exp.startDate, undefined, undefined, exp.envelopeType).detailText}
           </Text>
         </View>
 

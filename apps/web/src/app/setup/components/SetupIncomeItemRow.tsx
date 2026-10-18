@@ -4,7 +4,6 @@ import React, { useState } from "react";
 import { IncomeItem } from "@money-matters/types";
 import { AmountField, ConfirmDialog } from "@money-matters/ui/web";
 import { t } from "@money-matters/i18n";
-import { Check } from "lucide-react";
 
 interface SetupIncomeItemRowProps {
   inc: IncomeItem;
@@ -24,22 +23,9 @@ export function SetupIncomeItemRow({
   isRerun,
   onUpdateIncome,
   onRemoveIncome,
-  onSaveIncome,
-  isDirty = false,
 }: SetupIncomeItemRowProps) {
   const [showConfirm, setShowConfirm] = useState(false);
-  const [isSaving, setIsSaving] = useState(false);
   const isExisting = !inc.id.startsWith("inc-");
-
-  const handleSave = async () => {
-    if (!onSaveIncome) return;
-    setIsSaving(true);
-    try {
-      await onSaveIncome(inc.id);
-    } finally {
-      setIsSaving(false);
-    }
-  };
 
   return (
     <div className="p-4 bg-slate-50 rounded-2xl border border-zinc-200/80 flex flex-col gap-3">
@@ -48,17 +34,6 @@ export function SetupIncomeItemRow({
           <span className="text-xs font-bold text-[#1B2B4B]">
             {t("setup.income.incomeItemNumber", { number: index + 1 })}
           </span>
-          {isRerun && isExisting && isDirty && (
-            <button
-              type="button"
-              onClick={handleSave}
-              disabled={isSaving}
-              aria-label={t("common.save")}
-              className="p-1 rounded-md bg-emerald-50 text-emerald-600 hover:bg-emerald-100 transition-colors cursor-pointer"
-            >
-              <Check className="w-3.5 h-3.5 stroke-[3]" />
-            </button>
-          )}
         </div>
         {canRemove && (
           <button

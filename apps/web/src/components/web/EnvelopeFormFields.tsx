@@ -156,6 +156,8 @@ export function EnvelopeFormFields({
               setInterval={setInterval}
               startDate={goalStartDate}
               setStartDate={setGoalStartDate}
+              endDate={targetDate}
+              setEndDate={setTargetDate}
               calculatedMonthly={calculatedMonthly}
             />
           )}

@@ -4,6 +4,8 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { trpc } from "../../../lib/trpc";
 import posthog from "../../../lib/posthog-client";
+import { useToast } from "@money-matters/ui/web";
+import { t } from "@money-matters/i18n";
 import {
   IncomeItem,
   EstimatedCategoryItem,
@@ -38,6 +40,7 @@ export function useSetupWizardSubmission({
   existingPools = [],
 }: SubmissionProps) {
   const router = useRouter();
+  const toast = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const saveSetupBudgetMut = trpc.saveSetupBudget.useMutation();
 
@@ -131,10 +134,13 @@ export function useSetupWizardSubmission({
       });
 
       posthog.capture("setup_completed", { isRerun, income_count: incomes.length, category_count: activeCategories.length });
+      if (isRerun) {
+        toast.success(t("setup.recalibrateSuccess"));
+      }
       router.push("/dashboard");
     } catch (err: unknown) {
       console.error("Failed to complete setup:", err);
-      alert(`Setup Error: ${err instanceof Error ? err.message : "Unknown error"}`);
+      toast.error(err instanceof Error ? err.message : t("setup.saveError"));
     } finally {
       setIsSubmitting(false);
     }
