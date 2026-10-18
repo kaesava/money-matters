@@ -1,72 +1,86 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
-import { Feather } from '@expo/vector-icons';
+import { View, Text, StyleSheet } from 'react-native';
 import { DESIGN_TOKENS } from '@money-matters/ui/mobile';
 import { t } from '@money-matters/i18n';
-import { formatAUD } from '../../lib/format';
+import { MobilePaydayMetricsGrid } from './MobilePaydayMetricsGrid';
+import { MobilePaydayActionButtons } from './MobilePaydayActionButtons';
 
 interface MobilePaydayCelebrationCardProps {
+  everydayAllocated?: number;
   billsAllocated: number;
   goalsAllocated: number;
   safeToSpend: number;
   isConfirmed: boolean;
+  isLocked?: boolean;
+  isDirty?: boolean;
+  isFutureDate?: boolean;
   submitting: boolean;
   isDeficit?: boolean;
   onConfirm: () => void;
+  onUnlockAndRecalculate?: () => void;
+  onRecalculate?: () => void;
+  onLockSplit?: () => void;
+  onSaveChanges?: () => void;
+  onDiscardEdits?: () => void;
 }
 
 export function MobilePaydayCelebrationCard({
+  everydayAllocated = 0,
   billsAllocated,
   goalsAllocated,
   safeToSpend,
   isConfirmed,
+  isLocked = false,
+  isDirty = false,
+  isFutureDate = false,
   submitting,
   isDeficit = false,
   onConfirm,
+  onUnlockAndRecalculate,
+  onRecalculate,
+  onLockSplit,
+  onSaveChanges,
+  onDiscardEdits,
 }: MobilePaydayCelebrationCardProps) {
+  const badgeText = isConfirmed
+    ? t('paydayDrawer.confirmedBadge')
+    : isLocked
+    ? isDirty ? t('paydayDrawer.lockedUnsavedBadge') : t('paydayDrawer.lockedBadge')
+    : isDirty ? t('paydayDrawer.customSplitsBadge') : t('paydayDrawer.autoBadge');
+
   return (
     <View style={styles.card}>
       <View style={styles.header}>
         <View style={styles.badgeRow}>
-          <Text style={styles.sparkle}>✨</Text>
-          <Text style={styles.badgeText}>
-            {isConfirmed ? t('paydayDrawer.confirmedBadge') : t('paydayDrawer.autoBadge')}
-          </Text>
+          <Text style={styles.sparkle}>{isLocked ? '🔒' : '✨'}</Text>
+          <Text style={styles.badgeText}>{badgeText}</Text>
         </View>
         <Text style={styles.title}>{t('paydayDrawer.celebrationTitle')}</Text>
         <Text style={styles.subtitle}>{t('paydayDrawer.celebrationSubtitle')}</Text>
       </View>
 
-      {!isConfirmed && (
-        <TouchableOpacity
-          activeOpacity={0.85}
-          onPress={onConfirm}
-          disabled={isDeficit || submitting}
-          style={[styles.confirmBtn, (isDeficit || submitting) && styles.disabledBtn]}
-        >
-          <Feather name="check-circle" size={18} color="#FFFFFF" />
-          <Text style={styles.confirmBtnText}>{t('paydayDrawer.confirmIncomeSplit')}</Text>
-        </TouchableOpacity>
-      )}
+      <MobilePaydayActionButtons
+        isConfirmed={isConfirmed}
+        isLocked={isLocked}
+        isDirty={isDirty}
+        isDeficit={isDeficit}
+        isFutureDate={isFutureDate}
+        submitting={submitting}
+        onConfirm={onConfirm}
+        onUnlockAndRecalculate={onUnlockAndRecalculate}
+        onRecalculate={onRecalculate}
+        onLockSplit={onLockSplit}
+        onSaveChanges={onSaveChanges}
+        onDiscardEdits={onDiscardEdits}
+      />
 
-      <View style={styles.metricsGrid}>
-        <View style={styles.metricItem}>
-          <Text style={styles.metricLabel}>{t('paydayDrawer.ringFencedBills')}</Text>
-          <Text style={styles.metricValue}>{formatAUD(billsAllocated)}</Text>
-        </View>
-        <View style={styles.metricItem}>
-          <Text style={styles.metricLabel}>{t('paydayDrawer.fundedGoals')}</Text>
-          <Text style={styles.metricValue}>{formatAUD(goalsAllocated)}</Text>
-        </View>
-        <View style={[styles.metricItem, isDeficit ? styles.metricDeficitHighlight : styles.metricHighlight]}>
-          <Text style={isDeficit ? styles.metricDeficitHighlightLabel : styles.metricHighlightLabel}>
-            {isDeficit ? t('paydayDrawer.metricDeficit') : t('paydayDrawer.metricSurplus')}
-          </Text>
-          <Text style={isDeficit ? styles.metricDeficitHighlightValue : styles.metricHighlightValue}>
-            {formatAUD(safeToSpend)}
-          </Text>
-        </View>
-      </View>
+      <MobilePaydayMetricsGrid
+        everydayAllocated={everydayAllocated}
+        billsAllocated={billsAllocated}
+        goalsAllocated={goalsAllocated}
+        safeToSpend={safeToSpend}
+        isDeficit={isDeficit}
+      />
     </View>
   );
 }
@@ -115,83 +129,5 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: '#BFDBFE',
     lineHeight: 18,
-  },
-  confirmBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    backgroundColor: DESIGN_TOKENS.colors.success,
-    paddingVertical: 14,
-    borderRadius: 14,
-  },
-  disabledBtn: {
-    opacity: 0.5,
-  },
-  confirmBtnText: {
-    fontSize: 15,
-    fontWeight: '800',
-    color: '#FFFFFF',
-  },
-  metricsGrid: {
-    flexDirection: 'row',
-    gap: 8,
-    paddingTop: 8,
-    borderTopWidth: 1,
-    borderTopColor: 'rgba(255, 255, 255, 0.1)',
-  },
-  metricItem: {
-    flex: 1,
-    backgroundColor: 'rgba(255, 255, 255, 0.06)',
-    borderRadius: 12,
-    padding: 10,
-    alignItems: 'center',
-    gap: 4,
-  },
-  metricHighlight: {
-    backgroundColor: 'rgba(34, 197, 94, 0.15)',
-    borderWidth: 1,
-    borderColor: 'rgba(34, 197, 94, 0.3)',
-  },
-  metricDeficitHighlight: {
-    backgroundColor: 'rgba(244, 63, 94, 0.15)',
-    borderWidth: 1,
-    borderColor: 'rgba(244, 63, 94, 0.3)',
-  },
-  metricLabel: {
-    fontSize: 10,
-    fontWeight: '700',
-    color: '#94A3B8',
-    textAlign: 'center',
-  },
-  metricValue: {
-    fontSize: 13,
-    fontWeight: '800',
-    color: '#FFFFFF',
-    fontFamily: 'monospace',
-  },
-  metricHighlightLabel: {
-    fontSize: 10,
-    fontWeight: '700',
-    color: '#86EFAC',
-    textAlign: 'center',
-  },
-  metricHighlightValue: {
-    fontSize: 13,
-    fontWeight: '900',
-    color: '#4ADE80',
-    fontFamily: 'monospace',
-  },
-  metricDeficitHighlightLabel: {
-    fontSize: 10,
-    fontWeight: '700',
-    color: '#FDA4AF',
-    textAlign: 'center',
-  },
-  metricDeficitHighlightValue: {
-    fontSize: 13,
-    fontWeight: '900',
-    color: '#FB7185',
-    fontFamily: 'monospace',
   },
 });

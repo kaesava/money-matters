@@ -92,9 +92,16 @@ export const PaycheckEventCard: React.FC<PaycheckEventCardProps> = ({
         </View>
 
         <View style={styles.cardHeader}>
-          <Text style={styles.cardTitle} numberOfLines={1}>
-            {item.name}
-          </Text>
+          <View style={styles.titleWithBadge}>
+            <Text style={styles.cardTitle} numberOfLines={1}>
+              {item.name}
+            </Text>
+            {isIncome && item.isLocked && (
+              <View style={styles.lockedBadge}>
+                <Text style={styles.lockedBadgeText}>🔒 {t('paydayDrawer.lockedBadge')}</Text>
+              </View>
+            )}
+          </View>
           <Text
             style={[
               styles.cardAmount,
@@ -176,11 +183,31 @@ const styles = StyleSheet.create({
     marginBottom: 10,
     gap: 8,
   },
+  titleWithBadge: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    flexWrap: 'wrap',
+  },
+  lockedBadge: {
+    backgroundColor: DESIGN_TOKENS.colors.accentLight,
+    borderWidth: 1,
+    borderColor: DESIGN_TOKENS.colors.accentBorder,
+    paddingHorizontal: 6,
+    paddingVertical: 1.5,
+    borderRadius: 4,
+  },
+  lockedBadgeText: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: DESIGN_TOKENS.colors.sereneBlue,
+    textTransform: 'uppercase',
+  },
   cardTitle: {
     fontSize: 15,
     fontWeight: '700',
     color: DESIGN_TOKENS.colors.textPrimary,
-    flex: 1,
   },
   cardAmount: {
     fontSize: 15,

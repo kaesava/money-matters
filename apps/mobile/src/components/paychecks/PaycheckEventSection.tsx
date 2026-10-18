@@ -53,6 +53,7 @@ export interface TimelineEventItem {
   destinationPoolId?: string | null;
   destinationPoolName?: string | null;
   isPrivate?: boolean;
+  isLocked?: boolean;
   rawIncome?: PaycheckIncomeEvent;
   rawExpense?: PaycheckExpenseEvent;
   rawTransfer?: PaycheckTransferEvent;

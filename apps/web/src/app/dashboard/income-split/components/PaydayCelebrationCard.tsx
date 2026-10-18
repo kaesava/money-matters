@@ -1,38 +1,86 @@
 "use client";
 
 import React from "react";
-import { Sparkles, CheckCircle2, ShieldCheck, Target, Wallet } from "lucide-react";
+import { Sparkles, CheckCircle2, Lock, RotateCcw } from "lucide-react";
 import { t } from "@money-matters/i18n";
-import { Button } from "@money-matters/ui/web";
+import { Button, InfoTooltip } from "@money-matters/ui/web";
+import { PaydayMetricsGrid } from "./PaydayMetricsGrid";
 
 interface PaydayCelebrationCardProps {
+  everydayAllocated?: number;
   billsAllocated: number;
   goalsAllocated: number;
   safeToSpend: number;
   isConfirmed: boolean;
+  isLocked?: boolean;
+  isDirty?: boolean;
+  isFutureDate?: boolean;
   submitting: boolean;
   isDeficit?: boolean;
   onConfirm: () => void;
+  onUnlockAndRecalculate?: () => void;
+  onRecalculate?: () => void;
+  onLockSplit?: () => void;
+  onSaveChanges?: () => void;
+  onDiscardEdits?: () => void;
   formatAUD: (amount: number) => string;
 }
 
 export function PaydayCelebrationCard({
+  everydayAllocated = 0,
   billsAllocated,
   goalsAllocated,
   safeToSpend,
   isConfirmed,
+  isLocked = false,
+  isDirty = false,
+  isFutureDate = false,
   submitting,
   isDeficit = false,
   onConfirm,
+  onUnlockAndRecalculate,
+  onRecalculate,
+  onLockSplit,
+  onSaveChanges,
+  onDiscardEdits,
   formatAUD,
 }: PaydayCelebrationCardProps) {
+  const badgeTooltip = isConfirmed
+    ? t("paydayDrawer.confirmedBadgeTooltip")
+    : isLocked
+    ? t("paydayDrawer.lockedBadgeTooltip")
+    : t("paydayDrawer.autoBadgeTooltip");
+
+  const badgeText = isConfirmed
+    ? t("paydayDrawer.confirmedBadge")
+    : isLocked
+    ? isDirty ? t("paydayDrawer.lockedUnsavedBadge") : t("paydayDrawer.lockedBadge")
+    : isDirty ? t("paydayDrawer.customSplitsBadge") : t("paydayDrawer.autoBadge");
+
+  const badgeStyle = isConfirmed
+    ? "bg-emerald-500/20 border-emerald-400/30 text-emerald-200"
+    : isDirty
+    ? "bg-amber-500/20 border-amber-400/30 text-amber-200"
+    : isLocked
+    ? "bg-indigo-500/20 border-indigo-400/30 text-indigo-200"
+    : "bg-blue-500/20 border-blue-400/30 text-blue-200";
+
   return (
     <div className="bg-gradient-to-br from-blue-900 via-[#1B2B4B] to-slate-900 border border-blue-500/30 rounded-2xl p-6 sm:p-7 text-white shadow-xl space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="space-y-1">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-500/20 border border-blue-400/30 text-blue-200 text-xs font-bold uppercase tracking-wider">
-            <Sparkles className="w-3.5 h-3.5 text-blue-300" />
-            <span>{isConfirmed ? t("paydayDrawer.confirmedBadge") : t("paydayDrawer.autoBadge")}</span>
+          <div className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider border ${badgeStyle}`}>
+            {isConfirmed ? (
+              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-300" />
+            ) : isLocked ? (
+              <Lock className="w-3.5 h-3.5 text-indigo-300" />
+            ) : isDirty ? (
+              <Sparkles className="w-3.5 h-3.5 text-amber-300" />
+            ) : (
+              <Sparkles className="w-3.5 h-3.5 text-blue-300" />
+            )}
+            <span>{badgeText}</span>
+            <InfoTooltip content={badgeTooltip} />
           </div>
           <h2 className="text-xl sm:text-2xl font-black tracking-tight text-white pt-1">
             {t("paydayDrawer.celebrationTitle")}
@@ -43,76 +91,142 @@ export function PaydayCelebrationCard({
         </div>
 
         {!isConfirmed && (
-          <div className="shrink-0">
-            <Button
-              type="button"
-              onClick={onConfirm}
-              loading={submitting}
-              disabled={isDeficit || submitting}
-              className="px-6 py-3 bg-[#22c55e] hover:bg-emerald-600 disabled:opacity-50 disabled:cursor-not-allowed text-white font-extrabold text-sm rounded-xl shadow-lg shadow-emerald-950/30 cursor-pointer flex items-center gap-2"
-            >
-              <CheckCircle2 className="w-4 h-4 stroke-[2.5]" />
-              <span>{t("paydayDrawer.confirmIncomeSplit")}</span>
-            </Button>
+          <div className="shrink-0 flex items-center gap-2.5 flex-wrap">
+            {/* If Locked & Clean */}
+            {isLocked && !isDirty && (
+              <div className="flex items-center gap-1">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  onClick={onUnlockAndRecalculate}
+                  disabled={submitting}
+                  style={{ backgroundColor: "rgba(255, 255, 255, 0.12)", color: "#ffffff", borderColor: "rgba(255, 255, 255, 0.25)" }}
+                  className="px-4 py-2.5 hover:bg-white/20 border text-white font-bold text-xs rounded-xl cursor-pointer flex items-center gap-1.5"
+                >
+                  <RotateCcw className="w-3.5 h-3.5 text-white" />
+                  <span>{t("paydayDrawer.unlockAndRecalculate")}</span>
+                </Button>
+                <InfoTooltip content={t("paydayDrawer.revertToAutoTooltip")} />
+              </div>
+            )}
+
+            {/* If Locked & Dirty */}
+            {isLocked && isDirty && (
+              <>
+                <div className="flex items-center gap-1">
+                  <Button
+                    type="button"
+                    variant="primary"
+                    onClick={onSaveChanges}
+                    disabled={isDeficit || submitting}
+                    style={{ backgroundColor: "#2563eb", color: "#ffffff" }}
+                    className="px-4 py-2.5 hover:bg-blue-600 disabled:opacity-50 text-white font-bold text-xs rounded-xl cursor-pointer flex items-center gap-1.5 shadow-xs"
+                  >
+                    <Lock className="w-3.5 h-3.5 text-white" />
+                    <span>{t("paydayDrawer.saveChanges")}</span>
+                  </Button>
+                  <InfoTooltip content={t("paydayDrawer.saveChangesTooltip")} />
+                </div>
+
+                <div className="flex items-center gap-1">
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    onClick={onDiscardEdits}
+                    disabled={submitting}
+                    style={{ backgroundColor: "rgba(255, 255, 255, 0.12)", color: "#ffffff", borderColor: "rgba(255, 255, 255, 0.25)" }}
+                    className="px-3.5 py-2.5 hover:bg-white/20 border text-white font-bold text-xs rounded-xl cursor-pointer flex items-center gap-1.5"
+                  >
+                    <RotateCcw className="w-3.5 h-3.5 text-white" />
+                    <span>{t("paydayDrawer.discardEdits")}</span>
+                  </Button>
+                  <InfoTooltip content={t("paydayDrawer.discardEditsTooltip")} />
+                </div>
+              </>
+            )}
+
+            {/* If Unlocked & Clean */}
+            {!isLocked && !isDirty && (
+              <div className="flex items-center gap-1">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  onClick={onLockSplit}
+                  disabled={isDeficit || submitting}
+                  style={{ backgroundColor: "rgba(255, 255, 255, 0.12)", color: "#ffffff", borderColor: "rgba(255, 255, 255, 0.25)" }}
+                  className="px-4 py-2.5 hover:bg-white/20 border text-white font-bold text-xs rounded-xl cursor-pointer flex items-center gap-1.5"
+                >
+                  <Lock className="w-3.5 h-3.5 text-white" />
+                  <span>{t("paydayDrawer.lockSplit")}</span>
+                </Button>
+                <InfoTooltip content={t("paydayDrawer.lockSplitTooltip")} />
+              </div>
+            )}
+
+            {/* If Unlocked & Dirty */}
+            {!isLocked && isDirty && (
+              <>
+                <div className="flex items-center gap-1">
+                  <Button
+                    type="button"
+                    variant="primary"
+                    onClick={onLockSplit}
+                    disabled={isDeficit || submitting}
+                    style={{ backgroundColor: "#2563eb", color: "#ffffff" }}
+                    className="px-4 py-2.5 hover:bg-blue-600 disabled:opacity-50 text-white font-bold text-xs rounded-xl cursor-pointer flex items-center gap-1.5 shadow-xs"
+                  >
+                    <Lock className="w-3.5 h-3.5 text-white" />
+                    <span>{t("paydayDrawer.lockSplit")}</span>
+                  </Button>
+                  <InfoTooltip content={t("paydayDrawer.lockSplitTooltip")} />
+                </div>
+
+                <div className="flex items-center gap-1">
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    onClick={onRecalculate}
+                    disabled={submitting}
+                    style={{ backgroundColor: "rgba(255, 255, 255, 0.12)", color: "#ffffff", borderColor: "rgba(255, 255, 255, 0.25)" }}
+                    className="px-3.5 py-2.5 hover:bg-white/20 border text-white font-bold text-xs rounded-xl cursor-pointer flex items-center gap-1.5"
+                  >
+                    <RotateCcw className="w-3.5 h-3.5 text-white" />
+                    <span>{t("paydayDrawer.recalculate")}</span>
+                  </Button>
+                  <InfoTooltip content={t("paydayDrawer.recalculateTooltip")} />
+                </div>
+              </>
+            )}
+
+            <div className="flex items-center gap-1">
+              <Button
+                type="button"
+                variant="primary"
+                onClick={onConfirm}
+                loading={submitting}
+                disabled={isDeficit || submitting || isFutureDate}
+                style={{ backgroundColor: "#22c55e", color: "#ffffff" }}
+                className="px-6 py-2.5 hover:bg-emerald-600 disabled:opacity-50 disabled:cursor-not-allowed text-white font-extrabold text-sm rounded-xl shadow-lg shadow-emerald-950/30 cursor-pointer flex items-center gap-2"
+              >
+                <CheckCircle2 className="w-4 h-4 stroke-[2.5]" />
+                <span>{t("paydayDrawer.confirmIncomeSplit")}</span>
+              </Button>
+              {isFutureDate && (
+                <InfoTooltip content={t("paydayDrawer.futureConfirmDisabledTooltip")} />
+              )}
+            </div>
           </div>
         )}
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5 pt-1 border-t border-white/10">
-        <div className="p-4 rounded-xl bg-white/5 border border-white/10 flex items-center gap-3.5">
-          <div className="w-10 h-10 rounded-xl bg-blue-500/20 border border-blue-400/30 flex items-center justify-center text-blue-300 shrink-0">
-            <ShieldCheck className="w-5 h-5" />
-          </div>
-          <div className="min-w-0">
-            <span className="text-[11px] font-bold text-blue-200/80 uppercase tracking-wider block">
-              {t("paydayDrawer.ringFencedBills")}
-            </span>
-            <span className="font-mono text-base sm:text-lg font-black text-white tabular-nums">
-              {formatAUD(billsAllocated)}
-            </span>
-          </div>
-        </div>
-
-        <div className="p-4 rounded-xl bg-white/5 border border-white/10 flex items-center gap-3.5">
-          <div className="w-10 h-10 rounded-xl bg-indigo-500/20 border border-indigo-400/30 flex items-center justify-center text-indigo-300 shrink-0">
-            <Target className="w-5 h-5" />
-          </div>
-          <div className="min-w-0">
-            <span className="text-[11px] font-bold text-indigo-200/80 uppercase tracking-wider block">
-              {t("paydayDrawer.fundedGoals")}
-            </span>
-            <span className="font-mono text-base sm:text-lg font-black text-white tabular-nums">
-              {formatAUD(goalsAllocated)}
-            </span>
-          </div>
-        </div>
-
-        <div className={`p-4 rounded-xl border flex items-center gap-3.5 ${
-          isDeficit
-            ? "bg-rose-500/10 border-rose-400/30"
-            : "bg-emerald-500/10 border-emerald-400/30"
-        }`}>
-          <div className={`w-10 h-10 rounded-xl border flex items-center justify-center shrink-0 ${
-            isDeficit
-              ? "bg-rose-500/20 border-rose-400/30 text-rose-300"
-              : "bg-emerald-500/20 border-emerald-400/30 text-emerald-300"
-          }`}>
-            <Wallet className="w-5 h-5" />
-          </div>
-          <div className="min-w-0">
-            <span className={`text-[11px] font-bold uppercase tracking-wider block ${
-              isDeficit ? "text-rose-200/90" : "text-emerald-200/90"
-            }`}>
-              {isDeficit ? t("paydayDrawer.metricDeficit") : t("paydayDrawer.metricSurplus")}
-            </span>
-            <span className={`font-mono text-base sm:text-lg font-black tabular-nums ${
-              isDeficit ? "text-rose-300" : "text-emerald-300"
-            }`}>
-              {formatAUD(safeToSpend)}
-            </span>
-          </div>
-        </div>
-      </div>
+      <PaydayMetricsGrid
+        everydayAllocated={everydayAllocated}
+        billsAllocated={billsAllocated}
+        goalsAllocated={goalsAllocated}
+        safeToSpend={safeToSpend}
+        isDeficit={isDeficit}
+        formatAUD={formatAUD}
+      />
     </div>
   );
 }

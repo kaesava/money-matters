@@ -17,6 +17,7 @@ interface UseUpcomingEventsProps {
   upcomingSortOrder: 'asc' | 'desc';
   poolIdFilter?: string | null;
   categoryIdFilter?: string | null;
+  savedIncomeEventIds?: Set<string>;
 }
 
 export function useUpcomingEvents({
@@ -34,6 +35,7 @@ export function useUpcomingEvents({
   upcomingSortOrder,
   poolIdFilter,
   categoryIdFilter,
+  savedIncomeEventIds,
 }: UseUpcomingEventsProps) {
   const unifiedTimelineEvents: TimelineEventItem[] = useMemo(() => {
     const list: TimelineEventItem[] = [];
@@ -52,6 +54,7 @@ export function useUpcomingEvents({
         accountId: acct?.id || targetBankId || null,
         accountName: acct?.name || null,
         isPrivate: acct?.isPrivate || false,
+        isLocked: savedIncomeEventIds?.has(e.id) ?? false,
         rawIncome: {
           id: e.id,
           name: e.name,

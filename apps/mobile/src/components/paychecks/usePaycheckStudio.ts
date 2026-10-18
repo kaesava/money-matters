@@ -7,7 +7,7 @@ import { t } from '@money-matters/i18n';
 import { useMobileToast, showMobileConfirm } from '@money-matters/ui/mobile';
 import { AllocationLineItem } from './MobileIncomeSplitPoolList';
 import { usePaycheckStudioMutations } from './usePaycheckStudioMutations';
-import { extractLines } from './paycheck-studio-types';
+import { PaycheckStudioPreviewData, calculateAllocatedTotals } from './paycheck-studio-types';
 
 export function usePaycheckStudio(id: string | undefined, returnTo?: string) {
   const toast = useMobileToast();
@@ -30,40 +30,39 @@ export function usePaycheckStudio(id: string | undefined, returnTo?: string) {
   const [initialReasoningMap, setInitialReasoningMap] = useState<Record<string, string>>({});
   const [isSavedPlan, setIsSavedPlan] = useState(false);
   const [isConfirmedPlan, setIsConfirmedPlan] = useState(false);
+  const [showTransferModal, setShowTransferModal] = useState(false);
+  const [showExitDialog, setShowExitDialog] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
   const todayStr = useMemo(() => formatIsoDate(new Date()), []);
 
+  const applyFreshData = useCallback((pData: PaycheckStudioPreviewData) => {
+    setSourceName(pData.incomeEventName || t('paydayDrawer.incomeDepositDefault'));
+    const amt = String(pData.actualAmount ?? pData.expectedAmount ?? '0.00');
+    setActualAmount(amt);
+    setInitialAmount(amt);
+    setSelectedDate(formatIsoDate(pData.expectedDate || new Date()));
+
+    const initMap: Record<string, string> = {};
+    const initReasoningMap: Record<string, string> = {};
+    pData.lines.forEach((line) => {
+      const val = line.savedAmount ?? line.proposedAmount;
+      initMap[line.envelopeId] = val.toFixed(2);
+      if (line.reasoning && val > 0) initReasoningMap[line.envelopeId] = line.reasoning;
+    });
+    setLinesMap(initMap);
+    setInitialLinesMap(initMap);
+    setReasoningMap(initReasoningMap);
+    setInitialReasoningMap(initReasoningMap);
+    setIsSavedPlan(pData.hasSavedPlan);
+    setIsConfirmedPlan(pData.planStatus === 'CONFIRMED');
+  }, []);
+
   useEffect(() => {
     if (previewQuery.data) {
-      const pData = previewQuery.data;
-      setSourceName(pData.incomeEventName || t('paydayDrawer.incomeDepositDefault'));
-      const amt = String(pData.actualAmount ?? pData.expectedAmount ?? '0.00');
-      setActualAmount(amt);
-      setInitialAmount(amt);
-      setSelectedDate(formatIsoDate(pData.expectedDate || new Date()));
-
-      const rawLines = pData.lines.map((l) => ({
-        bucketId: l.envelopeId,
-        bucketName: l.envelopeName,
-        proposedAmount: l.savedAmount ?? l.proposedAmount,
-        reasoning: l.reasoning ?? '',
-      }));
-      const initMap: Record<string, string> = {};
-      const initReasoningMap: Record<string, string> = {};
-      rawLines.forEach((line) => {
-        initMap[line.bucketId] = line.proposedAmount.toFixed(2);
-        if (line.reasoning && line.proposedAmount > 0) initReasoningMap[line.bucketId] = line.reasoning;
-      });
-      setLinesMap(initMap);
-      setInitialLinesMap(initMap);
-      setReasoningMap(initReasoningMap);
-      setInitialReasoningMap(initReasoningMap);
-
-      setIsSavedPlan(pData.hasSavedPlan);
-      setIsConfirmedPlan(pData.planStatus === 'CONFIRMED');
+      applyFreshData(previewQuery.data as PaycheckStudioPreviewData);
     }
-  }, [previewQuery.data]);
+  }, [previewQuery.data, applyFreshData]);
 
   const lines = useMemo(() => {
     if (!previewQuery.data) return [];
@@ -74,6 +73,7 @@ export function usePaycheckStudio(id: string | undefined, returnTo?: string) {
       reasoning: l.reasoning ?? '',
     }));
   }, [previewQuery.data]);
+
   const numericActual = parseFloat(actualAmount) || 0;
   const isReadOnly = isConfirmedPlan;
   const isFutureDate = selectedDate > todayStr;
@@ -134,69 +134,72 @@ export function usePaycheckStudio(id: string | undefined, returnTo?: string) {
     setLinesMap({ ...initialLinesMap });
     setReasoningMap({ ...initialReasoningMap });
     setActualAmount(initialAmount);
+    toast.success(t('paydayDrawer.discardEditsSuccess'));
   };
-
-  const attemptExit = useCallback(() => {
-    const doExit = () => {
-      if (returnTo) router.push(returnTo as never);
-      else router.back();
-    };
-    if (isDirty && !isReadOnly) {
-      showMobileConfirm({
-        title: t('common.discardChangesTitle'),
-        message: t('paydayDrawer.discardDescription'),
-        confirmText: t('common.discard'),
-        cancelText: t('common.cancel'),
-        isDestructive: true,
-        onConfirm: doExit,
-      });
-    } else {
-      doExit();
-    }
-  }, [isDirty, isReadOnly, returnTo, router]);
 
   const mutations = usePaycheckStudioMutations({
     id, sourceName, actualAmount, selectedDate, linesMap, reasoningMap,
-    sweepPool, sweepPoolRemainder, numericActual, lines, setIsSavedPlan,
-    submitting, setSubmitting, isDeficit,
+    initialLinesMap, initialReasoningMap, isSavedPlan, isReadOnly, previewQuery, sweepPool,
+    sweepPoolRemainder, numericActual, isDeficit, lines,
+    submitting, setSubmitting, setIsSavedPlan,
+    onConfirmSuccess: () => setShowTransferModal(true),
+    onApplyFreshData: applyFreshData,
+    onSaveSuccess: () => {
+      const effectiveMap = { ...linesMap };
+      if (sweepPool) effectiveMap[sweepPool.id] = sweepPoolRemainder.toFixed(2);
+      setInitialLinesMap({ ...effectiveMap });
+      setInitialReasoningMap({ ...reasoningMap });
+    },
   });
+
+  const attemptExit = useCallback(() => {
+    if (isDirty && !isReadOnly) {
+      setShowExitDialog(true);
+      return;
+    }
+    if (returnTo) router.push(returnTo as never);
+    else router.back();
+  }, [isDirty, isReadOnly, returnTo, router]);
+
+  const handleSaveAndExit = async () => {
+    if (isDeficit) return;
+    try {
+      setSubmitting(true);
+      await mutations.executeAutoSave();
+      if (returnTo) router.push(returnTo as never);
+      else router.back();
+    } finally {
+      setSubmitting(false);
+      setShowExitDialog(false);
+    }
+  };
+
+  const handleDiscardAndExit = () => {
+    setShowExitDialog(false);
+    if (returnTo) router.push(returnTo as never);
+    else router.back();
+  };
 
   const handleRecalculateTrigger = () => {
     showMobileConfirm({
-      title: isSavedPlan ? t('paydayDrawer.recalculateConfirmTitle') : t('paydayDrawer.recalculateConfirmTitle'),
-      message: isSavedPlan ? t('paydayDrawer.recalculateConfirmDescription') : t('paydayDrawer.recalculateConfirmDescription'),
+      title: isSavedPlan ? t('paydayDrawer.recalculateConfirmTitle') : t('paydayDrawer.recalculateUnlockedConfirmTitle'),
+      message: isSavedPlan ? t('paydayDrawer.recalculateConfirmDescription') : t('paydayDrawer.recalculateUnlockedConfirmDescription'),
       confirmText: t('common.confirm'),
       cancelText: t('common.cancel'),
       onConfirm: async () => {
         if (isSavedPlan) {
           await mutations.handleResetPlan();
-        } else if (actualAmount !== initialAmount) {
-          await mutations.handleRecalculateWaterfall();
         } else {
-          setLinesMap({ ...initialLinesMap });
-          toast.success(t('paydayDrawer.recalculateSuccess'));
+          await mutations.handleRecalculateWaterfall();
         }
       },
     });
   };
 
-  const everydayAllocated = lines
-    .filter((l) => pools.find((p) => p.id === l.bucketId)?.envelopeType === 'EVERYDAY')
-    .reduce((sum, l) => sum + (parseFloat(linesMap[l.bucketId] ?? l.proposedAmount.toString()) || 0), 0);
-
-  const billsAllocated = lines
-    .filter((l) => {
-      const et = pools.find((p) => p.id === l.bucketId)?.envelopeType;
-      return et === 'SCHEDULED_BILL' || et === 'FLEXIBLE_BILL';
-    })
-    .reduce((sum, l) => sum + (parseFloat(linesMap[l.bucketId] ?? l.proposedAmount.toString()) || 0), 0);
-
-  const goalsAllocated = lines
-    .filter((l) => {
-      const et = pools.find((p) => p.id === l.bucketId)?.envelopeType;
-      return et === 'TARGET_GOAL' || et === 'ONGOING_GOAL';
-    })
-    .reduce((sum, l) => sum + (parseFloat(linesMap[l.bucketId] ?? l.proposedAmount.toString()) || 0), 0);
+  const { everydayAllocated, billsAllocated, goalsAllocated } = useMemo(
+    () => calculateAllocatedTotals(lines, pools, linesMap),
+    [lines, pools, linesMap]
+  );
 
   const groupedLines = useMemo(() => {
     const groups: Array<{ type: 'EVERYDAY' | 'REGULAR' | 'GOAL'; label: string; items: AllocationLineItem[] }> = [
@@ -232,5 +235,8 @@ export function usePaycheckStudio(id: string | undefined, returnTo?: string) {
     handleSaveSplit: mutations.handleSaveSplit,
     handleConfirmSplit: mutations.handleConfirmSplit,
     handleLineAmountChange, handleLineReasoningChange,
+    showTransferModal, setShowTransferModal,
+    showExitDialog, setShowExitDialog,
+    handleSaveAndExit, handleDiscardAndExit,
   };
 }

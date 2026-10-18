@@ -93,7 +93,7 @@ export function UpcomingTimelineTab({
   incomeEvents,
   expenseEvents,
   transferEvents,
-  savedIncomeEventIds: _savedIncomeEventIds,
+  savedIncomeEventIds,
   categories,
   pools = [],
   initialKindFilter = "ALL",
@@ -513,18 +513,29 @@ export function UpcomingTimelineTab({
                       {/* Name Column (Clickable hyperlink to edit individual event) */}
                       <td className="py-3 px-4 text-left">
                         <div className="flex flex-col gap-0.5">
-                          <button
-                            type="button"
-                            onClick={() => handleEventNameClick(evt)}
-                            className="font-bold text-[#2563eb] hover:underline cursor-pointer text-left focus:outline-none"
-                          >
-                            {evt.name ||
-                              (isIncome
-                                ? "Income Deposit"
-                                : isTransfer
-                                ? "Pool Transfer"
-                                : "Scheduled Expense")}
-                          </button>
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <button
+                              type="button"
+                              onClick={() => handleEventNameClick(evt)}
+                              className="font-bold text-[#2563eb] hover:underline cursor-pointer text-left focus:outline-none"
+                            >
+                              {evt.name ||
+                                (isIncome
+                                  ? "Income Deposit"
+                                  : isTransfer
+                                  ? "Pool Transfer"
+                                  : "Scheduled Expense")}
+                            </button>
+                            {isIncome && savedIncomeEventIds?.has(evt.id) && (
+                              <span
+                                className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-extrabold bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800"
+                                title={t("paydayDrawer.lockedBadgeTooltip")}
+                              >
+                                <span className="text-[9px]">🔒</span>
+                                {t("paydayDrawer.lockedBadge")}
+                              </span>
+                            )}
+                          </div>
                           {evt.note && (
                             <span className="text-[11px] text-zinc-400 italic">
                               {evt.note}

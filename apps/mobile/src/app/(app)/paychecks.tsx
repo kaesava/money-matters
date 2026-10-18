@@ -40,6 +40,7 @@ export default function IncomeAndBillsScreen() {
     rawIncomeEvents,
     rawExpenseEvents,
     rawTransferEvents,
+    savedIncomeEventIds,
     handleDeleteIncomeEvent,
     handleDeleteExpenseEvent,
     handleDeleteTransferEvent,
@@ -128,6 +129,7 @@ export default function IncomeAndBillsScreen() {
           bankAccounts={bankAccounts}
           pools={pools}
           incomeSources={incomeSources}
+          savedIncomeEventIds={savedIncomeEventIds}
           initialKind={initialKind}
           initialPoolId={searchParams.poolId}
           initialCategoryId={searchParams.categoryId}

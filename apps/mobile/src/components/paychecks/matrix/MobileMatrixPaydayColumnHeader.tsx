@@ -69,7 +69,7 @@ export const MobileMatrixPaydayColumnHeader: React.FC<MobileMatrixPaydayColumnHe
         <View style={styles.actionRow}>
           {isSaved && (
             <View style={styles.savedBadge}>
-              <Text style={styles.savedBadgeText}>{t('matrix.savedBadge')}</Text>
+              <Text style={styles.savedBadgeText}>🔒 {t('matrix.lockedBadge')}</Text>
             </View>
           )}
 
@@ -80,7 +80,7 @@ export const MobileMatrixPaydayColumnHeader: React.FC<MobileMatrixPaydayColumnHe
           {isSaved && onReset && (
             <>
               <TouchableOpacity onPress={() => onReset(col.id)} style={styles.resetBtn}>
-                <Text style={styles.resetText}>{t('common.reset')}</Text>
+                <Text style={styles.resetText}>{t('matrix.unlock')}</Text>
               </TouchableOpacity>
               <Text style={styles.separator}>|</Text>
             </>
@@ -93,7 +93,7 @@ export const MobileMatrixPaydayColumnHeader: React.FC<MobileMatrixPaydayColumnHe
                 disabled={isSaving}
                 style={styles.saveBtn}
               >
-                <Text style={styles.saveText}>{isSaving ? '…' : t('matrix.save')}</Text>
+                <Text style={styles.saveText}>{isSaving ? '…' : t('matrix.lock')}</Text>
               </TouchableOpacity>
               <Text style={styles.separator}>|</Text>
             </>

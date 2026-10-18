@@ -41,7 +41,7 @@ export const NextPaydayIncomeItem: React.FC<NextPaydayIncomeItemProps> = ({
           {isSaved && (
             <View style={styles.savedBadge}>
               <Text style={styles.savedBadgeText}>
-                {t('dashboard.nextPay.savedBadge')}
+                🔒 {t('dashboard.nextPay.savedBadge')}
               </Text>
             </View>
           )}

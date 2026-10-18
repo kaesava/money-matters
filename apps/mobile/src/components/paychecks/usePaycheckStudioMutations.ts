@@ -3,24 +3,13 @@ import { useRouter } from 'expo-router';
 import { useMobileToast, showMobileConfirm } from '@money-matters/ui/mobile';
 import { t } from '@money-matters/i18n';
 import { triggerHaptic } from '../../lib/haptics';
-import { AllocationLineItem } from './MobileIncomeSplitPoolList';
-
-interface UsePaycheckStudioMutationsParams {
-  id: string | undefined;
-  sourceName: string;
-  actualAmount: string;
-  selectedDate: string;
-  linesMap: Record<string, string>;
-  reasoningMap: Record<string, string>;
-  sweepPool: { id: string; name: string } | undefined;
-  sweepPoolRemainder: number;
-  numericActual: number;
-  lines: AllocationLineItem[];
-  setIsSavedPlan: (v: boolean) => void;
-  submitting: boolean;
-  setSubmitting: (v: boolean) => void;
-  isDeficit: boolean;
-}
+import { formatIsoDate } from '../../lib/format';
+import {
+  UsePaycheckStudioMutationsParams,
+  buildAllocationsPayload,
+  buildConfirmPayload,
+  PaycheckStudioPreviewData,
+} from './paycheck-studio-types';
 
 export function usePaycheckStudioMutations({
   id,
@@ -29,6 +18,11 @@ export function usePaycheckStudioMutations({
   selectedDate,
   linesMap,
   reasoningMap,
+  initialLinesMap,
+  initialReasoningMap,
+  isSavedPlan,
+  isReadOnly,
+  previewQuery,
   sweepPool,
   sweepPoolRemainder,
   numericActual,
@@ -37,6 +31,9 @@ export function usePaycheckStudioMutations({
   submitting,
   setSubmitting,
   isDeficit,
+  onConfirmSuccess,
+  onApplyFreshData,
+  onSaveSuccess,
 }: UsePaycheckStudioMutationsParams) {
   const toast = useMobileToast();
   const router = useRouter();
@@ -53,9 +50,9 @@ export function usePaycheckStudioMutations({
       setSubmitting(true);
       await resetAllocationPlanMut.mutateAsync({ incomeEventId: id! });
       setIsSavedPlan(false);
-      await utils.previewPayday.invalidate({ incomeEventId: id! });
-      await utils.listIncomeEvents.invalidate();
-      await utils.listAllAllocationPlans.invalidate();
+      const freshData = await utils.previewPayday.fetch({ incomeEventId: id! }, { staleTime: 0 });
+      if (freshData && onApplyFreshData) onApplyFreshData(freshData as PaycheckStudioPreviewData);
+      await Promise.all([utils.listIncomeEvents.invalidate(), utils.listAllAllocationPlans.invalidate()]);
       toast.success(t('paydayDrawer.recalculateSuccess'));
     } catch (err: unknown) {
       toast.error(err instanceof Error ? err.message : t('paydayDrawer.recalculateFailed'));
@@ -76,7 +73,13 @@ export function usePaycheckStudioMutations({
         expectedAmount: parseFloat(actualAmount).toFixed(2),
         expectedDate: selectedDate,
       });
-      await utils.previewPayday.invalidate({ incomeEventId: id! });
+      if (isSavedPlan) {
+        await resetAllocationPlanMut.mutateAsync({ incomeEventId: id! });
+        setIsSavedPlan(false);
+      }
+      const freshData = await utils.previewPayday.fetch({ incomeEventId: id! }, { staleTime: 0 });
+      if (freshData && onApplyFreshData) onApplyFreshData(freshData as PaycheckStudioPreviewData);
+      await Promise.all([utils.listIncomeEvents.invalidate(), utils.listAllAllocationPlans.invalidate()]);
       toast.success(t('paydayDrawer.recalculateSuccess'));
     } catch (err: unknown) {
       toast.error(err instanceof Error ? err.message : t('paydayDrawer.recalculateFailed'));
@@ -110,8 +113,8 @@ export function usePaycheckStudioMutations({
 
   const handleSaveSplit = async () => {
     if (isDeficit || submitting) return;
-    setSubmitting(true);
     try {
+      setSubmitting(true);
       await overrideEventMut.mutateAsync({
         eventId: id!,
         eventType: 'INCOME',
@@ -122,17 +125,7 @@ export function usePaycheckStudioMutations({
         expectedDate: selectedDate,
       });
 
-      const effectiveMap = { ...linesMap };
-      if (sweepPool) effectiveMap[sweepPool.id] = sweepPoolRemainder.toFixed(2);
-      const payload = Object.entries(effectiveMap).map(([pId, val]) => {
-        const amt = parseFloat(val) || 0;
-        return {
-          poolId: pId,
-          proposedAmount: amt.toFixed(2),
-          reasoning: amt <= 0 ? undefined : (reasoningMap[pId] ?? (lines.find((l) => l.bucketId === pId)?.reasoning || undefined)),
-        };
-      });
-
+      const payload = buildAllocationsPayload(linesMap, reasoningMap, sweepPool, sweepPoolRemainder, lines);
       await saveBulkAllocationsMut.mutateAsync({
         incomeEventId: id!,
         totalIncomeAmount: numericActual.toFixed(2),
@@ -140,14 +133,58 @@ export function usePaycheckStudioMutations({
       });
 
       setIsSavedPlan(true);
-      toast.success(t('matrix.saveSplitSuccess'));
-      await utils.listIncomeEvents.invalidate();
-      await utils.listAllAllocationPlans.invalidate();
-      router.back();
+      if (onSaveSuccess) onSaveSuccess();
+      toast.success(t('matrix.lockSplitSuccess'));
+      await Promise.all([
+        utils.listIncomeEvents.invalidate(),
+        utils.listAllAllocationPlans.invalidate(),
+        utils.previewPayday.invalidate({ incomeEventId: id! }),
+      ]);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : t('paydayDrawer.saveSplitFailed'));
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const executeAutoSave = async () => {
+    if (!previewQuery.data || isReadOnly) return;
+    const pData = previewQuery.data;
+    const isEventDirty =
+      sourceName !== (pData.incomeEventName || t('paydayDrawer.incomeDepositDefault')) ||
+      actualAmount !== String(pData.actualAmount ?? pData.expectedAmount) ||
+      selectedDate !== formatIsoDate(pData.expectedDate);
+
+    const isAllocationsDirty =
+      Object.entries(linesMap).some(([pId, val]) => initialLinesMap[pId] !== val) ||
+      Object.entries(reasoningMap).some(([pId, val]) => initialReasoningMap[pId] !== val);
+
+    if (!isEventDirty && !isAllocationsDirty) return;
+
+    try {
+      if (isEventDirty) {
+        await overrideEventMut.mutateAsync({
+          eventId: id!,
+          eventType: 'INCOME',
+          name: sourceName,
+          actualAmount: parseFloat(actualAmount).toFixed(2),
+          actualDate: selectedDate,
+          expectedAmount: parseFloat(actualAmount).toFixed(2),
+          expectedDate: selectedDate,
+        });
+      }
+
+      if (isAllocationsDirty && !isDeficit) {
+        const payload = buildAllocationsPayload(linesMap, reasoningMap, sweepPool, sweepPoolRemainder, lines);
+        await saveBulkAllocationsMut.mutateAsync({
+          incomeEventId: id!,
+          totalIncomeAmount: numericActual.toFixed(2),
+          lines: payload,
+        });
+        if (!isSavedPlan) toast.success(t('matrix.lockSplitSuccess'));
+      }
+    } catch {
+      // Best effort auto-save
     }
   };
 
@@ -172,17 +209,7 @@ export function usePaycheckStudioMutations({
             expectedDate: selectedDate,
           });
 
-          const effectiveMap = { ...linesMap };
-          if (sweepPool) effectiveMap[sweepPool.id] = sweepPoolRemainder.toFixed(2);
-          const payload = Object.entries(effectiveMap).map(([pId, val]) => {
-            const amt = parseFloat(val) || 0;
-            return {
-              envelopeId: pId,
-              amount: amt.toFixed(2),
-              reasoning: amt <= 0 ? undefined : (reasoningMap[pId] ?? (lines.find((l) => l.bucketId === pId)?.reasoning || undefined)),
-            };
-          });
-
+          const payload = buildConfirmPayload(linesMap, reasoningMap, sweepPool, sweepPoolRemainder, lines);
           await confirmPaydayMut.mutateAsync({
             incomeEventId: id!,
             actualAmount: numericActual.toFixed(2),
@@ -192,15 +219,14 @@ export function usePaycheckStudioMutations({
 
           triggerHaptic('success');
           toast.success(t('paydayDrawer.confirmSuccess'));
-          await utils.listIncomeEvents.invalidate();
-          await utils.listPools.invalidate();
-          await utils.listTransactions.invalidate();
-          await utils.getMonthlySummary.invalidate();
+          await Promise.all([
+            utils.listIncomeEvents.invalidate(),
+            utils.listPools.invalidate(),
+            utils.listTransactions.invalidate(),
+            utils.getMonthlySummary.invalidate(),
+          ]);
 
-          router.replace({
-            pathname: '/(app)/paychecks/transfer-instructions',
-            params: { incomeEventId: id },
-          } as never);
+          if (onConfirmSuccess) onConfirmSuccess();
         } catch (err) {
           toast.error(err instanceof Error ? err.message : t('paydayDrawer.confirmSplitFailed'));
         } finally {
@@ -216,5 +242,6 @@ export function usePaycheckStudioMutations({
     handleDeleteIncome,
     handleSaveSplit,
     handleConfirmSplit,
+    executeAutoSave,
   };
 }

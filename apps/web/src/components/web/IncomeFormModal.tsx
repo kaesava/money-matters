@@ -30,7 +30,6 @@ function cleanAmount(val: string): string {
   const num = parseFloat(val.replace(/[^0-9.]/g, ""));
   return isNaN(num) ? "0.00" : num.toFixed(2);
 }
-
 export function IncomeFormModal({ isOpen, onClose, sourceToEdit }: IncomeFormModalProps) {
   const { currency, currencySymbol, minorUnits } = useLocale();
   const toast = useToast();
@@ -141,6 +140,7 @@ export function IncomeFormModal({ isOpen, onClose, sourceToEdit }: IncomeFormMod
       setShowRuleChangeConfirm(false);
     }
   };
+
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();

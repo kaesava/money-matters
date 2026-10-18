@@ -31,11 +31,19 @@ export function usePaychecksData() {
   const bankAccountsQuery = trpc.listBankAccounts.useQuery(undefined, {
     enabled: !!session?.user,
   });
+  const allPlansQuery = trpc.listAllAllocationPlans.useQuery(undefined, {
+    enabled: !!session?.user,
+  });
 
   const incomeSources = incomeSourcesQuery.data ?? [];
   const expenseSources = expenseSourcesQuery.data ?? [];
   const pools = poolsQuery.data ?? [];
   const bankAccounts = bankAccountsQuery.data ?? [];
+
+  const savedIncomeEventIds = (allPlansQuery.data ?? []).reduce((set, plan) => {
+    if (plan.status !== 'CONFIRMED') set.add(plan.incomeEventId);
+    return set;
+  }, new Set<string>());
 
   const rawIncomeEvents = (incomeEventsQuery.data ?? []).filter((e) => e.status === 'PENDING');
   const rawExpenseEvents = (expenseEventsQuery.data ?? []).filter((e) => e.status === 'PENDING');
@@ -77,6 +85,7 @@ export function usePaychecksData() {
       expenseSourcesQuery.refetch(),
       poolsQuery.refetch(),
       bankAccountsQuery.refetch(),
+      allPlansQuery.refetch(),
     ]);
     setRefreshing(false);
   };
@@ -124,6 +133,7 @@ export function usePaychecksData() {
     incomeEventsQuery.refetch();
     expenseEventsQuery.refetch();
     poolsQuery.refetch();
+    allPlansQuery.refetch();
   };
 
   return {
@@ -136,6 +146,7 @@ export function usePaychecksData() {
     rawIncomeEvents,
     rawExpenseEvents,
     rawTransferEvents,
+    savedIncomeEventIds,
     isLoadingIncome: incomeSourcesQuery.isLoading,
     isLoadingExpense: expenseSourcesQuery.isLoading,
     handleDeleteIncomeEvent,

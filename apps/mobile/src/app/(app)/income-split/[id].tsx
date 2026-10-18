@@ -7,7 +7,7 @@ import {
   ActivityIndicator,
   TouchableOpacity,
 } from 'react-native';
-import { useLocalSearchParams } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
 import {
   DESIGN_TOKENS,
@@ -15,59 +15,33 @@ import {
   MobileCategoryDetailSheet,
 } from '@money-matters/ui/mobile';
 import { t } from '@money-matters/i18n';
+import { MobileIncomeEventInlineCard } from '../../../components/paychecks/MobileIncomeEventInlineCard';
 import { MobilePaydayCelebrationCard } from '../../../components/paychecks/MobilePaydayCelebrationCard';
-import { MobileBankTransferRollupCard } from '../../../components/paychecks/MobileBankTransferRollupCard';
-import { MobileIncomeSplitCommandPanel } from '../../../components/paychecks/MobileIncomeSplitCommandPanel';
+import { MobilePaydayTransferModal } from '../../../components/paychecks/MobilePaydayTransferModal';
+import { MobileUnsavedSplitExitDialog } from '../../../components/paychecks/MobileUnsavedSplitExitDialog';
 import { MobileIncomeSplitPoolList } from '../../../components/paychecks/MobileIncomeSplitPoolList';
-import { PaycheckStudioSubheader } from '../../../components/paychecks/PaycheckStudioSubheader';
-import { PaycheckStudioFooter } from '../../../components/paychecks/PaycheckStudioFooter';
 import { usePaycheckStudio } from '../../../components/paychecks/usePaycheckStudio';
-import { trpc } from '../../../lib/trpc';
 
 export default function IncomeSplitStudioScreen() {
   const { id, returnTo } = useLocalSearchParams<{ id: string; returnTo?: string }>();
+  const router = useRouter();
   const [selectedPoolForSheet, setSelectedPoolForSheet] = useState<string | null>(null);
   const [showTableDetails, setShowTableDetails] = useState(false);
 
   const {
-    session,
-    isLoading,
-    previewData,
-    pools,
-    bankAccounts,
-    sourceName,
-    setSourceName,
-    actualAmount,
-    setActualAmount,
-    initialAmount,
-    selectedDate,
-    setSelectedDate,
-    linesMap,
-    reasoningMap,
-    isSavedPlan,
-    isConfirmedPlan,
-    isReadOnly,
-    isFutureDate,
-    isDirty,
-    isDeficit,
-    numericActual,
-    sweepPool,
-    sweepPoolRemainder,
-    everydayAllocated,
-    billsAllocated,
-    goalsAllocated,
-    groupedLines,
-    submitting,
-    attemptExit,
-    handleRecalculateTrigger,
-    handleRecalculateWaterfall,
-    handleResetPlan,
+    session, isLoading, previewData, pools, bankAccounts,
+    sourceName, setSourceName, actualAmount, setActualAmount,
+    selectedDate, setSelectedDate, linesMap, reasoningMap,
+    isSavedPlan, isConfirmedPlan, isReadOnly, isFutureDate,
+    isDirty, isDeficit, sweepPool, sweepPoolRemainder,
+    everydayAllocated, billsAllocated, goalsAllocated, groupedLines,
+    submitting, attemptExit, handleRecalculateTrigger,
     handleResetAllEdits,
-    handleDeleteIncome,
-    handleSaveSplit,
-    handleConfirmSplit,
-    handleLineAmountChange,
-    handleLineReasoningChange,
+    handleDeleteIncome, handleSaveSplit, handleConfirmSplit,
+    handleLineAmountChange, handleLineReasoningChange,
+    showTransferModal, setShowTransferModal,
+    showExitDialog, setShowExitDialog,
+    handleSaveAndExit, handleDiscardAndExit,
   } = usePaycheckStudio(id, returnTo);
 
   const activePoolObj = pools.find((p) => p.id === selectedPoolForSheet);
@@ -83,6 +57,15 @@ export default function IncomeSplitStudioScreen() {
 
   const receivingAccountId = previewData?.receivingAccountId;
 
+  const handleCloseTransferModal = () => {
+    setShowTransferModal(false);
+    if (returnTo) {
+      router.push(returnTo as never);
+    } else {
+      router.back();
+    }
+  };
+
   return (
     <MobileScreenWrapper
       title={sourceName || t('paydayDrawer.title')}
@@ -91,54 +74,41 @@ export default function IncomeSplitStudioScreen() {
       onBackPress={attemptExit}
     >
       <View style={styles.rootContainer}>
-        <PaycheckStudioSubheader
-          isConfirmedPlan={isConfirmedPlan}
-          isSavedPlan={isSavedPlan}
-          selectedDate={selectedDate}
-          isReadOnly={isReadOnly}
-          isDirty={isDirty}
-          submitting={submitting}
-          onRecalculate={handleRecalculateTrigger}
-          onResetPlan={handleResetPlan}
-          onResetEdits={handleResetAllEdits}
-          onDeleteIncome={handleDeleteIncome}
-        />
-
         <ScrollView
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
         >
-          {/* Level 1: Payday Celebration & 1-Tap Lock In Card */}
-          <MobilePaydayCelebrationCard
-            billsAllocated={billsAllocated}
-            goalsAllocated={goalsAllocated}
-            safeToSpend={sweepPoolRemainder}
-            isConfirmed={isConfirmedPlan}
-            submitting={submitting}
-            isDeficit={isDeficit}
-            onConfirm={handleConfirmSplit}
-          />
-
-          <MobileIncomeSplitCommandPanel
+          {/* Top In-Line Editable Card */}
+          <MobileIncomeEventInlineCard
             sourceName={sourceName}
             onSourceNameChange={setSourceName}
             actualAmount={actualAmount}
             onActualAmountChange={setActualAmount}
             selectedDate={selectedDate}
             onSelectedDateChange={setSelectedDate}
-            numericActual={numericActual}
-            sweepPoolName={sweepPool?.name || t('poolTypes.everyday')}
-            sweepPoolRemainder={sweepPoolRemainder}
-            isDeficit={isDeficit}
+            isReadOnly={isReadOnly}
+            onDeleteIncome={handleDeleteIncome}
+            onBack={attemptExit}
+          />
+
+          {/* Celebration Card with 4 Additive Buckets and Action Buttons */}
+          <MobilePaydayCelebrationCard
             everydayAllocated={everydayAllocated}
             billsAllocated={billsAllocated}
             goalsAllocated={goalsAllocated}
-            isReadOnly={isReadOnly}
-            isAmountModified={actualAmount !== initialAmount}
-            onRecalculateWaterfall={handleRecalculateWaterfall}
-            onResetEdits={handleResetAllEdits}
+            safeToSpend={sweepPoolRemainder}
+            isConfirmed={isConfirmedPlan}
+            isLocked={isSavedPlan}
+            isDirty={isDirty}
+            isFutureDate={isFutureDate}
             submitting={submitting}
-            isConfirmedPlan={isConfirmedPlan}
+            isDeficit={isDeficit}
+            onConfirm={handleConfirmSplit}
+            onUnlockAndRecalculate={handleRecalculateTrigger}
+            onRecalculate={handleRecalculateTrigger}
+            onLockSplit={handleSaveSplit}
+            onSaveChanges={handleSaveSplit}
+            onDiscardEdits={handleResetAllEdits}
           />
 
           {/* Progressive Disclosure Toggle Button for Detailed Breakdown */}
@@ -171,28 +141,28 @@ export default function IncomeSplitStudioScreen() {
               onLineReasoningChange={handleLineReasoningChange}
             />
           )}
-
-          {!isConfirmedPlan && (
-            <MobileBankTransferRollupCard
-              receivingAccountId={receivingAccountId}
-              pools={pools}
-              linesMap={linesMap}
-              sweepPoolId={sweepPool?.id}
-              sweepPoolRemainder={sweepPoolRemainder}
-              bankAccounts={bankAccounts}
-            />
-          )}
         </ScrollView>
 
-        {!isReadOnly && (
-          <PaycheckStudioFooter
-            isFutureDate={isFutureDate}
-            isDeficit={isDeficit}
-            submitting={submitting}
-            onSaveSplit={handleSaveSplit}
-            onConfirmSplit={handleConfirmSplit}
-          />
-        )}
+        <MobilePaydayTransferModal
+          isOpen={showTransferModal}
+          onClose={handleCloseTransferModal}
+          receivingAccountId={receivingAccountId}
+          pools={pools}
+          linesMap={linesMap}
+          sweepPoolId={sweepPool?.id}
+          sweepPoolRemainder={sweepPoolRemainder}
+          bankAccounts={bankAccounts}
+        />
+
+        <MobileUnsavedSplitExitDialog
+          visible={showExitDialog}
+          isDeficit={isDeficit}
+          deficitAmount={`$${Math.abs(sweepPoolRemainder).toFixed(2)}`}
+          submitting={submitting}
+          onClose={() => setShowExitDialog(false)}
+          onDiscardAndExit={handleDiscardAndExit}
+          onSaveAndExit={handleSaveAndExit}
+        />
 
         {selectedPoolForSheet && activePoolObj && (
           <MobileCategoryDetailSheet
@@ -228,7 +198,7 @@ const styles = StyleSheet.create({
   scrollContent: {
     padding: 16,
     gap: 16,
-    paddingBottom: 90,
+    paddingBottom: 40,
   },
   detailsToggleBtn: {
     flexDirection: 'row',

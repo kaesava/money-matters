@@ -10,12 +10,8 @@ import {
 import { useUpcomingEvents } from './useUpcomingEvents';
 
 interface UpcomingEventsTabProps {
-  rawIncomeEvents: any[];
-  rawExpenseEvents: any[];
-  rawTransferEvents: any[];
-  bankAccounts: any[];
-  pools: any[];
-  incomeSources?: any[];
+  rawIncomeEvents: any[]; rawExpenseEvents: any[]; rawTransferEvents: any[];
+  bankAccounts: any[]; pools: any[]; incomeSources?: any[];
   onOpenPaydayWizard: (eventId: string) => void;
   onMarkExpensePaid: (expenseId: string, amount: string) => void;
   onEditExpense: (expense: any) => void;
@@ -27,6 +23,7 @@ interface UpcomingEventsTabProps {
   initialKind?: 'ALL' | 'INCOME' | 'EXPENSE' | 'TRANSFER';
   initialPoolId?: string | null;
   initialCategoryId?: string | null;
+  savedIncomeEventIds?: Set<string>;
 }
 
 export function UpcomingEventsTab({
@@ -47,6 +44,7 @@ export function UpcomingEventsTab({
   initialKind,
   initialPoolId,
   initialCategoryId,
+  savedIncomeEventIds,
 }: UpcomingEventsTabProps) {
   const [upcomingSearchQuery, setUpcomingSearchQuery] = useState('');
   const [upcomingStatusFilter, setUpcomingStatusFilter] = useState<'ALL' | 'OVERDUE'>('ALL');
@@ -80,6 +78,7 @@ export function UpcomingEventsTab({
     upcomingSortOrder,
     poolIdFilter: initialPoolId,
     categoryIdFilter: initialCategoryId,
+    savedIncomeEventIds,
   });
 
   const paginatedUpcomingEvents = useMemo(() => {

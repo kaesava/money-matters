@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useMemo } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import { computeMatrixProjection, MatrixIncomeEvent, ScheduledExpenseEvent, EngineBucket } from "@money-matters/capability-budgeting/engine";
 import { EnvelopeDetailDrawer, CategoryScheduledEvent } from "./EnvelopeDetailDrawer";
 import { t } from "@money-matters/i18n";
@@ -87,11 +87,18 @@ export function MatrixPlanTab({
 }: MatrixPlanTabProps) {
   const { locale, userTimezone } = useLocale();
   const router = useRouter();
+  const pathname = usePathname();
   const toast = useToast();
   const utils = trpc.useUtils();
   const deleteIncomeMut = trpc.deleteIncomeEvent.useMutation();
   const allPlansQuery = trpc.listAllAllocationPlans.useQuery();
   const saveAutoAllocationMut = trpc.saveAutoAllocation.useMutation();
+
+  const returnTo = useMemo(() => {
+    return pathname?.startsWith("/dashboard/income-split")
+      ? "/dashboard/income-split"
+      : "/dashboard/income-and-bills";
+  }, [pathname]);
 
   const [showFullHorizon, setShowFullHorizon] = useState(false);
   const [scopeFilter, setScopeFilter] = useState<"ALL" | "SHARED" | "PRIVATE">("ALL");
@@ -391,7 +398,7 @@ export function MatrixPlanTab({
                           </span>
                           <button
                             type="button"
-                            onClick={() => router.push(`/dashboard/income-split?id=${col.id}&returnTo=/dashboard/income-and-bills`)}
+                            onClick={() => router.push(`/dashboard/income-split?id=${col.id}&returnTo=${encodeURIComponent(returnTo)}`)}
                             className="font-bold text-[#2563eb] hover:underline cursor-pointer transition-colors"
                             title="Review Splits"
                           >
@@ -401,13 +408,13 @@ export function MatrixPlanTab({
                       ) : (
                         <div className="flex items-center justify-center gap-1.5 text-xs mt-1.5 flex-wrap font-medium">
                           {isSaved && (
-                            <span className="px-1.5 py-0.5 text-[10px] font-bold rounded bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300">
-                              {t("matrix.savedBadge")}
+                            <span className="px-1.5 py-0.5 text-[10px] font-bold rounded bg-indigo-50 text-indigo-700 dark:bg-indigo-950 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800">
+                              🔒 {t("matrix.lockedBadge")}
                             </span>
                           )}
                           <button
                             type="button"
-                            onClick={() => router.push(`/dashboard/income-split?id=${col.id}&returnTo=/dashboard/income-and-bills`)}
+                            onClick={() => router.push(`/dashboard/income-split?id=${col.id}&returnTo=${encodeURIComponent(returnTo)}`)}
                             className="font-bold text-[#2563eb] hover:underline cursor-pointer transition-colors"
                             title="Review and Edit Splits"
                           >
@@ -425,7 +432,7 @@ export function MatrixPlanTab({
                                 className="font-semibold text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200 hover:underline cursor-pointer transition-colors disabled:opacity-50"
                                 title="Lock in Splits to prevent automatic calculation."
                               >
-                                {savingColId === col.id ? "…" : t("matrix.save")}
+                                {savingColId === col.id ? "…" : t("matrix.lock")}
                               </button>
                               <span className="text-zinc-300 dark:text-zinc-700 select-none">|</span>
                             </>

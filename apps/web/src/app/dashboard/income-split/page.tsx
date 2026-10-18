@@ -10,7 +10,7 @@ import { IncomeSplitOverview } from "./components/IncomeSplitOverview";
 function IncomeSplitPageContent() {
   const searchParams = useSearchParams();
   const id = searchParams.get("id");
-  const returnTo = searchParams.get("returnTo") || "/dashboard";
+  const returnTo = searchParams.get("returnTo") || "/dashboard/income-split";
 
   if (!id) {
     return <IncomeSplitOverview />;

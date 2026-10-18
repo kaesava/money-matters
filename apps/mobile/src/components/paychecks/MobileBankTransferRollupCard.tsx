@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from 'react';
-import { View, Text, StyleSheet, Share } from 'react-native';
+import { View, Text, StyleSheet, Share, TouchableOpacity } from 'react-native';
+import { Feather } from '@expo/vector-icons';
 import { DESIGN_TOKENS } from '@money-matters/ui/mobile';
 import { t } from '@money-matters/i18n';
 import { RollupRetainedCard } from './rollup/RollupRetainedCard';
@@ -7,20 +8,11 @@ import { RollupTransferItem } from './rollup/RollupTransferItem';
 import { computeBankTransferRollup } from './rollup/computeRollup';
 
 export interface MobileBankTransferPool {
-  id: string;
-  name: string;
-  poolType?: string;
-  bankAccountId?: string | null;
-  bankAccountName?: string | null;
+  id: string; name: string; poolType?: string; bankAccountId?: string | null; bankAccountName?: string | null;
 }
 
 export interface MobileBankTransferAccount {
-  id: string;
-  name: string;
-  institution?: string | null;
-  bsb?: string | null;
-  accountNumber?: string | null;
-  payId?: string | null;
+  id: string; name: string; institution?: string | null; bsb?: string | null; accountNumber?: string | null; payId?: string | null;
 }
 
 export interface MobileBankTransferRollupCardProps {
@@ -41,6 +33,7 @@ export function MobileBankTransferRollupCard({
   bankAccounts,
 }: MobileBankTransferRollupCardProps) {
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
+  const [collapsed, setCollapsed] = useState(true);
 
   const sourceAccount = useMemo(() => {
     if (receivingAccountId) {
@@ -85,56 +78,77 @@ export function MobileBankTransferRollupCard({
 
   return (
     <View style={styles.card}>
-      <View style={styles.header}>
-        <View style={styles.badgeWrap}>
-          <Text style={styles.badgeText}>
-            {t('cards.paydayTransfer.badge')}
-          </Text>
-        </View>
-      </View>
-      <Text style={styles.subtitle}>
-        {externalTransfers.length > 0
-          ? t('cards.paydayTransfer.rollupDescription')
-          : t('cards.paydayTransfer.allRetainedDescription')}
-      </Text>
-
-      {retainedItems.length > 0 && (
-        <RollupRetainedCard
-          sourceAccountName={sourceAccountName}
-          retainedTotal={retainedTotal}
-          retainedItems={retainedItems}
-        />
-      )}
-
-      {externalTransfers.length > 0 && (
-        <View style={styles.transfersSection}>
-          <Text style={styles.sectionHeader}>
-            {t('cards.paydayTransfer.transfersRequired')} ({externalTransfers.length})
-          </Text>
-
-          <View style={styles.transfersList}>
-            {externalTransfers.map((tx) => (
-              <RollupTransferItem
-                key={tx.destAccountId}
-                tx={tx}
-                isCopied={copiedKey === tx.destAccountId}
-                onCopyAmount={handleCopyAmount}
-              />
-            ))}
-          </View>
-        </View>
-      )}
-
-      {externalTransfers.length === 0 && (
-        <View style={styles.singleAccountTip}>
-          <View style={styles.tipHeader}>
-            <Text style={styles.singleAccountTipTitle}>
-              {t('cards.paydayTransfer.singleAccountProTipTitle')}
+      <TouchableOpacity
+        onPress={() => setCollapsed((prev) => !prev)}
+        style={styles.cardHeaderToggle}
+        activeOpacity={0.7}
+      >
+        <View style={styles.toggleTitleRow}>
+          <Feather
+            name={collapsed ? 'chevron-right' : 'chevron-down'}
+            size={16}
+            color={DESIGN_TOKENS.colors.textMuted}
+          />
+          <View style={styles.badgeWrap}>
+            <Text style={styles.badgeText}>
+              {t('cards.paydayTransfer.badge')}
             </Text>
           </View>
-          <Text style={styles.singleAccountTipDesc}>
-            {t('cards.paydayTransfer.singleAccountProTipDesc')}
+        </View>
+        <Text style={styles.headerCountText}>
+          {externalTransfers.length > 0
+            ? `${externalTransfers.length} ${externalTransfers.length === 1 ? 'Transfer' : 'Transfers'}`
+            : t('cards.paydayTransfer.retainedTitle')}
+        </Text>
+      </TouchableOpacity>
+
+      {!collapsed && (
+        <View style={styles.contentWrap}>
+          <Text style={styles.subtitle}>
+            {externalTransfers.length > 0
+              ? t('cards.paydayTransfer.rollupDescription')
+              : t('cards.paydayTransfer.allRetainedDescription')}
           </Text>
+
+          {retainedItems.length > 0 && (
+            <RollupRetainedCard
+              sourceAccountName={sourceAccountName}
+              retainedTotal={retainedTotal}
+              retainedItems={retainedItems}
+            />
+          )}
+
+          {externalTransfers.length > 0 && (
+            <View style={styles.transfersSection}>
+              <Text style={styles.sectionHeader}>
+                {t('cards.paydayTransfer.transfersRequired')} ({externalTransfers.length})
+              </Text>
+
+              <View style={styles.transfersList}>
+                {externalTransfers.map((tx) => (
+                  <RollupTransferItem
+                    key={tx.destAccountId}
+                    tx={tx}
+                    isCopied={copiedKey === tx.destAccountId}
+                    onCopyAmount={handleCopyAmount}
+                  />
+                ))}
+              </View>
+            </View>
+          )}
+
+          {externalTransfers.length === 0 && (
+            <View style={styles.singleAccountTip}>
+              <View style={styles.tipHeader}>
+                <Text style={styles.singleAccountTipTitle}>
+                  {t('cards.paydayTransfer.singleAccountProTipTitle')}
+                </Text>
+              </View>
+              <Text style={styles.singleAccountTipDesc}>
+                {t('cards.paydayTransfer.singleAccountProTipDesc')}
+              </Text>
+            </View>
+          )}
         </View>
       )}
     </View>
@@ -147,12 +161,31 @@ const styles = StyleSheet.create({
     borderRadius: 18,
     borderWidth: 1,
     borderColor: DESIGN_TOKENS.colors.slate[200],
-    padding: 16,
-    gap: 12,
+    overflow: 'hidden',
   },
-  header: {
+  cardHeaderToggle: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 16,
+  },
+  toggleTitleRow: {
     flexDirection: 'row',
     alignItems: 'center',
+    gap: 8,
+  },
+  headerCountText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: DESIGN_TOKENS.colors.textMuted,
+  },
+  contentWrap: {
+    paddingHorizontal: 16,
+    paddingBottom: 16,
+    gap: 12,
+    borderTopWidth: 1,
+    borderTopColor: DESIGN_TOKENS.colors.slate[100],
+    paddingTop: 12,
   },
   badgeWrap: {
     backgroundColor: DESIGN_TOKENS.colors.accentLight,

@@ -121,8 +121,8 @@ export const NextPaydayCard: React.FC<NextPaydayCardProps> = ({
                     </span>
                   )}
                   {isSaved && (
-                    <span className="px-1.5 py-0.5 bg-blue-100 text-blue-800 font-extrabold text-[9px] rounded uppercase tracking-wider border border-blue-200">
-                      {t('dashboard.nextPay.savedBadge')}
+                    <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 font-extrabold text-[9px] rounded uppercase tracking-wider border border-indigo-200 dark:border-indigo-800">
+                      <span>🔒</span> {t('dashboard.nextPay.savedBadge')}
                     </span>
                   )}
                 </div>
