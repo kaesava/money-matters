@@ -483,11 +483,51 @@ export const paydayRouter = {
           status: evt.status as "PENDING" | "CONFIRMED",
         }));
 
+      // Load saved/confirmed allocation plan overrides
+      const planRows = await ctx.db
+        .select({
+          id: allocationPlans.id,
+          incomeEventId: allocationPlans.incomeEventId,
+          status: allocationPlans.status,
+        })
+        .from(allocationPlans)
+        .where(
+          and(
+            eq(allocationPlans.tenantId, ctx.tenantId!),
+            eq(allocationPlans.appId, ctx.appId!),
+            sql`${allocationPlans.archivedAt} IS NULL`
+          )
+        );
+
+      const planIds = planRows.map((p) => p.id);
+      const cellOverrides: Record<string, number> = {};
+      if (planIds.length > 0) {
+        const lineRows = await ctx.db
+          .select({
+            planId: allocationPlanLines.planId,
+            envelopeId: allocationPlanLines.envelopeId,
+            proposedAmount: allocationPlanLines.proposedAmount,
+            confirmedAmount: allocationPlanLines.confirmedAmount,
+          })
+          .from(allocationPlanLines)
+          .where(inArray(allocationPlanLines.planId, planIds));
+
+        const planMap = new Map(planRows.map((p) => [p.id, p]));
+        for (const line of lineRows) {
+          const plan = planMap.get(line.planId);
+          if (plan) {
+            const amount = parseFloat(line.confirmedAmount || line.proposedAmount || "0");
+            cellOverrides[`${plan.incomeEventId}_${line.envelopeId}`] = amount;
+          }
+        }
+      }
+
       const projection = computeMatrixProjection({
         currentUserId: ctx.userId!,
         categories: engineBuckets,
         incomeEvents: matrixIncomeEvents,
         expenseEvents: matrixExpenseEvents,
+        cellOverrides,
         monthsAhead: input.monthsAhead,
       });
 

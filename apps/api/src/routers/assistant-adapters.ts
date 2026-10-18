@@ -1,5 +1,5 @@
-import { eq, and, sql, asc } from "drizzle-orm";
-import { envelopes, incomeEvents, DbOrTx } from "@money-matters/db";
+import { eq, and, sql, asc, or } from "drizzle-orm";
+import { envelopes, incomeEvents, DbOrTx, getEnvelopeBalancesMap } from "@money-matters/db";
 import { listBillCoverageQuery, previewPaydayQuery } from "@money-matters/capability-budgeting";
 import type { IntentHandlerPort, IntentContext } from "@money-matters/capability-assistant";
 import type { AssistantResult } from "@money-matters/types";
@@ -13,7 +13,8 @@ export function createAssistantIntentHandler(db: DbOrTx, appId: string): IntentH
         .where(
           and(
             eq(envelopes.tenantId, ctx.tenantId),
-            sql`${envelopes.envelopeType} IN ('TARGET_GOAL', 'ONGOING_GOAL')`
+            sql`${envelopes.envelopeType} IN ('TARGET_GOAL', 'ONGOING_GOAL')`,
+            or(eq(envelopes.isPrivate, false), eq(envelopes.userId, ctx.userId))
           )
         );
 
@@ -29,8 +30,9 @@ export function createAssistantIntentHandler(db: DbOrTx, appId: string): IntentH
         };
       }
 
+      const balancesMap = await getEnvelopeBalancesMap(ctx.tenantId, appId, db);
       const targetAmount = parseFloat(target.targetAmount || "0");
-      const currentBalance = parseFloat(target.monthlyAmount || "0");
+      const currentBalance = balancesMap[target.id] ?? 0;
 
       return {
         type: "answer",
@@ -51,12 +53,14 @@ export function createAssistantIntentHandler(db: DbOrTx, appId: string): IntentH
         .where(
           and(
             eq(envelopes.tenantId, ctx.tenantId),
-            eq(envelopes.envelopeType, "EVERYDAY")
+            eq(envelopes.envelopeType, "EVERYDAY"),
+            or(eq(envelopes.isPrivate, false), eq(envelopes.userId, ctx.userId))
           )
         );
 
       const everyday = rows[0];
-      const balance = everyday ? parseFloat(everyday.monthlyAmount || "0") : 0;
+      const balancesMap = await getEnvelopeBalancesMap(ctx.tenantId, appId, db);
+      const balance = everyday ? (balancesMap[everyday.id] ?? 0) : 0;
 
       return {
         type: "answer",

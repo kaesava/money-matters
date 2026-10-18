@@ -22,27 +22,40 @@ export function createScheduledNotificationFunctions(inngest: Inngest) {
     async ({ step }) => {
       const activeTenants = await step.run('fetch-active-tenants', async () => {
         const { tenants } = await import('@money-matters/db');
-        return await db.select().from(tenants);
+        return await db
+          .select()
+          .from(tenants)
+          .where(sql`${tenants.archivedAt} IS NULL`);
       });
 
-      for (const tenant of activeTenants) {
-        await step.run(`send-weekly-digest-email-${tenant.id}`, async () => {
+      const CHUNK_SIZE = 50;
+      for (let i = 0; i < activeTenants.length; i += CHUNK_SIZE) {
+        const chunk = activeTenants.slice(i, i + CHUNK_SIZE);
+        const chunkIndex = Math.floor(i / CHUNK_SIZE);
+        await step.run(`send-weekly-digest-batch-${chunkIndex}`, async () => {
           const { tenantUsers, users } = await import('@money-matters/db');
           const { eq, and } = await import('drizzle-orm');
-          const members = await db
-            .select({ email: users.email })
-            .from(tenantUsers)
-            .innerJoin(users, eq(tenantUsers.userId, users.id))
-            .where(and(eq(tenantUsers.tenantId, tenant.id), sql`${tenantUsers.archivedAt} IS NULL`));
 
-          for (const member of members) {
-            if (!member.email) continue;
-            await sendNotificationEmail(
-              member.email,
-              `Weekly Cashflow Summary — ${tenant.name}`,
-              `Here is your weekly budget summary for ${tenant.name}.\n\nLog in to Money Matters to review your 12-month cashflow matrix and payday allocations!`
-            );
-          }
+          await Promise.all(
+            chunk.map(async (tenant) => {
+              const members = await db
+                .select({ email: users.email })
+                .from(tenantUsers)
+                .innerJoin(users, eq(tenantUsers.userId, users.id))
+                .where(and(eq(tenantUsers.tenantId, tenant.id), sql`${tenantUsers.archivedAt} IS NULL`));
+
+              await Promise.all(
+                members.map(async (member) => {
+                  if (!member.email) return;
+                  await sendNotificationEmail(
+                    member.email,
+                    `Weekly Cashflow Summary — ${tenant.name}`,
+                    `Here is your weekly budget summary for ${tenant.name}.\n\nLog in to Money Matters to review your 12-month cashflow matrix and payday allocations!`
+                  );
+                })
+              );
+            })
+          );
         });
       }
 

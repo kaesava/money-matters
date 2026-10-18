@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
-import { AmountInput, InfoTooltip } from '@money-matters/ui/mobile';
+import { AmountInput, InfoTooltip, DESIGN_TOKENS } from '@money-matters/ui/mobile';
 import { t } from '@money-matters/i18n';
 import { formatAUD } from '../../lib/format';
 
@@ -75,7 +75,7 @@ const styles = StyleSheet.create({
   metricLabel: {
     fontSize: 12,
     fontWeight: '700',
-    color: '#1B2B4B',
+    color: DESIGN_TOKENS.colors.primary,
   },
   metricVal: {
     fontSize: 14,

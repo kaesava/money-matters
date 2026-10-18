@@ -37,7 +37,7 @@ export * from './StatCard';
 export * from '../hooks/IconVisibilityContext';
 export * from '../lib/format';
 export * from '../lib/is-dirty';
-export * from '../utils/formatDate';
+export * from '../dates/date-formatting';
 
 export * from './useResizableColumns';
 export * from './ResizableTh';
@@ -65,7 +65,7 @@ export * from './OtpInput';
 export * from './TypedConfirmDialog';
 export * from './fields/RecurrenceBuilder';
 export * from '../hooks/useRecurrenceBuilder';
-export * from '../utils/recurrence';
+export * from '../dates/recurrence';
 export * from '../hooks/DateLocaleContext';
 export * from './EnvelopeExplainer';
 export * from './GoalModeToggle';

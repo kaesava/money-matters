@@ -14,8 +14,11 @@ export async function verifyCheckoutSessionCommand(
   tenantId: string,
   sessionId: string
 ): Promise<{ verified: boolean; subscriptionStatus: "SUBSCRIBED" | "TRIAL_ACTIVE" }> {
-  // Handle dev/mock session ID
-  if (sessionId === "mock_checkout_session_success" || sessionId.startsWith("mock_")) {
+  // Handle dev/mock session ID (DEV/TEST ONLY)
+  if (
+    process.env.NODE_ENV !== "production" &&
+    (sessionId === "mock_checkout_session_success" || sessionId.startsWith("mock_"))
+  ) {
     const now = new Date();
     const oneYearLater = new Date(now.getTime() + 365 * 24 * 60 * 60 * 1000);
     await db

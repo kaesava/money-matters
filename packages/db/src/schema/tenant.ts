@@ -33,6 +33,7 @@ export const tenants = pgTable("tenants", {
   stripePriceId: varchar("stripe_price_id", { length: 255 }),
   subscribedAt: timestamp("subscribed_at", { withTimezone: true }),
   subscriptionEndsAt: timestamp("subscription_ends_at", { withTimezone: true }),
+  gracePeriodEndsAt: timestamp("grace_period_ends_at", { withTimezone: true }),
   cancelAtPeriodEnd: boolean("cancel_at_period_end").notNull().default(false),
   planType: varchar("plan_type", { length: 30 }),
   nextBillingAt: timestamp("next_billing_at", { withTimezone: true }),

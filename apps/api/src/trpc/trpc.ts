@@ -163,6 +163,23 @@ export const ownerProcedure = tenantProcedure.use(async ({ ctx, next }) => {
   });
 });
 
+export const privateOwnerProcedure = privateTenantProcedure.use(async ({ ctx, next }) => {
+  if (ctx.session?.role !== 'OWNER') {
+    throw new TRPCError({
+      code: 'FORBIDDEN',
+      message: 'Only the household owner has permission to perform this action.',
+    });
+  }
+  return next({
+    ctx: {
+      ...ctx,
+      tenantId: ctx.tenantId,
+      appId: ctx.appId,
+      userId: ctx.userId,
+    },
+  });
+});
+
 /**
  * Throws TRPCError FORBIDDEN if tenant's trial has ended.
  */

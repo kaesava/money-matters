@@ -37,13 +37,14 @@ export async function createCheckoutSessionCommand(
       targetPriceId;
   }
 
-  // Development / Mock Checkout Fallback if Stripe key is missing or dummy mock price ID is passed
+  // Development / Mock Checkout Fallback if Stripe key is missing or dummy mock price ID is passed (DEV/TEST ONLY)
   const isMockMode =
-    !stripeSecretKey ||
-    stripeSecretKey.includes("replace_me") ||
-    stripeSecretKey.includes("sk_test_mock") ||
-    !targetPriceId ||
-    targetPriceId.startsWith("price_mock_");
+    process.env.NODE_ENV !== "production" &&
+    (!stripeSecretKey ||
+      stripeSecretKey.includes("replace_me") ||
+      stripeSecretKey.includes("sk_test_mock") ||
+      !targetPriceId ||
+      targetPriceId.startsWith("price_mock_"));
 
   if (isMockMode) {
     // In dev / mock mode, grant subscription status directly or return mock success URL
@@ -76,6 +77,10 @@ export async function createCheckoutSessionCommand(
     mockSuccessUrl.searchParams.set("session_id", "mock_checkout_session_success");
     mockSuccessUrl.searchParams.set("mock", "true");
     return { url: mockSuccessUrl.toString() };
+  }
+
+  if (!stripeSecretKey) {
+    throw new Error("Stripe secret key is not configured.");
   }
 
   const stripe = new Stripe(stripeSecretKey);

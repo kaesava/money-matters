@@ -5,7 +5,7 @@ describe("Due-Date Guardrail Engine", () => {
   const futureDate = (daysFromNow: number) => {
     const d = new Date();
     d.setDate(d.getDate() + daysFromNow);
-    return d.toISOString().split("T")[0]!;
+    return new Intl.DateTimeFormat("en-CA", { timeZone: "Australia/Sydney" }).format(d);
   };
 
   const sampleBills: UpcomingBill[] = [

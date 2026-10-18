@@ -72,7 +72,7 @@ describe("E2E Core Monorepo Integration & Multi-Tenant Isolation Suite", () => {
   });
 
   it("E2E-03: Burst Recurrence Date Generation Math", () => {
-    const todayStr = new Date().toISOString().split("T")[0];
+    const todayStr = new Intl.DateTimeFormat("en-CA", { timeZone: "Australia/Sydney" }).format(new Date());
     const burstDates = generateBurstDates(
       "FREQ=MONTHLY",
       todayStr,

@@ -15,20 +15,21 @@ export interface JwtClaims {
   displayName?: string;
 }
 
-const NEON_AUTH_BASE_URL = process.env["NEON_AUTH_BASE_URL"];
-const NEON_AUTH_JWKS_URL = process.env["NEON_AUTH_JWKS_URL"];
-
-// Lazy-initialise the JWKS keyset once on first use.
+// Lazy-initialise the JWKS keyset on first use per JWKS URL.
 // createRemoteJWKSet caches keys internally and auto-rotates on key ID miss.
-let _jwks: ReturnType<typeof createRemoteJWKSet> | null = null;
-function getJwks(): ReturnType<typeof createRemoteJWKSet> {
-  if (!NEON_AUTH_JWKS_URL) {
+const _jwksMap = new Map<string, ReturnType<typeof createRemoteJWKSet>>();
+
+function getJwks(jwksUrl?: string): ReturnType<typeof createRemoteJWKSet> {
+  const urlStr = jwksUrl || process.env["NEON_AUTH_JWKS_URL"];
+  if (!urlStr) {
     throw new Error("NEON_AUTH_JWKS_URL environment variable is not set.");
   }
-  if (!_jwks) {
-    _jwks = createRemoteJWKSet(new URL(NEON_AUTH_JWKS_URL));
+  let jwks = _jwksMap.get(urlStr);
+  if (!jwks) {
+    jwks = createRemoteJWKSet(new URL(urlStr));
+    _jwksMap.set(urlStr, jwks);
   }
-  return _jwks;
+  return jwks;
 }
 
 /**
@@ -40,16 +41,19 @@ function getJwks(): ReturnType<typeof createRemoteJWKSet> {
  *
  * Returns null if the token is missing, expired, or fails signature verification.
  */
-export async function verifyJwt(token: string): Promise<JwtClaims | null> {
+export async function verifyJwt(
+  token: string,
+  env?: { NEON_AUTH_BASE_URL?: string; NEON_AUTH_JWKS_URL?: string }
+): Promise<JwtClaims | null> {
   if (!token) return null;
 
   try {
-    const issuer = NEON_AUTH_BASE_URL;
+    const issuer = env?.NEON_AUTH_BASE_URL || process.env["NEON_AUTH_BASE_URL"];
     if (!issuer) {
       throw new Error("NEON_AUTH_BASE_URL environment variable is not set.");
     }
 
-    const { payload } = await jwtVerify(token, getJwks(), {
+    const { payload } = await jwtVerify(token, getJwks(env?.NEON_AUTH_JWKS_URL), {
       issuer,
     });
 

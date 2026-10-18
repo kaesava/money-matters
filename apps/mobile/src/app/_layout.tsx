@@ -1,8 +1,10 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { AppState, AppStateStatus, Platform } from 'react-native';
-import { Stack, usePathname, useGlobalSearchParams } from 'expo-router';
+import { Stack, usePathname, useGlobalSearchParams, router } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import * as NavigationBar from 'expo-navigation-bar';
+import * as ScreenCapture from 'expo-screen-capture';
+import { initPushNotificationHandlers } from '../lib/push';
 import { AppProviders } from '../providers/AppProviders';
 import { DESIGN_TOKENS } from '@money-matters/ui/mobile';
 import { logger } from '../lib/logger';
@@ -41,6 +43,9 @@ function RootLayout() {
         if (typeof NavigationBar.setButtonStyleAsync === 'function') {
           NavigationBar.setButtonStyleAsync('dark').catch(() => {});
         }
+        if (typeof ScreenCapture.preventScreenCaptureAsync === 'function') {
+          ScreenCapture.preventScreenCaptureAsync().catch(() => {});
+        }
       } catch {
         // ignore
       }
@@ -72,8 +77,22 @@ function RootLayout() {
       appState.current = nextAppState;
     });
 
+    let pushCleanup: (() => void) | undefined;
+    initPushNotificationHandlers((url) => {
+      try {
+        if (url.startsWith("/")) {
+          router.push(url as any);
+        }
+      } catch (e) {
+        logger.warn("Failed to navigate to push notification route:", e);
+      }
+    }).then((cleanup) => {
+      pushCleanup = cleanup;
+    }).catch(() => {});
+
     return () => {
       subscription.remove();
+      if (pushCleanup) pushCleanup();
     };
   }, []);
 

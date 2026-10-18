@@ -12,7 +12,7 @@
     "build": "turbo run build",
     "check-i18n": "turbo run check-i18n",
     "dev": "npx concurrently -k -p \"[{name}]\" -n \"app,inngest,dbstudio\" -c \"cyan,magenta,black\" \"turbo run dev\" \"pnpm run dev:inngest\" \"pnpm run db:studio\"",
-    "dev:inngest": "npx inngest-cli@latest dev -u https://kesh-imac.tail09ef18.ts.net/api/inngest",
+    "dev:inngest": "npx inngest-cli@latest dev -u http://127.0.0.1:3000/api/inngest",
     "db:studio": "pnpm --filter=@money-matters/db studio",
     "lint": "turbo run lint",
     "typecheck": "turbo run typecheck",

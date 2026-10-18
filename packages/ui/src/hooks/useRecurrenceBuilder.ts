@@ -1,9 +1,9 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { fmtDateIso } from "../utils/formatDate";
+import { fmtDateIso } from "../dates/date-formatting";
 
-import { parseRecurrenceRule, buildRecurrenceRule } from "../utils/recurrence";
+import { parseRecurrenceRule, buildRecurrenceRule } from "../dates/recurrence";
 
 export type RecurrenceState = {
   isRecurring: boolean;

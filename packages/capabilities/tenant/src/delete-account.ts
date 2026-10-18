@@ -12,11 +12,14 @@ import {
   allocationPlanLines,
   deviceTokens,
   tenantUsers,
+  transferEvents,
+  billingInvoices,
   tenants,
   users,
   DbOrTx,
 } from "@money-matters/db";
 import { eq, and, sql, inArray, ne } from "drizzle-orm";
+import Stripe from "stripe";
 
 async function sendNotificationEmail(to: string, subject: string, bodyText: string) {
   if (!to || !process.env.RESEND_API_KEY) return;
@@ -59,6 +62,21 @@ export function deleteMyAccountHandler(db: DbOrTx) {
       .filter((id): id is string => Boolean(id));
     const allUserIdsToPurgeTokens: string[] = [userId, ...partnerUserIds];
 
+    // Check and cancel Stripe subscription if active before deleting database records (BILL-001)
+    const [tenantRecord] = await db
+      .select({ stripeSubscriptionId: tenants.stripeSubscriptionId })
+      .from(tenants)
+      .where(eq(tenants.id, tenantId))
+      .limit(1);
+
+    if (tenantRecord?.stripeSubscriptionId && process.env.STRIPE_SECRET_KEY) {
+      try {
+        const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
+        await stripe.subscriptions.cancel(tenantRecord.stripeSubscriptionId);
+      } catch (stripeErr) {
+        console.warn("Failed to cancel Stripe subscription during account deletion:", stripeErr);
+      }
+    }
 
     await db.transaction(async (tx) => {
       const [membership] = await tx
@@ -71,7 +89,7 @@ export function deleteMyAccountHandler(db: DbOrTx) {
         throw new Error("Only the Household Owner can delete the household tenant. Partners can leave the household.");
       }
 
-      // Hard delete all tenant records in FK-safe order
+      // Hard delete all tenant records in strict topological FK-safe order (SEC-011)
       if (allUserIdsToPurgeTokens.length > 0) {
         await tx.delete(deviceTokens).where(inArray(deviceTokens.userId, allUserIdsToPurgeTokens));
       }
@@ -85,6 +103,7 @@ export function deleteMyAccountHandler(db: DbOrTx) {
       await tx.delete(allocationPlans).where(and(eq(allocationPlans.tenantId, tenantId), eq(allocationPlans.appId, appId)));
 
       await tx.delete(expenseEvents).where(and(eq(expenseEvents.tenantId, tenantId), eq(expenseEvents.appId, appId)));
+      await tx.delete(transferEvents).where(and(eq(transferEvents.tenantId, tenantId), eq(transferEvents.appId, appId)));
 
       await tx.delete(incomeEvents).where(and(eq(incomeEvents.tenantId, tenantId), eq(incomeEvents.appId, appId)));
       await tx.delete(incomeSources).where(and(eq(incomeSources.tenantId, tenantId), eq(incomeSources.appId, appId)));
@@ -95,6 +114,7 @@ export function deleteMyAccountHandler(db: DbOrTx) {
       await tx.delete(tenantUserPreferences).where(eq(tenantUserPreferences.userId, userId));
       await tx.delete(bankAccounts).where(and(eq(bankAccounts.tenantId, tenantId), eq(bankAccounts.appId, appId)));
 
+      await tx.delete(billingInvoices).where(eq(billingInvoices.tenantId, tenantId));
       await tx.delete(tenantUsers).where(eq(tenantUsers.tenantId, tenantId));
       await tx.delete(tenants).where(eq(tenants.id, tenantId));
       await tx.delete(users).where(eq(users.id, userId));
@@ -134,70 +154,72 @@ export function deleteMyAccountHandler(db: DbOrTx) {
  */
 export function leaveTenantHandler(db: DbOrTx) {
   return async (tenantId: string, userId: string, email: string, appId: string) => {
-    const [membership] = await db
-      .select()
-      .from(tenantUsers)
-      .where(and(eq(tenantUsers.tenantId, tenantId), eq(tenantUsers.userId, userId)))
-      .limit(1);
+    return await db.transaction(async (tx) => {
+      const [membership] = await tx
+        .select()
+        .from(tenantUsers)
+        .where(and(eq(tenantUsers.tenantId, tenantId), eq(tenantUsers.userId, userId)))
+        .limit(1);
 
-    if (!membership) {
-      throw new Error("You are not a member of this household.");
-    }
-
-    const remainingMembers = await db
-      .select()
-      .from(tenantUsers)
-      .where(and(eq(tenantUsers.tenantId, tenantId), ne(tenantUsers.userId, userId)));
-
-    if (membership.role === "OWNER") {
-      if (remainingMembers.length === 0) {
-        throw new Error("You are the sole owner of this household. Please delete the household instead of leaving.");
+      if (!membership) {
+        throw new Error("You are not a member of this household.");
       }
-      const nextOwner = remainingMembers[0];
-      await db
-        .update(tenantUsers)
-        .set({ role: "OWNER", updatedAt: new Date(), updatedBy: userId })
-        .where(eq(tenantUsers.id, nextOwner.id));
 
-      if (nextOwner.inviteEmail) {
-        await sendNotificationEmail(
-          nextOwner.inviteEmail,
-          "Household Ownership Transferred to You",
-          `The former owner (${email}) has left the household. You are now the Household Owner.`
-        );
+      const remainingMembers = await tx
+        .select()
+        .from(tenantUsers)
+        .where(and(eq(tenantUsers.tenantId, tenantId), ne(tenantUsers.userId, userId)));
+
+      if (membership.role === "OWNER") {
+        if (remainingMembers.length === 0) {
+          throw new Error("You are the sole owner of this household. Please delete the household instead of leaving.");
+        }
+        const nextOwner = remainingMembers[0];
+        await tx
+          .update(tenantUsers)
+          .set({ role: "OWNER", updatedAt: new Date(), updatedBy: userId })
+          .where(eq(tenantUsers.id, nextOwner.id));
+
+        if (nextOwner.inviteEmail) {
+          await sendNotificationEmail(
+            nextOwner.inviteEmail,
+            "Household Ownership Transferred to You",
+            `The former owner (${email}) has left the household. You are now the Household Owner.`
+          );
+        }
+      } else {
+        const ownerMember = remainingMembers.find((m) => m.role === "OWNER");
+        if (ownerMember?.inviteEmail) {
+          await sendNotificationEmail(
+            ownerMember.inviteEmail,
+            "Household Member Left",
+            `${email} has left your household budget.`
+          );
+        }
       }
-    } else {
-      const ownerMember = remainingMembers.find((m) => m.role === "OWNER");
-      if (ownerMember?.inviteEmail) {
-        await sendNotificationEmail(
-          ownerMember.inviteEmail,
-          "Household Member Left",
-          `${email} has left your household budget.`
-        );
+
+      // Purge user's private bank accounts and linked envelopes
+      const privateBankAccs = await tx
+        .select({ id: bankAccounts.id })
+        .from(bankAccounts)
+        .where(and(eq(bankAccounts.tenantId, tenantId), eq(bankAccounts.userId, userId), eq(bankAccounts.isPrivate, true)));
+
+      const privateBankAccIds = privateBankAccs.map((b) => b.id);
+
+      if (privateBankAccIds.length > 0) {
+        await tx.delete(envelopes).where(inArray(envelopes.bankAccountId, privateBankAccIds));
+        await tx.delete(bankAccounts).where(inArray(bankAccounts.id, privateBankAccIds));
       }
-    }
 
-    // Purge user's private bank accounts and linked pools/categories
-    const privateBankAccs = await db
-      .select({ id: bankAccounts.id })
-      .from(bankAccounts)
-      .where(and(eq(bankAccounts.tenantId, tenantId), eq(bankAccounts.userId, userId), eq(bankAccounts.isPrivate, true)));
+      await tx.delete(tenantUserPreferences).where(and(eq(tenantUserPreferences.tenantId, tenantId), eq(tenantUserPreferences.userId, userId)));
+      await tx.delete(tenantUsers).where(and(eq(tenantUsers.tenantId, tenantId), eq(tenantUsers.userId, userId)));
 
-    const privateBankAccIds = privateBankAccs.map((b) => b.id);
+      const remainingTenantUsers = await tx
+        .select({ id: tenantUsers.id })
+        .from(tenantUsers)
+        .where(eq(tenantUsers.userId, userId));
 
-    if (privateBankAccIds.length > 0) {
-      await db.delete(envelopes).where(inArray(envelopes.bankAccountId, privateBankAccIds));
-      await db.delete(bankAccounts).where(inArray(bankAccounts.id, privateBankAccIds));
-    }
-
-    await db.delete(tenantUserPreferences).where(and(eq(tenantUserPreferences.tenantId, tenantId), eq(tenantUserPreferences.userId, userId)));
-    await db.delete(tenantUsers).where(and(eq(tenantUsers.tenantId, tenantId), eq(tenantUsers.userId, userId)));
-
-    const remainingTenantUsers = await db
-      .select({ id: tenantUsers.id })
-      .from(tenantUsers)
-      .where(eq(tenantUsers.userId, userId));
-
-    return { success: true, hasOtherHousehold: remainingTenantUsers.length > 0 };
+      return { success: true, hasOtherHousehold: remainingTenantUsers.length > 0 };
+    });
   };
 }

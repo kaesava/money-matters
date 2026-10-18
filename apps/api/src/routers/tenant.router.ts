@@ -1,4 +1,4 @@
-import { tenantProcedure, authenticatedProcedure, ownerProcedure, publicProcedure, privateTenantProcedure, requiresWriteAccess } from '../trpc/trpc.js';
+import { tenantProcedure, authenticatedProcedure, ownerProcedure, privateOwnerProcedure, publicProcedure, privateTenantProcedure, requiresWriteAccess } from '../trpc/trpc.js';
 import { MONEY_MATTERS_APP_ID } from '../trpc/context.js';
 import { db, userPreferences, tenantUserPreferences, bankAccounts, envelopes, transactionLedger, AppPreferencesBlob } from "@money-matters/db";
 import { and, eq, sql, or, inArray, asc, isNull } from "drizzle-orm";
@@ -40,17 +40,6 @@ export const tenantRouter = {
       requiresWriteAccess(ctx);
       const handler = invitePartnerHandler(ctx.db);
       const result = await handler(input, ctx.tenantId!, ctx.userId!);
-
-      const isDev = process.env.NODE_ENV === "development";
-      const originUrl =
-        process.env.APP_URL ||
-        (isDev ? "http://localhost:3000" : "https://moneymatters.kaesava.au");
-      const inviteUrl = `${originUrl}/invite/${result.inviteToken}`;
-      await sendNotificationEmail(
-        input.email,
-        "Invitation to Join Household Budget — Money Matters",
-        `You have been invited to collaborate on a household budget on Money Matters.\n\nClick the link below to accept your invitation:\n${inviteUrl}\n\nThis invitation will expire in 48 hours.`
-      );
 
       inngest.send({
         name: 'partner/invited',
@@ -360,7 +349,7 @@ export const tenantRouter = {
       return await handler(input.accountId, input.data, ctx.tenantId!, ctx.appId!, ctx.userId!);
     }),
 
-  archiveBankAccount: ownerProcedure
+  archiveBankAccount: privateOwnerProcedure
     .input(z.object({ accountId: z.string().uuid() }).strict())
     .mutation(async ({ input, ctx }) => {
       requiresWriteAccess(ctx);
@@ -491,7 +480,7 @@ export const tenantRouter = {
     }),
 
 
-  exportMyData: tenantProcedure
+  exportMyData: privateTenantProcedure
     .query(async ({ ctx }) => {
       const handler = exportDataHandler(ctx.db);
       return await handler(ctx.tenantId!, ctx.userId!, ctx.appId!);

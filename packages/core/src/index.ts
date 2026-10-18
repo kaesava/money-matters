@@ -8,3 +8,4 @@ export * from "./australian-calendar.js";
 export * from "./email.js";
 export * from "./guards/ensure-premium.js";
 export * from "./formatters.js";
+export * from "./security-headers.js";

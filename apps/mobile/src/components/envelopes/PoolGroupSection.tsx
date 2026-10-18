@@ -55,7 +55,7 @@ export function PoolGroupSection({
           <Feather
             name={isCollapsed ? 'chevron-right' : 'chevron-down'}
             size={16}
-            color="#1B2B4B"
+            color={DESIGN_TOKENS.colors.primary}
           />
           <Text style={styles.title}>{title}</Text>
           <Text style={styles.count}>({pools.length})</Text>

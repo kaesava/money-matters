@@ -43,13 +43,12 @@
     "expo-network": "~8.0.8",
     "expo-notifications": "~0.32.17",
     "expo-router": "6.0.24",
+    "expo-screen-capture": "~8.0.10",
     "expo-secure-store": "^15.0.8",
     "expo-sharing": "~14.0.8",
     "expo-sqlite": "16.0.10",
     "expo-status-bar": "3.0.9",
     "expo-web-browser": "~15.0.11",
-    "react-native-safe-area-context": "~5.6.0",
-    "react-native-screens": "~4.16.0",
     "jszip": "^3.10.1",
     "nativewind": "4.0.36",
     "posthog-react-native": "^4.61.2",
@@ -58,6 +57,8 @@
     "react-native": "0.81.5",
     "react-native-css-interop": "0.0.36",
     "react-native-reanimated": "~4.1.7",
+    "react-native-safe-area-context": "~5.6.0",
+    "react-native-screens": "~4.16.0",
     "react-native-svg": "15.12.1"
   },
   "devDependencies": {

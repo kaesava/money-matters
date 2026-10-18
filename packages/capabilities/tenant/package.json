@@ -18,6 +18,7 @@
     "@money-matters/types": "workspace:*",
     "@money-matters/i18n": "workspace:*",
     "drizzle-orm": "^0.39.0",
+    "stripe": "^17.5.0",
     "zod": "^3.23.8"
   },
   "devDependencies": {

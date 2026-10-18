@@ -16,5 +16,9 @@ coverage/
 test_credentials.txt
 seed_credentials.local.md
 *.credentials.local.*
+*.tsbuildinfo
 .tsbuildinfo
 .eslintcache
+.posthog-events.json
+vitest.workspace.js
+vitest.workspace.d.ts

@@ -400,47 +400,61 @@ export const incomeRouter = {
     .input(z.object({ id: z.string().uuid() }).strict())
     .mutation(async ({ input, ctx }) => {
       requiresWriteAccess(ctx);
-      const events = await ctx.db
-        .select()
-        .from(incomeEvents)
-        .where(eq(incomeEvents.incomeSourceId, input.id));
+      return await ctx.db.transaction(async (tx) => {
+        const events = await tx
+          .select()
+          .from(incomeEvents)
+          .where(
+            and(
+              eq(incomeEvents.incomeSourceId, input.id),
+              eq(incomeEvents.tenantId, ctx.tenantId!),
+              eq(incomeEvents.appId, ctx.appId!)
+            )
+          );
 
-      const confirmedEvents = events.filter((e) => e.status !== "PENDING");
-      const unperformedEvents = events.filter((e) => e.status === "PENDING");
+        const confirmedEvents = events.filter((e) => e.status !== "PENDING");
+        const unperformedEvents = events.filter((e) => e.status === "PENDING");
 
-      if (unperformedEvents.length > 0) {
-        await ctx.db
-          .update(incomeEvents)
-          .set({ archivedAt: new Date(), updatedBy: ctx.userId!, updatedAt: new Date() })
-          .where(inArray(incomeEvents.id, unperformedEvents.map((e) => e.id)));
-      }
+        if (unperformedEvents.length > 0) {
+          await tx
+            .update(incomeEvents)
+            .set({ archivedAt: new Date(), updatedBy: ctx.userId!, updatedAt: new Date() })
+            .where(
+              and(
+                inArray(incomeEvents.id, unperformedEvents.map((e) => e.id)),
+                eq(incomeEvents.tenantId, ctx.tenantId!),
+                eq(incomeEvents.appId, ctx.appId!)
+              )
+            );
+        }
 
-      const [archived] = await ctx.db
-        .update(incomeSources)
-        .set({
-          archivedAt: new Date(),
-          updatedBy: ctx.userId!,
-          updatedAt: new Date(),
-        })
-        .where(
-          and(
-            eq(incomeSources.id, input.id),
-            eq(incomeSources.tenantId, ctx.tenantId!),
-            eq(incomeSources.appId, ctx.appId!),
-            sql`${incomeSources.archivedAt} IS NULL`
+        const [archived] = await tx
+          .update(incomeSources)
+          .set({
+            archivedAt: new Date(),
+            updatedBy: ctx.userId!,
+            updatedAt: new Date(),
+          })
+          .where(
+            and(
+              eq(incomeSources.id, input.id),
+              eq(incomeSources.tenantId, ctx.tenantId!),
+              eq(incomeSources.appId, ctx.appId!),
+              sql`${incomeSources.archivedAt} IS NULL`
+            )
           )
-        )
-        .returning();
+          .returning();
 
-      if (!archived) {
-        throw new Error("Income source not found or access unauthorized.");
-      }
+        if (!archived) {
+          throw new Error("Income source not found or access unauthorized.");
+        }
 
-      return {
-        success: true,
-        deletedUnperformedCount: unperformedEvents.length,
-        hasConfirmedHistory: confirmedEvents.length > 0,
-      };
+        return {
+          success: true,
+          deletedUnperformedCount: unperformedEvents.length,
+          hasConfirmedHistory: confirmedEvents.length > 0,
+        };
+      });
     }),
 
   createUpcomingIncome: privateTenantProcedure
@@ -596,31 +610,7 @@ export const incomeRouter = {
     .input(
       z.object({
         eventId: z.string().uuid(),
-      }).strict()
-    )
-    .mutation(async ({ input, ctx }) => {
-      requiresWriteAccess(ctx);
-      await ctx.db
-        .update(incomeEvents)
-        .set({
-          archivedAt: new Date(),
-          updatedAt: new Date(),
-          updatedBy: ctx.userId!,
-        })
-        .where(
-          and(
-            eq(incomeEvents.id, input.eventId),
-            eq(incomeEvents.tenantId, ctx.tenantId!),
-            eq(incomeEvents.appId, ctx.appId!)
-          )
-        );
-      return { success: true };
-    }),
-
-  skipIncomeEvent: privateTenantProcedure
-    .input(
-      z.object({
-        eventId: z.string().uuid(),
+        status: z.enum(["SKIPPED", "DELETED"]).optional(),
       }).strict()
     )
     .mutation(async ({ input, ctx }) => {

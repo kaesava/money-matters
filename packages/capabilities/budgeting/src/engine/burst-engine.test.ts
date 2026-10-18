@@ -27,22 +27,24 @@ describe('Recurrence Burst Date Engine', () => {
     const dates = generateBurstDates('FREQ=WEEKLY', '2026-08-01', null, 2);
     // 2026-08-01 is in the past; first generated date should match or equal the start date
     expect(dates.length).toBeGreaterThan(0);
-    const firstDateStr = dates[0].toISOString().split('T')[0];
+    const fmtAest = (d: Date) => new Intl.DateTimeFormat('en-CA', { timeZone: 'Australia/Sydney' }).format(d);
+    const firstDateStr = fmtAest(dates[0]);
     expect(firstDateStr).toBe('2026-08-01');
   });
 
   it('generates all occurrences from past startDate up to today + 12 months horizon (or endDate if sooner)', () => {
+    const fmtAest = (d: Date) => new Intl.DateTimeFormat('en-CA', { timeZone: 'Australia/Sydney' }).format(d);
     const now = new Date();
     // Start date 12 months ago
-    const pastStart = new Date(now.getFullYear(), now.getMonth() - 12, now.getDate()).toISOString().split('T')[0];
+    const pastStart = fmtAest(new Date(now.getFullYear(), now.getMonth() - 12, now.getDate()));
     // End date 6 months in the future -> expecting ~18-19 monthly occurrences (12 past + 6 future + start)
-    const futureEnd6 = new Date(now.getFullYear(), now.getMonth() + 6, now.getDate()).toISOString().split('T')[0];
+    const futureEnd6 = fmtAest(new Date(now.getFullYear(), now.getMonth() + 6, now.getDate()));
     const dates18 = generateBurstDates('FREQ=MONTHLY', pastStart, futureEnd6, 12);
     expect(dates18.length).toBeGreaterThanOrEqual(18);
     expect(dates18.length).toBeLessThanOrEqual(20);
 
     // End date 24 months in future -> capped by 12 months ahead cutoff -> expecting ~24-25 monthly occurrences (12 past + 12 future + start)
-    const futureEnd24 = new Date(now.getFullYear(), now.getMonth() + 24, now.getDate()).toISOString().split('T')[0];
+    const futureEnd24 = fmtAest(new Date(now.getFullYear(), now.getMonth() + 24, now.getDate()));
     const dates24 = generateBurstDates('FREQ=MONTHLY', pastStart, futureEnd24, 12);
     expect(dates24.length).toBeGreaterThanOrEqual(24);
     expect(dates24.length).toBeLessThanOrEqual(26);

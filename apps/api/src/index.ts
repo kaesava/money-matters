@@ -8,7 +8,7 @@ import { inngest } from "./inngest/client.js";
 import { functions } from "./inngest/index.js";
 import { serve } from "inngest/fastify";
 import { validateEnv } from '@money-matters/config';
-import { correlationIdHook, rateLimiter } from '@money-matters/core';
+import { correlationIdHook, rateLimiter, CANONICAL_SECURITY_HEADERS } from '@money-matters/core';
 import * as Sentry from "@sentry/node";
 import { posthog } from './lib/posthog.js';
 
@@ -25,6 +25,11 @@ const server = fastify({
 });
 
 server.addHook("onRequest", correlationIdHook);
+server.addHook("onSend", async (_request, reply) => {
+  for (const [key, value] of Object.entries(CANONICAL_SECURITY_HEADERS)) {
+    reply.header(key, value);
+  }
+});
 server.register(rateLimiter);
 
 server.register(helmet, {
@@ -109,6 +114,12 @@ server.get('/dev-callback/*', async (req, reply) => {
   if (segments.length >= 2) {
     const proto = decodeURIComponent(segments[0]);
     const hostAndPath = decodeURIComponent(segments.slice(1).join('/'));
+    const hostOnly = hostAndPath.split('/')[0].split(':')[0];
+    const isAllowedHost = hostOnly === 'localhost' || hostOnly === '127.0.0.1' || hostOnly.endsWith('.kaesava.au');
+    if (!isAllowedHost) {
+      return reply.code(403).send({ error: 'Forbidden host.' });
+    }
+
     const customTarget = fullUrl.searchParams.get('target') || '/auth-callback';
     
     try {

@@ -4,8 +4,13 @@ import { PostHogProvider } from 'posthog-react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { trpc, buildTrpcClient } from '../lib/trpc';
 import { authClient } from '../lib/auth';
-import { NotificationServiceProvider } from '@money-matters/capability-notifications/mobile';
-import { IconVisibilityProvider, MobileToastProvider, MobileToastContainer, DateLocaleProvider } from '@money-matters/ui/mobile';
+import {
+  IconVisibilityProvider,
+  MobileToastProvider,
+  MobileToastContainer,
+  DateLocaleProvider,
+  NotificationServiceProvider,
+} from '@money-matters/ui/mobile';
 import { setLanguage, SupportedLanguage } from '@money-matters/i18n';
 import { setMobileLocaleConfig } from '../lib/format';
 import { posthog } from '../config/posthog';
@@ -16,8 +21,15 @@ interface AppProvidersProps {
 
 function MobilePreferencesSync({ children }: { children: React.ReactNode }) {
   const { data: session } = authClient.useSession();
-  const userPrefQuery = trpc.getUserPreferences.useQuery(undefined, {
+  const tenantStatusQuery = trpc.getTenantStatus.useQuery(undefined, {
     enabled: !!session?.user,
+    retry: false,
+    staleTime: 60_000,
+  });
+  const hasTenant = tenantStatusQuery.data?.hasTenant ?? false;
+
+  const userPrefQuery = trpc.getUserPreferences.useQuery(undefined, {
+    enabled: !!session?.user && hasTenant,
     retry: false,
     staleTime: 60_000,
   });

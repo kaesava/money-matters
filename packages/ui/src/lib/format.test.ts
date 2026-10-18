@@ -8,7 +8,7 @@ import {
   getCurrencyMinorUnits,
   fmtDateTime,
 } from "./format";
-import { fmtDate, fmtDateMedium, fmtDateIso } from "../utils/formatDate";
+import { fmtDate, fmtDateMedium, fmtDateIso } from "../dates/date-formatting";
 
 describe("UI Format Utilities", () => {
   it("formats AUD currency correctly in en-AU", () => {

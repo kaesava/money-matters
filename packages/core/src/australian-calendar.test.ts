@@ -17,7 +17,8 @@ describe("Australian Calendar & Banking Settlement Utilities", () => {
     const adjusted = adjustForBankingCalendar(goodFriday, "PREVIOUS_BUSINESS_DAY");
 
     // Thursday April 2nd is the previous business day before Good Friday
-    expect(adjusted.toISOString().split("T")[0]).toBe("2026-04-02");
+    const dateStr = new Intl.DateTimeFormat("en-CA", { timeZone: "Australia/Sydney" }).format(adjusted);
+    expect(dateStr).toBe("2026-04-02");
   });
 
   it("calculates Sydney timezone offset for AEST vs AEDT correctly", () => {

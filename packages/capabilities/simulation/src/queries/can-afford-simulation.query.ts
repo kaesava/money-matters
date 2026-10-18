@@ -23,13 +23,14 @@ import {
   type DbOrTx,
 } from "@money-matters/db";
 import { eq, and, sql } from "drizzle-orm";
-import {
-  runCumulativeProjection,
-  type CumulativeProjectionIncomeEvent,
-  type CumulativeProjectionExpenseEvent,
-  type EngineBucket,
-} from "@money-matters/capability-budgeting";
-import type { CanAffordVerdictType, OneOffGoalAlternative } from "@money-matters/types";
+import type {
+  CanAffordVerdictType,
+  OneOffGoalAlternative,
+  ProjectionEngineFn,
+  ProjectionEngineBucket,
+  ProjectionIncomeEvent,
+  ProjectionExpenseEvent,
+} from "@money-matters/types";
 import { getTenantDateString } from "@money-matters/core";
 
 const getAestDateString = (d: Date = new Date()) => getTenantDateString(d);
@@ -61,8 +62,11 @@ export async function canAffordSimulationQuery(
   },
   tenantId: string,
   appId: string,
-  _userId: string,
-  dbClient: DbOrTx
+  userId: string,
+  dbClient: DbOrTx,
+  deps: {
+    projectionEngine: ProjectionEngineFn;
+  }
 ): Promise<CanAffordVerdictType> {
   const amount = parseFloat(input.amount);
   const mode = input.mode ?? "ONE_OFF";
@@ -147,7 +151,9 @@ export async function canAffordSimulationQuery(
     ]);
 
   // ── 2. FILTER ENVELOPES BY PRIVACY ─────────────────────────────────────────
-  const visibleEnvelopes = dbEnvelopes.filter((e) => includePersonal || !e.isPrivate);
+  const visibleEnvelopes = dbEnvelopes.filter((e) =>
+    e.isPrivate ? (includePersonal && e.userId === userId) : true
+  );
   const everydayEnvelopes = visibleEnvelopes.filter((e) => e.envelopeType === "EVERYDAY");
   const billEnvelopes = visibleEnvelopes.filter((e) => e.envelopeType === "SCHEDULED_BILL" || e.envelopeType === "FLEXIBLE_BILL");
   const goalEnvelopes = visibleEnvelopes.filter((e) => e.envelopeType === "TARGET_GOAL" || e.envelopeType === "ONGOING_GOAL");
@@ -223,7 +229,7 @@ export async function canAffordSimulationQuery(
   const safeCushion = safeCushionVal.toFixed(2);
 
   // ── 7. BUILD ENGINE BUCKETS ───────────────────────────────────────────
-  const engineBuckets: EngineBucket[] = visibleEnvelopes.map((env) => {
+  const engineBuckets: ProjectionEngineBucket[] = visibleEnvelopes.map((env) => {
     const balance = envelopeBalancesMap[env.id] ?? 0;
     return {
       id: env.id,
@@ -254,7 +260,7 @@ export async function canAffordSimulationQuery(
       : undefined;
 
     // --- 12-Month Projection Setup ---
-    const phantomBucket: EngineBucket = {
+    const phantomBucket: ProjectionEngineBucket = {
       id: `__phantom_recurring__`,
       name: input.itemName ?? "New Recurring Commitment",
       type: "REGULAR",
@@ -267,7 +273,7 @@ export async function canAffordSimulationQuery(
       isPrivate: false,
     };
 
-    const baseExpenses: CumulativeProjectionExpenseEvent[] = pendingExpensesRaw.map((e) => ({
+    const baseExpenses: ProjectionExpenseEvent[] = pendingExpensesRaw.map((e) => ({
       poolId: e.envelopeId,
       dueDate: e.expectedDate,
       amount: parseFloat(e.expectedAmount),
@@ -275,7 +281,7 @@ export async function canAffordSimulationQuery(
     }));
 
     // Inject calendar-matched phantom expense events over 12-month horizon
-    const phantomExpenses: CumulativeProjectionExpenseEvent[] = [];
+    const phantomExpenses: ProjectionExpenseEvent[] = [];
     let count = 12;
     if (frequency === "WEEKLY") count = 52;
     else if (frequency === "FORTNIGHTLY") count = 26;
@@ -305,7 +311,7 @@ export async function canAffordSimulationQuery(
       });
     }
 
-    const cumIncomes: CumulativeProjectionIncomeEvent[] = sortedIncomes.map((e) => ({
+    const cumIncomes: ProjectionIncomeEvent[] = sortedIncomes.map((e) => ({
       id: e.id,
       sourceName: e.sourceName,
       expectedDate: e.expectedDate,
@@ -316,14 +322,14 @@ export async function canAffordSimulationQuery(
     }));
 
     // Projection WITHOUT phantom — baseline goal final balances
-    const projectionWithout = runCumulativeProjection({
+    const projectionWithout = deps.projectionEngine({
       categories: engineBuckets,
       incomeEvents: cumIncomes,
       expenseEvents: baseExpenses,
     });
 
     // Projection WITH phantom bucket & injected expenses
-    const projectionWith = runCumulativeProjection({
+    const projectionWith = deps.projectionEngine({
       categories: [...engineBuckets, phantomBucket],
       incomeEvents: cumIncomes,
       expenseEvents: [...baseExpenses, ...phantomExpenses],
@@ -571,14 +577,14 @@ export async function canAffordSimulationQuery(
   }
 
   // Run cumulative projection to find earliest paycycle where Everyday cash accumulates enough
-  const cumExpenses: CumulativeProjectionExpenseEvent[] = pendingExpensesRaw.map((e) => ({
+  const cumExpenses: ProjectionExpenseEvent[] = pendingExpensesRaw.map((e) => ({
     poolId: e.envelopeId,
     dueDate: e.expectedDate,
     amount: parseFloat(e.expectedAmount),
     status: e.status as "PENDING" | "CONFIRMED",
   }));
 
-  const cumIncomes: CumulativeProjectionIncomeEvent[] = sortedIncomes.map((e) => ({
+  const cumIncomes: ProjectionIncomeEvent[] = sortedIncomes.map((e) => ({
     id: e.id,
     sourceName: e.sourceName,
     expectedDate: e.expectedDate,
@@ -588,7 +594,7 @@ export async function canAffordSimulationQuery(
     rrule: e.rrule,
   }));
 
-  const projection = runCumulativeProjection({
+  const projection = deps.projectionEngine({
     categories: engineBuckets,
     incomeEvents: cumIncomes,
     expenseEvents: cumExpenses,

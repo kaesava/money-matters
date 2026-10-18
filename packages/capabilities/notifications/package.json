@@ -10,11 +10,6 @@
       "types": "./src/index.ts",
       "import": "./src/index.ts",
       "require": "./src/index.ts"
-    },
-    "./mobile": {
-      "types": "./src/mobile/index.ts",
-      "import": "./src/mobile/index.ts",
-      "require": "./src/mobile/index.ts"
     }
   },
   "dependencies": {
@@ -24,12 +19,7 @@
     "@money-matters/i18n": "workspace:*",
     "drizzle-orm": "^0.39.0",
     "zod": "^3.22.4",
-    "inngest": "^3.12.0",
-    "expo-notifications": "~0.32.17",
-    "expo-device": "~8.0.10",
-    "expo-constants": "~18.0.14",
-    "react": "19.1.0",
-    "react-native": "0.81.5"
+    "inngest": "^3.12.0"
   },
   "devDependencies": {
     "typescript": "^6.0.3",

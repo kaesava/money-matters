@@ -28,6 +28,10 @@ export async function recordExpenseCommand(
       throw new Error("Envelope target invalid or access unauthorized.");
     }
 
+    if (envelope.isPrivate && envelope.userId !== userId) {
+      throw new Error("Unauthorized: Cannot record expenses against partner's private envelope.");
+    }
+
     // 2. Insert expense ledger debit
     const [expense] = await tx
       .insert(transactionLedger)

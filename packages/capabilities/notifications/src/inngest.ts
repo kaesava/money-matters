@@ -66,6 +66,7 @@ export function createNotificationFunctions(inngest: Inngest) {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(messages),
+          signal: AbortSignal.timeout(5000),
         });
 
         if (!response.ok) {

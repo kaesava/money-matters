@@ -11,7 +11,6 @@ export * from "./queries/list-envelopes.query.js";
 export * from "./queries/get-monthly-summary.query.js";
 export * from "./queries/list-archived-items.query.js";
 export * from "./queries/preview-allocation.query.js";
-export * from "./commands/confirm-allocation.command.js";
 export * from "./engine/allocation-engine.js";
 export * from "./engine/burst-engine.js";
 export * from "./commands/override-event.command.js";

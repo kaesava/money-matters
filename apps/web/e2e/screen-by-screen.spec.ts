@@ -199,6 +199,22 @@ test.describe('100% Comprehensive Field-by-Field Screen-by-Screen E2E Master Sui
       }
     });
 
+    test('2.4 Reset Password Screen Field-by-Field Audit (`/reset-password`)', async ({ page }) => {
+      // Direct navigation without token shows invalid token warning
+      await page.goto('/reset-password');
+      await expect(page.locator('h1')).toBeVisible();
+
+      // Navigation with token displays password inputs
+      await page.goto('/reset-password?token=mock-valid-token-12345');
+      const passwordInputs = page.locator('input[type="password"]');
+      if (await passwordInputs.first().isVisible()) {
+        await passwordInputs.first().fill('NewSecurePass123!');
+        await passwordInputs.nth(1).fill('NewSecurePass123!');
+        const submitBtn = page.locator('button[type="submit"]');
+        await expect(submitBtn).toBeEnabled();
+      }
+    });
+
     test('2.5 Partner Invite Unauthenticated Redirect Audit (`/invite/sample-token-123`)', async ({ page }) => {
       await page.goto('/invite/sample-token-123');
 

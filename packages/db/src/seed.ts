@@ -113,34 +113,38 @@ export async function seedDatabase(connectionString: string, envLabel: string) {
 
   // 1. Primary User: kaesava@gmail.com
   const tenantId = "d3b07384-d113-4ec4-a5a4-000000000001";
-  const kaesavaPassword = "Password123!";
+  const kaesavaPassword = process.env.SEED_ADMIN_PASSWORD || (isProd ? crypto.randomUUID() : "Password123!");
   const userId = await ensureNeonAuthUser("kaesava@gmail.com", kaesavaPassword, "Kaesava", "d3b07384-d113-4ec4-a5a4-000000000001");
 
   // 2. Partner User: snehaparkhi@gmail.com
   const snehaEmail = "snehaparkhi@gmail.com";
-  const snehaPassword = "Password123!";
+  const snehaPassword = process.env.SEED_PARTNER_PASSWORD || (isProd ? crypto.randomUUID() : "Password123!");
   const snehaUserId = await ensureNeonAuthUser(snehaEmail, snehaPassword, "Sneha", "d3b07384-d113-4ec4-a5a4-000000000004");
 
   // 3. Secondary Multi-Tenant User: raehankaesava@gmail.com
   const raehanEmail = "raehankaesava@gmail.com";
-  const raehanPassword = "Password123!";
+  const raehanPassword = process.env.SEED_MEMBER_PASSWORD || (isProd ? crypto.randomUUID() : "Password123!");
   const raehanTenantId = "d3b07384-d113-4ec4-a5a4-000000000003";
   const raehanUserId = await ensureNeonAuthUser(raehanEmail, raehanPassword, "Raehan Kaesava", "d3b07384-d113-4ec4-a5a4-000000000003");
 
   // 4. Play Store Tester User: tester-play@kaesava.au
   const testerEmail = "tester-play@kaesava.au";
-  const testerPassword = isProd ? "whtVT!lNWPp9yb" : "j0niOxWVA7nt#c";
+  const testerPassword = process.env.SEED_TESTER_PASSWORD || (isProd ? crypto.randomUUID() : "Password123!");
   const testerTenantId = "d3b07384-d113-4ec4-a5a4-000000000002";
   const testerUserId = await ensureNeonAuthUser(testerEmail, testerPassword, "Play Store Tester", "d3b07384-d113-4ec4-a5a4-000000000002");
 
-  // Clean all application and auth tables across neon_auth and public schemas (clean slate)
-  try {
-    await db.execute(sql`DELETE FROM neon_auth.session`);
-    await db.execute(sql`DELETE FROM neon_auth.verification`);
-    await db.execute(sql`DELETE FROM neon_auth.account WHERE "userId" NOT IN (${userId}, ${snehaUserId}, ${raehanUserId}, ${testerUserId})`);
-    await db.execute(sql`DELETE FROM neon_auth.user WHERE id NOT IN (${userId}, ${snehaUserId}, ${raehanUserId}, ${testerUserId})`);
-  } catch (err) {
-    console.log("neon_auth schema clean slate notice:", err instanceof Error ? err.message : err);
+  // Clean all application and auth tables across neon_auth and public schemas (clean slate - non-production only)
+  if (!isProd && process.env.NODE_ENV !== "production") {
+    try {
+      await db.execute(sql`DELETE FROM neon_auth.session`);
+      await db.execute(sql`DELETE FROM neon_auth.verification`);
+      await db.execute(sql`DELETE FROM neon_auth.account WHERE "userId" NOT IN (${userId}, ${snehaUserId}, ${raehanUserId}, ${testerUserId})`);
+      await db.execute(sql`DELETE FROM neon_auth.user WHERE id NOT IN (${userId}, ${snehaUserId}, ${raehanUserId}, ${testerUserId})`);
+    } catch (err) {
+      console.log("neon_auth schema clean slate notice:", err instanceof Error ? err.message : err);
+    }
+  } else {
+    console.log("Skipping destructive neon_auth table truncation in production environment.");
   }
 
   try {

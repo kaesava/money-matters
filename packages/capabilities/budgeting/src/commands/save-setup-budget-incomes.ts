@@ -5,7 +5,7 @@ import {
   IncomeScheduleCandidate,
   buildIncomeEventPayloads,
   insertIncomeEventsBulk,
-} from "./save-setup-budget-helpers.js";
+} from "./save-setup-budget-calculators.js";
 import { archivePendingIncomeEvents, synchronizeUpdatedIncomeEvents } from "./save-setup-budget-sync.js";
 
 export interface SaveSetupIncomeInput {

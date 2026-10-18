@@ -32,6 +32,10 @@ export async function moveMoneyCommand(
       throw new Error("Source envelope invalid or access unauthorized.");
     }
 
+    if (sourceEnv.isPrivate && sourceEnv.userId !== userId) {
+      throw new Error("Unauthorized: Cannot move money from partner's private envelope.");
+    }
+
     // 2. Verify access to destination envelope
     const [destEnv] = await tx
       .select()
@@ -46,6 +50,10 @@ export async function moveMoneyCommand(
 
     if (!destEnv) {
       throw new Error("Destination envelope invalid or access unauthorized.");
+    }
+
+    if (destEnv.isPrivate && destEnv.userId !== userId) {
+      throw new Error("Unauthorized: Cannot move money to partner's private envelope.");
     }
 
     // 3. Verify sufficient balance in source envelope
@@ -70,7 +78,30 @@ export async function moveMoneyCommand(
       ? cleanUserNote
       : `Transfer from ${sourceEnv.name}`;
     const timestamp = new Date();
-    const commonId = randomUUID();
+    const commonId = input.idempotencyKey || randomUUID();
+    const debitKey = `move-debit-${commonId}`;
+    const creditKey = `move-credit-${commonId}`;
+
+    // Check if transfer with client idempotency key was already executed
+    if (input.idempotencyKey) {
+      const ledgerQuery = tx
+        .select({ id: transactionLedger.id })
+        .from(transactionLedger)
+        .where(
+          and(
+            eq(transactionLedger.tenantId, tenantId),
+            eq(transactionLedger.idempotencyKey, debitKey)
+          )
+        );
+
+      const existingRows = typeof (ledgerQuery as any).limit === "function"
+        ? await (ledgerQuery as any).limit(1)
+        : await ledgerQuery;
+
+      if (existingRows && existingRows.length > 0 && existingRows[0]?.id) {
+        return { success: true };
+      }
+    }
 
     // 4. Bulk insert DEBIT and CREDIT transactions in single SQL statement
     await tx.insert(transactionLedger).values([
@@ -80,7 +111,7 @@ export async function moveMoneyCommand(
         flowType: "DEBIT",
         transactionType: "TRANSFER_OUT",
         amount: input.amount,
-        idempotencyKey: `move-debit-${commonId}`,
+        idempotencyKey: debitKey,
         transferGroupId: commonId,
         note: debitNote,
         source: "MANUAL",
@@ -96,7 +127,7 @@ export async function moveMoneyCommand(
         flowType: "CREDIT",
         transactionType: "TRANSFER_IN",
         amount: input.amount,
-        idempotencyKey: `move-credit-${commonId}`,
+        idempotencyKey: creditKey,
         transferGroupId: commonId,
         note: creditNote,
         source: "MANUAL",

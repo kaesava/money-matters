@@ -4,7 +4,7 @@ import React, { useId, useRef, useState, useEffect } from 'react';
 import { Calendar } from 'lucide-react';
 import { FormLabel } from '../FormLabel';
 import { FormFieldError } from '../FormFieldError';
-import { fmtDate } from '../../utils/formatDate';
+import { fmtDate } from '../../dates/date-formatting';
 import { useDateLocale } from '../../hooks/DateLocaleContext';
 
 export interface DatePickerFieldProps {

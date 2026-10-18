@@ -25,7 +25,7 @@ export function PoolHistorySection({
     <>
       <View style={[styles.sectionHeaderRow, { marginTop: 24 }]}>
         <TouchableOpacity onPress={onToggleExpand} style={styles.accordionHeaderBtn} activeOpacity={0.7}>
-          <Feather name={expanded ? 'chevron-down' : 'chevron-right'} size={16} color="#1B2B4B" />
+          <Feather name={expanded ? 'chevron-down' : 'chevron-right'} size={16} color={DESIGN_TOKENS.colors.primary} />
           <Text style={styles.sectionTitle}>
             {t('categories.recentHistory')} ({transactions.length})
           </Text>

@@ -284,6 +284,7 @@
 | `stripePriceId` | varchar | - | Domain column |
 | `subscribedAt` | timestamp | - | Domain column |
 | `subscriptionEndsAt` | timestamp | - | Domain column |
+| `gracePeriodEndsAt` | timestamp | - | Domain column (7-day read-only grace period on payment failure) |
 | `cancelAtPeriodEnd` | boolean | - | Domain column |
 | `planType` | varchar | - | Domain column |
 | `nextBillingAt` | timestamp | - | Domain column |

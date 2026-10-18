@@ -1,4 +1,4 @@
-import { pgTable, uuid, numeric, text, timestamp, pgEnum } from "drizzle-orm/pg-core";
+import { pgTable, uuid, numeric, text, timestamp, pgEnum, index } from "drizzle-orm/pg-core";
 import { envelopes } from "./envelope.js";
 import { bankAccounts } from "./bank_account.js";
 import { allocationPlanLines } from "./allocation_plan_line.js";
@@ -17,21 +17,30 @@ export const transactionTypeEnum = pgEnum("transaction_type_enum", [
   "OPENING_BALANCE",
 ]);
 
-export const transactionLedger = pgTable("transaction_ledger", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  envelopeId: uuid("envelope_id").references(() => envelopes.id).notNull(),
-  bankAccountId: uuid("bank_account_id").references(() => bankAccounts.id), // Nullable, tracks associated bank flow
-  planLineId: uuid("plan_line_id").references(() => allocationPlanLines.id), // Ties confirmed allocation line splits to ledger credits
-  flowType: transactionFlowEnum("flow_type").notNull(),
-  transactionType: transactionTypeEnum("transaction_type").notNull().default("EXPENSE"),
-  amount: numeric("amount", { precision: 12, scale: 2 }).notNull(),
-  idempotencyKey: text("idempotency_key").unique().notNull(),
-  note: text("note"),
-  source: transactionSourceEnum("source").notNull().default("MANUAL"),
-  transferGroupId: uuid("transfer_group_id"),
-  recordedAt: timestamp("recorded_at", { withTimezone: true }).notNull().defaultNow(),
-  ...tenantAndTimestamps,
-});
+export const transactionLedger = pgTable(
+  "transaction_ledger",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    envelopeId: uuid("envelope_id").references(() => envelopes.id).notNull(),
+    bankAccountId: uuid("bank_account_id").references(() => bankAccounts.id), // Nullable, tracks associated bank flow
+    planLineId: uuid("plan_line_id").references(() => allocationPlanLines.id), // Ties confirmed allocation line splits to ledger credits
+    flowType: transactionFlowEnum("flow_type").notNull(),
+    transactionType: transactionTypeEnum("transaction_type").notNull().default("EXPENSE"),
+    amount: numeric("amount", { precision: 12, scale: 2 }).notNull(),
+    idempotencyKey: text("idempotency_key").unique().notNull(),
+    note: text("note"),
+    source: transactionSourceEnum("source").notNull().default("MANUAL"),
+    transferGroupId: uuid("transfer_group_id"),
+    recordedAt: timestamp("recorded_at", { withTimezone: true }).notNull().defaultNow(),
+    ...tenantAndTimestamps,
+  },
+  (table) => [
+    index("transaction_ledger_tenant_recorded_idx").on(table.tenantId, table.recordedAt),
+    index("transaction_ledger_envelope_id_idx").on(table.envelopeId),
+    index("transaction_ledger_bank_account_id_idx").on(table.bankAccountId),
+    index("transaction_ledger_plan_line_id_idx").on(table.planLineId),
+  ]
+);
 
 export type TransactionLedger = typeof transactionLedger.$inferSelect;
 export type NewTransactionLedger = typeof transactionLedger.$inferInsert;

@@ -24,10 +24,6 @@ export function middleware(request: NextRequest) {
     return NextResponse.redirect(landingUrl);
   }
 
-  // Bypass session cookie check whenever session verifier is present (let client SDK handle exchange on target page)
-  if (request.nextUrl.searchParams.has("neon_auth_session_verifier")) {
-    return NextResponse.next();
-  }
 
 
   // Allow root landing page

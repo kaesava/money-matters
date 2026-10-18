@@ -26,7 +26,7 @@ export {
 import { Platform } from "react-native";
 
 const isDev = typeof __DEV__ !== "undefined" ? __DEV__ : process.env["NODE_ENV"] !== "production";
-const FUNNEL_API_URL = "https://kesh-imac.tail09ef18.ts.net";
+const DEV_API_URL = process.env["EXPO_PUBLIC_DEV_API_URL"] || "http://localhost:3000";
 const PROD_API_URL = "https://api.moneymatters.kaesava.au";
 
 function resolveApiBaseUrl(): string {
@@ -34,10 +34,10 @@ function resolveApiBaseUrl(): string {
   if (Platform.OS !== "web") {
     // Physical mobile devices cannot reach localhost or 127.0.0.1 over wireless/tunnel.
     if (!envUrl || envUrl.includes("localhost") || envUrl.includes("127.0.0.1")) {
-      return isDev ? FUNNEL_API_URL : PROD_API_URL;
+      return isDev ? (process.env["EXPO_PUBLIC_DEV_API_URL"] || PROD_API_URL) : PROD_API_URL;
     }
   }
-  return envUrl || (isDev ? FUNNEL_API_URL : PROD_API_URL);
+  return envUrl || (isDev ? DEV_API_URL : PROD_API_URL);
 }
 
 const API_BASE_URL = resolveApiBaseUrl();
@@ -124,6 +124,7 @@ export async function getStoredTokenAndCookie(): Promise<{ token: string | null;
     try {
       const directToken =
         (await SecureStore.getItemAsync("money-matters_session_token")) ||
+        (await SecureStore.getItemAsync("auth_session_token")) ||
         (await SecureStore.getItemAsync("money-matters-session-token"));
       if (directToken) {
         token = directToken;

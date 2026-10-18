@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
-import { MobileModalDialog, MobileButton } from '@money-matters/ui/mobile';
+import { MobileModalDialog, MobileButton, DESIGN_TOKENS } from '@money-matters/ui/mobile';
 import { t } from '@money-matters/i18n';
 import { formatAUD, formatDate } from '../../lib/format';
 
@@ -168,14 +168,14 @@ const styles = StyleSheet.create({
   metaValue: {
     fontSize: 13,
     fontWeight: '700',
-    color: '#1B2B4B',
+    color: DESIGN_TOKENS.colors.primary,
     maxWidth: '65%',
     textAlign: 'right',
   },
   metaValueHighlight: {
     fontSize: 13,
     fontWeight: '800',
-    color: '#2563eb',
+    color: DESIGN_TOKENS.colors.sereneBlue,
     maxWidth: '65%',
     textAlign: 'right',
   },

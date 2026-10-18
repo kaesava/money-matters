@@ -16,6 +16,7 @@ export async function getSubscriptionStatus(
       subscriptionStatus: tenants.subscriptionStatus,
       trialEndsAt: tenants.trialEndsAt,
       subscriptionEndsAt: tenants.subscriptionEndsAt,
+      gracePeriodEndsAt: tenants.gracePeriodEndsAt,
       cancelAtPeriodEnd: tenants.cancelAtPeriodEnd,
       planType: tenants.planType,
       nextBillingAt: tenants.nextBillingAt,
@@ -90,20 +91,28 @@ export async function getSubscriptionStatus(
     : null;
 
   const isSubscribed = status === "SUBSCRIBED";
+  const isGracePeriod = Boolean(
+    status === "PAST_DUE" &&
+    tenant.gracePeriodEndsAt &&
+    now <= new Date(tenant.gracePeriodEndsAt)
+  );
   const isTrialActive =
     (status === "TRIAL_ACTIVE" || (!isSubscribed && Boolean(tenant.trialEndsAt && now <= new Date(tenant.trialEndsAt)))) &&
     (daysRemainingInTrial === null || daysRemainingInTrial > 0);
   const isTrialExpired =
     !isSubscribed &&
     !isTrialActive &&
+    !isGracePeriod &&
     (status === "TRIAL_EXPIRED" || Boolean(tenant.trialEndsAt && now > new Date(tenant.trialEndsAt)));
 
   return SubscriptionStatusDto.parse({
     status,
     trialEndsAt: tenant.trialEndsAt ? new Date(tenant.trialEndsAt) : null,
     subscriptionEndsAt: tenant.subscriptionEndsAt ? new Date(tenant.subscriptionEndsAt) : null,
+    gracePeriodEndsAt: tenant.gracePeriodEndsAt ? new Date(tenant.gracePeriodEndsAt) : null,
     isTrialActive,
     isTrialExpired,
+    isGracePeriod,
     isSubscribed,
     isPastDue: status === "PAST_DUE",
     isDeactivated: status === "DEACTIVATED",

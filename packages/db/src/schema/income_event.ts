@@ -1,19 +1,26 @@
-import { pgTable, uuid, numeric, pgEnum, date, varchar } from "drizzle-orm/pg-core";
+import { pgTable, uuid, numeric, pgEnum, date, varchar, index } from "drizzle-orm/pg-core";
 import { incomeSources } from "./income.js";
 import { tenantAndTimestamps } from "./base.js";
 
 export const incomeEventStatusEnum = pgEnum("income_event_status_enum", ["PENDING", "CONFIRMED"]);
 
-export const incomeEvents = pgTable("income_events", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  incomeSourceId: uuid("income_source_id").references(() => incomeSources.id),
-  name: varchar("name", { length: 255 }),
-  expectedDate: date("expected_date").notNull(),
-  actualDate: date("actual_date"),
+export const incomeEvents = pgTable(
+  "income_events",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    incomeSourceId: uuid("income_source_id").references(() => incomeSources.id),
+    name: varchar("name", { length: 255 }),
+    expectedDate: date("expected_date").notNull(),
+    actualDate: date("actual_date"),
 
-  expectedAmount: numeric("expected_amount", { precision: 12, scale: 2 }).notNull(),
-  actualAmount: numeric("actual_amount", { precision: 12, scale: 2 }),
-  note: varchar("note", { length: 500 }),
-  status: incomeEventStatusEnum("status").notNull().default("PENDING"),
-  ...tenantAndTimestamps,
-});
+    expectedAmount: numeric("expected_amount", { precision: 12, scale: 2 }).notNull(),
+    actualAmount: numeric("actual_amount", { precision: 12, scale: 2 }),
+    note: varchar("note", { length: 500 }),
+    status: incomeEventStatusEnum("status").notNull().default("PENDING"),
+    ...tenantAndTimestamps,
+  },
+  (table) => [
+    index("income_events_tenant_expected_date_idx").on(table.tenantId, table.expectedDate),
+    index("income_events_income_source_id_idx").on(table.incomeSourceId),
+  ]
+);

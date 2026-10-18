@@ -20,7 +20,12 @@ function arrayToCsv(items: Record<string, unknown>[], headers: string[]): string
       .map((header) => {
         const val = item[header];
         if (val === null || val === undefined) return "";
-        const str = String(val).replace(/"/g, '""');
+        let str = String(val);
+        // Neutralize CSV formula injection (CWE-1236)
+        if (/^[=+\-@\t\r]/.test(str)) {
+          str = `'${str}`;
+        }
+        str = str.replace(/"/g, '""');
         return `"${str}"`;
       })
       .join(",")
@@ -59,14 +64,14 @@ export function exportDataHandler(db: DbOrTx) {
     );
     const allowedBankAccountIds = new Set(userBankAccounts.map((b) => b.id));
 
-    // 4. Fetch Envelopes
+    // 4. Fetch Envelopes (Strict stealth privacy: never leak partner's private envelopes)
     const rawEnvelopes = await db
       .select()
       .from(envelopes)
       .where(and(eq(envelopes.tenantId, tenantId), eq(envelopes.appId, appId)));
 
     const userEnvelopes = rawEnvelopes.filter(
-      (e) => !e.isPrivate || e.userId === userId || allowedBankAccountIds.has(e.bankAccountId)
+      (e) => !e.isPrivate || e.userId === userId
     );
     const allowedEnvelopeIds = new Set(userEnvelopes.map((e) => e.id));
 

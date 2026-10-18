@@ -1,6 +1,6 @@
 import { fetchRequestHandler } from '@trpc/server/adapters/fetch';
-import { logger, checkRateLimit } from '@money-matters/core';
-import { clearEnvCache } from '@money-matters/config';
+import { logger, checkRateLimit, CANONICAL_SECURITY_HEADERS } from '@money-matters/core';
+import { clearEnvCache, validateEnv } from '@money-matters/config';
 import { appRouter } from './routers/_app.js';
 import { createEdgeContext } from './trpc/edge-context.js';
 import { inngest } from './inngest/client.js';
@@ -109,8 +109,12 @@ export async function handleStripeWebhookRequest(
   }
 
   const rawBody = await request.text();
-  const { db: dbClient } = await import('@money-matters/db');
+  const { createDbClient } = await import('@money-matters/core');
+  const { db: defaultDb } = await import('@money-matters/db');
   const { handleStripeWebhook } = await import('@money-matters/capability-billing');
+
+  const connectionString = env.DATABASE_URL || process.env.DATABASE_URL;
+  const dbClient = connectionString ? createDbClient(connectionString) : defaultDb;
 
   const result = await handleStripeWebhook(rawBody, signature, env.STRIPE_WEBHOOK_SECRET, dbClient);
 
@@ -171,11 +175,18 @@ export async function handleTrpcRequest(
   });
 }
 
+let isWorkerEnvInitialized = false;
+
 export default {
   async fetch(request: Request, env: WorkerEnv, ctx: { waitUntil: (promise: Promise<unknown>) => void }): Promise<Response> {
-    if (env && typeof env === "object") {
+    if (!isWorkerEnvInitialized && env && typeof env === "object") {
       Object.assign(process.env, env);
-      clearEnvCache();
+      try {
+        validateEnv(env as unknown as Record<string, unknown>);
+        isWorkerEnvInitialized = true;
+      } catch (err) {
+        logger.error("Worker environment initialization failed", { err });
+      }
     }
     const correlationId = request.headers.get('x-correlation-id') || crypto.randomUUID();
 
@@ -202,16 +213,9 @@ export default {
       'Access-Control-Allow-Credentials': 'true',
       'Access-Control-Max-Age': '86400',
     };
-    const securityHeaders = {
-      'Strict-Transport-Security': 'max-age=31536000; includeSubDomains; preload',
-      'X-Frame-Options': 'DENY',
-      'X-Content-Type-Options': 'nosniff',
-      'Referrer-Policy': 'strict-origin-when-cross-origin',
-      'Permissions-Policy': 'camera=(), microphone=(), geolocation=()',
-    };
     const baseHeaders = {
       ...corsHeaders,
-      ...securityHeaders,
+      ...CANONICAL_SECURITY_HEADERS,
       'x-correlation-id': correlationId,
     };
 
@@ -235,22 +239,25 @@ export default {
         });
       }
 
-      // Enforce rate limiting across API routes
-      const clientIp = request.headers.get("cf-connecting-ip") || request.headers.get("x-forwarded-for") || "unknown-ip";
-      const authHeader = request.headers.get("authorization");
-      const rateLimitKey = authHeader ? `auth:${authHeader.slice(-16)}` : `ip:${clientIp}`;
-      const limit = url.pathname === "/reset-password" ? 10 : url.pathname === "/webhooks/stripe" ? 60 : 120;
-      
-      const { allowed } = await checkRateLimit(rateLimitKey, limit, 60);
-      if (!allowed) {
-        return new Response(JSON.stringify({ error: "Too many requests. Please try again in a minute." }), {
-          status: 429,
-          headers: {
-            "Content-Type": "application/json",
-            "Retry-After": "60",
-            ...baseHeaders,
-          },
-        });
+      // Enforce rate limiting across API routes (exempting cryptographic /webhooks/stripe)
+      const isStripeWebhook = url.pathname === "/webhooks/stripe";
+      if (!isStripeWebhook) {
+        const clientIp = request.headers.get("cf-connecting-ip") || request.headers.get("x-forwarded-for") || "unknown-ip";
+        const authHeader = request.headers.get("authorization");
+        const rateLimitKey = authHeader ? `auth:${authHeader.slice(-16)}` : `ip:${clientIp}`;
+        const limit = url.pathname === "/reset-password" ? 10 : 120;
+        
+        const { allowed } = await checkRateLimit(rateLimitKey, limit, 60);
+        if (!allowed) {
+          return new Response(JSON.stringify({ error: "Too many requests. Please try again in a minute." }), {
+            status: 429,
+            headers: {
+              "Content-Type": "application/json",
+              "Retry-After": "60",
+              ...baseHeaders,
+            },
+          });
+        }
       }
 
       if (url.pathname.startsWith('/api/inngest')) {
@@ -283,6 +290,13 @@ export default {
       }
 
       if (url.pathname.startsWith('/dev-callback')) {
+        if (process.env.NODE_ENV === 'production') {
+          return new Response(JSON.stringify({ error: 'Endpoint disabled in production.' }), {
+            status: 404,
+            headers: { 'Content-Type': 'application/json', ...baseHeaders },
+          });
+        }
+
         const rawPath = url.pathname.replace(/^\/dev-callback\/?/, '');
 
         if (rawPath.startsWith('moneymatters/') || rawPath.startsWith('exp/')) {
@@ -305,6 +319,15 @@ export default {
         if (segments.length >= 2) {
           const proto = decodeURIComponent(segments[0]);
           const hostAndPath = decodeURIComponent(segments.slice(1).join('/'));
+          const hostOnly = hostAndPath.split('/')[0].split(':')[0];
+          const isAllowedHost = hostOnly === 'localhost' || hostOnly === '127.0.0.1' || hostOnly.endsWith('.kaesava.au');
+          if (!isAllowedHost) {
+            return new Response(JSON.stringify({ error: 'Forbidden host.' }), {
+              status: 403,
+              headers: { 'Content-Type': 'application/json', ...baseHeaders },
+            });
+          }
+
           const customTarget = url.searchParams.get('target') || '/auth-callback';
           try {
             const targetUrl = new URL(customTarget, `${proto}://${hostAndPath}`);

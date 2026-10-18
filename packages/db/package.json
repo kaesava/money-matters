@@ -32,7 +32,6 @@
     "migrate": "npx dotenv-cli -e ../../.env.development -- tsx src/apply-migrations.ts",
     "migrate:prod": "npx dotenv-cli -e ../../.env -- tsx src/apply-migrations.ts --prod",
     "push": "npx dotenv-cli -e ../../.env.development -- drizzle-kit push --force",
-    "push:prod": "npx dotenv-cli -e ../../.env -- drizzle-kit push --force",
     "seed": "npx dotenv-cli -e ../../.env.development -- tsx src/seed.ts",
     "seed:prod": "npx dotenv-cli -e ../../.env -- tsx src/seed.ts",
 

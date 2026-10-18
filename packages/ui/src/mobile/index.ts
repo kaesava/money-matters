@@ -42,8 +42,8 @@ export * from './AlertBanner';
 
 export * from './fields/RecurrenceBuilder';
 export * from '../hooks/useRecurrenceBuilder';
-export * from '../utils/recurrence';
-export * from '../utils/formatDate';
+export * from '../dates/recurrence';
+export * from '../dates/date-formatting';
 export { fmtDateTime } from '../lib/format';
 
 export { default as FormLabel, FormLabel as MobileFormLabel } from './FormLabel';
@@ -144,3 +144,4 @@ export type { MobileSpendingOverviewLabels } from './charts/MobileSpendingOvervi
 
 export { MobileAiUsageCard } from './MobileAiUsageCard';
 export { MobileAskSheet } from './MobileAskSheet';
+export * from './notifications/index';

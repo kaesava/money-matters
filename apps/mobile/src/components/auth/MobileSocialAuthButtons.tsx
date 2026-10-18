@@ -35,11 +35,13 @@ export function MobileSocialAuthButtons({
     setLoadingProvider("google");
     try {
       const devOrigin = DEFAULT_AUTH_ORIGIN;
-      const callbackBase = __DEV__ ? `${devOrigin}/dev-callback/moneymatters` : API_URL;
+      const callbackURL = __DEV__
+        ? `${devOrigin}/dev-callback/moneymatters/auth-callback`
+        : "https://moneymatters.kaesava.au/auth-callback?platform=mobile";
 
       const result = await authClient.signIn.social({
         provider: "google",
-        callbackURL: `${callbackBase}/auth-callback`,
+        callbackURL,
       });
 
       if (result?.error) {

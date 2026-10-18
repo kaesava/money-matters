@@ -67,7 +67,7 @@ export function MobileProfileReadOnlyView({
       title={t('settings.myDetailsTitle')}
       action={
         <TouchableOpacity onPress={onEdit} style={styles.editBtn}>
-          <Feather name="edit-2" size={13} color="#2563eb" />
+          <Feather name="edit-2" size={13} color={DESIGN_TOKENS.colors.sereneBlue} />
           <Text style={styles.editBtnText}>{t('common.edit')}</Text>
         </TouchableOpacity>
       }
@@ -150,7 +150,7 @@ const styles = StyleSheet.create({
   editBtnText: {
     fontSize: 12,
     fontWeight: '700',
-    color: '#2563eb',
+    color: DESIGN_TOKENS.colors.sereneBlue,
   },
   avatarRow: {
     flexDirection: 'row',
@@ -170,13 +170,13 @@ const styles = StyleSheet.create({
     height: 52,
     borderRadius: 26,
     borderWidth: 2,
-    borderColor: '#2563eb',
+    borderColor: DESIGN_TOKENS.colors.sereneBlue,
   },
   avatarPlaceholder: {
     width: 52,
     height: 52,
     borderRadius: 26,
-    backgroundColor: '#1B2B4B',
+    backgroundColor: DESIGN_TOKENS.colors.primary,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -188,7 +188,7 @@ const styles = StyleSheet.create({
   userName: {
     fontSize: 15,
     fontWeight: '800',
-    color: '#1B2B4B',
+    color: DESIGN_TOKENS.colors.primary,
   },
   userEmail: {
     fontSize: 12,

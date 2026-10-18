@@ -168,6 +168,7 @@ export const MoveMoneyCommand = z.object({
   amount: z.string().regex(/^\d{1,12}(\.\d{1,2})?$/).refine((val) => parseFloat(val) > 0, "Amount must be greater than 0"),
   note: z.string().optional(),
   targetDate: z.string().optional(),
+  idempotencyKey: z.string().optional(),
 }).strict().superRefine((data, ctx) => {
   if (data.targetDate) {
     const today = new Intl.DateTimeFormat("en-CA", { timeZone: "Australia/Sydney" }).format(new Date());
@@ -304,7 +305,7 @@ export const SaveSetupBudgetCommand = z.object({
     receivingAccountId: z.string().optional().nullable(),
     startDate: z.string().optional().nullable(),
     rrule: z.string().optional().nullable(),
-  })).min(1),
+  }).strict()).min(1),
   bankAccounts: z.array(z.object({
     id: z.string().optional(),
     name: z.string().min(1).max(100),
@@ -313,7 +314,7 @@ export const SaveSetupBudgetCommand = z.object({
     lastKnownBalance: z.string().regex(/^\d{1,12}(\.\d{1,2})?$/).default("0.00"),
     unbudgetedBuffer: z.string().regex(/^\d{1,12}(\.\d{1,2})?$/).default("0.00"),
     isPrivate: z.boolean().default(false),
-  })).min(1),
+  }).strict()).min(1),
   envelopes: z.array(z.object({
     id: z.string().optional(),
     bankAccountId: z.string().optional().nullable(),
@@ -339,7 +340,7 @@ export const SaveSetupBudgetCommand = z.object({
     isEssential: z.boolean().default(false),
     isPrivate: z.boolean().default(false),
     orderIndex: z.number().int().default(0),
-  })).min(1),
+  }).strict()).min(1),
   archivedEnvelopeIds: z.array(z.string()).default([]),
   archivedAccountIds: z.array(z.string()).default([]),
   archivedIncomeIds: z.array(z.string()).default([]),

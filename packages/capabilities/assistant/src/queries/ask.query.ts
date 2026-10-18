@@ -1,5 +1,5 @@
 import { isFeatureEnabled } from "@money-matters/config";
-import type { AssistantResult } from "@money-matters/types";
+import type { AssistantResult, AssistantClassifiedIntent } from "@money-matters/types";
 import { matchDeterministicIntent } from "../matcher/deterministic.matcher.js";
 import type { IntentHandlerPort, LlmProviderPort, UsageStorePort, IntentContext } from "../ports/index.js";
 
@@ -68,7 +68,7 @@ export async function askAssistant(opts: AskAssistantOptions): Promise<Assistant
 
 async function executeIntent(
   intent: string,
-  params: any,
+  params: AssistantClassifiedIntent["params"],
   context: IntentContext,
   handler: IntentHandlerPort
 ): Promise<AssistantResult> {

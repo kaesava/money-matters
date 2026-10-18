@@ -2,7 +2,7 @@ import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { t } from '@money-matters/i18n';
-import { MobileModalDialog, useMobileToast } from '@money-matters/ui/mobile';
+import { MobileModalDialog, useMobileToast, DESIGN_TOKENS } from '@money-matters/ui/mobile';
 import { trpc, switchActiveTenant } from '../../lib/trpc';
 
 interface MobileTenantSwitcherModalProps {
@@ -41,7 +41,7 @@ export function MobileTenantSwitcherModal({ visible, onClose }: MobileTenantSwit
       <View style={styles.container}>
         {isLoading ? (
           <View style={styles.loadingContainer}>
-            <ActivityIndicator size="small" color="#2563eb" />
+            <ActivityIndicator size="small" color={DESIGN_TOKENS.colors.sereneBlue} />
           </View>
         ) : (
           <View style={styles.list}>
@@ -59,7 +59,7 @@ export function MobileTenantSwitcherModal({ visible, onClose }: MobileTenantSwit
                       <Feather
                         name="home"
                         size={18}
-                        color={isCurrent ? '#2563eb' : '#64748B'}
+                        color={isCurrent ? DESIGN_TOKENS.colors.sereneBlue : DESIGN_TOKENS.colors.slate[500]}
                       />
                     </View>
                     <View style={styles.itemMeta}>

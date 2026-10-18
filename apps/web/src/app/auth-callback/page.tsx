@@ -2,13 +2,19 @@
 import React, { useEffect, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { authClient } from "../../lib/auth";
+import { trpc } from "../../lib/trpc";
 
 function AuthCallbackContent() {
   const { data: session, isPending } = authClient.useSession();
   const searchParams = useSearchParams();
 
+  const tenantStatusQuery = trpc.getTenantStatus.useQuery(undefined, {
+    enabled: !!session?.user,
+    retry: false,
+  });
+
   useEffect(() => {
-    if (isPending) return;
+    if (isPending || (session?.user && tenantStatusQuery.isLoading)) return;
 
     const token = session?.session?.token;
     const isMobileClient =
@@ -25,12 +31,18 @@ function AuthCallbackContent() {
       return;
     }
 
+    // New OAuth users without a household tenant must first configure household details
+    if (session?.user && tenantStatusQuery.data && !tenantStatusQuery.data.hasTenant) {
+      window.location.href = "/setup/household";
+      return;
+    }
+
     // Standard web browser flow: redirect to requested target or dashboard
     const rawRedirect = searchParams.get("redirect") || searchParams.get("target") || "/dashboard";
     const redirectUrl =
       rawRedirect.startsWith("/") && !rawRedirect.startsWith("//") ? rawRedirect : "/dashboard";
     window.location.href = redirectUrl;
-  }, [session, isPending, searchParams]);
+  }, [session, isPending, tenantStatusQuery.isLoading, tenantStatusQuery.data, searchParams]);
 
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-zinc-50 gap-4">

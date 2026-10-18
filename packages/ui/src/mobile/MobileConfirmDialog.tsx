@@ -24,8 +24,11 @@ export function showMobileConfirm({
   onConfirm,
   onCancel,
 }: MobileConfirmOptions): void {
-  const resolvedCancel = cancelText || cancelLabel || t('modals.discardChanges.cancel') || 'Cancel';
-  const resolvedConfirm = confirmText || confirmLabel || (isDestructive ? t('modals.discardChanges.discard') || 'Confirm' : 'Confirm');
+  const resolvedCancel = cancelText || cancelLabel || t('modals.discardChanges.cancel');
+  const resolvedConfirm =
+    confirmText ||
+    confirmLabel ||
+    (isDestructive ? t('modals.discardChanges.discard') : t('common.confirm'));
 
   Alert.alert(
     title,

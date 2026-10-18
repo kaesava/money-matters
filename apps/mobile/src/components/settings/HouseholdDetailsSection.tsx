@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { View, ActivityIndicator, StyleSheet } from 'react-native';
-import { useMobileToast, showMobileConfirm } from '@money-matters/ui/mobile';
+import { useMobileToast, showMobileConfirm, DESIGN_TOKENS } from '@money-matters/ui/mobile';
 import { t } from '@money-matters/i18n';
 import { trpc } from '../../lib/trpc';
 import { HouseholdReadOnlyView } from './HouseholdReadOnlyView';
@@ -162,7 +162,7 @@ export function HouseholdDetailsSection({
   if (govQuery.isLoading) {
     return (
       <View style={styles.loadingCard}>
-        <ActivityIndicator color="#2563eb" />
+        <ActivityIndicator color={DESIGN_TOKENS.colors.sereneBlue} />
       </View>
     );
   }

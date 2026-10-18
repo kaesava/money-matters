@@ -2,7 +2,7 @@ import { privateTenantProcedure, requiresWriteAccess } from '../trpc/trpc.js';
 import { envelopes, expenseEvents } from "@money-matters/db";
 import { and, eq, sql, inArray } from "drizzle-orm";
 import { recordExpenseCommand } from "@money-matters/capability-transactions";
-import { CreateOneOffExpenseCommand, RecordExpenseCommand } from "@money-matters/types";
+import { CreateOneOffExpenseCommand } from "@money-matters/types";
 import { z } from 'zod';
 import { posthog } from '../lib/posthog.js';
 
@@ -42,7 +42,11 @@ export const expensesRouter = {
       requiresWriteAccess(ctx);
 
       const [targetEnvelope] = await ctx.db
-        .select({ id: envelopes.id })
+        .select({
+          id: envelopes.id,
+          isPrivate: envelopes.isPrivate,
+          userId: envelopes.userId,
+        })
         .from(envelopes)
         .where(
           and(
@@ -56,6 +60,10 @@ export const expensesRouter = {
 
       if (!targetEnvelope) {
         throw new Error("Target envelope not found or access unauthorized.");
+      }
+
+      if (targetEnvelope.isPrivate && targetEnvelope.userId !== ctx.userId) {
+        throw new Error("Unauthorized: Cannot create expenses against partner's private envelope.");
       }
 
       const [insertedEvent] = await ctx.db
@@ -89,34 +97,6 @@ export const expensesRouter = {
       }
 
       return insertedEvent;
-    }),
-
-  recordExpense: privateTenantProcedure
-    .input(RecordExpenseCommand)
-    .mutation(async ({ input, ctx }) => {
-      requiresWriteAccess(ctx);
-      const result = await recordExpenseCommand(
-        input,
-        ctx.tenantId!,
-        ctx.appId!,
-        ctx.userId!,
-        ctx.db
-      );
-
-      if (posthog && ctx.userId) {
-        posthog.capture({
-          distinctId: ctx.userId,
-          event: 'expense_recorded',
-          properties: {
-            tenant_id: ctx.tenantId,
-            envelope_id: input.envelopeId,
-            amount: input.amount,
-          },
-        });
-        await posthog.flush();
-      }
-
-      return result;
     }),
 
   listExpenseEvents: privateTenantProcedure

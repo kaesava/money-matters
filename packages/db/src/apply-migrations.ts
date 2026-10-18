@@ -3,20 +3,38 @@ import fs from "node:fs";
 import path from "node:path";
 import dotenv from "dotenv";
 
-const MIGRATIONS_TO_RUN = [
-  "0032_add_account_type_to_bank_accounts.sql",
-  "0033_create_ai_usage.sql",
-];
-
 async function applyFiles(client: Client): Promise<void> {
-  for (const migrationFile of MIGRATIONS_TO_RUN) {
-    const filePath = path.resolve(import.meta.dirname, "../drizzle", migrationFile);
+  // Ensure __drizzle_migrations table exists to track applied migrations idempotently
+  await client.query(`
+    CREATE TABLE IF NOT EXISTS "__drizzle_migrations" (
+      id SERIAL PRIMARY KEY,
+      hash text NOT NULL UNIQUE,
+      created_at bigint
+    );
+  `);
+
+  const appliedRes = await client.query(`SELECT hash FROM "__drizzle_migrations"`);
+  const appliedSet = new Set(appliedRes.rows.map((r: { hash: string }) => r.hash));
+
+  const drizzleDir = path.resolve(import.meta.dirname, "../drizzle");
+  const journalPath = path.join(drizzleDir, "meta/_journal.json");
+  const journal = JSON.parse(fs.readFileSync(journalPath, "utf-8")) as { entries: { tag: string }[] };
+
+  for (const entry of journal.entries) {
+    const migrationFile = `${entry.tag}.sql`;
+    if (appliedSet.has(entry.tag)) {
+      continue;
+    }
+
+    const filePath = path.join(drizzleDir, migrationFile);
     if (!fs.existsSync(filePath)) {
       throw new Error(`Migration file not found: ${filePath}`);
     }
+
     console.log(`📄 Running migration: ${migrationFile}...`);
     const sqlContent = fs.readFileSync(filePath, "utf-8");
     await client.query(sqlContent);
+    await client.query(`INSERT INTO "__drizzle_migrations" (hash, created_at) VALUES ($1, $2) ON CONFLICT DO NOTHING`, [entry.tag, Date.now()]);
     console.log(`✅ ${migrationFile} applied successfully!`);
   }
 }

@@ -6,7 +6,7 @@ import * as SecureStore from "expo-secure-store";
 const NEON_AUTH_URL = process.env["EXPO_PUBLIC_NEON_AUTH_URL"];
 
 export const DEFAULT_AUTH_ORIGIN = __DEV__
-  ? "https://kesh-imac.tail09ef18.ts.net"
+  ? (process.env["EXPO_PUBLIC_DEV_AUTH_ORIGIN"] || "http://localhost:3000")
   : "https://moneymatters.kaesava.au";
 
 export const AUTH_ORIGIN =

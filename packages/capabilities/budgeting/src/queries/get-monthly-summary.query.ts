@@ -1,4 +1,4 @@
-import { envelopes, transactionLedger, getEnvelopeBalancesMap, DbOrTx } from "@money-matters/db";
+import { envelopes, transactionLedger, getEnvelopeBalancesMap, DbOrTx, tenants } from "@money-matters/db";
 import { eq, and, sql } from "drizzle-orm";
 
 export async function getMonthlySummaryQuery(
@@ -8,8 +8,19 @@ export async function getMonthlySummaryQuery(
   appId: string,
   dbClient: DbOrTx
 ) {
-  const startDate = new Date(Date.UTC(year, month - 1, 1, 0, 0, 0));
-  const endDate = new Date(Date.UTC(year, month, 1, 0, 0, 0));
+  const [tenantRecord] = await dbClient
+    .select({ timezone: tenants.timezone })
+    .from(tenants)
+    .where(eq(tenants.id, tenantId))
+    .limit(1);
+
+  const tenantTz = tenantRecord?.timezone || "Australia/Sydney";
+
+  // Month bounds in tenant's timezone
+  const startMonthStr = `${year}-${String(month).padStart(2, "0")}-01`;
+  const nextMonthYear = month === 12 ? year + 1 : year;
+  const nextMonthNum = month === 12 ? 1 : month + 1;
+  const endMonthStr = `${nextMonthYear}-${String(nextMonthNum).padStart(2, "0")}-01`;
 
   const dbEnvelopes = await dbClient
     .select({
@@ -43,6 +54,7 @@ export async function getMonthlySummaryQuery(
   const txs = await dbClient
     .select({
       flowType: transactionLedger.flowType,
+      transactionType: transactionLedger.transactionType,
       amount: transactionLedger.amount,
       envelopeId: transactionLedger.envelopeId,
     })
@@ -51,8 +63,8 @@ export async function getMonthlySummaryQuery(
       and(
         eq(transactionLedger.tenantId, tenantId),
         eq(transactionLedger.appId, appId),
-        sql`${transactionLedger.recordedAt} >= ${startDate.toISOString()}::timestamptz`,
-        sql`${transactionLedger.recordedAt} < ${endDate.toISOString()}::timestamptz`,
+        sql`(${transactionLedger.recordedAt} AT TIME ZONE ${tenantTz}) >= ${startMonthStr}::date`,
+        sql`(${transactionLedger.recordedAt} AT TIME ZONE ${tenantTz}) < ${endMonthStr}::date`,
         sql`${transactionLedger.archivedAt} IS NULL`
       )
     );
@@ -66,13 +78,19 @@ export async function getMonthlySummaryQuery(
     const val = parseFloat(tx.amount);
     const envType = envMap.get(tx.envelopeId);
 
+    // Count credits as income ONLY if actual external income was split or direct-deposited
     if (tx.flowType === "CREDIT") {
-      totalIncome += val;
+      if (tx.transactionType === "INCOME_SPLIT" || tx.transactionType === "INCOME_DIRECT") {
+        totalIncome += val;
+      }
       if (envType === "TARGET_GOAL" || envType === "ONGOING_GOAL") {
         totalSaved += val;
       }
-    } else {
-      totalSpent += val;
+    } else if (tx.flowType === "DEBIT") {
+      // Count debits as spending ONLY if actual expense, not an internal transfer out
+      if (tx.transactionType === "EXPENSE") {
+        totalSpent += val;
+      }
     }
   }
 

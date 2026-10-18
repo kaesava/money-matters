@@ -58,7 +58,7 @@ export function TransactionRow({
               {primaryDescription}
             </Text>
             {onPress && (
-              <Feather name="arrow-up-right" size={12} color="#2563eb" style={styles.linkIcon} />
+              <Feather name="arrow-up-right" size={12} color={DESIGN_TOKENS.colors.sereneBlue} style={styles.linkIcon} />
             )}
           </View>
         </View>
@@ -81,11 +81,11 @@ export function TransactionRow({
           <View style={styles.poolWrap}>
             <View style={styles.iconWrap}>
               {isTransfer ? (
-                <Feather name="repeat" size={11} color="#2563eb" />
+                <Feather name="repeat" size={11} color={DESIGN_TOKENS.colors.sereneBlue} />
               ) : isDebit ? (
-                <Feather name="arrow-up-right" size={11} color="#ba1a1a" />
+                <Feather name="arrow-up-right" size={11} color={DESIGN_TOKENS.colors.burnRed} />
               ) : (
-                <Feather name="arrow-down-left" size={11} color="#22c55e" />
+                <Feather name="arrow-down-left" size={11} color={DESIGN_TOKENS.colors.success} />
               )}
             </View>
             <Text style={styles.poolName} numberOfLines={1}>
@@ -130,7 +130,7 @@ const styles = StyleSheet.create({
   description: {
     fontSize: 14,
     fontWeight: '800',
-    color: '#1B2B4B',
+    color: DESIGN_TOKENS.colors.primary,
   },
   linkIcon: {
     marginTop: 1,

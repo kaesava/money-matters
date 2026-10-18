@@ -230,7 +230,7 @@ export async function createEdgeContext(
   const requestDb = connectionString ? createDbClient(connectionString) : db;
 
   const token = extractAuthToken(req);
-  let claims = token ? await verifyJwt(token) : null;
+  let claims = token ? await verifyJwt(token, env) : null;
 
   if (!claims && token) {
     claims = await resolveClaimsFromDatabase(token, requestDb, correlationId);

@@ -33,7 +33,7 @@ export function BankAccountCardHeader({
           </Text>
           {accountType && (
             <View style={styles.typePill}>
-              <Text style={styles.typeText}>{t(`bankAccounts.accountTypes.${accountType}` as any)}</Text>
+              <Text style={styles.typeText}>{t(`bankAccounts.accountTypes.${accountType}`)}</Text>
             </View>
           )}
           {isPrivate && (

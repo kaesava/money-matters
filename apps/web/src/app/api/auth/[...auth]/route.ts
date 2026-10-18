@@ -37,6 +37,11 @@ function isValidOrigin(req: NextRequest): boolean {
     }
   }
 
+  const isStateChanging = !["GET", "HEAD", "OPTIONS"].includes(req.method.toUpperCase());
+  if (isStateChanging) {
+    return false;
+  }
+
   // Same-origin GET/HEAD/OPTIONS requests may omit Origin/Referer
   return true;
 }

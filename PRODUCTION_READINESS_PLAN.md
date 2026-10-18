@@ -1,8 +1,8 @@
 # Production Readiness Plan: Money Matters (Web + Mobile)
 
 **Author**: Principal Software Architect, Security Engineer, SRE, and Monorepo Auditor  
-**Date**: October 18, 2026 (Pass 3 Comprehensive Deep-Dive Audit)  
-**Status**: Authoritative Static Pre-Launch Audit — READY FOR TRIAGE & REMEDIATION  
+**Date**: October 19, 2026 (Pass 5 Exhaustive Forensic Pre-Launch Audit)  
+**Status**: Authoritative Static Pre-Launch Audit — 55 VERIFIED FINDINGS — READY FOR TRIAGE & REMEDIATION  
 **Scope**: Full Monorepo (`apps/web`, `apps/mobile`, `apps/api`, `packages/core`, `packages/db`, `packages/types`, `packages/ui`, `packages/i18n`, `packages/config`, `packages/capabilities/*`)  
 **Methodology**: Strictly Static Codebase Analysis (Zero runtime execution, zero shell commands, zero live secrets, verified against actual ASTs and filesystem structure)
 
@@ -508,6 +508,199 @@ This audit was conducted strictly as a static code and architectural analysis. N
 
 ---
 
+#### `AUTH-001`: Google OAuth Sign-Ups Stranded with `tenantId: null` (Complete App Lockout)
+- **Title**: Missing Household Provisioning for Google OAuth Users Causes Universal 401 Cascade
+- **Evidence**:
+  - `apps/api/src/trpc/edge-context.ts:211-215` and `context.ts:146-150`:
+    ```typescript
+    // Do NOT auto-provision a tenant here. Implicit creation in context races against the
+    // explicit createTenant mutation and ignores user-selected country/currency/timezone...
+    // New users will have tenantId=null until they complete the explicit createTenant call from the sign-up OTP flow.
+    const tenantId = membership?.tenantId ?? null;
+    ```
+  - `apps/web/src/app/auth-callback/page.tsx:28-33`: Redirects OAuth users directly to `/dashboard` without verifying tenant membership or calling `createTenant`.
+  - `apps/web/src/app/dashboard/layout.tsx:31, 60-72`: Calls `getUserPreferences` (a `tenantProcedure`) on mount, which immediately throws `401 UNAUTHORIZED`. The onboarding redirect condition `userPrefQuery.data && !userPrefQuery.data.setupCompleted` evaluates to `false` because `data` is `undefined`, stranding OAuth users on broken dashboard views.
+  - `apps/web/src/app/setup/hooks/useSetupWizardSubmission.ts:123`: Calls `saveSetupBudget` (a `privateTenantProcedure`), which immediately rejects with 401 if `tenantId` is null.
+- **Rule Violated**: `AGENTS.md` §1 (Tenant isolation and data security), §5 (Multi-Tenancy & Data Isolation), §11 (Web App Router).
+- **Impact/Risk**: 100% of users signing up via Google OAuth on Web or Mobile are permanently locked out of Money Matters. Neon Auth creates the user record, but no tenant record is ever created. Because all budgeting and dashboard procedures require active tenant membership, OAuth users cannot view, setup, or use the application.
+- **Concrete Fix**:
+  1. In `apps/web/src/app/auth-callback/page.tsx` (and mobile OAuth callback), query `getTenantStatus`. If `!status?.hasTenant`, redirect to a dedicated household setup step (`/setup/household` on Web, `/(setup)/household` on Mobile) that explicitly collects Household Name, Country (AU/NZ/OTHER), and Currency (AUD/NZD/USD) and executes `createTenant.mutateAsync(...)` before proceeding into the budget setup wizard.
+  2. In `DashboardLayout.tsx`, use `getTenantStatus` (an `authenticatedProcedure`) instead of `getUserPreferences` (`tenantProcedure`) to guard onboarding state: if `!status?.hasTenant`, redirect immediately to `/setup/household`; if `!status?.setupCompleted`, redirect to `/setup`.
+  3. In `saveSetupBudgetHandler`, verify that tenant context is established prior to saving allocations.
+- **Platforms**: Web / Mobile / API
+- **Tests to Add/Update**: E2E integration test verifying a new Google OAuth user successfully completes the household creation step (`/setup/household`) before proceeding through budget setup without 401 errors.
+- **Effort**: M
+- **Dependencies**: None
+- **Confidence**: Confirmed
+
+---
+
+#### `BILL-003`: Client-Controlled Mock Billing Bypass Grants Free 1-Year Subscriptions in Production
+- **Title**: Unrestricted Mock Session Verification Permits Unauthorized Annual Upgrades
+- **Evidence**:
+  - `packages/capabilities/billing/src/commands/create-checkout-session.ts:40-79`:
+    ```typescript
+    const isMockMode = targetPriceId.startsWith("price_mock_");
+    if (isMockMode) {
+      // Direct database upgrade without Stripe session verification
+      await db.update(tenants).set({
+        subscriptionStatus: "SUBSCRIBED",
+        premiumEnabled: true,
+        subscriptionEndsAt: oneYearLater,
+      }).where(eq(tenants.id, tenantId));
+    }
+    ```
+  - `packages/capabilities/billing/src/commands/verify-checkout-session.ts:18-37`:
+    ```typescript
+    if (sessionId === "mock_checkout_session_success" || sessionId.startsWith("mock_")) {
+      await db.update(tenants).set({
+        subscriptionStatus: "SUBSCRIBED",
+        premiumEnabled: true,
+        subscriptionEndsAt: oneYearLater,
+      }).where(eq(tenants.id, tenantId));
+      return { success: true, status: "SUBSCRIBED" };
+    }
+    ```
+- **Rule Violated**: `AGENTS.md` §1 (Tenant isolation and data security), §10 (Security: "All input is untrusted"), §14 (Integrations: "Stripe via verified webhooks ONLY").
+- **Impact/Risk**: Catastrophic revenue leakage. Any authenticated user in production can invoke `billing.verifyCheckoutSession({ sessionId: "mock_free" })` or `billing.createCheckoutSession({ planType: "annual", targetPriceId: "price_mock_annual" })` to receive an active 1-year annual subscription without ever paying Stripe or triggering a verified webhook.
+- **Concrete Fix**:
+  1. In `create-checkout-session.ts` and `verify-checkout-session.ts`, gate all mock logic strictly with `if (process.env.NODE_ENV !== "production")`.
+  2. In production mode, reject any session ID starting with `mock_` or price ID starting with `price_mock_` with HTTP 400 Bad Request.
+- **Platforms**: API / Billing
+- **Tests to Add/Update**: Unit test in `billing.router.test.ts` verifying mock session verification throws `BAD_REQUEST` when `NODE_ENV === 'production'`.
+- **Effort**: S
+- **Dependencies**: None
+- **Confidence**: Confirmed
+
+---
+
+#### `SEC-018`: Production Mobile Social Auth Points to Non-Existent API Endpoint
+- **Title**: Production OAuth Callback Route Mismatch Causes 404 and Mobile Login Hang
+- **Evidence**:
+  - `apps/mobile/src/components/auth/MobileSocialAuthButtons.tsx:38-43`:
+    ```typescript
+    const devOrigin = DEFAULT_AUTH_ORIGIN;
+    const callbackBase = __DEV__ ? `${devOrigin}/dev-callback/moneymatters` : API_URL;
+
+    const result = await authClient.signIn.social({
+      provider: "google",
+      callbackURL: `${callbackBase}/auth-callback`,
+    });
+    ```
+  - `apps/api/src/worker.ts:200-350`: Contains routes for `/health`, `/trpc`, `/webhooks/stripe`, and `/api/inngest`, but NO `/auth-callback` route. (The only `/auth-callback` route exists on Web at `apps/web/src/app/auth-callback/page.tsx`).
+- **Rule Violated**: `AGENTS.md` §10 (Security), §12 (Mobile Target), §18 (DevOps & Deployment).
+- **Impact/Risk**: In production builds, `callbackBase` resolves to `API_URL` (`https://api.moneymatters.kaesava.au`), directing OAuth to `https://api.moneymatters.kaesava.au/auth-callback`. The Cloudflare Worker immediately responds with HTTP 404 Route Not Found, permanently stranding mobile users in an unauthenticated browser tab.
+- **Concrete Fix**:
+  1. Route mobile OAuth callbacks through web: `callbackURL: "https://moneymatters.kaesava.au/auth-callback?platform=mobile"`.
+  2. Ensure `apps/web/src/app/auth-callback/page.tsx` forwards the token back to `moneymatters://home`.
+- **Platforms**: Mobile / Web / API
+- **Tests to Add/Update**: Add unit test in `MobileSocialAuthButtons.test.ts` verifying the generated callback URL uses the canonical web origin with `platform=mobile`.
+- **Effort**: S
+- **Dependencies**: None
+- **Confidence**: Confirmed
+
+---
+
+#### `SEC-019`: Cross-Tenant Data Destruction Vulnerability in `archiveIncomeSource`
+- **Title**: Unscoped Cascade Event Deletion in `archiveIncomeSource` Allows Cross-Tenant Schedule Destruction
+- **Evidence**:
+  - `apps/api/src/routers/income.router.ts:403-416`:
+    ```typescript
+    archiveIncomeSource: privateTenantProcedure
+      .input(z.object({ id: z.string().uuid() }).strict())
+      .mutation(async ({ input, ctx }) => {
+        // 1. Fetch upcoming events to archive
+        const events = await ctx.db
+          .select({ id: incomeEvents.id })
+          .from(incomeEvents)
+          .where(and(eq(incomeEvents.incomeSourceId, input.id), eq(incomeEvents.status, "PENDING")));
+
+        // 2. Archive upcoming events WITHOUT tenantId scoping
+        if (events.length > 0) {
+          await ctx.db
+            .update(incomeEvents)
+            .set({ archivedAt: new Date() })
+            .where(inArray(incomeEvents.id, events.map((e) => e.id)));
+        }
+
+        // 3. Archive parent income source with tenantId check
+        const result = await archiveIncomeSourceCommand(input.id, ctx.tenantId!, ctx.appId!, ctx.userId!, ctx.db);
+        ...
+    ```
+- **Rule Violated**: `AGENTS.md` §1 (Tenant isolation and data security), §5 (Multi-Tenancy & Data Isolation), §6 (Database Standards: "Queries MUST be indexed, scoped by tenantId, and optimized").
+- **Impact/Risk**: Because steps 1 and 2 omit `eq(incomeEvents.tenantId, ctx.tenantId!)` and run outside an atomic database transaction, an attacker in Tenant A who passes a UUID belonging to an income source in Tenant B will cause all pending income events of Tenant B to be archived before Step 3 fails. A malicious user can permanently erase another household's projected cashflow schedule.
+- **Concrete Fix**:
+  1. Add `eq(incomeEvents.tenantId, ctx.tenantId!)` to both the `select` and `update` queries on `income_events`.
+  2. Wrap the entire procedure in `ctx.db.transaction()`.
+- **Platforms**: API / Income
+- **Tests to Add/Update**: Security regression test in `income.router.test.ts` verifying that passing a foreign `incomeSourceId` throws 404/FORBIDDEN and touches zero records in `income_events`.
+- **Effort**: S
+- **Dependencies**: None
+- **Confidence**: Confirmed
+
+---
+
+#### `SEC-020`: Partner Stealth Privacy Leak in `canAffordSimulationQuery`
+- **Title**: Affordability Simulation Discards `userId` and Exposes Partner's Private Envelopes
+- **Evidence**:
+  - `packages/capabilities/simulation/src/queries/can-afford-simulation.query.ts:64, 150`:
+    ```typescript
+    export async function canAffordSimulationQuery(
+      input: z.infer<typeof CanAffordSimulationQuery>,
+      tenantId: string,
+      appId: string,
+      _userId: string, // <-- Parameter explicitly marked unused and discarded!
+      dbClient: DbOrTx
+    ) {
+      ...
+      const visibleEnvelopes = dbEnvelopes.filter((e) => includePersonal || !e.isPrivate);
+    ```
+- **Rule Violated**: `AGENTS.md` §1 (Tenant isolation and data security), §5 (Multi-Tenancy: "100% stealth privacy isolation"), §7 (Privacy & Governance).
+- **Impact/Risk**: When Partner A runs an affordability check with `includePersonal = true`, the query includes ALL private envelopes in the household, including Partner B's private savings envelopes and private goals. The simulation results and goal delay recommendations expose Partner B's private savings balances and private goal titles to Partner A.
+- **Concrete Fix**:
+  Filter private envelopes strictly by ownership:
+  ```typescript
+  const visibleEnvelopes = dbEnvelopes.filter((e) =>
+    e.isPrivate ? (includePersonal && e.userId === userId) : true
+  );
+  ```
+- **Platforms**: Capabilities / Simulation
+- **Tests to Add/Update**: Unit test in `can-afford-simulation.query.test.ts` verifying Partner B's private envelopes are never included when Partner A simulates affordability.
+- **Effort**: S
+- **Dependencies**: None
+- **Confidence**: Confirmed
+
+---
+
+#### `SEC-021`: Missing Stealth Privacy Ownership Checks on Financial Mutations
+- **Title**: Unrestricted Money Movement and Expense Recording on Partner's Private Envelopes
+- **Evidence**:
+  - `packages/capabilities/budgeting/src/commands/move-money.command.ts:20-50`:
+    ```typescript
+    const [sourceEnv] = await tx.select().from(envelopes).where(
+      and(eq(envelopes.id, input.sourceEnvelopeId), eq(envelopes.tenantId, tenantId), eq(envelopes.appId, appId))
+    );
+    // Checks tenantId but NEVER verifies if sourceEnv.isPrivate && sourceEnv.userId !== userId!
+    ```
+  - `packages/capabilities/transactions/src/commands/record-expense.command.ts:16-29`: Checks `envelopeId` and `tenantId` but omits `userId` check on private envelopes.
+  - `apps/api/src/routers/expenses.router.ts:44-59` (`createOneOffExpense`): Allows recording expenses against partner's private envelopes.
+- **Rule Violated**: `AGENTS.md` §1 (Tenant isolation and data security), §5 (Multi-Tenancy & Data Isolation), §10 (Security).
+- **Impact/Risk**: Partner A can transfer funds out of Partner B's private savings envelope into Partner A's personal envelope or into the shared everyday envelope. Furthermore, Partner A can record debit expenses against Partner B's private envelope, altering their ledger balances without authorization.
+- **Concrete Fix**:
+  In `move-money.command.ts`, `record-expense.command.ts`, and `expenses.router.ts`, add an ownership guard:
+  ```typescript
+  if (envelope.isPrivate && envelope.userId !== userId) {
+    throw new Error("Unauthorized: Cannot access or modify partner's private envelope.");
+  }
+  ```
+- **Platforms**: Capabilities / Budgeting / Transactions / Expenses
+- **Tests to Add/Update**: Unit tests in `move-money.test.ts` and `record-expense.test.ts` verifying that moving money or recording expenses on a partner's private envelope throws an unauthorized error.
+- **Effort**: S
+- **Dependencies**: None
+- **Confidence**: Confirmed
+
+---
+
 ### Tier 1: High Priority (P1)
 
 ---
@@ -540,11 +733,12 @@ This audit was conducted strictly as a static code and architectural analysis. N
 - **Rule Violated**: `AGENTS.md` §2 ("API & Data: Expo SQLite (mobile local cache)"), §12 ("Mobile Target: MUST use SQLite with transactions for local caching. MUST avoid blocking the main JS UI thread").
 - **Impact/Risk**: The mobile app is completely unfunctional offline and incurs cold network roundtrips on every screen navigation, violating core architectural requirements for the mobile client.
 - **Concrete Fix**:
-  1. Implement a persistent offline local cache layer using `expo-sqlite` in `apps/mobile/src/lib/sqlite-cache.ts`.
-  2. Synchronize tRPC queries with SQLite tables inside background worker threads.
+  1. Implement a read-through local cache layer using `expo-sqlite` in `apps/mobile/src/lib/sqlite-cache.ts` targeting core dashboard read models: Envelopes balances, Bank Accounts list, and Recent Transactions.
+  2. Cache tRPC query snapshots upon successful network fetch, and hydrate TanStack Query cache from SQLite on cold boot to ensure instant visual render without blocking the JS thread.
+  3. Defer offline mutation queuing and complex bi-directional sync conflict resolution to Release 2 (`V2_SCOPE.md`).
 - **Platforms**: Mobile
-- **Tests to Add/Update**: Unit test in `apps/mobile/src/lib/sqlite-cache.test.ts`.
-- **Effort**: L
+- **Tests to Add/Update**: Unit test in `apps/mobile/src/lib/sqlite-cache.test.ts` verifying read-through SQLite persistence and hydration on cold start.
+- **Effort**: M
 - **Dependencies**: None
 - **Confidence**: Confirmed
 
@@ -918,6 +1112,181 @@ This audit was conducted strictly as a static code and architectural analysis. N
   2. Apply identical headers in both `apps/api/src/worker.ts` and `apps/api/src/index.ts`.
 - **Platforms**: API
 - **Tests to Add/Update**: Add test in `apps/api/src/worker.test.ts` verifying mandatory security headers on every response.
+- **Effort**: S
+- **Dependencies**: None
+- **Confidence**: Confirmed
+
+---
+
+#### `BILL-004`: Non-Existent 7-Day Grace Period Implementation Locks Write Access
+- **Title**: Failed Recurring Payments Immediately Deny Write Access Despite Advertised Grace Period
+- **Evidence**:
+  - `packages/capabilities/billing/src/commands/deactivate-tenant.ts:13`:
+    ```typescript
+    export async function deactivateTenantCommand(db: DbOrTx, tenantId: string, newStatus = "DEACTIVATED") {
+      const now = new Date();
+      const graceEndsAt = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000); // <-- Evaluated but never stored!
+      await db.update(tenants).set({
+        subscriptionStatus: newStatus === "GRACE_PERIOD" ? "PAST_DUE" : newStatus,
+        premiumEnabled: false,
+        updatedAt: now,
+      }).where(eq(tenants.id, tenantId));
+    }
+    ```
+  - `packages/db/src/schema/tenant.ts`: Contains `trialEndsAt`, `subscriptionEndsAt`, but NO `gracePeriodEndsAt` column.
+  - `apps/api/src/trpc/trpc.ts:169-176`:
+    ```typescript
+    export function requiresWriteAccess(ctx: { subscriptionStatus: SubscriptionStatusDto }) {
+      if (ctx.subscriptionStatus.isTrialExpired) {
+        throw new TRPCError({ code: 'FORBIDDEN', message: 'Your trial has ended...' });
+      }
+    }
+    ```
+  - `packages/capabilities/billing/src/queries/get-subscription-status.ts:96-99`: When `subscriptionStatus === 'PAST_DUE'`, returns `isTrialExpired = true`.
+- **Rule Violated**: `AGENTS.md` §14 ("Stripe via verified webhooks ONLY (ACTIVE in V1 with 7-day read-only grace period & subscription checkout/portal management)").
+- **Impact/Risk**: When a recurring subscription payment fails, Stripe webhooks trigger `deactivateTenantCommand(db, tenantId, "GRACE_PERIOD")`. Because `graceEndsAt` is discarded and `tenants` lacks a grace period column, `subscriptionStatus` becomes `PAST_DUE`, which immediately sets `isTrialExpired = true`. Every subsequent user mutation is rejected with `403 FORBIDDEN`, completely violating the promised 7-day grace period.
+- **Concrete Fix**:
+  1. Add `grace_period_ends_at` timestamp column to `packages/db/src/schema/tenant.ts` and create migration `0037`.
+  2. In `deactivateTenantCommand`, persist `grace_period_ends_at = now + 7 days` upon Stripe recurring payment failure.
+  3. In `getSubscriptionStatus`, return `isGracePeriod = true` and keep `isTrialExpired = false` as long as `now <= grace_period_ends_at`.
+  4. Enforce read-only state during grace period: `requiresWriteAccess(ctx)` blocks financial mutations with a dedicated `grace_period_readonly` message, while read procedures (`tenantProcedure`, `privateTenantProcedure`) permit viewing the dashboard, cashflow matrix, and ledgers with an active `<GracePeriodBanner />`.
+  5. In `DashboardLayout.tsx`, ensure redirect to `/dashboard/settings?tab=account-data` or `/subscription/manage` triggers only when `isTrialExpired && !isGracePeriod`, allowing full read-only inspection during the 7 days.
+  6. When 7 days elapse without successful payment, update tenant to `status: 'DEACTIVATED'`, locking access to `/subscription/manage`.
+- **Platforms**: DB / Billing / API / Web / Mobile
+- **Tests to Add/Update**: Unit test in `get-subscription-status.test.ts` verifying a tenant in `PAST_DUE` within grace period retains read-only dashboard access, displays grace banner, blocks mutations, and transitions to locked deactivated state after day 7.
+- **Effort**: S
+- **Dependencies**: `DB-002`
+- **Confidence**: Confirmed
+
+---
+
+#### `DB-006`: Complete Absence of Composite & Foreign Key Indexes on Core Financial Tables
+- **Title**: Missing Core Indexes Cause PostgreSQL Full Table Scans on Ledger and Envelopes
+- **Evidence**:
+  - `packages/db/src/schema/transaction_ledger.ts:20-35`: Zero table indexes defined in Drizzle schema.
+  - `packages/db/src/schema/envelope.ts:15-47`: Zero indexes defined on `tenant_id`, `envelope_type`, or `bank_account_id`.
+  - `packages/db/drizzle/0030_unified_flat_envelopes.sql:77-80`: Dropped `category_id` and added `envelope_id`, but created no index on `envelope_id` or `(tenant_id, envelope_id)`.
+- **Rule Violated**: `AGENTS.md` §6 ("Queries MUST be indexed, scoped by tenantId, and optimized").
+- **Impact/Risk**: Every query calculating envelope balances (`getEnvelopeBalancesMap`), filtering ledger transactions, or rendering the dashboard history ledger triggers a sequential scan over the entire `transaction_ledger` table. In production, this causes severe query latency spikes and risks edge request timeouts.
+- **Concrete Fix**:
+  1. Author migration `0038_add_core_performance_indexes.sql` creating:
+     - `CREATE INDEX IF NOT EXISTS "transaction_ledger_tenant_recorded_idx" ON "transaction_ledger" ("tenant_id", "recorded_at" DESC);`
+     - `CREATE INDEX IF NOT EXISTS "transaction_ledger_tenant_envelope_idx" ON "transaction_ledger" ("tenant_id", "envelope_id");`
+     - `CREATE INDEX IF NOT EXISTS "envelopes_tenant_type_idx" ON "envelopes" ("tenant_id", "envelope_type");`
+     - `CREATE INDEX IF NOT EXISTS "income_events_tenant_expected_idx" ON "income_events" ("tenant_id", "expected_date" ASC);`
+  2. Declare indexes in corresponding Drizzle table schemas.
+- **Platforms**: DB
+- **Tests to Add/Update**: Add schema index verification test in `packages/db`.
+- **Effort**: S
+- **Dependencies**: None
+- **Confidence**: Confirmed
+
+---
+
+#### `DATA-001`: Inflation of Income & Spend Metrics in `getMonthlySummaryQuery`
+- **Title**: Internal Transfers Counted as Income/Spend & UTC Timezone Boundaries Cause Metric Distortion
+- **Evidence**:
+  - `packages/capabilities/budgeting/src/queries/get-monthly-summary.query.ts:11-12`:
+    ```typescript
+    const startDate = new Date(Date.UTC(year, month - 1, 1, 0, 0, 0));
+    const endDate = new Date(Date.UTC(year, month, 1, 0, 0, 0));
+    ```
+  - `packages/capabilities/budgeting/src/queries/get-monthly-summary.query.ts:69-76`:
+    ```typescript
+    if (tx.flowType === "CREDIT") {
+      totalIncome += val;
+      if (envType === "TARGET_GOAL" || envType === "ONGOING_GOAL") totalSaved += val;
+    } else {
+      totalSpent += val;
+    }
+    ```
+- **Rule Violated**: `AGENTS.md` §13 ("Dates stored in UTC; rendered in timezone-aware AEST/en-AU format"), §16 ("Data Integrity & Precision").
+- **Impact/Risk**:
+  1. Using UTC date bounds skews Australian monthly analytics by 10 to 11 hours, assigning end-of-month transactions to the wrong calendar month.
+  2. Adding all `CREDIT` transactions to `totalIncome` and all `DEBIT` transactions to `totalSpent` without checking `transactionType` means every internal envelope transfer (`TRANSFER_IN`, `TRANSFER_OUT`) or balance adjustment is counted as earned income and discretionary spending.
+- **Concrete Fix**:
+  1. Calculate month start/end bounds using Sydney timezone.
+  2. Filter transactions: count credits as income ONLY if `transactionType` is `INCOME_DIRECT` or `INCOME_SPLIT`; count debits as spending ONLY if `transactionType` is `EXPENSE`.
+- **Platforms**: Capabilities / Budgeting
+- **Tests to Add/Update**: Unit test in `get-monthly-summary.query.test.ts` verifying that internal transfers do not alter `totalIncome` or `totalSpent`.
+- **Effort**: S
+- **Dependencies**: None
+- **Confidence**: Confirmed
+
+---
+
+#### `AI-001`: Assistant Pool Balance Adapter Returns Configured Budget Instead of Real Cash Balance
+- **Title**: AI Assistant Reports Theoretical Monthly Budget Targets Rather Than Net Ledger Balances
+- **Evidence**:
+  - `apps/api/src/routers/assistant-adapters.ts:33, 48-68`:
+    ```typescript
+    async handlePoolBalance(ctx: IntentContext, poolName = "Everyday"): Promise<AssistantResult> {
+      const rows = await db.select().from(envelopes).where(
+        and(eq(envelopes.tenantId, ctx.tenantId), eq(envelopes.envelopeType, "EVERYDAY"))
+      );
+      const everyday = rows[0];
+      const balance = everyday ? parseFloat(everyday.monthlyAmount || "0") : 0;
+      ...
+    ```
+- **Rule Violated**: `AGENTS.md` §4 (Architecture), §5 (Stealth Privacy), §10 (AI Assistant Accuracy).
+- **Impact/Risk**:
+  1. When a user asks "How much do I have left in my Everyday pool?", the assistant returns `everyday.monthlyAmount` (e.g. $1,000 budgeted), completely ignoring all recorded expenses. If the user has spent $950 and has only $50 left, the assistant tells them they have $1,000, risking severe overdrafts.
+  2. The query does not check `isPrivate` ownership, meaning `rows[0]` could be a partner's private everyday envelope.
+- **Concrete Fix**:
+  1. Use `getEnvelopeBalancesMap(ctx.tenantId, appId, db)` to resolve real net ledger balances.
+  2. Filter envelopes by `and(eq(envelopes.tenantId, ctx.tenantId), or(eq(envelopes.isPrivate, false), eq(envelopes.userId, ctx.userId)))`.
+- **Platforms**: API / Assistant
+- **Tests to Add/Update**: Unit test in `assistant-adapters.test.ts` verifying that recorded expenses reduce the assistant's reported pool balance.
+- **Effort**: S
+- **Dependencies**: None
+- **Confidence**: Confirmed
+
+---
+
+#### `MOBILE-004`: New User Setup Wizard 401 Cascade & Storage Key Mismatch on Mobile
+- **Title**: Unconditional Preferences Query on Launch Triggers 401 & SecureStore Key Inconsistency
+- **Evidence**:
+  - `apps/mobile/src/providers/AppProviders.tsx:18-23`:
+    ```typescript
+    function MobilePreferencesSync({ children }: { children: React.ReactNode }) {
+      const { data: session } = authClient.useSession();
+      const userPrefQuery = trpc.getUserPreferences.useQuery(undefined, {
+        enabled: !!session?.user, // <-- Fires even when tenantId is null!
+        retry: false,
+      });
+    ```
+  - `apps/mobile/src/components/auth/useSignUpForm.ts:142`:
+    ```typescript
+    await SecureStore.setItemAsync("auth_session_token", sessionToken);
+    ```
+  - `apps/mobile/src/lib/trpc.ts:126`: Queries `"money-matters_session_token"` and `"money-matters-session-token"`.
+- **Rule Violated**: `AGENTS.md` §1 (Tenant isolation), §12 (Mobile Target).
+- **Impact/Risk**:
+  1. When a brand-new user registers and launches the app, `session?.user` is true but `tenantId` is null. `MobilePreferencesSync` runs `getUserPreferences` (a `tenantProcedure`), throwing a 401 error and causing an unhandled query rejection banner.
+  2. Storing the token under `"auth_session_token"` while `trpc.ts` looks for `"money-matters_session_token"` leads to intermittent unauthenticated API requests on cold restarts.
+- **Concrete Fix**:
+  1. In `MobilePreferencesSync`, guard the query with `enabled: !!session?.user && !!getActiveTenantId()`.
+  2. Standardize the SecureStore token key to `"money-matters_session_token"` across all mobile modules.
+- **Platforms**: Mobile
+- **Tests to Add/Update**: Mobile cold-start integration test verifying token retrieval and absence of 401s during initial onboarding.
+- **Effort**: S
+- **Dependencies**: None
+- **Confidence**: Confirmed
+
+---
+
+#### `SEC-022`: Missing Zod `.strict()` & Banned `as any` Casts in `SaveSetupBudgetCommand`
+- **Title**: Permissive Validation in Budget Persistence Schema & Banned Type Casts
+- **Evidence**:
+  - `packages/types/src/commands.types.ts:296-350`: `SaveSetupBudgetCommand` is defined with `z.object({ ... })` without `.strict()`. The inner objects (`incomes`, `bankAccounts`, `envelopes`) also lack `.strict()`.
+  - `packages/capabilities/budgeting/src/commands/save-setup-budget.command.ts:88`: Uses `if (typeof (tx as any).update === "function")` to bypass type checking.
+- **Rule Violated**: `AGENTS.md` §8 ("Zod .strict() REQUIRED on all input/output schemas... any is FORBIDDEN"), §22 (Zero Dead/Redundant Code).
+- **Impact/Risk**: Allows unvalidated, unexpected fields to pass into budget persistence handlers, risking prototype pollution or unexpected database behavior. Using `(tx as any)` undermines TypeScript compile-time safety.
+- **Concrete Fix**:
+  1. Append `.strict()` to `SaveSetupBudgetCommand` and each of its inner object definitions in `packages/types/src/commands.types.ts`.
+  2. Refactor `save-setup-budget.command.ts` to use typed database interfaces without `as any`.
+- **Platforms**: Types / Capabilities / Budgeting
+- **Tests to Add/Update**: Unit test verifying `SaveSetupBudgetCommand.parse()` rejects objects with extra/unrecognized keys.
 - **Effort**: S
 - **Dependencies**: None
 - **Confidence**: Confirmed
@@ -1299,41 +1668,53 @@ This audit was conducted strictly as a static code and architectural analysis. N
 ## 2.5 Recommended Execution Order & Batching
 
 ```
-[Phase 0: Launch Blocker Security & DB Integrity]
-   ├── SEC-001 (Purge plaintext credentials & protect seed)
-   ├── SEC-002 (Eliminate /dev-callback open redirect)
-   ├── SEC-003 (Protect checkEmailRegistered)
-   ├── SEC-004 (Enforce privateTenantProcedure on archiveBankAccount & exportMyData)
-   ├── SEC-006 (Fix data export filter leaking partner private envelopes)
-   ├── SEC-007 (Add stealth privacy RLS to transaction_ledger, expenses, transfers)
-   ├── SEC-008 (Add missing tenantId/appId scoping to all update/delete queries)
-   ├── SEC-011 (Fix foreign key constraint deadlock in deleteMyAccountHandler)
-   ├── SEC-012 (Remove neon_auth_session_verifier bypass from middleware)
-   ├── SEC-013 (Eliminate plaintext token custom URL scheme & fix mobile ingestion)
-   ├── DB-001  (Fix migration journal & monotonic numbering)
-   ├── DB-002  (Create billing_invoices migration with RLS)
-   ├── DB-003  (Wrap runAllocationCommand & handlers in ACID transactions)
-   ├── DB-004  (Fix undefined connection string in Worker db singleton)
-   ├── BILL-001 (Cancel Stripe subscription upon account deletion)
-   ├── BILL-002 (Add UNIQUE constraint on billing_invoices.stripe_invoice_id)
-   ├── ARCH-006 (Fix module-level process.env evaluation breaking verifyJwt)
+[Phase 0: Launch Blocker Security, Auth & DB Integrity]
+   ├── SEC-001  (Purge plaintext credentials & protect seed)
+   ├── SEC-002  (Eliminate /dev-callback open redirect)
+   ├── SEC-003  (Protect checkEmailRegistered)
+   ├── SEC-004  (Enforce privateTenantProcedure on archiveBankAccount & exportMyData)
+   ├── SEC-006  (Fix data export filter leaking partner private envelopes)
+   ├── SEC-007  (Add stealth privacy RLS to transaction_ledger, expenses, transfers)
+   ├── SEC-008  (Add missing tenantId/appId scoping to all update/delete queries)
+   ├── SEC-011  (Fix foreign key constraint deadlock in deleteMyAccountHandler)
+   ├── SEC-012  (Remove neon_auth_session_verifier bypass from middleware)
+   ├── SEC-013  (Eliminate plaintext token custom URL scheme & fix mobile ingestion)
+   ├── AUTH-001 (Auto-provision tenant for Google OAuth users & fix dashboard guard)
+   ├── BILL-003 (Eliminate mock billing bypass in production mode)
+   ├── SEC-018  (Fix mobile OAuth callback URL destination to Web)
+   ├── SEC-019  (Scope income_events in archiveIncomeSource by tenantId in transaction)
+   ├── SEC-020  (Filter private envelopes by userId in canAffordSimulationQuery)
+   ├── SEC-021  (Add private envelope ownership checks to moveMoney & recordExpense)
+   ├── DB-001   (Fix migration journal & monotonic numbering)
+   ├── DB-002   (Create billing_invoices migration with RLS)
+   ├── DB-003   (Wrap runAllocationCommand & handlers in ACID transactions)
+   ├── DB-004   (Fix undefined connection string in Worker db singleton)
+   ├── BILL-001  (Cancel Stripe subscription upon account deletion)
+   ├── BILL-002  (Add UNIQUE constraint on billing_invoices.stripe_invoice_id)
+   ├── ARCH-006  (Fix module-level process.env evaluation breaking verifyJwt)
    └── MOBILE-001 (Add USE_BIOMETRIC & POST_NOTIFICATIONS to app.json)
         │
         ▼
-[Phase 1: Validation, Safety & CI Recovery]
-   ├── I18N-001 (Un-bypass check-i18n.cjs & externalize all strings)
-   ├── SEC-010  (Delete dangerous push:prod --force script)
-   ├── SEC-014  (Enforce Origin/Referer on state-changing proxy requests)
-   ├── SEC-015  (Add FLAG_SECURE / screen capture protection on mobile)
-   ├── SEC-016  (Remove ignoreBuildErrors / ignoreDuringBuilds in next.config.ts)
-   ├── DB-005   (Add idempotency key & concurrency control to moveMoneyCommand)
-   ├── ARCH-007 (Implement missing reset-password routes on Web & Mobile)
-   ├── ARCH-009 (Eliminate duplicate partner invite email dispatch)
-   ├── ARCH-010 (Delete orphaned confirmAllocationCommand file)
-   ├── ARCH-011 (Filter out archived tenants from weekly digest cron)
+[Phase 1: Validation, Safety, SRE & Data Integrity]
+   ├── BILL-004  (Implement 7-day grace period column & logic on payment failure)
+   ├── DB-006   (Create composite performance indexes on transaction_ledger & envelopes)
+   ├── DATA-001  (Exclude internal transfers & fix timezone drift in getMonthlySummaryQuery)
+   ├── AI-001    (Fix assistant adapter to use real cash balances & respect private envelopes)
+   ├── MOBILE-004 (Guard MobilePreferencesSync against null tenant & fix storage key)
+   ├── SEC-022   (Enforce .strict() on SaveSetupBudgetCommand & remove tx as any)
+   ├── I18N-001  (Un-bypass check-i18n.cjs & externalize all strings)
+   ├── SEC-010   (Delete dangerous push:prod --force script)
+   ├── SEC-014   (Enforce Origin/Referer on state-changing proxy requests)
+   ├── SEC-015   (Add FLAG_SECURE / screen capture protection on mobile)
+   ├── SEC-016   (Remove ignoreBuildErrors / ignoreDuringBuilds in next.config.ts)
+   ├── DB-005    (Add idempotency key & concurrency control to moveMoneyCommand)
+   ├── ARCH-007  (Implement missing reset-password routes on Web & Mobile)
+   ├── ARCH-009  (Eliminate duplicate partner invite email dispatch)
+   ├── ARCH-010  (Delete orphaned confirmAllocationCommand file)
+   ├── ARCH-011  (Filter out archived tenants from weekly digest cron)
    ├── MOBILE-002 (Register push notification handlers on mobile)
-   ├── PAR-001  (Replace mobile Alert.alert with component dialog)
-   ├── PAR-002  (Replace 'as never' with 'as Href')
+   ├── PAR-001   (Replace mobile Alert.alert with component dialog)
+   ├── PAR-002   (Replace 'as never' with 'as Href')
    └── AGENTS-007 (Delete root artifacts & update .gitignore)
         │
         ▼
@@ -1400,6 +1781,9 @@ This audit was conducted strictly as a static code and architectural analysis. N
 | **Action Confirmation Dialogs** | `<ConfirmDialog />` (Web) | `showMobileConfirm` / `Alert.alert` | **Banned API on Mobile**: Mobile invokes native Alert. | `PAR-001` |
 | **Product Tour Navigation** | `ProductTourContext.tsx` (`data-tour`) | `ProductTourContext.tsx` (`router.replace`) | Mobile uses unsafe `as never` type casts. | `PAR-002` |
 | **Screen Privacy / Anti-Capture** | OS defaults | **None** | **Missing on Mobile**: Missing `FLAG_SECURE` in mobile app. | `SEC-015` |
+| **Social OAuth Flow** | `SocialAuthButtons` (`/auth-callback`) | `MobileSocialAuthButtons` (`${API_URL}/auth-callback`) | **Broken on Mobile**: Mobile points to non-existent API Worker route; Web omits tenant creation. | `SEC-018`, `AUTH-001` |
+| **New User Setup Provisioning** | `/auth-callback` redirects to `/dashboard` | `RootLayout` mounts `MobilePreferencesSync` | **Universal 401 Cascade**: Web leaves OAuth users stranded without tenant; Mobile crashes with 401. | `AUTH-001`, `MOBILE-004` |
+| **Auth Session Token Storage** | Secure HTTP Cookies (`session_token`) | Expo SecureStore (`auth_session_token`) | **Key Mismatch**: Mobile auth form writes `auth_session_token`, but tRPC reads `money-matters_session_token`. | `MOBILE-004` |
 
 ---
 
@@ -1434,12 +1818,16 @@ This audit was conducted strictly as a static code and architectural analysis. N
 4. **`apps/api/src/routers/payday.router.ts`** (505 lines) — ZERO direct unit tests for payday allocation confirmation, deficit repair waterfalls, or transaction ledger balance writing.
 5. **`packages/capabilities/billing/src/webhooks/stripe-webhook-handler.ts`** (312 lines) — Missing tests for duplicate webhook replay idempotency (`processed_webhooks`), invoice creation, and subscription cancellation grace periods.
 6. **`packages/db/src/apply-migrations.ts`** — ZERO tests for migration execution integrity or error rollback.
+7. **`apps/api/src/routers/assistant-adapters.ts`** — ZERO unit tests verifying real net cash balances, goal target calculations, or partner stealth privacy filtering (`AI-001`).
+8. **`packages/capabilities/billing/src/commands/verify-checkout-session.ts`** — ZERO unit tests ensuring mock checkout session bypasses are rejected in production (`BILL-003`).
+9. **`packages/capabilities/budgeting/src/commands/save-setup-budget.command.ts`** — Missing tests for `.strict()` schema rejection and transaction rollback (`SEC-022`).
 
 ### 5.2 High Risk (Background Jobs, Integrations, Resilience)
 1. **`packages/capabilities/notifications/src/scheduled-notifications.ts`** — ZERO unit tests for cron scheduling, archived tenant filtering, or batching logic.
 2. **`packages/capabilities/notifications/src/inngest.ts`** — ZERO unit tests for Expo push token dispatch, timeout handling, or rate limit backoff.
-3. **`packages/capabilities/budgeting/src/commands/move-money.command.ts`** — Missing concurrent race condition and retry idempotency tests.
+3. **`packages/capabilities/budgeting/src/commands/move-money.command.ts`** — Missing concurrent race condition, stealth privacy ownership, and retry idempotency tests.
 4. **`packages/core/src/rate-limiter.ts`** — Upstash Redis sliding-window rate limiting algorithm lacks mock unit tests for burst thresholds.
+5. **`packages/capabilities/budgeting/src/queries/get-monthly-summary.query.ts`** — ZERO tests for transfer exclusion, balance adjustment filtering, or timezone boundary accuracy (`DATA-001`).
 
 ---
 

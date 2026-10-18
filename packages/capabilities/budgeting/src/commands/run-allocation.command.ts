@@ -142,19 +142,27 @@ export async function runAllocationCommand(
     ? new Map(customLines.map((l) => [l.bucketId, { amount: parseFloat(l.amount), reasoning: l.reasoning }]))
     : null;
 
-  const tx = dbClient;
-  const [existingPlan] = await tx
+  const runInTx =
+    typeof dbClient.transaction === "function"
+      ? (cb: (tx: DbOrTx) => Promise<unknown>) => dbClient.transaction(cb)
+      : (cb: (tx: DbOrTx) => Promise<unknown>) => cb(dbClient);
+
+  return (await runInTx(async (tx) => {
+    const [existingPlan] = await tx
     .select({ id: allocationPlans.id, status: allocationPlans.status })
     .from(allocationPlans)
     .where(and(eq(allocationPlans.incomeEventId, incomeEventId), eq(allocationPlans.tenantId, tenantId)))
     .limit(1);
 
-  if (existingPlan) {
-    if (existingPlan.status === "CONFIRMED") {
-      throw new Error("Cannot re-run allocation over an already-confirmed payday. Revert the payday first.");
+    if (existingPlan) {
+      if (existingPlan.status === "CONFIRMED") {
+        throw new Error("Cannot re-run allocation over an already-confirmed payday. Revert the payday first.");
+      }
+      await tx
+        .update(allocationPlans)
+        .set({ archivedAt: new Date(), updatedAt: new Date(), updatedBy: userId })
+        .where(eq(allocationPlans.id, existingPlan.id));
     }
-    await tx.delete(allocationPlans).where(eq(allocationPlans.id, existingPlan.id));
-  }
 
   const [insertedPlan] = await tx
     .insert(allocationPlans)
@@ -246,6 +254,7 @@ export async function runAllocationCommand(
       .where(eq(incomeEvents.id, incomeEventId));
   }
 
-  const plan = { ...insertedPlan, isFuturePlanned };
-  return plan;
+    const plan = { ...insertedPlan, isFuturePlanned };
+    return plan;
+  })) as typeof allocationPlans.$inferSelect & { isFuturePlanned: boolean };
 }

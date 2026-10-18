@@ -26,14 +26,15 @@ export async function resetAllocationPlanCommand(
       return { success: true, count: 0 };
     }
 
-    // Delete allocation plan lines first
+    // Soft-delete allocation plan lines and the plan record
     await tx
-      .delete(allocationPlanLines)
+      .update(allocationPlanLines)
+      .set({ archivedAt: new Date(), updatedAt: new Date() })
       .where(eq(allocationPlanLines.planId, plan.id));
 
-    // Delete the allocation plan record
     await tx
-      .delete(allocationPlans)
+      .update(allocationPlans)
+      .set({ archivedAt: new Date(), updatedAt: new Date() })
       .where(eq(allocationPlans.id, plan.id));
 
     return { success: true, count: 1, planId: plan.id };

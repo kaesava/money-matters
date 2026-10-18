@@ -22,13 +22,6 @@ const nextConfig: NextConfig = {
       "@money-matters/i18n",
     ],
   },
-  eslint: {
-
-    ignoreDuringBuilds: true,
-  },
-  typescript: {
-    ignoreBuildErrors: true,
-  },
   webpack: (config) => {
     config.resolve.extensionAlias = {
       ".js": [".ts", ".tsx", ".js", ".jsx"],
@@ -66,11 +59,15 @@ const nextConfig: NextConfig = {
             key: "Content-Security-Policy",
             value: [
               "default-src 'self'",
-              "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://us.i.posthog.com https://us-assets.i.posthog.com",
+              process.env.NODE_ENV === "development"
+                ? "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://us.i.posthog.com https://us-assets.i.posthog.com"
+                : "script-src 'self' 'unsafe-inline' https://us.i.posthog.com https://us-assets.i.posthog.com",
               "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
               "font-src 'self' https://fonts.gstatic.com data:",
               "img-src 'self' data: blob: https://*.posthog.com https://us.i.posthog.com",
-              "connect-src 'self' https://api.moneymatters.kaesava.au https://us.i.posthog.com https://*.ingest.us.sentry.io https://*.neonauth.ap-southeast-2.aws.neon.tech http://localhost:* ws://localhost:*",
+              process.env.NODE_ENV === "development"
+                ? "connect-src 'self' https://api.moneymatters.kaesava.au https://us.i.posthog.com https://*.ingest.us.sentry.io https://*.neonauth.ap-southeast-2.aws.neon.tech http://localhost:* ws://localhost:*"
+                : "connect-src 'self' https://api.moneymatters.kaesava.au https://us.i.posthog.com https://*.ingest.us.sentry.io https://*.neonauth.ap-southeast-2.aws.neon.tech",
               "frame-ancestors 'none'",
               "base-uri 'self'",
               "form-action 'self'",

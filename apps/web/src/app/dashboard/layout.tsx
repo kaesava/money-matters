@@ -28,9 +28,17 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const { data: session, isPending } = authClient.useSession();
   const [isExchanging, setIsExchanging] = useState(false);
 
-  const userPrefQuery = trpc.getUserPreferences.useQuery(undefined, { enabled: !!session?.user });
+  const tenantStatusQuery = trpc.getTenantStatus.useQuery(undefined, {
+    enabled: !!session?.user,
+    retry: false,
+  });
+  const hasTenant = tenantStatusQuery.data?.hasTenant ?? false;
+  const userPrefQuery = trpc.getUserPreferences.useQuery(undefined, {
+    enabled: !!session?.user && hasTenant,
+    retry: false,
+  });
   const userProfileQuery = trpc.getUserProfile.useQuery(undefined, { enabled: !!session?.user });
-  const envelopesQuery = trpc.listPools.useQuery(undefined, { enabled: !!session?.user });
+  const envelopesQuery = trpc.listPools.useQuery(undefined, { enabled: !!session?.user && hasTenant });
   const tenantsQuery = trpc.listUserTenants.useQuery(undefined, { enabled: !!session?.user });
   const { status: subStatus, isLoading: isSubLoading } = useSubscriptionStatus();
 
@@ -57,19 +65,20 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   }, [userLocale]);
 
 
-  // Setup Guard: redirect to setup wizard if user has not completed or dismissed setup
+  // Setup & Tenant Guards: redirect to /setup/household if user has no tenant, or /setup if setup is pending
   useEffect(() => {
-    if (
-      !isPending &&
-      session?.user &&
-      !userPrefQuery.isLoading &&
-      userPrefQuery.data &&
-      !userPrefQuery.data.setupCompleted &&
-      !pathname.startsWith("/setup")
-    ) {
-      router.replace("/setup");
+    if (isPending || !session?.user || tenantStatusQuery.isLoading) return;
+
+    if (tenantStatusQuery.data) {
+      if (!tenantStatusQuery.data.hasTenant && !pathname.startsWith("/setup/household")) {
+        router.replace("/setup/household");
+        return;
+      }
+      if (tenantStatusQuery.data.hasTenant && !tenantStatusQuery.data.setupCompleted && !pathname.startsWith("/setup")) {
+        router.replace("/setup");
+      }
     }
-  }, [isPending, session, userPrefQuery.isLoading, userPrefQuery.data, pathname, router]);
+  }, [isPending, session, tenantStatusQuery.isLoading, tenantStatusQuery.data, pathname, router]);
 
   // Exchange neon_auth_session_verifier for session token cookie
   useEffect(() => {

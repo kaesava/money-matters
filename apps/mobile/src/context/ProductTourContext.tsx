@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
-import { useRouter, useSegments } from 'expo-router';
+import { useRouter, useSegments, type Href } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import { trpc } from '../lib/trpc';
 import { usePostHog } from 'posthog-react-native';
@@ -123,21 +123,21 @@ export function MobileProductTourProvider({ children }: { children: ReactNode })
     setIsTourActive(true);
     setCurrentStep(1);
     posthog.capture('tour_started');
-    router.replace('/(app)/home' as never);
+    router.replace('/(app)/home' as Href);
   }, [posthog, router]);
 
   const skipTour = useCallback(() => {
     setIsTourActive(false);
     saveTourStatus(false);
     posthog.capture('tour_skipped', { step: currentStep });
-    router.replace('/(app)/home' as never);
+    router.replace('/(app)/home' as Href);
   }, [saveTourStatus, currentStep, posthog, router]);
 
   const completeTour = useCallback(() => {
     setIsTourActive(false);
     saveTourStatus(true);
     posthog.capture('tour_completed');
-    router.replace('/(app)/home' as never);
+    router.replace('/(app)/home' as Href);
     showToast({
       type: 'success',
       title: t('tour.welcome.title', { name: '' }).replace(', !', '!'),

@@ -12,7 +12,7 @@ export const billingInvoices = pgTable(
     tenantId: uuid("tenant_id")
       .notNull()
       .references(() => tenants.id),
-    stripeInvoiceId: varchar("stripe_invoice_id", { length: 255 }).notNull(),
+    stripeInvoiceId: varchar("stripe_invoice_id", { length: 255 }).notNull().unique(),
     stripeCustomerId: varchar("stripe_customer_id", { length: 255 }).notNull(),
     stripeSubscriptionId: varchar("stripe_subscription_id", { length: 255 }),
     amountPaid: numeric("amount_paid", { precision: 12, scale: 2 }).notNull().default("0.00"),

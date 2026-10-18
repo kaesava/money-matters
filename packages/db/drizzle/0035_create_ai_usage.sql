@@ -18,7 +18,9 @@ CREATE INDEX IF NOT EXISTS "ai_usage_tenant_id_idx" ON "ai_usage" ("tenant_id");
 -- Enable Row-Level Security (RLS) for tenant isolation
 ALTER TABLE "ai_usage" ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "ai_usage_tenant_isolation" ON "ai_usage";
 CREATE POLICY "ai_usage_tenant_isolation" ON "ai_usage"
   FOR ALL
   USING (tenant_id = NULLIF(current_setting('app.current_tenant_id', true), '')::uuid)
   WITH CHECK (tenant_id = NULLIF(current_setting('app.current_tenant_id', true), '')::uuid);
+

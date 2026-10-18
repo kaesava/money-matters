@@ -2,7 +2,6 @@
 
 import React, { useState, useMemo } from "react";
 import { useRouter, usePathname } from "next/navigation";
-import { computeMatrixProjection, MatrixIncomeEvent, ScheduledExpenseEvent, EngineBucket } from "@money-matters/capability-budgeting/engine";
 import { EnvelopeDetailDrawer, CategoryScheduledEvent } from "./EnvelopeDetailDrawer";
 import { t } from "@money-matters/i18n";
 import { trpc } from "../../../../lib/trpc";
@@ -11,9 +10,32 @@ import { useLocale } from "../../../../providers/LocaleProvider";
 
 interface MatrixPlanTabProps {
   currentUserId: string;
-  categories: EngineBucket[];
-  incomeEvents: MatrixIncomeEvent[];
-  expenseEvents: ScheduledExpenseEvent[];
+  categories?: Array<{
+    id: string;
+    name: string;
+    type: string;
+    currentBalance: number;
+    monthlyAmount?: number | null;
+    targetAmount?: number | null;
+    isCommitted?: boolean;
+    isSurplusTarget?: boolean;
+    isPrivate?: boolean;
+  }>;
+  incomeEvents?: Array<{
+    id: string;
+    expectedDate: string;
+    expectedAmount: number;
+    actualAmount?: number | null;
+    status: "PENDING" | "CONFIRMED";
+    sourceName: string;
+    isPrivate?: boolean;
+  }>;
+  expenseEvents?: Array<{
+    categoryId: string;
+    amount: number;
+    dueDate: string;
+    status?: "PENDING" | "CONFIRMED";
+  }>;
   onMarkPaid?: (eventId: string, amount: string, date: string) => void;
 }
 
@@ -79,10 +101,10 @@ function MatrixCellInput({
 }
 
 export function MatrixPlanTab({
-  currentUserId,
-  categories,
-  incomeEvents,
-  expenseEvents,
+  currentUserId: _currentUserId,
+  categories: propsCategories = [],
+  incomeEvents: propsIncomeEvents = [],
+  expenseEvents: propsExpenseEvents = [],
   onMarkPaid,
 }: MatrixPlanTabProps) {
   const { locale, userTimezone } = useLocale();
@@ -93,6 +115,46 @@ export function MatrixPlanTab({
   const deleteIncomeMut = trpc.deleteIncomeEvent.useMutation();
   const allPlansQuery = trpc.listAllAllocationPlans.useQuery();
   const saveAutoAllocationMut = trpc.saveAutoAllocation.useMutation();
+  const matrixQuery = trpc.getMatrixProjectionData.useQuery({ monthsAhead: 12 });
+
+  const categories = useMemo(() => {
+    if (propsCategories.length > 0) return propsCategories;
+    if (!matrixQuery.data?.pools) return [];
+    return matrixQuery.data.pools.map((p) => ({
+      id: p.id,
+      name: p.name,
+      type: p.envelopeType,
+      currentBalance: 0,
+      monthlyAmount: p.monthlyAmount ? parseFloat(p.monthlyAmount) : null,
+      targetAmount: p.targetAmount ? parseFloat(p.targetAmount) : null,
+      isCommitted: Boolean(p.isCommitted),
+      isSurplusTarget: Boolean(p.isSurplusTarget),
+      isPrivate: Boolean(p.isPrivate),
+    }));
+  }, [propsCategories, matrixQuery.data?.pools]);
+
+  const incomeEvents = useMemo(() => {
+    if (propsIncomeEvents.length > 0) return propsIncomeEvents;
+    return (matrixQuery.data?.rawIncomeEvents?.map((e) => ({
+      id: e.id,
+      expectedDate: e.expectedDate,
+      expectedAmount: parseFloat(e.expectedAmount),
+      actualAmount: e.actualAmount ? parseFloat(e.actualAmount) : null,
+      status: (e.status as "PENDING" | "CONFIRMED") || "PENDING",
+      sourceName: e.sourceName,
+      isPrivate: false,
+    })) || []);
+  }, [propsIncomeEvents, matrixQuery.data?.rawIncomeEvents]);
+
+  const expenseEvents = useMemo(() => {
+    if (propsExpenseEvents.length > 0) return propsExpenseEvents;
+    return (matrixQuery.data?.rawExpenseEvents?.map((e) => ({
+      categoryId: e.envelopeId || "",
+      amount: parseFloat(e.actualAmount || e.expectedAmount || "0"),
+      dueDate: e.expectedDate,
+      status: (e.status as "PENDING" | "CONFIRMED") || "PENDING",
+    })) || []);
+  }, [propsExpenseEvents, matrixQuery.data?.rawExpenseEvents]);
 
   const returnTo = useMemo(() => {
     return pathname?.startsWith("/dashboard/income-split")
@@ -126,53 +188,35 @@ export function MatrixPlanTab({
     return stateMap;
   }, [allPlansQuery.data]);
 
-  // Filter income events by status and scope
-  const filteredIncomeEvents = useMemo(() => {
-    return incomeEvents.filter((e) => {
-      const isConfirmed = e.status === "CONFIRMED" || columnStateMap[e.id] === "CONFIRMED";
+  const serverProjection = matrixQuery.data?.projection;
+
+  // Compute multi-payday projection from server data
+  const projection = useMemo(() => {
+    if (!serverProjection) {
+      return { columns: [], groups: [] };
+    }
+    const filteredCols = serverProjection.columns.filter((c) => {
+      const colState = columnStateMap[c.id] ?? "AUTO";
+      const isConfirmed = colState === "CONFIRMED";
       if (statusFilter === "PENDING" && isConfirmed) return false;
       if (statusFilter === "CONFIRMED" && !isConfirmed) return false;
-      if (scopeFilter === "PRIVATE") return e.isPrivate;
-      if (scopeFilter === "SHARED") return !e.isPrivate;
       return true;
     });
-  }, [incomeEvents, columnStateMap, statusFilter, scopeFilter]);
 
-  // Filter categories by scope (All | Shared | Private)
-  const filteredCategories = useMemo(() => {
-    if (scopeFilter === "PRIVATE") return categories.filter((c) => c.isPrivate);
-    if (scopeFilter === "SHARED") return categories.filter((c) => !c.isPrivate);
-    return categories;
-  }, [categories, scopeFilter]);
+    const filteredGrps = serverProjection.groups.map((grp) => ({
+      ...grp,
+      rows: grp.rows.filter((row) => {
+        if (scopeFilter === "PRIVATE") return row.isPrivate;
+        if (scopeFilter === "SHARED") return !row.isPrivate;
+        return true;
+      }),
+    }));
 
-  // Derive read-only cell values from saved/confirmed plan data.
-  const savedPlanOverrides = React.useMemo(() => {
-    const overrideMap: Record<string, number> = {};
-    if (allPlansQuery.data) {
-      for (const plan of allPlansQuery.data) {
-        if (plan.lines) {
-          for (const line of plan.lines) {
-            const typedLine = line as unknown as { confirmedAmount?: string; proposedAmount?: string; poolId: string };
-            const amount = parseFloat(typedLine.confirmedAmount || typedLine.proposedAmount || "0");
-            overrideMap[`${plan.incomeEventId}_${typedLine.poolId}`] = amount;
-          }
-        }
-      }
-    }
-    return overrideMap;
-  }, [allPlansQuery.data]);
-
-  // Compute multi-payday projection using engine
-  const projection = useMemo(() => {
-    return computeMatrixProjection({
-      currentUserId,
-      categories: filteredCategories,
-      incomeEvents: filteredIncomeEvents,
-      expenseEvents,
-      cellOverrides: savedPlanOverrides,
-      monthsAhead: 12,
-    });
-  }, [currentUserId, filteredCategories, filteredIncomeEvents, expenseEvents, savedPlanOverrides]);
+    return {
+      columns: filteredCols,
+      groups: filteredGrps,
+    };
+  }, [serverProjection, columnStateMap, statusFilter, scopeFilter]);
 
   // Default view: Next 5 paydays (or full horizon if expanded)
   const visibleColumns = useMemo(() => {
@@ -500,7 +544,8 @@ export function MatrixPlanTab({
                             {(() => {
                               const cat = categories.find((c) => c.id === row.categoryId);
                               const curBal = cat ? cat.currentBalance : 0;
-                              const targetVal = cat ? (cat.monthlyAmount ?? cat.targetAmount ?? null) : null;
+                              const rawTarget = cat ? (cat.monthlyAmount ?? cat.targetAmount ?? null) : null;
+                              const targetVal = rawTarget != null ? Number(rawTarget) : null;
                               return (
                                 <div className="text-[10px] font-medium text-zinc-500 font-mono mt-0.5">
                                   Bal: ${curBal.toFixed(2)}
