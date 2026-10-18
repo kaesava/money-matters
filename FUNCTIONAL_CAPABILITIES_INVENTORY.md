@@ -370,3 +370,18 @@
   * Expo push notification registration with background cron dispatch; foreground push listener rendering non-blocking in-app toasts.
 * **Offline Resilience & Local Cache**:
   * SQLite local caching for offline viewing; resilient 401 token refresh in tRPC client.
+
+---
+
+## 21. Ask Penny AI Assistant (Web & Mobile Parity)
+
+* **Cost-Efficient & Safe Conversational Financial Inquiries**:
+  * `[W/M Parity]`: Natural language interface answering questions regarding current balances, payday allocations, upcoming bills, savings goal dates, and spend history without micro-budgeting friction.
+  * **Deterministic-First Interception**: 100% free, zero-token instant matching for common questions (*"When is my next payday?"*, *"How much is left in Everyday?"*, *"Which bills are due this week?"*, *"Can I afford $250 next week?"*, *"When can I achieve my Goal?"*, *"I paid my internet bill $190 on 23-Jan"*).
+  * **Zero Hallucination / Read-Only**: Cloudflare Workers AI Gateway (`@cf/meta/llama-3.1-8b-instruct-fast`) acts strictly as an intent classifier. It is barred from executing database writes directly.
+  * **Prefill Action Routing**: When asking to record an expense, mark a bill paid, or perform a transfer, Penny returns structured prefill payloads routing the user directly into the relevant modal/drawer (Quick Expense drawer, Mark Paid modal, Affordability check) for explicit human confirmation.
+  * **Tenant Quota & Abuse Protections**: Enforces a strict monthly cap of 150 LLM questions per tenant ($\le \$1.50$ cost boundary) with live usage bar in Settings > Plan/Subscription. Burst rate limits: 10 calls/min, 40 calls/day per tenant via Upstash Redis.
+* **Platform Invocation**:
+  * `[W]`: `<AskPennyPalette />` opened via sidebar nav item, mobile header sparkle icon, or keyboard shortcut `⌘K` / `Ctrl+K`.
+  * `[M]`: Native `<MobileAskSheet />` bottom-sheet dialog opened via header sparkle icon (`zap`) in `AppScreenWrapper`.
+

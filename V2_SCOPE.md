@@ -15,6 +15,7 @@
 | **5-step waterfall logic details** | **DELIVERED** | Fully implemented in cascading steps: Deficit Repair, Bills, Everyday, Goals, Surplus Sweep |
 | **Data export details** | **DELIVERED** | Complete CSV generation supporting transaction ledgers and allocation plans |
 | **AEST timezone rendering** | **DELIVERED** | UTC dates formatted timezone-aware via `Intl.DateTimeFormat` |
+| **Ask Penny AI Assistant (Conversational Q&A)** | **DELIVERED** | Cost-effective conversational assistant delivered via Cloudflare Workers AI Gateway, deterministic matcher, and 150-call tenant quota |
 | **AI/LLM allocation engine** | Premium tier; requires dataset first | Allocation engine abstracted behind interface — rules-based and AI-based are swappable |
 | **AI budget estimation** | Premium tier | — |
 | **AI shortfall recovery plans** | Premium tier | — |

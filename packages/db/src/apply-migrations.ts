@@ -4,8 +4,8 @@ import path from "node:path";
 import dotenv from "dotenv";
 
 const MIGRATIONS_TO_RUN = [
-  "0030_unified_flat_envelopes.sql",
-  "0031_consolidate_envelopes_and_transfers.sql",
+  "0032_add_account_type_to_bank_accounts.sql",
+  "0033_create_ai_usage.sql",
 ];
 
 async function applyFiles(client: Client): Promise<void> {

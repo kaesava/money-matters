@@ -33,7 +33,7 @@ MUST use stable versions. MUST document version constraints.
 - `packages/ui`: reusable UI primitives, layout components, Serene Finance design tokens.
 - `packages/i18n`: ALL user-facing strings (100% externalization mandatory).
 - `packages/config`: validated Zod environment configurations.
-- `packages/capabilities/*`: decoupled vertical slices (`tenant`, `budgeting`, `transactions`, `import`, `notifications`, `file-notes`).
+- `packages/capabilities/*`: decoupled vertical slices (`assistant`, `tenant`, `budgeting`, `transactions`, `simulation`, `notifications`, `billing`, `file-notes`, `bug-reports`).
 
 ## 4. Architecture (Vertical Slice + IoC)
 - Capabilities are fully decoupled. Strict adherence required despite boilerplate.

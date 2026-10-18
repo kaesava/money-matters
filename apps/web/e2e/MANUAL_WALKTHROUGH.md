@@ -32,6 +32,7 @@ pnpm test:e2e
 | **10** | **Transaction History & Export** | `/dashboard/history` | Transaction ledger table, filter by pool/category, export CSV download | Displays ledger entries with search and date range filters; exports ledger CSV | `[✓] PASS` |
 | **11** | **Payday Allocation Cascade** | `/dashboard` (Payday Trigger) | Paycheck amount input, receiving bank account, 5-step waterfall preview, Osko/PayID transfer card | Generates 1-tap transfer plan card with Copy Amount buttons | `[✓] PASS` |
 | **12** | **Settings & Data Governance** | `/dashboard/settings` | Notification toggles, partner invite email input, CSV zip export button, delete account CTA | Exports CSV data zip; dispatches Inngest background event (`user/account.delete-requested`) | `[✓] PASS` |
+| **13** | **Ask Penny AI Assistant** | `/dashboard` (Palette / `⌘K`) | Suggested prompt chips, natural language input, unmetered matching, prefill action buttons | Correctly classifies queries, delivers instant financial answers, and opens prefilled action drawers | `[✓] PASS` |
 
 ---
 

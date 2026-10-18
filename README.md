@@ -14,20 +14,21 @@ money-matters/
 │   └── web/           # Next.js App Router on Cloudflare Workers (`moneymatters.kaesava.au`)
 ├── packages/
 │   ├── capabilities/  # Decoupled vertical slice business logic
+│   │   ├── assistant/       # Ask Penny AI Assistant (Cloudflare Workers AI Gateway, deterministic matcher, usage quota)
 │   │   ├── billing/         # Subscription state machine, Stripe checkout & portal, webhook processor
 │   │   ├── budgeting/       # 5-step waterfall cascade calculation & allocation engine
 │   │   ├── bug-reports/     # In-app Beta bug report persistence & diagnostic metadata capture
 │   │   ├── file-notes/      # Notes & attachments via Cloudflare R2
-│   │   ├── notifications/   # Expo push & 6 scheduled Inngest background jobs
+│   │   ├── notifications/   # Expo push & scheduled Inngest background jobs
 │   │   ├── simulation/      # Stateless "Can I Afford It?" simulation query engine & goal delay impact calculator
 │   │   ├── tenant/          # Household creation, partner invite, member removal, 12-table Zipped CSV data backup
 │   │   └── transactions/    # Ledger, manual expense recording, transaction history
-│   ├── config/        # Validated Zod environment configurations
+│   ├── config/        # Validated Zod environment configurations & AI tier limits
 │   ├── core/          # Server infra (universal logger, rate limiter, auth context)
 │   ├── db/            # Drizzle PostgreSQL schemas, migrations, seeds, RLS
-│   ├── i18n/          # Centralized localization dictionary & t() helper (100% EN/JA 1:1 structural parity)
+│   ├── i18n/          # Centralized localization dictionary & t() helper
 │   ├── types/         # Pure domain contracts & Zod DTOs
-│   └── ui/            # Serene Finance UI primitives, CountrySelect, LocationFields, PhoneInput & design tokens
+│   └── ui/            # Serene Finance UI primitives, Ask Penny palette & sheets, CountrySelect & design tokens
 ```
 
 ---
@@ -53,7 +54,7 @@ pnpm build
 # Run i18n parity check
 pnpm check-i18n
 
-# Run typechecks across all 14 monorepo packages
+# Run typechecks across all 16 monorepo packages
 pnpm typecheck
 
 # Run Vitest unit tests

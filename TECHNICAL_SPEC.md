@@ -15,7 +15,7 @@
 | Language | Strict TypeScript | ^6.0.3 | Zero `any`, mandatory Zod `.strict()` |
 | Web Framework | Next.js (App Router) | Cloudflare Workers via `@opennextjs/cloudflare` | Custom domain `moneymatters.kaesava.au` |
 | API Server | Fastify | Cloudflare Workers (`src/worker.ts`) | Custom domain `api.moneymatters.kaesava.au` |
-| API Layer | tRPC | ^11.18.0 | Type-safe RPC contracts (`budgetingRouter`, `tenantRouter`, `incomeRouter`, `expensesRouter`, `paydayRouter`, `transactionsRouter`, `billingRouter`, `fileNotesRouter`, `bugReportRouter`, `notificationsRouter`) |
+| API Layer | tRPC | ^11.18.0 | Type-safe RPC contracts (`budgetingRouter`, `tenantRouter`, `incomeRouter`, `expensesRouter`, `paydayRouter`, `transactionsRouter`, `billingRouter`, `fileNotesRouter`, `bugReportRouter`, `notificationsRouter`, `assistantRouterMap`) |
 | ORM | Drizzle ORM | ^0.39.0 | Neon PostgreSQL driver |
 | Database (Server) | Neon PostgreSQL (Serverless) | Neon DB | Multi-tenant schema with RLS (`privateTenantProcedure` session injection) |
 | Database (Mobile) | Expo SQLite | 16.0.10 | Local SQLite (Online-first MVP) |
@@ -42,6 +42,7 @@ money-matters/
 │   └── web/           # Next.js web app on Cloudflare Workers via OpenNext (`wrangler.jsonc`)
 ├── packages/
 │   ├── capabilities/
+│   │   ├── assistant/       # Ask Penny AI Assistant (Cloudflare Workers AI Gateway, deterministic matcher, usage quota)
 │   │   ├── billing/         # Subscription state machine, Stripe checkout & customer portal, raw-body webhook processor
 │   │   ├── tenant/          # Household creation, partner invite, bank account CRUD, bank balance reconciliation
 │   │   ├── budgeting/       # Pool-centric architecture (`Bank Account → Pool → Category`), immutable pool-bank linking, unbudgeted buffer validation, 5-step waterfall allocation engine (Deficit Repair, Regular, Goal, Everyday, Surplus), rolling window maintainer, immutable confirmed allocations, cascading pool archival, last-category guard
@@ -593,8 +594,14 @@ Money Matters is engineered to comply with the 13 Australian Privacy Principles 
 - **E2E Test Coverage**:
   - Spec `4.4 - Product Tour Flow` verified in `apps/web/e2e/screen-by-screen.spec.ts`.
 
-
-
-
-
-
+### 11.6 Ask Penny AI Assistant Architecture
+- **Capability Slice (`packages/capabilities/assistant`)**:
+  - Implements decoupled vertical slice with dependency injection (`IntentHandlerPort`, `LlmProviderPort`, `UsageStorePort`, `EntityResolverPort`).
+  - **Deterministic-First Intent Matcher**: Evaluates top user queries (Everyday balance, upcoming bills, payday preview, goal achievement dates, spending summaries, bill recording) using zero-token local regex, date, and currency scoring.
+  - **Cloudflare Workers AI Gateway Provider**: Calls Cloudflare AI Gateway REST endpoint (`@cf/meta/llama-3.1-8b-instruct-fast`) through `https://gateway.ai.cloudflare.com/v1/{account_id}/{gateway_id}/workers-ai`. Features edge response caching (`cf-aig-cache-status`), request logging disabled for zero PII leakage, and strict JSON output schema parsing.
+  - **Tenant Quota & Sliding-Window Rate Limiting**: Max 150 LLM calls per month per tenant (enforcing $\le \$1.50$ cost cap on $\$7.95$/mo subscriptions). Burst rate limiting (10 calls/min, 40 calls/day) enforced via Upstash Redis sliding window (`checkAiTenantRateLimit`).
+  - **Atomic Quota Storage**: Tracked in `ai_usage` table with optimistic concurrency checks (`llm_calls < limit`) and monthly reset tracking.
+- **Client Presentation**:
+  - Web: Command palette `<AskPennyPalette />` triggered via sidebar link, mobile header button, or global `⌘K` / `Ctrl+K` keyboard shortcut; quota status badge rendered in Settings > Subscription (`<AiUsageCard />`).
+  - Mobile: Sparkle trigger button in `AppScreenWrapper` header launching native `<MobileAskSheet />` with suggested question chips; native quota usage card (`<MobileAiUsageCard />`) in Settings > Plan section.
+  - Zero Direct DB Mutations: All suggested action intents return prefill payloads routing users to existing verified UI screens (e.g. Quick Expense drawer, Affordability check) for manual confirmation.
