@@ -69,7 +69,7 @@ export const EnvelopeRecurrenceFields: React.FC<EnvelopeRecurrenceFieldsProps> =
 
       <View style={styles.inlineRow}>
         <View style={styles.everyCol}>
-          <FormLabel>{t('forms.every')}</FormLabel>
+          <FormLabel required>{t('forms.every')}</FormLabel>
           <View style={styles.intervalRow}>
             <TextInput
               style={styles.intervalInput}
@@ -106,11 +106,12 @@ export const EnvelopeRecurrenceFields: React.FC<EnvelopeRecurrenceFieldsProps> =
         <View style={styles.dateCol}>
           <DatePickerField
             label={t('forms.firstDate')}
+            required
             value={startDate}
             onChange={(val) => setStartDate?.(val)}
           />
           <DatePickerField
-            label={t('forms.endDateOptional')}
+            label={t('forms.endDate')}
             value={endDate}
             onChange={(val) => setEndDate?.(val)}
           />

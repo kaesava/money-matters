@@ -117,7 +117,7 @@ export function RecurrenceBuilder({ builder }: RecurrenceBuilderProps) {
           </div>
           <div className="flex flex-col gap-1">
             <DatePickerField
-              label={t("forms.endDateOptional")}
+              label={t("forms.endDate")}
               value={endDate || ""}
               onChange={(val) => setEndDate(val || null)}
             />

@@ -44,7 +44,7 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
           id={inputId}
           type={type}
           onChange={handleChange}
-          className={`ui-input ${className}`}
+          className={`ui-input text-sm h-[46px] ${className}`}
           {...props}
         />
         <FormFieldError error={error} />

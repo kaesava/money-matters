@@ -1,5 +1,5 @@
 import React from 'react';
-import { AmountField, GenericSelectField, DatePickerField } from '@money-matters/ui/web';
+import { AmountField, GenericSelectField, DatePickerField, FormLabel } from '@money-matters/ui/web';
 import { t } from '@money-matters/i18n';
 
 export interface EnvelopeRecurrenceFieldsProps {
@@ -70,11 +70,9 @@ export function EnvelopeRecurrenceFields({
         />
       </div>
 
-      <div className="grid grid-cols-2 gap-3 items-start">
+      <div className="grid grid-cols-1 sm:grid-cols-[140px_1fr_1fr] gap-3 items-start">
         <div className="flex flex-col gap-1">
-          <label className="text-xs font-bold uppercase tracking-wider text-zinc-500">
-            {t('forms.every')}
-          </label>
+          <FormLabel required>{t('forms.every')}</FormLabel>
           <div className="flex items-center gap-2">
             <input
               type="number"
@@ -97,7 +95,7 @@ export function EnvelopeRecurrenceFields({
                   setInterval?.(1);
                 }
               }}
-              className="px-4 py-2.5 text-xs font-bold rounded-xl border border-zinc-200 focus:outline-none focus:ring-2 focus:ring-[#2563eb] text-zinc-900 w-full"
+              className="ui-input w-16 px-2.5 py-2.5 text-xs font-bold text-center"
             />
             <span className="text-xs font-bold text-zinc-500 shrink-0">
               {unitLabel}
@@ -105,18 +103,17 @@ export function EnvelopeRecurrenceFields({
           </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-2">
-          <DatePickerField
-            label={t('forms.firstDate')}
-            value={startDate}
-            onChange={(val) => setStartDate?.(val)}
-          />
-          <DatePickerField
-            label={t('forms.endDateOptional')}
-            value={endDate}
-            onChange={(val) => setEndDate?.(val)}
-          />
-        </div>
+        <DatePickerField
+          label={t('forms.firstDate')}
+          required
+          value={startDate}
+          onChange={(val) => setStartDate?.(val)}
+        />
+        <DatePickerField
+          label={t('forms.endDate')}
+          value={endDate}
+          onChange={(val) => setEndDate?.(val)}
+        />
       </div>
 
       {showMonthlyEquiv && (

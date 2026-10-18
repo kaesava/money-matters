@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useMemo } from "react";
+import Link from "next/link";
 import { useSearchParams, useRouter } from "next/navigation";
 import { InfoTooltip, useToast, ConfirmDialog, SearchInput, RecordFilterBadge } from "@money-matters/ui/web";
 import { t } from "@money-matters/i18n";
@@ -272,16 +273,6 @@ function PoolsPageContent() {
   // Sorting logic
   const sortedRows = useMemo(() => {
     return [...filteredRows].sort((a, b) => {
-      const pTypeA = a.poolType ?? a.envelopeType;
-      const pTypeB = b.poolType ?? b.envelopeType;
-      if (sortField !== "poolType") {
-        const orderA = POOL_TYPE_ORDER[pTypeA] ?? 99;
-        const orderB = POOL_TYPE_ORDER[pTypeB] ?? 99;
-        if (orderA !== orderB) {
-          return orderA - orderB;
-        }
-      }
-
       let aVal: string | number | null = null;
       let bVal: string | number | null = null;
 
@@ -292,8 +283,11 @@ function PoolsPageContent() {
         aVal = (a.bankAccountName || "").toLowerCase();
         bVal = (b.bankAccountName || "").toLowerCase();
       } else if (sortField === "poolType") {
-        aVal = pTypeA;
-        bVal = pTypeB;
+        const pTypeA = a.poolType ?? a.envelopeType;
+        const pTypeB = b.poolType ?? b.envelopeType;
+        const orderA = POOL_TYPE_ORDER[pTypeA] ?? 99;
+        const orderB = POOL_TYPE_ORDER[pTypeB] ?? 99;
+        return sortDir === "asc" ? orderA - orderB : orderB - orderA;
       } else if (sortField === "currentBalance") {
         aVal = a.currentBalance;
         bVal = b.currentBalance;
@@ -628,12 +622,12 @@ function PoolsPageContent() {
 
       {hasArchivedCategories && (
         <div className="flex justify-center pt-2">
-          <a
+          <Link
             href="/dashboard/settings/archived"
             className="text-xs font-semibold text-zinc-500 hover:text-zinc-800 transition-colors"
           >
-            {t("categories.viewArchived") || "View archived pools →"}
-          </a>
+            {t("categories.viewArchived")}
+          </Link>
         </div>
       )}
 

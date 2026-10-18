@@ -187,7 +187,7 @@ export function DatePickerField({
           onFocus={() => setIsFocused(true)}
           onBlur={handleBlur}
           onChange={handleTextChange}
-          className={`ui-input w-full pr-10 text-sm bg-white font-mono tracking-tight disabled:opacity-50 ${
+          className={`ui-input w-full pr-10 text-sm h-[46px] bg-white font-mono tracking-tight disabled:opacity-50 ${
             error ? 'border-red-400 focus:ring-red-400' : ''
           }`}
         />

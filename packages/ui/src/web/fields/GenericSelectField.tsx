@@ -52,7 +52,7 @@ export function GenericSelectField({
         disabled={disabled}
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="ui-input w-full text-sm bg-white cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed disabled:bg-slate-100"
+        className="ui-input w-full text-sm h-[46px] bg-white cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed disabled:bg-slate-100"
       >
         {placeholder && <option value="">{placeholder}</option>}
         {options.map((opt) => (

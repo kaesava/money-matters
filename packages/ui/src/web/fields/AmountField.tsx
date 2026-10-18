@@ -191,7 +191,7 @@ export const AmountField = React.forwardRef<HTMLInputElement, AmountFieldProps>(
             onBlur={handleBlur}
             onFocus={handleFocus}
             className={[
-              'ui-input w-full !pl-10 !pr-3 font-mono tabular-nums',
+              'ui-input w-full !pl-10 !pr-3 text-sm font-mono tabular-nums h-[46px]',
               isNegative ? 'text-rose-600 font-bold' : '',
               '[appearance:textfield]',
               '[&::-webkit-outer-spin-button]:appearance-none',
