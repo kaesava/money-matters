@@ -92,6 +92,40 @@ const nextConfig: NextConfig = {
       },
     ];
   },
+  async redirects() {
+    return [
+      {
+        source: "/dashboard/setup",
+        destination: "/setup",
+        permanent: false,
+      },
+      {
+        source: "/dashboard/paychecks",
+        destination: "/dashboard/income-and-bills",
+        permanent: false,
+      },
+      {
+        source: "/dashboard/transactions",
+        destination: "/dashboard/history",
+        permanent: false,
+      },
+      {
+        source: "/dashboard/pools",
+        destination: "/dashboard/envelopes",
+        permanent: false,
+      },
+      {
+        source: "/dashboard/goals",
+        destination: "/dashboard/envelopes",
+        permanent: false,
+      },
+      {
+        source: "/dashboard/accounts",
+        destination: "/dashboard/bank-accounts",
+        permanent: false,
+      },
+    ];
+  },
 };
 
 export default nextConfig;
