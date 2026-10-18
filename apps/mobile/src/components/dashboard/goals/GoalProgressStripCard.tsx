@@ -74,7 +74,7 @@ export const GoalProgressStripCard: React.FC<GoalProgressStripCardProps> = ({
 
           <View style={styles.progressMeta}>
             <Text style={styles.progressPct}>
-              {fundedPct}% {t('dashboard.goals.funded')}
+              {t('dashboard.goals.funded', { percent: fundedPct })}
             </Text>
             <Text style={styles.targetAmount}>
               {t('dashboard.goals.targetAmount', { amount: formatAUD(target) })}
