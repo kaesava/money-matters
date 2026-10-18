@@ -4,7 +4,7 @@ import {
   Text,
   StyleSheet,
 } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useRouter, type Href } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
 import { useMobileToast, MobileButton, TypedConfirmDialog } from '@money-matters/ui/mobile';
 import { t } from '@money-matters/i18n';
@@ -34,7 +34,7 @@ export function HouseholdDangerZoneSection() {
     setActiveSessionToken(null);
     setActiveTenantId(null);
     await utils.invalidate().catch(() => {});
-    router.replace((hasOtherHousehold ? '/(auth)/sign-in' : '/(auth)/sign-in') as never);
+    router.replace('/(auth)/sign-in' as Href);
   };
 
   const handleLeaveHousehold = async () => {

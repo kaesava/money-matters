@@ -1,8 +1,9 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useRouter, type Href } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
 import { t } from '@money-matters/i18n';
+import { DESIGN_TOKENS } from '@money-matters/ui/mobile';
 
 export interface MobileMissingSchedulesBannerProps {
   readonly incomeCount: number;
@@ -21,7 +22,7 @@ export function MobileMissingSchedulesBanner({
     <View style={styles.container}>
       <View style={styles.contentRow}>
         <View style={styles.iconWrap}>
-          <Feather name="alert-circle" size={20} color="#D97706" />
+          <Feather name="alert-circle" size={20} color={DESIGN_TOKENS.colors.warning} />
         </View>
         <View style={styles.textWrap}>
           <Text style={styles.title}>
@@ -39,7 +40,7 @@ export function MobileMissingSchedulesBanner({
 
       <TouchableOpacity
         style={styles.ctaButton}
-        onPress={() => router.push('/(app)/paychecks' as never)}
+        onPress={() => router.push('/(app)/paychecks' as Href)}
         activeOpacity={0.8}
       >
         <Text style={styles.ctaText}>
@@ -55,9 +56,9 @@ const styles = StyleSheet.create({
     marginHorizontal: 20,
     marginTop: 8,
     marginBottom: 6,
-    backgroundColor: '#FFFBEB',
+    backgroundColor: DESIGN_TOKENS.colors.warningLight,
     borderWidth: 1,
-    borderColor: '#FDE68A',
+    borderColor: DESIGN_TOKENS.colors.warningBorder,
     borderRadius: 16,
     padding: 14,
     gap: 12,
@@ -71,7 +72,7 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 8,
-    backgroundColor: '#FEF3C7',
+    backgroundColor: DESIGN_TOKENS.colors.warningLight,
     alignItems: 'center',
     justifyContent: 'center',
     marginTop: 2,
@@ -82,17 +83,17 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 13,
     fontWeight: '800',
-    color: '#92400E',
+    color: DESIGN_TOKENS.colors.warningDark,
     lineHeight: 18,
   },
   description: {
     fontSize: 11,
-    color: '#B45309',
+    color: DESIGN_TOKENS.colors.warningDark,
     marginTop: 3,
     lineHeight: 15,
   },
   ctaButton: {
-    backgroundColor: '#D97706',
+    backgroundColor: DESIGN_TOKENS.colors.warning,
     borderRadius: 10,
     paddingVertical: 9,
     paddingHorizontal: 12,
@@ -100,7 +101,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   ctaText: {
-    color: '#FFFFFF',
+    color: DESIGN_TOKENS.colors.onAccent,
     fontSize: 12,
     fontWeight: '800',
   },

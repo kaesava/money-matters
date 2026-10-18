@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useRouter, type Href } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
 import { t } from '@money-matters/i18n';
 import { showMobileConfirm, DESIGN_TOKENS } from '@money-matters/ui/mobile';
@@ -97,7 +97,7 @@ export function MobileNextPaydayCard({
         {upcomingIncomes.length > 0 && (
           <View style={styles.headerLinksWrap}>
             <TouchableOpacity
-              onPress={() => router.push('/(app)/income-split' as never)}
+              onPress={() => router.push('/(app)/income-split' as Href)}
               style={styles.showMoreBtn}
               activeOpacity={0.7}
             >

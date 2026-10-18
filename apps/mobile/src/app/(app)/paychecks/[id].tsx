@@ -1,5 +1,5 @@
 import React from 'react';
-import { useLocalSearchParams, Redirect } from 'expo-router';
+import { useLocalSearchParams, Redirect, type Href } from 'expo-router';
 
 /**
  * Backward compatibility redirect:
@@ -14,7 +14,7 @@ export default function LegacyPaycheckStudioRedirect() {
       href={{
         pathname: '/(app)/income-split/[id]',
         params: { id, returnTo },
-      } as never}
+      } as Href}
     />
   );
 }

@@ -1,6 +1,6 @@
 import React from 'react';
 import { StyleSheet, ScrollView, RefreshControl } from 'react-native';
-import { useRouter, useLocalSearchParams } from 'expo-router';
+import { useRouter, useLocalSearchParams, type Href } from 'expo-router';
 import { DESIGN_TOKENS } from '@money-matters/ui/mobile';
 import { AppScreenWrapper } from '../../components/AppScreenWrapper';
 import { t } from '@money-matters/i18n';
@@ -49,7 +49,7 @@ export default function IncomeAndBillsScreen() {
 
   const handleBack = () => {
     if (searchParams.returnTo) {
-      router.push(searchParams.returnTo as never);
+      router.push(searchParams.returnTo as Href);
     } else {
       router.back();
     }
@@ -117,7 +117,7 @@ export default function IncomeAndBillsScreen() {
             router.push(
               `/(app)/paychecks/schedules?returnTo=${encodeURIComponent(
                 searchParams.returnTo || '/(app)/paychecks'
-              )}` as never
+              )}` as Href
             )
           }
         />
@@ -134,7 +134,7 @@ export default function IncomeAndBillsScreen() {
           initialPoolId={searchParams.poolId}
           initialCategoryId={searchParams.categoryId}
           onOpenPaydayWizard={(eventId) => {
-            router.push(`/(app)/income-split/${eventId}` as never);
+            router.push(`/(app)/income-split/${eventId}` as Href);
           }}
           onMarkExpensePaid={(eventId, amount) => {
             const expense = rawExpenseEvents.find((e) => e.id === eventId);

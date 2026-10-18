@@ -16,8 +16,8 @@ import {
 import { t } from '@money-matters/i18n';
 import { trpc } from '../../../lib/trpc';
 import { authClient } from '../../../lib/auth';
-import { ProjectionScrubber } from '../../../components/pools/projection/ProjectionScrubber';
-import { ProjectionPoolGroupSection } from '../../../components/pools/projection/ProjectionPoolGroupSection';
+import { ProjectionScrubber } from '../../../components/envelopes/projection/ProjectionScrubber';
+import { ProjectionPoolGroupSection } from '../../../components/envelopes/projection/ProjectionPoolGroupSection';
 
 export default function PoolProjectionScreen() {
   const router = useRouter();

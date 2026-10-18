@@ -6,16 +6,28 @@ import { t } from '@money-matters/i18n';
 import {
   PaycheckEventSection,
   PaycheckTransferEvent,
+  PaycheckIncomeEvent,
+  PaycheckExpenseEvent,
 } from './PaycheckEventSection';
-import { useUpcomingEvents } from './useUpcomingEvents';
+import {
+  useUpcomingEvents,
+  type RawIncomeEventInput,
+  type UpcomingBankItem,
+  type UpcomingPoolItem,
+  type UpcomingIncomeSourceItem,
+} from './useUpcomingEvents';
 
 interface UpcomingEventsTabProps {
-  rawIncomeEvents: any[]; rawExpenseEvents: any[]; rawTransferEvents: any[];
-  bankAccounts: any[]; pools: any[]; incomeSources?: any[];
+  rawIncomeEvents: RawIncomeEventInput[];
+  rawExpenseEvents: PaycheckExpenseEvent[];
+  rawTransferEvents: PaycheckTransferEvent[];
+  bankAccounts: UpcomingBankItem[];
+  pools: UpcomingPoolItem[];
+  incomeSources?: UpcomingIncomeSourceItem[];
   onOpenPaydayWizard: (eventId: string) => void;
   onMarkExpensePaid: (expenseId: string, amount: string) => void;
-  onEditExpense: (expense: any) => void;
-  onEditIncome?: (income: any) => void;
+  onEditExpense: (expense: PaycheckExpenseEvent) => void;
+  onEditIncome?: (income: PaycheckIncomeEvent) => void;
   onDeleteIncomeEvent: (item: { id: string; name?: string | null }) => void;
   onDeleteExpenseEvent: (item: { id: string; name?: string | null }) => void;
   onExecuteTransfer: (item: PaycheckTransferEvent) => void;

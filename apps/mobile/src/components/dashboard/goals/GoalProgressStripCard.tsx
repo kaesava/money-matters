@@ -1,10 +1,11 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useRouter, type Href } from 'expo-router';
 import { DESIGN_TOKENS } from '@money-matters/ui/mobile';
 import { t } from '@money-matters/i18n';
 import { formatAUD } from '../../../lib/format';
 import type { GoalItem } from '../GoalsProgressStrip';
+import { calculateGoalPacing } from './goal-pacing';
 
 interface GoalProgressStripCardProps {
   readonly item: GoalItem;
@@ -16,61 +17,24 @@ export const GoalProgressStripCard: React.FC<GoalProgressStripCardProps> = ({
   nowTime,
 }) => {
   const router = useRouter();
-  const bal =
-    typeof item.currentBalance === 'number'
-      ? item.currentBalance
-      : parseFloat(String(item.currentBalance || '0'));
-  const target = item.targetAmount
-    ? parseFloat(String(item.targetAmount))
-    : 0;
-  const fundedPct =
-    target > 0 ? Math.min(100, Math.round((bal / target) * 100)) : 0;
-
-  let timeElapsedPct: number | null = null;
-  let isOverdue = false;
-
-  if (item.targetDate) {
-    const targetTime = new Date(item.targetDate).getTime();
-    const createdTime = item.createdAt
-      ? new Date(item.createdAt).getTime()
-      : targetTime - 90 * 24 * 60 * 60 * 1000;
-    const totalDuration = Math.max(1, targetTime - createdTime);
-    const elapsedDuration = Math.max(0, nowTime - createdTime);
-    timeElapsedPct = Math.min(
-      100,
-      Math.max(0, Math.round((elapsedDuration / totalDuration) * 100))
-    );
-    isOverdue = nowTime > targetTime && fundedPct < 100;
-  }
-
-  const isCompleted = fundedPct >= 100;
-  const isLagging =
-    timeElapsedPct !== null && fundedPct < timeElapsedPct * 0.8;
-  const isJustBehind =
-    timeElapsedPct !== null &&
-    fundedPct < timeElapsedPct &&
-    !isLagging;
-  const isOnTrack =
-    timeElapsedPct !== null
-      ? fundedPct >= timeElapsedPct
-      : fundedPct >= 50;
-
-  const barColor = isCompleted
-    ? DESIGN_TOKENS.colors.success
-    : isOverdue || isLagging
-    ? DESIGN_TOKENS.colors.burnRed
-    : isJustBehind
-    ? DESIGN_TOKENS.colors.warning
-    : isOnTrack
-    ? DESIGN_TOKENS.colors.success
-    : DESIGN_TOKENS.colors.accent;
+  const {
+    bal,
+    target,
+    fundedPct,
+    timeElapsedPct,
+    isOverdue,
+    isCompleted,
+    isLagging,
+    isOnTrack,
+    barColor,
+  } = calculateGoalPacing(item, nowTime);
 
   const isOngoing = item.goalMode === 'ONGOING';
 
   return (
     <TouchableOpacity
       activeOpacity={0.8}
-      onPress={() => router.push(`/(app)/envelopes/${item.id}` as never)}
+      onPress={() => router.push(`/(app)/envelopes/${item.id}` as Href)}
       style={styles.goalCard}
     >
       <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -78,11 +42,15 @@ export const GoalProgressStripCard: React.FC<GoalProgressStripCardProps> = ({
           {item.name}
         </Text>
         {isOngoing && (
-          <Text style={{ fontSize: 10, fontWeight: '700', color: DESIGN_TOKENS.colors.accent }}>
-            {item.budgetFrequency || t('categories.frequencyMonthly')}
-          </Text>
+          <View style={styles.ongoingBadge}>
+            <Text style={styles.ongoingBadgeText}>
+              {t('dashboard.goals.ongoingPill')}
+            </Text>
+          </View>
         )}
       </View>
+
+      <Text style={styles.savedLabel}>{t('dashboard.goals.savedLabel')}</Text>
       <Text style={styles.goalBalance}>{formatAUD(bal)}</Text>
 
       {target > 0 ? (
@@ -91,69 +59,56 @@ export const GoalProgressStripCard: React.FC<GoalProgressStripCardProps> = ({
             <View
               style={[
                 styles.progressBarFill,
-                { width: isOngoing ? '100%' : `${fundedPct}%`, backgroundColor: barColor },
+                { width: `${fundedPct}%`, backgroundColor: barColor },
               ]}
             />
-            {!isOngoing &&
-              timeElapsedPct !== null &&
-              timeElapsedPct > 0 &&
-              timeElapsedPct < 100 && (
-                <View
-                  style={[
-                    styles.needleIndicator,
-                    { left: `${timeElapsedPct}%` },
-                  ]}
-                />
-              )}
+            {timeElapsedPct !== null && (
+              <View
+                style={[
+                  styles.needleIndicator,
+                  { left: `${timeElapsedPct}%` },
+                ]}
+              />
+            )}
           </View>
 
           <View style={styles.progressMeta}>
-            {isOngoing ? (
-              <Text style={styles.progressPct}>
-                {formatAUD(bal)} accumulated
-              </Text>
-            ) : (
-              <Text style={styles.progressPct}>
-                {t('dashboard.goals.funded', { percent: fundedPct })}
-              </Text>
-            )}
+            <Text style={styles.progressPct}>
+              {fundedPct}% {t('dashboard.goals.funded')}
+            </Text>
             <Text style={styles.targetAmount}>
-              {formatAUD(target)}{isOngoing ? '/mo' : ''}
+              {t('dashboard.goals.targetAmount', { amount: formatAUD(target) })}
             </Text>
           </View>
 
           <View style={styles.statusMeta}>
-            {isOverdue ? (
-              <Text style={styles.overdueText}>
-                {t('common.overdue')}
-              </Text>
-            ) : isOngoing ? (
+            {isCompleted ? (
               <Text style={[styles.pacingText, styles.textGreen]}>
-                {t('dashboard.goals.onTrackBadge')}
+                ✓ {t('dashboard.goals.reached')}
               </Text>
-            ) : timeElapsedPct !== null ? (
-              <Text
-                style={[
-                  styles.pacingText,
-                  isOnTrack
-                    ? styles.textGreen
-                    : isJustBehind
-                    ? styles.textAmber
-                    : styles.textRed,
-                ]}
-              >
-                {isOnTrack
-                  ? t('dashboard.goals.onTrackBadge')
-                  : isJustBehind
-                  ? t('dashboard.goals.justBehind')
-                  : t('dashboard.goals.lagging')}{' '}
-                {t('dashboard.goals.pace', { percent: timeElapsedPct })}
+            ) : isOverdue ? (
+              <Text style={styles.overdueText}>
+                ⚠️ {t('dashboard.goals.targetPassed')}
               </Text>
-            ) : null}
+            ) : isLagging ? (
+              <Text style={[styles.pacingText, styles.textRed]}>
+                {t('dashboard.goals.behindSchedule')}
+              </Text>
+            ) : isOnTrack ? (
+              <Text style={[styles.pacingText, styles.textGreen]}>
+                {t('dashboard.goals.onSchedule')}
+              </Text>
+            ) : (
+              <Text style={[styles.pacingText, styles.textAmber]}>
+                {t('dashboard.goals.slightlyBehind')}
+              </Text>
+            )}
           </View>
         </View>
       ) : (
-        <Text style={styles.noTargetText}>{t('common.optional')}</Text>
+        <Text style={styles.noTargetText}>
+          {t('dashboard.goals.noTargetDate')}
+        </Text>
       )}
     </TouchableOpacity>
   );
@@ -161,22 +116,37 @@ export const GoalProgressStripCard: React.FC<GoalProgressStripCardProps> = ({
 
 const styles = StyleSheet.create({
   goalCard: {
-    width: 175,
+    width: 170,
     backgroundColor: DESIGN_TOKENS.colors.surface,
-    borderRadius: DESIGN_TOKENS.radius.lg,
-    padding: 13,
+    borderRadius: 14,
     borderWidth: 1,
-    borderColor: DESIGN_TOKENS.colors.slate[200],
-    shadowColor: DESIGN_TOKENS.colors.slate[900],
-    shadowOpacity: 0.03,
-    shadowOffset: { width: 0, height: 1 },
-    shadowRadius: 3,
-    elevation: 1,
+    borderColor: DESIGN_TOKENS.colors.border,
+    padding: 12,
   },
   goalName: {
     fontSize: 13,
-    fontWeight: '700',
+    fontWeight: '800',
     color: DESIGN_TOKENS.colors.primary,
+    marginBottom: 4,
+  },
+  ongoingBadge: {
+    backgroundColor: DESIGN_TOKENS.colors.slate[100],
+    paddingHorizontal: 5,
+    paddingVertical: 1,
+    borderRadius: 4,
+    marginLeft: 4,
+  },
+  ongoingBadgeText: {
+    fontSize: 9,
+    fontWeight: '700',
+    color: DESIGN_TOKENS.colors.textMuted,
+    textTransform: 'uppercase',
+  },
+  savedLabel: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: DESIGN_TOKENS.colors.textMuted,
+    textTransform: 'uppercase',
     marginBottom: 2,
   },
   goalBalance: {

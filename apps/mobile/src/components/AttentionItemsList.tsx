@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useRouter, type Href } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
 import { DESIGN_TOKENS } from '@money-matters/ui/mobile';
 import { t } from '@money-matters/i18n';
@@ -110,7 +110,7 @@ export const AttentionItemsList: React.FC<AttentionItemsListProps> = ({
             </View>
 
             <TouchableOpacity
-              onPress={() => router.push('/(app)/upcoming' as never)}
+              onPress={() => router.push('/(app)/upcoming' as Href)}
               style={styles.showMoreBtn}
               activeOpacity={0.7}
             >

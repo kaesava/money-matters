@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
-import { useRouter } from 'expo-router';
+import { useRouter, type Href } from 'expo-router';
 import { trpc } from '../../lib/trpc';
 import { authClient } from '../../lib/auth';
 import { formatIsoDate } from '../../lib/format';
@@ -157,7 +157,7 @@ export function usePaycheckStudio(id: string | undefined, returnTo?: string) {
       setShowExitDialog(true);
       return;
     }
-    if (returnTo) router.push(returnTo as never);
+    if (returnTo) router.push(returnTo as Href);
     else router.back();
   }, [isDirty, isReadOnly, returnTo, router]);
 
@@ -166,7 +166,7 @@ export function usePaycheckStudio(id: string | undefined, returnTo?: string) {
     try {
       setSubmitting(true);
       await mutations.executeAutoSave();
-      if (returnTo) router.push(returnTo as never);
+      if (returnTo) router.push(returnTo as Href);
       else router.back();
     } finally {
       setSubmitting(false);
@@ -176,7 +176,7 @@ export function usePaycheckStudio(id: string | undefined, returnTo?: string) {
 
   const handleDiscardAndExit = () => {
     setShowExitDialog(false);
-    if (returnTo) router.push(returnTo as never);
+    if (returnTo) router.push(returnTo as Href);
     else router.back();
   };
 

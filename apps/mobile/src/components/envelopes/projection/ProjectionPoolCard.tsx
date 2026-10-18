@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useRouter, type Href } from 'expo-router';
 import {
   DESIGN_TOKENS,
   BankProviderBadge,
@@ -36,7 +36,7 @@ export const ProjectionPoolCard: React.FC<ProjectionPoolCardProps> = ({
   return (
     <TouchableOpacity
       activeOpacity={0.8}
-      onPress={() => router.push(`/(app)/envelopes/${pool.id}` as never)}
+      onPress={() => router.push(`/(app)/envelopes/${pool.id}` as Href)}
       style={styles.poolCard}
     >
       <View style={styles.cardHeader}>

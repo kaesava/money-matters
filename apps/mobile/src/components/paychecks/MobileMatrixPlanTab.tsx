@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { View, Text, StyleSheet, ActivityIndicator } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useRouter, type Href } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
 import { DESIGN_TOKENS, showMobileConfirm, useMobileToast } from '@money-matters/ui/mobile';
 import { t } from '@money-matters/i18n';
@@ -99,7 +99,7 @@ export function MobileMatrixPlanTab({ onOpenCategoryModal }: MobileMatrixPlanTab
   }
 
   const handleReview = (colId: string) => {
-    router.push(`/(app)/income-split/${colId}` as never);
+    router.push(`/(app)/income-split/${colId}` as Href);
   };
 
   const handleSave = (incomeEventId: string, totalIncome: number) => {

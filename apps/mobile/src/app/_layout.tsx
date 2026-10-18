@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { AppState, AppStateStatus, Platform } from 'react-native';
-import { Stack, usePathname, useGlobalSearchParams, router } from 'expo-router';
+import { Stack, usePathname, useGlobalSearchParams, router, type Href } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import * as NavigationBar from 'expo-navigation-bar';
 import * as ScreenCapture from 'expo-screen-capture';
@@ -81,7 +81,7 @@ function RootLayout() {
     initPushNotificationHandlers((url) => {
       try {
         if (url.startsWith("/")) {
-          router.push(url as any);
+          router.push(url as Href);
         }
       } catch (e) {
         logger.warn("Failed to navigate to push notification route:", e);

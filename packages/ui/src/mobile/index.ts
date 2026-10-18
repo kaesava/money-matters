@@ -56,8 +56,13 @@ export { default as AmountInput, AmountInput as MobileAmountInput } from './Amou
 export type { AmountInputProps as MobileAmountInputProps } from './AmountInput';
 export { default as ChipSelect, ChipSelect as MobileChipSelect } from './ChipSelect';
 export type { ChipSelectProps as MobileChipSelectProps, ChipOption } from './ChipSelect';
-export { default as showMobileConfirm, showMobileConfirm as showConfirm } from './MobileConfirmDialog';
-export type { MobileConfirmOptions } from './MobileConfirmDialog';
+export {
+  MobileConfirmDialog,
+  MobileConfirmContainer,
+  showMobileConfirm,
+  showMobileConfirm as showConfirm,
+} from './MobileConfirmDialog';
+export type { MobileConfirmOptions, MobileConfirmDialogProps } from './MobileConfirmDialog';
 
 export { default as MobileDatePickerField, DatePickerField } from './fields/DatePickerField';
 export type { DatePickerFieldProps as MobileDatePickerFieldProps } from './fields/DatePickerField';

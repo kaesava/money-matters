@@ -40,7 +40,7 @@ export async function processSetupBankAccounts(
       ? existingAccounts.find((a) => a.id === accInput.id)
       : null;
 
-    const bankProviderVal = (accInput.bankProvider as any) || matchedExisting?.bankProvider || "Other";
+    const bankProviderVal = accInput.bankProvider || matchedExisting?.bankProvider || "Other";
 
     if (matchedExisting) {
       if (typeof tx.update === "function") {

@@ -38,7 +38,7 @@ export function PoolOverflowMenuModal({
               onMoveMoney();
             }}
           >
-            <Feather name="repeat" size={16} color="#475569" />
+            <Feather name="repeat" size={16} color={DESIGN_TOKENS.colors.slate[600]} />
             <Text style={styles.menuItemText}>{t('dashboard.moveMoney')}</Text>
           </TouchableOpacity>
 
@@ -48,10 +48,10 @@ export function PoolOverflowMenuModal({
             style={styles.menuItem}
             onPress={() => {
               onClose();
-              router.push('/(app)/envelopes/projection' as never);
+              router.push('/(app)/envelopes/projection' as Href);
             }}
           >
-            <Feather name="trending-up" size={16} color="#475569" />
+            <Feather name="trending-up" size={16} color={DESIGN_TOKENS.colors.slate[600]} />
             <Text style={styles.menuItemText}>{t('categories.projectionModeTitle')}</Text>
           </TouchableOpacity>
 
@@ -64,7 +64,7 @@ export function PoolOverflowMenuModal({
               router.push({ pathname: '/(setup)/income', params: { mode: 'rerun' } } as Href);
             }}
           >
-            <Feather name="settings" size={16} color="#475569" />
+            <Feather name="settings" size={16} color={DESIGN_TOKENS.colors.slate[600]} />
             <Text style={styles.menuItemText}>{t('categories.recalibrateBudget')}</Text>
           </TouchableOpacity>
         </View>
@@ -86,7 +86,7 @@ const styles = StyleSheet.create({
     backgroundColor: DESIGN_TOKENS.colors.surface,
     borderRadius: 14,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: DESIGN_TOKENS.colors.border,
     paddingVertical: 6,
     width: 220,
     shadowColor: '#000',
@@ -96,5 +96,5 @@ const styles = StyleSheet.create({
   },
   menuItem: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 14, paddingVertical: 12 },
   menuItemText: { fontSize: 13, fontWeight: '700', color: DESIGN_TOKENS.colors.textPrimary },
-  menuItemDivider: { height: 1, backgroundColor: '#F1F5F9', marginHorizontal: 8 },
+  menuItemDivider: { height: 1, backgroundColor: DESIGN_TOKENS.colors.slate[100], marginHorizontal: 8 },
 });

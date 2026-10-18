@@ -1,5 +1,5 @@
 import React from 'react';
-import { Tabs, useSegments, useRouter } from 'expo-router';
+import { Tabs, useSegments, useRouter, type Href } from 'expo-router';
 import { View, StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { DESIGN_TOKENS, useMobileToast, usePushNotifications } from '@money-matters/ui/mobile';
@@ -89,7 +89,7 @@ export default function AppLayout() {
   // Expired Trial Guard: redirect to settings when trial has ended
   React.useEffect(() => {
     if (subQuery.data?.isTrialExpired && currentScreen !== 'settings' && !segments.includes('settings')) {
-      router.replace('/(app)/settings?tab=account-data' as never);
+      router.replace('/(app)/settings?tab=account-data' as Href);
     }
   }, [subQuery.data?.isTrialExpired, currentScreen, segments, router]);
 
@@ -100,9 +100,9 @@ export default function AppLayout() {
       !userPrefQuery.isLoading &&
       userPrefQuery.data &&
       userPrefQuery.data.setupCompleted === false &&
-      !segments.includes('(setup)' as never)
+      !(segments as string[]).includes('(setup)')
     ) {
-      router.replace('/(setup)/income' as never);
+      router.replace('/(setup)/income' as Href);
     }
   }, [session?.user, userPrefQuery.isLoading, userPrefQuery.data?.setupCompleted, segments, router]);
 

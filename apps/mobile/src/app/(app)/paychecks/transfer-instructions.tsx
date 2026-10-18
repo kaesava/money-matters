@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, ScrollView } from 'react-native';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter, type Href } from 'expo-router';
 import { t } from '@money-matters/i18n';
 import { DESIGN_TOKENS, MobileScreenWrapper } from '@money-matters/ui/mobile';
 import { trpc } from '../../../lib/trpc';
@@ -65,7 +65,7 @@ export default function TransferInstructionsScreen() {
       title={t('cards.paydayTransfer.badge')}
       user={session?.user}
       showBack={true}
-      onBackPress={() => router.replace('/(app)/paychecks' as never)}
+      onBackPress={() => router.replace('/(app)/paychecks' as Href)}
     >
       <ScrollView contentContainerStyle={styles.scroll}>
         <View style={styles.headerCard}>
@@ -87,7 +87,7 @@ export default function TransferInstructionsScreen() {
 
         <TouchableOpacity
           style={styles.doneBtn}
-          onPress={() => router.replace('/(app)/home' as never)}
+          onPress={() => router.replace('/(app)/home' as Href)}
         >
           <Text style={styles.doneBtnText}>{t('common.done')}</Text>
         </TouchableOpacity>

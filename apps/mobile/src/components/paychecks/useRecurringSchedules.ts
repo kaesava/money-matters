@@ -3,10 +3,10 @@ import { IncomeSourceItem } from './IncomeSourceCard';
 import { ExpenseSourceItem } from './ExpenseBillCard';
 
 interface UseRecurringSchedulesProps {
-  incomeSources: any[];
-  expenseSources: any[];
-  bankAccounts: any[];
-  pools: any[];
+  incomeSources: IncomeSourceItem[];
+  expenseSources: ExpenseSourceItem[];
+  bankAccounts: Array<{ id: string; name: string }>;
+  pools: Array<{ id: string; name: string }>;
   selectedIncomeBankId: string;
   selectedExpensePoolId: string;
   scheduleSearchQuery: string;

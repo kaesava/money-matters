@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useRouter, type Href } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
 import { DESIGN_TOKENS } from '@money-matters/ui/mobile';
 import { t } from '@money-matters/i18n';
@@ -18,7 +18,7 @@ export const PaychecksSchedulesBanner: React.FC<PaychecksSchedulesBannerProps> =
     <View style={styles.topControlSection}>
       <TouchableOpacity
         style={styles.prominentSchedulesButton}
-        onPress={() => router.push('/(app)/income-split' as never)}
+        onPress={() => router.push('/(app)/income-split' as Href)}
         activeOpacity={0.8}
       >
         <View style={styles.prominentSchedulesInner}>

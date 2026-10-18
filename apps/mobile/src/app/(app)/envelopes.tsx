@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, ScrollView, RefreshControl } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
@@ -7,7 +7,6 @@ import {
   SkeletonCard,
   SearchInput,
   RecordFilterBadge,
-  MobileFilterSheet,
 } from '@money-matters/ui/mobile';
 import { AppScreenWrapper } from '../../components/AppScreenWrapper';
 import { t } from '@money-matters/i18n';
@@ -17,23 +16,18 @@ import { EnvelopeFormModal } from '../../components/EnvelopeFormModal';
 import { QuickExpenseModal } from '../../components/QuickExpenseModal';
 import { PoolOverflowMenuModal } from '../../components/envelopes/PoolOverflowMenuModal';
 import { PoolGroupSection } from '../../components/envelopes/PoolGroupSection';
-
-export type PoolSortField = 'name' | 'currentBalance' | 'targetAmount';
-export type PoolTypeFilter = 'ALL' | 'EVERYDAY' | 'REGULAR' | 'GOAL';
-export type PrivacyFilter = 'ALL' | 'SHARED' | 'PRIVATE';
+import { EnvelopesFilterSheet } from '../../components/envelopes/EnvelopesFilterSheet';
+import {
+  useEnvelopesFilter,
+  type PoolSortField,
+  type PoolTypeFilter,
+  type PrivacyFilter,
+} from '../../components/envelopes/useEnvelopesFilter';
 
 export default function PoolsScreen() {
   const router = useRouter();
   const params = useLocalSearchParams<{ poolId?: string; categoryId?: string }>();
   const { data: session } = authClient.useSession();
-
-  const [activePoolIdFilter, setActivePoolIdFilter] = useState<string | null>(params.poolId || null);
-  const [activeCategoryIdFilter, setActiveCategoryIdFilter] = useState<string | null>(params.categoryId || null);
-
-  React.useEffect(() => {
-    if (params.poolId) setActivePoolIdFilter(params.poolId);
-    if (params.categoryId) setActiveCategoryIdFilter(params.categoryId);
-  }, [params.poolId, params.categoryId]);
 
   const [refreshing, setRefreshing] = useState(false);
   const [poolModalVisible, setPoolModalVisible] = useState(false);
@@ -41,13 +35,10 @@ export default function PoolsScreen() {
   const [moveMoneyVisible, setMoveMoneyVisible] = useState(false);
   const [overflowMenuVisible, setOverflowMenuVisible] = useState(false);
   const [filterSheetVisible, setFilterSheetVisible] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [sortField, setSortField] = useState<PoolSortField>('name');
-  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
-  const [typeFilter, setTypeFilter] = useState<PoolTypeFilter>('ALL');
-  const [privacyFilter, setPrivacyFilter] = useState<PrivacyFilter>('ALL');
   const [collapsedTypes, setCollapsedTypes] = useState<Record<string, boolean>>({});
-  const toggleTypeCollapse = (type: string) => setCollapsedTypes((prev) => ({ ...prev, [type]: !prev[type] }));
+
+  const toggleTypeCollapse = (type: string) =>
+    setCollapsedTypes((prev) => ({ ...prev, [type]: !prev[type] }));
 
   const poolsQuery = trpc.listPools.useQuery(undefined, { enabled: !!session?.user });
   const bankAccountsQuery = trpc.listBankAccounts.useQuery(undefined, { enabled: !!session?.user });
@@ -55,48 +46,39 @@ export default function PoolsScreen() {
   const pools = poolsQuery.data ?? [];
   const bankAccounts = bankAccountsQuery.data ?? [];
 
+  const {
+    activePoolIdFilter,
+    setActivePoolIdFilter,
+    searchQuery,
+    setSearchQuery,
+    sortField,
+    setSortField,
+    sortOrder,
+    setSortOrder,
+    typeFilter,
+    setTypeFilter,
+    privacyFilter,
+    setPrivacyFilter,
+    activeFilterCount,
+    filteredPools,
+    resetFilters,
+  } = useEnvelopesFilter({
+    pools,
+    bankAccounts,
+    initialPoolId: params.poolId || null,
+  });
+
+  React.useEffect(() => {
+    if (params.poolId) setActivePoolIdFilter(params.poolId);
+  }, [params.poolId, setActivePoolIdFilter]);
+
   const onRefresh = async () => {
     setRefreshing(true);
     await Promise.all([poolsQuery.refetch(), bankAccountsQuery.refetch()]);
     setRefreshing(false);
   };
 
-  const activeFilterCount =
-    (typeFilter !== 'ALL' ? 1 : 0) +
-    (privacyFilter !== 'ALL' ? 1 : 0) +
-    (sortField !== 'name' || sortOrder !== 'asc' ? 1 : 0);
-
-  const filteredPools = useMemo(() => {
-    return pools
-      .filter((p) => {
-        if (activePoolIdFilter && p.id !== activePoolIdFilter) return false;
-        const pType = p.envelopeType === 'EVERYDAY' ? 'EVERYDAY' : (p.envelopeType === 'TARGET_GOAL' || p.envelopeType === 'ONGOING_GOAL') ? 'GOAL' : 'REGULAR';
-        if (typeFilter !== 'ALL' && pType !== typeFilter) return false;
-        if (privacyFilter === 'SHARED' && p.isPrivate) return false;
-        if (privacyFilter === 'PRIVATE' && !p.isPrivate) return false;
-        if (!searchQuery.trim()) return true;
-        const q = searchQuery.toLowerCase().trim();
-        const matchesPool = p.name.toLowerCase().includes(q);
-        const bank = bankAccounts.find((b) => b.id === p.bankAccountId);
-        const matchesBank = bank?.name.toLowerCase().includes(q);
-        return matchesPool || matchesBank;
-      })
-      .sort((a, b) => {
-        if (sortField === 'name') {
-          const res = a.name.localeCompare(b.name);
-          return sortOrder === 'asc' ? res : -res;
-        }
-        if (sortField === 'currentBalance') {
-          return sortOrder === 'asc' ? (a.currentBalance || 0) - (b.currentBalance || 0) : (b.currentBalance || 0) - (a.currentBalance || 0);
-        }
-        const aTgt = a.targetAmount ? parseFloat(a.targetAmount) : 0;
-        const bTgt = b.targetAmount ? parseFloat(b.targetAmount) : 0;
-        return sortOrder === 'asc' ? aTgt - bTgt : bTgt - aTgt;
-      });
-  }, [pools, activePoolIdFilter, typeFilter, privacyFilter, searchQuery, sortField, sortOrder, bankAccounts]);
-
   const matchedActivePool = pools.find((p) => p.id === activePoolIdFilter);
-  const matchedActiveCat = null;
 
   return (
     <AppScreenWrapper
@@ -125,7 +107,7 @@ export default function PoolsScreen() {
           </TouchableOpacity>
         </View>
 
-        {(activePoolIdFilter || activeCategoryIdFilter) && (
+        {activePoolIdFilter && (
           <RecordFilterBadge
             label={
               matchedActivePool
@@ -134,8 +116,7 @@ export default function PoolsScreen() {
             }
             onClear={() => {
               setActivePoolIdFilter(null);
-              setActiveCategoryIdFilter(null);
-              router.setParams({ poolId: undefined, categoryId: undefined } as never);
+              router.setParams({ poolId: '', categoryId: '' });
             }}
           />
         )}
@@ -193,45 +174,19 @@ export default function PoolsScreen() {
         onMoveMoney={() => setMoveMoneyVisible(true)}
       />
 
-      <MobileFilterSheet
+      <EnvelopesFilterSheet
         visible={filterSheetVisible}
         onClose={() => setFilterSheetVisible(false)}
-        activeCount={activeFilterCount}
+        activeFilterCount={activeFilterCount}
         sortField={sortField}
         sortOrder={sortOrder}
-        sortOptions={[
-          { id: 'name', label: t('common.name') },
-          { id: 'currentBalance', label: t('common.balance') },
-          { id: 'targetAmount', label: t('common.target') },
-        ]}
-        onSortFieldChange={(field) => setSortField(field as PoolSortField)}
+        onSortFieldChange={setSortField}
         onSortOrderChange={setSortOrder}
-        sections={[
-          {
-            id: 'type',
-            title: t('categories.filterByType'),
-            selectedValue: typeFilter,
-            onSelect: (val) => setTypeFilter(val as PoolTypeFilter),
-            options: [
-              { id: 'ALL', label: t('common.all') },
-              { id: 'EVERYDAY', label: t('poolTypes.everyday') },
-              { id: 'REGULAR', label: t('poolTypes.bills') },
-              { id: 'GOAL', label: t('poolTypes.goals') },
-            ],
-          },
-          {
-            id: 'privacy',
-            title: t('categories.filterByPrivacy'),
-            selectedValue: privacyFilter,
-            onSelect: (val) => setPrivacyFilter(val as PrivacyFilter),
-            options: [
-              { id: 'ALL', label: t('common.all') }, { id: 'SHARED', label: t('common.shared') }, { id: 'PRIVATE', label: t('common.private') },
-            ],
-          },
-        ]}
-        onReset={() => {
-          setSortField('name'); setSortOrder('asc'); setTypeFilter('ALL'); setPrivacyFilter('ALL');
-        }}
+        typeFilter={typeFilter}
+        setTypeFilter={setTypeFilter}
+        privacyFilter={privacyFilter}
+        setPrivacyFilter={setPrivacyFilter}
+        onReset={resetFilters}
       />
 
       <EnvelopeFormModal
@@ -240,7 +195,12 @@ export default function PoolsScreen() {
         onClose={() => setPoolModalVisible(false)}
         onSuccess={() => poolsQuery.refetch()}
       />
-      <QuickExpenseModal visible={moveMoneyVisible} initialType="TRANSFER" onClose={() => setMoveMoneyVisible(false)} onSuccess={() => poolsQuery.refetch()} />
+      <QuickExpenseModal
+        visible={moveMoneyVisible}
+        initialType="TRANSFER"
+        onClose={() => setMoveMoneyVisible(false)}
+        onSuccess={() => poolsQuery.refetch()}
+      />
     </AppScreenWrapper>
   );
 }
@@ -248,10 +208,33 @@ export default function PoolsScreen() {
 const styles = StyleSheet.create({
   scrollContent: { padding: 20, gap: 14, paddingBottom: 90 },
   toolbarRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  filterBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 4, width: 44, height: 44, backgroundColor: DESIGN_TOKENS.colors.surface, borderWidth: 1.5, borderColor: DESIGN_TOKENS.colors.slate[200], borderRadius: 12 },
-  filterBtnActive: { backgroundColor: DESIGN_TOKENS.colors.accentLight, borderColor: DESIGN_TOKENS.colors.accentBorder },
+  filterBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 4,
+    width: 44,
+    height: 44,
+    backgroundColor: DESIGN_TOKENS.colors.surface,
+    borderWidth: 1.5,
+    borderColor: DESIGN_TOKENS.colors.slate[200],
+    borderRadius: 12,
+  },
+  filterBtnActive: {
+    backgroundColor: DESIGN_TOKENS.colors.accentLight,
+    borderColor: DESIGN_TOKENS.colors.accentBorder,
+  },
   filterBtnBadgeText: { fontSize: 11, fontWeight: '800', color: DESIGN_TOKENS.colors.accent },
-  overflowBtn: { width: 44, height: 44, borderRadius: 12, backgroundColor: DESIGN_TOKENS.colors.surface, borderWidth: 1.5, borderColor: DESIGN_TOKENS.colors.slate[200], alignItems: 'center', justifyContent: 'center' },
+  overflowBtn: {
+    width: 44,
+    height: 44,
+    borderRadius: 12,
+    backgroundColor: DESIGN_TOKENS.colors.surface,
+    borderWidth: 1.5,
+    borderColor: DESIGN_TOKENS.colors.slate[200],
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   sectionsContainer: { gap: 4 },
   emptyCard: { backgroundColor: DESIGN_TOKENS.colors.surfaceVariant, padding: 32, borderRadius: 16, alignItems: 'center' },
   emptyCardText: { fontSize: 13, color: DESIGN_TOKENS.colors.textMuted },

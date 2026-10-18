@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, FlatList, TouchableOpacity, StyleSheet } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useRouter, type Href } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
 import { DESIGN_TOKENS } from '@money-matters/ui/mobile';
 import { t } from '@money-matters/i18n';
@@ -55,7 +55,7 @@ export function GoalsProgressStrip({ goals }: GoalsProgressStripProps) {
         </View>
 
         <TouchableOpacity
-          onPress={() => router.push('/(app)/envelopes' as never)}
+          onPress={() => router.push('/(app)/envelopes' as Href)}
           style={styles.seeAllBtn}
           activeOpacity={0.7}
         >

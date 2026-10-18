@@ -11,37 +11,33 @@ import {
 import { Feather } from '@expo/vector-icons';
 import { t } from '@money-matters/i18n';
 import { DESIGN_TOKENS } from '../tokens';
+import {
+  MobileFilterSortSection,
+  type FilterSortOption,
+} from './filter/MobileFilterSortSection';
+import {
+  MobileFilterChipSection,
+  type FilterSection,
+} from './filter/MobileFilterChipSection';
 
-export interface FilterSortOption<T = string> {
-  id: T;
-  label: string;
-}
+export type { FilterSortOption, FilterSection };
 
-export interface FilterSection<T = string> {
-  id: string;
-  title: string;
-  options?: FilterSortOption<T>[];
-  selectedValue?: T;
-  onSelect?: (value: T) => void;
-  renderCustom?: () => React.ReactNode;
-}
-
-export interface MobileFilterSheetProps {
+export interface MobileFilterSheetProps<TSection = string, TSort = string> {
   visible: boolean;
   onClose: () => void;
   title?: string;
-  sections: FilterSection<any>[];
-  sortField?: string;
+  sections: FilterSection<TSection>[];
+  sortField?: TSort;
   sortOrder?: 'asc' | 'desc';
-  onSortFieldChange?: (field: any) => void;
+  onSortFieldChange?: (field: TSort) => void;
   onSortOrderChange?: (order: 'asc' | 'desc') => void;
-  sortOptions?: FilterSortOption<any>[];
+  sortOptions?: FilterSortOption<TSort>[];
   onReset?: () => void;
   onApply?: () => void;
   activeCount?: number;
 }
 
-export function MobileFilterSheet({
+export function MobileFilterSheet<TSection = string, TSort = string>({
   visible,
   onClose,
   title,
@@ -54,9 +50,7 @@ export function MobileFilterSheet({
   onReset,
   onApply,
   activeCount,
-}: MobileFilterSheetProps) {
-  const D = DESIGN_TOKENS;
-
+}: MobileFilterSheetProps<TSection, TSort>) {
   const handleApply = () => {
     onApply?.();
     onClose();
@@ -69,7 +63,7 @@ export function MobileFilterSheet({
           {/* Header */}
           <View style={styles.header}>
             <View style={styles.titleRow}>
-              <Feather name="sliders" size={16} color="#1B2B4B" />
+              <Feather name="sliders" size={16} color={DESIGN_TOKENS.colors.primary} />
               <Text style={styles.title}>{title || t('common.filter')}</Text>
               {typeof activeCount === 'number' && activeCount > 0 ? (
                 <View style={styles.countBadge}>
@@ -78,80 +72,24 @@ export function MobileFilterSheet({
               ) : null}
             </View>
             <TouchableOpacity onPress={onClose} style={styles.closeBtn} activeOpacity={0.7}>
-              <Feather name="x" size={20} color="#94A3B8" />
+              <Feather name="x" size={20} color={DESIGN_TOKENS.colors.slate[400]} />
             </TouchableOpacity>
           </View>
 
           {/* Body */}
           <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.body}>
-            {/* Sort Section */}
             {sortOptions && sortOptions.length > 0 && onSortFieldChange && (
-              <View style={styles.section}>
-                <View style={styles.sectionHeader}>
-                  <Text style={styles.sectionTitle}>{t('transactions.sortLabel')}</Text>
-                </View>
-                <View style={styles.chipsWrap}>
-                  {sortOptions.map((opt) => {
-                    const isSelected = sortField === opt.id;
-                    const handlePress = () => {
-                      if (isSelected && onSortOrderChange && sortOrder) {
-                        onSortOrderChange(sortOrder === 'asc' ? 'desc' : 'asc');
-                      } else {
-                        onSortFieldChange(opt.id);
-                      }
-                    };
-                    return (
-                      <TouchableOpacity
-                        key={String(opt.id)}
-                        onPress={handlePress}
-                        style={[styles.chip, isSelected && styles.chipActive]}
-                        activeOpacity={0.7}
-                      >
-                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-                          <Text style={[styles.chipText, isSelected && styles.chipTextActive]}>
-                            {opt.label}
-                          </Text>
-                          {isSelected && sortOrder && (
-                            <Feather
-                              name={sortOrder === 'asc' ? 'arrow-up' : 'arrow-down'}
-                              size={12}
-                              color="#2563eb"
-                            />
-                          )}
-                        </View>
-                      </TouchableOpacity>
-                    );
-                  })}
-                </View>
-              </View>
+              <MobileFilterSortSection
+                sortOptions={sortOptions}
+                sortField={sortField}
+                sortOrder={sortOrder}
+                onSortFieldChange={onSortFieldChange}
+                onSortOrderChange={onSortOrderChange}
+              />
             )}
 
-            {/* Filter Sections */}
             {sections.map((section) => (
-              <View key={section.id} style={styles.section}>
-                <Text style={styles.sectionTitle}>{section.title}</Text>
-                {section.renderCustom ? (
-                  section.renderCustom()
-                ) : (
-                  <View style={styles.chipsWrap}>
-                    {section.options?.map((opt) => {
-                      const isSelected = section.selectedValue === opt.id;
-                      return (
-                        <TouchableOpacity
-                          key={String(opt.id)}
-                          onPress={() => section.onSelect?.(opt.id)}
-                          style={[styles.chip, isSelected && styles.chipActive]}
-                          activeOpacity={0.7}
-                        >
-                          <Text style={[styles.chipText, isSelected && styles.chipTextActive]}>
-                            {opt.label}
-                          </Text>
-                        </TouchableOpacity>
-                      );
-                    })}
-                  </View>
-                )}
-              </View>
+              <MobileFilterChipSection key={section.id} section={section} />
             ))}
           </ScrollView>
 
@@ -159,11 +97,11 @@ export function MobileFilterSheet({
           <View style={styles.footer}>
             {onReset && (
               <TouchableOpacity onPress={onReset} style={styles.resetBtn} activeOpacity={0.7}>
-                <Text style={styles.resetBtnText}>{t('common.reset') || 'Reset'}</Text>
+                <Text style={styles.resetBtnText}>{t('common.reset')}</Text>
               </TouchableOpacity>
             )}
             <TouchableOpacity onPress={handleApply} style={styles.closeActionBtn} activeOpacity={0.8}>
-              <Text style={styles.closeActionBtnText}>{t('common.close') || 'Close'}</Text>
+              <Text style={styles.closeActionBtnText}>{t('common.close')}</Text>
             </TouchableOpacity>
           </View>
         </Pressable>
@@ -180,7 +118,7 @@ const styles = StyleSheet.create({
   },
   sheet: {
     maxHeight: '75%',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: DESIGN_TOKENS.colors.surface,
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     paddingTop: 16,
@@ -197,7 +135,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingBottom: 14,
     borderBottomWidth: 1,
-    borderBottomColor: '#F1F5F9',
+    borderBottomColor: DESIGN_TOKENS.colors.slate[100],
   },
   titleRow: {
     flexDirection: 'row',
@@ -207,10 +145,10 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 16,
     fontWeight: '800',
-    color: '#1B2B4B',
+    color: DESIGN_TOKENS.colors.primary,
   },
   countBadge: {
-    backgroundColor: '#2563eb',
+    backgroundColor: DESIGN_TOKENS.colors.sereneBlue,
     paddingHorizontal: 6,
     paddingVertical: 1,
     borderRadius: 10,
@@ -218,7 +156,7 @@ const styles = StyleSheet.create({
   countBadgeText: {
     fontSize: 11,
     fontWeight: '700',
-    color: '#FFFFFF',
+    color: DESIGN_TOKENS.colors.onPrimary,
   },
   closeBtn: {
     padding: 4,
@@ -228,61 +166,6 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     gap: 20,
   },
-  section: {
-    gap: 10,
-  },
-  sectionHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  sectionTitle: {
-    fontSize: 12,
-    fontWeight: '800',
-    color: '#64748B',
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-  },
-  orderToggle: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    paddingVertical: 2,
-    paddingHorizontal: 6,
-    backgroundColor: '#EFF6FF',
-    borderRadius: 8,
-  },
-  orderToggleText: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: '#2563eb',
-  },
-  chipsWrap: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-  },
-  chip: {
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 12,
-    backgroundColor: '#F8FAFC',
-    borderWidth: 1.5,
-    borderColor: '#E2E8F0',
-  },
-  chipActive: {
-    backgroundColor: '#EFF6FF',
-    borderColor: '#2563eb',
-  },
-  chipText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#475569',
-  },
-  chipTextActive: {
-    color: '#2563eb',
-    fontWeight: '800',
-  },
   footer: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -290,32 +173,32 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingVertical: 14,
     borderTopWidth: 1,
-    borderTopColor: '#F1F5F9',
+    borderTopColor: DESIGN_TOKENS.colors.slate[100],
     gap: 12,
   },
   resetBtn: {
     paddingVertical: 12,
     paddingHorizontal: 16,
     borderRadius: 12,
-    backgroundColor: '#F1F5F9',
+    backgroundColor: DESIGN_TOKENS.colors.slate[100],
   },
   resetBtnText: {
     fontSize: 13,
     fontWeight: '700',
-    color: '#64748B',
+    color: DESIGN_TOKENS.colors.slate[500],
   },
   closeActionBtn: {
     flex: 1,
     paddingVertical: 12,
     borderRadius: 12,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: DESIGN_TOKENS.colors.surfaceVariant,
     borderWidth: 1.5,
-    borderColor: '#E2E8F0',
+    borderColor: DESIGN_TOKENS.colors.border,
     alignItems: 'center',
   },
   closeActionBtnText: {
     fontSize: 13,
     fontWeight: '700',
-    color: '#334155',
+    color: DESIGN_TOKENS.colors.slate[700],
   },
 });

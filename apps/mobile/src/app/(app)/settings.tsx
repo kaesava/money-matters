@@ -80,7 +80,7 @@ export default function SettingsScreen() {
           setActiveSessionToken(null);
           setActiveTenantId(null);
           await utils.invalidate().catch(() => {});
-          router.replace('/(auth)/sign-in' as never);
+          router.replace('/(auth)/sign-in' as Href);
         } catch (err) {
           toast.error(err instanceof Error ? err.message : String(err));
         } finally {

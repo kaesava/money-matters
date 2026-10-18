@@ -8,6 +8,7 @@ import {
   IconVisibilityProvider,
   MobileToastProvider,
   MobileToastContainer,
+  MobileConfirmContainer,
   DateLocaleProvider,
   NotificationServiceProvider,
 } from '@money-matters/ui/mobile';
@@ -133,6 +134,7 @@ export function AppProviders({ children }: AppProvidersProps) {
                 <MobileToastProvider>
                   {children}
                   <MobileToastContainer />
+                  <MobileConfirmContainer />
                 </MobileToastProvider>
               </MobilePreferencesSync>
             </NotificationServiceProvider>

@@ -6,10 +6,21 @@ import {
   MobileBankPicker,
   MobilePoolPicker,
   MobilePoolOption,
+  MobileBankOption,
   RecurrenceBuilder,
+  useRecurrenceBuilder,
   FormErrorBanner,
 } from '@money-matters/ui/mobile';
 import { t } from '@money-matters/i18n';
+
+export interface IncomeExpenseBankAccountOption {
+  id: string;
+  name: string;
+  bankProvider?: string | null;
+  lastKnownBalance?: string | null;
+  accountType?: string | null;
+  isPrivate?: boolean | null;
+}
 
 interface IncomeExpenseFormFieldsProps {
   mode: 'INCOME' | 'EXPENSE';
@@ -24,8 +35,8 @@ interface IncomeExpenseFormFieldsProps {
   categoryId: string | null;
   receivingAccountId: string;
   pickerPools: MobilePoolOption[];
-  bankAccounts: any[];
-  recurrenceBuilder: any;
+  bankAccounts: IncomeExpenseBankAccountOption[];
+  recurrenceBuilder: ReturnType<typeof useRecurrenceBuilder>;
   onNameChange: (val: string) => void;
   onAmountChange: (val: string) => void;
   onReceivingAccountIdChange: (val: string) => void;
@@ -87,8 +98,8 @@ export function IncomeExpenseFormFields({
             id: b.id,
             name: b.name,
             institution: b.bankProvider,
-            currentBalance: b.balance,
-            availableBalance: b.balance,
+            currentBalance: b.lastKnownBalance,
+            availableBalance: b.lastKnownBalance,
           }))}
           selectedBankId={receivingAccountId}
           onSelectBank={onReceivingAccountIdChange}

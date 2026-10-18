@@ -153,7 +153,7 @@ export function MobileProductTourProvider({ children }: { children: ReactNode })
       posthog.capture('tour_step_viewed', { step: next });
       const targetStep = MOBILE_TOUR_STEPS[next - 1];
       if (targetStep) {
-        router.replace(targetStep.route as never);
+        router.replace(targetStep.route as Href);
       }
     } else {
       completeTour();
@@ -167,7 +167,7 @@ export function MobileProductTourProvider({ children }: { children: ReactNode })
       setCurrentStep(prev);
       const targetStep = MOBILE_TOUR_STEPS[prev - 1];
       if (targetStep) {
-        router.replace(targetStep.route as never);
+        router.replace(targetStep.route as Href);
       }
     }
   }, [currentStep, router]);

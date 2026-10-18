@@ -1,5 +1,5 @@
 import { sql, eq, and } from "drizzle-orm";
-import { aiUsage } from "@money-matters/db";
+import { aiUsage, DbOrTx } from "@money-matters/db";
 import { AI_TIER_LIMITS } from "@money-matters/config";
 import type { UsageStorePort } from "./index.js";
 
@@ -19,7 +19,7 @@ function getNextResetDate(): string {
 }
 
 export class DbUsageStore implements UsageStorePort {
-  constructor(private db: any) {}
+  constructor(private db: DbOrTx) {}
 
   async getUsage(tenantId: string): Promise<{ used: number; limit: number; remaining: number; resetsOn: string }> {
     const periodMonth = getCurrentPeriodMonth();

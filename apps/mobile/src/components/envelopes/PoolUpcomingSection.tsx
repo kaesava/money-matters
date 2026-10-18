@@ -4,14 +4,32 @@ import { Feather } from '@expo/vector-icons';
 import { t } from '@money-matters/i18n';
 import { DESIGN_TOKENS } from '@money-matters/ui/mobile';
 import { formatAUD, formatDate } from '../../lib/format';
-import { useRouter } from 'expo-router';
+import { useRouter, type Href } from 'expo-router';
+
+export interface PoolUpcomingExpenseItem {
+  id: string;
+  name?: string | null;
+  expectedDate: string | Date;
+  expectedAmount: string | number;
+  poolId?: string | null;
+  categoryId?: string | null;
+}
+
+export interface MarkPaidExpenseEvent {
+  id: string;
+  name: string;
+  expectedAmount: number;
+  expectedDate: string | Date;
+  poolId?: string | null;
+  categoryId?: string | null;
+}
 
 interface PoolUpcomingSectionProps {
   poolId: string;
-  upcomingExpenses: any[];
+  upcomingExpenses: PoolUpcomingExpenseItem[];
   expanded: boolean;
   onToggleExpand: () => void;
-  onMarkPaid: (event: any) => void;
+  onMarkPaid: (event: MarkPaidExpenseEvent) => void;
 }
 
 export function PoolUpcomingSection({
@@ -37,7 +55,7 @@ export function PoolUpcomingSection({
           <TouchableOpacity
             onPress={() =>
               router.push(
-                `/(app)/paychecks?tab=EVENTS&type=EXPENSE&poolId=${poolId}&returnTo=${encodeURIComponent(`/(app)/envelopes/${poolId}`)}` as never
+                `/(app)/paychecks?tab=EVENTS&type=EXPENSE&poolId=${poolId}&returnTo=${encodeURIComponent(`/(app)/envelopes/${poolId}`)}` as Href
               )
             }
             style={styles.viewHistoryBtn}
@@ -67,14 +85,14 @@ export function PoolUpcomingSection({
                         onMarkPaid({
                           id: exp.id,
                           name: exp.name || 'Expense',
-                          expectedAmount: parseFloat(exp.expectedAmount),
+                          expectedAmount: parseFloat(String(exp.expectedAmount)),
                           expectedDate: exp.expectedDate,
                           poolId: exp.poolId,
                           categoryId: exp.categoryId,
                         })
                       }
                     >
-                      <Feather name="check" size={12} color="#FFFFFF" />
+                      <Feather name="check" size={12} color={DESIGN_TOKENS.colors.onAccent} />
                       <Text style={styles.payBtnText}>{t('common.markSpent')}</Text>
                     </TouchableOpacity>
                   </View>
@@ -103,7 +121,7 @@ const styles = StyleSheet.create({
     backgroundColor: DESIGN_TOKENS.colors.surface,
     borderRadius: 14,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: DESIGN_TOKENS.colors.border,
     padding: 14,
     flexDirection: 'row',
     alignItems: 'center',
@@ -123,6 +141,6 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
   },
   payBtnText: { fontSize: 11, fontWeight: '700', color: DESIGN_TOKENS.colors.onAccent },
-  emptyBox: { backgroundColor: DESIGN_TOKENS.colors.surfaceVariant, borderRadius: 14, borderWidth: 1, borderColor: '#E2E8F0', padding: 20, alignItems: 'center', marginTop: 10 },
+  emptyBox: { backgroundColor: DESIGN_TOKENS.colors.surfaceVariant, borderRadius: 14, borderWidth: 1, borderColor: DESIGN_TOKENS.colors.border, padding: 20, alignItems: 'center', marginTop: 10 },
   emptyText: { fontSize: 12, color: DESIGN_TOKENS.colors.textMuted, textAlign: 'center' },
 });

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useRouter } from 'expo-router';
+import { useRouter, type Href } from 'expo-router';
 import { MobileScreenWrapper, MobileScreenWrapperProps } from '@money-matters/ui/mobile';
 import { authClient } from '../lib/auth';
 import { trpc, setActiveSessionToken, setActiveTenantId } from '../lib/trpc';
@@ -56,7 +56,7 @@ export function AppScreenWrapper({
     await SecureStore.deleteItemAsync('money_matters_active_tenant_id');
     setActiveSessionToken(null);
     setActiveTenantId(null);
-    router.replace('/(auth)/sign-in' as never);
+    router.replace('/(auth)/sign-in' as Href);
   };
 
   return (
@@ -68,11 +68,11 @@ export function AppScreenWrapper({
         showProfile={showProfile}
         showBack={showBack}
         onBackPress={onBackPress || (() => router.back())}
-        onNavigateHome={onNavigateHome || (() => router.push('/(app)/home' as never))}
-        onNavigateCategories={onNavigateCategories || (() => router.push('/(app)/envelopes' as never))}
-        onNavigateSettings={onNavigateSettings || (() => router.push('/(app)/settings' as never))}
-        onNavigateBankAccounts={onNavigateBankAccounts || (() => router.push('/(app)/settings/bank-accounts' as never))}
-        onNavigateHistory={onNavigateHistory || (() => router.push('/(app)/transactions' as never))}
+        onNavigateHome={onNavigateHome || (() => router.push('/(app)/home' as Href))}
+        onNavigateCategories={onNavigateCategories || (() => router.push('/(app)/envelopes' as Href))}
+        onNavigateSettings={onNavigateSettings || (() => router.push('/(app)/settings' as Href))}
+        onNavigateBankAccounts={onNavigateBankAccounts || (() => router.push('/(app)/settings/bank-accounts' as Href))}
+        onNavigateHistory={onNavigateHistory || (() => router.push('/(app)/transactions' as Href))}
         onOpenTenantSwitcher={onOpenTenantSwitcher || (() => setTenantSwitcherVisible(true))}
         hasMultipleTenants={hasMultipleTenants}
         activeTenantName={activeTenantName}

@@ -1,4 +1,5 @@
 import { describe, it, expect, vi } from "vitest";
+import type { DbOrTx } from "@money-matters/db";
 import { DbUsageStore } from "./db-usage-store.js";
 
 describe("DbUsageStore", () => {
@@ -14,7 +15,7 @@ describe("DbUsageStore", () => {
       insert: vi.fn(),
     };
 
-    const store = new DbUsageStore(mockDb);
+    const store = new DbUsageStore(mockDb as unknown as DbOrTx);
     const usage = await store.getUsage("tenant-123");
 
     expect(usage.used).toBe(35);
@@ -34,7 +35,7 @@ describe("DbUsageStore", () => {
       insert: vi.fn(),
     };
 
-    const store = new DbUsageStore(mockDb);
+    const store = new DbUsageStore(mockDb as unknown as DbOrTx);
     const usage = await store.getUsage("tenant-456");
 
     expect(usage.used).toBe(0);

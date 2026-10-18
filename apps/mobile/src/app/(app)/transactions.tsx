@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { View, StyleSheet } from 'react-native';
-import { useRouter, useLocalSearchParams } from 'expo-router';
+import { useRouter, useLocalSearchParams, type Href } from 'expo-router';
 import { SegmentedTabs } from '@money-matters/ui/mobile';
 import { AppScreenWrapper } from '../../components/AppScreenWrapper';
 import { t } from '@money-matters/i18n';
@@ -188,7 +188,7 @@ export default function TransactionsScreen() {
             pools={pools}
             bankAccounts={bankAccounts}
             onExportCsv={() => exportLedgerCsv(sortedTransactions)}
-            onNavigateToPool={(pId) => router.push(`/(app)/envelopes?poolId=${pId}` as never)}
+            onNavigateToPool={(pId) => router.push(`/(app)/envelopes?poolId=${pId}` as Href)}
             spendingAnalytics={spendingAnalyticsQuery.data}
             isAnalyticsLoading={spendingAnalyticsQuery.isLoading}
             timeframe={timeframe}

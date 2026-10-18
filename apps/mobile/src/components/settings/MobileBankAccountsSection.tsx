@@ -6,7 +6,7 @@ import {
   StyleSheet,
   ActivityIndicator,
 } from 'react-native';
-import { useRouter, useLocalSearchParams } from 'expo-router';
+import { useRouter, useLocalSearchParams, type Href } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
 import {
   DESIGN_TOKENS,
@@ -154,7 +154,7 @@ export function MobileBankAccountsSection() {
           </View>
           <TouchableOpacity
             style={styles.optimizerActionBtn}
-            onPress={() => router.push('/(setup)?mode=rerun' as never)}
+            onPress={() => router.push('/(setup)?mode=rerun' as Href)}
             activeOpacity={0.8}
           >
             <Text style={styles.optimizerActionText}>
@@ -273,7 +273,7 @@ export function MobileBankAccountsSection() {
                     })),
                   })
                 }
-                onPressPool={(poolId) => router.push(`/(app)/envelopes/${poolId}` as never)}
+                onPressPool={(poolId) => router.push(`/(app)/envelopes/${poolId}` as Href)}
                 onPressMorePools={() =>
                   setPoolsSheetAccount({
                     name: acc.name,

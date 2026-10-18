@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, ScrollView, StyleSheet } from 'react-native';
 import { Feather } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
+import { useRouter, type Href } from 'expo-router';
 import { DESIGN_TOKENS, MobileModalDialog } from '@money-matters/ui/mobile';
 import { formatAUD } from '../../lib/format';
 import { t } from '@money-matters/i18n';
@@ -51,7 +51,7 @@ export function LinkedPoolsModalSheet({
                 key={pool.id}
                 onPress={() => {
                   onClose();
-                  router.push(`/(app)/envelopes/${pool.id}` as never);
+                  router.push(`/(app)/envelopes/${pool.id}` as Href);
                 }}
                 style={styles.poolCard}
               >

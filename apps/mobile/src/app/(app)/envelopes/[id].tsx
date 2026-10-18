@@ -1,15 +1,15 @@
 import React, { useState, useMemo } from 'react';
 import { View, Text, ScrollView, StyleSheet, ActivityIndicator } from 'react-native';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter, type Href } from 'expo-router';
 import { MobileScreenWrapper, DESIGN_TOKENS } from '@money-matters/ui/mobile';
 import { t } from '@money-matters/i18n';
 import { trpc } from '../../../lib/trpc';
 import { authClient } from '../../../lib/auth';
 import { EnvelopeFormModal } from '../../../components/EnvelopeFormModal';
 import { MarkPaidModal, MarkPaidEvent } from '../../../components/MarkPaidModal';
-import { PoolSummaryCard } from '../../../components/pools/PoolSummaryCard';
-import { PoolUpcomingSection } from '../../../components/pools/PoolUpcomingSection';
-import { PoolHistorySection } from '../../../components/pools/PoolHistorySection';
+import { PoolSummaryCard } from '../../../components/envelopes/PoolSummaryCard';
+import { PoolUpcomingSection } from '../../../components/envelopes/PoolUpcomingSection';
+import { PoolHistorySection } from '../../../components/envelopes/PoolHistorySection';
 
 export default function PoolDetailScreen() {
   const { id, returnTo } = useLocalSearchParams<{ id: string; returnTo?: string }>();
@@ -44,7 +44,7 @@ export default function PoolDetailScreen() {
   }
 
   const handleBack = () => {
-    if (returnTo) router.push(returnTo as never);
+    if (returnTo) router.push(returnTo as Href);
     else router.back();
   };
 
@@ -72,7 +72,15 @@ export default function PoolDetailScreen() {
           upcomingExpenses={upcomingExpenses}
           expanded={upcomingExpanded}
           onToggleExpand={() => setUpcomingExpanded((v) => !v)}
-          onMarkPaid={(evt) => setMarkPaidEvent(evt)}
+          onMarkPaid={(evt) =>
+            setMarkPaidEvent({
+              ...evt,
+              expectedDate:
+                evt.expectedDate instanceof Date
+                  ? evt.expectedDate.toISOString()
+                  : String(evt.expectedDate),
+            })
+          }
         />
 
         <PoolHistorySection

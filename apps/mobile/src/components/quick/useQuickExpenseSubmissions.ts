@@ -1,4 +1,4 @@
-import { useRouter } from 'expo-router';
+import { useRouter, type Href } from 'expo-router';
 import { useMobileToast, showMobileConfirm } from '@money-matters/ui/mobile';
 import { t } from '@money-matters/i18n';
 import { formatAUD } from '../../lib/format';
@@ -99,7 +99,7 @@ export function useQuickExpenseSubmissions({
         if (onIncomeSuccess) {
           onIncomeSuccess(created.firstEventId);
         } else {
-          router.push(`/(app)/income-split/${created.firstEventId}` as never);
+          router.push(`/(app)/income-split/${created.firstEventId}` as Href);
         }
       }
     } catch (err) {

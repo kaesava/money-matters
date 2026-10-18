@@ -8,8 +8,8 @@ import { PoolItemCard } from './PoolItemCard';
 interface PoolGroupSectionItem {
   id: string;
   name: string;
-  envelopeType?: string;
-  poolType?: string;
+  envelopeType?: string | null;
+  poolType?: string | null;
   goalMode?: string | null;
   budgetFrequency?: string | null;
   currentBalance?: number | string | null;

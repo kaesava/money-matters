@@ -1,14 +1,43 @@
 import { useMemo } from 'react';
 import { t } from '@money-matters/i18n';
-import { TimelineEventItem } from './PaycheckEventSection';
+import {
+  TimelineEventItem,
+  PaycheckIncomeEvent,
+  PaycheckExpenseEvent,
+  PaycheckTransferEvent,
+} from './PaycheckEventSection';
+
+export interface RawIncomeEventInput extends PaycheckIncomeEvent {
+  incomeSourceId?: string | null;
+  bankAccountId?: string | null;
+  receivingAccountId?: string | null;
+}
+
+export interface UpcomingBankItem {
+  id: string;
+  name: string;
+  isPrivate?: boolean | null;
+}
+
+export interface UpcomingPoolItem {
+  id: string;
+  name: string;
+  isPrivate?: boolean | null;
+}
+
+export interface UpcomingIncomeSourceItem {
+  id: string;
+  name: string;
+  receivingAccountId?: string | null;
+}
 
 interface UseUpcomingEventsProps {
-  rawIncomeEvents: any[];
-  rawExpenseEvents: any[];
-  rawTransferEvents: any[];
-  bankAccounts: any[];
-  pools: any[];
-  incomeSources?: any[];
+  rawIncomeEvents: RawIncomeEventInput[];
+  rawExpenseEvents: PaycheckExpenseEvent[];
+  rawTransferEvents: PaycheckTransferEvent[];
+  bankAccounts: UpcomingBankItem[];
+  pools: UpcomingPoolItem[];
+  incomeSources?: UpcomingIncomeSourceItem[];
   upcomingKindFilter: 'ALL' | 'INCOME' | 'EXPENSE' | 'TRANSFER';
   upcomingScopeFilter: 'ALL' | 'SHARED' | 'PRIVATE';
   upcomingStatusFilter?: 'ALL' | 'OVERDUE';

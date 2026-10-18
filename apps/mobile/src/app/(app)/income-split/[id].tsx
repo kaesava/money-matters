@@ -7,7 +7,7 @@ import {
   ActivityIndicator,
   TouchableOpacity,
 } from 'react-native';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter, type Href } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
 import {
   DESIGN_TOKENS,
@@ -60,7 +60,7 @@ export default function IncomeSplitStudioScreen() {
   const handleCloseTransferModal = () => {
     setShowTransferModal(false);
     if (returnTo) {
-      router.push(returnTo as never);
+      router.push(returnTo as Href);
     } else {
       router.back();
     }

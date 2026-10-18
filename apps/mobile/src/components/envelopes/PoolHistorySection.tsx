@@ -4,11 +4,21 @@ import { Feather } from '@expo/vector-icons';
 import { t } from '@money-matters/i18n';
 import { DESIGN_TOKENS } from '@money-matters/ui/mobile';
 import { TransactionRow } from '../TransactionRow';
-import { useRouter } from 'expo-router';
+import { useRouter, type Href } from 'expo-router';
+
+export interface PoolHistoryTransactionItem {
+  id: string;
+  amount: string | number;
+  flowType: 'DEBIT' | 'CREDIT' | 'TRANSFER' | string;
+  poolName?: string | null;
+  categoryName?: string | null;
+  note?: string | null;
+  recordedAt: string | Date;
+}
 
 interface PoolHistorySectionProps {
   poolId: string;
-  transactions: any[];
+  transactions: PoolHistoryTransactionItem[];
   expanded: boolean;
   onToggleExpand: () => void;
 }
@@ -33,7 +43,7 @@ export function PoolHistorySection({
         <TouchableOpacity
           onPress={() =>
             router.push(
-              `/(app)/transactions?poolId=${poolId}&returnTo=${encodeURIComponent(`/(app)/envelopes/${poolId}`)}` as never
+              `/(app)/transactions?poolId=${poolId}&returnTo=${encodeURIComponent(`/(app)/envelopes/${poolId}`)}` as Href
             )
           }
           style={styles.viewHistoryBtn}
@@ -77,6 +87,6 @@ const styles = StyleSheet.create({
   viewHistoryBtn: { flexDirection: 'row', alignItems: 'center', gap: 2 },
   viewHistoryText: { fontSize: 12, fontWeight: '700', color: DESIGN_TOKENS.colors.accent },
   recentTxList: { gap: 8, marginTop: 10 },
-  emptyBox: { backgroundColor: DESIGN_TOKENS.colors.surfaceVariant, borderRadius: 14, borderWidth: 1, borderColor: '#E2E8F0', padding: 20, alignItems: 'center', marginTop: 10 },
+  emptyBox: { backgroundColor: DESIGN_TOKENS.colors.surfaceVariant, borderRadius: 14, borderWidth: 1, borderColor: DESIGN_TOKENS.colors.border, padding: 20, alignItems: 'center', marginTop: 10 },
   emptyText: { fontSize: 12, color: DESIGN_TOKENS.colors.textMuted, textAlign: 'center' },
 });

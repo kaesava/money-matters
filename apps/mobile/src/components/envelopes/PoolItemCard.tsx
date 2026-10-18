@@ -4,14 +4,14 @@ import { Feather } from '@expo/vector-icons';
 import { t } from '@money-matters/i18n';
 import { DESIGN_TOKENS, CardDrawerIndicator } from '@money-matters/ui/mobile';
 import { formatAUD } from '../../lib/format';
-import { useRouter } from 'expo-router';
+import { useRouter, type Href } from 'expo-router';
 
 interface PoolItemCardProps {
   pool: {
     id: string;
     name: string;
-    envelopeType?: string;
-    poolType?: string;
+    envelopeType?: string | null;
+    poolType?: string | null;
     goalMode?: string | null;
     budgetFrequency?: string | null;
     currentBalance?: number | string | null;
@@ -48,7 +48,7 @@ export function PoolItemCard({
     <View style={styles.card}>
       <TouchableOpacity
         activeOpacity={0.8}
-        onPress={() => router.push(`/(app)/envelopes/${pool.id}` as never)}
+        onPress={() => router.push(`/(app)/envelopes/${pool.id}` as Href)}
         style={styles.cardHeader}
       >
         <View style={{ flex: 1 }}>

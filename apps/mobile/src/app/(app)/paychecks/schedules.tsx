@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { StyleSheet, ScrollView, RefreshControl } from 'react-native';
-import { useRouter, useLocalSearchParams } from 'expo-router';
+import { useRouter, useLocalSearchParams, type Href } from 'expo-router';
 import { DESIGN_TOKENS } from '@money-matters/ui/mobile';
 import { AppScreenWrapper } from '../../../components/AppScreenWrapper';
 import { t } from '@money-matters/i18n';
@@ -33,7 +33,7 @@ export default function RecurringSchedulesScreen() {
 
   const handleBack = () => {
     if (searchParams.returnTo) {
-      router.push(searchParams.returnTo as never);
+      router.push(searchParams.returnTo as Href);
     } else {
       router.back();
     }
