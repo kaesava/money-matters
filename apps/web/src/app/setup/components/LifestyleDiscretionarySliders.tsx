@@ -10,6 +10,7 @@ interface LifestyleDiscretionarySlidersProps {
   setWeeklyDining: (val: number) => void;
   weeklyPersonal: number;
   setWeeklyPersonal: (val: number) => void;
+  isZeroBased?: boolean;
 }
 
 export function LifestyleDiscretionarySliders({
@@ -19,6 +20,7 @@ export function LifestyleDiscretionarySliders({
   setWeeklyDining,
   weeklyPersonal,
   setWeeklyPersonal,
+  isZeroBased = false,
 }: LifestyleDiscretionarySlidersProps) {
   return (
     <div className="flex flex-col gap-4 p-4 bg-slate-50 rounded-2xl border border-zinc-200/60">
@@ -33,7 +35,7 @@ export function LifestyleDiscretionarySliders({
           </div>
           <input
             type="range"
-            min="100"
+            min={isZeroBased ? "0" : "100"}
             max="600"
             step="10"
             value={weeklyGroceries}
@@ -49,7 +51,7 @@ export function LifestyleDiscretionarySliders({
           </div>
           <input
             type="range"
-            min="50"
+            min={isZeroBased ? "0" : "50"}
             max="500"
             step="10"
             value={weeklyDining}
@@ -65,7 +67,7 @@ export function LifestyleDiscretionarySliders({
           </div>
           <input
             type="range"
-            min="20"
+            min={isZeroBased ? "0" : "20"}
             max="400"
             step="10"
             value={weeklyPersonal}

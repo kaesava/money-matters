@@ -21,6 +21,7 @@ export function useSetupWizardState() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const userPrefQuery = trpc.getUserPreferences.useQuery();
+  const tenantQuery = trpc.getTenant.useQuery();
   const updatePrefMut = trpc.updateUserPreferences.useMutation();
 
   const [step, setStep] = useState(1);
@@ -42,6 +43,22 @@ export function useSetupWizardState() {
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, []);
+
+  const lifestyle = useSetupLifestyleState();
+
+  useEffect(() => {
+    const tenantCountry = tenantQuery.data?.country;
+    if (tenantCountry) {
+      const normalizedCountry: "AU" | "NZ" | "OTHER" =
+        tenantCountry === "AU" || tenantCountry === "NZ" ? tenantCountry : "OTHER";
+      lifestyle.setCountry(normalizedCountry);
+      if (normalizedCountry !== "AU") {
+        lifestyle.setWeeklyGroceries(0);
+        lifestyle.setWeeklyDining(0);
+        lifestyle.setWeeklyPersonal(0);
+      }
+    }
+  }, [tenantQuery.data?.country]);
 
   const [incomes, setIncomes] = useState<IncomeItem[]>([
     {
@@ -91,7 +108,6 @@ export function useSetupWizardState() {
     },
   ]);
 
-  const lifestyle = useSetupLifestyleState();
   const [customCategories, setCustomCategories] = useState<EstimatedCategoryItem[]>([]);
   const [customCatName, setCustomCatName] = useState("");
   const [customCatType, setCustomCatType] = useState<"REGULAR" | "GOAL" | "EVERYDAY">("REGULAR");

@@ -93,7 +93,6 @@ function SetupWizardContent() {
         {!state.isRerun && state.step === 4 && (
           <SetupLifestyleStep
             country={state.country}
-            setCountry={state.setCountry}
             housingType={state.housingType}
             setHousingType={state.setHousingType}
             hasCars={state.hasCars}

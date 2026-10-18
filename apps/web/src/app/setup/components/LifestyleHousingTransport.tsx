@@ -6,8 +6,6 @@ import { InfoTooltip } from "@money-matters/ui/web";
 import { t } from "@money-matters/i18n";
 
 interface LifestyleHousingTransportProps {
-  country: "AU" | "NZ" | "OTHER";
-  setCountry: (val: "AU" | "NZ" | "OTHER") => void;
   housingType: HousingType;
   setHousingType: (val: HousingType) => void;
   hasCars: boolean;
@@ -23,8 +21,6 @@ interface LifestyleHousingTransportProps {
 }
 
 export function LifestyleHousingTransport({
-  country,
-  setCountry,
   housingType,
   setHousingType,
   hasCars,
@@ -40,33 +36,6 @@ export function LifestyleHousingTransport({
 }: LifestyleHousingTransportProps) {
   return (
     <div className="flex flex-col gap-4">
-      {/* Country Selection */}
-      <div className="flex flex-col gap-2 p-4 bg-slate-50 rounded-2xl border border-zinc-200/60">
-        <label className="text-xs font-black text-[#1B2B4B]">
-          {t("setup.lifestyle.countryLabel")}
-        </label>
-        <div className="grid grid-cols-3 gap-2">
-          {(["AU", "NZ", "OTHER"] as const).map((c) => (
-            <button
-              key={c}
-              type="button"
-              onClick={() => setCountry(c)}
-              className={`py-2 px-3 rounded-xl border text-xs font-bold transition-all cursor-pointer ${
-                country === c
-                  ? "bg-[#2563eb] text-white border-[#2563eb] shadow-xs"
-                  : "bg-white text-[#1B2B4B] border-zinc-200 hover:border-zinc-300"
-              }`}
-            >
-              {c === "AU"
-                ? t("setup.lifestyle.countryAu")
-                : c === "NZ"
-                ? t("setup.lifestyle.countryNz")
-                : t("setup.lifestyle.countryOther")}
-            </button>
-          ))}
-        </div>
-      </div>
-
       {/* Housing Setup */}
       <div className="flex flex-col gap-2 p-4 bg-slate-50 rounded-2xl border border-zinc-200/60">
         <div className="flex items-center gap-2">

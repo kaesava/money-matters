@@ -10,7 +10,6 @@ import { LifestyleDiscretionarySliders } from "./LifestyleDiscretionarySliders";
 
 interface SetupLifestyleStepProps {
   country?: "AU" | "NZ" | "OTHER";
-  setCountry?: (val: "AU" | "NZ" | "OTHER") => void;
   housingType: HousingType;
   setHousingType: (val: HousingType) => void;
   hasCars: boolean;
@@ -60,7 +59,6 @@ interface SetupLifestyleStepProps {
 
 export function SetupLifestyleStep({
   country = "AU",
-  setCountry = () => {},
   housingType,
   setHousingType,
   hasCars,
@@ -134,8 +132,6 @@ export function SetupLifestyleStep({
       </div>
 
       <LifestyleHousingTransport
-        country={country}
-        setCountry={setCountry}
         housingType={housingType}
         setHousingType={setHousingType}
         hasCars={hasCars}
@@ -184,6 +180,7 @@ export function SetupLifestyleStep({
         setWeeklyDining={setWeeklyDining}
         weeklyPersonal={weeklyPersonal}
         setWeeklyPersonal={setWeeklyPersonal}
+        isZeroBased={country !== "AU"}
       />
 
       <div className="flex justify-between items-center pt-4 border-t border-zinc-100">

@@ -146,10 +146,15 @@ export default function SetupGoalsScreen() {
         <View style={styles.toggleWrap}>
           <MobileGoalModeToggle value={customType} onChange={setCustomType} />
         </View>
+        {customType === 'ONGOING' && (
+          <Text style={styles.recurringMonthlyNote}>
+            {t('setup.goals.recurringMonthlyNote')}
+          </Text>
+        )}
         <View style={styles.customTargetRow}>
           <View style={styles.flexOne}>
             <AmountInput
-              label={customType === 'ONGOING' ? t('setup.goals.monthlyAmountLabel') : t('setup.goals.targetAmountLabel')}
+              label={customType === 'ONGOING' ? t('setup.goals.recurringContributionLabel') : t('setup.goals.targetAmountLabel')}
               value={customTarget}
               onChangeText={setCustomTarget}
             />
@@ -215,6 +220,12 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   toggleWrap: {
+    marginBottom: 8,
+  },
+  recurringMonthlyNote: {
+    fontSize: 11,
+    fontWeight: '500',
+    color: DESIGN_TOKENS.colors.slate[500],
     marginBottom: 8,
   },
   customTargetRow: { flexDirection: 'row', gap: 8, alignItems: 'center' },

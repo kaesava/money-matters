@@ -73,7 +73,7 @@ export function SetupGoalItemRow({
                 onUpdateGoal(goal.id, "monthlyAmount", Math.round(num / months));
               }
             }}
-            placeholder={isOngoing ? t("setup.goals.monthlyAmountLabel") : t("setup.goals.targetAmountLabel")}
+            placeholder={isOngoing ? t("setup.goals.recurringContributionLabel") : t("setup.goals.targetAmountLabel")}
             allowNegative={false}
           />
         </div>

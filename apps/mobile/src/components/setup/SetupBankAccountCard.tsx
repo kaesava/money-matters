@@ -7,6 +7,9 @@ import {
   ACCOUNT_TYPES,
   ACCOUNT_TYPE_LABELS,
   BANK_PROVIDER_LABELS,
+  BankProvider,
+  AccountType,
+  getDefaultAccountName,
   computeAccountAvailability,
 } from '@money-matters/types';
 import { MobileBankAccountItem } from '../../context/setup-wizard-types';
@@ -35,6 +38,19 @@ export function SetupBankAccountCard({
     String(acc.unbudgetedBuffer || '0.00')
   );
   const isBufferInvalid = buffer > actualBalance;
+  const isSoleAccount = totalCount <= 1;
+
+  const handleProviderChange = (newProvider: BankProvider) => {
+    onFieldChange(acc, 'bankProvider', newProvider);
+    const newName = getDefaultAccountName(newProvider, (acc.accountType as AccountType) || 'EVERYDAY');
+    onFieldChange(acc, 'name', newName);
+  };
+
+  const handleTypeChange = (newType: AccountType) => {
+    onFieldChange(acc, 'accountType', newType);
+    const newName = getDefaultAccountName((acc.bankProvider as BankProvider) || 'Other', newType);
+    onFieldChange(acc, 'name', newName);
+  };
 
   return (
     <View style={styles.accountCard}>
@@ -42,7 +58,7 @@ export function SetupBankAccountCard({
         <Text style={styles.accountIndexLabel}>
           {t('setup.bankAccountsStep.accountNumber', { number: index + 1 })}
         </Text>
-        {totalCount > 1 && (
+        {!isSoleAccount && (
           <TouchableOpacity onPress={() => onRemove(acc.id, acc.name)}>
             <Text style={styles.removeText}>{t('common.remove')}</Text>
           </TouchableOpacity>
@@ -57,7 +73,7 @@ export function SetupBankAccountCard({
             return (
               <TouchableOpacity
                 key={bp}
-                onPress={() => onFieldChange(acc, 'bankProvider', bp)}
+                onPress={() => handleProviderChange(bp)}
                 style={[styles.chip, isSelected && styles.chipActive]}
               >
                 <Text style={[styles.chipText, isSelected && styles.chipTextActive]}>
@@ -77,7 +93,7 @@ export function SetupBankAccountCard({
             return (
               <TouchableOpacity
                 key={at}
-                onPress={() => onFieldChange(acc, 'accountType', at)}
+                onPress={() => handleTypeChange(at)}
                 style={[styles.chip, isSelected && styles.chipActive]}
               >
                 <Text style={[styles.chipText, isSelected && styles.chipTextActive]}>
@@ -128,10 +144,19 @@ export function SetupBankAccountCard({
         </View>
 
         <View style={styles.privacyRow}>
-          <Text style={styles.privacyLabel}>{t('settings.bankAccountForm.privacyLabel')}</Text>
-          <InfoTooltip content={t('settings.bankAccountForm.privacyHint')} />
+          <Text style={[styles.privacyLabel, isSoleAccount && styles.textMuted]}>
+            {t('settings.bankAccountForm.privacyLabel')}
+          </Text>
+          <InfoTooltip
+            content={
+              isSoleAccount
+                ? t('setup.bankAccountsStep.singleAccountPrivateDisabledTooltip')
+                : t('settings.bankAccountForm.privacyHint')
+            }
+          />
           <Switch
-            value={Boolean(acc.isPrivate)}
+            value={Boolean(acc.isPrivate) && !isSoleAccount}
+            disabled={isSoleAccount}
             onValueChange={(val) => onFieldChange(acc, 'isPrivate', val)}
             trackColor={{ false: '#E2E8F0', true: DESIGN_TOKENS.colors.sereneBlue }}
           />
@@ -164,4 +189,5 @@ const styles = StyleSheet.create({
   textError: { color: DESIGN_TOKENS.colors.critical },
   privacyRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   privacyLabel: { fontSize: 11, fontWeight: '700', color: '#334155' },
+  textMuted: { color: DESIGN_TOKENS.colors.slate[400] },
 });

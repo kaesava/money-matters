@@ -17,9 +17,10 @@ const SetupWizardContext = createContext<SetupWizardContextValue | null>(null);
 
 export function SetupWizardProvider({ children: reactChildren }: { children: React.ReactNode }) {
   const router = useRouter();
-  const globalParams = useGlobalSearchParams<{ mode?: string }>();
   const userPrefQuery = trpc.getUserPreferences.useQuery();
+  const tenantQuery = trpc.getTenant.useQuery();
 
+  const globalParams = useGlobalSearchParams<{ mode?: string }>();
   const isRerunParam = globalParams.mode === 'rerun';
   const setupAlreadyCompleted = Boolean(userPrefQuery.data?.setupCompleted);
   const isRerun = isRerunParam || setupAlreadyCompleted;
@@ -33,6 +34,20 @@ export function SetupWizardProvider({ children: reactChildren }: { children: Rea
 
   const lifestyle = useSetupWizardLifestyleState();
   const accounts = useSetupWizardAccountsState();
+
+  useEffect(() => {
+    const tenantCountry = tenantQuery.data?.country;
+    if (tenantCountry) {
+      const normalizedCountry: 'AU' | 'NZ' | 'OTHER' =
+        tenantCountry === 'AU' || tenantCountry === 'NZ' ? tenantCountry : 'OTHER';
+      lifestyle.setCountry(normalizedCountry);
+      if (normalizedCountry !== 'AU') {
+        lifestyle.setWeeklyGroceries(0);
+        lifestyle.setWeeklyDining(0);
+        lifestyle.setWeeklyPersonal(0);
+      }
+    }
+  }, [tenantQuery.data?.country]);
 
   const [incomes, setIncomes] = useState<IncomeItem[]>([
     {

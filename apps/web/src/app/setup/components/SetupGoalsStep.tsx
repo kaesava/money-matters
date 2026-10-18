@@ -154,6 +154,11 @@ export function SetupGoalsStep({
         <div className="max-w-xs">
           <GoalModeToggle value={customType} onChange={setCustomType} />
         </div>
+        {customType === "ONGOING" && (
+          <p className="text-[11px] text-zinc-500 font-medium">
+            {t("setup.goals.recurringMonthlyNote")}
+          </p>
+        )}
         <div className="flex flex-col sm:flex-row gap-2">
           <input
             type="text"
@@ -166,7 +171,7 @@ export function SetupGoalsStep({
             <AmountField
               value={customTarget}
               onChange={setCustomTarget}
-              placeholder={customType === "ONGOING" ? t("setup.goals.monthlyAmountLabel") : t("setup.goals.targetAmountLabel")}
+              placeholder={customType === "ONGOING" ? t("setup.goals.recurringContributionLabel") : t("setup.goals.targetAmountLabel")}
               allowNegative={false}
             />
           </div>

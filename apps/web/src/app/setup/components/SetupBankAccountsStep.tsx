@@ -2,7 +2,8 @@
 
 import React, { useState } from "react";
 import { t } from "@money-matters/i18n";
-import { ConfirmDialog, InfoTooltip } from "@money-matters/ui/web";
+import { ConfirmDialog, InfoTooltip, FormErrorBanner } from "@money-matters/ui/web";
+import { computeAccountAvailability } from "@money-matters/types";
 import { SetupBankAccountRow, BankAccountRowItem } from "./SetupBankAccountRow";
 
 interface SetupBankAccountsStepProps {
@@ -42,6 +43,12 @@ export function SetupBankAccountsStep({
     onAddAccount();
   };
 
+  const hasNegativeAvailable = accounts.some(
+    (acc) => computeAccountAvailability(String(acc.lastKnownBalance || "0.00"), String(acc.unbudgetedBuffer || "0.00")).available < 0
+  );
+  const hasSharedAccount = accounts.some((acc) => !acc.isPrivate);
+  const canProceed = !hasNegativeAvailable && hasSharedAccount;
+
   return (
     <div className="flex flex-col gap-6 animate-in fade-in duration-200">
       {/* Header */}
@@ -68,6 +75,14 @@ export function SetupBankAccountsStep({
           {t("setup.bankAccountsStep.tipContent")}
         </p>
       </div>
+
+      {/* Error Banners if Validation Fails */}
+      {hasNegativeAvailable && (
+        <FormErrorBanner message={t("setup.bankAccountsStep.negativeAvailableError")} />
+      )}
+      {!hasNegativeAvailable && !hasSharedAccount && (
+        <FormErrorBanner message={t("setup.bankAccountsStep.noSharedAccountError")} />
+      )}
 
       {/* Inline Editable Accounts List */}
       <div className="flex flex-col gap-4">
@@ -104,8 +119,9 @@ export function SetupBankAccountsStep({
 
         <button
           type="button"
+          disabled={!canProceed}
           onClick={onNext}
-          className="px-6 py-2.5 bg-[#2563eb] hover:bg-blue-700 text-white text-xs font-black rounded-xl transition-all shadow-md flex items-center gap-2 cursor-pointer"
+          className="px-6 py-2.5 bg-[#2563eb] hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed text-white text-xs font-black rounded-xl transition-all shadow-md flex items-center gap-2 cursor-pointer"
         >
           <span>{t("setup.bankAccountsStep.nextGoals")}</span>
         </button>

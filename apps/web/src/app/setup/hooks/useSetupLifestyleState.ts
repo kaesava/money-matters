@@ -7,8 +7,8 @@ import {
   ChildConfig,
 } from "@money-matters/types";
 
-export function useSetupLifestyleState() {
-  const [country, setCountry] = useState<"AU" | "NZ" | "OTHER">("AU");
+export function useSetupLifestyleState(initialCountry: "AU" | "NZ" | "OTHER" = "AU") {
+  const [country, setCountry] = useState<"AU" | "NZ" | "OTHER">(initialCountry);
   const [housingType, setHousingType] = useState<HousingType>("RENT_SOLO");
   const [hasCars, setHasCars] = useState(true);
   const [vehicles, setVehicles] = useState<VehicleConfig[]>([{ id: "veh-1", name: "Vehicle 1", size: "MID_SUV" }]);
@@ -25,9 +25,9 @@ export function useSetupLifestyleState() {
   const [petsCount, setPetsCount] = useState(1);
   const [hasCharityGiving, setHasCharityGiving] = useState(false);
   const [charityMonthlyAmount, setCharityMonthlyAmount] = useState(0);
-  const [weeklyGroceries, setWeeklyGroceries] = useState(270);
-  const [weeklyDining, setWeeklyDining] = useState(240);
-  const [weeklyPersonal, setWeeklyPersonal] = useState(100);
+  const [weeklyGroceries, setWeeklyGroceries] = useState(initialCountry === "AU" ? 270 : 0);
+  const [weeklyDining, setWeeklyDining] = useState(initialCountry === "AU" ? 240 : 0);
+  const [weeklyPersonal, setWeeklyPersonal] = useState(initialCountry === "AU" ? 100 : 0);
 
   return {
     country,
