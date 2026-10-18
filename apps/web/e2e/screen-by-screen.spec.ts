@@ -569,6 +569,11 @@ test.describe('100% Comprehensive Field-by-Field Screen-by-Screen E2E Master Sui
 
       const paydayTab = page.locator('button').filter({ hasText: /Payday Allocations|給与日配分/i }).first();
       await expect(paydayTab).toBeVisible();
+
+      // Check Spend Reporting Overview Section in Transactions tab
+      const overviewCard = page.locator('[data-tour="history-ledger"]').first();
+      await expect(overviewCard).toBeVisible();
+
       await paydayTab.click();
 
       await expect(page.locator('h2').filter({ hasText: /Payday Allocation History|履歴/i }).first()).toBeVisible();
