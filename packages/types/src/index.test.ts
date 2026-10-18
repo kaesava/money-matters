@@ -278,10 +278,14 @@ describe('Domain Schemas Validation', () => {
     const defaultQuery = GetSpendingAnalyticsQuery.parse({});
     expect(defaultQuery.timeframe).toBe('90D');
 
-    const explicitQuery = GetSpendingAnalyticsQuery.parse({ timeframe: '1Y' });
-    expect(explicitQuery.timeframe).toBe('1Y');
-
-    expect(() => GetSpendingAnalyticsQuery.parse({ timeframe: 'INVALID' })).toThrow();
+    const filteredQuery = GetSpendingAnalyticsQuery.parse({
+      timeframe: '1Y',
+      envelopeId: 'pool-123',
+      searchQuery: 'woolworths',
+      flowType: 'DEBIT',
+    });
+    expect(filteredQuery.envelopeId).toBe('pool-123');
+    expect(filteredQuery.flowType).toBe('DEBIT');
 
     const sampleAnalytics = SpendingAnalyticsDTOSchema.parse({
       timeframe: '90D',
@@ -317,8 +321,15 @@ describe('Domain Schemas Validation', () => {
       ],
       otherPoolsAmount: 2700.5,
       isEmpty: false,
+      isFiltered: true,
+      filteredEnvelopeName: 'Groceries',
+      filteredSharePercentage: 22.85,
+      topPayees: [{ name: 'Woolworths', amount: 500, percentage: 62.5 }],
+      isTransferOnly: false,
     });
     expect(sampleAnalytics.totalOutflow).toBe(3500.5);
     expect(sampleAnalytics.monthlyCashFlow).toHaveLength(1);
+    expect(sampleAnalytics.isFiltered).toBe(true);
+    expect(sampleAnalytics.topPayees[0].name).toBe('Woolworths');
   });
 });

@@ -55,13 +55,27 @@ export default function TransactionsScreen() {
   const [planPage, setPlanPage] = useState(1);
   const [planPageSize, setPlanPageSize] = useState(15);
   const [timeframe, setTimeframe] = useState<SpendingTimeframe>('90D');
+  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState(searchQuery);
+
+  React.useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedSearchQuery(searchQuery);
+    }, 300);
+    return () => clearTimeout(handler);
+  }, [searchQuery]);
 
   const transactionsQuery = trpc.listTransactions.useQuery(
     { limit: 500 },
     { enabled: !!session?.user }
   );
   const spendingAnalyticsQuery = trpc.getSpendingAnalytics.useQuery(
-    { timeframe },
+    {
+      timeframe,
+      envelopeId: selectedPoolId !== 'ALL' ? selectedPoolId : undefined,
+      bankAccountId: selectedBankAccountId !== 'ALL' ? selectedBankAccountId : undefined,
+      searchQuery: debouncedSearchQuery.trim().length >= 2 ? debouncedSearchQuery.trim() : undefined,
+      flowType: flowFilter,
+    },
     { enabled: !!session?.user && activeTab === 'LEDGER' }
   );
   const poolsQuery = trpc.listPools.useQuery(undefined, { enabled: !!session?.user });

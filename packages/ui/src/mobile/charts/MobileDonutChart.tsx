@@ -8,23 +8,18 @@ import { t } from '@money-matters/i18n';
 interface MobileDonutChartProps {
   data: HorizonBreakdownDTO;
   formatCurrency: (amount: number) => string;
+  isFiltered?: boolean;
+  filteredSharePercentage?: number;
 }
 
-export function MobileDonutChart({ data, formatCurrency }: MobileDonutChartProps) {
+export function MobileDonutChart({
+  data,
+  formatCurrency,
+  isFiltered = false,
+  filteredSharePercentage = 100,
+}: MobileDonutChartProps) {
   const radius = 38;
   const circumference = 2 * Math.PI * radius; // ~238.76
-
-  const pEveryday = data.percentages.everyday / 100;
-  const pBills = data.percentages.bills / 100;
-  const pGoals = data.percentages.goals / 100;
-
-  const lenEveryday = circumference * pEveryday;
-  const lenBills = circumference * pBills;
-  const lenGoals = circumference * pGoals;
-
-  const offsetEveryday = 0;
-  const offsetBills = -lenEveryday;
-  const offsetGoals = -(lenEveryday + lenBills);
 
   if (data.totalOutflow <= 0) {
     return (
@@ -33,6 +28,107 @@ export function MobileDonutChart({ data, formatCurrency }: MobileDonutChartProps
       </View>
     );
   }
+
+  if (isFiltered) {
+    return (
+      <FilteredMobileDonutView
+        radius={radius}
+        circumference={circumference}
+        totalOutflow={data.totalOutflow}
+        sharePercentage={filteredSharePercentage}
+        formatCurrency={formatCurrency}
+      />
+    );
+  }
+
+  return (
+    <MacroMobileDonutView
+      radius={radius}
+      circumference={circumference}
+      data={data}
+      formatCurrency={formatCurrency}
+    />
+  );
+}
+
+function FilteredMobileDonutView({
+  radius,
+  circumference,
+  totalOutflow,
+  sharePercentage,
+  formatCurrency,
+}: {
+  radius: number;
+  circumference: number;
+  totalOutflow: number;
+  sharePercentage: number;
+  formatCurrency: (amount: number) => string;
+}) {
+  const pFiltered = Math.min(Math.max(sharePercentage / 100, 0), 1);
+  const lenFiltered = circumference * pFiltered;
+
+  return (
+    <View style={styles.container}>
+      <View style={styles.chartWrapper}>
+        <Svg width={150} height={150} viewBox="0 0 100 100">
+          <G rotation="-90" origin="50, 50">
+            <Circle
+              cx="50"
+              cy="50"
+              r={radius}
+              stroke={DESIGN_TOKENS.colors.slate[100]}
+              strokeWidth="12"
+              fill="transparent"
+            />
+            {lenFiltered > 0 && (
+              <Circle
+                cx="50"
+                cy="50"
+                r={radius}
+                stroke={DESIGN_TOKENS.colors.sereneBlue}
+                strokeWidth="12"
+                strokeDasharray={`${lenFiltered} ${circumference}`}
+                strokeDashoffset={0}
+                fill="transparent"
+              />
+            )}
+          </G>
+        </Svg>
+        <View style={styles.centerTextOverlay}>
+          <Text style={styles.centerSubtitle}>{t('transactions.reporting.donut.thisFilter')}</Text>
+          <Text style={styles.centerAmount}>{formatCurrency(totalOutflow)}</Text>
+        </View>
+      </View>
+
+      <View style={styles.legendContainer}>
+        <View style={styles.legendRow}>
+          <View style={[styles.dot, { backgroundColor: DESIGN_TOKENS.colors.sereneBlue }]} />
+          <Text style={styles.legendLabel}>{t('transactions.reporting.donut.thisFilter')}</Text>
+          <Text style={styles.legendPct}>({sharePercentage}%)</Text>
+        </View>
+      </View>
+    </View>
+  );
+}
+
+function MacroMobileDonutView({
+  radius,
+  circumference,
+  data,
+  formatCurrency,
+}: {
+  radius: number;
+  circumference: number;
+  data: HorizonBreakdownDTO;
+  formatCurrency: (amount: number) => string;
+}) {
+  const pEveryday = data.percentages.everyday / 100;
+  const pBills = data.percentages.bills / 100;
+  const pGoals = data.percentages.goals / 100;
+
+  const lenEveryday = circumference * pEveryday;
+  const lenBills = circumference * pBills;
+  const lenGoals = circumference * pGoals;
 
   return (
     <View style={styles.container}>
@@ -55,7 +151,7 @@ export function MobileDonutChart({ data, formatCurrency }: MobileDonutChartProps
                 stroke={DESIGN_TOKENS.colors.sereneBlue}
                 strokeWidth="12"
                 strokeDasharray={`${lenEveryday} ${circumference}`}
-                strokeDashoffset={offsetEveryday}
+                strokeDashoffset={0}
                 fill="transparent"
               />
             )}
@@ -67,7 +163,7 @@ export function MobileDonutChart({ data, formatCurrency }: MobileDonutChartProps
                 stroke={DESIGN_TOKENS.colors.primary}
                 strokeWidth="12"
                 strokeDasharray={`${lenBills} ${circumference}`}
-                strokeDashoffset={offsetBills}
+                strokeDashoffset={-lenEveryday}
                 fill="transparent"
               />
             )}
@@ -79,7 +175,7 @@ export function MobileDonutChart({ data, formatCurrency }: MobileDonutChartProps
                 stroke={DESIGN_TOKENS.colors.success}
                 strokeWidth="12"
                 strokeDasharray={`${lenGoals} ${circumference}`}
-                strokeDashoffset={offsetGoals}
+                strokeDashoffset={-(lenEveryday + lenBills)}
                 fill="transparent"
               />
             )}

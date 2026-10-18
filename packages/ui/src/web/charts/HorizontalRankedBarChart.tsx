@@ -1,5 +1,5 @@
 import React from "react";
-import { TopOutflowPoolDTO } from "@money-matters/types";
+import { TopOutflowPoolDTO, TopPayeeItemDTO } from "@money-matters/types";
 import { DESIGN_TOKENS } from "../../tokens";
 import { t } from "@money-matters/i18n";
 
@@ -8,6 +8,8 @@ interface HorizontalRankedBarChartProps {
   otherPoolsAmount: number;
   totalOutflow: number;
   formatCurrency: (amount: number) => string;
+  isFiltered?: boolean;
+  topPayees?: TopPayeeItemDTO[];
 }
 
 export function HorizontalRankedBarChart({
@@ -15,7 +17,87 @@ export function HorizontalRankedBarChart({
   otherPoolsAmount,
   totalOutflow,
   formatCurrency,
+  isFiltered = false,
+  topPayees = [],
 }: HorizontalRankedBarChartProps) {
+  if (isFiltered) {
+    return (
+      <TopPayeesListView
+        payees={topPayees}
+        totalOutflow={totalOutflow}
+        formatCurrency={formatCurrency}
+      />
+    );
+  }
+
+  return (
+    <TopPoolsListView
+      topPools={topPools}
+      otherPoolsAmount={otherPoolsAmount}
+      totalOutflow={totalOutflow}
+      formatCurrency={formatCurrency}
+    />
+  );
+}
+
+function TopPayeesListView({
+  payees,
+  totalOutflow,
+  formatCurrency,
+}: {
+  payees: TopPayeeItemDTO[];
+  totalOutflow: number;
+  formatCurrency: (amount: number) => string;
+}) {
+  if (payees.length === 0 || totalOutflow <= 0) {
+    return (
+      <div className="flex flex-col items-center justify-center p-6 text-center h-56">
+        <p className="text-xs text-slate-400 font-medium">
+          {t("transactions.reporting.topPools.emptyPayees")}
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex flex-col justify-center space-y-2.5 h-full py-1">
+      {payees.slice(0, 5).map((payee, idx) => (
+        <div key={payee.name || idx} className="space-y-1">
+          <div className="flex items-center justify-between text-xs">
+            <span className="font-medium text-slate-700 truncate max-w-[140px]">
+              {payee.name}
+            </span>
+            <div className="flex items-center gap-1.5 font-mono text-[11px] tabular-nums">
+              <span className="text-slate-800 font-semibold">{formatCurrency(payee.amount)}</span>
+              <span className="text-slate-400">({payee.percentage}%)</span>
+            </div>
+          </div>
+          <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
+            <div
+              style={{
+                width: `${Math.min(Math.max(payee.percentage, 3), 100)}%`,
+                backgroundColor: DESIGN_TOKENS.colors.sereneBlue,
+              }}
+              className="h-full rounded-full transition-all duration-300"
+            />
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function TopPoolsListView({
+  topPools,
+  otherPoolsAmount,
+  totalOutflow,
+  formatCurrency,
+}: {
+  topPools: TopOutflowPoolDTO[];
+  otherPoolsAmount: number;
+  totalOutflow: number;
+  formatCurrency: (amount: number) => string;
+}) {
   if (topPools.length === 0 || totalOutflow <= 0) {
     return (
       <div className="flex flex-col items-center justify-center p-6 text-center h-56">

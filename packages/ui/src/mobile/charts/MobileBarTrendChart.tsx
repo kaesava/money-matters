@@ -1,5 +1,5 @@
-import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import React, { useRef } from 'react';
+import { View, Text, StyleSheet, ScrollView } from 'react-native';
 import { MonthlyCashFlowPointDTO } from '@money-matters/types';
 import { DESIGN_TOKENS } from '../../tokens';
 import { t } from '@money-matters/i18n';
@@ -7,9 +7,15 @@ import { t } from '@money-matters/i18n';
 interface MobileBarTrendChartProps {
   data: MonthlyCashFlowPointDTO[];
   formatCurrency: (amount: number) => string;
+  isFiltered?: boolean;
 }
 
-export function MobileBarTrendChart({ data, formatCurrency }: MobileBarTrendChartProps) {
+export function MobileBarTrendChart({
+  data,
+  isFiltered = false,
+}: MobileBarTrendChartProps) {
+  const scrollRef = useRef<ScrollView>(null);
+
   if (data.length === 0) {
     return (
       <View style={styles.emptyContainer}>
@@ -18,53 +24,103 @@ export function MobileBarTrendChart({ data, formatCurrency }: MobileBarTrendChar
     );
   }
 
-  const recentData = data.slice(-4);
-  const maxVal = Math.max(...recentData.map((d) => Math.max(d.income, d.outflow, 100)));
+  const maxVal = Math.max(
+    ...data.map((d) => (isFiltered ? d.outflow : Math.max(d.income, d.outflow, 50))),
+    50
+  );
 
   return (
     <View style={styles.container}>
-      <View style={styles.barsArea}>
-        {recentData.map((point) => {
-          const inPct = Math.round((point.income / maxVal) * 100);
-          const outPct = Math.round((point.outflow / maxVal) * 100);
+      <ScrollView
+        ref={scrollRef}
+        horizontal={true}
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={styles.scrollContent}
+        onContentSizeChange={() => {
+          if (data.length > 4) {
+            scrollRef.current?.scrollToEnd({ animated: false });
+          }
+        }}
+      >
+        <View style={styles.barsArea}>
+          {data.map((point) => (
+            <MobileBarPointItem
+              key={point.monthKey}
+              point={point}
+              maxVal={maxVal}
+              isFiltered={isFiltered}
+            />
+          ))}
+        </View>
+      </ScrollView>
 
-          return (
-            <View key={point.monthKey} style={styles.col}>
-              <View style={styles.barsGroup}>
-                <View
-                  style={[
-                    styles.bar,
-                    {
-                      height: `${Math.max(inPct, 6)}%`,
-                      backgroundColor: DESIGN_TOKENS.colors.success,
-                    },
-                  ]}
-                />
-                <View
-                  style={[
-                    styles.bar,
-                    {
-                      height: `${Math.max(outPct, 6)}%`,
-                      backgroundColor: DESIGN_TOKENS.colors.primary,
-                    },
-                  ]}
-                />
-              </View>
-              <Text style={styles.monthLabel}>{point.label}</Text>
-            </View>
-          );
-        })}
+      <MobileChartLegend isFiltered={isFiltered} />
+    </View>
+  );
+}
+
+function MobileBarPointItem({
+  point,
+  maxVal,
+  isFiltered,
+}: {
+  point: MonthlyCashFlowPointDTO;
+  maxVal: number;
+  isFiltered: boolean;
+}) {
+  const inPct = Math.round((point.income / maxVal) * 100);
+  const outPct = Math.round((point.outflow / maxVal) * 100);
+
+  return (
+    <View style={styles.col}>
+      <View style={styles.barsGroup}>
+        {!isFiltered && (
+          <View
+            style={[
+              styles.bar,
+              {
+                height: `${Math.max(inPct, 6)}%`,
+                backgroundColor: DESIGN_TOKENS.colors.success,
+              },
+            ]}
+          />
+        )}
+        <View
+          style={[
+            styles.bar,
+            {
+              height: `${Math.max(outPct, 6)}%`,
+              backgroundColor: DESIGN_TOKENS.colors.primary,
+            },
+          ]}
+        />
       </View>
+      <Text style={styles.monthLabel}>{point.label}</Text>
+    </View>
+  );
+}
 
+function MobileChartLegend({ isFiltered }: { isFiltered: boolean }) {
+  if (isFiltered) {
+    return (
       <View style={styles.legend}>
         <View style={styles.legendItem}>
-          <View style={[styles.dot, { backgroundColor: DESIGN_TOKENS.colors.success }]} />
-          <Text style={styles.legendText}>{t('transactions.reporting.cashFlow.inflow')}</Text>
-        </View>
-        <View style={styles.legendItem}>
           <View style={[styles.dot, { backgroundColor: DESIGN_TOKENS.colors.primary }]} />
-          <Text style={styles.legendText}>{t('transactions.reporting.cashFlow.outflow')}</Text>
+          <Text style={styles.legendText}>{t('transactions.reporting.donut.thisFilter')}</Text>
         </View>
+      </View>
+    );
+  }
+
+  return (
+    <View style={styles.legend}>
+      <View style={styles.legendItem}>
+        <View style={[styles.dot, { backgroundColor: DESIGN_TOKENS.colors.success }]} />
+        <Text style={styles.legendText}>{t('transactions.reporting.cashFlow.inflow')}</Text>
+      </View>
+      <View style={styles.legendItem}>
+        <View style={[styles.dot, { backgroundColor: DESIGN_TOKENS.colors.primary }]} />
+        <Text style={styles.legendText}>{t('transactions.reporting.cashFlow.outflow')}</Text>
       </View>
     </View>
   );
@@ -74,6 +130,10 @@ const styles = StyleSheet.create({
   container: {
     paddingVertical: 12,
   },
+  scrollContent: {
+    flexGrow: 1,
+    justifyContent: 'center',
+  },
   barsArea: {
     height: 130,
     flexDirection: 'row',
@@ -82,25 +142,27 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: DESIGN_TOKENS.colors.slate[100],
     paddingBottom: 4,
+    gap: 8,
+    paddingHorizontal: 8,
   },
   col: {
     alignItems: 'center',
-    width: 60,
+    width: 44,
   },
   barsGroup: {
     height: 100,
     flexDirection: 'row',
     alignItems: 'flex-end',
     justifyContent: 'center',
-    gap: 4,
+    gap: 3,
   },
   bar: {
-    width: 14,
+    width: 10,
     borderTopLeftRadius: 3,
     borderTopRightRadius: 3,
   },
   monthLabel: {
-    fontSize: 10,
+    fontSize: 9,
     fontWeight: '700',
     color: DESIGN_TOKENS.colors.slate[500],
     marginTop: 6,

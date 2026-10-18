@@ -53,12 +53,26 @@ function TransactionsPageContent() {
   });
 
   const [timeframe, setTimeframe] = useState<SpendingTimeframe>("90D");
+  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState(searchQuery);
+
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedSearchQuery(searchQuery);
+    }, 300);
+    return () => clearTimeout(handler);
+  }, [searchQuery]);
 
   const poolsQuery = trpc.listPools.useQuery();
   const bankAccountsQuery = trpc.getBankAccountsWithMappings.useQuery();
   const transactionsQuery = trpc.listTransactions.useQuery({ limit: 500, offset: 0 });
   const spendingAnalyticsQuery = trpc.getSpendingAnalytics.useQuery(
-    { timeframe },
+    {
+      timeframe,
+      envelopeId: selectedPool !== "ALL" ? selectedPool : (poolIdParam || undefined),
+      bankAccountId: bankAccountIdParam || undefined,
+      searchQuery: debouncedSearchQuery.trim().length >= 2 ? debouncedSearchQuery.trim() : undefined,
+      flowType: filterType,
+    },
     { enabled: activeTab === "transactions" }
   );
   const paydayPlansQuery = trpc.listAllAllocationPlans.useQuery(undefined, {

@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
-import { TopOutflowPoolDTO } from '@money-matters/types';
+import { TopOutflowPoolDTO, TopPayeeItemDTO } from '@money-matters/types';
 import { DESIGN_TOKENS } from '../../tokens';
 import { t } from '@money-matters/i18n';
 
@@ -9,6 +9,8 @@ interface MobileHorizontalRankedBarChartProps {
   otherPoolsAmount: number;
   totalOutflow: number;
   formatCurrency: (amount: number) => string;
+  isFiltered?: boolean;
+  topPayees?: TopPayeeItemDTO[];
 }
 
 export function MobileHorizontalRankedBarChart({
@@ -16,7 +18,87 @@ export function MobileHorizontalRankedBarChart({
   otherPoolsAmount,
   totalOutflow,
   formatCurrency,
+  isFiltered = false,
+  topPayees = [],
 }: MobileHorizontalRankedBarChartProps) {
+  if (isFiltered) {
+    return (
+      <FilteredMobilePayeesView
+        payees={topPayees}
+        totalOutflow={totalOutflow}
+        formatCurrency={formatCurrency}
+      />
+    );
+  }
+
+  return (
+    <MacroMobilePoolsView
+      topPools={topPools}
+      otherPoolsAmount={otherPoolsAmount}
+      totalOutflow={totalOutflow}
+      formatCurrency={formatCurrency}
+    />
+  );
+}
+
+function FilteredMobilePayeesView({
+  payees,
+  totalOutflow,
+  formatCurrency,
+}: {
+  payees: TopPayeeItemDTO[];
+  totalOutflow: number;
+  formatCurrency: (amount: number) => string;
+}) {
+  if (payees.length === 0 || totalOutflow <= 0) {
+    return (
+      <View style={styles.emptyContainer}>
+        <Text style={styles.emptyText}>{t('transactions.reporting.topPools.emptyPayees')}</Text>
+      </View>
+    );
+  }
+
+  return (
+    <View style={styles.container}>
+      {payees.slice(0, 5).map((payee, idx) => (
+        <View key={payee.name || idx} style={styles.row}>
+          <View style={styles.labelRow}>
+            <Text style={styles.poolName} numberOfLines={1}>
+              {payee.name}
+            </Text>
+            <View style={styles.amtGroup}>
+              <Text style={styles.amount}>{formatCurrency(payee.amount)}</Text>
+              <Text style={styles.pct}>({payee.percentage}%)</Text>
+            </View>
+          </View>
+          <View style={styles.track}>
+            <View
+              style={[
+                styles.fill,
+                {
+                  width: `${Math.min(Math.max(payee.percentage, 4), 100)}%`,
+                  backgroundColor: DESIGN_TOKENS.colors.sereneBlue,
+                },
+              ]}
+            />
+          </View>
+        </View>
+      ))}
+    </View>
+  );
+}
+
+function MacroMobilePoolsView({
+  topPools,
+  otherPoolsAmount,
+  totalOutflow,
+  formatCurrency,
+}: {
+  topPools: TopOutflowPoolDTO[];
+  otherPoolsAmount: number;
+  totalOutflow: number;
+  formatCurrency: (amount: number) => string;
+}) {
   if (topPools.length === 0 || totalOutflow <= 0) {
     return (
       <View style={styles.emptyContainer}>

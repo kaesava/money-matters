@@ -27,6 +27,7 @@ export function MobileSpendingOverviewCard({
 }: MobileSpendingOverviewCardProps) {
   const [isExpanded, setIsExpanded] = useState(true);
   const [activeTab, setActiveTab] = useState<ChartTab>('HORIZON');
+  const isFiltered = Boolean(analytics?.isFiltered);
 
   const timeframes: Array<{ key: SpendingTimeframe; label: string }> = [
     { key: '30D', label: t('transactions.reporting.timeframe.d30') },
@@ -36,142 +37,214 @@ export function MobileSpendingOverviewCard({
 
   return (
     <View style={styles.card}>
-      {/* Header */}
-      <View style={styles.header}>
-        <View style={styles.titleArea}>
-          <View style={styles.iconBox}>
-            <Feather name="pie-chart" size={14} color={DESIGN_TOKENS.colors.sereneBlue} />
-          </View>
-          <View>
-            <Text style={styles.title}>{t('transactions.reporting.overviewTitle')}</Text>
-            <Text style={styles.subtitle}>{t('transactions.reporting.overviewSubtitle')}</Text>
-          </View>
-        </View>
-
-        <TouchableOpacity
-          onPress={() => setIsExpanded(!isExpanded)}
-          style={styles.collapseBtn}
-          activeOpacity={0.7}
-        >
-          <Feather
-            name={isExpanded ? 'chevron-up' : 'chevron-down'}
-            size={18}
-            color={DESIGN_TOKENS.colors.slate[500]}
-          />
-        </TouchableOpacity>
-      </View>
+      <CardHeader
+        isFiltered={isFiltered}
+        isExpanded={isExpanded}
+        onToggle={() => setIsExpanded(!isExpanded)}
+      />
 
       {isExpanded && (
         <View style={styles.content}>
-          {/* Controls: Timeframe Pills & Segmented Tabs */}
-          <View style={styles.controlsRow}>
-            {/* Timeframe Chips */}
-            <View style={styles.timeframePills}>
-              {timeframes.map((tf) => (
-                <TouchableOpacity
-                  key={tf.key}
-                  onPress={() => onTimeframeChange(tf.key)}
-                  style={[
-                    styles.tfButton,
-                    timeframe === tf.key && styles.tfButtonActive,
-                  ]}
-                  activeOpacity={0.7}
-                >
-                  <Text
-                    style={[
-                      styles.tfText,
-                      timeframe === tf.key && styles.tfTextActive,
-                    ]}
-                  >
-                    {tf.label}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-          </View>
+          <TimeframePills
+            timeframes={timeframes}
+            timeframe={timeframe}
+            onSelect={onTimeframeChange}
+          />
 
-          {/* Segmented Tab Switcher */}
-          <View style={styles.tabSwitcher}>
-            <TouchableOpacity
-              onPress={() => setActiveTab('HORIZON')}
-              style={[styles.tabItem, activeTab === 'HORIZON' && styles.tabItemActive]}
-              activeOpacity={0.7}
-            >
-              <Text
-                style={[
-                  styles.tabText,
-                  activeTab === 'HORIZON' && styles.tabTextActive,
-                ]}
-              >
-                {t('transactions.reporting.tabs.horizon')}
-              </Text>
-            </TouchableOpacity>
+          <TabSwitcher
+            isFiltered={isFiltered}
+            activeTab={activeTab}
+            onSelectTab={setActiveTab}
+          />
 
-            <TouchableOpacity
-              onPress={() => setActiveTab('CASH_FLOW')}
-              style={[styles.tabItem, activeTab === 'CASH_FLOW' && styles.tabItemActive]}
-              activeOpacity={0.7}
-            >
-              <Text
-                style={[
-                  styles.tabText,
-                  activeTab === 'CASH_FLOW' && styles.tabTextActive,
-                ]}
-              >
-                {t('transactions.reporting.tabs.cashFlow')}
-              </Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              onPress={() => setActiveTab('TOP_POOLS')}
-              style={[styles.tabItem, activeTab === 'TOP_POOLS' && styles.tabItemActive]}
-              activeOpacity={0.7}
-            >
-              <Text
-                style={[
-                  styles.tabText,
-                  activeTab === 'TOP_POOLS' && styles.tabTextActive,
-                ]}
-              >
-                {t('transactions.reporting.tabs.topPools')}
-              </Text>
-            </TouchableOpacity>
-          </View>
-
-          {/* Active Chart Display */}
-          {isLoading ? (
-            <View style={styles.loadingArea}>
-              <Text style={styles.loadingText}>{t('common.loading')}</Text>
-            </View>
-          ) : !analytics || analytics.isEmpty ? (
-            <View style={styles.emptyArea}>
-              <Text style={styles.emptyText}>{t('transactions.reporting.donut.empty')}</Text>
-            </View>
-          ) : (
-            <View style={styles.chartArea}>
-              {activeTab === 'HORIZON' && (
-                <MobileDonutChart
-                  data={analytics.horizonBreakdown}
-                  formatCurrency={formatCurrency}
-                />
-              )}
-              {activeTab === 'CASH_FLOW' && (
-                <MobileBarTrendChart
-                  data={analytics.monthlyCashFlow}
-                  formatCurrency={formatCurrency}
-                />
-              )}
-              {activeTab === 'TOP_POOLS' && (
-                <MobileHorizontalRankedBarChart
-                  topPools={analytics.topPools}
-                  otherPoolsAmount={analytics.otherPoolsAmount}
-                  totalOutflow={analytics.totalOutflow}
-                  formatCurrency={formatCurrency}
-                />
-              )}
-            </View>
-          )}
+          <ChartContent
+            activeTab={activeTab}
+            analytics={analytics}
+            isLoading={isLoading}
+            isFiltered={isFiltered}
+            formatCurrency={formatCurrency}
+          />
         </View>
+      )}
+    </View>
+  );
+}
+
+function CardHeader({
+  isFiltered,
+  isExpanded,
+  onToggle,
+}: {
+  isFiltered: boolean;
+  isExpanded: boolean;
+  onToggle: () => void;
+}) {
+  return (
+    <View style={styles.header}>
+      <View style={styles.titleArea}>
+        <View style={styles.iconBox}>
+          <Feather name="pie-chart" size={14} color={DESIGN_TOKENS.colors.sereneBlue} />
+        </View>
+        <View>
+          <Text style={styles.title}>
+            {isFiltered
+              ? t('transactions.reporting.filteredOverviewTitle')
+              : t('transactions.reporting.overviewTitle')}
+          </Text>
+          <Text style={styles.subtitle}>
+            {isFiltered
+              ? t('transactions.reporting.filteredOverviewSubtitle')
+              : t('transactions.reporting.overviewSubtitle')}
+          </Text>
+        </View>
+      </View>
+      <TouchableOpacity onPress={onToggle} style={styles.collapseBtn} activeOpacity={0.7}>
+        <Feather
+          name={isExpanded ? 'chevron-up' : 'chevron-down'}
+          size={18}
+          color={DESIGN_TOKENS.colors.slate[500]}
+        />
+      </TouchableOpacity>
+    </View>
+  );
+}
+
+function TimeframePills({
+  timeframes,
+  timeframe,
+  onSelect,
+}: {
+  timeframes: Array<{ key: SpendingTimeframe; label: string }>;
+  timeframe: SpendingTimeframe;
+  onSelect: (tf: SpendingTimeframe) => void;
+}) {
+  return (
+    <View style={styles.timeframePills}>
+      {timeframes.map((tf) => (
+        <TouchableOpacity
+          key={tf.key}
+          onPress={() => onSelect(tf.key)}
+          style={[styles.tfButton, timeframe === tf.key && styles.tfButtonActive]}
+          activeOpacity={0.7}
+        >
+          <Text style={[styles.tfText, timeframe === tf.key && styles.tfTextActive]}>
+            {tf.label}
+          </Text>
+        </TouchableOpacity>
+      ))}
+    </View>
+  );
+}
+
+function TabSwitcher({
+  isFiltered,
+  activeTab,
+  onSelectTab,
+}: {
+  isFiltered: boolean;
+  activeTab: ChartTab;
+  onSelectTab: (tab: ChartTab) => void;
+}) {
+  const tabs: Array<{ key: ChartTab; label: string }> = [
+    {
+      key: 'HORIZON',
+      label: isFiltered
+        ? t('transactions.reporting.donut.filteredTitle')
+        : t('transactions.reporting.tabs.horizon'),
+    },
+    {
+      key: 'CASH_FLOW',
+      label: isFiltered
+        ? t('transactions.reporting.cashFlow.filteredTitle')
+        : t('transactions.reporting.tabs.cashFlow'),
+    },
+    {
+      key: 'TOP_POOLS',
+      label: isFiltered
+        ? t('transactions.reporting.topPools.filteredTitle')
+        : t('transactions.reporting.tabs.topPools'),
+    },
+  ];
+
+  return (
+    <View style={styles.tabSwitcher}>
+      {tabs.map((tab) => (
+        <TouchableOpacity
+          key={tab.key}
+          onPress={() => onSelectTab(tab.key)}
+          style={[styles.tabItem, activeTab === tab.key && styles.tabItemActive]}
+          activeOpacity={0.7}
+        >
+          <Text style={[styles.tabText, activeTab === tab.key && styles.tabTextActive]}>
+            {tab.label}
+          </Text>
+        </TouchableOpacity>
+      ))}
+    </View>
+  );
+}
+
+function ChartContent({
+  activeTab,
+  analytics,
+  isLoading,
+  isFiltered,
+  formatCurrency,
+}: {
+  activeTab: ChartTab;
+  analytics: SpendingAnalyticsDTO | undefined;
+  isLoading: boolean;
+  isFiltered: boolean;
+  formatCurrency: (amount: number) => string;
+}) {
+  if (isLoading) {
+    return (
+      <View style={styles.centerArea}>
+        <Text style={styles.mutedText}>{t('common.loading')}</Text>
+      </View>
+    );
+  }
+  if (analytics?.isTransferOnly) {
+    return (
+      <View style={styles.noticeArea}>
+        <Text style={styles.noticeText}>{t('transactions.reporting.transfersNotice')}</Text>
+      </View>
+    );
+  }
+  if (!analytics || analytics.isEmpty) {
+    return (
+      <View style={styles.centerArea}>
+        <Text style={styles.mutedText}>{t('transactions.reporting.donut.empty')}</Text>
+      </View>
+    );
+  }
+
+  return (
+    <View style={styles.chartArea}>
+      {activeTab === 'HORIZON' && (
+        <MobileDonutChart
+          data={analytics.horizonBreakdown}
+          formatCurrency={formatCurrency}
+          isFiltered={isFiltered}
+          filteredSharePercentage={analytics.filteredSharePercentage}
+        />
+      )}
+      {activeTab === 'CASH_FLOW' && (
+        <MobileBarTrendChart
+          data={analytics.monthlyCashFlow}
+          formatCurrency={formatCurrency}
+          isFiltered={isFiltered}
+        />
+      )}
+      {activeTab === 'TOP_POOLS' && (
+        <MobileHorizontalRankedBarChart
+          topPools={analytics.topPools}
+          otherPoolsAmount={analytics.otherPoolsAmount}
+          totalOutflow={analytics.totalOutflow}
+          formatCurrency={formatCurrency}
+          isFiltered={isFiltered}
+          topPayees={analytics.topPayees}
+        />
       )}
     </View>
   );
@@ -216,52 +289,46 @@ const styles = StyleSheet.create({
   },
   subtitle: {
     fontSize: 10,
-    fontWeight: '500',
     color: DESIGN_TOKENS.colors.slate[500],
+    marginTop: 1,
   },
   collapseBtn: {
-    padding: 6,
+    padding: 4,
   },
   content: {
     padding: 12,
   },
-  controlsRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 10,
-  },
   timeframePills: {
     flexDirection: 'row',
+    alignSelf: 'flex-end',
     backgroundColor: DESIGN_TOKENS.colors.slate[100],
     borderRadius: 8,
     padding: 2,
+    marginBottom: 10,
   },
   tfButton: {
-    paddingHorizontal: 12,
+    paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: 6,
   },
   tfButtonActive: {
-    backgroundColor: DESIGN_TOKENS.colors.sereneBlue,
+    backgroundColor: '#FFFFFF',
   },
   tfText: {
-    fontSize: 11,
-    fontWeight: '600',
-    color: DESIGN_TOKENS.colors.slate[600],
+    fontSize: 10,
+    fontWeight: '700',
+    color: DESIGN_TOKENS.colors.slate[500],
   },
   tfTextActive: {
-    color: '#FFFFFF',
-    fontWeight: '700',
+    color: DESIGN_TOKENS.colors.primary,
   },
   tabSwitcher: {
     flexDirection: 'row',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: DESIGN_TOKENS.colors.slate[50],
     borderRadius: 8,
+    padding: 3,
     borderWidth: 1,
     borderColor: DESIGN_TOKENS.colors.slate[200],
-    padding: 2,
-    marginBottom: 8,
   },
   tabItem: {
     flex: 1,
@@ -270,7 +337,9 @@ const styles = StyleSheet.create({
     borderRadius: 6,
   },
   tabItemActive: {
-    backgroundColor: DESIGN_TOKENS.colors.slate[100],
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: DESIGN_TOKENS.colors.slate[200],
   },
   tabText: {
     fontSize: 11,
@@ -278,28 +347,30 @@ const styles = StyleSheet.create({
     color: DESIGN_TOKENS.colors.slate[500],
   },
   tabTextActive: {
-    color: DESIGN_TOKENS.colors.slate[800],
+    color: DESIGN_TOKENS.colors.primary,
     fontWeight: '700',
   },
   chartArea: {
-    minHeight: 140,
+    marginTop: 4,
   },
-  loadingArea: {
+  centerArea: {
     height: 140,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  loadingText: {
+  mutedText: {
     fontSize: 12,
     color: DESIGN_TOKENS.colors.slate[400],
   },
-  emptyArea: {
-    height: 140,
-    alignItems: 'center',
-    justifyContent: 'center',
+  noticeArea: {
+    padding: 16,
+    backgroundColor: DESIGN_TOKENS.colors.slate[50],
+    borderRadius: 8,
+    marginTop: 8,
   },
-  emptyText: {
-    fontSize: 12,
-    color: DESIGN_TOKENS.colors.slate[400],
+  noticeText: {
+    fontSize: 11,
+    color: DESIGN_TOKENS.colors.slate[600],
+    textAlign: 'center',
   },
 });

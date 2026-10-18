@@ -6,7 +6,7 @@ import { DonutChart } from "./DonutChart";
 import { BarTrendChart } from "./BarTrendChart";
 import { HorizontalRankedBarChart } from "./HorizontalRankedBarChart";
 import { t } from "@money-matters/i18n";
-import { ChevronDown, ChevronUp, BarChart3 } from "lucide-react";
+import { ChevronDown, ChevronUp, BarChart3, Info } from "lucide-react";
 
 interface SpendingOverviewCardProps {
   analytics: SpendingAnalyticsDTO | undefined;
@@ -31,6 +31,8 @@ export function SpendingOverviewCard({
     { key: "1Y", label: t("transactions.reporting.timeframe.y1") },
   ];
 
+  const isFiltered = Boolean(analytics?.isFiltered);
+
   return (
     <div className="bg-white rounded-2xl border border-zinc-200/80 shadow-xs overflow-hidden mb-6">
       {/* Header bar */}
@@ -41,16 +43,19 @@ export function SpendingOverviewCard({
           </div>
           <div>
             <h2 className="text-sm font-bold text-slate-800">
-              {t("transactions.reporting.overviewTitle")}
+              {isFiltered
+                ? t("transactions.reporting.filteredOverviewTitle")
+                : t("transactions.reporting.overviewTitle")}
             </h2>
             <p className="text-[11px] text-slate-500 font-medium">
-              {t("transactions.reporting.overviewSubtitle")}
+              {isFiltered
+                ? t("transactions.reporting.filteredOverviewSubtitle")
+                : t("transactions.reporting.overviewSubtitle")}
             </p>
           </div>
         </div>
 
         <div className="flex items-center gap-2 w-full sm:w-auto justify-between sm:justify-end">
-          {/* Timeframe switch */}
           <div className="flex items-center bg-white p-0.5 rounded-lg border border-zinc-200 shadow-xs">
             {timeframes.map((tf) => (
               <button
@@ -68,7 +73,6 @@ export function SpendingOverviewCard({
             ))}
           </div>
 
-          {/* Collapse toggle */}
           <button
             type="button"
             onClick={() => setIsExpanded(!isExpanded)}
@@ -99,44 +103,60 @@ export function SpendingOverviewCard({
               <div className="h-56 bg-slate-100 rounded-xl" />
               <div className="h-56 bg-slate-100 rounded-xl" />
             </div>
+          ) : analytics?.isTransferOnly ? (
+            <div className="p-6 bg-slate-50 rounded-xl border border-slate-200/60 flex items-center gap-3 text-xs text-slate-600">
+              <Info className="w-5 h-5 text-blue-600 shrink-0" />
+              <p>{t("transactions.reporting.transfersNotice")}</p>
+            </div>
           ) : !analytics || analytics.isEmpty ? (
             <div className="py-12 text-center text-slate-400 text-xs font-semibold">
               {t("transactions.reporting.donut.empty")}
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              {/* Chart 1: Outflow by Horizon */}
+              {/* Chart 1 */}
               <div className="bg-slate-50/50 p-4 rounded-xl border border-slate-100 flex flex-col">
                 <span className="text-xs font-bold text-slate-700 uppercase tracking-tight mb-3">
-                  {t("transactions.reporting.donut.title")}
+                  {isFiltered
+                    ? t("transactions.reporting.donut.filteredTitle")
+                    : t("transactions.reporting.donut.title")}
                 </span>
                 <DonutChart
                   data={analytics.horizonBreakdown}
                   formatCurrency={formatCurrency}
+                  isFiltered={isFiltered}
+                  filteredSharePercentage={analytics.filteredSharePercentage}
                 />
               </div>
 
-              {/* Chart 2: Monthly Cash Flow */}
+              {/* Chart 2 */}
               <div className="bg-slate-50/50 p-4 rounded-xl border border-slate-100 flex flex-col">
                 <span className="text-xs font-bold text-slate-700 uppercase tracking-tight mb-3">
-                  {t("transactions.reporting.cashFlow.title")}
+                  {isFiltered
+                    ? t("transactions.reporting.cashFlow.filteredTitle")
+                    : t("transactions.reporting.cashFlow.title")}
                 </span>
                 <BarTrendChart
                   data={analytics.monthlyCashFlow}
                   formatCurrency={formatCurrency}
+                  isFiltered={isFiltered}
                 />
               </div>
 
-              {/* Chart 3: Top Outflow Envelopes */}
+              {/* Chart 3 */}
               <div className="bg-slate-50/50 p-4 rounded-xl border border-slate-100 flex flex-col">
                 <span className="text-xs font-bold text-slate-700 uppercase tracking-tight mb-3">
-                  {t("transactions.reporting.topPools.title")}
+                  {isFiltered
+                    ? t("transactions.reporting.topPools.filteredTitle")
+                    : t("transactions.reporting.topPools.title")}
                 </span>
                 <HorizontalRankedBarChart
                   topPools={analytics.topPools}
                   otherPoolsAmount={analytics.otherPoolsAmount}
                   totalOutflow={analytics.totalOutflow}
                   formatCurrency={formatCurrency}
+                  isFiltered={isFiltered}
+                  topPayees={analytics.topPayees}
                 />
               </div>
             </div>

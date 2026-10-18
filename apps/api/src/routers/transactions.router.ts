@@ -78,7 +78,7 @@ export const transactionsRouter = {
       return await getSpendingAnalyticsQuery(
         ctx.tenantId!,
         ctx.appId!,
-        input.timeframe,
+        input,
         ctx.db
       );
     }),

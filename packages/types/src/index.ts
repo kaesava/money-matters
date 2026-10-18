@@ -248,8 +248,15 @@ export const ListEnvelopeTransactionsQuery = z.object({
 export const SpendingTimeframeEnum = z.enum(["30D", "90D", "1Y"]);
 export type SpendingTimeframe = z.infer<typeof SpendingTimeframeEnum>;
 
+export const SpendingFlowTypeEnum = z.enum(["ALL", "DEBIT", "CREDIT", "TRANSFER"]);
+export type SpendingFlowType = z.infer<typeof SpendingFlowTypeEnum>;
+
 export const GetSpendingAnalyticsQuery = z.object({
   timeframe: SpendingTimeframeEnum.default("90D"),
+  envelopeId: z.string().optional(),
+  bankAccountId: z.string().optional(),
+  searchQuery: z.string().optional(),
+  flowType: SpendingFlowTypeEnum.default("ALL"),
 }).strict();
 export type GetSpendingAnalyticsQuery = z.infer<typeof GetSpendingAnalyticsQuery>;
 
@@ -283,6 +290,13 @@ export const TopOutflowPoolDTOSchema = z.object({
 }).strict();
 export type TopOutflowPoolDTO = z.infer<typeof TopOutflowPoolDTOSchema>;
 
+export const TopPayeeItemDTOSchema = z.object({
+  name: z.string(),
+  amount: z.number(),
+  percentage: z.number(),
+}).strict();
+export type TopPayeeItemDTO = z.infer<typeof TopPayeeItemDTOSchema>;
+
 export const SpendingAnalyticsDTOSchema = z.object({
   timeframe: SpendingTimeframeEnum,
   totalOutflow: z.number(),
@@ -292,6 +306,12 @@ export const SpendingAnalyticsDTOSchema = z.object({
   topPools: z.array(TopOutflowPoolDTOSchema),
   otherPoolsAmount: z.number(),
   isEmpty: z.boolean(),
+  // Filter-aware adaptive fields
+  isFiltered: z.boolean().default(false),
+  filteredEnvelopeName: z.string().optional(),
+  filteredSharePercentage: z.number().default(0),
+  topPayees: z.array(TopPayeeItemDTOSchema).default([]),
+  isTransferOnly: z.boolean().default(false),
 }).strict();
 export type SpendingAnalyticsDTO = z.infer<typeof SpendingAnalyticsDTOSchema>;
 
