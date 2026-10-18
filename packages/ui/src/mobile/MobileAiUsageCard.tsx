@@ -1,7 +1,7 @@
 import React from "react";
 import { View, Text, StyleSheet } from "react-native";
 import { Feather } from "@expo/vector-icons";
-import { DESIGN_TOKENS } from "../tokens.js";
+import { DESIGN_TOKENS } from "../tokens";
 import { t } from "@money-matters/i18n";
 
 export interface MobileAiUsageCardProps {

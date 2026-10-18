@@ -1,11 +1,11 @@
 import React, { useState } from "react";
 import { View, Text, TextInput, TouchableOpacity, ScrollView, ActivityIndicator } from "react-native";
 import { Feather } from "@expo/vector-icons";
-import { DESIGN_TOKENS } from "../tokens.js";
+import { DESIGN_TOKENS } from "../tokens";
 import { t } from "@money-matters/i18n";
 import type { AssistantResult } from "@money-matters/types";
-import MobileModalDialog from "./MobileModalDialog.js";
-import { styles } from "./MobileAskSheet.styles.js";
+import MobileModalDialog from "./MobileModalDialog";
+import { styles } from "./MobileAskSheet.styles";
 
 export interface MobileAskSheetProps {
   isOpen: boolean;

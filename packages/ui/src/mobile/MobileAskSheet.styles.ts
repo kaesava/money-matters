@@ -1,5 +1,5 @@
 import { StyleSheet } from "react-native";
-import { DESIGN_TOKENS } from "../tokens.js";
+import { DESIGN_TOKENS } from "../tokens";
 
 export const styles = StyleSheet.create({
   scrollContent: {
