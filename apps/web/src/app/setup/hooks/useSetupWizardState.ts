@@ -23,6 +23,10 @@ export function useSetupWizardState() {
   const userPrefQuery = trpc.getUserPreferences.useQuery();
   const tenantQuery = trpc.getTenant.useQuery();
   const updatePrefMut = trpc.updateUserPreferences.useMutation();
+  const updateIncomeMut = trpc.updateIncomeSource.useMutation();
+  const archiveIncomeMut = trpc.archiveIncomeSource.useMutation();
+  const updatePoolMut = trpc.updatePool.useMutation();
+  const archivePoolMut = trpc.archivePool.useMutation();
 
   const [step, setStep] = useState(1);
   const [showDiscardModal, setShowDiscardModal] = useState(false);
@@ -45,20 +49,21 @@ export function useSetupWizardState() {
   }, []);
 
   const lifestyle = useSetupLifestyleState();
+  const { setCountry, setWeeklyGroceries, setWeeklyDining, setWeeklyPersonal } = lifestyle;
 
   useEffect(() => {
     const tenantCountry = tenantQuery.data?.country;
     if (tenantCountry) {
       const normalizedCountry: "AU" | "NZ" | "OTHER" =
         tenantCountry === "AU" || tenantCountry === "NZ" ? tenantCountry : "OTHER";
-      lifestyle.setCountry(normalizedCountry);
+      setCountry(normalizedCountry);
       if (normalizedCountry !== "AU") {
-        lifestyle.setWeeklyGroceries(0);
-        lifestyle.setWeeklyDining(0);
-        lifestyle.setWeeklyPersonal(0);
+        setWeeklyGroceries(0);
+        setWeeklyDining(0);
+        setWeeklyPersonal(0);
       }
     }
-  }, [tenantQuery.data?.country]);
+  }, [tenantQuery.data?.country, setCountry, setWeeklyGroceries, setWeeklyDining, setWeeklyPersonal]);
 
   const [incomes, setIncomes] = useState<IncomeItem[]>([
     {
@@ -71,6 +76,7 @@ export function useSetupWizardState() {
     },
   ]);
   const [archivedIncomeIds, setArchivedIncomeIds] = useState<Set<string>>(new Set());
+  const [dirtyIncomeIds, setDirtyIncomeIds] = useState<Set<string>>(new Set());
 
   const [bankAccounts, setBankAccounts] = useState<BankAccountRowItem[]>([
     {
@@ -107,6 +113,7 @@ export function useSetupWizardState() {
       ),
     },
   ]);
+  const [dirtyGoalIds, setDirtyGoalIds] = useState<Set<string>>(new Set());
 
   const [customCategories, setCustomCategories] = useState<EstimatedCategoryItem[]>([]);
   const [customCatName, setCustomCatName] = useState("");
@@ -115,9 +122,8 @@ export function useSetupWizardState() {
   const [removedCategoryNames, setRemovedCategoryNames] = useState<Set<string>>(new Set());
   const [amountOverrides, setAmountOverrides] = useState<Record<string, number>>({});
   const [categoryFrequencies, setCategoryFrequencies] = useState<Record<string, "WEEKLY" | "FORTNIGHTLY" | "MONTHLY" | "YEARLY">>({});
-  const [autoCreateExpenseSchedules, setAutoCreateExpenseSchedules] = useState(true);
 
-  const { pools } = useSetupWizardPrepopulation({
+  const prepopulation = useSetupWizardPrepopulation({
     isRerun,
     setIncomes,
     setBankAccounts,
@@ -125,7 +131,18 @@ export function useSetupWizardState() {
     setCustomCategories,
   });
 
-  const sweep = useSetupSweepQueue(pools, setGoals);
+  const sweepPools = useMemo(
+    () =>
+      prepopulation.pools.map((p) => ({
+        id: p.id,
+        name: p.name,
+        currentBalance: p.currentBalance,
+        isSurplusTarget: p.isSurplusTarget ?? false,
+      })),
+    [prepopulation.pools]
+  );
+
+  const sweep = useSetupSweepQueue(sweepPools, setGoals);
 
   const quizAnswers: QuizAnswers = useMemo(
     () => ({
@@ -170,8 +187,109 @@ export function useSetupWizardState() {
     sweepQueue: sweep.sweepQueue,
     archivedAccountIds,
     archivedIncomeIds,
-    autoCreateExpenseSchedules,
+    existingPools: prepopulation.pools,
   });
+
+  const handleUpdateIncomeField = <K extends keyof IncomeItem>(id: string, field: K, value: IncomeItem[K]) => {
+    setIncomes((prev) => prev.map((inc) => (inc.id === id ? { ...inc, [field]: value } : inc)));
+    if (!id.startsWith("inc-")) {
+      setDirtyIncomeIds((prev) => new Set(prev).add(id));
+    }
+  };
+
+  const handleSaveIncomeImmediate = async (id: string) => {
+    if (id.startsWith("inc-")) return;
+    const target = incomes.find((inc) => inc.id === id);
+    if (!target) return;
+    const rawFreq = target.frequency as string;
+    const frequencyVal: "WEEKLY" | "FORTNIGHTLY" | "MONTHLY" | "ANNUALLY" =
+      rawFreq === "WEEKLY" || rawFreq === "FORTNIGHTLY" ? rawFreq : "MONTHLY";
+    await updateIncomeMut.mutateAsync({
+      id,
+      data: {
+        name: target.name,
+        amount: String(target.amount || 0),
+        frequency: frequencyVal,
+        startDate: target.startDate || undefined,
+      },
+    });
+    setDirtyIncomeIds((prev) => {
+      const next = new Set(prev);
+      next.delete(id);
+      return next;
+    });
+  };
+
+  const handleRemoveIncome = async (id: string) => {
+    if (!id.startsWith("inc-")) {
+      if (isRerun) {
+        await archiveIncomeMut.mutateAsync({ id });
+      }
+      setArchivedIncomeIds((prev) => new Set(prev).add(id));
+    }
+    setIncomes((prev) => prev.filter((item) => item.id !== id));
+  };
+
+  const handleUpdateGoalField = (id: string, field: keyof UserGoalItem, value: string | number) => {
+    setGoals((prev) => prev.map((g) => (g.id === id ? { ...g, [field]: value } : g)));
+    if (!id.startsWith("g-")) {
+      setDirtyGoalIds((prev) => new Set(prev).add(id));
+    }
+  };
+
+  const handleSaveGoalImmediate = async (id: string) => {
+    if (id.startsWith("g-")) return;
+    const target = goals.find((g) => g.id === id);
+    if (!target) return;
+    const isOngoing = target.goalMode === "ONGOING";
+    const amtStr = String(isOngoing ? target.monthlyAmount || target.targetAmount || 0 : target.targetAmount || 0);
+    await updatePoolMut.mutateAsync({
+      poolId: id,
+      data: {
+        name: target.name,
+        targetAmount: amtStr,
+        monthlyAmount: String(target.monthlyAmount || 0),
+        enteredAmount: target.enteredAmount ? String(target.enteredAmount) : amtStr,
+        budgetFrequency: target.budgetFrequency || "MONTHLY",
+        endDate: isOngoing ? null : target.dueDate || null,
+        goalMode: target.goalMode,
+      },
+    });
+    setDirtyGoalIds((prev) => {
+      const next = new Set(prev);
+      next.delete(id);
+      return next;
+    });
+  };
+
+  const handleRemoveGoal = async (id: string) => {
+    if (!id.startsWith("g-")) {
+      const pool = prepopulation.pools.find((p) => p.id === id);
+      const balance = pool ? pool.currentBalance || 0 : 0;
+      if (balance > 0.005) {
+        sweep.handleRemoveGoal(id);
+        return;
+      }
+      if (isRerun) {
+        await archivePoolMut.mutateAsync({ poolId: id });
+      }
+    }
+    setGoals((prev) => prev.filter((g) => g.id !== id));
+  };
+
+  const handleNextFromIncomes = async () => {
+    if (isRerun && dirtyIncomeIds.size > 0) {
+      await Promise.all(Array.from(dirtyIncomeIds).map((id) => handleSaveIncomeImmediate(id)));
+    }
+    setStep(2);
+  };
+
+  const handleNextFromGoals = async () => {
+    if (isRerun && dirtyGoalIds.size > 0) {
+      await Promise.all(Array.from(dirtyGoalIds).map((id) => handleSaveGoalImmediate(id)));
+    }
+    setStep(isRerun ? 3 : 4);
+  };
 
   const handleAddAccount = () => {
     setBankAccounts((prev) => [
@@ -203,11 +321,6 @@ export function useSetupWizardState() {
     setBankAccounts((prev) => prev.filter((item) => item.id !== id));
   };
 
-  const handleRemoveIncome = (id: string) => {
-    if (!id.startsWith("inc-")) setArchivedIncomeIds((prev) => new Set(prev).add(id));
-    setIncomes((prev) => prev.filter((item) => item.id !== id));
-  };
-
   const handleDiscard = async () => {
     setShowDiscardModal(false);
     try {
@@ -221,6 +334,7 @@ export function useSetupWizardState() {
   return {
     router,
     isRerun,
+    isLoading: prepopulation.isLoading,
     step,
     setStep,
     isSubmitting: submission.isSubmitting,
@@ -228,11 +342,25 @@ export function useSetupWizardState() {
     setShowDiscardModal,
     goals,
     setGoals,
-    ...sweep,
-    availablePools: pools,
+    dirtyGoalIds,
+    handleUpdateGoal: handleUpdateGoalField,
+    handleSaveGoalImmediate,
+    handleRemoveGoal,
+    handleNextFromGoals,
+    sweepQueue: sweep.sweepQueue,
+    activeSweepPool: sweep.activeSweepPool,
+    setActiveSweepPool: sweep.setActiveSweepPool,
+    selectedSweepDest: sweep.selectedSweepDest,
+    setSelectedSweepDest: sweep.setSelectedSweepDest,
+    confirmSweepAndRemove: sweep.confirmSweepAndRemove,
+    availablePools: prepopulation.pools,
     incomes,
     setIncomes,
+    dirtyIncomeIds,
+    handleUpdateIncome: handleUpdateIncomeField,
+    handleSaveIncomeImmediate,
     handleRemoveIncome,
+    handleNextFromIncomes,
     bankAccounts,
     setBankAccounts,
     handleAddAccount,
@@ -252,8 +380,6 @@ export function useSetupWizardState() {
     setAmountOverrides,
     categoryFrequencies,
     setCategoryFrequencies,
-    autoCreateExpenseSchedules,
-    setAutoCreateExpenseSchedules,
     showIcons: userPrefQuery.data?.showIcons ?? true,
     ...lifestyle,
     ...calculations,

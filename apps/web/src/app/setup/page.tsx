@@ -20,6 +20,18 @@ function SetupWizardContent() {
   const totalSteps = state.isRerun ? 2 : 4;
   const isReviewStep = state.isRerun ? state.step === 3 : state.step === 5;
 
+  if (state.isRerun && state.isLoading) {
+    return (
+      <div className="min-h-screen bg-[#F7F8FA] py-10 px-4">
+        <div className="max-w-4xl mx-auto space-y-6">
+          <div className="h-10 bg-zinc-200/70 rounded-xl animate-pulse" />
+          <div className="h-32 bg-zinc-200/50 rounded-2xl animate-pulse" />
+          <div className="h-64 bg-zinc-200/40 rounded-2xl animate-pulse" />
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-[#F7F8FA] py-10 px-4">
       <div className="max-w-4xl mx-auto space-y-6">
@@ -35,6 +47,8 @@ function SetupWizardContent() {
         {state.step === 1 && (
           <SetupIncomeStep
             incomes={state.incomes}
+            isRerun={state.isRerun}
+            dirtyIncomeIds={state.dirtyIncomeIds}
             onAddIncome={() => {
               const id = `inc-${Date.now()}`;
               state.setIncomes((prev) => [
@@ -49,17 +63,16 @@ function SetupWizardContent() {
                 },
               ]);
             }}
-            onUpdateIncome={(id, field, value) => {
-              state.setIncomes((prev) => prev.map((inc) => (inc.id === id ? { ...inc, [field]: value } : inc)));
-            }}
+            onUpdateIncome={state.handleUpdateIncome}
             onRemoveIncome={state.handleRemoveIncome}
-            onNext={() => state.setStep(2)}
+            onSaveIncome={state.handleSaveIncomeImmediate}
+            onNext={state.handleNextFromIncomes}
             totalSteps={totalSteps}
           />
         )}
 
-        {/* Step 2: Bank Accounts & Allocation */}
-        {state.step === 2 && (
+        {/* First-run Step 2: Bank Accounts & Allocation */}
+        {!state.isRerun && state.step === 2 && (
           <SetupBankAccountsStep
             accounts={state.bankAccounts}
             onAddAccount={state.handleAddAccount}
@@ -71,25 +84,26 @@ function SetupWizardContent() {
           />
         )}
 
-        {/* Initial Setup Step 3: Goals */}
-        {!state.isRerun && state.step === 3 && (
+        {/* Step 2 on Rerun / Step 3 on First Run: Goals */}
+        {((state.isRerun && state.step === 2) || (!state.isRerun && state.step === 3)) && (
           <SetupGoalsStep
             goals={state.goals}
+            isRerun={state.isRerun}
+            dirtyGoalIds={state.dirtyGoalIds}
             onAddGoal={(g) => {
               const id = `g-${Date.now()}`;
               state.setGoals((prev) => [...prev, { ...g, id }]);
             }}
-            onUpdateGoal={(id, field, value) => {
-              state.setGoals((prev) => prev.map((g) => (g.id === id ? { ...g, [field]: value } : g)));
-            }}
+            onUpdateGoal={state.handleUpdateGoal}
             onRemoveGoal={state.handleRemoveGoal}
-            onBack={() => state.setStep(2)}
-            onNext={() => state.setStep(4)}
+            onSaveGoal={state.handleSaveGoalImmediate}
+            onBack={() => state.setStep(state.isRerun ? 1 : 2)}
+            onNext={state.handleNextFromGoals}
             totalSteps={totalSteps}
           />
         )}
 
-        {/* Initial Setup Step 4: Lifestyle Quiz */}
+        {/* First Run Step 4: Lifestyle Quiz */}
         {!state.isRerun && state.step === 4 && (
           <SetupLifestyleStep
             country={state.country}
@@ -194,8 +208,6 @@ function SetupWizardContent() {
             onBack={() => state.setStep(state.isRerun ? 2 : 4)}
             onFinish={state.handleFinish}
             onSimulatePayday={() => setShowSandboxModal(true)}
-            autoCreateExpenseSchedules={state.autoCreateExpenseSchedules}
-            setAutoCreateExpenseSchedules={state.setAutoCreateExpenseSchedules}
             isRerun={state.isRerun}
           />
         )}

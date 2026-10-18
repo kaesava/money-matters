@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -6,11 +6,20 @@ import {
   TouchableOpacity,
   ScrollView,
   StyleSheet,
+  ActivityIndicator,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Feather } from '@expo/vector-icons';
 import { t } from '@money-matters/i18n';
-import { DESIGN_TOKENS, InfoTooltip, AmountInput, MobileDatePickerField } from '@money-matters/ui/mobile';
+import {
+  DESIGN_TOKENS,
+  InfoTooltip,
+  AmountInput,
+  MobileDatePickerField,
+  showMobileConfirm,
+  SkeletonCard,
+} from '@money-matters/ui/mobile';
 import { useSetupWizard } from '../../context/SetupWizardContext';
 import { IncomeItem } from '@money-matters/types';
 import { SetupProgressBar } from '../../components/setup/SetupProgressBar';
@@ -31,7 +40,19 @@ function getDefaultStartDateAest(): string {
 export default function SetupIncomeScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const { incomes, setIncomes, isRerun, totalSteps } = useSetupWizard();
+  const {
+    incomes,
+    setIncomes,
+    isRerun,
+    totalSteps,
+    isLoadingExistingData,
+    dirtyIncomeIds,
+    handleUpdateIncomeField,
+    handleSaveIncomeImmediate,
+    handleRemoveIncome,
+  } = useSetupWizard();
+
+  const [savingId, setSavingId] = useState<string | null>(null);
 
   const handleAddIncome = () => {
     const id = `inc-${Date.now()}`;
@@ -48,23 +69,51 @@ export default function SetupIncomeScreen() {
     ]);
   };
 
-  const handleRemoveIncome = (id: string) => {
-    setIncomes((prev) => prev.filter((i) => i.id !== id));
+  const handlePromptRemove = (inc: IncomeItem) => {
+    const isExisting = !inc.id.startsWith('inc-');
+    if (isRerun && isExisting) {
+      showMobileConfirm({
+        title: t('modals.incomeExpenseForm.archiveIncomeTitle'),
+        message: t('modals.incomeExpenseForm.archiveIncomeConfirm'),
+        confirmText: t('modals.incomeExpenseForm.archiveSchedule'),
+        isDestructive: true,
+        onConfirm: () => handleRemoveIncome(inc.id),
+      });
+    } else {
+      handleRemoveIncome(inc.id);
+    }
   };
 
-  const handleUpdateIncome = <K extends keyof IncomeItem>(id: string, field: K, val: IncomeItem[K]) => {
-    setIncomes((prev) => prev.map((inc) => (inc.id === id ? { ...inc, [field]: val } : inc)));
+  const handleSaveItem = async (id: string) => {
+    setSavingId(id);
+    try {
+      await handleSaveIncomeImmediate(id);
+    } finally {
+      setSavingId(null);
+    }
   };
 
-  const handleNext = () => {
+  const handleNext = async () => {
+    if (isRerun && dirtyIncomeIds.size > 0) {
+      await Promise.all(Array.from(dirtyIncomeIds).map((id) => handleSaveIncomeImmediate(id)));
+    }
     if (isRerun) {
-      router.push({ pathname: '/(setup)/accounts', params: { mode: 'rerun' } });
+      router.push({ pathname: '/(setup)/goals', params: { mode: 'rerun' } });
     } else {
       router.push('/(setup)/accounts');
     }
   };
 
   const isFormValid = incomes.length > 0 && incomes.every((i) => i.name.trim() !== '' && i.amount > 0);
+
+  if (isRerun && isLoadingExistingData) {
+    return (
+      <View style={[styles.container, { paddingTop: Math.max(insets.top + 16, 56) }]}>
+        <SetupProgressBar currentStep={1} totalSteps={totalSteps} isRerun={isRerun} />
+        <SkeletonCard count={3} height={140} />
+      </View>
+    );
+  }
 
   return (
     <ScrollView
@@ -79,7 +128,21 @@ export default function SetupIncomeScreen() {
     >
       <SetupProgressBar currentStep={1} totalSteps={totalSteps} isRerun={isRerun} />
 
-      <Text style={styles.stepLabel}>{t('setup.stepOf', { step: 1, total: totalSteps })}</Text>
+      {!isRerun && (
+        <View style={styles.heroBanner}>
+          <View style={styles.heroBadgeRow}>
+            <Text style={styles.heroBadge}>{t('setup.income.heroBadge')}</Text>
+            <Text style={styles.heroStepText}>{t('setup.stepOf', { step: 1, total: totalSteps })}</Text>
+          </View>
+          <Text style={styles.heroTitle}>{t('setup.income.heroTitle')}</Text>
+          <Text style={styles.heroSubtitle}>{t('setup.income.heroSubtitle')}</Text>
+        </View>
+      )}
+
+      {isRerun && (
+        <Text style={styles.stepLabel}>{t('setup.stepOf', { step: 1, total: totalSteps })}</Text>
+      )}
+
       <View style={styles.headerRow}>
         <Text style={styles.title}>
           {isRerun ? t('setup.recalibrateTitle') : t('setup.income.sectionTitle')}
@@ -90,58 +153,84 @@ export default function SetupIncomeScreen() {
         />
       </View>
 
-      {incomes.map((inc, index) => (
-        <View key={inc.id} style={styles.card}>
-          <View style={styles.cardHeader}>
-            <Text style={styles.itemTitle}>{t('setup.income.incomeItemNumber', { number: index + 1 })}</Text>
-            {incomes.length > 1 && (
-              <TouchableOpacity onPress={() => handleRemoveIncome(inc.id)}>
-                <Text style={styles.removeText}>{t('common.remove')}</Text>
-              </TouchableOpacity>
-            )}
-          </View>
+      {isRerun && (
+        <Text style={styles.rerunNotice}>{t('setup.income.rerunEditNotice')}</Text>
+      )}
 
-          <Text style={styles.label}>{t('setup.income.nameLabel')}</Text>
-          <TextInput
-            style={styles.input}
-            placeholder={t('setup.income.namePlaceholder')}
-            placeholderTextColor={DESIGN_TOKENS.colors.textMuted}
-            value={inc.name}
-            onChangeText={(txt) => handleUpdateIncome(inc.id, 'name', txt)}
-          />
+      {incomes.map((inc, index) => {
+        const isExisting = !inc.id.startsWith('inc-');
+        const isDirty = dirtyIncomeIds.has(inc.id);
+        const isSaving = savingId === inc.id;
 
-          <AmountInput
-            label={t('setup.income.amountLabel')}
-            placeholder={t('setup.income.amountPlaceholder')}
-            value={inc.amount ? String(inc.amount) : ''}
-            onChangeText={(txt) => handleUpdateIncome(inc.id, 'amount', parseFloat(txt) || 0)}
-            containerStyle={styles.amountWrap}
-          />
+        return (
+          <View key={inc.id} style={styles.card}>
+            <View style={styles.cardHeader}>
+              <View style={styles.itemTitleRow}>
+                <Text style={styles.itemTitle}>{t('setup.income.incomeItemNumber', { number: index + 1 })}</Text>
+                {isRerun && isExisting && isDirty && (
+                  <TouchableOpacity
+                    style={styles.inlineSaveBtn}
+                    onPress={() => handleSaveItem(inc.id)}
+                    disabled={isSaving}
+                    accessibilityLabel={t('common.save')}
+                  >
+                    {isSaving ? (
+                      <ActivityIndicator size="small" color={DESIGN_TOKENS.colors.success} />
+                    ) : (
+                      <Feather name="check" size={16} color={DESIGN_TOKENS.colors.success} />
+                    )}
+                  </TouchableOpacity>
+                )}
+              </View>
+              {incomes.length > 1 && (
+                <TouchableOpacity onPress={() => handlePromptRemove(inc)}>
+                  <Text style={styles.removeText}>{t('common.remove')}</Text>
+                </TouchableOpacity>
+              )}
+            </View>
 
-          <Text style={[styles.label, styles.labelGap]}>{t('setup.income.scheduleLabel')}</Text>
-          <View style={styles.chipRow}>
-            {FREQUENCIES.map((fr) => (
-              <TouchableOpacity
-                key={fr}
-                style={[styles.chip, inc.frequency === fr && styles.chipActive]}
-                onPress={() => handleUpdateIncome(inc.id, 'frequency', fr)}
-              >
-                <Text style={[styles.chipText, inc.frequency === fr && styles.chipTextActive]}>
-                  {t(FREQ_LABELS[fr])}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-
-          <View style={styles.datePickerWrap}>
-            <MobileDatePickerField
-              label={t('setup.income.nextPaydayLabel')}
-              value={inc.startDate || getDefaultStartDateAest()}
-              onChange={(d) => handleUpdateIncome(inc.id, 'startDate', d)}
+            <Text style={styles.label}>{t('setup.income.nameLabel')}</Text>
+            <TextInput
+              style={styles.input}
+              placeholder={t('setup.income.namePlaceholder')}
+              placeholderTextColor={DESIGN_TOKENS.colors.textMuted}
+              value={inc.name}
+              onChangeText={(txt) => handleUpdateIncomeField(inc.id, 'name', txt)}
             />
+
+            <AmountInput
+              label={t('setup.income.amountLabel')}
+              placeholder={t('setup.income.amountPlaceholder')}
+              value={inc.amount ? String(inc.amount) : ''}
+              onChangeText={(txt) => handleUpdateIncomeField(inc.id, 'amount', parseFloat(txt) || 0)}
+              containerStyle={styles.amountWrap}
+            />
+
+            <Text style={[styles.label, styles.labelGap]}>{t('setup.income.scheduleLabel')}</Text>
+            <View style={styles.chipRow}>
+              {FREQUENCIES.map((fr) => (
+                <TouchableOpacity
+                  key={fr}
+                  style={[styles.chip, inc.frequency === fr && styles.chipActive]}
+                  onPress={() => handleUpdateIncomeField(inc.id, 'frequency', fr)}
+                >
+                  <Text style={[styles.chipText, inc.frequency === fr && styles.chipTextActive]}>
+                    {t(FREQ_LABELS[fr])}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+
+            <View style={styles.datePickerWrap}>
+              <MobileDatePickerField
+                label={t('setup.income.nextPaydayLabel')}
+                value={inc.startDate || getDefaultStartDateAest()}
+                onChange={(d) => handleUpdateIncomeField(inc.id, 'startDate', d)}
+              />
+            </View>
           </View>
-        </View>
-      ))}
+        );
+      })}
 
       <TouchableOpacity
         style={styles.addBtn}
@@ -172,9 +261,45 @@ const styles = StyleSheet.create({
     paddingHorizontal: DESIGN_TOKENS.spacing.containerMargin,
     backgroundColor: DESIGN_TOKENS.colors.background,
   },
+  heroBanner: {
+    backgroundColor: DESIGN_TOKENS.colors.primary,
+    borderRadius: DESIGN_TOKENS.radius.lg,
+    padding: 16,
+    marginBottom: 16,
+  },
+  heroBadgeRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  heroBadge: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: '#5EEAD4',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  heroStepText: {
+    fontSize: 11,
+    color: DESIGN_TOKENS.colors.slate[300],
+    fontWeight: '600',
+  },
+  heroTitle: {
+    fontSize: 18,
+    fontWeight: '800',
+    color: DESIGN_TOKENS.colors.onPrimary,
+    marginBottom: 4,
+  },
+  heroSubtitle: {
+    fontSize: 12,
+    color: DESIGN_TOKENS.colors.slate[200],
+    lineHeight: 18,
+  },
   stepLabel: { fontSize: 12, color: DESIGN_TOKENS.colors.textMuted, marginBottom: 4 },
-  headerRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 16, gap: 6 },
+  headerRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 4, gap: 6 },
   title: { fontSize: 20, fontWeight: '700', color: DESIGN_TOKENS.colors.primary, flex: 1 },
+  rerunNotice: { fontSize: 12, color: DESIGN_TOKENS.colors.textMuted, marginBottom: 16 },
   card: {
     backgroundColor: DESIGN_TOKENS.colors.surface,
     borderRadius: DESIGN_TOKENS.radius.lg,
@@ -184,7 +309,13 @@ const styles = StyleSheet.create({
     borderColor: DESIGN_TOKENS.colors.slate[200],
   },
   cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
+  itemTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   itemTitle: { fontSize: 13, fontWeight: '700', color: DESIGN_TOKENS.colors.textPrimary },
+  inlineSaveBtn: {
+    padding: 4,
+    borderRadius: 6,
+    backgroundColor: '#ECFDF5',
+  },
   removeText: { fontSize: 12, fontWeight: '600', color: DESIGN_TOKENS.colors.critical },
   label: { fontSize: 13, fontWeight: '600', color: DESIGN_TOKENS.colors.textPrimary, marginBottom: 6 },
   labelGap: { marginTop: 14 },

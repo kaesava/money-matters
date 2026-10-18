@@ -23,9 +23,12 @@ export interface UserGoalItem {
 
 interface SetupGoalsStepProps {
   goals: UserGoalItem[];
+  isRerun?: boolean;
+  dirtyGoalIds?: Set<string>;
   onAddGoal: (goal: Omit<UserGoalItem, "id">) => void;
   onUpdateGoal: (id: string, field: keyof UserGoalItem, value: string | number) => void;
   onRemoveGoal: (id: string) => void;
+  onSaveGoal?: (id: string) => Promise<void>;
   onBack: () => void;
   onNext: () => void;
   totalSteps?: number;
@@ -39,12 +42,15 @@ const getFutureDate = (months: number) => {
 
 export function SetupGoalsStep({
   goals,
+  isRerun = false,
+  dirtyGoalIds = new Set(),
   onAddGoal,
   onUpdateGoal,
   onRemoveGoal,
+  onSaveGoal,
   onBack,
   onNext,
-  totalSteps: _totalSteps = 4,
+  totalSteps = 4,
 }: SetupGoalsStepProps) {
   const [customName, setCustomName] = useState("");
   const [customTarget, setCustomTarget] = useState("5000");
@@ -98,50 +104,79 @@ export function SetupGoalsStep({
       });
     }
     setCustomName("");
-    setCustomTarget(customType === "ONGOING" ? "250" : "5000");
     setCustomDate("");
+    setCustomTarget("5000");
   };
 
-  const isCustomPastDate = customDate && new Date(customDate) < new Date(new Date().setHours(0, 0, 0, 0));
-  const totalTargetGoals = goals.reduce((sum, g) => sum + (g.targetAmount || 0), 0);
+  const isCustomPastDate =
+    customType === "TARGET_DATE" && customDate && new Date(customDate) < new Date(new Date().setHours(0, 0, 0, 0));
 
   return (
     <div className="flex flex-col gap-6 animate-in fade-in duration-200">
       <div>
-        <div className="flex items-center gap-2">
-          <h2 className="text-xl sm:text-2xl font-black text-[#1B2B4B]">
-            {t("setup.goals.title")}
-          </h2>
-          <InfoTooltip
-            title={t("setup.goals.tooltipTitle")}
-            content={t("setup.goals.tooltipContent")}
-          />
-          <span className="text-xs font-bold bg-teal-100 text-teal-800 px-2.5 py-0.5 rounded-full ml-auto">
-            {goals.length} Active Goals
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-1.5">
+            <h2 className="text-xl sm:text-2xl font-black text-[#1B2B4B]">
+              {t("setup.goals.title")}
+            </h2>
+            <InfoTooltip
+              title={t("setup.goals.tooltipTitle")}
+              content={t("setup.goals.tooltipContent")}
+            />
+          </div>
+          <span className="text-xs font-bold text-zinc-400">
+            {t("setup.stepOf", { step: isRerun ? 2 : 3, total: totalSteps })}
           </span>
         </div>
       </div>
 
-      <SetupGoalsPresetsGrid onTogglePreset={togglePreset} isPresetActive={isPresetActive} />
-
-      {goals.length > 0 && (
-        <div className="flex flex-col gap-3 p-4 bg-slate-50 rounded-2xl border border-zinc-200/80">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-black text-[#1B2B4B]">
-              {t("setup.goals.yourSavingsGoals", { count: goals.length })}
-            </span>
-            <span className="text-xs font-extrabold text-[#2563eb] font-mono">
-              Total: ${totalTargetGoals.toLocaleString()}
-            </span>
-          </div>
-
+      {/* Rerun: Active goals first */}
+      {isRerun && goals.length > 0 && (
+        <div className="flex flex-col gap-2">
+          <span className="text-xs font-bold text-[#1B2B4B]">
+            {t("setup.goals.yourSavingsGoals", { count: goals.length })}
+          </span>
           <div className="flex flex-col gap-2 max-h-[35vh] overflow-y-auto pr-1">
             {goals.map((g) => (
               <SetupGoalItemRow
                 key={g.id}
                 goal={g}
+                isRerun={isRerun}
+                isDirty={dirtyGoalIds.has(g.id)}
                 onUpdateGoal={onUpdateGoal}
                 onRemoveGoal={onRemoveGoal}
+                onSaveGoal={onSaveGoal}
+              />
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Popular Presets Grid */}
+      <div className="flex flex-col gap-3">
+        <span className="text-xs font-bold text-[#1B2B4B]">{t("setup.goals.popularPresets")}</span>
+        <SetupGoalsPresetsGrid
+          isPresetActive={isPresetActive}
+          onTogglePreset={togglePreset}
+        />
+      </div>
+
+      {/* First-run: Goals list after presets */}
+      {!isRerun && goals.length > 0 && (
+        <div className="flex flex-col gap-2">
+          <span className="text-xs font-bold text-[#1B2B4B]">
+            {t("setup.goals.yourSavingsGoals", { count: goals.length })}
+          </span>
+          <div className="flex flex-col gap-2 max-h-[35vh] overflow-y-auto pr-1">
+            {goals.map((g) => (
+              <SetupGoalItemRow
+                key={g.id}
+                goal={g}
+                isRerun={isRerun}
+                isDirty={dirtyGoalIds.has(g.id)}
+                onUpdateGoal={onUpdateGoal}
+                onRemoveGoal={onRemoveGoal}
+                onSaveGoal={onSaveGoal}
               />
             ))}
           </div>

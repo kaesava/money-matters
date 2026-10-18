@@ -88,7 +88,6 @@ export function SetupWizardProvider({ children: reactChildren }: { children: Rea
   const [categoryFrequencies, setCategoryFrequencies] = useState<
     Record<string, 'WEEKLY' | 'FORTNIGHTLY' | 'MONTHLY' | 'YEARLY'>
   >({});
-  const [autoCreateExpenseSchedules, setAutoCreateExpenseSchedules] = useState(true);
 
   // Balance Sweep & Archival state
   const [sweepQueue, setSweepQueue] = useState<Array<{ poolId: string; sweepDestinationPoolId?: string | null }>>([]);
@@ -108,19 +107,97 @@ export function SetupWizardProvider({ children: reactChildren }: { children: Rea
     [rawPools]
   );
 
-  const handleRemoveIncome = (id: string) => {
-    if (!id.startsWith('inc-')) setArchivedIncomeIds((prev) => new Set(prev).add(id));
+  const [dirtyIncomeIds, setDirtyIncomeIds] = useState<Set<string>>(new Set());
+  const [dirtyGoalIds, setDirtyGoalIds] = useState<Set<string>>(new Set());
+
+  const updateIncomeMut = trpc.updateIncomeSource.useMutation();
+  const archiveIncomeMut = trpc.archiveIncomeSource.useMutation();
+  const updatePoolMut = trpc.updatePool.useMutation();
+  const archivePoolMut = trpc.archivePool.useMutation();
+
+  const handleUpdateIncomeField = <K extends keyof IncomeItem>(id: string, field: K, val: IncomeItem[K]) => {
+    setIncomes((prev) => prev.map((inc) => (inc.id === id ? { ...inc, [field]: val } : inc)));
+    if (!id.startsWith('inc-')) {
+      setDirtyIncomeIds((prev) => new Set(prev).add(id));
+    }
+  };
+
+  const handleSaveIncomeImmediate = async (id: string) => {
+    if (id.startsWith('inc-')) return;
+    const target = incomes.find((inc) => inc.id === id);
+    if (!target) return;
+    const rawFreq = target.frequency as string;
+    const frequencyVal: 'WEEKLY' | 'FORTNIGHTLY' | 'MONTHLY' | 'ANNUALLY' =
+      rawFreq === 'WEEKLY' || rawFreq === 'FORTNIGHTLY' ? rawFreq : 'MONTHLY';
+    await updateIncomeMut.mutateAsync({
+      id,
+      data: {
+        name: target.name,
+        amount: String(target.amount || 0),
+        frequency: frequencyVal,
+        startDate: target.startDate || undefined,
+      },
+    });
+    setDirtyIncomeIds((prev) => {
+      const next = new Set(prev);
+      next.delete(id);
+      return next;
+    });
+  };
+
+  const handleUpdateGoalField = (id: string, field: keyof UserGoalItem, val: string | number) => {
+    setGoals((prev) => prev.map((g) => (g.id === id ? { ...g, [field]: val } : g)));
+    if (!id.startsWith('g-')) {
+      setDirtyGoalIds((prev) => new Set(prev).add(id));
+    }
+  };
+
+  const handleSaveGoalImmediate = async (id: string) => {
+    if (id.startsWith('g-')) return;
+    const target = goals.find((g) => g.id === id);
+    if (!target) return;
+    const isOngoing = target.goalMode === 'ONGOING';
+    const amtStr = String(isOngoing ? target.monthlyAmount || target.targetAmount || 0 : target.targetAmount || 0);
+    await updatePoolMut.mutateAsync({
+      poolId: id,
+      data: {
+        name: target.name,
+        targetAmount: amtStr,
+        monthlyAmount: String(target.monthlyAmount || 0),
+        enteredAmount: target.enteredAmount ? String(target.enteredAmount) : amtStr,
+        budgetFrequency: target.budgetFrequency || 'MONTHLY',
+        endDate: isOngoing ? null : target.dueDate || null,
+        goalMode: target.goalMode,
+      },
+    });
+    setDirtyGoalIds((prev) => {
+      const next = new Set(prev);
+      next.delete(id);
+      return next;
+    });
+  };
+
+  const handleRemoveIncome = async (id: string) => {
+    if (!id.startsWith('inc-')) {
+      if (isRerun) {
+        await archiveIncomeMut.mutateAsync({ id });
+      }
+      setArchivedIncomeIds((prev) => new Set(prev).add(id));
+    }
     setIncomes((prev) => prev.filter((item) => item.id !== id));
   };
 
-  const handleRemoveGoal = (id: string) => {
+  const handleRemoveGoal = async (id: string) => {
     const pool = rawPools.find((p) => p.id === id);
     const balance = pool ? parseFloat((pool as unknown as { currentBalance?: string }).currentBalance || '0') : 0;
-    if (balance > 0 && pool) {
+    if (balance > 0.005 && pool) {
       setActiveSweepPool({ id: pool.id, name: pool.name, balance });
       const dest = availablePools.find((p) => p.id !== pool.id)?.id || '';
       setSelectedSweepDest(dest);
     } else {
+      if (pool && isRerun) {
+        await archivePoolMut.mutateAsync({ poolId: id });
+      }
       setGoals((prev) => prev.filter((g) => g.id !== id));
       if (pool) {
         setSweepQueue((prev) => [...prev, { poolId: pool.id, sweepDestinationPoolId: null }]);
@@ -190,10 +267,14 @@ export function SetupWizardProvider({ children: reactChildren }: { children: Rea
       selectedSweepDest,
       setSelectedSweepDest,
       availablePools,
+      dirtyIncomeIds,
+      dirtyGoalIds,
+      handleUpdateIncomeField,
+      handleSaveIncomeImmediate,
+      handleUpdateGoalField,
+      handleSaveGoalImmediate,
       handleRemoveGoal,
       confirmSweepAndRemove,
-      autoCreateExpenseSchedules,
-      setAutoCreateExpenseSchedules,
       ...calculations,
     }),
     [
@@ -213,7 +294,8 @@ export function SetupWizardProvider({ children: reactChildren }: { children: Rea
       activeSweepPool,
       selectedSweepDest,
       availablePools,
-      autoCreateExpenseSchedules,
+      dirtyIncomeIds,
+      dirtyGoalIds,
       calculations,
     ]
   );

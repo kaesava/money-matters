@@ -1,13 +1,17 @@
-import React from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet } from 'react-native';
+import React, { useState } from 'react';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, ActivityIndicator } from 'react-native';
+import { Feather } from '@expo/vector-icons';
 import { UserGoalItem } from '@money-matters/types';
 import { DESIGN_TOKENS, AmountInput } from '@money-matters/ui/mobile';
 import { t } from '@money-matters/i18n';
 
 interface SetupGoalCardProps {
   goal: UserGoalItem;
+  isRerun?: boolean;
+  isDirty?: boolean;
   onUpdate: (id: string, field: keyof UserGoalItem, value: string | number) => void;
   onRemove: (id: string) => void;
+  onSave?: (id: string) => Promise<void>;
 }
 
 function getMonthsDiff(targetDateStr: string): number {
@@ -18,19 +22,46 @@ function getMonthsDiff(targetDateStr: string): number {
   return Math.max(1, months);
 }
 
-export function SetupGoalCard({ goal, onUpdate, onRemove }: SetupGoalCardProps) {
+function getFrequencyUnitLabel(freq?: string | null): string {
+  if (freq === 'WEEKLY') return '/wk';
+  if (freq === 'FORTNIGHTLY') return '/fn';
+  if (freq === 'ANNUALLY') return '/yr';
+  return '/mo';
+}
+
+export function SetupGoalCard({
+  goal,
+  isRerun = false,
+  isDirty = false,
+  onUpdate,
+  onRemove,
+  onSave,
+}: SetupGoalCardProps) {
+  const [isSaving, setIsSaving] = useState(false);
+  const isExisting = !goal.id.startsWith('g-');
   const isOngoing = goal.goalMode === 'ONGOING';
   const months = isOngoing ? 1 : getMonthsDiff(goal.dueDate || '');
   const estMonthly = isOngoing
     ? Math.round(goal.targetAmount || 0)
     : Math.round((goal.targetAmount || 0) / months);
+  const unitLabel = getFrequencyUnitLabel(goal.budgetFrequency);
+
+  const handleSave = async () => {
+    if (!onSave) return;
+    setIsSaving(true);
+    try {
+      await onSave(goal.id);
+    } finally {
+      setIsSaving(false);
+    }
+  };
 
   return (
     <View style={styles.card}>
       <View style={styles.header}>
         <View style={styles.titleRow}>
           <Text style={styles.icon}>{goal.icon || '🎯'}</Text>
-          <View style={{ flex: 1 }}>
+          <View style={styles.titleTextWrap}>
             <TextInput
               style={styles.nameInput}
               value={goal.name}
@@ -43,9 +74,25 @@ export function SetupGoalCard({ goal, onUpdate, onRemove }: SetupGoalCardProps) 
             )}
           </View>
         </View>
-        <TouchableOpacity onPress={() => onRemove(goal.id)} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
-          <Text style={styles.removeBtn}>✕</Text>
-        </TouchableOpacity>
+        <View style={styles.actionsWrap}>
+          {isRerun && isExisting && isDirty && (
+            <TouchableOpacity
+              style={styles.inlineSaveBtn}
+              onPress={handleSave}
+              disabled={isSaving}
+              accessibilityLabel={t('common.save')}
+            >
+              {isSaving ? (
+                <ActivityIndicator size="small" color={DESIGN_TOKENS.colors.success} />
+              ) : (
+                <Feather name="check" size={16} color={DESIGN_TOKENS.colors.success} />
+              )}
+            </TouchableOpacity>
+          )}
+          <TouchableOpacity onPress={() => onRemove(goal.id)} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+            <Text style={styles.removeBtn}>✕</Text>
+          </TouchableOpacity>
+        </View>
       </View>
 
       <View style={styles.inputsRow}>
@@ -54,16 +101,30 @@ export function SetupGoalCard({ goal, onUpdate, onRemove }: SetupGoalCardProps) 
             {isOngoing ? t('goalModes.monthlyContribution') : t('common.target')}
           </Text>
           <AmountInput
-            value={goal.targetAmount ? String(goal.targetAmount) : ''}
+            value={
+              isOngoing
+                ? goal.enteredAmount !== undefined && goal.enteredAmount !== null
+                  ? String(goal.enteredAmount)
+                  : goal.monthlyAmount ? String(goal.monthlyAmount) : ''
+                : goal.targetAmount ? String(goal.targetAmount) : ''
+            }
             onChangeText={(val) => {
               const num = parseFloat(val) || 0;
-              onUpdate(goal.id, 'targetAmount', num);
-              onUpdate(goal.id, 'monthlyAmount', isOngoing ? num : Math.round(num / months));
+              if (isOngoing) {
+                onUpdate(goal.id, 'enteredAmount', num);
+                onUpdate(goal.id, 'monthlyAmount', num);
+                onUpdate(goal.id, 'targetAmount', num);
+              } else {
+                onUpdate(goal.id, 'targetAmount', num);
+                onUpdate(goal.id, 'monthlyAmount', Math.round(num / months));
+              }
             }}
           />
         </View>
         <View style={styles.guideBadge}>
-          <Text style={styles.guideText}>Est. ${estMonthly}/mo</Text>
+          <Text style={styles.guideText}>
+            {isOngoing ? `Est. $${goal.enteredAmount || goal.monthlyAmount || 0}${unitLabel}` : `Est. $${estMonthly}/mo`}
+          </Text>
         </View>
       </View>
     </View>
@@ -81,8 +142,15 @@ const styles = StyleSheet.create({
   },
   header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 },
   titleRow: { flexDirection: 'row', alignItems: 'center', gap: 8, flex: 1 },
+  titleTextWrap: { flex: 1 },
   icon: { fontSize: 18 },
   nameInput: { fontSize: 14, fontWeight: '700', color: DESIGN_TOKENS.colors.primary, flex: 1 },
+  actionsWrap: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  inlineSaveBtn: {
+    padding: 4,
+    borderRadius: 6,
+    backgroundColor: '#ECFDF5',
+  },
   removeBtn: { fontSize: 14, fontWeight: '700', color: DESIGN_TOKENS.colors.critical, paddingHorizontal: 4 },
   inputsRow: { flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between', gap: 12 },
   amountCol: { flex: 1 },

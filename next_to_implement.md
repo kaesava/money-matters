@@ -10,19 +10,30 @@
 * No hardcoding user-facing literals - use en.ts; re-use as much as possible within and across mobile and web apps, and cull un-used keys.
 
 # Web App
+* The amount field along with it's increase/decrease buttons sometimes hides other fields - example - Step 5 of 5 in the /setup - it overlaps with the "/mo" drop-down. Fix across the app. In fact, let's remove the increase/decrease buttons next on the amount field. Make the change centrally. Also, it should allow two decimal places for Australian dollars. Ensure currency symbol and default convention for that currency for number of decimal places and where commas are placed, is adhered to for the currencies supported. THis applies centrally across all currency fields.
 
-## Sign-In
-* I tried signing up but used an existing email address. It correctly redirected me to the Sign-In popup, but it didn't'
+## Setup
+### Step 2
+* 
+1,000.00
+Unbudgeted Buffer / Reserved Funds
+
+* Account name should be set when institution or accounttype changes based onexisting rules. can be overidden but must be set once those fields change
+* current bank edit (inplace) looks too busy, use two lines
+
+* When I clic "Add Bank Account" - it gives me an error: "[ { "code": "too_small", "minimum": 1, "type": "string", "inclusive": true, "exact": false, "message": "String must contain at least 1 character(s)", "path": [ "name" ] } ]"
+
+### Step 3
+* The tooltip (i) is not user-friendly - Remember the user can setup Goal envelopes to save for a goal by a certain date (like a holiday) or save frequently (for example, put away money for child's education). Also, the examples also don't reflect these two types - show examples from both and mark with a simple icon to show recurring or target date goal type. Re-design the UI to allow entry of both kinds of goals inline.  Keep the popular section. Re-think the UX to be easy and friction-free.
+* Don't show the "$250/mo guide".
+* There are too many icons - remove when not needed
+* As they enter goals, include an inline option between target date and recurring, and if target date, capture amount and date, and if recurring, capture amount, (I know the Add/Edit Goal modal is complex and allows capture of frequency, "every", etc. Find a way to simplify, but also get into that detail if needed - maybe we keep it fortnightly/monthly/custom and if custom, we re-use and popup the Edit Goal modal)?
+
+
 
 ## Envelopes
-* Hover over + new BILLS should say "Create new Bill envelope" and over new GOALS should say "Create new GOAL envelope"
 
 ## General - the below changes apply to the screens listed in the next section.
-* Important: Align mobile app functionality to web app (this includes required fields, branching logic, data retrieval/setting logic, calculation logic, and any functiona logic used). However, the UX for the mobile app must follow UX best practice, and must used every opportunity for reusable UX/UI so other screens have consistent look and feel. If there is significant capability gaps, check with me.
-* Actively look for opportunities to rationalise en.ts keys within and across the mobile & web apps. There is a lot of repetition that makes it hard to change terminology in one place. Iteratively identify rationalisation opportunities and apply them across web and mobile apps.
-* In the mobile app, all user-facing literals (this includes screen/modal names, headers, titles, sub-titles, descrtiptions, filter labels, button labels, drop-down text, pagination labels, tab names, placeholder text, error messages, warning messages, information, info tooltips, etc.) must be consistent with the corresponding web app UI and importantly, re-uses en.ts keys for like-for-like functionality across web and mobile app. Do not add keys unless certain that they are specific for mobile or web and cannot be re-used.
-* Agressively cull unused/redundant keys from en.ts. No hardcoding of literals.
-* Mobile app must re-use as much UX as possible, defining UI elements (like fields, calendars, sort/search filter settings, etc.) centrally and re-using - MECE. The UI (theme, colours, general look-and-feel) must be consistent.
 
 
 ## Screens that the previous section apply to:

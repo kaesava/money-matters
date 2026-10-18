@@ -5,7 +5,6 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { t } from '@money-matters/i18n';
 import { DESIGN_TOKENS, AmountInput, MobileGoalModeToggle } from '@money-matters/ui/mobile';
 import { useSetupWizard } from '../../context/SetupWizardContext';
-import { UserGoalItem } from '@money-matters/types';
 import { SetupGoalCard } from '../../components/setup/SetupGoalCard';
 import { getMobileLocaleConfig } from '../../lib/format';
 import { SetupProgressBar } from '../../components/setup/SetupProgressBar';
@@ -25,6 +24,9 @@ export default function SetupGoalsScreen() {
     availablePools,
     selectedSweepDest,
     setSelectedSweepDest,
+    dirtyGoalIds,
+    handleUpdateGoalField,
+    handleSaveGoalImmediate,
     handleRemoveGoal,
     confirmSweepAndRemove,
   } = useSetupWizard();
@@ -101,8 +103,25 @@ export default function SetupGoalsScreen() {
     setCustomTarget(customType === 'ONGOING' ? '250' : '5000');
   };
 
-  const handleUpdateGoal = (id: string, field: keyof UserGoalItem, val: string | number) => {
-    setGoals((prev) => prev.map((g) => (g.id === id ? { ...g, [field]: val } : g)));
+  const currentStep = isRerun ? 2 : 3;
+
+  const handleNext = async () => {
+    if (isRerun && dirtyGoalIds.size > 0) {
+      await Promise.all(Array.from(dirtyGoalIds).map((id) => handleSaveGoalImmediate(id)));
+    }
+    if (isRerun) {
+      router.push({ pathname: '/(setup)/categories', params: { mode: 'rerun' } });
+    } else {
+      router.push('/(setup)/lifestyle');
+    }
+  };
+
+  const handleBack = () => {
+    if (isRerun) {
+      router.push({ pathname: '/(setup)/income', params: { mode: 'rerun' } });
+    } else {
+      router.back();
+    }
   };
 
   return (
@@ -113,26 +132,52 @@ export default function SetupGoalsScreen() {
       ]}
       keyboardShouldPersistTaps="handled"
     >
-      <SetupProgressBar currentStep={3} totalSteps={totalSteps} isRerun={isRerun} />
+      <SetupProgressBar currentStep={currentStep} totalSteps={totalSteps} isRerun={isRerun} />
 
-      <Text style={styles.stepLabel}>{t('setup.stepOf', { step: 3, total: totalSteps })}</Text>
+      <Text style={styles.stepLabel}>{t('setup.stepOf', { step: currentStep, total: totalSteps })}</Text>
       <View style={styles.titleRow}>
         <Text style={styles.title}>{t('setup.goals.title')}</Text>
       </View>
 
+      {isRerun && goals.length > 0 && (
+        <View style={styles.rerunSection}>
+          <Text style={styles.sectionHeading}>
+            {t('setup.goals.yourSavingsGoals', { count: goals.length })}
+          </Text>
+          {goals.map((g) => (
+            <SetupGoalCard
+              key={g.id}
+              goal={g}
+              isRerun={isRerun}
+              isDirty={dirtyGoalIds.has(g.id)}
+              onUpdate={handleUpdateGoalField}
+              onRemove={handleRemoveGoal}
+              onSave={handleSaveGoalImmediate}
+            />
+          ))}
+        </View>
+      )}
+
       <SetupGoalsPresetsGrid onTogglePreset={togglePreset} isPresetActive={isPresetActive} />
 
-      <Text style={[styles.sectionHeading, styles.marginTop16]}>
-        {t('setup.goals.yourSavingsGoals', { count: goals.length })}
-      </Text>
-      {goals.map((g) => (
-        <SetupGoalCard
-          key={g.id}
-          goal={g}
-          onUpdate={handleUpdateGoal}
-          onRemove={handleRemoveGoal}
-        />
-      ))}
+      {!isRerun && (
+        <>
+          <Text style={[styles.sectionHeading, styles.marginTop16]}>
+            {t('setup.goals.yourSavingsGoals', { count: goals.length })}
+          </Text>
+          {goals.map((g) => (
+            <SetupGoalCard
+              key={g.id}
+              goal={g}
+              isRerun={isRerun}
+              isDirty={dirtyGoalIds.has(g.id)}
+              onUpdate={handleUpdateGoalField}
+              onRemove={handleRemoveGoal}
+              onSave={handleSaveGoalImmediate}
+            />
+          ))}
+        </>
+      )}
 
       <View style={styles.customBox}>
         <Text style={styles.customHeading}>{t('setup.goals.addCustomGoal')}</Text>
@@ -170,11 +215,13 @@ export default function SetupGoalsScreen() {
       </View>
 
       <View style={styles.actionRow}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
+        <TouchableOpacity onPress={handleBack} style={styles.backBtn}>
           <Text style={styles.backBtnText}>{t('setup.previousStep')}</Text>
         </TouchableOpacity>
-        <TouchableOpacity onPress={() => router.push('/(setup)/lifestyle')} style={styles.nextBtn}>
-          <Text style={styles.nextBtnText}>{t('common.next')} →</Text>
+        <TouchableOpacity onPress={handleNext} style={styles.nextBtn}>
+          <Text style={styles.nextBtnText}>
+            {isRerun ? t('common.next') : `${t('common.next')} →`}
+          </Text>
         </TouchableOpacity>
       </View>
 
@@ -198,6 +245,7 @@ const styles = StyleSheet.create({
   title: { fontSize: 20, fontWeight: '900', color: DESIGN_TOKENS.colors.primary },
   sectionHeading: { fontSize: 13, fontWeight: '700', color: DESIGN_TOKENS.colors.textPrimary, marginBottom: 8 },
   marginTop16: { marginTop: 16 },
+  rerunSection: { marginBottom: 16 },
   customBox: {
     backgroundColor: DESIGN_TOKENS.colors.surface,
     padding: 12,

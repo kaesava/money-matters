@@ -343,7 +343,6 @@ export const SaveSetupBudgetCommand = z.object({
   archivedEnvelopeIds: z.array(z.string()).default([]),
   archivedAccountIds: z.array(z.string()).default([]),
   archivedIncomeIds: z.array(z.string()).default([]),
-  autoCreateExpenseSchedules: z.boolean().default(true),
   autoCreateIncomeEvents: z.boolean().default(true),
 }).strict();
 

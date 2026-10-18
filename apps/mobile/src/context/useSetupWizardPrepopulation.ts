@@ -97,14 +97,14 @@ export function useSetupWizardPrepopulation({
   // Pre-populate existing categories/envelopes if in rerun mode
   useEffect(() => {
     if (!isRerun || !poolsQuery.data || poolsQuery.data.length === 0) return;
-    const billEnvelopes = poolsQuery.data.filter((p) => p.envelopeType === 'SCHEDULED_BILL' || p.envelopeType === 'FLEXIBLE_BILL');
+    const nonGoalEnvelopes = poolsQuery.data.filter((p) => p.envelopeType !== 'TARGET_GOAL' && p.envelopeType !== 'ONGOING_GOAL');
     setCustomCategories(
-      billEnvelopes.map((c) => ({
+      nonGoalEnvelopes.map((c) => ({
         id: c.id,
         name: c.name,
-        type: 'REGULAR' as const,
+        type: (c.envelopeType === 'EVERYDAY' ? 'EVERYDAY' : 'REGULAR') as 'REGULAR' | 'GOAL' | 'EVERYDAY',
         monthlyAud: parseFloat(c.monthlyAmount || c.targetAmount || '0'),
-        icon: 'pin',
+        icon: c.envelopeType === 'EVERYDAY' ? 'wallet' : 'pin',
       }))
     );
   }, [isRerun, poolsQuery.data, setCustomCategories]);

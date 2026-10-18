@@ -41,9 +41,9 @@ export function SetupReviewCustomCategoryForm({
           onChange={(e) => setCustomCatType(e.target.value as "REGULAR" | "GOAL" | "EVERYDAY")}
           className="px-2 py-2 text-xs font-bold rounded-xl border border-zinc-200 bg-slate-50"
         >
-          <option value="REGULAR">Regular Bill</option>
-          <option value="EVERYDAY">Everyday Spend</option>
-          <option value="GOAL">Savings Goal</option>
+          <option value="REGULAR">{t("setup.categories.typeRegular")}</option>
+          <option value="EVERYDAY">{t("setup.categories.typeEveryday")}</option>
+          <option value="GOAL">{t("setup.categories.typeGoal")}</option>
         </select>
         <div className="w-28">
           <AmountField

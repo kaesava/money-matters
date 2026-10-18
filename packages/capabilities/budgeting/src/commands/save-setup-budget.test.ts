@@ -115,34 +115,12 @@ describe("saveSetupBudgetHandler", () => {
     expect(updatedRows["tenants"][0].setupStatus).toBe("COMPLETED");
   });
 
-  it("skips automated bill schedule generation when opt-out toggle is false", async () => {
-    const mockDb = createMockDb();
-    const handler = saveSetupBudgetHandler(mockDb);
-
-    const result = await handler(
-      {
-        incomes: [{ name: "Salary", type: "SALARY", amount: "3200.00", frequency: "FORTNIGHTLY", incomeType: "SALARIED" }],
-        bankAccounts: [{ name: "Main", bankProvider: "CBA", lastKnownBalance: "1000.00", unbudgetedBuffer: "0.00", isPrivate: false }],
-        envelopes: [{ name: "Electricity", envelopeType: "SCHEDULED_BILL", monthlyAmount: "150.00", enteredAmount: "150.00", budgetFrequency: "MONTHLY", isSurplusTarget: false, isCommitted: false, isPrivate: false, orderIndex: 0 }],
-        archivedEnvelopeIds: [],
-        autoCreateExpenseSchedules: false,
-      },
-      appId,
-      userId,
-      tenantId
-    );
-
-    expect(result.success).toBe(true);
-    expect(result.persistedCounts.expenseSources).toBe(0);
-    expect(insertedRows["expense_events"]).toBeUndefined();
-  });
-
-  it("enforces Strict Add-Only during re-setup without duplicating or altering existing schedules", async () => {
+  it("synchronizes pending events when existing envelope amount changes and archives pending events for archived envelopes", async () => {
     const existingEnvId = "00000000-0000-0000-0000-000000000010";
 
     const mockDb = createMockDb({
       envelopes: [{ id: existingEnvId, name: "Electricity", envelopeType: "SCHEDULED_BILL", monthlyAmount: "150.00" }],
-      expenseSources: [{ id: "evt-1", envelopeId: existingEnvId }],
+      expenseSources: [{ id: "evt-1", envelopeId: existingEnvId, status: "PENDING" }],
     });
     const handler = saveSetupBudgetHandler(mockDb);
 
@@ -155,7 +133,6 @@ describe("saveSetupBudgetHandler", () => {
           { name: "Gas", envelopeType: "SCHEDULED_BILL", monthlyAmount: "60.00", enteredAmount: "60.00", budgetFrequency: "MONTHLY", isSurplusTarget: false, isCommitted: false, isPrivate: false, orderIndex: 1 },
         ],
         archivedEnvelopeIds: [],
-        autoCreateExpenseSchedules: true,
       },
       appId,
       userId,

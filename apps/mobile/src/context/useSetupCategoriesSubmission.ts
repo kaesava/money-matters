@@ -21,7 +21,6 @@ export function useSetupCategoriesSubmission() {
     categoryFrequencies,
     removedCategoryNames,
     sweepQueue,
-    autoCreateExpenseSchedules,
   } = useSetupWizard();
 
   const poolsQuery = trpc.listPools.useQuery();
@@ -40,17 +39,22 @@ export function useSetupCategoriesSubmission() {
         isPrivate: Boolean(acc.isPrivate),
       }));
 
+      const primaryBankAccountId = accountsPayload[0]?.id;
+      const existingPools = poolsQuery.data || [];
+
       const envelopesPayload = [
         ...activeCategories.map((c, idx) => {
           const rawFreq = categoryFrequencies[c.name];
           const budgetFreq: 'WEEKLY' | 'FORTNIGHTLY' | 'MONTHLY' | 'ANNUALLY' =
             rawFreq === 'YEARLY' ? 'ANNUALLY' : 'MONTHLY';
           const catId = 'id' in c && typeof c.id === 'string' && !c.id.startsWith('temp-') ? c.id : undefined;
+          const matchedPool = catId ? existingPools.find((p) => p.id === catId) : undefined;
           const isEveryday = c.type === 'EVERYDAY';
           const isBill = c.type === 'REGULAR';
           return {
             id: catId,
-            bankAccountId: accountsPayload[0]?.id,
+            bankAccountId: matchedPool?.bankAccountId || primaryBankAccountId,
+            isPrivate: matchedPool?.isPrivate ?? false,
             name: c.name,
             envelopeType: (isEveryday ? 'EVERYDAY' : isBill ? 'SCHEDULED_BILL' : 'TARGET_GOAL') as 'EVERYDAY' | 'SCHEDULED_BILL' | 'TARGET_GOAL',
             monthlyAmount: (c.monthlyAud || 0).toFixed(2),
@@ -61,26 +65,30 @@ export function useSetupCategoriesSubmission() {
             orderIndex: idx,
           };
         }),
-        ...goals.map((g, idx) => ({
-          id: g.id?.startsWith('g-') ? undefined : g.id,
-          bankAccountId: accountsPayload[0]?.id,
-          name: g.name,
-          envelopeType: (g.goalMode === 'ONGOING' ? 'ONGOING_GOAL' : 'TARGET_GOAL') as 'ONGOING_GOAL' | 'TARGET_GOAL',
-          goalMode: g.goalMode ?? (g.dueDate ? 'TARGET_DATE' : 'ONGOING'),
-          targetAmount: (g.goalMode === 'ONGOING'
-            ? g.monthlyAmount || g.targetAmount || 250
-            : g.targetAmount || g.monthlyAmount * 12 || 1000
-          ).toFixed(2),
-          targetDate: g.goalMode === 'ONGOING' ? null : g.dueDate || null,
-          enteredAmount: g.enteredAmount ? g.enteredAmount.toFixed(2) : undefined,
-          budgetFrequency: g.budgetFrequency,
-          startDate: g.startDate,
-          rrule: g.rrule,
-          isSurplusTarget: idx === 0,
-          isCommitted: true,
-          isPrivate: false,
-          orderIndex: activeCategories.length + idx,
-        })),
+        ...goals.map((g, idx) => {
+          const goalId = g.id?.startsWith('g-') ? undefined : g.id;
+          const matchedPool = goalId ? existingPools.find((p) => p.id === goalId) : undefined;
+          return {
+            id: goalId,
+            bankAccountId: matchedPool?.bankAccountId || primaryBankAccountId,
+            name: g.name,
+            envelopeType: (g.goalMode === 'ONGOING' ? 'ONGOING_GOAL' : 'TARGET_GOAL') as 'ONGOING_GOAL' | 'TARGET_GOAL',
+            goalMode: g.goalMode ?? (g.dueDate ? 'TARGET_DATE' : 'ONGOING'),
+            targetAmount: (g.goalMode === 'ONGOING'
+              ? g.monthlyAmount || g.targetAmount || 250
+              : g.targetAmount || g.monthlyAmount * 12 || 1000
+            ).toFixed(2),
+            targetDate: g.goalMode === 'ONGOING' ? null : g.dueDate || null,
+            enteredAmount: g.enteredAmount ? g.enteredAmount.toFixed(2) : undefined,
+            budgetFrequency: g.budgetFrequency,
+            startDate: g.startDate,
+            rrule: g.rrule,
+            isSurplusTarget: idx === 0,
+            isCommitted: true,
+            isPrivate: matchedPool?.isPrivate ?? false,
+            orderIndex: activeCategories.length + idx,
+          };
+        }),
       ];
 
       const incomesPayload = incomes.map((inc) => {
@@ -102,7 +110,7 @@ export function useSetupCategoriesSubmission() {
       });
 
       const resolvedArchivedEnvelopeIds = Array.from(removedCategoryNames)
-        .map((name) => (poolsQuery.data || []).find((c) => c.name === name)?.id)
+        .map((name) => existingPools.find((c) => c.name === name)?.id)
         .filter((id): id is string => Boolean(id));
 
       await saveSetupBudgetMut.mutateAsync({
@@ -116,7 +124,6 @@ export function useSetupCategoriesSubmission() {
         archivedEnvelopeIds: [...sweepQueue.map((s) => s.poolId), ...resolvedArchivedEnvelopeIds],
         archivedAccountIds: Array.from(archivedAccountIds),
         archivedIncomeIds: Array.from(archivedIncomeIds),
-        autoCreateExpenseSchedules,
       });
 
       if (isRerun) {

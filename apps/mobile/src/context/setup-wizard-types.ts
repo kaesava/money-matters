@@ -104,8 +104,12 @@ export interface SetupWizardContextValue {
   selectedSweepDest: string;
   setSelectedSweepDest: (id: string) => void;
   availablePools: Array<{ id: string; name: string; isSurplusTarget?: boolean | null }>;
-  handleRemoveGoal: (id: string) => void;
+  dirtyIncomeIds: Set<string>;
+  dirtyGoalIds: Set<string>;
+  handleUpdateIncomeField: <K extends keyof IncomeItem>(id: string, field: K, value: IncomeItem[K]) => void;
+  handleSaveIncomeImmediate: (id: string) => Promise<void>;
+  handleUpdateGoalField: (id: string, field: keyof UserGoalItem, value: string | number) => void;
+  handleSaveGoalImmediate: (id: string) => Promise<void>;
+  handleRemoveGoal: (id: string) => Promise<void>;
   confirmSweepAndRemove: () => void;
-  autoCreateExpenseSchedules: boolean;
-  setAutoCreateExpenseSchedules: React.Dispatch<React.SetStateAction<boolean>>;
 }

@@ -1,14 +1,18 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
 import { t } from "@money-matters/i18n";
-import { AmountField } from "@money-matters/ui/web";
+import { AmountField, ConfirmDialog } from "@money-matters/ui/web";
 import { UserGoalItem } from "./SetupGoalsStep";
+import { Check } from "lucide-react";
 
 interface SetupGoalItemRowProps {
   goal: UserGoalItem;
+  isRerun?: boolean;
+  isDirty?: boolean;
   onUpdateGoal: (id: string, field: keyof UserGoalItem, value: string | number) => void;
   onRemoveGoal: (id: string) => void;
+  onSaveGoal?: (id: string) => Promise<void>;
   onOpenCustomSchedule?: (goal: UserGoalItem) => void;
 }
 
@@ -20,15 +24,40 @@ function getMonthsDiff(targetDateStr?: string | null): number {
   return Math.max(1, months);
 }
 
+function getFrequencyUnitLabel(freq?: string | null): string {
+  if (freq === "WEEKLY") return "/wk";
+  if (freq === "FORTNIGHTLY") return "/fn";
+  if (freq === "ANNUALLY") return "/yr";
+  return "/mo";
+}
+
 export function SetupGoalItemRow({
   goal,
+  isRerun = false,
+  isDirty = false,
   onUpdateGoal,
   onRemoveGoal,
+  onSaveGoal,
   onOpenCustomSchedule,
 }: SetupGoalItemRowProps) {
+  const [showConfirm, setShowConfirm] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const isExisting = !goal.id.startsWith("g-");
+
   const isOngoing = goal.goalMode === "ONGOING";
   const months = isOngoing ? 1 : getMonthsDiff(goal.dueDate);
   const isPast = !isOngoing && goal.dueDate && new Date(goal.dueDate) < new Date(new Date().setHours(0, 0, 0, 0));
+  const unitLabel = getFrequencyUnitLabel(goal.budgetFrequency);
+
+  const handleSave = async () => {
+    if (!onSaveGoal) return;
+    setIsSaving(true);
+    try {
+      await onSaveGoal(goal.id);
+    } finally {
+      setIsSaving(false);
+    }
+  };
 
   return (
     <div className="p-3 bg-white rounded-xl border border-zinc-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xs">
@@ -56,16 +85,31 @@ export function SetupGoalItemRow({
       </div>
 
       <div className="flex flex-wrap items-center gap-3 self-end sm:self-auto">
+        {isRerun && isExisting && isDirty && (
+          <button
+            type="button"
+            onClick={handleSave}
+            disabled={isSaving}
+            aria-label={t("common.save")}
+            className="p-1 rounded-md bg-emerald-50 text-emerald-600 hover:bg-emerald-100 transition-colors cursor-pointer"
+          >
+            <Check className="w-3.5 h-3.5 stroke-[3]" />
+          </button>
+        )}
+
         <div className="w-36">
           <AmountField
             value={
               isOngoing
-                ? goal.monthlyAmount ? String(goal.monthlyAmount) : ""
+                ? goal.enteredAmount !== undefined && goal.enteredAmount !== null
+                  ? String(goal.enteredAmount)
+                  : goal.monthlyAmount ? String(goal.monthlyAmount) : ""
                 : goal.targetAmount ? String(goal.targetAmount) : ""
             }
             onChange={(val) => {
               const num = parseFloat(val) || 0;
               if (isOngoing) {
+                onUpdateGoal(goal.id, "enteredAmount", num);
                 onUpdateGoal(goal.id, "monthlyAmount", num);
                 onUpdateGoal(goal.id, "targetAmount", num);
               } else {
@@ -94,8 +138,8 @@ export function SetupGoalItemRow({
             />
           </div>
         ) : (
-          <span className="text-[11px] font-bold text-blue-700 bg-blue-50 px-2 py-1 rounded-md border border-blue-200/60">
-            {t("categories.frequencyMonthly")}
+          <span className="text-[11px] font-bold text-blue-700 bg-blue-50 px-2 py-1 rounded-md border border-blue-200/60 font-mono">
+            {unitLabel}
           </span>
         )}
 
@@ -111,12 +155,31 @@ export function SetupGoalItemRow({
 
         <button
           type="button"
-          onClick={() => onRemoveGoal(goal.id)}
+          onClick={() => {
+            if (isRerun && isExisting) {
+              onRemoveGoal(goal.id);
+            } else {
+              onRemoveGoal(goal.id);
+            }
+          }}
           className="text-xs text-red-500 font-bold hover:text-red-700 p-1 cursor-pointer"
         >
           ✕
         </button>
       </div>
+
+      <ConfirmDialog
+        isOpen={showConfirm}
+        onClose={() => setShowConfirm(false)}
+        onConfirm={() => {
+          setShowConfirm(false);
+          onRemoveGoal(goal.id);
+        }}
+        title={t("categories.archivePool")}
+        description={t("categories.archivePoolConfirm", { name: goal.name })}
+        confirmLabel={t("common.archive")}
+        variant="danger"
+      />
     </div>
   );
 }
