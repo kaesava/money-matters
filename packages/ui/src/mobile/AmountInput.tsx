@@ -75,20 +75,28 @@ export const AmountInputBase = (
 ) => {
   let isFocused = false;
   let setIsFocused: (v: boolean) => void = () => {};
+  let localEditingText: string | null = null;
+  let setLocalEditingText: (v: string | null) => void = () => {};
   try {
-    const hookState = useState(false);
-    isFocused = hookState[0];
-    setIsFocused = hookState[1];
+    const focusState = useState(false);
+    isFocused = focusState[0];
+    setIsFocused = focusState[1];
+    const textState = useState<string | null>(null);
+    localEditingText = textState[0];
+    setLocalEditingText = textState[1];
   } catch {
     // Safe fallback when invoked directly outside of React render tree in unit tests
   }
 
   const handleChange = (raw: string) => {
-    onChangeText(cleanMobileAmount(raw, minorUnits));
+    const cleaned = cleanMobileAmount(raw, minorUnits);
+    setLocalEditingText(cleaned);
+    onChangeText(cleaned);
   };
 
   const handleBlur = (e: NativeSyntheticEvent<TargetedEvent>) => {
     setIsFocused(false);
+    setLocalEditingText(null);
     if (value && !isNaN(parseFloat(value))) {
       onChangeText(parseFloat(value).toFixed(minorUnits));
     }
@@ -97,10 +105,12 @@ export const AmountInputBase = (
 
   const handleFocus = (e: NativeSyntheticEvent<TargetedEvent>) => {
     setIsFocused(true);
+    setLocalEditingText(value);
     onFocus?.(e);
   };
 
-  const displayValue = isFocused ? value : formatAmountNumber(value, locale, minorUnits);
+  const activeText = isFocused ? (localEditingText ?? value) : value;
+  const displayValue = isFocused ? activeText : formatAmountNumber(activeText, locale, minorUnits);
 
   return (
     <View style={[styles.wrapper, containerStyle]}>

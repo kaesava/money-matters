@@ -115,6 +115,7 @@ export const AmountField = React.forwardRef<HTMLInputElement, AmountFieldProps>(
     const generatedId = useId();
     const inputId = id ?? name ?? generatedId;
     const [isFocused, setIsFocused] = useState(false);
+    const [localEditingText, setLocalEditingText] = useState<string | null>(null);
 
     const effectiveMinorUnits =
       minorUnits !== undefined ? minorUnits : getCurrencyMinorUnits(currency);
@@ -128,11 +129,14 @@ export const AmountField = React.forwardRef<HTMLInputElement, AmountFieldProps>(
     );
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-      onChange(sanitise(e.target.value));
+      const cleaned = sanitise(e.target.value);
+      setLocalEditingText(cleaned);
+      onChange(cleaned);
     };
 
     const handleBlur = () => {
       setIsFocused(false);
+      setLocalEditingText(null);
       if (value !== '' && value !== '-') {
         const num = parseFloat(value);
         if (!isNaN(num)) {
@@ -147,12 +151,14 @@ export const AmountField = React.forwardRef<HTMLInputElement, AmountFieldProps>(
 
     const handleFocus = (e: React.FocusEvent<HTMLInputElement>) => {
       setIsFocused(true);
+      setLocalEditingText(value);
       onFocus?.(e);
       e.target.select();
     };
 
     const isNegative = allowNegative && parseFloat(value) < 0;
-    const displayValue = isFocused ? value : formatAmountNumber(value, locale, effectiveMinorUnits);
+    const activeText = isFocused ? (localEditingText ?? value) : value;
+    const displayValue = isFocused ? activeText : formatAmountNumber(activeText, locale, effectiveMinorUnits);
 
     return (
       <div className={`w-full ${containerClassName}`}>
