@@ -260,6 +260,15 @@ export const GetSpendingAnalyticsQuery = z.object({
 }).strict();
 export type GetSpendingAnalyticsQuery = z.infer<typeof GetSpendingAnalyticsQuery>;
 
+export const GetIncomeSplitAnalyticsQuerySchema = z.object({
+  timeframe: SpendingTimeframeEnum.default("90D"),
+  bankAccountId: z.string().optional(),
+  searchQuery: z.string().optional(),
+  envelopeId: z.string().optional(),
+}).strict();
+export type GetIncomeSplitAnalyticsQuery = z.infer<typeof GetIncomeSplitAnalyticsQuerySchema>;
+
+
 export const HorizonBreakdownDTOSchema = z.object({
   everyday: z.number(),
   bills: z.number(),
@@ -314,6 +323,10 @@ export const SpendingAnalyticsDTOSchema = z.object({
   isTransferOnly: z.boolean().default(false),
 }).strict();
 export type SpendingAnalyticsDTO = z.infer<typeof SpendingAnalyticsDTOSchema>;
+
+export const IncomeSplitAnalyticsDTOSchema = SpendingAnalyticsDTOSchema;
+export type IncomeSplitAnalyticsDTO = SpendingAnalyticsDTO;
+
 
 /**
  * Sub-schema for an upcoming bill item shown in affordability simulation breakdowns.

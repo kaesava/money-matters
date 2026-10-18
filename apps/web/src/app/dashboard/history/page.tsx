@@ -225,11 +225,21 @@ function TransactionsPageContent() {
 
   // Payday Allocations / Income Splits Table State
   const [planSearchQuery, setPlanSearchQuery] = useState("");
+  const [debouncedPlanSearchQuery, setDebouncedPlanSearchQuery] = useState(planSearchQuery);
+  const [planTimeframe, setPlanTimeframe] = useState<SpendingTimeframe>("90D");
   const [selectedBankFilter, setSelectedBankFilter] = useState("ALL");
   const [planSortColumn, setPlanSortColumn] = useState<"createdAt" | "expectedDate" | "incomeName" | "receivingAccount" | "amount">("createdAt");
   const [planSortDirection, setPlanSortDirection] = useState<"asc" | "desc">("desc");
   const [planPage, setPlanPage] = useState(1);
   const [planPageSize, setPlanPageSize] = useState(25);
+
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedPlanSearchQuery(planSearchQuery);
+    }, 300);
+    return () => clearTimeout(handler);
+  }, [planSearchQuery]);
+
 
   const { widths: planWidths, onMouseDown: onPlanMouseDown } = useResizableColumns({
     splitDate: 140,
@@ -247,6 +257,40 @@ function TransactionsPageContent() {
   const uniqueBankAccounts = useMemo(() => {
     return bankAccounts.map((b: { name: string }) => b.name);
   }, [bankAccounts]);
+
+  const activePlanBankAccountId = useMemo(() => {
+    if (selectedBankFilter !== "ALL") {
+      return bankAccounts.find((b: { name: string; id: string }) => b.name === selectedBankFilter)?.id;
+    }
+    return bankAccountIdParam || undefined;
+  }, [selectedBankFilter, bankAccounts, bankAccountIdParam]);
+
+  const incomeSplitAnalyticsQuery = trpc.getIncomeSplitAnalytics.useQuery(
+    {
+      timeframe: planTimeframe,
+      bankAccountId: activePlanBankAccountId,
+      searchQuery: debouncedPlanSearchQuery.trim().length >= 2 ? debouncedPlanSearchQuery.trim() : undefined,
+    },
+    { enabled: activeTab === "payday-allocations" }
+  );
+
+  const incomeSplitLabels = useMemo(() => ({
+    overviewTitle: t("transactions.reporting.incomeSplits.overviewTitle"),
+    overviewSubtitle: t("transactions.reporting.incomeSplits.overviewSubtitle"),
+    filteredOverviewTitle: t("transactions.reporting.incomeSplits.filteredOverviewTitle"),
+    filteredOverviewSubtitle: t("transactions.reporting.incomeSplits.filteredOverviewSubtitle"),
+    donutTitle: t("transactions.reporting.incomeSplits.donutTitle"),
+    filteredDonutTitle: t("transactions.reporting.incomeSplits.filteredDonutTitle"),
+    cashFlowTitle: t("transactions.reporting.incomeSplits.cashFlowTitle"),
+    filteredCashFlowTitle: t("transactions.reporting.incomeSplits.filteredCashFlowTitle"),
+    topPoolsTitle: t("transactions.reporting.incomeSplits.topPoolsTitle"),
+    filteredTopPoolsTitle: t("transactions.reporting.incomeSplits.filteredTopPoolsTitle"),
+    inflowLegend: t("transactions.reporting.incomeSplits.inflow"),
+    outflowLegend: t("transactions.reporting.incomeSplits.sweepOutflow"),
+    centerLabel: t("transactions.reporting.incomeSplits.totalAllocated"),
+    emptyText: t("transactions.reporting.incomeSplits.empty"),
+  }), []);
+
 
   const filteredPaydayPlans = useMemo(() => {
     return paydayPlans.filter((plan) => {
@@ -576,6 +620,17 @@ function TransactionsPageContent() {
       {/* Tab 2: Payday Waterfall Allocation History */}
       {activeTab === "payday-allocations" && (
         <div className="space-y-6">
+          {/* Income Splits Reporting Visualizations */}
+          <SpendingOverviewCard
+            analytics={incomeSplitAnalyticsQuery.data}
+            isLoading={incomeSplitAnalyticsQuery.isLoading}
+            timeframe={planTimeframe}
+            onTimeframeChange={setPlanTimeframe}
+            formatCurrency={(amt) => fmt(amt)}
+            labels={incomeSplitLabels}
+            showPayeesWhenFiltered={false}
+          />
+
           {/* Controls Bar */}
           <div className="flex flex-col sm:flex-row items-center justify-between gap-3 p-3 bg-slate-50 border border-zinc-200/80 rounded-2xl">
             <div className="flex flex-col sm:flex-row items-center gap-3 flex-1 w-full">

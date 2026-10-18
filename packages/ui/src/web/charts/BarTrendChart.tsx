@@ -7,18 +7,24 @@ interface BarTrendChartProps {
   data: MonthlyCashFlowPointDTO[];
   formatCurrency: (amount: number) => string;
   isFiltered?: boolean;
+  inflowLabel?: string;
+  outflowLabel?: string;
+  emptyText?: string;
 }
 
 export function BarTrendChart({
   data,
   formatCurrency,
   isFiltered = false,
+  inflowLabel,
+  outflowLabel,
+  emptyText,
 }: BarTrendChartProps) {
   if (data.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center p-6 text-center h-56">
         <p className="text-xs text-slate-400 font-medium">
-          {t("transactions.reporting.cashFlow.empty")}
+          {emptyText || t("transactions.reporting.cashFlow.empty")}
         </p>
       </div>
     );
@@ -41,11 +47,17 @@ export function BarTrendChart({
             isCompact={isCompact}
             isFiltered={isFiltered}
             formatCurrency={formatCurrency}
+            inflowLabel={inflowLabel}
+            outflowLabel={outflowLabel}
           />
         ))}
       </div>
 
-      <ChartLegend isFiltered={isFiltered} />
+      <ChartLegend
+        isFiltered={isFiltered}
+        inflowLabel={inflowLabel}
+        outflowLabel={outflowLabel}
+      />
     </div>
   );
 }
@@ -56,6 +68,8 @@ interface BarPointItemProps {
   isCompact: boolean;
   isFiltered: boolean;
   formatCurrency: (amount: number) => string;
+  inflowLabel?: string;
+  outflowLabel?: string;
 }
 
 function BarPointItem({
@@ -64,16 +78,20 @@ function BarPointItem({
   isCompact,
   isFiltered,
   formatCurrency,
+  inflowLabel,
+  outflowLabel,
 }: BarPointItemProps) {
   const inPct = Math.round((point.income / maxVal) * 100);
   const outPct = Math.round((point.outflow / maxVal) * 100);
+  const inTitle = `${inflowLabel || t("transactions.reporting.cashFlow.inflow")}: ${formatCurrency(point.income)}`;
+  const outTitle = `${isFiltered ? t("transactions.reporting.donut.thisFilter") : (outflowLabel || t("transactions.reporting.cashFlow.outflow"))}: ${formatCurrency(point.outflow)}`;
 
   return (
     <div className="flex-1 flex flex-col items-center min-w-[20px] max-w-[55px]">
       <div className="w-full flex items-end justify-center gap-0.5 sm:gap-1 h-28">
         {!isFiltered && (
           <div
-            title={`${t("transactions.reporting.cashFlow.inflow")}: ${formatCurrency(point.income)}`}
+            title={inTitle}
             style={{
               height: `${Math.max(inPct, 4)}%`,
               backgroundColor: DESIGN_TOKENS.colors.success,
@@ -82,7 +100,7 @@ function BarPointItem({
           />
         )}
         <div
-          title={`${isFiltered ? t("transactions.reporting.donut.thisFilter") : t("transactions.reporting.cashFlow.outflow")}: ${formatCurrency(point.outflow)}`}
+          title={outTitle}
           style={{
             height: `${Math.max(outPct, 4)}%`,
             backgroundColor: DESIGN_TOKENS.colors.primary,
@@ -97,7 +115,15 @@ function BarPointItem({
   );
 }
 
-function ChartLegend({ isFiltered }: { isFiltered: boolean }) {
+function ChartLegend({
+  isFiltered,
+  inflowLabel,
+  outflowLabel,
+}: {
+  isFiltered: boolean;
+  inflowLabel?: string;
+  outflowLabel?: string;
+}) {
   if (isFiltered) {
     return (
       <div className="w-full mt-3 flex items-center justify-center gap-4 text-xs">
@@ -113,12 +139,13 @@ function ChartLegend({ isFiltered }: { isFiltered: boolean }) {
     <div className="w-full mt-3 flex items-center justify-center gap-4 text-xs">
       <div className="flex items-center gap-1.5">
         <span className="w-2.5 h-2.5 rounded-xs bg-[#22c55e]" />
-        <span className="text-slate-600 font-medium">{t("transactions.reporting.cashFlow.inflow")}</span>
+        <span className="text-slate-600 font-medium">{inflowLabel || t("transactions.reporting.cashFlow.inflow")}</span>
       </div>
       <div className="flex items-center gap-1.5">
         <span className="w-2.5 h-2.5 rounded-xs bg-[#2563eb]" />
-        <span className="text-slate-600 font-medium">{t("transactions.reporting.cashFlow.outflow")}</span>
+        <span className="text-slate-600 font-medium">{outflowLabel || t("transactions.reporting.cashFlow.outflow")}</span>
       </div>
     </div>
   );
 }
+

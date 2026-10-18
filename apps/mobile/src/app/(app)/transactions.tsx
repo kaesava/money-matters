@@ -55,7 +55,9 @@ export default function TransactionsScreen() {
   const [planPage, setPlanPage] = useState(1);
   const [planPageSize, setPlanPageSize] = useState(15);
   const [timeframe, setTimeframe] = useState<SpendingTimeframe>('90D');
+  const [planTimeframe, setPlanTimeframe] = useState<SpendingTimeframe>('90D');
   const [debouncedSearchQuery, setDebouncedSearchQuery] = useState(searchQuery);
+  const [debouncedPlanSearchQuery, setDebouncedPlanSearchQuery] = useState(planSearchQuery);
 
   React.useEffect(() => {
     const handler = setTimeout(() => {
@@ -63,6 +65,13 @@ export default function TransactionsScreen() {
     }, 300);
     return () => clearTimeout(handler);
   }, [searchQuery]);
+
+  React.useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedPlanSearchQuery(planSearchQuery);
+    }, 300);
+    return () => clearTimeout(handler);
+  }, [planSearchQuery]);
 
   const transactionsQuery = trpc.listTransactions.useQuery(
     { limit: 500 },
@@ -77,6 +86,14 @@ export default function TransactionsScreen() {
       flowType: flowFilter,
     },
     { enabled: !!session?.user && activeTab === 'LEDGER' }
+  );
+  const incomeSplitAnalyticsQuery = trpc.getIncomeSplitAnalytics.useQuery(
+    {
+      timeframe: planTimeframe,
+      bankAccountId: selectedPlanBankId !== 'ALL' ? selectedPlanBankId : undefined,
+      searchQuery: debouncedPlanSearchQuery.trim().length >= 2 ? debouncedPlanSearchQuery.trim() : undefined,
+    },
+    { enabled: !!session?.user && activeTab === 'PAYDAYS' }
   );
   const poolsQuery = trpc.listPools.useQuery(undefined, { enabled: !!session?.user });
   const bankAccountsQuery = trpc.listBankAccounts.useQuery(undefined, {
@@ -97,6 +114,7 @@ export default function TransactionsScreen() {
     await Promise.all([
       transactionsQuery.refetch(),
       spendingAnalyticsQuery.refetch(),
+      incomeSplitAnalyticsQuery.refetch(),
       poolsQuery.refetch(),
       bankAccountsQuery.refetch(),
       allPlansQuery.refetch(),
@@ -199,6 +217,10 @@ export default function TransactionsScreen() {
             onPageSizeChange={setPlanPageSize}
             bankAccounts={bankAccounts}
             onExportCsv={() => exportPlansCsv(sortedPlans)}
+            incomeSplitAnalytics={incomeSplitAnalyticsQuery.data}
+            isAnalyticsLoading={incomeSplitAnalyticsQuery.isLoading}
+            timeframe={planTimeframe}
+            onTimeframeChange={setPlanTimeframe}
           />
         )}
       </View>

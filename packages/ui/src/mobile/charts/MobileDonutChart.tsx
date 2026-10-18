@@ -10,6 +10,8 @@ interface MobileDonutChartProps {
   formatCurrency: (amount: number) => string;
   isFiltered?: boolean;
   filteredSharePercentage?: number;
+  centerLabel?: string;
+  emptyText?: string;
 }
 
 export function MobileDonutChart({
@@ -17,6 +19,8 @@ export function MobileDonutChart({
   formatCurrency,
   isFiltered = false,
   filteredSharePercentage = 100,
+  centerLabel,
+  emptyText,
 }: MobileDonutChartProps) {
   const radius = 38;
   const circumference = 2 * Math.PI * radius; // ~238.76
@@ -24,7 +28,9 @@ export function MobileDonutChart({
   if (data.totalOutflow <= 0) {
     return (
       <View style={styles.emptyContainer}>
-        <Text style={styles.emptyText}>{t('transactions.reporting.donut.empty')}</Text>
+        <Text style={styles.emptyText}>
+          {emptyText || t('transactions.reporting.donut.empty')}
+        </Text>
       </View>
     );
   }
@@ -47,6 +53,7 @@ export function MobileDonutChart({
       circumference={circumference}
       data={data}
       formatCurrency={formatCurrency}
+      centerLabel={centerLabel}
     />
   );
 }
@@ -116,11 +123,13 @@ function MacroMobileDonutView({
   circumference,
   data,
   formatCurrency,
+  centerLabel,
 }: {
   radius: number;
   circumference: number;
   data: HorizonBreakdownDTO;
   formatCurrency: (amount: number) => string;
+  centerLabel?: string;
 }) {
   const pEveryday = data.percentages.everyday / 100;
   const pBills = data.percentages.bills / 100;
@@ -182,7 +191,9 @@ function MacroMobileDonutView({
           </G>
         </Svg>
         <View style={styles.centerTextOverlay}>
-          <Text style={styles.centerSubtitle}>{t('transactions.reporting.donut.totalOutflow')}</Text>
+          <Text style={styles.centerSubtitle}>
+            {centerLabel || t('transactions.reporting.donut.totalOutflow')}
+          </Text>
           <Text style={styles.centerAmount}>{formatCurrency(data.totalOutflow)}</Text>
         </View>
       </View>

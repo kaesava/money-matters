@@ -10,12 +10,14 @@ import {
   bulkDeleteEventsCommand,
   deleteUpcomingEventCommand,
   resetAllocationPlanCommand,
+  getIncomeSplitAnalyticsQuery,
 } from "@money-matters/capability-budgeting";
 import {
   OverrideEventCommand,
   DeleteUpcomingEventCommand,
   BulkDeleteEventsCommand,
   ConfirmPaydayCommand,
+  GetIncomeSplitAnalyticsQuerySchema,
 } from "@money-matters/types";
 import { z } from 'zod';
 
@@ -200,6 +202,18 @@ export const paydayRouter = {
           })),
       }));
     }),
+
+  getIncomeSplitAnalytics: privateTenantProcedure
+    .input(GetIncomeSplitAnalyticsQuerySchema)
+    .query(async ({ input, ctx }) => {
+      return await getIncomeSplitAnalyticsQuery(
+        ctx.tenantId!,
+        ctx.appId!,
+        input,
+        ctx.db
+      );
+    }),
+
 
   saveBulkAllocations: privateTenantProcedure
     .input(

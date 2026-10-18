@@ -6,8 +6,10 @@ import {
   SkeletonCard,
   MobileFilterSheet,
   MobileBankPicker,
+  MobileSpendingOverviewCard,
   DESIGN_TOKENS,
 } from '@money-matters/ui/mobile';
+import { IncomeSplitAnalyticsDTO, SpendingTimeframe } from '@money-matters/types';
 import { t } from '@money-matters/i18n';
 import {
   MobilePaydayAllocationDetailModal,
@@ -37,6 +39,10 @@ interface IncomeSplitsTabProps {
   onPageSizeChange: (s: number) => void;
   bankAccounts: Array<{ id: string; name: string }>;
   onExportCsv: () => void;
+  incomeSplitAnalytics?: IncomeSplitAnalyticsDTO;
+  isAnalyticsLoading?: boolean;
+  timeframe: SpendingTimeframe;
+  onTimeframeChange: (timeframe: SpendingTimeframe) => void;
 }
 
 export function IncomeSplitsTab({
@@ -58,6 +64,10 @@ export function IncomeSplitsTab({
   onPageSizeChange,
   bankAccounts,
   onExportCsv,
+  incomeSplitAnalytics,
+  isAnalyticsLoading = false,
+  timeframe,
+  onTimeframeChange,
 }: IncomeSplitsTabProps) {
   const [filterSheetVisible, setFilterSheetVisible] = useState(false);
   const [selectedPlan, setSelectedPlan] = useState<MobilePaydayAllocationRecord | null>(null);
@@ -66,8 +76,39 @@ export function IncomeSplitsTab({
   const totalPages = Math.ceil(plans.length / pageSize) || 1;
   const paginatedPlans = plans.slice((page - 1) * pageSize, page * pageSize);
 
+  const incomeSplitLabels = {
+    overviewTitle: t('transactions.reporting.incomeSplits.overviewTitle'),
+    overviewSubtitle: t('transactions.reporting.incomeSplits.overviewSubtitle'),
+    filteredOverviewTitle: t('transactions.reporting.incomeSplits.filteredOverviewTitle'),
+    filteredOverviewSubtitle: t('transactions.reporting.incomeSplits.filteredOverviewSubtitle'),
+    donutTitle: t('transactions.reporting.incomeSplits.donutTitle'),
+    filteredDonutTitle: t('transactions.reporting.incomeSplits.filteredDonutTitle'),
+    cashFlowTitle: t('transactions.reporting.incomeSplits.cashFlowTitle'),
+    filteredCashFlowTitle: t('transactions.reporting.incomeSplits.filteredCashFlowTitle'),
+    topPoolsTitle: t('transactions.reporting.incomeSplits.topPoolsTitle'),
+    filteredTopPoolsTitle: t('transactions.reporting.incomeSplits.filteredTopPoolsTitle'),
+    inflowLegend: t('transactions.reporting.incomeSplits.inflow'),
+    outflowLegend: t('transactions.reporting.incomeSplits.sweepOutflow'),
+    centerLabel: t('transactions.reporting.incomeSplits.totalAllocated'),
+    emptyText: t('transactions.reporting.incomeSplits.empty'),
+    tabHorizon: t('transactions.reporting.incomeSplits.tabHorizon'),
+    tabCashFlow: t('transactions.reporting.incomeSplits.tabSweep'),
+    tabTopPools: t('transactions.reporting.incomeSplits.tabTopPools'),
+  };
+
   return (
     <View style={styles.container}>
+      {/* Income Splits Reporting Visualizations */}
+      <MobileSpendingOverviewCard
+        analytics={incomeSplitAnalytics}
+        isLoading={isAnalyticsLoading}
+        timeframe={timeframe}
+        onTimeframeChange={onTimeframeChange}
+        formatCurrency={(amt) => `$${amt.toFixed(2)}`}
+        labels={incomeSplitLabels}
+        showPayeesWhenFiltered={false}
+      />
+
       {/* Search & Filter Header */}
       <IncomeSplitsHeaderControls
         searchQuery={searchQuery}

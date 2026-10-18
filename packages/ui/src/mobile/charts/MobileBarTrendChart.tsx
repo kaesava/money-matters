@@ -8,18 +8,26 @@ interface MobileBarTrendChartProps {
   data: MonthlyCashFlowPointDTO[];
   formatCurrency: (amount: number) => string;
   isFiltered?: boolean;
+  inflowLabel?: string;
+  outflowLabel?: string;
+  emptyText?: string;
 }
 
 export function MobileBarTrendChart({
   data,
   isFiltered = false,
+  inflowLabel,
+  outflowLabel,
+  emptyText,
 }: MobileBarTrendChartProps) {
   const scrollRef = useRef<ScrollView>(null);
 
   if (data.length === 0) {
     return (
       <View style={styles.emptyContainer}>
-        <Text style={styles.emptyText}>{t('transactions.reporting.cashFlow.empty')}</Text>
+        <Text style={styles.emptyText}>
+          {emptyText || t('transactions.reporting.cashFlow.empty')}
+        </Text>
       </View>
     );
   }
@@ -54,7 +62,11 @@ export function MobileBarTrendChart({
         </View>
       </ScrollView>
 
-      <MobileChartLegend isFiltered={isFiltered} />
+      <MobileChartLegend
+        isFiltered={isFiltered}
+        inflowLabel={inflowLabel}
+        outflowLabel={outflowLabel}
+      />
     </View>
   );
 }
@@ -100,7 +112,15 @@ function MobileBarPointItem({
   );
 }
 
-function MobileChartLegend({ isFiltered }: { isFiltered: boolean }) {
+function MobileChartLegend({
+  isFiltered,
+  inflowLabel,
+  outflowLabel,
+}: {
+  isFiltered: boolean;
+  inflowLabel?: string;
+  outflowLabel?: string;
+}) {
   if (isFiltered) {
     return (
       <View style={styles.legend}>
@@ -116,11 +136,11 @@ function MobileChartLegend({ isFiltered }: { isFiltered: boolean }) {
     <View style={styles.legend}>
       <View style={styles.legendItem}>
         <View style={[styles.dot, { backgroundColor: DESIGN_TOKENS.colors.success }]} />
-        <Text style={styles.legendText}>{t('transactions.reporting.cashFlow.inflow')}</Text>
+        <Text style={styles.legendText}>{inflowLabel || t('transactions.reporting.cashFlow.inflow')}</Text>
       </View>
       <View style={styles.legendItem}>
         <View style={[styles.dot, { backgroundColor: DESIGN_TOKENS.colors.primary }]} />
-        <Text style={styles.legendText}>{t('transactions.reporting.cashFlow.outflow')}</Text>
+        <Text style={styles.legendText}>{outflowLabel || t('transactions.reporting.cashFlow.outflow')}</Text>
       </View>
     </View>
   );

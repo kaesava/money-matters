@@ -8,12 +8,31 @@ import { HorizontalRankedBarChart } from "./HorizontalRankedBarChart";
 import { t } from "@money-matters/i18n";
 import { ChevronDown, ChevronUp, BarChart3, Info } from "lucide-react";
 
+export interface SpendingOverviewCardLabels {
+  overviewTitle?: string;
+  overviewSubtitle?: string;
+  filteredOverviewTitle?: string;
+  filteredOverviewSubtitle?: string;
+  donutTitle?: string;
+  filteredDonutTitle?: string;
+  cashFlowTitle?: string;
+  filteredCashFlowTitle?: string;
+  topPoolsTitle?: string;
+  filteredTopPoolsTitle?: string;
+  centerLabel?: string;
+  inflowLegend?: string;
+  outflowLegend?: string;
+  emptyText?: string;
+}
+
 interface SpendingOverviewCardProps {
   analytics: SpendingAnalyticsDTO | undefined;
   isLoading: boolean;
   timeframe: SpendingTimeframe;
   onTimeframeChange: (timeframe: SpendingTimeframe) => void;
   formatCurrency: (amount: number) => string;
+  labels?: SpendingOverviewCardLabels;
+  showPayeesWhenFiltered?: boolean;
 }
 
 export function SpendingOverviewCard({
@@ -22,6 +41,8 @@ export function SpendingOverviewCard({
   timeframe,
   onTimeframeChange,
   formatCurrency,
+  labels,
+  showPayeesWhenFiltered = true,
 }: SpendingOverviewCardProps) {
   const [isExpanded, setIsExpanded] = useState(true);
 
@@ -44,13 +65,13 @@ export function SpendingOverviewCard({
           <div>
             <h2 className="text-sm font-bold text-slate-800">
               {isFiltered
-                ? t("transactions.reporting.filteredOverviewTitle")
-                : t("transactions.reporting.overviewTitle")}
+                ? (labels?.filteredOverviewTitle || t("transactions.reporting.filteredOverviewTitle"))
+                : (labels?.overviewTitle || t("transactions.reporting.overviewTitle"))}
             </h2>
             <p className="text-[11px] text-slate-500 font-medium">
               {isFiltered
-                ? t("transactions.reporting.filteredOverviewSubtitle")
-                : t("transactions.reporting.overviewSubtitle")}
+                ? (labels?.filteredOverviewSubtitle || t("transactions.reporting.filteredOverviewSubtitle"))
+                : (labels?.overviewSubtitle || t("transactions.reporting.overviewSubtitle"))}
             </p>
           </div>
         </div>
@@ -110,7 +131,7 @@ export function SpendingOverviewCard({
             </div>
           ) : !analytics || analytics.isEmpty ? (
             <div className="py-12 text-center text-slate-400 text-xs font-semibold">
-              {t("transactions.reporting.donut.empty")}
+              {labels?.emptyText || t("transactions.reporting.donut.empty")}
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -118,14 +139,16 @@ export function SpendingOverviewCard({
               <div className="bg-slate-50/50 p-4 rounded-xl border border-slate-100 flex flex-col">
                 <span className="text-xs font-bold text-slate-700 uppercase tracking-tight mb-3">
                   {isFiltered
-                    ? t("transactions.reporting.donut.filteredTitle")
-                    : t("transactions.reporting.donut.title")}
+                    ? (labels?.filteredDonutTitle || t("transactions.reporting.donut.filteredTitle"))
+                    : (labels?.donutTitle || t("transactions.reporting.donut.title"))}
                 </span>
                 <DonutChart
                   data={analytics.horizonBreakdown}
                   formatCurrency={formatCurrency}
                   isFiltered={isFiltered}
                   filteredSharePercentage={analytics.filteredSharePercentage}
+                  centerLabel={labels?.centerLabel}
+                  emptyText={labels?.emptyText}
                 />
               </div>
 
@@ -133,13 +156,16 @@ export function SpendingOverviewCard({
               <div className="bg-slate-50/50 p-4 rounded-xl border border-slate-100 flex flex-col">
                 <span className="text-xs font-bold text-slate-700 uppercase tracking-tight mb-3">
                   {isFiltered
-                    ? t("transactions.reporting.cashFlow.filteredTitle")
-                    : t("transactions.reporting.cashFlow.title")}
+                    ? (labels?.filteredCashFlowTitle || t("transactions.reporting.cashFlow.filteredTitle"))
+                    : (labels?.cashFlowTitle || t("transactions.reporting.cashFlow.title"))}
                 </span>
                 <BarTrendChart
                   data={analytics.monthlyCashFlow}
                   formatCurrency={formatCurrency}
                   isFiltered={isFiltered}
+                  inflowLabel={labels?.inflowLegend}
+                  outflowLabel={labels?.outflowLegend}
+                  emptyText={labels?.emptyText}
                 />
               </div>
 
@@ -147,8 +173,8 @@ export function SpendingOverviewCard({
               <div className="bg-slate-50/50 p-4 rounded-xl border border-slate-100 flex flex-col">
                 <span className="text-xs font-bold text-slate-700 uppercase tracking-tight mb-3">
                   {isFiltered
-                    ? t("transactions.reporting.topPools.filteredTitle")
-                    : t("transactions.reporting.topPools.title")}
+                    ? (labels?.filteredTopPoolsTitle || t("transactions.reporting.topPools.filteredTitle"))
+                    : (labels?.topPoolsTitle || t("transactions.reporting.topPools.title"))}
                 </span>
                 <HorizontalRankedBarChart
                   topPools={analytics.topPools}
@@ -157,6 +183,8 @@ export function SpendingOverviewCard({
                   formatCurrency={formatCurrency}
                   isFiltered={isFiltered}
                   topPayees={analytics.topPayees}
+                  showPayeesWhenFiltered={showPayeesWhenFiltered}
+                  emptyText={labels?.emptyText}
                 />
               </div>
             </div>

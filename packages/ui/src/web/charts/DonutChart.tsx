@@ -8,6 +8,8 @@ interface DonutChartProps {
   formatCurrency: (amount: number) => string;
   isFiltered?: boolean;
   filteredSharePercentage?: number;
+  centerLabel?: string;
+  emptyText?: string;
 }
 
 export function DonutChart({
@@ -15,6 +17,8 @@ export function DonutChart({
   formatCurrency,
   isFiltered = false,
   filteredSharePercentage = 100,
+  centerLabel,
+  emptyText,
 }: DonutChartProps) {
   const radius = 38;
   const circumference = 2 * Math.PI * radius; // ~238.76
@@ -24,7 +28,7 @@ export function DonutChart({
       <div className="flex flex-col items-center justify-center p-6 text-center h-56">
         <div className="w-16 h-16 rounded-full border-4 border-dashed border-slate-200 flex items-center justify-center mb-2" />
         <p className="text-xs text-slate-400 font-medium">
-          {t("transactions.reporting.donut.empty")}
+          {emptyText || t("transactions.reporting.donut.empty")}
         </p>
       </div>
     );
@@ -48,6 +52,7 @@ export function DonutChart({
       circumference={circumference}
       data={data}
       formatCurrency={formatCurrency}
+      centerLabel={centerLabel}
     />
   );
 }
@@ -120,11 +125,13 @@ function MacroHorizonDonutView({
   circumference,
   data,
   formatCurrency,
+  centerLabel,
 }: {
   radius: number;
   circumference: number;
   data: HorizonBreakdownDTO;
   formatCurrency: (amount: number) => string;
+  centerLabel?: string;
 }) {
   const pEveryday = data.percentages.everyday / 100;
   const pBills = data.percentages.bills / 100;
@@ -186,7 +193,7 @@ function MacroHorizonDonutView({
 
         <div className="absolute inset-0 flex flex-col items-center justify-center text-center pointer-events-none">
           <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">
-            {t("transactions.reporting.donut.totalOutflow")}
+            {centerLabel || t("transactions.reporting.donut.totalOutflow")}
           </span>
           <span className="text-sm font-bold font-mono tabular-nums text-slate-800">
             {formatCurrency(data.totalOutflow)}

@@ -11,6 +11,8 @@ interface MobileHorizontalRankedBarChartProps {
   formatCurrency: (amount: number) => string;
   isFiltered?: boolean;
   topPayees?: TopPayeeItemDTO[];
+  showPayeesWhenFiltered?: boolean;
+  emptyText?: string;
 }
 
 export function MobileHorizontalRankedBarChart({
@@ -20,8 +22,10 @@ export function MobileHorizontalRankedBarChart({
   formatCurrency,
   isFiltered = false,
   topPayees = [],
+  showPayeesWhenFiltered = true,
+  emptyText,
 }: MobileHorizontalRankedBarChartProps) {
-  if (isFiltered) {
+  if (isFiltered && showPayeesWhenFiltered && topPayees.length > 0) {
     return (
       <FilteredMobilePayeesView
         payees={topPayees}
@@ -37,6 +41,7 @@ export function MobileHorizontalRankedBarChart({
       otherPoolsAmount={otherPoolsAmount}
       totalOutflow={totalOutflow}
       formatCurrency={formatCurrency}
+      emptyText={emptyText}
     />
   );
 }
@@ -93,16 +98,20 @@ function MacroMobilePoolsView({
   otherPoolsAmount,
   totalOutflow,
   formatCurrency,
+  emptyText,
 }: {
   topPools: TopOutflowPoolDTO[];
   otherPoolsAmount: number;
   totalOutflow: number;
   formatCurrency: (amount: number) => string;
+  emptyText?: string;
 }) {
   if (topPools.length === 0 || totalOutflow <= 0) {
     return (
       <View style={styles.emptyContainer}>
-        <Text style={styles.emptyText}>{t('transactions.reporting.topPools.empty')}</Text>
+        <Text style={styles.emptyText}>
+          {emptyText || t('transactions.reporting.topPools.empty')}
+        </Text>
       </View>
     );
   }

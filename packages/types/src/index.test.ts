@@ -20,6 +20,8 @@ import {
   UserPreferencesSchema,
   GetSpendingAnalyticsQuery,
   SpendingAnalyticsDTOSchema,
+  GetIncomeSplitAnalyticsQuerySchema,
+  IncomeSplitAnalyticsDTOSchema,
 } from './index';
 
 describe('Domain Schemas Validation', () => {
@@ -332,4 +334,46 @@ describe('Domain Schemas Validation', () => {
     expect(sampleAnalytics.isFiltered).toBe(true);
     expect(sampleAnalytics.topPayees[0].name).toBe('Woolworths');
   });
+
+  it('validates GetIncomeSplitAnalyticsQuerySchema and IncomeSplitAnalyticsDTOSchema', () => {
+    const defaultQuery = GetIncomeSplitAnalyticsQuerySchema.parse({});
+    expect(defaultQuery.timeframe).toBe('90D');
+
+    const filteredQuery = GetIncomeSplitAnalyticsQuerySchema.parse({
+      timeframe: '30D',
+      bankAccountId: 'bank-123',
+      searchQuery: 'Salary',
+    });
+    expect(filteredQuery.timeframe).toBe('30D');
+    expect(filteredQuery.bankAccountId).toBe('bank-123');
+    expect(filteredQuery.searchQuery).toBe('Salary');
+
+    const sampleIncomeSplit = IncomeSplitAnalyticsDTOSchema.parse({
+      timeframe: '30D',
+      totalOutflow: 5000,
+      totalIncome: 5000,
+      horizonBreakdown: {
+        everyday: 2000,
+        bills: 2000,
+        goals: 1000,
+        totalOutflow: 5000,
+        percentages: { everyday: 40, bills: 40, goals: 20 },
+      },
+      monthlyCashFlow: [
+        { monthKey: 'W1', label: 'Week 1', income: 2500, outflow: 800, net: 1700 },
+      ],
+      topPools: [
+        { id: 'env-1', name: 'Living Expenses', amount: 2000, percentage: 40 },
+      ],
+      otherPoolsAmount: 3000,
+      isEmpty: false,
+      isFiltered: false,
+      filteredSharePercentage: 0,
+      topPayees: [],
+      isTransferOnly: false,
+    });
+    expect(sampleIncomeSplit.totalIncome).toBe(5000);
+    expect(sampleIncomeSplit.horizonBreakdown.percentages.everyday).toBe(40);
+  });
 });
+

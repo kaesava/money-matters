@@ -10,6 +10,8 @@ interface HorizontalRankedBarChartProps {
   formatCurrency: (amount: number) => string;
   isFiltered?: boolean;
   topPayees?: TopPayeeItemDTO[];
+  showPayeesWhenFiltered?: boolean;
+  emptyText?: string;
 }
 
 export function HorizontalRankedBarChart({
@@ -19,8 +21,10 @@ export function HorizontalRankedBarChart({
   formatCurrency,
   isFiltered = false,
   topPayees = [],
+  showPayeesWhenFiltered = true,
+  emptyText,
 }: HorizontalRankedBarChartProps) {
-  if (isFiltered) {
+  if (isFiltered && showPayeesWhenFiltered && topPayees.length > 0) {
     return (
       <TopPayeesListView
         payees={topPayees}
@@ -36,6 +40,7 @@ export function HorizontalRankedBarChart({
       otherPoolsAmount={otherPoolsAmount}
       totalOutflow={totalOutflow}
       formatCurrency={formatCurrency}
+      emptyText={emptyText}
     />
   );
 }
@@ -92,17 +97,19 @@ function TopPoolsListView({
   otherPoolsAmount,
   totalOutflow,
   formatCurrency,
+  emptyText,
 }: {
   topPools: TopOutflowPoolDTO[];
   otherPoolsAmount: number;
   totalOutflow: number;
   formatCurrency: (amount: number) => string;
+  emptyText?: string;
 }) {
   if (topPools.length === 0 || totalOutflow <= 0) {
     return (
       <div className="flex flex-col items-center justify-center p-6 text-center h-56">
         <p className="text-xs text-slate-400 font-medium">
-          {t("transactions.reporting.topPools.empty")}
+          {emptyText || t("transactions.reporting.topPools.empty")}
         </p>
       </div>
     );
