@@ -150,3 +150,63 @@ function rateLimiterPlugin(
 }
 
 export const rateLimiter = fp(rateLimiterPlugin);
+
+/**
+ * Checks sliding-window burst limits specifically for AI Assistant requests.
+ * Always tenant-scoped, fails closed in strict mode if Redis is configured but unreachable.
+ */
+export async function checkAiTenantRateLimit(
+  tenantId: string,
+  limitPerMinute = 10,
+  env?: { UPSTASH_REDIS_REST_URL?: string; UPSTASH_REDIS_REST_TOKEN?: string }
+): Promise<{ allowed: boolean; remaining: number }> {
+  const restUrl = env?.UPSTASH_REDIS_REST_URL || process.env["UPSTASH_REDIS_REST_URL"];
+  const restToken = env?.UPSTASH_REDIS_REST_TOKEN || process.env["UPSTASH_REDIS_REST_TOKEN"];
+
+  if (restUrl && restToken) {
+    try {
+      const now = Date.now();
+      const windowStart = now - 60_000;
+      const key = `ai:rl:tenant:${tenantId}`;
+      const uniqueMember = `${now}-${crypto.randomUUID()}`;
+
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 2000);
+
+      const res = await fetch(`${restUrl}/pipeline`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${restToken}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify([
+          ["ZREMRANGEBYSCORE", key, 0, windowStart],
+          ["ZADD", key, now, uniqueMember],
+          ["ZCARD", key],
+          ["EXPIRE", key, 60],
+        ]),
+        signal: controller.signal,
+      });
+
+      clearTimeout(timeoutId);
+
+      if (res.ok) {
+        const data = (await res.json()) as Array<{ result: number }>;
+        const count = data[2]?.result ?? 0;
+        return {
+          allowed: count <= limitPerMinute,
+          remaining: Math.max(0, limitPerMinute - count),
+        };
+      }
+      return { allowed: false, remaining: 0 };
+    } catch {
+      // In production, fail-closed for AI rate limits
+      if (process.env["NODE_ENV"] === "production") {
+        return { allowed: false, remaining: 0 };
+      }
+    }
+  }
+
+  // Local/dev fallback
+  return checkRateLimit(`ai:tenant:${tenantId}`, limitPerMinute, 60);
+}

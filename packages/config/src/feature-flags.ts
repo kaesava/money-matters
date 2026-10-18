@@ -53,6 +53,13 @@ export const FEATURE_FLAGS = {
     tenantScopable: false,
     killSwitchEnabled: false,
   },
+  aiAssistant: {
+    key: "aiAssistant",
+    owner: "product",
+    expiresAt: "never",
+    tenantScopable: true,
+    killSwitchEnabled: false,
+  },
 } as const;
 
 

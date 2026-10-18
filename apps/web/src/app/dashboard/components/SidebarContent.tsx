@@ -26,6 +26,7 @@ export interface SidebarContentProps {
   initials: string;
   onNavigateToSettings: () => void;
   onSignOut: () => void;
+  onOpenAsk?: () => void;
 }
 
 export function SidebarContent({
@@ -39,6 +40,7 @@ export function SidebarContent({
   initials,
   onNavigateToSettings,
   onSignOut,
+  onOpenAsk,
 }: SidebarContentProps) {
   const effectiveAvatar = avatarUrl || sessionUser?.image || null;
 
@@ -106,6 +108,32 @@ export function SidebarContent({
               </Link>
             );
           })}
+          {onOpenAsk && (
+            <button
+              type="button"
+              onClick={() => {
+                setMobileMenuOpen(false);
+                onOpenAsk();
+              }}
+              className="flex items-center gap-3.5 px-3 py-3 rounded-xl text-sm font-bold text-blue-200 hover:text-white bg-blue-500/10 hover:bg-blue-500/20 border border-blue-500/20 transition-all duration-200 group relative cursor-pointer"
+              title={sidebarCollapsed ? t("assistant.triggerTitle") : undefined}
+            >
+              <svg className="w-5 h-5 text-blue-400 group-hover:scale-110 transition-transform shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
+              </svg>
+              {!sidebarCollapsed && (
+                <div className="flex items-center justify-between flex-1 min-w-0">
+                  <span className="truncate">{t("assistant.triggerTitle")}</span>
+                  <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-white/10 text-blue-200">⌘K</span>
+                </div>
+              )}
+              {sidebarCollapsed && (
+                <div className="absolute left-full ml-3 px-2 py-1 bg-zinc-900 text-white text-xs font-semibold rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-50 pointer-events-none shadow-md">
+                  {t("assistant.triggerTitle")} (⌘K)
+                </div>
+              )}
+            </button>
+          )}
         </div>
 
         {/* Free trial / Upgrade item */}

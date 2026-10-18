@@ -21,6 +21,7 @@ export interface AppConfig {
     offlineSync: boolean;
     canAffordCalculator: boolean;
     foundingMemberPromo: boolean;
+    aiAssistant: boolean;
   };
 }
 
@@ -38,6 +39,7 @@ const REGISTRY: Record<string, AppConfig> = {
       offlineSync: false,
       canAffordCalculator: true,
       foundingMemberPromo: true,
+      aiAssistant: true,
     },
   },
 };

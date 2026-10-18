@@ -17,6 +17,7 @@ interface ScreenHeaderProps {
   user?: { name?: string | null; email?: string | null; image?: string | null } | null;
   getInitials: () => string;
   onOpenMenu: () => void;
+  onOpenAsk?: () => void;
   styles: Record<string, ViewStyle | TextStyle | ImageStyle>;
 }
 
@@ -30,6 +31,7 @@ export function ScreenHeader({
   user,
   getInitials,
   onOpenMenu,
+  onOpenAsk,
   styles,
 }: ScreenHeaderProps) {
   return (
@@ -73,8 +75,26 @@ export function ScreenHeader({
         ) : null}
       </View>
 
-      {/* Right Area: Person / Profile Icon */}
-      <View style={styles.rightContainer}>
+      {/* Right Area: Ask Penny + Person / Profile Icon */}
+      <View style={[styles.rightContainer, { flexDirection: "row", alignItems: "center", gap: 8 }]}>
+        {onOpenAsk && (
+          <TouchableOpacity
+            onPress={onOpenAsk}
+            style={{
+              width: 34,
+              height: 34,
+              borderRadius: 17,
+              backgroundColor: DESIGN_TOKENS.colors.accentLight,
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+            activeOpacity={0.8}
+            accessibilityLabel={t("assistant.triggerTitle")}
+            accessibilityRole="button"
+          >
+            <Feather name="zap" size={17} color={DESIGN_TOKENS.colors.sereneBlue} />
+          </TouchableOpacity>
+        )}
         {showProfile ? (
           <TouchableOpacity
             onPress={onOpenMenu}

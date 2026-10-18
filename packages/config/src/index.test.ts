@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { validateEnv } from './env';
 import { resolveAppConfig } from './app-registry';
 import { isFeatureEnabled, FEATURE_FLAGS } from './feature-flags';
+import { resolveAiConfig, AI_TIER_LIMITS, DEFAULT_AI_MODEL_ID } from './ai.config';
 
 describe('Config Package Utilities', () => {
   const originalEnv = process.env;
@@ -97,6 +98,19 @@ describe('Config Package Utilities', () => {
       expect(FEATURE_FLAGS.offlineSync.owner).toBe('engineering');
       expect(FEATURE_FLAGS.premiumEnabled.killSwitchEnabled).toBe(false);
       expect(FEATURE_FLAGS.partnerInvite.killSwitchEnabled).toBe(false);
+      expect(FEATURE_FLAGS.aiAssistant.owner).toBe('product');
+      expect(FEATURE_FLAGS.aiAssistant.tenantScopable).toBe(true);
+      expect(FEATURE_FLAGS.aiAssistant.killSwitchEnabled).toBe(false);
+    });
+  });
+
+  describe('ai.config', () => {
+    it('resolves default AI config values correctly', () => {
+      const cfg = resolveAiConfig({});
+      expect(cfg.CF_ACCOUNT_ID).toBe('b0a640370b2b7ba2b84abfd03a9fda56');
+      expect(cfg.AI_MODEL_ID).toBe(DEFAULT_AI_MODEL_ID);
+      expect(AI_TIER_LIMITS.free.monthlyLlmCalls).toBe(150);
+      expect(AI_TIER_LIMITS.free.burstPerMinute).toBe(10);
     });
   });
 });

@@ -9,6 +9,7 @@ import { notificationsRouter } from './notifications.router.js';
 import { billingRouter } from './billing.router.js';
 import { transfersRouter } from './transfers.router.js';
 import { simulationRouter } from './simulation.router.js';
+import { assistantRouterMap } from './assistant.router.js';
 
 export const appRouter = router({
   ...tenantRouter,
@@ -21,6 +22,7 @@ export const appRouter = router({
   ...billingRouter,
   ...transfersRouter,
   ...simulationRouter,
+  ...assistantRouterMap,
 });
 
 export type AppRouter = typeof appRouter;

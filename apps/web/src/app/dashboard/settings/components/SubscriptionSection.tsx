@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import { trpc } from "../../../../lib/trpc";
-import { Spinner, useToast } from "@money-matters/ui/web";
+import { Spinner, useToast, AiUsageCard } from "@money-matters/ui/web";
 import { t } from "@money-matters/i18n";
 import type { inferRouterOutputs } from "@trpc/server";
 import type { AppRouter } from "../../../../../../api/src/routers/_app";
@@ -213,6 +213,9 @@ export function SubscriptionSection({ status }: SubscriptionSectionProps) {
           {t("subscription.billingDesc")}
         </p>
 
+        {/* AI Assistant Quota Card */}
+        <AiUsageCardWrapper />
+
         {/* Invoices & Receipts Sub-panel */}
         {(isSubscribed || invoices.length > 0) && (
           <SubscriptionInvoicesTable
@@ -227,5 +230,21 @@ export function SubscriptionSection({ status }: SubscriptionSectionProps) {
         </div>
       </div>
     </section>
+  );
+}
+
+function AiUsageCardWrapper() {
+  const usageQuery = trpc.assistantUsage.useQuery(undefined, {
+    staleTime: 30_000,
+  });
+
+  if (!usageQuery.data) return null;
+
+  return (
+    <AiUsageCard
+      used={usageQuery.data.used}
+      limit={usageQuery.data.limit}
+      resetsOn={usageQuery.data.resetsOn}
+    />
   );
 }

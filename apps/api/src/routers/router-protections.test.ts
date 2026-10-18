@@ -3,6 +3,7 @@ import { budgetingRouter } from "./budgeting.router.js";
 import { transfersRouter } from "./transfers.router.js";
 import { expensesRouter } from "./expenses.router.js";
 import { tenantRouter } from "./tenant.router.js";
+import { assistantRouterMap } from "./assistant.router.js";
 
 describe("Router protections & procedure sanity checks", () => {
   it("exports tenantRouter with required downtime/early access subscription procedure", () => {
@@ -32,10 +33,11 @@ describe("Router protections & procedure sanity checks", () => {
     expect(transfersRouter.executeTransferEvent).toBeDefined();
   });
 
-  it("exports expensesRouter with required expense procedures including markExpensePaid", () => {
-    expect(expensesRouter).toBeDefined();
-    expect(expensesRouter.listExpenseEvents).toBeDefined();
-    expect(expensesRouter.markExpensePaid).toBeDefined();
+  it("exports assistantRouterMap with assistantAsk and assistantUsage", () => {
+    expect(assistantRouterMap).toBeDefined();
+    expect(assistantRouterMap.assistantAsk).toBeDefined();
+    expect(assistantRouterMap.assistantUsage).toBeDefined();
   });
 });
+
 

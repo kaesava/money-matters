@@ -28,6 +28,10 @@ export function KeyboardShortcutsModal({ isOpen, onClose }: KeyboardShortcutsMod
         </h2>
         <div className="space-y-4">
           <div className="flex justify-between items-center">
+            <span className="text-sm font-semibold text-zinc-700">{t("keyboardShortcuts.askPenny")}</span>
+            <kbd className="px-2 py-1 bg-zinc-100 border border-zinc-200 rounded text-xs font-mono font-bold text-zinc-600">⌘K / Ctrl+K</kbd>
+          </div>
+          <div className="flex justify-between items-center">
             <span className="text-sm font-semibold text-zinc-700">{t("keyboardShortcuts.quickExpense")}</span>
             <kbd className="px-2 py-1 bg-zinc-100 border border-zinc-200 rounded text-xs font-mono font-bold text-zinc-600">N</kbd>
           </div>

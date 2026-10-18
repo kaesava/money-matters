@@ -9,7 +9,7 @@ import { QuickExpenseDrawer } from "../../components/web/QuickExpenseDrawer";
 
 import { TrialBanner } from "../../components/TrialBanner";
 import { useSubscriptionStatus } from "../../hooks/useSubscriptionStatus";
-import { Spinner } from "@money-matters/ui/web";
+import { Spinner, AskPennyPalette } from "@money-matters/ui/web";
 import { useNetworkStatus } from "../../providers/AppProviders";
 import { trpc } from "../../lib/trpc";
 import { SidebarContent } from "./components/SidebarContent";
@@ -100,9 +100,16 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   });
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [quickExpenseOpen, setQuickExpenseOpen] = useState(false);
+  const [askPennyOpen, setAskPennyOpen] = useState(false);
   const [showShortcutsModal, setShowShortcutsModal] = useState(false);
   const [isRetrying, setIsRetrying] = useState(false);
   const [cooldownSeconds, setCooldownSeconds] = useState(0);
+
+  const askMutation = trpc.assistantAsk.useMutation();
+  const usageQuery = trpc.assistantUsage.useQuery(undefined, {
+    enabled: !!session?.user,
+    staleTime: 30_000,
+  });
 
   const versionInfo = getWebVersionInfo();
 
@@ -154,7 +161,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         return;
       }
 
-      if (e.key === "?") {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
+        e.preventDefault();
+        setAskPennyOpen((prev) => !prev);
+      } else if (e.key === "?") {
         setShowShortcutsModal((prev) => !prev);
       } else if (e.key === "Escape") {
         setShowShortcutsModal(false);
@@ -240,6 +250,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       initials={initials}
       onNavigateToSettings={() => router.push("/dashboard/settings")}
       onSignOut={handleSignOut}
+      onOpenAsk={() => setAskPennyOpen(true)}
     />
   );
 
@@ -317,6 +328,17 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               </span>
 
               <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setAskPennyOpen(true)}
+                  className="p-1.5 rounded-lg text-blue-200 hover:text-white bg-blue-500/20 hover:bg-blue-500/30 border border-blue-400/30 transition-colors flex items-center justify-center cursor-pointer"
+                  title={t("assistant.triggerTitle")}
+                  aria-label={t("assistant.triggerTitle")}
+                >
+                  <svg className="w-5 h-5 text-blue-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
+                  </svg>
+                </button>
                 <button
                   type="button"
                   onClick={() => router.push("/dashboard/settings")}
@@ -442,6 +464,29 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           <KeyboardShortcutsModal
             isOpen={showShortcutsModal}
             onClose={() => setShowShortcutsModal(false)}
+          />
+
+          <AskPennyPalette
+            isOpen={askPennyOpen}
+            onClose={() => setAskPennyOpen(false)}
+            remainingCalls={usageQuery.data?.limit && usageQuery.data ? Math.max(0, usageQuery.data.limit - usageQuery.data.used) : undefined}
+            onAsk={async (q) => {
+              const res = await askMutation.mutateAsync({ query: q });
+              usageQuery.refetch();
+              return res;
+            }}
+            onNavigatePrefill={(prefill) => {
+              if (prefill.target === "add-transaction" || prefill.target === "mark-paid" || prefill.target === "transfer") {
+                setQuickExpenseOpen(true);
+              } else if (prefill.target === "afford-check") {
+                const amountParam = prefill.params?.amount ? `?amount=${prefill.params.amount}` : "";
+                router.push(`/dashboard/afford-check${amountParam}`);
+              } else if (prefill.target === "create-bill" || prefill.target === "create-income") {
+                router.push("/dashboard/income-and-bills");
+              } else if (prefill.target === "history-filter") {
+                router.push("/dashboard/history");
+              }
+            }}
           />
         </div>
       </div>

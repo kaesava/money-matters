@@ -26,6 +26,7 @@ export function AppScreenWrapper({
   onOpenTenantSwitcher,
   hasMultipleTenants: hasMultipleTenantsProp,
   activeTenantName: activeTenantNameProp,
+  onOpenAsk,
   scrollable = true,
   children,
 }: AppScreenWrapperProps) {
@@ -76,6 +77,7 @@ export function AppScreenWrapper({
         hasMultipleTenants={hasMultipleTenants}
         activeTenantName={activeTenantName}
         onSignOut={handleSignOut}
+        onOpenAsk={onOpenAsk}
         scrollable={scrollable}
       >
         {children}

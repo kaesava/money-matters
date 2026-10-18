@@ -139,3 +139,6 @@ export { MobileDonutChart } from './charts/MobileDonutChart';
 export { MobileBarTrendChart } from './charts/MobileBarTrendChart';
 export { MobileHorizontalRankedBarChart } from './charts/MobileHorizontalRankedBarChart';
 export { MobileSpendingOverviewCard } from './charts/MobileSpendingOverviewCard';
+
+export { MobileAiUsageCard } from './MobileAiUsageCard';
+export { MobileAskSheet } from './MobileAskSheet';

@@ -436,3 +436,17 @@
 | `updatedBy` | uuid | Yes | Modifier User ID |
 | `archivedAt` | timestamp | Yes | Soft delete timestamp |
 
+
+## Table: `ai_usage` (`ai_usage.ts`)
+
+| Column | Type | Nullable | Description |
+| :--- | :--- | :--- | :--- |
+| `id` | uuid | No | Primary Key |
+| `tenantId` | uuid | No | Tenant Foreign Key (RLS isolation) |
+| `periodMonth` | date | No | First day of billing month (YYYY-MM-01) |
+| `llmCalls` | integer | No | Total count of LLM classification calls made in period |
+| `createdAt` | timestamp | No | Creation timestamp |
+| `createdBy` | uuid | Yes | Creator User ID |
+| `updatedAt` | timestamp | No | Last update timestamp |
+| `updatedBy` | uuid | Yes | Modifier User ID |
+| `archivedAt` | timestamp | Yes | Soft delete timestamp |

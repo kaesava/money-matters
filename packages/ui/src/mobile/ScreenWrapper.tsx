@@ -27,6 +27,7 @@ export interface ScreenWrapperProps {
   onOpenTenantSwitcher?: () => void;
   hasMultipleTenants?: boolean;
   activeTenantName?: string;
+  onOpenAsk?: () => void;
   children: React.ReactNode;
   scrollable?: boolean;
 }
@@ -47,6 +48,7 @@ export const ScreenWrapper: React.FC<ScreenWrapperProps> = ({
   onOpenTenantSwitcher,
   hasMultipleTenants,
   activeTenantName,
+  onOpenAsk,
   children,
   scrollable = true,
 }) => {
@@ -89,6 +91,7 @@ export const ScreenWrapper: React.FC<ScreenWrapperProps> = ({
         user={user}
         getInitials={getInitials}
         onOpenMenu={() => setMenuVisible(true)}
+        onOpenAsk={onOpenAsk}
         styles={styles}
       />
 

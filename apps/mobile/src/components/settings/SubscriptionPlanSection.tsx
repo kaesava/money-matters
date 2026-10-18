@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { View, Linking, StyleSheet, AppState, AppStateStatus, Text } from 'react-native';
 import * as WebBrowser from 'expo-web-browser';
-import { useMobileToast, DESIGN_TOKENS } from '@money-matters/ui/mobile';
+import { useMobileToast, DESIGN_TOKENS, MobileAiUsageCard } from '@money-matters/ui/mobile';
 import { trpc } from '../../lib/trpc';
 import { t } from '@money-matters/i18n';
 import { MobilePlanPickerModal, PlanChoice } from './MobilePlanPickerModal';
@@ -19,6 +19,9 @@ export function SubscriptionPlanSection() {
 
   const trpcUtils = trpc.useUtils();
   const statusQuery = trpc.getSubscriptionStatus.useQuery();
+  const usageQuery = trpc.assistantUsage.useQuery(undefined, {
+    staleTime: 30_000,
+  });
   const checkoutMut = trpc.createCheckoutSession.useMutation();
   const portalMut = trpc.createCustomerPortalSession.useMutation();
   const syncMut = trpc.syncSubscription.useMutation();
@@ -199,6 +202,14 @@ export function SubscriptionPlanSection() {
 
       {(isSubscribed || invoices.length > 0) && (
         <MobileInvoiceHistory invoices={invoices} isLoading={invoicesQuery.isLoading} />
+      )}
+
+      {usageQuery.data && (
+        <MobileAiUsageCard
+          used={usageQuery.data.used}
+          limit={usageQuery.data.limit}
+          resetsOn={usageQuery.data.resetsOn}
+        />
       )}
 
       <MobilePlanPickerModal

@@ -6,7 +6,8 @@ import {
 } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { usePostHog } from 'posthog-react-native';
-import { DESIGN_TOKENS } from '@money-matters/ui/mobile';
+import { DESIGN_TOKENS, MobileAskSheet } from '@money-matters/ui/mobile';
+import { trpc } from '../../lib/trpc';
 import { t } from '@money-matters/i18n';
 import { AppScreenWrapper } from '../../components/AppScreenWrapper';
 import { DashboardHeroCard } from '../../components/DashboardHeroCard';
@@ -32,8 +33,14 @@ export default function HomeScreen() {
   const [quickModalVisible, setQuickModalVisible] = useState(false);
   const [quickModalType, setQuickModalType] = useState<QuickActionType>('DEBIT');
   const [affordModalVisible, setAffordModalVisible] = useState(false);
+  const [askSheetVisible, setAskSheetVisible] = useState(false);
   const [markPaidEvent, setMarkPaidEvent] = useState<MarkPaidEvent | null>(null);
   const [reconcileAccount, setReconcileAccount] = useState<MobileReconciliationModalProps['account'] | null>(null);
+
+  const askMutation = trpc.assistantAsk.useMutation();
+  const usageQuery = trpc.assistantUsage.useQuery(undefined, {
+    staleTime: 30_000,
+  });
 
   const {
     refreshing,
@@ -109,6 +116,7 @@ export default function HomeScreen() {
         title: t('tooltips.dashboard.title'),
         content: t('tooltips.dashboard.content'),
       }}
+      onOpenAsk={() => setAskSheetVisible(true)}
       scrollable={false}
     >
       <TrialBanner />
@@ -225,6 +233,30 @@ export default function HomeScreen() {
           }}
         />
       )}
+
+      <MobileAskSheet
+        isOpen={askSheetVisible}
+        onClose={() => setAskSheetVisible(false)}
+        remainingCalls={usageQuery.data?.limit && usageQuery.data ? Math.max(0, usageQuery.data.limit - usageQuery.data.used) : undefined}
+        onAsk={async (q) => {
+          const res = await askMutation.mutateAsync({ query: q });
+          usageQuery.refetch();
+          return res;
+        }}
+        onNavigatePrefill={(prefill) => {
+          if (prefill.target === 'add-transaction' || prefill.target === 'mark-paid') {
+            openQuickModal('DEBIT');
+          } else if (prefill.target === 'transfer') {
+            openQuickModal('TRANSFER');
+          } else if (prefill.target === 'afford-check') {
+            setAffordModalVisible(true);
+          } else if (prefill.target === 'create-bill' || prefill.target === 'create-income') {
+            router.push('/(app)/paychecks' as never);
+          } else if (prefill.target === 'history-filter') {
+            router.push('/(app)/transactions' as never);
+          }
+        }}
+      />
     </AppScreenWrapper>
   );
 }

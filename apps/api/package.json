@@ -23,6 +23,7 @@
     "@money-matters/capability-tenant": "workspace:*",
     "@money-matters/capability-simulation": "workspace:*",
     "@money-matters/capability-transactions": "workspace:*",
+    "@money-matters/capability-assistant": "workspace:*",
     "@money-matters/config": "workspace:*",
     "@money-matters/core": "workspace:*",
     "@money-matters/db": "workspace:*",

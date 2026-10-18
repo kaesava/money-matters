@@ -43,6 +43,11 @@ export const baseEnvSchema = z
     NEXT_PUBLIC_POSTHOG_PROJECT_TOKEN: z.string().min(1).optional(),
     POSTHOG_HOST: z.string().url().optional(),
     NEXT_PUBLIC_POSTHOG_HOST: z.string().url().optional(),
+    // Cloudflare Workers AI & Gateway
+    CF_ACCOUNT_ID: z.string().min(1).optional(),
+    CF_AI_GATEWAY_ID: z.string().min(1).optional(),
+    CF_AI_API_TOKEN: z.string().min(1).optional(),
+    AI_MODEL_ID: z.string().min(1).optional(),
     // Feature flags
     NEXT_PUBLIC_ENABLE_AUTH: z.string().transform((v) => v === "true").default("true"),
     NEXT_PUBLIC_ENABLE_FOUNDING_OFFER: z.string().transform((v) => v === "true").default("true"),
