@@ -69,7 +69,7 @@ All tables MUST include:
 - MUST NOT log PII or session/auth tokens in client or server logs (`console.log(token)` is strictly forbidden; emails, passwords, tokens, JWTs must be redacted automatically via universal logger).
 
 ## 8. Type Safety & Validation
-- `any` is FORBIDDEN. Replaced by `unknown`, strict generic DTOs, or Zod inference. Unsafe type casts (`as any`) are strictly banned across all packages and components, including dynamic route pushes (use `as Href` cast from `expo-router`), Lucide icon components (render them directly), and mock clients in tests.
+- `any` and `never` type assertions are FORBIDDEN (`as any`, `as never`). Replaced by `unknown`, strict generic DTOs, or Zod inference. Unsafe type casts (`as any`, `as never`) are strictly banned across all packages and components, including dynamic route pushes (use `as Href` imported from `expo-router`), Lucide icon components (render them directly), and mock clients in tests (use `mockDb as unknown as DbOrTx`).
 - DO NOT bypass typescript validations for `react-native-svg` components (e.g. no `as any` or `@ts-ignore` to suppress type validation).
 - Zod `.strict()` REQUIRED on all input/output schemas.
 - DTOs MUST separate DB models and API responses.
@@ -100,6 +100,7 @@ All tables MUST include:
 - Target: Android native app (Expo SDK 54 / RN 0.81.5).
 - MUST use SQLite with transactions for local caching.
 - MUST avoid blocking the main JS UI thread.
+- **Envelope Components Directory**: Mobile envelope and budgeting components MUST live in `apps/mobile/src/components/envelopes/`. Legacy or redundant `components/pools/` directories are strictly prohibited.
 
 ## 13. UI / i18n / Design Tokens / Product Philosophy
 - ALL user-facing strings via `@money-matters/i18n` (zero hardcoded text literals in components/views/modals).
@@ -112,6 +113,7 @@ All tables MUST include:
 - Dates stored in UTC; rendered in timezone-aware AEST/en-AU format. NEVER use raw `new Date().toISOString().split('T')[0]` (causes off-by-one date errors in Australian UTC+10/11 timezones); format using `new Intl.DateTimeFormat('en-CA', { timeZone: 'Australia/Sydney' })`.
 - Next.js App Router prerendering: pages/components using `useSearchParams()` MUST be wrapped in a `<Suspense>` boundary to prevent build errors during production export.
 - Serene Finance visual identity: Serene Blue `#2563eb`, Navy `#1B2B4B`, Off-white `#F7F8FA`, Green `#22c55e`, Red `#ba1a1a`, JetBrains Mono for monetary metrics.
+- **Design Token Integrity (Zero Invented Token Names)**: All styles across web and mobile MUST strictly reference canonical keys defined in `DESIGN_TOKENS.colors` (e.g. `sereneBlue`, `primary`, `accent`, `accentLight`, `accentBorder`, `success`, `successLight`, `successDark`, `slate[50..900]`). Never invent non-existent color token names (e.g. `emerald`, `sereneBlueLight`).
 - **Clean Page Title Headers (`<h1>`)**: Page title `<h1>` elements MUST NOT contain decorative inline emojis or icons. Page description subtitles MUST be rendered inside an `InfoTooltip` `(i)` icon placed directly beside the title.
 - **Universal Table Column & Header Alignment Parity**: Table header `<th>` alignment MUST 100% match data cell `<td>` alignment across every column in all tables across the monorepo: Left-aligned for text, names, categories, and accounts; Center-aligned for dates, actions, status badges, type tags, and triggers; Right-aligned for monetary amounts (`tabular-nums font-mono`).
 - **SearchInput Spacing & Padding**: SearchInput search icons MUST have `left-3.5` / `left-4` positioning, and input text MUST have `pl-10` padding to guarantee clean breathing room between icon, container border, and text.
@@ -193,7 +195,7 @@ All tables MUST include:
 - ALL code MUST have unit tests in Vitest.
 - MUST cover: auth, tenant isolation, 5-step waterfall allocation, bank CSV parsing, onboarding math, edge cases.
 - Bug fixes REQUIRE regression tests.
-- **Unit Test Mock Safety**: When invoking raw SQL via `db.execute(sql\`...\`)` in domain handlers, always guard with `if (typeof db.execute === 'function')` to ensure compatibility with Vitest mock database objects.
+- **Unit Test Mock Safety**: When invoking raw SQL via `db.execute(sql\`...\`)` in domain handlers, always guard with `if (typeof db.execute === 'function')` to ensure compatibility with Vitest mock database objects. When mocking database clients or transactions in unit tests, cast `mockDb as unknown as DbOrTx` from `@money-matters/db` rather than using `as any` or loose untyped objects.
 - **E2E & Capability Coverage**: When ANY new capability, screen, modal, or interactive control is built or modified, it MUST be explicitly added to and tested in the Playwright screen-by-screen spec (`apps/web/e2e/screen-by-screen.spec.ts`).
 
 ## 22. Code Quality, MECE & Zero Redundancy
