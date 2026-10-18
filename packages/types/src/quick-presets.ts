@@ -8,6 +8,17 @@ export interface QuickPresetItem {
   displayName?: string;
 }
 
+export interface QuickActionInitialData {
+  type?: "DEBIT" | "CREDIT" | "TRANSFER";
+  name?: string;
+  amount?: string;
+  date?: string;
+  categoryId?: string;
+  envelopeName?: string;
+  sourcePoolName?: string;
+  destinationPoolName?: string;
+}
+
 export function isPaydayOrAdjustment(note?: string | null): boolean {
   if (!note) return false;
   const lower = note.toLowerCase();

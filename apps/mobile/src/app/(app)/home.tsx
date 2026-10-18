@@ -17,7 +17,7 @@ import { GoalsProgressStrip } from '../../components/dashboard/GoalsProgressStri
 import { TrialBanner } from '../../components/dashboard/TrialBanner';
 import { MobileMissingSchedulesBanner } from '../../components/dashboard/MobileMissingSchedulesBanner';
 import { MarkPaidModal, MarkPaidEvent } from '../../components/MarkPaidModal';
-import { QuickExpenseModal, QuickActionType } from '../../components/QuickExpenseModal';
+import { QuickExpenseModal, QuickActionType, QuickActionInitialData } from '../../components/QuickExpenseModal';
 import { MobileAffordCheckModal } from '../../components/afford-check/MobileAffordCheckModal';
 import {
   MobileReconciliationModal,
@@ -32,7 +32,9 @@ export default function HomeScreen() {
 
   const [quickModalVisible, setQuickModalVisible] = useState(false);
   const [quickModalType, setQuickModalType] = useState<QuickActionType>('DEBIT');
+  const [quickModalData, setQuickModalData] = useState<QuickActionInitialData | undefined>(undefined);
   const [affordModalVisible, setAffordModalVisible] = useState(false);
+  const [affordModalAmount, setAffordModalAmount] = useState<string | undefined>(undefined);
   const [askSheetVisible, setAskSheetVisible] = useState(false);
   const [markPaidEvent, setMarkPaidEvent] = useState<MarkPaidEvent | null>(null);
   const [reconcileAccount, setReconcileAccount] = useState<MobileReconciliationModalProps['account'] | null>(null);
@@ -203,8 +205,10 @@ export default function HomeScreen() {
       <QuickExpenseModal
         visible={quickModalVisible}
         initialType={quickModalType}
+        initialData={quickModalData}
         onClose={() => {
           setQuickModalVisible(false);
+          setQuickModalData(undefined);
           refetchAll();
         }}
       />
@@ -218,7 +222,11 @@ export default function HomeScreen() {
 
       <MobileAffordCheckModal
         visible={affordModalVisible}
-        onClose={() => setAffordModalVisible(false)}
+        initialAmount={affordModalAmount}
+        onClose={() => {
+          setAffordModalVisible(false);
+          setAffordModalAmount(undefined);
+        }}
       />
 
       {reconcileAccount && (
@@ -245,18 +253,46 @@ export default function HomeScreen() {
         }}
         onNavigatePrefill={(prefill) => {
           if (prefill.target === 'add-transaction' || prefill.target === 'mark-paid') {
-            openQuickModal('DEBIT');
+            const amountStr = prefill.params?.amount ? String(prefill.params.amount) : '';
+            const billOrMerchant = String(prefill.params?.billName || prefill.params?.merchant || prefill.params?.entityName || '');
+            setQuickModalData({
+              type: 'DEBIT',
+              name: billOrMerchant,
+              amount: amountStr,
+              date: prefill.params?.date ? String(prefill.params.date) : undefined,
+              envelopeName: billOrMerchant,
+            });
+            setQuickModalType('DEBIT');
+            setQuickModalVisible(true);
           } else if (prefill.target === 'transfer') {
-            openQuickModal('TRANSFER');
+            const amountStr = prefill.params?.amount ? String(prefill.params.amount) : '';
+            setQuickModalData({
+              type: 'TRANSFER',
+              amount: amountStr,
+              sourcePoolName: prefill.params?.sourceAccount ? String(prefill.params.sourceAccount) : undefined,
+              destinationPoolName: prefill.params?.destinationAccount ? String(prefill.params.destinationAccount) : undefined,
+            });
+            setQuickModalType('TRANSFER');
+            setQuickModalVisible(true);
           } else if (prefill.target === 'afford-check') {
+            const amountStr = prefill.params?.amount ? String(prefill.params.amount) : undefined;
+            setAffordModalAmount(amountStr);
             setAffordModalVisible(true);
           } else if (prefill.target === 'create-bill' || prefill.target === 'create-income') {
             router.push('/(app)/paychecks' as never);
           } else if (prefill.target === 'history-filter') {
             router.push('/(app)/transactions' as never);
+          } else if (prefill.target === 'navigate') {
+            const screen = String(prefill.params?.screen || '');
+            if (screen === 'income-and-bills') router.push('/(app)/paychecks' as never);
+            else if (screen === 'envelopes') router.push('/(app)/envelopes' as never);
+            else if (screen === 'bank-accounts') router.push('/(app)/bank-accounts' as never);
+            else if (screen === 'settings') router.push('/(app)/settings' as never);
+            else if (screen === 'history') router.push('/(app)/transactions' as never);
           }
         }}
       />
+
     </AppScreenWrapper>
   );
 }

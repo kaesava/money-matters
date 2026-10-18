@@ -4,17 +4,19 @@ import { formatIsoDate } from '../../lib/format';
 import { usePostHog } from 'posthog-react-native';
 import {
   QuickPresetItem,
+  QuickActionInitialData,
   computeRecentAndFrequentPresets,
   isPaydayOrAdjustment,
 } from '@money-matters/types';
 
 export type QuickActionType = 'DEBIT' | 'CREDIT' | 'TRANSFER';
-export type { QuickPresetItem };
+export type { QuickPresetItem, QuickActionInitialData };
 
 export function useMobileQuickAction(
   visible: boolean,
   initialType: QuickActionType = 'DEBIT',
-  initialSourcePoolId?: string
+  initialSourcePoolId?: string,
+  initialData?: QuickActionInitialData
 ) {
   const posthog = usePostHog();
   const utils = trpc.useUtils();
@@ -61,17 +63,50 @@ export function useMobileQuickAction(
 
   useEffect(() => {
     if (visible) {
-      setType(initialType);
-      setDate(todayStr);
+      setType(initialData?.type || initialType);
+      setName(initialData?.name || '');
+      setAmount(
+        initialData?.amount
+          ? isNaN(parseFloat(initialData.amount))
+            ? ''
+            : parseFloat(initialData.amount).toFixed(2)
+          : ''
+      );
+      setDate(initialData?.date || todayStr);
       setGeneralError('');
-      if (initialSourcePoolId) {
+      if (initialData?.categoryId) {
+        setSelectedPoolId(initialData.categoryId);
+      } else if (initialData?.envelopeName && pools.length > 0) {
+        const search = initialData.envelopeName.toLowerCase().trim();
+        const matched = pools.find(
+          (p) => p.name.toLowerCase().includes(search) || search.includes(p.name.toLowerCase())
+        );
+        setSelectedPoolId(matched ? matched.id : '');
+      } else if (initialSourcePoolId) {
         setSelectedPoolId(initialSourcePoolId);
       } else {
         setSelectedPoolId('');
       }
+
+      if (initialData?.sourcePoolName && pools.length > 0) {
+        const search = initialData.sourcePoolName.toLowerCase().trim();
+        const matched = pools.find(
+          (p) => p.name.toLowerCase().includes(search) || search.includes(p.name.toLowerCase())
+        );
+        if (matched) setSelectedPoolId(matched.id);
+      }
+
+      if (initialData?.destinationPoolName && pools.length > 0) {
+        const search = initialData.destinationPoolName.toLowerCase().trim();
+        const matched = pools.find(
+          (p) => p.name.toLowerCase().includes(search) || search.includes(p.name.toLowerCase())
+        );
+        if (matched) setDestPoolId(matched.id);
+      }
+
       setSelectedSubCategoryId(null);
     }
-  }, [visible, initialType, initialSourcePoolId, todayStr]);
+  }, [visible, initialType, initialSourcePoolId, initialData, pools, todayStr]);
 
   const recordExpenseMutation = trpc.recordExpense.useMutation();
   const createOneOffExpenseMut = trpc.createOneOffExpense.useMutation();

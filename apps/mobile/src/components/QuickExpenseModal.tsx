@@ -10,8 +10,9 @@ import { CrossBankTransferModal } from './CrossBankTransferModal';
 import {
   useMobileQuickAction,
   QuickActionType,
+  QuickActionInitialData,
 } from './quick/useMobileQuickAction';
-export type { QuickActionType };
+export type { QuickActionType, QuickActionInitialData };
 import { QuickExpenseTab } from './quick/QuickExpenseTab';
 import { QuickIncomeTab } from './quick/QuickIncomeTab';
 import { QuickTransferTab } from './quick/QuickTransferTab';
@@ -21,6 +22,7 @@ interface QuickExpenseModalProps {
   visible: boolean;
   initialType?: QuickActionType;
   initialSourcePoolId?: string;
+  initialData?: QuickActionInitialData;
   onClose: () => void;
   onSuccess?: () => void;
   onIncomeSuccess?: (incomeEventId: string) => void;
@@ -30,11 +32,12 @@ export function QuickExpenseModal({
   visible,
   initialType = 'DEBIT',
   initialSourcePoolId,
+  initialData,
   onClose,
   onSuccess,
   onIncomeSuccess,
 }: QuickExpenseModalProps) {
-  const state = useMobileQuickAction(visible, initialType, initialSourcePoolId);
+  const state = useMobileQuickAction(visible, initialType, initialSourcePoolId, initialData);
 
   const isDirty = useMemo(() => {
     return (

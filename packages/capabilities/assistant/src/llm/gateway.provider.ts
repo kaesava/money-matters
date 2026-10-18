@@ -21,17 +21,22 @@ Your ONLY role is to classify the user's natural language input into one of thes
 Rules:
 1. Return ONLY a single raw valid JSON object matching this schema:
 {"intent": "INTENT_NAME", "confidence": 0.0-1.0, "params": {"entityName": "...", "amount": 123.45, "date": "YYYY-MM-DD"}}
-2. Never execute actions or fabricate data. Do not wrap in markdown or backticks.`;
+2. When the user mentions paying a bill or spending money, ALWAYS extract entityName (e.g. "internet", "electricity", "groceries") and amount.
+3. Never execute actions or fabricate data. Do not wrap in markdown or backticks.`;
 
 export class CloudflareGatewayLlmProvider implements LlmProviderPort {
-  private config = resolveAiConfig();
+  private getConfig() {
+    return resolveAiConfig();
+  }
 
   async classifyIntent(userText: string): Promise<AssistantClassifiedIntent | null> {
-    if (!this.config.CF_AI_API_TOKEN) {
+    const config = this.getConfig();
+    if (!config.CF_AI_API_TOKEN) {
+      console.warn("[Penny AI Gateway] Skipped: CF_AI_API_TOKEN is missing.");
       return null;
     }
 
-    const endpoint = `https://gateway.ai.cloudflare.com/v1/${this.config.CF_ACCOUNT_ID}/${this.config.CF_AI_GATEWAY_ID}/workers-ai/v1/chat/completions`;
+    const endpoint = `https://gateway.ai.cloudflare.com/v1/${config.CF_ACCOUNT_ID}/${config.CF_AI_GATEWAY_ID}/workers-ai/v1/chat/completions`;
 
     try {
       const controller = new AbortController();
@@ -40,12 +45,12 @@ export class CloudflareGatewayLlmProvider implements LlmProviderPort {
       const res = await fetch(endpoint, {
         method: "POST",
         headers: {
-          Authorization: `Bearer ${this.config.CF_AI_API_TOKEN}`,
+          Authorization: `Bearer ${config.CF_AI_API_TOKEN}`,
           "Content-Type": "application/json",
           "cf-aig-cache-ttl": "3600",
         },
         body: JSON.stringify({
-          model: this.config.AI_MODEL_ID || DEFAULT_AI_MODEL_ID,
+          model: config.AI_MODEL_ID || DEFAULT_AI_MODEL_ID,
           messages: [
             { role: "system", content: SYSTEM_PROMPT },
             { role: "user", content: userText.slice(0, 300) },
@@ -59,6 +64,8 @@ export class CloudflareGatewayLlmProvider implements LlmProviderPort {
       clearTimeout(timeout);
 
       if (!res.ok) {
+        const errorText = await res.text().catch(() => "");
+        console.warn(`[Penny AI Gateway] HTTP ${res.status}:`, errorText);
         return null;
       }
 
@@ -73,8 +80,10 @@ export class CloudflareGatewayLlmProvider implements LlmProviderPort {
       const cleanJson = rawContent.replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/, "").trim();
       const parsed = JSON.parse(cleanJson);
       return AssistantClassifiedIntentSchema.parse(parsed);
-    } catch {
+    } catch (err) {
+      console.warn("[Penny AI Gateway] Intent classification failed:", err);
       return null;
     }
   }
 }
+

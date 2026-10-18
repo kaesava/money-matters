@@ -1,10 +1,11 @@
 import React, { useState } from "react";
-import { View, Text, TextInput, TouchableOpacity, ScrollView, ActivityIndicator, StyleSheet } from "react-native";
+import { View, Text, TextInput, TouchableOpacity, ScrollView, ActivityIndicator } from "react-native";
 import { Feather } from "@expo/vector-icons";
 import { DESIGN_TOKENS } from "../tokens.js";
 import { t } from "@money-matters/i18n";
 import type { AssistantResult } from "@money-matters/types";
 import MobileModalDialog from "./MobileModalDialog.js";
+import { styles } from "./MobileAskSheet.styles.js";
 
 export interface MobileAskSheetProps {
   isOpen: boolean;
@@ -33,6 +34,7 @@ export const MobileAskSheet: React.FC<MobileAskSheetProps> = ({
   const [query, setQuery] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [result, setResult] = useState<AssistantResult | null>(null);
+  const [selection, setSelection] = useState<{ start: number; end: number } | undefined>(undefined);
 
   const handleSubmit = async (textToAsk: string) => {
     const q = textToAsk.trim();
@@ -51,6 +53,28 @@ export const MobileAskSheet: React.FC<MobileAskSheetProps> = ({
     }
   };
 
+  const handleChipPress = (label: string) => {
+    setQuery(label);
+    setResult(null);
+
+    const currencyMatch = label.match(/\$\d+(?:\.\d{2})?/);
+    const goalMatch = label.match(/\b(?:my\s+)?Goal\b/i);
+
+    if (currencyMatch && currencyMatch.index !== undefined) {
+      setSelection({
+        start: currencyMatch.index,
+        end: currencyMatch.index + currencyMatch[0].length,
+      });
+    } else if (goalMatch && goalMatch.index !== undefined) {
+      setSelection({
+        start: goalMatch.index,
+        end: goalMatch.index + goalMatch[0].length,
+      });
+    } else {
+      setSelection({ start: label.length, end: label.length });
+    }
+  };
+
   return (
     <MobileModalDialog
       visible={isOpen}
@@ -66,6 +90,8 @@ export const MobileAskSheet: React.FC<MobileAskSheetProps> = ({
             placeholderTextColor={DESIGN_TOKENS.colors.slate[400]}
             value={query}
             onChangeText={setQuery}
+            selection={selection}
+            onSelectionChange={() => setSelection(undefined)}
             onSubmitEditing={() => handleSubmit(query)}
             returnKeyType="search"
             autoFocus
@@ -93,10 +119,7 @@ export const MobileAskSheet: React.FC<MobileAskSheetProps> = ({
                   {result.suggestions.map((s, idx) => (
                     <TouchableOpacity
                       key={idx}
-                      onPress={() => {
-                        setQuery(s);
-                        handleSubmit(s);
-                      }}
+                      onPress={() => handleChipPress(s)}
                       style={styles.suggestionChip}
                     >
                       <Text style={styles.suggestionText}>{s}</Text>
@@ -121,10 +144,7 @@ export const MobileAskSheet: React.FC<MobileAskSheetProps> = ({
               return (
                 <TouchableOpacity
                   key={chipKey}
-                  onPress={() => {
-                    setQuery(label);
-                    handleSubmit(label);
-                  }}
+                  onPress={() => handleChipPress(label)}
                   style={styles.chipButton}
                 >
                   <Text style={styles.chipText}>{label}</Text>
@@ -149,94 +169,3 @@ export const MobileAskSheet: React.FC<MobileAskSheetProps> = ({
   );
 };
 
-const styles = StyleSheet.create({
-  scrollContent: {
-    gap: 14,
-    paddingVertical: 4,
-  },
-  inputBar: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: DESIGN_TOKENS.colors.slate[50],
-    borderWidth: 1,
-    borderColor: DESIGN_TOKENS.colors.slate[200],
-    borderRadius: 10,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-  },
-  textInput: {
-    flex: 1,
-    marginLeft: 8,
-    fontSize: 14,
-    color: DESIGN_TOKENS.colors.textPrimary,
-  },
-  resultBox: {
-    backgroundColor: DESIGN_TOKENS.colors.slate[50],
-    borderWidth: 1,
-    borderColor: DESIGN_TOKENS.colors.slate[200],
-    borderRadius: 10,
-    padding: 12,
-  },
-  resultText: {
-    fontSize: 13,
-    fontWeight: "500",
-    color: DESIGN_TOKENS.colors.textPrimary,
-    lineHeight: 18,
-  },
-  clarifyBox: {
-    gap: 8,
-  },
-  clarifyText: {
-    fontSize: 13,
-    color: DESIGN_TOKENS.colors.slate[700],
-  },
-  chipsRow: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 8,
-  },
-  suggestionChip: {
-    backgroundColor: DESIGN_TOKENS.colors.surface,
-    borderWidth: 1,
-    borderColor: DESIGN_TOKENS.colors.slate[200],
-    borderRadius: 999,
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-  },
-  suggestionText: {
-    fontSize: 12,
-    color: DESIGN_TOKENS.colors.slate[700],
-  },
-  unavailableText: {
-    fontSize: 13,
-    color: DESIGN_TOKENS.colors.warningDark,
-  },
-  sectionGap: {
-    gap: 8,
-  },
-  sectionHeader: {
-    fontSize: 11,
-    fontWeight: "600",
-    color: DESIGN_TOKENS.colors.slate[400],
-    textTransform: "uppercase",
-  },
-  chipButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: DESIGN_TOKENS.colors.slate[100],
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 8,
-    gap: 6,
-  },
-  chipText: {
-    fontSize: 12,
-    color: DESIGN_TOKENS.colors.slate[700],
-  },
-  footerHelpText: {
-    fontSize: 11,
-    color: DESIGN_TOKENS.colors.slate[400],
-    textAlign: "center",
-    marginTop: 4,
-  },
-});

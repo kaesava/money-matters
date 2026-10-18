@@ -45,6 +45,86 @@ describe("Deterministic Intent Matcher", () => {
     expect(res?.params.daysAhead).toBe(7);
   });
 
+  it("matches 'i paid an internet bill for $50' to RECORD_BILL_PAYMENT", () => {
+    const res = matchDeterministicIntent("i paid an internet bill for $50");
+    expect(res).not.toBeNull();
+    expect(res?.intent).toBe("RECORD_BILL_PAYMENT");
+    expect(res?.params.amount).toBe(50);
+    expect(res?.params.entityName?.toLowerCase()).toBe("internet");
+  });
+
+  it("matches 'paid $50 for internet' and 'paid internet $50'", () => {
+    const res1 = matchDeterministicIntent("paid $50 for internet");
+    expect(res1?.intent).toBe("RECORD_BILL_PAYMENT");
+    expect(res1?.params.amount).toBe(50);
+    expect(res1?.params.entityName?.toLowerCase()).toBe("internet");
+
+    const res2 = matchDeterministicIntent("paid internet $50");
+    expect(res2?.intent).toBe("RECORD_BILL_PAYMENT");
+    expect(res2?.params.amount).toBe(50);
+    expect(res2?.params.entityName?.toLowerCase()).toBe("internet");
+  });
+
+  it("matches 'mark internet paid' and 'mark rent as paid'", () => {
+    const res1 = matchDeterministicIntent("mark internet paid");
+    expect(res1?.intent).toBe("RECORD_BILL_PAYMENT");
+    expect(res1?.params.entityName?.toLowerCase()).toBe("internet");
+
+    const res2 = matchDeterministicIntent("mark rent as paid");
+    expect(res2?.intent).toBe("RECORD_BILL_PAYMENT");
+    expect(res2?.params.entityName?.toLowerCase()).toBe("rent");
+  });
+
+  it("matches 'spent $45 at Woolworths' and 'bought groceries for $80'", () => {
+    const res1 = matchDeterministicIntent("spent $45 at Woolworths");
+    expect(res1?.intent).toBe("RECORD_TRANSACTION");
+    expect(res1?.params.amount).toBe(45);
+    expect(res1?.params.entityName?.toLowerCase()).toContain("woolworths");
+
+    const res2 = matchDeterministicIntent("bought groceries for $80");
+    expect(res2?.intent).toBe("RECORD_TRANSACTION");
+    expect(res2?.params.amount).toBe(80);
+    expect(res2?.params.entityName?.toLowerCase()).toContain("groceries");
+  });
+
+  it("matches 'transfer $100 from savings to everyday'", () => {
+    const res = matchDeterministicIntent("transfer $100 from savings to everyday");
+    expect(res?.intent).toBe("TRANSFER_FUNDS");
+    expect(res?.params.amount).toBe(100);
+    expect(res?.params.sourceAccount?.toLowerCase()).toBe("savings");
+    expect(res?.params.destinationAccount?.toLowerCase()).toBe("everyday");
+  });
+
+  it("matches 'did i pay internet' and 'is rent paid'", () => {
+    const res1 = matchDeterministicIntent("did i pay internet?");
+    expect(res1?.intent).toBe("BILL_PAYMENT_STATUS");
+    expect(res1?.params.entityName?.toLowerCase()).toBe("internet");
+
+    const res2 = matchDeterministicIntent("is rent paid?");
+    expect(res2?.intent).toBe("BILL_PAYMENT_STATUS");
+    expect(res2?.params.entityName?.toLowerCase()).toBe("rent");
+  });
+
+  it("matches 'When can I achieve my Goal?' chip prompt", () => {
+    const res = matchDeterministicIntent("When can I achieve my Goal?");
+    expect(res?.intent).toBe("GOAL_ACHIEVEMENT_DATE");
+    expect(res?.params.entityName).toBeUndefined();
+  });
+
+  it("matches direct navigation actions: add income, add bill, settings", () => {
+    expect(matchDeterministicIntent("add income")?.params.targetScreen).toBe("income-and-bills");
+    expect(matchDeterministicIntent("new bill")?.params.targetScreen).toBe("income-and-bills");
+    expect(matchDeterministicIntent("settings")?.params.targetScreen).toBe("settings");
+    expect(matchDeterministicIntent("view transactions")?.params.targetScreen).toBe("history");
+  });
+
+  it("does not false-positive parse dates or days as amounts", () => {
+    const res = matchDeterministicIntent("Which bills are due in 14 days?");
+    expect(res?.intent).toBe("BILLS_DUE");
+    expect(res?.params.daysAhead).toBe(14);
+    expect(res?.params.amount).toBeUndefined();
+  });
+
   it("returns null for ambiguous queries requiring LLM fallback", () => {
     const res = matchDeterministicIntent("Tell me about my financial habits overall");
     expect(res).toBeNull();

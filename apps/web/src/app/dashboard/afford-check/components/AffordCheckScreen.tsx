@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useId, useDeferredValue } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { trpc } from '@/lib/trpc';
 import { t } from '@money-matters/i18n';
 import { InfoTooltip } from '@money-matters/ui';
@@ -12,11 +13,13 @@ import { ArrowLeft, Repeat, ShoppingBag } from 'lucide-react';
 import Link from 'next/link';
 
 export function AffordCheckScreen() {
+  const searchParams = useSearchParams();
+  const urlAmount = searchParams.get('amount') || '';
   const amountInputId = useId();
   const itemNameInputId = useId();
   const includePersonalId = useId();
 
-  const [rawAmount, setRawAmount] = useState('');
+  const [rawAmount, setRawAmount] = useState(urlAmount);
   const [mode, setMode] = useState<'ONE_OFF' | 'RECURRING'>('ONE_OFF');
   const [frequency, setFrequency] = useState<'WEEKLY' | 'FORTNIGHTLY' | 'MONTHLY' | 'ANNUALLY'>('MONTHLY');
   const [itemName, setItemName] = useState('');

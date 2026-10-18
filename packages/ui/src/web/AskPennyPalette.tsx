@@ -73,6 +73,32 @@ export const AskPennyPalette: React.FC<AskPennyPaletteProps> = ({
     }
   };
 
+  const handleChipClick = (label: string) => {
+    setQuery(label);
+    setResult(null);
+
+    const currencyMatch = label.match(/\$\d+(?:\.\d{2})?/);
+    const goalMatch = label.match(/\b(?:my\s+)?Goal\b/i);
+
+    setTimeout(() => {
+      if (!inputRef.current) return;
+      inputRef.current.focus();
+      if (currencyMatch && currencyMatch.index !== undefined) {
+        inputRef.current.setSelectionRange(
+          currencyMatch.index,
+          currencyMatch.index + currencyMatch[0].length
+        );
+      } else if (goalMatch && goalMatch.index !== undefined) {
+        inputRef.current.setSelectionRange(
+          goalMatch.index,
+          goalMatch.index + goalMatch[0].length
+        );
+      } else {
+        inputRef.current.setSelectionRange(label.length, label.length);
+      }
+    }, 10);
+  };
+
   return (
     <div className="fixed inset-0 z-50 flex items-start justify-center pt-20 px-4 bg-slate-900/60 backdrop-blur-sm">
       <div className="w-full max-w-xl bg-white dark:bg-slate-800 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-700 overflow-hidden animate-in fade-in zoom-in-95 duration-150">
@@ -121,10 +147,7 @@ export const AskPennyPalette: React.FC<AskPennyPaletteProps> = ({
                     {result.suggestions.map((s, idx) => (
                       <button
                         key={idx}
-                        onClick={() => {
-                          setQuery(s);
-                          handleSubmit(s);
-                        }}
+                        onClick={() => handleChipClick(s)}
                         className="text-xs px-2.5 py-1 rounded-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:border-blue-500 text-slate-700 dark:text-slate-300"
                       >
                         {s}
@@ -151,10 +174,7 @@ export const AskPennyPalette: React.FC<AskPennyPaletteProps> = ({
                 return (
                   <button
                     key={chipKey}
-                    onClick={() => {
-                      setQuery(label);
-                      handleSubmit(label);
-                    }}
+                    onClick={() => handleChipClick(label)}
                     className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-blue-50 dark:bg-slate-700/60 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
                   >
                     <span>{label}</span>
@@ -165,6 +185,7 @@ export const AskPennyPalette: React.FC<AskPennyPaletteProps> = ({
             </div>
           </div>
         </div>
+
 
         {typeof remainingCalls === "number" && (
           <div className="px-4 py-2 bg-slate-50 dark:bg-slate-900/50 border-t border-slate-100 dark:border-slate-700 flex justify-between items-center text-xs text-slate-400">

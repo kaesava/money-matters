@@ -1,10 +1,10 @@
-import { eq, and, sql, desc } from "drizzle-orm";
-import { envelopes, incomeEvents } from "@money-matters/db";
+import { eq, and, sql, asc } from "drizzle-orm";
+import { envelopes, incomeEvents, DbOrTx } from "@money-matters/db";
 import { listBillCoverageQuery, previewPaydayQuery } from "@money-matters/capability-budgeting";
 import type { IntentHandlerPort, IntentContext } from "@money-matters/capability-assistant";
 import type { AssistantResult } from "@money-matters/types";
 
-export function createAssistantIntentHandler(db: any, appId: string): IntentHandlerPort {
+export function createAssistantIntentHandler(db: DbOrTx, appId: string): IntentHandlerPort {
   return {
     async handleGoalDate(ctx: IntentContext, goalName?: string): Promise<AssistantResult> {
       const rows = await db
@@ -18,7 +18,7 @@ export function createAssistantIntentHandler(db: any, appId: string): IntentHand
         );
 
       const target = goalName
-        ? rows.find((r: any) => r.name.toLowerCase().includes(goalName.toLowerCase())) || rows[0]
+        ? rows.find((r) => r.name.toLowerCase().includes(goalName.toLowerCase())) || rows[0]
         : rows[0];
 
       if (!target) {
@@ -74,7 +74,7 @@ export function createAssistantIntentHandler(db: any, appId: string): IntentHand
           .select()
           .from(incomeEvents)
           .where(and(eq(incomeEvents.tenantId, ctx.tenantId), eq(incomeEvents.status, "PENDING")))
-          .orderBy(desc(incomeEvents.expectedDate))
+          .orderBy(asc(incomeEvents.expectedDate))
           .limit(1);
 
         if (!nextEvent) {
@@ -117,7 +117,7 @@ export function createAssistantIntentHandler(db: any, appId: string): IntentHand
     async handleBillCoverage(ctx: IntentContext, billName?: string): Promise<AssistantResult> {
       const coverage = await listBillCoverageQuery(ctx.tenantId, appId, db, ctx.userId);
       const matched = billName
-        ? coverage.items.find((b: any) => b.envelopeName.toLowerCase().includes(billName.toLowerCase()))
+        ? coverage.items.find((b) => b.envelopeName.toLowerCase().includes(billName.toLowerCase()))
         : null;
 
       if (!matched) {

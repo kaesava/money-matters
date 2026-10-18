@@ -11,6 +11,7 @@ import { TrialBanner } from "../../components/TrialBanner";
 import { useSubscriptionStatus } from "../../hooks/useSubscriptionStatus";
 import { Spinner, AskPennyPalette } from "@money-matters/ui/web";
 import { useNetworkStatus } from "../../providers/AppProviders";
+import type { QuickActionInitialData } from "@money-matters/types";
 import { trpc } from "../../lib/trpc";
 import { SidebarContent } from "./components/SidebarContent";
 import { KeyboardShortcutsModal } from "./components/KeyboardShortcutsModal";
@@ -100,6 +101,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   });
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [quickExpenseOpen, setQuickExpenseOpen] = useState(false);
+  const [quickExpenseData, setQuickExpenseData] = useState<QuickActionInitialData | undefined>(undefined);
   const [askPennyOpen, setAskPennyOpen] = useState(false);
   const [showShortcutsModal, setShowShortcutsModal] = useState(false);
   const [isRetrying, setIsRetrying] = useState(false);
@@ -456,8 +458,12 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
           {quickExpenseOpen && (
             <QuickExpenseDrawer
-              initialTab={pathname.startsWith("/dashboard/bank-accounts") ? "CREDIT" : "DEBIT"}
-              onClose={() => setQuickExpenseOpen(false)}
+              initialTab={quickExpenseData?.type || (pathname.startsWith("/dashboard/bank-accounts") ? "CREDIT" : "DEBIT")}
+              initialData={quickExpenseData}
+              onClose={() => {
+                setQuickExpenseOpen(false);
+                setQuickExpenseData(undefined);
+              }}
             />
           )}
 
@@ -476,7 +482,25 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               return res;
             }}
             onNavigatePrefill={(prefill) => {
-              if (prefill.target === "add-transaction" || prefill.target === "mark-paid" || prefill.target === "transfer") {
+              if (prefill.target === "add-transaction" || prefill.target === "mark-paid") {
+                const amountStr = prefill.params?.amount ? String(prefill.params.amount) : "";
+                const billOrMerchant = String(prefill.params?.billName || prefill.params?.merchant || prefill.params?.entityName || "");
+                setQuickExpenseData({
+                  type: "DEBIT",
+                  name: billOrMerchant,
+                  amount: amountStr,
+                  date: prefill.params?.date ? String(prefill.params.date) : undefined,
+                  envelopeName: billOrMerchant,
+                });
+                setQuickExpenseOpen(true);
+              } else if (prefill.target === "transfer") {
+                const amountStr = prefill.params?.amount ? String(prefill.params.amount) : "";
+                setQuickExpenseData({
+                  type: "TRANSFER",
+                  amount: amountStr,
+                  sourcePoolName: prefill.params?.sourceAccount ? String(prefill.params.sourceAccount) : undefined,
+                  destinationPoolName: prefill.params?.destinationAccount ? String(prefill.params.destinationAccount) : undefined,
+                });
                 setQuickExpenseOpen(true);
               } else if (prefill.target === "afford-check") {
                 const amountParam = prefill.params?.amount ? `?amount=${prefill.params.amount}` : "";
@@ -485,9 +509,13 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 router.push("/dashboard/income-and-bills");
               } else if (prefill.target === "history-filter") {
                 router.push("/dashboard/history");
+              } else if (prefill.target === "navigate") {
+                const screen = String(prefill.params?.screen || "dashboard");
+                router.push(`/dashboard/${screen}`);
               }
             }}
           />
+
         </div>
       </div>
     </ProductTourProvider>

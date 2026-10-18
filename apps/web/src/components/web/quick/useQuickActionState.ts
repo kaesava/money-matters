@@ -2,14 +2,15 @@ import { useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { trpc } from "../../../lib/trpc";
 import posthog from "../../../lib/posthog-client";
-import { QuickPresetItem, computeRecentAndFrequentPresets, isPaydayOrAdjustment } from "@money-matters/types";
+import { QuickPresetItem, QuickActionInitialData, computeRecentAndFrequentPresets, isPaydayOrAdjustment } from "@money-matters/types";
 import { useToast } from "@money-matters/ui/web";
 import { t } from "@money-matters/i18n";
 import { useLocale } from "../../../providers/LocaleProvider";
 
 export function useQuickActionState(
   onClose: () => void,
-  initialTab: "DEBIT" | "CREDIT" | "TRANSFER" = "DEBIT"
+  initialTab: "DEBIT" | "CREDIT" | "TRANSFER" = "DEBIT",
+  initialData?: QuickActionInitialData
 ) {
   const router = useRouter();
   const toast = useToast();
@@ -19,15 +20,17 @@ export function useQuickActionState(
     timeZone: activeTz,
   }).format(new Date()), [activeTz]);
 
-  const [type, setType] = useState<"DEBIT" | "CREDIT" | "TRANSFER">(initialTab);
-  const [name, setName] = useState("");
-  const [amount, setAmount] = useState("");
-  const [categoryId, setCategoryId] = useState("");
+  const [type, setType] = useState<"DEBIT" | "CREDIT" | "TRANSFER">(initialData?.type || initialTab);
+  const [name, setName] = useState(initialData?.name || "");
+  const [amount, setAmount] = useState(
+    initialData?.amount ? (isNaN(parseFloat(initialData.amount)) ? "" : parseFloat(initialData.amount).toFixed(2)) : ""
+  );
+  const [categoryId, setCategoryId] = useState(initialData?.categoryId || "");
   const [selectedSubCategoryId, setSelectedSubCategoryId] = useState<string | null>(null);
   const [sourceCategoryId, setSourceCategoryId] = useState("");
   const [destinationCategoryId, setDestinationCategoryId] = useState("");
   const [receivingAccountId, setReceivingAccountId] = useState("");
-  const [date, setDate] = useState(todayStr);
+  const [date, setDate] = useState(initialData?.date || todayStr);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
   const [confirmState, setConfirmState] = useState<{
@@ -76,6 +79,41 @@ export function useQuickActionState(
   const bankAccounts = useMemo(() => rawBankAccounts ?? [], [rawBankAccounts]);
   const rawTxList = transactionsQuery.data;
   const txList = useMemo(() => rawTxList ?? [], [rawTxList]);
+
+  // Auto-match envelope and transfer pools from initialData
+  useMemo(() => {
+    if (!initialData || categories.length === 0) return;
+
+    if (initialData.envelopeName && !categoryId) {
+      const search = initialData.envelopeName.toLowerCase().trim();
+      const matched = categories.find(
+        (c) => c.name.toLowerCase().includes(search) || search.includes(c.name.toLowerCase())
+      );
+      if (matched) {
+        setCategoryId(matched.id);
+      }
+    }
+
+    if (initialData.sourcePoolName && !sourceCategoryId) {
+      const search = initialData.sourcePoolName.toLowerCase().trim();
+      const matched = categories.find(
+        (c) => c.name.toLowerCase().includes(search) || search.includes(c.name.toLowerCase())
+      );
+      if (matched) {
+        setSourceCategoryId(matched.id);
+      }
+    }
+
+    if (initialData.destinationPoolName && !destinationCategoryId) {
+      const search = initialData.destinationPoolName.toLowerCase().trim();
+      const matched = categories.find(
+        (c) => c.name.toLowerCase().includes(search) || search.includes(c.name.toLowerCase())
+      );
+      if (matched) {
+        setDestinationCategoryId(matched.id);
+      }
+    }
+  }, [initialData, categories, categoryId, sourceCategoryId, destinationCategoryId]);
 
   function handleTabChange(newType: "DEBIT" | "CREDIT" | "TRANSFER") {
     setType(newType);

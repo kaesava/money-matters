@@ -10,12 +10,19 @@ import { AffordCheckBreakdownCard } from './AffordCheckBreakdownCard';
 interface MobileAffordCheckModalProps {
   visible: boolean;
   onClose: () => void;
+  initialAmount?: string;
 }
 
-export function MobileAffordCheckModal({ visible, onClose }: MobileAffordCheckModalProps) {
-  const [rawAmount, setRawAmount] = useState('');
+export function MobileAffordCheckModal({ visible, onClose, initialAmount }: MobileAffordCheckModalProps) {
+  const [rawAmount, setRawAmount] = useState(initialAmount || '');
   const [mode, setMode] = useState<'ONE_OFF' | 'RECURRING'>('ONE_OFF');
   const [frequency, setFrequency] = useState<'WEEKLY' | 'FORTNIGHTLY' | 'MONTHLY' | 'ANNUALLY'>('MONTHLY');
+
+  React.useEffect(() => {
+    if (visible && initialAmount) {
+      setRawAmount(initialAmount);
+    }
+  }, [visible, initialAmount]);
 
   const deferredAmount = useDeferredValue(rawAmount);
   const parsedAmount = parseFloat(deferredAmount);

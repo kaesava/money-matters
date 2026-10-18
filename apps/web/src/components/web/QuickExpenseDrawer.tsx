@@ -5,12 +5,15 @@ import { useQuickActionState } from "./quick/useQuickActionState";
 import { QuickPickBadges } from "./quick/QuickPickBadges";
 import { CrossBankTransferModal } from "./CrossBankTransferModal";
 
+import { QuickActionInitialData } from "@money-matters/types";
+
 export interface QuickActionDrawerProps {
   readonly onClose: () => void;
   readonly initialTab?: "DEBIT" | "CREDIT" | "TRANSFER";
+  readonly initialData?: QuickActionInitialData;
 }
 
-export function QuickActionDrawer({ onClose, initialTab = "DEBIT" }: QuickActionDrawerProps) {
+export function QuickActionDrawer({ onClose, initialTab = "DEBIT", initialData }: QuickActionDrawerProps) {
   const {
     type,
     handleTabChange,
@@ -48,7 +51,7 @@ export function QuickActionDrawer({ onClose, initialTab = "DEBIT" }: QuickAction
     setConfirmState,
     crossBankPrompt,
     setCrossBankPrompt,
-  } = useQuickActionState(onClose, initialTab);
+  } = useQuickActionState(onClose, initialTab, initialData);
 
   const activePresets = isTransfer
     ? quickTransferPresets
