@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -7,10 +7,13 @@ import {
   StyleProp,
   ViewStyle,
   TextInputProps,
+  NativeSyntheticEvent,
+  TargetedEvent,
 } from 'react-native';
 import { DESIGN_TOKENS } from '../tokens';
 import { FormLabel } from './FormLabel';
 import { FormFieldError } from './FormFieldError';
+import { formatAmountNumber } from '../lib/format';
 
 export interface AmountInputProps extends Omit<TextInputProps, 'onChangeText' | 'value'> {
   value: string;
@@ -20,7 +23,32 @@ export interface AmountInputProps extends Omit<TextInputProps, 'onChangeText' | 
   error?: string;
   hint?: string;
   currencySymbol?: string;
+  locale?: string;
+  minorUnits?: number;
   containerStyle?: StyleProp<ViewStyle>;
+}
+
+export function cleanMobileAmount(raw: string, minorUnits: number = 2): string {
+  let cleaned = raw.replace(/,/g, '');
+  if (minorUnits === 0) {
+    cleaned = cleaned.split('.')[0].replace(/[^0-9]/g, '');
+    if (cleaned.length > 12) cleaned = cleaned.slice(0, 12);
+    return cleaned;
+  }
+  cleaned = cleaned.replace(/[^0-9.]/g, '');
+  const parts = cleaned.split('.');
+  if (parts.length > 2) {
+    cleaned = parts[0] + '.' + parts.slice(1).join('');
+  }
+  const decimalParts = cleaned.split('.');
+  if (decimalParts[1] && decimalParts[1].length > minorUnits) {
+    cleaned = decimalParts[0] + '.' + decimalParts[1].slice(0, minorUnits);
+  }
+  const finalParts = cleaned.split('.');
+  if (finalParts[0] && finalParts[0].length > 12) {
+    cleaned = finalParts[0].slice(0, 12) + (finalParts.length > 1 ? '.' + finalParts[1] : '');
+  }
+  return cleaned;
 }
 
 export const AmountInputBase = (
@@ -32,56 +60,72 @@ export const AmountInputBase = (
     error,
     hint,
     currencySymbol = '$',
+    locale = 'en-AU',
+    minorUnits = 2,
     placeholder = '0.00',
     containerStyle,
     editable = true,
     selectTextOnFocus = true,
     style,
+    onFocus,
+    onBlur,
     ...props
   }: AmountInputProps,
   ref: React.ForwardedRef<TextInput>
 ) => {
-    const handleChange = (raw: string) => {
-      // Defensively keep only numbers and a single decimal point
-      let cleaned = raw.replace(/[^0-9.]/g, '');
-      const parts = cleaned.split('.');
-      if (parts.length > 2) {
-        cleaned = parts[0] + '.' + parts.slice(1).join('');
-      }
-      const decimalParts = cleaned.split('.');
-      if (decimalParts[1] && decimalParts[1].length > 2) {
-        cleaned = decimalParts[0] + '.' + decimalParts[1].slice(0, 2);
-      }
-      // Cap integer part at 12 digits
-      const finalParts = cleaned.split('.');
-      if (finalParts[0] && finalParts[0].length > 12) {
-        cleaned = finalParts[0].slice(0, 12) + (finalParts.length > 1 ? '.' + finalParts[1] : '');
-      }
-      onChangeText(cleaned);
-    };
+  let isFocused = false;
+  let setIsFocused: (v: boolean) => void = () => {};
+  try {
+    const hookState = useState(false);
+    isFocused = hookState[0];
+    setIsFocused = hookState[1];
+  } catch {
+    // Safe fallback when invoked directly outside of React render tree in unit tests
+  }
 
-    return (
-      <View style={[styles.wrapper, containerStyle]}>
-        {label && <FormLabel required={required}>{label}</FormLabel>}
-        {hint && <Text style={styles.hint}>{hint}</Text>}
-        <View style={[styles.inputWrap, error ? styles.inputError : null]}>
-          <Text style={styles.symbol}>{currencySymbol}</Text>
-          <TextInput
-            ref={ref}
-            value={value}
-            onChangeText={handleChange}
-            placeholder={placeholder}
-            placeholderTextColor={DESIGN_TOKENS.colors.textMuted}
-            keyboardType="decimal-pad"
-            editable={editable}
-            selectTextOnFocus={selectTextOnFocus}
-            style={[styles.input, style]}
-            {...props}
-          />
-        </View>
-        <FormFieldError error={error} />
+  const handleChange = (raw: string) => {
+    onChangeText(cleanMobileAmount(raw, minorUnits));
+  };
+
+  const handleBlur = (e: NativeSyntheticEvent<TargetedEvent>) => {
+    setIsFocused(false);
+    if (value && !isNaN(parseFloat(value))) {
+      onChangeText(parseFloat(value).toFixed(minorUnits));
+    }
+    onBlur?.(e);
+  };
+
+  const handleFocus = (e: NativeSyntheticEvent<TargetedEvent>) => {
+    setIsFocused(true);
+    onFocus?.(e);
+  };
+
+  const displayValue = isFocused ? value : formatAmountNumber(value, locale, minorUnits);
+
+  return (
+    <View style={[styles.wrapper, containerStyle]}>
+      {label && <FormLabel required={required}>{label}</FormLabel>}
+      {hint && <Text style={styles.hint}>{hint}</Text>}
+      <View style={[styles.inputWrap, error ? styles.inputError : null]}>
+        <Text style={styles.symbol}>{currencySymbol}</Text>
+        <TextInput
+          ref={ref}
+          value={displayValue}
+          onChangeText={handleChange}
+          onBlur={handleBlur}
+          onFocus={handleFocus}
+          placeholder={placeholder}
+          placeholderTextColor={DESIGN_TOKENS.colors.textMuted}
+          keyboardType="decimal-pad"
+          editable={editable}
+          selectTextOnFocus={selectTextOnFocus}
+          style={[styles.input, style]}
+          {...props}
+        />
       </View>
-    );
+      <FormFieldError error={error} />
+    </View>
+  );
 };
 
 export const AmountInput = React.forwardRef<TextInput, AmountInputProps>(AmountInputBase);

@@ -134,3 +134,8 @@ export type { MobileBillCoverageBadgeProps, MobileBillCoverageBadgeProps as Bill
 
 export { MobileProductTourSheet } from './MobileProductTourSheet';
 export type { MobileProductTourSheetProps, MobileTourStepConfig } from './MobileProductTourSheet';
+
+export { MobileDonutChart } from './charts/MobileDonutChart';
+export { MobileBarTrendChart } from './charts/MobileBarTrendChart';
+export { MobileHorizontalRankedBarChart } from './charts/MobileHorizontalRankedBarChart';
+export { MobileSpendingOverviewCard } from './charts/MobileSpendingOverviewCard';

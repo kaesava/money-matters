@@ -68,6 +68,9 @@ export const QuizAnswersSchema = z.object({
   givesCharity: z.boolean().default(false),
   familySupportMonthlyAmount: z.number().nonnegative().default(0),
 
+  // Country / Region configuration
+  country: z.enum(["AU", "NZ", "OTHER"]).default("AU"),
+
   // Everyday Sliders (Weekly)
   weeklyGroceries: z.number().nonnegative().default(270),
   weeklyDining: z.number().nonnegative().default(240),
@@ -102,6 +105,53 @@ export function calculateQuizEstimates(answers: QuizAnswers): EstimationResult {
   const regularBills: EstimatedCategoryItem[] = [];
   const goalSinkingFunds: EstimatedCategoryItem[] = [];
   const everydayCategories: EstimatedCategoryItem[] = [];
+
+  if (answers.country === "OTHER") {
+    const weeklyG = answers.weeklyGroceries || 0;
+    const weeklyD = answers.weeklyDining || 0;
+    const weeklyP = answers.weeklyPersonal || 0;
+    const monthlyGroceries = Math.round(weeklyG * (52 / 12));
+    const monthlyDining = Math.round(weeklyD * (52 / 12));
+    const monthlyPersonal = Math.round(weeklyP * (52 / 12));
+    const monthlyEverydayTotal = monthlyGroceries + monthlyDining + monthlyPersonal;
+
+    if (answers.housingType !== "OWN_OUTRIGHT") {
+      regularBills.push({ name: answers.housingType.startsWith("OWN") ? "Mortgage Payment" : "Rent", type: "REGULAR", monthlyAud: 0, icon: "home" });
+    }
+    regularBills.push({ name: "Utilities", type: "REGULAR", monthlyAud: 0, icon: "zap" });
+    regularBills.push({ name: "Home Internet", type: "REGULAR", monthlyAud: 0, icon: "wifi" });
+    if (answers.hasCars) {
+      regularBills.push({ name: "Vehicle & Transport", type: "REGULAR", monthlyAud: 0, icon: "car" });
+    }
+    if (answers.activeDebtMonthlyRepayment > 0) {
+      regularBills.push({ name: "Active Debt Repayments", type: "REGULAR", monthlyAud: answers.activeDebtMonthlyRepayment, icon: "credit-card" });
+    }
+    goalSinkingFunds.push({ name: "Emergency Buffer Fund", type: "GOAL", monthlyAud: 0, icon: "shield", isCommitted: true });
+
+    everydayCategories.push({ name: "Groceries & Supermarket", type: "EVERYDAY", monthlyAud: monthlyGroceries, icon: "shopping-cart" });
+    everydayCategories.push({ name: "Eating Out & Takeaway", type: "EVERYDAY", monthlyAud: monthlyDining, icon: "utensils" });
+    everydayCategories.push({ name: "Personal & Entertainment", type: "EVERYDAY", monthlyAud: monthlyPersonal, icon: "ticket" });
+
+    let totalMonthlyIncome = 0;
+    answers.incomes.forEach((inc) => {
+      let m = inc.amount;
+      if (inc.frequency === "WEEKLY") m = inc.amount * (52 / 12);
+      if (inc.frequency === "FORTNIGHTLY") m = inc.amount * (26 / 12);
+      totalMonthlyIncome += m;
+    });
+
+    const totalRegular = regularBills.reduce((acc, i) => acc + i.monthlyAud, 0);
+    const totalGoal = goalSinkingFunds.reduce((acc, i) => acc + i.monthlyAud, 0);
+
+    return {
+      regularBills,
+      goalSinkingFunds,
+      everydayCategories,
+      everydayPool: { name: "Everyday Spending Pool", type: "EVERYDAY", monthlyAud: monthlyEverydayTotal, icon: "wallet" },
+      totalMonthlyIncomeAud: Math.round(totalMonthlyIncome),
+      totalMonthlyAllocatedAud: Math.round(totalRegular + totalGoal + monthlyEverydayTotal),
+    };
+  }
 
   // --- 1. HOUSING & UTILITIES (REGULAR) ---
   let rentMortgageAmount = 2750;
@@ -291,7 +341,7 @@ export const UserGoalItemSchema = z.object({
   id: z.string(),
   name: z.string().min(1),
   monthlyAmount: z.number().nonnegative(),
-  icon: z.string().default("🎯"),
+  icon: z.string().default("target"),
   goalMode: z.enum(["TARGET_DATE", "ONGOING"]).optional().default("TARGET_DATE"),
   targetAmount: z.number().nonnegative().optional().nullable(),
   dueDate: z.string().optional().nullable(),

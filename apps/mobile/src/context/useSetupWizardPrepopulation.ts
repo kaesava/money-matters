@@ -2,10 +2,12 @@ import { useEffect } from 'react';
 import { trpc } from '../lib/trpc';
 import { IncomeItem, UserGoalItem, EstimatedCategoryItem } from '@money-matters/types';
 import { getMobileLocaleConfig } from '../lib/format';
+import { MobileBankAccountItem } from './setup-wizard-types';
 
 interface PrepopulationProps {
   isRerun: boolean;
   setIncomes: React.Dispatch<React.SetStateAction<IncomeItem[]>>;
+  setBankAccounts: React.Dispatch<React.SetStateAction<MobileBankAccountItem[]>>;
   setGoals: React.Dispatch<React.SetStateAction<UserGoalItem[]>>;
   setCustomCategories: React.Dispatch<React.SetStateAction<EstimatedCategoryItem[]>>;
 }
@@ -13,11 +15,13 @@ interface PrepopulationProps {
 export function useSetupWizardPrepopulation({
   isRerun,
   setIncomes,
+  setBankAccounts,
   setGoals,
   setCustomCategories,
 }: PrepopulationProps) {
   const tz = getMobileLocaleConfig().timezone;
   const incomeSourcesQuery = trpc.listIncomeSources.useQuery(undefined, { enabled: isRerun });
+  const bankAccountsQuery = trpc.getBankAccountsWithMappings.useQuery(undefined, { enabled: isRerun });
   const poolsQuery = trpc.listPools.useQuery(undefined, { enabled: isRerun });
 
   // Pre-populate incomes if in rerun mode
@@ -42,6 +46,22 @@ export function useSetupWizardPrepopulation({
     );
   }, [isRerun, incomeSourcesQuery.data, setIncomes, tz]);
 
+  // Pre-populate bank accounts if in rerun mode
+  useEffect(() => {
+    if (!isRerun || !bankAccountsQuery.data || bankAccountsQuery.data.length === 0) return;
+    setBankAccounts(
+      bankAccountsQuery.data.map((acc) => ({
+        id: acc.id,
+        name: acc.name,
+        bankProvider: acc.bankProvider || 'Other',
+        accountType: acc.accountType || 'EVERYDAY',
+        lastKnownBalance: String(acc.lastKnownBalance || '0.00'),
+        unbudgetedBuffer: String(acc.unbudgetedBuffer || '0.00'),
+        isPrivate: Boolean(acc.isPrivate),
+      }))
+    );
+  }, [isRerun, bankAccountsQuery.data, setBankAccounts]);
+
   // Pre-populate goal pools if in rerun mode
   useEffect(() => {
     if (!isRerun || !poolsQuery.data || poolsQuery.data.length === 0) return;
@@ -56,7 +76,7 @@ export function useSetupWizardPrepopulation({
             name: g.name,
             goalMode: isOngoing ? ('ONGOING' as const) : ('TARGET_DATE' as const),
             monthlyAmount: isOngoing ? amt : Math.round(amt / 12),
-            icon: '🎯',
+            icon: 'target',
             targetAmount: amt,
             enteredAmount: g.enteredAmount ? parseFloat(g.enteredAmount) : amt,
             budgetFrequency: (g.budgetFrequency as 'WEEKLY' | 'FORTNIGHTLY' | 'MONTHLY' | 'ANNUALLY' | null) || undefined,
@@ -84,7 +104,7 @@ export function useSetupWizardPrepopulation({
         name: c.name,
         type: 'REGULAR' as const,
         monthlyAud: parseFloat(c.monthlyAmount || c.targetAmount || '0'),
-        icon: '📌',
+        icon: 'pin',
       }))
     );
   }, [isRerun, poolsQuery.data, setCustomCategories]);
@@ -92,6 +112,6 @@ export function useSetupWizardPrepopulation({
   return {
     rawPools: poolsQuery.data || [],
     rawCategories: [] as unknown[],
-    isLoading: incomeSourcesQuery.isLoading || poolsQuery.isLoading,
+    isLoading: incomeSourcesQuery.isLoading || poolsQuery.isLoading || bankAccountsQuery.isLoading,
   };
 }

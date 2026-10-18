@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import {
   formatCurrency,
+  formatAmountNumber,
   fmtBalance,
   fmtTransactionAmount,
   getCurrencySymbol,
@@ -20,6 +21,15 @@ describe("UI Format Utilities", () => {
     const formatted = formatCurrency(1234, "ja-JP", "JPY");
     expect(formatted).toContain("1,234");
     expect(formatted).not.toContain(".00");
+  });
+
+  it("formats numbers with locale-aware comma grouping via formatAmountNumber", () => {
+    expect(formatAmountNumber(1234567.89, "en-AU", 2)).toBe("1,234,567.89");
+    expect(formatAmountNumber(1234567.89, "en-US", 2)).toBe("1,234,567.89");
+    expect(formatAmountNumber(1234567.89, "en-IN", 2)).toBe("12,34,567.89");
+    expect(formatAmountNumber(1234567, "ja-JP", 0)).toBe("1,234,567");
+    expect(formatAmountNumber("1234.5", "en-AU", 2)).toBe("1,234.50");
+    expect(formatAmountNumber("", "en-AU", 2)).toBe("");
   });
 
   it("handles null, undefined, and zero correctly", () => {

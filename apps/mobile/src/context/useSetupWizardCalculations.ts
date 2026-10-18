@@ -36,6 +36,7 @@ export interface CalculationsProps {
 
 export function computeSetupWizardCalculations(props: CalculationsProps) {
   const quizAnswers: QuizAnswers = {
+    country: 'AU',
     incomes: props.incomes,
     housingType: props.housingType,
     hasCars: props.hasCars,

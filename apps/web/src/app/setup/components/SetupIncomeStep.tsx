@@ -11,7 +11,7 @@ interface SetupIncomeStepProps {
   onUpdateIncome: <K extends keyof IncomeItem>(id: string, field: K, value: IncomeItem[K]) => void;
   onRemoveIncome: (id: string) => void;
   onNext: () => void;
-  showIcons?: boolean;
+  totalSteps?: number;
 }
 
 export function SetupIncomeStep({
@@ -20,7 +20,7 @@ export function SetupIncomeStep({
   onUpdateIncome,
   onRemoveIncome,
   onNext,
-  showIcons = true,
+  totalSteps = 4,
 }: SetupIncomeStepProps) {
   return (
     <div className="flex flex-col gap-6 animate-in fade-in duration-200">
@@ -30,10 +30,10 @@ export function SetupIncomeStep({
           <span className="text-xs font-extrabold uppercase tracking-wider text-teal-300 bg-white/10 px-3 py-1 rounded-full border border-teal-300/30">
             {t("setup.income.heroBadge")}
           </span>
-          <span className="text-xs font-bold text-slate-300">{t("setup.stepOf", { step: 1, total: 3 })}</span>
+          <span className="text-xs font-bold text-slate-300">{t("setup.stepOf", { step: 1, total: totalSteps })}</span>
         </div>
         <h2 className="text-xl sm:text-2xl font-black text-white leading-snug">
-          {t("setup.income.heroTitle")} {showIcons ? "✨" : ""}
+          {t("setup.income.heroTitle")}
         </h2>
         <p className="text-xs sm:text-sm text-slate-200 leading-relaxed">
           {t("setup.income.heroSubtitle")}
@@ -42,7 +42,7 @@ export function SetupIncomeStep({
 
       <div>
         <div className="flex items-center gap-1.5">
-          <h3 className="text-lg font-black text-[#1B2B4B]">{showIcons ? "💰 " : ""}{t("setup.income.sectionTitle")}</h3>
+          <h3 className="text-lg font-black text-[#1B2B4B]">{t("setup.income.sectionTitle")}</h3>
           <InfoTooltip
             title={t("setup.income.takeHomePayTooltipTitle")}
             content={t("setup.income.takeHomePayTooltipContent")}

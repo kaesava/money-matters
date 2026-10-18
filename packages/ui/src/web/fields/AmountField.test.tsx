@@ -43,36 +43,21 @@ describe('AmountField', () => {
     });
   });
 
-  describe('stepper logic', () => {
-    it('increments value by step', () => {
-      const current = 10;
-      const step = 1;
-      expect((current + step).toFixed(2)).toBe('11.00');
+  describe('comma formatting and display rules', () => {
+    it('strips commas during sanitisation', () => {
+      const raw = '1,234,567.89';
+      const cleaned = raw.replace(/,/g, '');
+      expect(cleaned).toBe('1234567.89');
     });
 
-    it('decrements value by step', () => {
-      const current = 10;
-      const step = 1;
-      const next = current - step;
-      // Without allowNegative, clamp to 0
-      const clamped = Math.max(0, next);
-      expect(clamped.toFixed(2)).toBe('9.00');
-    });
-
-    it('does not go below 0 when allowNegative is false', () => {
-      const current = 0;
-      const step = 1;
-      const next = current - step;
-      const clamped = Math.max(0, next);
-      expect(clamped.toFixed(2)).toBe('0.00');
-    });
-
-    it('allows below 0 when allowNegative is true', () => {
-      const current = 0;
-      const step = 1;
-      const next = current - step;
-      // No clamping when allowNegative=true and no effectiveMin
-      expect(next.toFixed(2)).toBe('-1.00');
+    it('formats display with commas on blur', () => {
+      const num = 1234567.89;
+      const formatted = new Intl.NumberFormat('en-AU', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+        useGrouping: true,
+      }).format(num);
+      expect(formatted).toBe('1,234,567.89');
     });
   });
 

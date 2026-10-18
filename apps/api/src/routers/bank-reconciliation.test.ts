@@ -54,7 +54,7 @@ describe("Bank Reconciliation & Mapping Rules", () => {
     expect(result.success).toBe(true);
     expect(result.tenantId).toBeDefined();
     expect(insertedAccounts).toHaveLength(1);
-    expect(insertedAccounts[0].name).toBe("Primary Account");
+    expect(insertedAccounts[0].name).toBe("Other Financial Institution (Everyday)");
 
     expect(insertedEnvelopes.length).toBeGreaterThanOrEqual(3);
     const envelopeTypes = insertedEnvelopes.map((p) => p.envelopeType);

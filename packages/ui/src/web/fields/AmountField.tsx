@@ -1,13 +1,15 @@
-import React, { useId, useCallback } from 'react';
-import { ChevronUp, ChevronDown } from 'lucide-react';
+"use client";
+
+import React, { useId, useState, useCallback } from 'react';
 import { FormLabel } from '../FormLabel';
 import { FormFieldError } from '../FormFieldError';
+import { formatAmountNumber, getCurrencyMinorUnits, getCurrencySymbol } from '../../lib/format';
 
 export interface AmountFieldProps {
   /** Controlled string value — keep as empty string when blank */
   value: string;
   onChange: (value: string) => void;
-  /** Called when the input loses focus — after 2dp formatting is applied */
+  /** Called when the input loses focus — after formatting is applied */
   onBlur?: () => void;
   /** Called when the input gains focus */
   onFocus?: (e: React.FocusEvent<HTMLInputElement>) => void;
@@ -16,8 +18,6 @@ export interface AmountFieldProps {
   placeholder?: string;
   /** Allow negative values; renders -$X.XX in rose-600 */
   allowNegative?: boolean;
-  /** Stepper increment / decrement step (default: 1) */
-  step?: number;
   /** Cap on integer digits before the decimal point (default: 10, max total 12 chars) */
   maxIntegerDigits?: number;
   required?: boolean;
@@ -34,19 +34,54 @@ export interface AmountFieldProps {
   currencySymbol?: string;
   /** Decimal places for currency minor units (e.g. 0 for JPY, 2 for AUD/USD). Derived if omitted */
   minorUnits?: number;
+  /** Locale for comma and decimal formatting (default: 'en-AU') */
+  locale?: string;
   /** Min value enforced on blur (default: 0 when allowNegative is false) */
   min?: number;
   /** Max value enforced on blur */
   max?: number;
 }
 
+function sanitiseRawAmount(
+  raw: string,
+  allowNegative: boolean,
+  minorUnits: number,
+  maxDigits: number
+): string {
+  let v = raw.replace(/,/g, '');
+  if (!allowNegative) {
+    v = v.replace(/-/g, '');
+  }
+  const negPrefix = allowNegative && v.startsWith('-') ? '-' : '';
+
+  if (minorUnits === 0) {
+    v = v.replace(/[^0-9]/g, '');
+    if (v.length > maxDigits) v = v.slice(0, maxDigits);
+    return negPrefix + v;
+  }
+
+  v = v.replace(/[^0-9.]/g, '');
+  const parts = v.split('.');
+  if (parts.length > 2) {
+    v = parts[0] + '.' + parts.slice(1).join('');
+  }
+  if (parts[1] !== undefined) {
+    v = parts[0] + '.' + parts[1].slice(0, minorUnits);
+  }
+
+  const integerPart = v.split('.')[0];
+  if (integerPart.length > maxDigits) {
+    v = integerPart.slice(0, maxDigits) + (v.includes('.') ? '.' + v.split('.')[1] : '');
+  }
+  return negPrefix + v;
+}
+
 /**
- * Canonical amount input for the Serene Finance design system.
- *
- * - Dynamic currency prefix with generous padding clearance.
- * - Right-pinned steppers.
- * - Auto-selects on focus/click/tab.
- * - On blur: formats to minorUnits dp (0dp for JPY, 2dp for AUD) if numeric.
+ * Canonical amount input for Serene Finance design tokens.
+ * - Dynamic currency symbol with clearance.
+ * - Auto-selects on focus/click.
+ * - Comma grouping on blur adhering to country convention.
+ * - Clean raw numeric input on focus.
  */
 export const AmountField = React.forwardRef<HTMLInputElement, AmountFieldProps>(
   (
@@ -59,11 +94,11 @@ export const AmountField = React.forwardRef<HTMLInputElement, AmountFieldProps>(
       error,
       placeholder = '0.00',
       allowNegative = false,
-      step = 1,
       maxIntegerDigits = 10,
       currency = 'AUD',
       currencySymbol,
       minorUnits,
+      locale = 'en-AU',
       required = false,
       disabled = false,
       autoFocus = false,
@@ -79,67 +114,17 @@ export const AmountField = React.forwardRef<HTMLInputElement, AmountFieldProps>(
   ) => {
     const generatedId = useId();
     const inputId = id ?? name ?? generatedId;
+    const [isFocused, setIsFocused] = useState(false);
 
     const effectiveMinorUnits =
-      minorUnits !== undefined
-        ? minorUnits
-        : currency?.toUpperCase() === 'JPY'
-        ? 0
-        : 2;
-
+      minorUnits !== undefined ? minorUnits : getCurrencyMinorUnits(currency);
     const effectiveSymbol =
-      currencySymbol ??
-      (currency?.toUpperCase() === 'JPY'
-        ? '¥'
-        : currency?.toUpperCase() === 'EUR'
-        ? '€'
-        : currency?.toUpperCase() === 'GBP'
-        ? '£'
-        : '$');
-
+      currencySymbol ?? getCurrencySymbol(locale, currency);
     const effectiveMin = min !== undefined ? min : allowNegative ? undefined : 0;
 
-    /** Sanitise raw user keystrokes — enforce digit/sign/decimal rules. */
     const sanitise = useCallback(
-      (raw: string): string => {
-        let v = raw;
-
-        if (!allowNegative) {
-          v = v.replace(/-/g, '');
-        }
-
-        // For zero-decimal currencies (e.g. JPY), disallow decimal points entirely
-        if (effectiveMinorUnits === 0) {
-          const negPrefix = allowNegative && v.startsWith('-') ? '-' : '';
-          v = v.replace(/[^0-9]/g, '');
-          if (v.length > maxIntegerDigits) {
-            v = v.slice(0, maxIntegerDigits);
-          }
-          return negPrefix + v;
-        }
-
-        // Allow digits, at most one decimal point, and (if allowNegative) leading minus
-        const negPrefix = allowNegative && v.startsWith('-') ? '-' : '';
-        v = v.replace(/[^0-9.]/g, '');
-
-        // Allow at most one decimal point, and at most effectiveMinorUnits decimal digits
-        const parts = v.split('.');
-        if (parts.length > 2) {
-          v = parts[0] + '.' + parts.slice(1).join('');
-        }
-        if (parts[1] !== undefined) {
-          v = parts[0] + '.' + parts[1].slice(0, effectiveMinorUnits);
-        }
-
-        // Cap integer part length
-        const integerPart = v.split('.')[0];
-        if (integerPart.length > maxIntegerDigits) {
-          v = integerPart.slice(0, maxIntegerDigits) + (v.includes('.') ? '.' + v.split('.')[1] : '');
-        }
-
-        return negPrefix + v;
-      },
-      [allowNegative, maxIntegerDigits, effectiveMinorUnits]
+      (raw: string) => sanitiseRawAmount(raw, allowNegative, effectiveMinorUnits, maxIntegerDigits),
+      [allowNegative, effectiveMinorUnits, maxIntegerDigits]
     );
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -147,6 +132,7 @@ export const AmountField = React.forwardRef<HTMLInputElement, AmountFieldProps>(
     };
 
     const handleBlur = () => {
+      setIsFocused(false);
       if (value !== '' && value !== '-') {
         const num = parseFloat(value);
         if (!isNaN(num)) {
@@ -160,22 +146,13 @@ export const AmountField = React.forwardRef<HTMLInputElement, AmountFieldProps>(
     };
 
     const handleFocus = (e: React.FocusEvent<HTMLInputElement>) => {
+      setIsFocused(true);
       onFocus?.(e);
       e.target.select();
     };
 
-    const step_ = (delta: number) => {
-      if (disabled) return;
-      const current = parseFloat(value) || 0;
-      const next = current + delta;
-      const clamped =
-        effectiveMin !== undefined ? Math.max(effectiveMin, next) :
-        max !== undefined ? Math.min(max, next) : next;
-      const final = max !== undefined ? Math.min(max, clamped) : clamped;
-      onChange(final.toFixed(effectiveMinorUnits));
-    };
-
     const isNegative = allowNegative && parseFloat(value) < 0;
+    const displayValue = isFocused ? value : formatAmountNumber(value, locale, effectiveMinorUnits);
 
     return (
       <div className={`w-full ${containerClassName}`}>
@@ -185,68 +162,39 @@ export const AmountField = React.forwardRef<HTMLInputElement, AmountFieldProps>(
           </FormLabel>
         )}
 
-        <div className="flex items-center gap-1.5 min-w-[185px]">
-          <div className="relative flex-1 min-w-[140px]">
-            {/* Leading currency symbol with generous clearance */}
-            <span
-              className={`absolute left-3.5 top-1/2 -translate-y-1/2 text-sm pointer-events-none select-none font-medium ${
-                isNegative ? 'text-rose-600 font-bold' : 'text-slate-400'
-              }`}
-            >
-              {effectiveSymbol}
-            </span>
+        <div className="relative w-full">
+          <span
+            className={`absolute left-3.5 top-1/2 -translate-y-1/2 text-sm pointer-events-none select-none font-medium ${
+              isNegative ? 'text-rose-600 font-bold' : 'text-slate-400'
+            }`}
+          >
+            {effectiveSymbol}
+          </span>
 
-            {/* Numeric input — native spinners hidden via Tailwind arbitrary variants */}
-            <input
-              ref={ref}
-              id={inputId}
-              name={name}
-              type="text"
-              inputMode="decimal"
-              autoFocus={autoFocus}
-              disabled={disabled}
-              placeholder={placeholder}
-              value={value}
-              onChange={handleChange}
-              onBlur={handleBlur}
-              onFocus={handleFocus}
-              className={[
-                'ui-input w-full min-w-[140px] !pl-11 !pr-4 font-mono tabular-nums',
-                isNegative ? 'text-rose-600 font-bold' : '',
-                '[appearance:textfield]',
-                '[&::-webkit-outer-spin-button]:appearance-none',
-                '[&::-webkit-inner-spin-button]:appearance-none',
-                className,
-              ]
-                .filter(Boolean)
-                .join(' ')}
-            />
-          </div>
-
-          {/* Stepper buttons positioned strictly to the right of the input box */}
-          <div className="flex flex-col shrink-0 border border-slate-200 rounded-xl overflow-hidden bg-slate-50 shadow-2xs">
-            <button
-              type="button"
-              tabIndex={-1}
-              disabled={disabled}
-              onClick={() => step_(step)}
-              aria-label="Increase amount"
-              className="flex items-center justify-center h-5 w-7 text-slate-400 hover:text-[#2563eb] hover:bg-slate-100 transition-colors disabled:opacity-40 cursor-pointer"
-            >
-              <ChevronUp size={12} strokeWidth={2.5} />
-            </button>
-            <div className="h-px bg-slate-200 w-full" />
-            <button
-              type="button"
-              tabIndex={-1}
-              disabled={disabled}
-              onClick={() => step_(-step)}
-              aria-label="Decrease amount"
-              className="flex items-center justify-center h-5 w-7 text-slate-400 hover:text-[#2563eb] hover:bg-slate-100 transition-colors disabled:opacity-40 cursor-pointer"
-            >
-              <ChevronDown size={12} strokeWidth={2.5} />
-            </button>
-          </div>
+          <input
+            ref={ref}
+            id={inputId}
+            name={name}
+            type="text"
+            inputMode="decimal"
+            autoFocus={autoFocus}
+            disabled={disabled}
+            placeholder={placeholder}
+            value={displayValue}
+            onChange={handleChange}
+            onBlur={handleBlur}
+            onFocus={handleFocus}
+            className={[
+              'ui-input w-full !pl-10 !pr-3 font-mono tabular-nums',
+              isNegative ? 'text-rose-600 font-bold' : '',
+              '[appearance:textfield]',
+              '[&::-webkit-outer-spin-button]:appearance-none',
+              '[&::-webkit-inner-spin-button]:appearance-none',
+              className,
+            ]
+              .filter(Boolean)
+              .join(' ')}
+          />
         </div>
 
         <FormFieldError error={error} />

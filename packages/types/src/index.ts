@@ -244,6 +244,56 @@ export const ListEnvelopeTransactionsQuery = z.object({
   offset: z.number().int().default(0),
 }).strict();
 
+export const SpendingTimeframeEnum = z.enum(["30D", "90D", "1Y"]);
+export type SpendingTimeframe = z.infer<typeof SpendingTimeframeEnum>;
+
+export const GetSpendingAnalyticsQuery = z.object({
+  timeframe: SpendingTimeframeEnum.default("90D"),
+}).strict();
+export type GetSpendingAnalyticsQuery = z.infer<typeof GetSpendingAnalyticsQuery>;
+
+export const HorizonBreakdownDTOSchema = z.object({
+  everyday: z.number(),
+  bills: z.number(),
+  goals: z.number(),
+  totalOutflow: z.number(),
+  percentages: z.object({
+    everyday: z.number(),
+    bills: z.number(),
+    goals: z.number(),
+  }).strict(),
+}).strict();
+export type HorizonBreakdownDTO = z.infer<typeof HorizonBreakdownDTOSchema>;
+
+export const MonthlyCashFlowPointDTOSchema = z.object({
+  monthKey: z.string(),
+  label: z.string(),
+  income: z.number(),
+  outflow: z.number(),
+  net: z.number(),
+}).strict();
+export type MonthlyCashFlowPointDTO = z.infer<typeof MonthlyCashFlowPointDTOSchema>;
+
+export const TopOutflowPoolDTOSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  amount: z.number(),
+  percentage: z.number(),
+}).strict();
+export type TopOutflowPoolDTO = z.infer<typeof TopOutflowPoolDTOSchema>;
+
+export const SpendingAnalyticsDTOSchema = z.object({
+  timeframe: SpendingTimeframeEnum,
+  totalOutflow: z.number(),
+  totalIncome: z.number(),
+  horizonBreakdown: HorizonBreakdownDTOSchema,
+  monthlyCashFlow: z.array(MonthlyCashFlowPointDTOSchema),
+  topPools: z.array(TopOutflowPoolDTOSchema),
+  otherPoolsAmount: z.number(),
+  isEmpty: z.boolean(),
+}).strict();
+export type SpendingAnalyticsDTO = z.infer<typeof SpendingAnalyticsDTOSchema>;
+
 /**
  * Sub-schema for an upcoming bill item shown in affordability simulation breakdowns.
  */

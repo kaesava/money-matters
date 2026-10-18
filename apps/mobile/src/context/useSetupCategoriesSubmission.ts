@@ -13,27 +13,28 @@ export function useSetupCategoriesSubmission() {
   const {
     isRerun,
     incomes,
+    bankAccounts,
+    archivedAccountIds,
+    archivedIncomeIds,
     goals,
     activeCategories,
     categoryFrequencies,
     removedCategoryNames,
-    totalEverydayMonthly,
     sweepQueue,
     autoCreateExpenseSchedules,
   } = useSetupWizard();
 
-  const bankAccountsQuery = trpc.getBankAccountsWithMappings.useQuery();
   const poolsQuery = trpc.listPools.useQuery();
   const saveSetupBudgetMut = trpc.saveSetupBudget.useMutation();
 
   const handleFinish = async () => {
     setIsSubmitting(true);
     try {
-      const accountsPayload = (bankAccountsQuery.data || []).map((acc) => ({
-        id: acc.id,
+      const accountsPayload = bankAccounts.map((acc) => ({
+        id: acc.id.startsWith('acc-') ? undefined : acc.id,
         name: acc.name,
         bankProvider: acc.bankProvider || 'Other',
-        accountType: acc.accountType || 'EVERYDAY',
+        accountType: (acc.accountType || 'EVERYDAY') as 'EVERYDAY' | 'CREDIT_CARD' | 'SAVINGS' | 'LOAN_OFFSET',
         lastKnownBalance: String(acc.lastKnownBalance || '0.00'),
         unbudgetedBuffer: String(acc.unbudgetedBuffer || '0.00'),
         isPrivate: Boolean(acc.isPrivate),
@@ -113,6 +114,8 @@ export function useSetupCategoriesSubmission() {
           { name: 'Everyday Spending', envelopeType: 'EVERYDAY', bankAccountId: accountsPayload[0]?.id, monthlyAmount: '1000.00', isEssential: true },
         ],
         archivedEnvelopeIds: [...sweepQueue.map((s) => s.poolId), ...resolvedArchivedEnvelopeIds],
+        archivedAccountIds: Array.from(archivedAccountIds),
+        archivedIncomeIds: Array.from(archivedIncomeIds),
         autoCreateExpenseSchedules,
       });
 

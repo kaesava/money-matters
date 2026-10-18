@@ -114,6 +114,24 @@ export function saveSetupBudgetHandler(dbClient: DbOrTx) {
         }
       }
 
+      if (input.archivedAccountIds && input.archivedAccountIds.length > 0) {
+        await tx
+          .update(bankAccounts)
+          .set({
+            archivedAt: now,
+            archivedBy: userId,
+            updatedAt: now,
+            updatedBy: userId,
+          })
+          .where(
+            and(
+              eq(bankAccounts.tenantId, tenantId),
+              eq(bankAccounts.appId, appId),
+              inArray(bankAccounts.id, input.archivedAccountIds)
+            )
+          );
+      }
+
       const primaryBankAccountId =
         accountIdMap.get(input.bankAccounts[0]?.id || "") ||
         accountIdMap.get("idx-0") ||
@@ -389,6 +407,24 @@ export function saveSetupBudgetHandler(dbClient: DbOrTx) {
             startDate,
           });
         }
+      }
+
+      if (input.archivedIncomeIds && input.archivedIncomeIds.length > 0) {
+        await tx
+          .update(incomeSources)
+          .set({
+            archivedAt: now,
+            archivedBy: userId,
+            updatedAt: now,
+            updatedBy: userId,
+          })
+          .where(
+            and(
+              eq(incomeSources.tenantId, tenantId),
+              eq(incomeSources.appId, appId),
+              inArray(incomeSources.id, input.archivedIncomeIds)
+            )
+          );
       }
 
       // Auto-burst 12 months of income_events

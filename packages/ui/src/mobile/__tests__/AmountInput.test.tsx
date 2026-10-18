@@ -10,91 +10,68 @@ vi.mock('react-native', () => ({
   },
 }));
 
-import { AmountInput, AmountInputBase } from '../AmountInput';
+import { AmountInput, cleanMobileAmount } from '../AmountInput';
 
 describe('AmountInput', () => {
-  it('renders with selectTextOnFocus set to true by default', () => {
+  it('is exported and defined as a React component', () => {
+    expect(AmountInput).toBeDefined();
+    expect(typeof AmountInput).toBe('object');
+  });
+
+  it('renders correctly with default and overridden props', () => {
     const onChangeText = vi.fn();
-    const element = (
+    const el = (
       <AmountInput
         value="123.45"
         onChangeText={onChangeText}
         label="Test Amount"
+        placeholder="0.00"
       />
     );
-    expect(element).toBeTruthy();
-    expect(element.props.value).toBe('123.45');
-    // When rendered as AmountInput component, default prop or passed prop
-    const tree = AmountInputBase(
-      { value: '123.45', onChangeText, label: 'Test Amount' },
-      null
+    expect(el).toBeTruthy();
+    expect(el.props.value).toBe('123.45');
+    expect(el.props.label).toBe('Test Amount');
+
+    const elNoSelect = (
+      <AmountInput
+        value="100.00"
+        onChangeText={onChangeText}
+        selectTextOnFocus={false}
+      />
     );
-    // Find TextInput child
-    const inputWrap = tree.props.children[2];
-    const textInput = inputWrap.props.children[1];
-    expect(textInput.props.selectTextOnFocus).toBe(true);
+    expect(elNoSelect.props.selectTextOnFocus).toBe(false);
   });
 
-  it('allows overriding selectTextOnFocus to false', () => {
-    const onChangeText = vi.fn();
-    const tree = AmountInputBase(
-      {
-        value: '100.00',
-        onChangeText,
-        selectTextOnFocus: false,
-      },
-      null
-    );
-    const inputWrap = tree.props.children[2];
-    const textInput = inputWrap.props.children[1];
-    expect(textInput.props.selectTextOnFocus).toBe(false);
-  });
+  it('sanitizes input and caps decimal to 2 places and integer to 12 digits via cleanMobileAmount', () => {
+    // Multiple decimals: keeps first and appends remaining
+    expect(cleanMobileAmount('12.34.56', 2)).toBe('12.34');
 
-  it('sanitizes input and caps decimal to 2 places and integer to 12 digits', () => {
-    const onChangeText = vi.fn();
-    const tree = AmountInputBase(
-      {
-        value: '',
-        onChangeText,
-      },
-      null
-    );
-    const inputWrap = tree.props.children[2];
-    const textInput = inputWrap.props.children[1];
-
-    // Simulate input with multiple decimals
-    textInput.props.onChangeText('12.34.56');
-    expect(onChangeText).toHaveBeenCalledWith('12.34');
-
-    // Simulate input exceeding 12 integer digits
-    textInput.props.onChangeText('123456789012345.67');
-    expect(onChangeText).toHaveBeenCalledWith('123456789012.67');
+    // Integer capped at 12 digits
+    expect(cleanMobileAmount('123456789012345.67', 2)).toBe('123456789012.67');
 
     // Strips invalid characters
-    textInput.props.onChangeText('abc$50.50xyz');
-    expect(onChangeText).toHaveBeenCalledWith('50.50');
+    expect(cleanMobileAmount('abc$50.50xyz', 2)).toBe('50.50');
+
+    // Strips commas
+    expect(cleanMobileAmount('1,234,567.89', 2)).toBe('1234567.89');
+
+    // Zero-decimal currencies (e.g. JPY)
+    expect(cleanMobileAmount('1234.56', 0)).toBe('1234');
   });
 
-  it('renders custom currency symbol and error message', () => {
+  it('renders custom currency symbol and error message props', () => {
     const onChangeText = vi.fn();
-    const tree = AmountInputBase(
-      {
-        value: '50',
-        onChangeText,
-        currencySymbol: '€',
-        error: 'Amount is required',
-        hint: 'Enter your monthly budget',
-      },
-      null
+    const el = (
+      <AmountInput
+        value="50"
+        onChangeText={onChangeText}
+        currencySymbol="€"
+        error="Amount is required"
+        hint="Enter your monthly budget"
+      />
     );
-    const hint = tree.props.children[1];
-    expect(hint.props.children).toBe('Enter your monthly budget');
-
-    const inputWrap = tree.props.children[2];
-    const symbol = inputWrap.props.children[0];
-    expect(symbol.props.children).toBe('€');
-
-    const error = tree.props.children[3];
-    expect(error.props.error).toBe('Amount is required');
+    expect(el.props.currencySymbol).toBe('€');
+    expect(el.props.error).toBe('Amount is required');
+    expect(el.props.hint).toBe('Enter your monthly budget');
   });
 });

@@ -1,106 +1,45 @@
 "use client";
 
 import React, { useState } from "react";
-import { trpc } from "../../../lib/trpc";
 import { t } from "@money-matters/i18n";
-import { useToast, ConfirmDialog, InfoTooltip } from "@money-matters/ui/web";
-import {
-  BankProvider,
-  AccountType,
-  getDefaultAccountName,
-} from "@money-matters/types";
+import { ConfirmDialog, InfoTooltip } from "@money-matters/ui/web";
 import { SetupBankAccountRow, BankAccountRowItem } from "./SetupBankAccountRow";
 
 interface SetupBankAccountsStepProps {
+  accounts: BankAccountRowItem[];
+  onAddAccount: () => void;
+  onUpdateAccount: (
+    acc: BankAccountRowItem,
+    field: "name" | "bankProvider" | "accountType" | "lastKnownBalance" | "unbudgetedBuffer" | "isPrivate",
+    value: string | boolean
+  ) => void;
+  onRemoveAccount: (id: string) => void;
   onNext: () => void;
   onBack: () => void;
+  totalSteps?: number;
 }
 
-export function SetupBankAccountsStep({ onNext, onBack }: SetupBankAccountsStepProps) {
-  const toast = useToast();
-  const utils = trpc.useUtils();
-
-  const { data: fetchedAccounts = [] } = trpc.getBankAccountsWithMappings.useQuery();
-
+export function SetupBankAccountsStep({
+  accounts,
+  onAddAccount,
+  onUpdateAccount,
+  onRemoveAccount,
+  onNext,
+  onBack,
+  totalSteps: _totalSteps = 4,
+}: SetupBankAccountsStepProps) {
   const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null);
-
-  const createAccountMut = trpc.createBankAccount.useMutation({
-    onSuccess: () => {
-      utils.getBankAccountsWithMappings.invalidate();
-      toast.success(t("common.success"));
-    },
-    onError: (err) => {
-      toast.error(err.message || t("common.error"));
-    },
-  });
-
-  const updateAccountMut = trpc.updateBankAccount.useMutation({
-    onSuccess: () => {
-      utils.getBankAccountsWithMappings.invalidate();
-    },
-    onError: (err) => {
-      toast.error(err.message || t("common.error"));
-    },
-  });
-
-  const archiveAccountMut = trpc.archiveBankAccount.useMutation({
-    onSuccess: () => {
-      utils.getBankAccountsWithMappings.invalidate();
-      setDeleteTargetId(null);
-      toast.success(t("common.success"));
-    },
-    onError: (err) => {
-      toast.error(err.message || t("common.error"));
-    },
-  });
 
   const handleFieldChange = (
     acc: BankAccountRowItem,
     field: "name" | "bankProvider" | "accountType" | "lastKnownBalance" | "unbudgetedBuffer" | "isPrivate",
     value: string | boolean
   ) => {
-    let nextName = acc.name;
-    const currentProvider = (acc.bankProvider || "Other") as BankProvider;
-    const currentType = ((acc.accountType as AccountType) || "EVERYDAY") as AccountType;
-    const oldDefaultName = getDefaultAccountName(currentProvider, currentType);
-    const isUntouched = !acc.name.trim() || acc.name.trim() === oldDefaultName;
-
-    if (field === "bankProvider") {
-      const nextProvider = value as BankProvider;
-      if (isUntouched) {
-        nextName = getDefaultAccountName(nextProvider, currentType);
-      }
-    } else if (field === "accountType") {
-      const nextType = value as AccountType;
-      if (isUntouched) {
-        nextName = getDefaultAccountName(currentProvider, nextType);
-      }
-    } else if (field === "name") {
-      nextName = value as string;
-    }
-
-    updateAccountMut.mutate({
-      accountId: acc.id,
-      data: {
-        name: nextName,
-        bankProvider: field === "bankProvider" ? (value as BankProvider) : currentProvider,
-        accountType: field === "accountType" ? (value as AccountType) : currentType,
-        lastKnownBalance: field === "lastKnownBalance" ? String(value) : String(acc.lastKnownBalance || "0.00"),
-        unbudgetedBuffer: field === "unbudgetedBuffer" ? String(value) : String(acc.unbudgetedBuffer || "0.00"),
-        isPrivate: field === "isPrivate" ? Boolean(value) : Boolean(acc.isPrivate),
-      },
-    });
+    onUpdateAccount(acc, field, value);
   };
 
   const handleAddAccount = () => {
-    createAccountMut.mutate({
-      name: "",
-      bankProvider: "Other",
-      accountType: "EVERYDAY",
-      lastKnownBalance: "1000.00",
-      unbudgetedBuffer: "0.00",
-      isPrivate: false,
-    });
+    onAddAccount();
   };
 
   return (
@@ -121,7 +60,6 @@ export function SetupBankAccountsStep({ onNext, onBack }: SetupBankAccountsStepP
       <div className="p-4 rounded-2xl border border-blue-100 bg-blue-50/50 flex flex-col gap-1.5 shadow-xs">
         <div className="flex items-center gap-1.5">
           <h3 className="text-xs font-black text-[#2563eb] flex items-center gap-1">
-            <span>💡</span>
             <span>{t("setup.bankAccountsStep.tipTitle")}</span>
           </h3>
           <InfoTooltip content={t("setup.bankAccountsStep.envelopesExplainerTooltip")} />
@@ -133,12 +71,12 @@ export function SetupBankAccountsStep({ onNext, onBack }: SetupBankAccountsStepP
 
       {/* Inline Editable Accounts List */}
       <div className="flex flex-col gap-4">
-        {fetchedAccounts.map((acc, index) => (
+        {accounts.map((acc, index) => (
           <SetupBankAccountRow
             key={acc.id}
-            acc={acc as BankAccountRowItem}
+            acc={acc}
             index={index}
-            totalCount={fetchedAccounts.length}
+            totalCount={accounts.length}
             onRemove={(id) => setDeleteTargetId(id)}
             onFieldChange={handleFieldChange}
           />
@@ -148,8 +86,7 @@ export function SetupBankAccountsStep({ onNext, onBack }: SetupBankAccountsStepP
         <button
           type="button"
           onClick={handleAddAccount}
-          disabled={createAccountMut.isPending}
-          className="py-2.5 px-4 bg-blue-50 border border-blue-200 text-[#2563eb] text-xs font-bold rounded-xl hover:bg-blue-100 transition-colors flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+          className="py-2.5 px-4 bg-blue-50 border border-blue-200 text-[#2563eb] text-xs font-bold rounded-xl hover:bg-blue-100 transition-colors flex items-center justify-center gap-2 cursor-pointer"
         >
           + {t("setup.bankAccountsStep.addAccount")}
         </button>
@@ -178,7 +115,10 @@ export function SetupBankAccountsStep({ onNext, onBack }: SetupBankAccountsStepP
         isOpen={Boolean(deleteTargetId)}
         onClose={() => setDeleteTargetId(null)}
         onConfirm={() => {
-          if (deleteTargetId) archiveAccountMut.mutate({ accountId: deleteTargetId });
+          if (deleteTargetId) {
+            onRemoveAccount(deleteTargetId);
+            setDeleteTargetId(null);
+          }
         }}
         title={t("settings.bankAccountForm.archiveConfirmTitle")}
         description={t("settings.bankAccountForm.archiveConfirmBody", { name: "account" })}

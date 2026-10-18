@@ -5,11 +5,13 @@ import {
   recordExpenseCommand,
   listTransactionsQuery,
   listEnvelopeTransactionsQuery,
+  getSpendingAnalyticsQuery,
 } from "@money-matters/capability-transactions";
 import {
   RecordExpenseCommand,
   ListTransactionsQuery,
   ListEnvelopeTransactionsQuery,
+  GetSpendingAnalyticsQuery,
 } from "@money-matters/types";
 
 export const transactionsRouter = {
@@ -68,5 +70,16 @@ export const transactionsRouter = {
     .input(ListEnvelopeTransactionsQuery)
     .query(async ({ input, ctx }) => {
       return await listEnvelopeTransactionsQuery(input.envelopeId || "", ctx.tenantId!, ctx.appId!, input.limit, input.offset, ctx.db);
+    }),
+
+  getSpendingAnalytics: privateTenantProcedure
+    .input(GetSpendingAnalyticsQuery)
+    .query(async ({ input, ctx }) => {
+      return await getSpendingAnalyticsQuery(
+        ctx.tenantId!,
+        ctx.appId!,
+        input.timeframe,
+        ctx.db
+      );
     }),
 };

@@ -9,12 +9,36 @@ import {
   calculateQuizEstimates,
 } from '@money-matters/types';
 
+export interface MobileBankAccountItem {
+  id: string;
+  name: string;
+  bankProvider: string;
+  accountType?: string | null;
+  lastKnownBalance: string;
+  unbudgetedBuffer?: string | null;
+  isPrivate?: boolean | null;
+}
+
 export interface SetupWizardContextValue {
   isRerun: boolean;
   totalSteps: number;
   isLoadingExistingData: boolean;
+  country: 'AU' | 'NZ' | 'OTHER';
+  setCountry: (c: 'AU' | 'NZ' | 'OTHER') => void;
   incomes: IncomeItem[];
   setIncomes: React.Dispatch<React.SetStateAction<IncomeItem[]>>;
+  handleRemoveIncome: (id: string) => void;
+  bankAccounts: MobileBankAccountItem[];
+  setBankAccounts: React.Dispatch<React.SetStateAction<MobileBankAccountItem[]>>;
+  handleAddAccount: () => void;
+  handleUpdateAccount: (
+    acc: MobileBankAccountItem,
+    field: 'name' | 'bankProvider' | 'accountType' | 'lastKnownBalance' | 'unbudgetedBuffer' | 'isPrivate',
+    val: string | boolean
+  ) => void;
+  handleRemoveAccount: (id: string) => void;
+  archivedAccountIds: Set<string>;
+  archivedIncomeIds: Set<string>;
   goals: UserGoalItem[];
   setGoals: React.Dispatch<React.SetStateAction<UserGoalItem[]>>;
   housingType: HousingType;

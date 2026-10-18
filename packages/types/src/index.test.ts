@@ -18,6 +18,8 @@ import {
   MonthlySummaryDto,
   ConfirmPlanCommand,
   UserPreferencesSchema,
+  GetSpendingAnalyticsQuery,
+  SpendingAnalyticsDTOSchema,
 } from './index';
 
 describe('Domain Schemas Validation', () => {
@@ -270,5 +272,53 @@ describe('Domain Schemas Validation', () => {
 
     const prefs = UserPreferencesSchema.parse({});
     expect(prefs.timezone).toBe('UTC');
+  });
+
+  it('validates GetSpendingAnalyticsQuery and SpendingAnalyticsDTOSchema', () => {
+    const defaultQuery = GetSpendingAnalyticsQuery.parse({});
+    expect(defaultQuery.timeframe).toBe('90D');
+
+    const explicitQuery = GetSpendingAnalyticsQuery.parse({ timeframe: '1Y' });
+    expect(explicitQuery.timeframe).toBe('1Y');
+
+    expect(() => GetSpendingAnalyticsQuery.parse({ timeframe: 'INVALID' })).toThrow();
+
+    const sampleAnalytics = SpendingAnalyticsDTOSchema.parse({
+      timeframe: '90D',
+      totalOutflow: 3500.5,
+      totalIncome: 6000,
+      horizonBreakdown: {
+        everyday: 1500,
+        bills: 1500.5,
+        goals: 500,
+        totalOutflow: 3500.5,
+        percentages: {
+          everyday: 42.85,
+          bills: 42.87,
+          goals: 14.28,
+        },
+      },
+      monthlyCashFlow: [
+        {
+          monthKey: '2026-08',
+          label: 'Aug 26',
+          income: 2000,
+          outflow: 1200,
+          net: 800,
+        },
+      ],
+      topPools: [
+        {
+          id: '11111111-1111-4111-8111-111111111111',
+          name: 'Groceries',
+          amount: 800,
+          percentage: 22.85,
+        },
+      ],
+      otherPoolsAmount: 2700.5,
+      isEmpty: false,
+    });
+    expect(sampleAnalytics.totalOutflow).toBe(3500.5);
+    expect(sampleAnalytics.monthlyCashFlow).toHaveLength(1);
   });
 });

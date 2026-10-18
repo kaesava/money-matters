@@ -5,8 +5,10 @@ import {
   MobilePaginationBar,
   SkeletonCard,
   MobileFilterSheet,
+  MobileSpendingOverviewCard,
   DESIGN_TOKENS,
 } from '@money-matters/ui/mobile';
+import { SpendingAnalyticsDTO, SpendingTimeframe } from '@money-matters/types';
 import { t } from '@money-matters/i18n';
 import { TransactionRow } from '../TransactionRow';
 import { TransactionDetailSheet, TransactionDetailRecord } from './TransactionDetailSheet';
@@ -56,6 +58,10 @@ interface LedgerHistoryTabProps {
   bankAccounts: Array<{ id: string; name: string }>;
   onExportCsv: () => void;
   onNavigateToPool: (poolId: string) => void;
+  spendingAnalytics?: SpendingAnalyticsDTO;
+  isAnalyticsLoading?: boolean;
+  timeframe: SpendingTimeframe;
+  onTimeframeChange: (timeframe: SpendingTimeframe) => void;
 }
 
 export function LedgerHistoryTab({
@@ -83,6 +89,10 @@ export function LedgerHistoryTab({
   bankAccounts,
   onExportCsv,
   onNavigateToPool,
+  spendingAnalytics,
+  isAnalyticsLoading = false,
+  timeframe,
+  onTimeframeChange,
 }: LedgerHistoryTabProps) {
   const [filterSheetVisible, setFilterSheetVisible] = useState(false);
   const [detailTx, setDetailTx] = useState<TransactionDetailRecord | null>(null);
@@ -112,6 +122,15 @@ export function LedgerHistoryTab({
 
   return (
     <View style={styles.container}>
+      {/* Spending Overview Reporting Visualizations */}
+      <MobileSpendingOverviewCard
+        analytics={spendingAnalytics}
+        isLoading={isAnalyticsLoading}
+        timeframe={timeframe}
+        onTimeframeChange={onTimeframeChange}
+        formatCurrency={(amt) => `$${amt.toFixed(2)}`}
+      />
+
       <LedgerFilterControls
         searchQuery={searchQuery}
         onSearchChange={onSearchChange}

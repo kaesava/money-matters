@@ -9,6 +9,7 @@ import { HousingType } from '@money-matters/types';
 import { LifestyleVehicleSubCard } from '../../components/setup/LifestyleVehicleSubCard';
 import { LifestyleChildSubCard } from '../../components/setup/LifestyleChildSubCard';
 import { SetupProgressBar } from '../../components/setup/SetupProgressBar';
+import { LifestyleCountrySelector } from '../../components/setup/LifestyleCountrySelector';
 
 const HOUSING_OPTIONS: { id: HousingType; label: string }[] = [
   { id: 'RENT_SOLO', label: 'Rent (Solo)' },
@@ -21,7 +22,7 @@ export default function SetupLifestyleScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const {
-    isRerun, totalSteps,
+    isRerun, totalSteps, country, setCountry,
     housingType, setHousingType, hasCars, setHasCars, vehicles, setVehicles,
     hasKids, setHasKids, children, setChildren, hasPrivateHealth, setHasPrivateHealth,
     hasDebt, setHasDebt, debtMonthlyRepayment, setDebtMonthlyRepayment, hasPets, setHasPets,
@@ -41,8 +42,12 @@ export default function SetupLifestyleScreen() {
       <Text style={styles.stepLabel}>{t('setup.stepOf', { step: 4, total: totalSteps })}</Text>
       <View style={styles.titleRow}>
         <Text style={styles.title}>{t('setup.lifestyle.title')}</Text>
-        <InfoTooltip title={t('setup.lifestyle.benchmarksTitle')} content={t('setup.lifestyle.benchmarksContent')} />
+        {country === 'AU' && (
+          <InfoTooltip title={t('setup.lifestyle.benchmarksTitle')} content={t('setup.lifestyle.benchmarksContent')} />
+        )}
       </View>
+
+      <LifestyleCountrySelector country={country} setCountry={setCountry} />
 
       <View style={styles.sectionCard}>
         <Text style={styles.sectionTitle}>{t('setup.lifestyle.housingTitle')}</Text>

@@ -6,7 +6,20 @@ import Link from "next/link";
 
 import { trpc } from "../../../lib/trpc";
 import { t } from "@money-matters/i18n";
-import { InfoTooltip, SearchInput, PaginationBar, useResizableColumns, ResizableTh, Tabs, Spinner, SkeletonTable, PoolPicker, RecordFilterBadge } from "@money-matters/ui/web";
+import {
+  InfoTooltip,
+  SearchInput,
+  PaginationBar,
+  useResizableColumns,
+  ResizableTh,
+  Tabs,
+  Spinner,
+  SkeletonTable,
+  PoolPicker,
+  RecordFilterBadge,
+  SpendingOverviewCard,
+} from "@money-matters/ui/web";
+import { SpendingTimeframe } from "@money-matters/types";
 import { SlideOverAllocationDrawer, PaydayPlanRecord } from "../../../components/web/SlideOverAllocationDrawer";
 import { getTenantDateString } from "@money-matters/core";
 import { useLocale } from "../../../providers/LocaleProvider";
@@ -39,9 +52,15 @@ function TransactionsPageContent() {
     amount: 140,
   });
 
+  const [timeframe, setTimeframe] = useState<SpendingTimeframe>("90D");
+
   const poolsQuery = trpc.listPools.useQuery();
   const bankAccountsQuery = trpc.getBankAccountsWithMappings.useQuery();
   const transactionsQuery = trpc.listTransactions.useQuery({ limit: 500, offset: 0 });
+  const spendingAnalyticsQuery = trpc.getSpendingAnalytics.useQuery(
+    { timeframe },
+    { enabled: activeTab === "transactions" }
+  );
   const paydayPlansQuery = trpc.listAllAllocationPlans.useQuery(undefined, {
     enabled: activeTab === "payday-allocations",
   });
@@ -283,6 +302,15 @@ function TransactionsPageContent() {
       {/* Tab 1: Itemized Transactions Ledger */}
       {activeTab === "transactions" && (
         <div data-tour="history-ledger" className="space-y-6">
+          {/* Spending Overview Reporting Visualizations */}
+          <SpendingOverviewCard
+            analytics={spendingAnalyticsQuery.data}
+            isLoading={spendingAnalyticsQuery.isLoading}
+            timeframe={timeframe}
+            onTimeframeChange={setTimeframe}
+            formatCurrency={(amt) => fmt(amt)}
+          />
+
           {/* Controls Bar & Segmented Filter */}
           <div className="flex flex-col sm:flex-row items-center justify-between gap-3 p-3 bg-slate-50 border border-zinc-200/80 rounded-2xl">
             <div className="flex flex-col sm:flex-row items-center gap-3 flex-1 w-full">

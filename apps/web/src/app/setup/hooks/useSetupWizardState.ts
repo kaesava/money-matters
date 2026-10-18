@@ -3,57 +3,45 @@
 import { useState, useMemo, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { trpc } from "../../../lib/trpc";
-import posthog from "../../../lib/posthog-client";
 import {
   QuizAnswers,
-  calculateQuizEstimates,
-  HousingType,
   EstimatedCategoryItem,
   IncomeItem,
-  VehicleConfig,
-  ChildConfig,
+  getDefaultAccountName,
 } from "@money-matters/types";
 import { UserGoalItem } from "../components/SetupGoalsStep";
+import { BankAccountRowItem } from "../components/SetupBankAccountRow";
+import { useSetupWizardCalculations } from "./useSetupWizardCalculations";
+import { useSetupWizardPrepopulation } from "./useSetupWizardPrepopulation";
+import { useSetupWizardSubmission } from "./useSetupWizardSubmission";
+import { useSetupLifestyleState } from "./useSetupLifestyleState";
+import { useSetupSweepQueue } from "./useSetupSweepQueue";
 
 export function useSetupWizardState() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const userPrefQuery = trpc.getUserPreferences.useQuery();
+  const updatePrefMut = trpc.updateUserPreferences.useMutation();
 
   const [step, setStep] = useState(1);
-  const [isSubmitting, setIsSubmitting] = useState(false);
   const [showDiscardModal, setShowDiscardModal] = useState(false);
+
+  // Re-run mode & auto-trigger when setup was already completed
+  const isRerunParam = searchParams?.get("mode") === "rerun";
+  const setupAlreadyCompleted = Boolean(userPrefQuery.data?.setupCompleted);
+  const isRerun = isRerunParam || setupAlreadyCompleted;
+
+  useEffect(() => {
+    if (setupAlreadyCompleted && !isRerunParam) router.replace("/setup?mode=rerun");
+  }, [setupAlreadyCompleted, isRerunParam, router]);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape") {
-        setShowDiscardModal(true);
-      }
+      if (e.key === "Escape") setShowDiscardModal(true);
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, []);
-
-  const [goals, setGoals] = useState<UserGoalItem[]>([
-    {
-      id: "g-1",
-      name: "Emergency Reserve (3-6 Months)",
-      monthlyAmount: 300,
-      icon: "🛡️",
-      targetAmount: 10000,
-      dueDate: new Intl.DateTimeFormat('en-CA').format(new Date(Date.now() + 365 * 24 * 60 * 60 * 1000)),
-    },
-    {
-      id: "g-2",
-      name: "Annual Family Holiday",
-      monthlyAmount: 250,
-      icon: "✈️",
-      targetAmount: 5000,
-      dueDate: new Intl.DateTimeFormat('en-CA').format(new Date(Date.now() + 365 * 24 * 60 * 60 * 1000)),
-    },
-  ]);
-
-  const [weeklyGroceries, setWeeklyGroceries] = useState(270);
-  const [weeklyDining, setWeeklyDining] = useState(240);
-  const [weeklyPersonal, setWeeklyPersonal] = useState(100);
 
   const [incomes, setIncomes] = useState<IncomeItem[]>([
     {
@@ -65,356 +53,143 @@ export function useSetupWizardState() {
       startDate: new Intl.DateTimeFormat("en-CA", { timeZone: "Australia/Sydney" }).format(new Date()),
     },
   ]);
+  const [archivedIncomeIds, setArchivedIncomeIds] = useState<Set<string>>(new Set());
 
-  const [housingType, setHousingType] = useState<HousingType>("RENT_SOLO");
-  const [hasCars, setHasCars] = useState(true);
-  const [vehicles, setVehicles] = useState<VehicleConfig[]>([
-    { id: "veh-1", name: "Vehicle 1", size: "MID_SUV" },
+  const [bankAccounts, setBankAccounts] = useState<BankAccountRowItem[]>([
+    {
+      id: "acc-default",
+      name: getDefaultAccountName("Other", "EVERYDAY"),
+      bankProvider: "Other",
+      accountType: "EVERYDAY",
+      lastKnownBalance: "1000.00",
+      unbudgetedBuffer: "0.00",
+      isPrivate: false,
+    },
   ]);
-  const [usePublicTransport, setUsePublicTransport] = useState(true);
-  const [useRideshare, setUseRideshare] = useState(false);
+  const [archivedAccountIds, setArchivedAccountIds] = useState<Set<string>>(new Set());
 
-  const [hasKids, setHasKids] = useState(false);
-  const [children, setChildren] = useState<ChildConfig[]>([
-    { id: "child-1", name: "Child 1", stage: "PRIMARY", type: "PUBLIC" },
+  const [goals, setGoals] = useState<UserGoalItem[]>([
+    {
+      id: "g-1",
+      name: "Emergency Reserve",
+      monthlyAmount: 300,
+      icon: "shield",
+      targetAmount: 10000,
+      goalMode: "ONGOING",
+      budgetFrequency: "MONTHLY",
+    },
+    {
+      id: "g-2",
+      name: "Annual Family Holiday",
+      monthlyAmount: 250,
+      icon: "plane",
+      targetAmount: 3000,
+      goalMode: "TARGET_DATE",
+      dueDate: new Intl.DateTimeFormat("en-CA", { timeZone: "Australia/Sydney" }).format(
+        new Date(Date.now() + 365 * 24 * 60 * 60 * 1000)
+      ),
+    },
   ]);
 
-  const [hasPrivateHealth, setHasPrivateHealth] = useState(true);
-  const [hasGym, setHasGym] = useState(false);
-  const [hasMedicalOutofPocket, setHasMedicalOutofPocket] = useState(false);
-
-  const [hasDebt, setHasDebt] = useState(false);
-  const [debtMonthlyRepayment, setDebtMonthlyRepayment] = useState(0);
-
-  const [hasPets, setHasPets] = useState(false);
-  const [petsCount, setPetsCount] = useState(1);
-
-  const [hasCharityGiving, setHasCharityGiving] = useState(false);
-  const [charityMonthlyAmount, setCharityMonthlyAmount] = useState(0);
-
+  const lifestyle = useSetupLifestyleState();
   const [customCategories, setCustomCategories] = useState<EstimatedCategoryItem[]>([]);
   const [customCatName, setCustomCatName] = useState("");
   const [customCatType, setCustomCatType] = useState<"REGULAR" | "GOAL" | "EVERYDAY">("REGULAR");
   const [customCatAmount, setCustomCatAmount] = useState("100");
-
   const [removedCategoryNames, setRemovedCategoryNames] = useState<Set<string>>(new Set());
   const [amountOverrides, setAmountOverrides] = useState<Record<string, number>>({});
-  const [categoryFrequencies, setCategoryFrequencies] = useState<
-    Record<string, "WEEKLY" | "FORTNIGHTLY" | "MONTHLY" | "YEARLY">
-  >({});
+  const [categoryFrequencies, setCategoryFrequencies] = useState<Record<string, "WEEKLY" | "FORTNIGHTLY" | "MONTHLY" | "YEARLY">>({});
   const [autoCreateExpenseSchedules, setAutoCreateExpenseSchedules] = useState(true);
 
-  const userPrefQuery = trpc.getUserPreferences.useQuery();
-  const poolsQuery = trpc.listPools.useQuery();
-  const bankAccountsQuery = trpc.getBankAccountsWithMappings.useQuery();
-  const incomeSourcesQuery = trpc.listIncomeSources.useQuery();
-  const updatePrefMut = trpc.updateUserPreferences.useMutation();
+  const { pools } = useSetupWizardPrepopulation({
+    isRerun,
+    setIncomes,
+    setBankAccounts,
+    setGoals,
+    setCustomCategories,
+  });
 
-  const [sweepQueue, setSweepQueue] = useState<Array<{ poolId: string; sweepDestinationPoolId?: string | null }>>([]);
-  const [activeSweepPool, setActiveSweepPool] = useState<{ id: string; name: string; balance: number } | null>(null);
-  const [selectedSweepDest, setSelectedSweepDest] = useState<string>("");
-
-  const showIcons = userPrefQuery.data?.showIcons ?? true;
-  const searchParams = useSearchParams();
-  const isRerun = searchParams?.get("mode") === "rerun";
-
-  useEffect(() => {
-    if (isRerun) return;
-    if (userPrefQuery.data?.setupCompleted) {
-      router.replace("/dashboard");
-    }
-  }, [isRerun, userPrefQuery.data?.setupCompleted, router]);
-
-  // Pre-populate if in rerun mode
-  useEffect(() => {
-    if (!isRerun) return;
-    if (incomeSourcesQuery.data && incomeSourcesQuery.data.length > 0) {
-      setIncomes(
-        incomeSourcesQuery.data.map((inc) => {
-          let freq: "WEEKLY" | "FORTNIGHTLY" | "MONTHLY" | "CUSTOM" = "FORTNIGHTLY";
-          if (inc.rrule?.includes("INTERVAL=2")) freq = "FORTNIGHTLY";
-          else if (inc.rrule?.includes("WEEKLY")) freq = "WEEKLY";
-          else if (inc.rrule?.includes("MONTHLY")) freq = "MONTHLY";
-          return {
-            id: inc.id,
-            name: inc.name,
-            amount: parseFloat(inc.amount || "0"),
-            frequency: freq,
-            type: "SALARY",
-            receivingAccountId: inc.receivingAccountId,
-          };
-        })
-      );
-    }
-  }, [isRerun, incomeSourcesQuery.data]);
-
-  useEffect(() => {
-    if (!isRerun) return;
-    if (poolsQuery.data && poolsQuery.data.length > 0) {
-      const goalPools = poolsQuery.data.filter((p) => p.envelopeType === "TARGET_GOAL" || p.envelopeType === "ONGOING_GOAL");
-      if (goalPools.length > 0) {
-        setGoals(
-          goalPools.map((g) => {
-            const isOngoing = g.envelopeType === "ONGOING_GOAL" || g.goalMode === "ONGOING";
-            const amt = parseFloat(g.targetAmount || "1000");
-            return {
-              id: g.id,
-              name: g.name,
-              goalMode: isOngoing ? ("ONGOING" as const) : ("TARGET_DATE" as const),
-              monthlyAmount: isOngoing ? amt : Math.round(amt / 12),
-              icon: "🎯",
-              targetAmount: amt,
-              enteredAmount: g.enteredAmount ? parseFloat(g.enteredAmount) : amt,
-              budgetFrequency: (g.budgetFrequency as "MONTHLY" | "WEEKLY" | "FORTNIGHTLY" | "ANNUALLY" | null) || undefined,
-              startDate: g.startDate,
-              rrule: g.rrule,
-              dueDate: isOngoing ? null : (g.endDate || new Intl.DateTimeFormat('en-CA', { timeZone: 'Australia/Sydney' }).format(new Date(Date.now() + 365 * 24 * 60 * 60 * 1000))),
-            };
-          })
-        );
-      }
-
-      const nonGoalEnvelopes = poolsQuery.data.filter((p) => p.envelopeType !== "TARGET_GOAL" && p.envelopeType !== "ONGOING_GOAL");
-      if (nonGoalEnvelopes.length > 0) {
-        setCustomCategories(
-          nonGoalEnvelopes.map((c) => ({
-            id: c.id,
-            name: c.name,
-            type: (c.envelopeType === "EVERYDAY" ? "EVERYDAY" : "REGULAR") as "REGULAR" | "GOAL" | "EVERYDAY",
-            monthlyAud: parseFloat(c.monthlyAmount || c.targetAmount || "0"),
-            icon: "📌",
-          }))
-        );
-      }
-    }
-  }, [isRerun, poolsQuery.data]);
-
-  const handleRemoveGoal = (id: string) => {
-    const existingPool = poolsQuery.data?.find((p) => p.id === id);
-    const balance = existingPool?.currentBalance || 0;
-    if (balance > 0.005) {
-      setActiveSweepPool({ id, name: existingPool?.name || "Goal", balance });
-      const availableDests = (poolsQuery.data || []).filter((p) => p.id !== id);
-      const defaultDest = availableDests.find((p) => p.isSurplusTarget)?.id || availableDests[0]?.id || "";
-      setSelectedSweepDest(defaultDest);
-    } else {
-      setGoals((prev) => prev.filter((g) => g.id !== id));
-      if (!id.startsWith("g-")) {
-        setSweepQueue((prev) => [...prev, { poolId: id }]);
-      }
-    }
-  };
-
-  const confirmSweepAndRemove = () => {
-    if (!activeSweepPool) return;
-    setSweepQueue((prev) => [
-      ...prev,
-      { poolId: activeSweepPool.id, sweepDestinationPoolId: selectedSweepDest },
-    ]);
-    setGoals((prev) => prev.filter((g) => g.id !== activeSweepPool.id));
-    setActiveSweepPool(null);
-  };
+  const sweep = useSetupSweepQueue(pools, setGoals);
 
   const quizAnswers: QuizAnswers = useMemo(
     () => ({
+      country: lifestyle.country,
       incomes,
-      housingType,
-      hasCars,
-      vehicles,
-      usePublicTransport,
-      useRideshare,
-      hasKids,
-      children,
-      hasPrivateHealth,
-      hasGym,
-      hasPets,
-      petsCount,
-      activeDebtMonthlyRepayment: debtMonthlyRepayment,
-      givesCharity: hasCharityGiving,
-      familySupportMonthlyAmount: charityMonthlyAmount,
-      weeklyGroceries,
-      weeklyDining,
-      weeklyPersonal,
+      housingType: lifestyle.housingType,
+      hasCars: lifestyle.hasCars,
+      vehicles: lifestyle.vehicles,
+      usePublicTransport: lifestyle.usePublicTransport,
+      useRideshare: lifestyle.useRideshare,
+      hasKids: lifestyle.hasKids,
+      children: lifestyle.children,
+      hasPrivateHealth: lifestyle.hasPrivateHealth,
+      hasGym: lifestyle.hasGym,
+      hasPets: lifestyle.hasPets,
+      petsCount: lifestyle.petsCount,
+      activeDebtMonthlyRepayment: lifestyle.debtMonthlyRepayment,
+      givesCharity: lifestyle.hasCharityGiving,
+      familySupportMonthlyAmount: lifestyle.charityMonthlyAmount,
+      weeklyGroceries: lifestyle.weeklyGroceries,
+      weeklyDining: lifestyle.weeklyDining,
+      weeklyPersonal: lifestyle.weeklyPersonal,
     }),
-    [
-      incomes,
-      housingType,
-      hasCars,
-      vehicles,
-      usePublicTransport,
-      useRideshare,
-      hasKids,
-      children,
-      hasPrivateHealth,
-      hasGym,
-      hasPets,
-      petsCount,
-      debtMonthlyRepayment,
-      hasCharityGiving,
-      charityMonthlyAmount,
-      weeklyGroceries,
-      weeklyDining,
-      weeklyPersonal,
-    ]
+    [lifestyle, incomes]
   );
 
-  const estimation = useMemo(() => calculateQuizEstimates(quizAnswers), [quizAnswers]);
-
-  const activeCategories = useMemo(() => {
-    const combined = isRerun
-      ? customCategories
-      : [
-          ...estimation.regularBills,
-          ...estimation.goalSinkingFunds,
-          ...estimation.everydayCategories,
-          ...customCategories,
-        ];
-
-    return combined
-      .filter((cat) => !removedCategoryNames.has(cat.name))
-      .map((cat) => {
-        const override = amountOverrides[cat.name];
-        return {
-          ...cat,
-          monthlyAud: override !== undefined ? override : cat.monthlyAud,
-        };
-      });
-  }, [
+  const calculations = useSetupWizardCalculations({
+    quizAnswers,
     isRerun,
-    estimation.regularBills,
-    estimation.goalSinkingFunds,
-    estimation.everydayCategories,
     customCategories,
     removedCategoryNames,
     amountOverrides,
-  ]);
+  });
 
-  const activeEveryday = useMemo(() => activeCategories.filter((c) => c.type === "EVERYDAY"), [activeCategories]);
-  const activeRegular = useMemo(() => activeCategories.filter((c) => c.type === "REGULAR"), [activeCategories]);
-  const activeGoals = useMemo(() => activeCategories.filter((c) => c.type === "GOAL"), [activeCategories]);
+  const submission = useSetupWizardSubmission({
+    isRerun,
+    incomes,
+    bankAccounts,
+    activeCategories: calculations.activeCategories,
+    goals,
+    categoryFrequencies,
+    sweepQueue: sweep.sweepQueue,
+    archivedAccountIds,
+    archivedIncomeIds,
+    autoCreateExpenseSchedules,
+  });
 
-  const totalEverydayMonthly = useMemo(() => activeEveryday.reduce((acc, c) => acc + c.monthlyAud, 0), [activeEveryday]);
-  const totalRegularMonthly = useMemo(() => activeRegular.reduce((acc, c) => acc + c.monthlyAud, 0), [activeRegular]);
-  const totalGoalMonthly = useMemo(() => activeGoals.reduce((acc, c) => acc + c.monthlyAud, 0), [activeGoals]);
-
-  const totalAllocatedMonthly = useMemo(
-    () => totalEverydayMonthly + totalRegularMonthly + totalGoalMonthly,
-    [totalEverydayMonthly, totalRegularMonthly, totalGoalMonthly]
-  );
-
-  const convertToMonthly = (amount: number, freq: "WEEKLY" | "FORTNIGHTLY" | "MONTHLY" | "YEARLY"): number => {
-    if (freq === "WEEKLY") return Math.round(amount * (52 / 12));
-    if (freq === "FORTNIGHTLY") return Math.round(amount * (26 / 12));
-    if (freq === "YEARLY") return Math.round(amount / 12);
-    return Math.round(amount);
+  const handleAddAccount = () => {
+    setBankAccounts((prev) => [
+      ...prev,
+      {
+        id: `acc-${Date.now()}`,
+        name: getDefaultAccountName("Other", "EVERYDAY"),
+        bankProvider: "Other",
+        accountType: "EVERYDAY",
+        lastKnownBalance: "0.00",
+        unbudgetedBuffer: "0.00",
+        isPrivate: false,
+      },
+    ]);
   };
 
-  const convertFromMonthly = (monthlyAmount: number, freq: "WEEKLY" | "FORTNIGHTLY" | "MONTHLY" | "YEARLY"): number => {
-    if (freq === "WEEKLY") return Math.round(monthlyAmount / (52 / 12));
-    if (freq === "FORTNIGHTLY") return Math.round(monthlyAmount / (26 / 12));
-    if (freq === "YEARLY") return Math.round(monthlyAmount * 12);
-    return Math.round(monthlyAmount);
+  const handleUpdateAccount = (
+    acc: BankAccountRowItem,
+    field: "name" | "bankProvider" | "accountType" | "lastKnownBalance" | "unbudgetedBuffer" | "isPrivate",
+    value: string | boolean
+  ) => {
+    setBankAccounts((prev) =>
+      prev.map((item) => (item.id === acc.id ? { ...item, [field]: value } : item))
+    );
   };
 
-  const saveSetupBudgetMut = trpc.saveSetupBudget.useMutation();
+  const handleRemoveAccount = (id: string) => {
+    if (!id.startsWith("acc-")) setArchivedAccountIds((prev) => new Set(prev).add(id));
+    setBankAccounts((prev) => prev.filter((item) => item.id !== id));
+  };
 
-  const handleFinish = async () => {
-    setIsSubmitting(true);
-    try {
-      const accountsPayload = (bankAccountsQuery.data || []).map((acc) => ({
-        id: acc.id,
-        name: acc.name,
-        bankProvider: acc.bankProvider || "Other",
-        accountType: acc.accountType || "EVERYDAY",
-        lastKnownBalance: String(acc.lastKnownBalance || "0.00"),
-        unbudgetedBuffer: String(acc.unbudgetedBuffer || "0.00"),
-        isPrivate: Boolean(acc.isPrivate),
-      }));
-
-      const primaryBankAccountId = accountsPayload[0]?.id;
-
-      const envelopesPayload = [
-        ...activeCategories.map((c, idx) => {
-          const rawFreq = categoryFrequencies[c.name];
-          const budgetFreq: "WEEKLY" | "FORTNIGHTLY" | "MONTHLY" | "ANNUALLY" =
-            rawFreq === "YEARLY" ? "ANNUALLY" : "MONTHLY";
-          const catId = "id" in c && typeof c.id === "string" && !c.id.startsWith("temp-") ? c.id : undefined;
-          const isEveryday = c.type === "EVERYDAY";
-          const isBill = c.type === "REGULAR";
-          return {
-            id: catId,
-            bankAccountId: primaryBankAccountId,
-            name: c.name,
-            envelopeType: (isEveryday ? "EVERYDAY" : isBill ? "SCHEDULED_BILL" : "TARGET_GOAL") as "EVERYDAY" | "SCHEDULED_BILL" | "TARGET_GOAL",
-            monthlyAmount: (c.monthlyAud || 0).toFixed(2),
-            enteredAmount: (c.monthlyAud || 0).toFixed(2),
-            budgetFrequency: budgetFreq,
-            icon: c.icon || "wallet",
-            isEssential: isBill,
-            orderIndex: idx,
-          };
-        }),
-        ...goals.map((g, idx) => ({
-          id: g.id?.startsWith("g-") ? undefined : g.id,
-          bankAccountId: primaryBankAccountId,
-          name: g.name,
-          envelopeType: (g.goalMode === "ONGOING" ? "ONGOING_GOAL" : "TARGET_GOAL") as "ONGOING_GOAL" | "TARGET_GOAL",
-          goalMode: g.goalMode ?? (g.dueDate ? "TARGET_DATE" : "ONGOING"),
-          targetAmount: (g.goalMode === "ONGOING" ? (g.monthlyAmount || g.targetAmount || 250) : (g.targetAmount || g.monthlyAmount * 12 || 1000)).toFixed(2),
-          targetDate: g.goalMode === "ONGOING" ? null : (g.dueDate || null),
-          enteredAmount: g.enteredAmount ? g.enteredAmount.toFixed(2) : undefined,
-          budgetFrequency: g.budgetFrequency,
-          startDate: g.startDate,
-          rrule: g.rrule,
-          isSurplusTarget: idx === 0,
-          isCommitted: true,
-          isPrivate: false,
-          orderIndex: activeCategories.length + idx,
-        })),
-      ];
-
-      const incomesPayload = incomes.map((inc) => {
-        const incType: "SALARY" | "FREELANCE" | "INVESTMENT" | "OTHER" =
-          inc.type === "BUSINESS" ? "FREELANCE" : inc.type === "SALARY" || inc.type === "OTHER" ? inc.type : "SALARY";
-        const incFreq: "WEEKLY" | "FORTNIGHTLY" | "MONTHLY" | "CUSTOM" =
-          inc.frequency === "WEEKLY" || inc.frequency === "FORTNIGHTLY" || inc.frequency === "MONTHLY" ? inc.frequency : "CUSTOM";
-        return {
-          id: inc.id?.startsWith("inc-") ? undefined : inc.id,
-          name: inc.name,
-          type: incType,
-          amount: (inc.amount || 0).toFixed(2),
-          frequency: incFreq,
-          receivingAccountId: inc.receivingAccountId || null,
-          startDate: inc.startDate || null,
-        };
-      });
-
-      await saveSetupBudgetMut.mutateAsync({
-        incomes: incomesPayload,
-        bankAccounts: accountsPayload.length > 0 ? accountsPayload : [
-          { name: "Other Financial Institution (Everyday)", bankProvider: "Other", accountType: "EVERYDAY", lastKnownBalance: "1000.00", unbudgetedBuffer: "0.00", isPrivate: false }
-        ],
-        envelopes: envelopesPayload.length > 0 ? envelopesPayload : [
-          { name: "Everyday Spending", envelopeType: "EVERYDAY", bankAccountId: primaryBankAccountId, monthlyAmount: "1000.00", isEssential: true }
-        ],
-        archivedEnvelopeIds: sweepQueue.map((s) => s.poolId),
-        autoCreateExpenseSchedules,
-      });
-
-      posthog.capture("setup_completed", {
-        isRerun,
-        income_count: incomes.length,
-        category_count: activeCategories.length,
-        goal_count: goals.length,
-      });
-
-      router.push("/dashboard");
-    } catch (err: unknown) {
-      console.error("Failed to complete setup:", err);
-      alert(`Setup Error: ${err instanceof Error ? err.message : "Unknown error"}`);
-    } finally {
-      setIsSubmitting(false);
-    }
+  const handleRemoveIncome = (id: string) => {
+    if (!id.startsWith("inc-")) setArchivedIncomeIds((prev) => new Set(prev).add(id));
+    setIncomes((prev) => prev.filter((item) => item.id !== id));
   };
 
   const handleDiscard = async () => {
@@ -432,58 +207,21 @@ export function useSetupWizardState() {
     isRerun,
     step,
     setStep,
-    isSubmitting,
+    isSubmitting: submission.isSubmitting,
     showDiscardModal,
     setShowDiscardModal,
     goals,
     setGoals,
-    handleRemoveGoal,
-    activeSweepPool,
-    setActiveSweepPool,
-    selectedSweepDest,
-    setSelectedSweepDest,
-    confirmSweepAndRemove,
-    availablePools: poolsQuery.data || [],
-    weeklyGroceries,
-    setWeeklyGroceries,
-    weeklyDining,
-    setWeeklyDining,
-    weeklyPersonal,
-    setWeeklyPersonal,
+    ...sweep,
+    availablePools: pools,
     incomes,
     setIncomes,
-    housingType,
-    setHousingType,
-    hasCars,
-    setHasCars,
-    vehicles,
-    setVehicles,
-    usePublicTransport,
-    setUsePublicTransport,
-    useRideshare,
-    setUseRideshare,
-    hasKids,
-    setHasKids,
-    children,
-    setChildren,
-    hasPrivateHealth,
-    setHasPrivateHealth,
-    hasGym,
-    setHasGym,
-    hasMedicalOutofPocket,
-    setHasMedicalOutofPocket,
-    hasDebt,
-    setHasDebt,
-    debtMonthlyRepayment,
-    setDebtMonthlyRepayment,
-    hasPets,
-    setHasPets,
-    petsCount,
-    setPetsCount,
-    hasCharityGiving,
-    setHasCharityGiving,
-    charityMonthlyAmount,
-    setCharityMonthlyAmount,
+    handleRemoveIncome,
+    bankAccounts,
+    setBankAccounts,
+    handleAddAccount,
+    handleUpdateAccount,
+    handleRemoveAccount,
     customCategories,
     setCustomCategories,
     customCatName,
@@ -500,19 +238,10 @@ export function useSetupWizardState() {
     setCategoryFrequencies,
     autoCreateExpenseSchedules,
     setAutoCreateExpenseSchedules,
-    showIcons,
-    estimation,
-    activeCategories,
-    activeEveryday,
-    activeRegular,
-    activeGoals,
-    totalEverydayMonthly,
-    totalRegularMonthly,
-    totalGoalMonthly,
-    totalAllocatedMonthly,
-    convertToMonthly,
-    convertFromMonthly,
-    handleFinish,
+    showIcons: userPrefQuery.data?.showIcons ?? true,
+    ...lifestyle,
+    ...calculations,
+    handleFinish: submission.handleFinish,
     handleDiscard,
   };
 }

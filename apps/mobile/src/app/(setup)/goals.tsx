@@ -10,15 +10,7 @@ import { SetupGoalCard } from '../../components/setup/SetupGoalCard';
 import { getMobileLocaleConfig } from '../../lib/format';
 import { SetupProgressBar } from '../../components/setup/SetupProgressBar';
 import { SetupBalanceSweepModal } from '../../components/setup/SetupBalanceSweepModal';
-
-const PRESET_GOALS = [
-  { name: 'Emergency Reserve (3-6 Months)', icon: '🛡️', defaultTarget: 10000, defaultMonths: 12 },
-  { name: 'Annual Family Holiday', icon: '✈️', defaultTarget: 5000, defaultMonths: 12 },
-  { name: 'New Car', icon: '🚗', defaultTarget: 15000, defaultMonths: 24 },
-  { name: 'Home Maintenance & Repairs', icon: '🏡', defaultTarget: 4000, defaultMonths: 12 },
-  { name: 'Investment & Wealth Building', icon: '📈', defaultTarget: 20000, defaultMonths: 36 },
-  { name: 'Tech & Gadget Upgrade', icon: '💻', defaultTarget: 1500, defaultMonths: 6 },
-];
+import { SetupGoalsPresetsGrid, MobileGoalPresetConfig } from '../../components/setup/SetupGoalsPresetsGrid';
 
 export default function SetupGoalsScreen() {
   const insets = useSafeAreaInsets();
@@ -46,14 +38,15 @@ export default function SetupGoalsScreen() {
   const isPresetActive = (name: string) =>
     goals.some((g) => g.name.trim().toLowerCase() === name.trim().toLowerCase());
 
-  const togglePreset = (preset: typeof PRESET_GOALS[0]) => {
+  const togglePreset = (preset: MobileGoalPresetConfig) => {
     const existing = goals.find((g) => g.name.trim().toLowerCase() === preset.name.trim().toLowerCase());
     if (existing) {
       handleRemoveGoal(existing.id);
     } else {
+      const isOngoing = preset.mode === 'ONGOING';
       const d = new Date();
-      d.setMonth(d.getMonth() + preset.defaultMonths);
-      const dueDate = new Intl.DateTimeFormat('en-CA', { timeZone: tz }).format(d);
+      d.setMonth(d.getMonth() + (preset.defaultMonths || 12));
+      const dueDate = isOngoing ? null : new Intl.DateTimeFormat('en-CA', { timeZone: tz }).format(d);
       setGoals((prev) => [
         ...prev,
         {
@@ -61,8 +54,8 @@ export default function SetupGoalsScreen() {
           name: preset.name,
           targetAmount: preset.defaultTarget,
           dueDate,
-          goalMode: 'TARGET_DATE',
-          monthlyAmount: Math.round(preset.defaultTarget / preset.defaultMonths),
+          goalMode: preset.mode,
+          monthlyAmount: isOngoing ? preset.defaultTarget : Math.round(preset.defaultTarget / (preset.defaultMonths || 12)),
           icon: preset.icon,
         },
       ]);
@@ -84,7 +77,7 @@ export default function SetupGoalsScreen() {
           goalMode: 'ONGOING',
           monthlyAmount: amountNum,
           budgetFrequency: 'MONTHLY',
-          icon: '🎯',
+          icon: 'target',
         },
       ]);
     } else {
@@ -100,7 +93,7 @@ export default function SetupGoalsScreen() {
           dueDate,
           goalMode: 'TARGET_DATE',
           monthlyAmount: Math.round(amountNum / 12),
-          icon: '🎯',
+          icon: 'target',
         },
       ]);
     }
@@ -124,26 +117,10 @@ export default function SetupGoalsScreen() {
 
       <Text style={styles.stepLabel}>{t('setup.stepOf', { step: 3, total: totalSteps })}</Text>
       <View style={styles.titleRow}>
-        <Text style={styles.title}>{t('setup.categories.goalSection')}</Text>
+        <Text style={styles.title}>{t('setup.goals.title')}</Text>
       </View>
 
-      <Text style={styles.sectionHeading}>{t('setup.goals.popularPresets')}</Text>
-      <View style={styles.presetsGrid}>
-        {PRESET_GOALS.map((preset) => {
-          const active = isPresetActive(preset.name);
-          return (
-            <TouchableOpacity
-              key={preset.name}
-              onPress={() => togglePreset(preset)}
-              style={[styles.presetCard, active && styles.presetCardActive]}
-            >
-              <Text style={styles.presetIcon}>{preset.icon}</Text>
-              <Text style={styles.presetName} numberOfLines={1}>{preset.name}</Text>
-              <Text style={styles.presetMeta}>${preset.defaultTarget.toLocaleString()}</Text>
-            </TouchableOpacity>
-          );
-        })}
-      </View>
+      <SetupGoalsPresetsGrid onTogglePreset={togglePreset} isPresetActive={isPresetActive} />
 
       <Text style={[styles.sectionHeading, styles.marginTop16]}>
         {t('setup.goals.yourSavingsGoals', { count: goals.length })}
@@ -172,7 +149,7 @@ export default function SetupGoalsScreen() {
         <View style={styles.customTargetRow}>
           <View style={styles.flexOne}>
             <AmountInput
-              label={customType === 'ONGOING' ? t('goalModes.monthlyContribution') : t('common.target')}
+              label={customType === 'ONGOING' ? t('setup.goals.monthlyAmountLabel') : t('setup.goals.targetAmountLabel')}
               value={customTarget}
               onChangeText={setCustomTarget}
             />
@@ -216,19 +193,6 @@ const styles = StyleSheet.create({
   title: { fontSize: 20, fontWeight: '900', color: DESIGN_TOKENS.colors.primary },
   sectionHeading: { fontSize: 13, fontWeight: '700', color: DESIGN_TOKENS.colors.textPrimary, marginBottom: 8 },
   marginTop16: { marginTop: 16 },
-  presetsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 12 },
-  presetCard: {
-    width: '48%',
-    backgroundColor: DESIGN_TOKENS.colors.surface,
-    padding: 10,
-    borderRadius: DESIGN_TOKENS.radius.md,
-    borderWidth: 1,
-    borderColor: DESIGN_TOKENS.colors.slate[200],
-  },
-  presetCardActive: { borderColor: DESIGN_TOKENS.colors.accent, backgroundColor: DESIGN_TOKENS.colors.accentLight },
-  presetIcon: { fontSize: 20, marginBottom: 4 },
-  presetName: { fontSize: 12, fontWeight: '700', color: DESIGN_TOKENS.colors.primary },
-  presetMeta: { fontSize: 11, color: DESIGN_TOKENS.colors.textMuted, marginTop: 2 },
   customBox: {
     backgroundColor: DESIGN_TOKENS.colors.surface,
     padding: 12,

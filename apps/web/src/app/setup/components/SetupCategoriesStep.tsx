@@ -1,8 +1,14 @@
+"use client";
+
 import React, { useState, useId } from "react";
 import { t } from "@money-matters/i18n";
 import { EstimatedCategoryItem } from "@money-matters/types";
-import { InfoTooltip, Button, AmountField, EnvelopeExplainer } from "@money-matters/ui/web";
+import { InfoTooltip, Button } from "@money-matters/ui/web";
 import { UserGoalItem } from "./SetupGoalsStep";
+import { SetupReviewSummaryCards } from "./SetupReviewSummaryCards";
+import { SetupReviewCategoryList } from "./SetupReviewCategoryList";
+import { SetupReviewGoalsList } from "./SetupReviewGoalsList";
+import { SetupReviewCustomCategoryForm } from "./SetupReviewCustomCategoryForm";
 
 interface SetupCategoriesStepProps {
   activeEveryday: EstimatedCategoryItem[];
@@ -33,7 +39,6 @@ interface SetupCategoriesStepProps {
   onBack: () => void;
   onFinish: () => void;
   onSimulatePayday?: () => void;
-  showIcons?: boolean;
   autoCreateExpenseSchedules?: boolean;
   setAutoCreateExpenseSchedules?: (val: boolean) => void;
   isRerun?: boolean;
@@ -66,7 +71,6 @@ export function SetupCategoriesStep({
   onBack,
   onFinish,
   onSimulatePayday,
-  showIcons = true,
   autoCreateExpenseSchedules = true,
   setAutoCreateExpenseSchedules,
   isRerun = false,
@@ -88,17 +92,15 @@ export function SetupCategoriesStep({
 
   return (
     <div className="flex flex-col gap-6 animate-in fade-in duration-200 max-h-[68vh] overflow-y-auto pr-1 max-w-3xl mx-auto w-full">
-      {/* Header */}
       <div>
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <span className="w-7 h-7 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center font-bold text-sm">
-              ✓
-            </span>
-            <h2 className="text-xl sm:text-2xl font-black text-[#1B2B4B]">Review &amp; Save Budget Summary</h2>
+            <h2 className="text-xl sm:text-2xl font-black text-[#1B2B4B]">
+              {t("setup.reviewSummary.title")}
+            </h2>
             <InfoTooltip
-              title="Budget Summary"
-              content="Based on your answers, we've estimated your monthly bills, goal funds, and everyday spending. When paychecks land, Money Matters automatically funds your bills and savings targets first."
+              title={t("setup.reviewSummary.title")}
+              content={t("setup.reviewSummary.subtitle")}
             />
           </div>
           <span className="text-xs font-bold text-emerald-800 bg-emerald-50 px-3 py-1 rounded-full border border-emerald-200">
@@ -109,111 +111,44 @@ export function SetupCategoriesStep({
 
       {warningMsg && (
         <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl text-xs font-semibold text-amber-900 shadow-xs">
-          ⚠️ {warningMsg}
+          {warningMsg}
         </div>
       )}
 
-      <EnvelopeExplainer compact className="mb-1" />
+      <SetupReviewSummaryCards
+        totalMonthlyIncomeAud={totalMonthlyIncomeAud}
+        totalAllocatedMonthly={totalAllocatedMonthly}
+        netSurplus={netSurplus}
+      />
 
-      {/* Top Waterfall Summary Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-        <div className="p-3.5 rounded-2xl bg-blue-50/70 border border-blue-200/80 flex flex-col gap-1">
-          <span className="text-[10px] font-black uppercase text-blue-700">Monthly Net Income</span>
-          <span className="text-lg font-black text-[#1B2B4B]">${totalMonthlyIncomeAud.toLocaleString()}</span>
-        </div>
-        <div className="p-3.5 rounded-2xl bg-emerald-50/70 border border-emerald-200/80 flex flex-col gap-1">
-          <span className="text-[10px] font-black uppercase text-emerald-700">Total Allocated</span>
-          <span className="text-lg font-black text-[#1B2B4B]">${totalAllocatedMonthly.toLocaleString()}</span>
-        </div>
-        <div
-          className={`p-3.5 rounded-2xl border flex flex-col gap-1 ${
-            netSurplus >= 0 ? "bg-teal-50/70 border-teal-200/80 text-teal-700" : "bg-red-50/70 border-red-200/80 text-red-700"
-          }`}
-        >
-          <span className="text-[10px] font-black uppercase">Net Surplus / Deficit</span>
-          <span className="text-lg font-black text-[#1B2B4B]">${netSurplus.toLocaleString()}</span>
-        </div>
-      </div>
-
-      {/* 1-Column Frame Layout */}
       <div className="flex flex-col gap-6 w-full">
         {/* Everyday Spending Categories */}
-        <div className="flex flex-col gap-3 p-4 bg-slate-50 rounded-2xl border border-zinc-200/80">
-          <div className="flex items-center justify-between border-b border-zinc-200/60 pb-2">
-            <span className="text-xs font-black uppercase tracking-wider text-zinc-600">
-              Everyday Spending Categories
-            </span>
-            <span className="text-xs font-bold text-[#2563eb] bg-blue-50 px-2.5 py-1 rounded-md border border-blue-200">
-              Monthly Est: ${totalEverydayMonthly.toLocaleString()}/mo
-            </span>
-          </div>
-
-          <div className="flex flex-col gap-2">
-            {activeEveryday.map((cat) => {
-              const freq = categoryFrequencies[cat.name] || "MONTHLY";
-              const displayVal = convertFromMonthly(cat.monthlyAud, freq);
-              return (
-                <div
-                  key={cat.name}
-                  className="flex items-center justify-between p-2.5 rounded-xl border border-zinc-200 bg-white"
-                >
-                  <div className="flex items-center gap-2">
-                    {showIcons && <span className="text-base">{cat.icon || "🛒"}</span>}
-                    <span className="text-xs font-bold text-[#1B2B4B]">{cat.name}</span>
-                  </div>
-                  <div className="flex items-center gap-1.5">
-                    <div className="w-40">
-                      <AmountField
-                        value={String(displayVal ?? "")}
-                        onChange={(val) => {
-                          const num = parseFloat(val) || 0;
-                          const monthly = convertToMonthly(num, freq);
-                          setAmountOverrides((prev) => ({ ...prev, [cat.name]: monthly }));
-                        }}
-                        allowNegative={false}
-                      />
-                    </div>
-                    <select
-                      value={freq}
-                      onChange={(e) => {
-                        const newFreq = e.target.value as "WEEKLY" | "FORTNIGHTLY" | "MONTHLY" | "YEARLY";
-                        setCategoryFrequencies((prev) => ({ ...prev, [cat.name]: newFreq }));
-                      }}
-                      className="px-1.5 py-1 text-[10px] font-bold rounded-lg border border-zinc-200 bg-slate-50 text-zinc-600"
-                    >
-                      <option value="WEEKLY">/ wk</option>
-                      <option value="FORTNIGHTLY">/ fn</option>
-                      <option value="MONTHLY">/ mo</option>
-                      <option value="YEARLY">/ yr</option>
-                    </select>
-                    <button
-                      type="button"
-                      onClick={() => handleAttemptRemove(cat.name)}
-                      className="text-xs font-bold text-red-400 hover:text-red-600 px-1"
-                    >
-                      ✕
-                    </button>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
+        <SetupReviewCategoryList
+          title={t("setup.reviewSummary.everydaySpending")}
+          totalMonthly={totalEverydayMonthly}
+          categories={activeEveryday}
+          categoryFrequencies={categoryFrequencies}
+          setCategoryFrequencies={setCategoryFrequencies}
+          setAmountOverrides={setAmountOverrides}
+          onRemoveCategory={handleAttemptRemove}
+          convertToMonthly={convertToMonthly}
+          convertFromMonthly={convertFromMonthly}
+        />
 
         {/* Regular Bills List */}
-        <div className="flex flex-col gap-3 p-4 bg-slate-50 rounded-2xl border border-zinc-200/80">
-          <div className="flex items-center justify-between border-b border-zinc-200/60 pb-2">
-            <span className="text-xs font-black uppercase tracking-wider text-zinc-600">
-              Regular Bills &amp; Obligations
-            </span>
-            <span className="text-xs font-bold text-[#2563eb] bg-blue-50 px-2.5 py-1 rounded-md border border-blue-200">
-              Monthly Est: ${totalRegularMonthly.toLocaleString()}/mo
-            </span>
-          </div>
-
-          {/* Auto-schedule bills toggle */}
+        <SetupReviewCategoryList
+          title={t("setup.reviewSummary.regularBills")}
+          totalMonthly={totalRegularMonthly}
+          categories={activeRegular}
+          categoryFrequencies={categoryFrequencies}
+          setCategoryFrequencies={setCategoryFrequencies}
+          setAmountOverrides={setAmountOverrides}
+          onRemoveCategory={handleAttemptRemove}
+          convertToMonthly={convertToMonthly}
+          convertFromMonthly={convertFromMonthly}
+        >
           {setAutoCreateExpenseSchedules && (
-            <div className="flex items-start gap-2.5 p-3 bg-blue-50/60 rounded-xl border border-blue-100">
+            <div className="flex items-start gap-2.5 p-3 bg-blue-50/60 rounded-xl border border-blue-100 mb-1">
               <input
                 id={autoScheduleCheckboxId}
                 type="checkbox"
@@ -231,151 +166,26 @@ export function SetupCategoriesStep({
               </label>
             </div>
           )}
-
-          <div className="flex flex-col gap-2 max-h-[35vh] overflow-y-auto pr-1">
-            {activeRegular.map((cat) => {
-              const freq = categoryFrequencies[cat.name] || "MONTHLY";
-              const displayVal = convertFromMonthly(cat.monthlyAud, freq);
-              return (
-                <div
-                  key={cat.name}
-                  className="flex items-center justify-between p-2.5 rounded-xl border border-zinc-200 bg-white"
-                >
-                  <div className="flex items-center gap-2">
-                    {showIcons && <span className="text-base">{cat.icon || "📌"}</span>}
-                    <span className="text-xs font-bold text-[#1B2B4B]">{cat.name}</span>
-                  </div>
-                  <div className="flex items-center gap-1.5">
-                    <div className="w-40">
-                      <AmountField
-                        value={String(displayVal ?? "")}
-                        onChange={(val) => {
-                          const num = parseFloat(val) || 0;
-                          const monthly = convertToMonthly(num, freq);
-                          setAmountOverrides((prev) => ({ ...prev, [cat.name]: monthly }));
-                        }}
-                        allowNegative={false}
-                      />
-                    </div>
-                    <select
-                      value={freq}
-                      onChange={(e) => {
-                        const newFreq = e.target.value as "WEEKLY" | "FORTNIGHTLY" | "MONTHLY" | "YEARLY";
-                        setCategoryFrequencies((prev) => ({ ...prev, [cat.name]: newFreq }));
-                      }}
-                      className="px-1.5 py-1 text-[10px] font-bold rounded-lg border border-zinc-200 bg-slate-50 text-zinc-600"
-                    >
-                      <option value="WEEKLY">/ wk</option>
-                      <option value="FORTNIGHTLY">/ fn</option>
-                      <option value="MONTHLY">/ mo</option>
-                      <option value="YEARLY">/ yr</option>
-                    </select>
-                    <button
-                      type="button"
-                      onClick={() => handleAttemptRemove(cat.name)}
-                      className="text-xs font-bold text-red-400 hover:text-red-600 px-1"
-                    >
-                      ✕
-                    </button>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
+        </SetupReviewCategoryList>
 
         {/* Savings Goals */}
-        <div className="flex flex-col gap-3 p-4 bg-slate-50 rounded-2xl border border-zinc-200/80">
-          <div className="flex items-center justify-between border-b border-zinc-200/60 pb-2">
-            <span className="text-xs font-black uppercase tracking-wider text-zinc-600">
-              Savings &amp; Future Goals
-            </span>
-            <span className="text-xs font-bold text-teal-800 bg-teal-50 px-2.5 py-1 rounded-md border border-teal-200">
-              Monthly Est: ${totalGoalMonthly.toLocaleString()}/mo
-            </span>
-          </div>
-
-          <div className="flex flex-col gap-2 max-h-[35vh] overflow-y-auto pr-1">
-            {activeGoals.map((cat) => {
-              const isSurplusTarget =
-                cat.name.toLowerCase().includes("emergency") || cat.name.toLowerCase().includes("reserve");
-              const userGoal = goals.find((g) => g.name.trim().toLowerCase() === cat.name.trim().toLowerCase());
-              const targetAmountStr = userGoal && userGoal.targetAmount !== undefined && userGoal.targetAmount !== null
-                ? `$${userGoal.targetAmount.toLocaleString()}`
-                : `$${cat.monthlyAud.toLocaleString()}`;
-              const targetDateStr = userGoal?.dueDate ? ` • By ${userGoal.dueDate}` : "";
-
-              return (
-                <div
-                  key={cat.name}
-                  className="flex items-center justify-between p-2.5 rounded-xl border border-zinc-200 bg-white"
-                >
-                  <div className="flex items-center gap-2">
-                    {showIcons && <span className="text-base">{cat.icon || "🎯"}</span>}
-                    <div className="flex flex-col">
-                      <span className="text-xs font-bold text-[#1B2B4B]">{cat.name}</span>
-                      {isSurplusTarget && (
-                        <span className="text-[10px] font-bold text-teal-600">
-                          {showIcons ? "🛡️ " : ""}Designated Surplus Sweep Target
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs font-bold font-mono text-zinc-700">
-                      Target: {targetAmountStr}{targetDateStr}
-                    </span>
-                    <button
-                      type="button"
-                      onClick={() => handleAttemptRemove(cat.name)}
-                      className="text-xs font-bold text-red-400 hover:text-red-600 px-1"
-                    >
-                      ✕
-                    </button>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
+        <SetupReviewGoalsList
+          activeGoals={activeGoals}
+          goals={goals}
+          totalGoalMonthly={totalGoalMonthly}
+          onRemoveCategory={handleAttemptRemove}
+        />
 
         {/* Add Custom Category Form */}
-        <div className="p-4 bg-white rounded-2xl border border-zinc-200/80 flex flex-col gap-3">
-          <span className="text-xs font-bold text-[#1B2B4B]">Add a Custom Category:</span>
-          <div className="flex flex-col sm:flex-row gap-2">
-            <input
-              type="text"
-              value={customCatName}
-              onChange={(e) => setCustomCatName(e.target.value)}
-              placeholder="Category Name"
-              className="flex-1 px-3 py-2 text-xs font-bold rounded-xl border border-zinc-200"
-            />
-            <select
-              value={customCatType}
-              onChange={(e) => setCustomCatType(e.target.value as "REGULAR" | "GOAL" | "EVERYDAY")}
-              className="px-2 py-2 text-xs font-bold rounded-xl border border-zinc-200 bg-slate-50"
-            >
-              <option value="REGULAR">Regular Bill</option>
-              <option value="EVERYDAY">Everyday Spend</option>
-              <option value="GOAL">Savings Goal</option>
-            </select>
-            <div className="w-28">
-              <AmountField
-                value={customCatAmount}
-                onChange={setCustomCatAmount}
-                placeholder="Monthly $"
-                allowNegative={false}
-              />
-            </div>
-            <button
-              type="button"
-              onClick={onAddCustomCategory}
-              className="px-4 py-2 bg-[#2563eb] text-white text-xs font-bold rounded-xl hover:bg-blue-700 transition-colors"
-            >
-              + Add
-            </button>
-          </div>
-        </div>
+        <SetupReviewCustomCategoryForm
+          customCatName={customCatName}
+          setCustomCatName={setCustomCatName}
+          customCatType={customCatType}
+          setCustomCatType={setCustomCatType}
+          customCatAmount={customCatAmount}
+          setCustomCatAmount={setCustomCatAmount}
+          onAddCustomCategory={onAddCustomCategory}
+        />
       </div>
 
       {/* Footer Navigation */}
@@ -383,9 +193,9 @@ export function SetupCategoriesStep({
         <button
           type="button"
           onClick={onBack}
-          className="px-5 py-2.5 text-xs font-bold text-zinc-500 hover:text-zinc-700"
+          className="px-5 py-2.5 text-xs font-bold text-zinc-500 hover:text-zinc-700 cursor-pointer"
         >
-          ← Back to Lifestyle
+          {t("common.back")}
         </button>
         <div className="flex items-center gap-3">
           {onSimulatePayday && !isRerun && (
@@ -394,7 +204,7 @@ export function SetupCategoriesStep({
               onClick={onSimulatePayday}
               className="px-4 py-2.5 bg-blue-50 hover:bg-blue-100 border border-blue-200 text-[#2563eb] text-xs font-bold rounded-xl transition-colors cursor-pointer"
             >
-              ✨ {t("setup.complete.simulateFirstPayday")}
+              {t("setup.complete.simulateFirstPayday")}
             </button>
           )}
           <Button
@@ -402,7 +212,9 @@ export function SetupCategoriesStep({
             onClick={onFinish}
             loading={isSubmitting}
           >
-            {showIcons ? "🚀 " : ""}Save &amp; Complete Setup
+            {isRerun
+              ? t("setup.reviewSummary.recalibrateBudget")
+              : t("setup.reviewSummary.saveBudget")}
           </Button>
         </div>
       </div>

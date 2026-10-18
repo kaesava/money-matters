@@ -16,6 +16,7 @@ import {
   SortDir,
   PlanSortField,
 } from '../../components/transactions/hooks/useTransactionsFilter';
+import { SpendingTimeframe } from '@money-matters/types';
 
 type HistoryTab = 'LEDGER' | 'PAYDAYS';
 
@@ -53,10 +54,15 @@ export default function TransactionsScreen() {
   const [planSortDir, setPlanSortDir] = useState<SortDir>('desc');
   const [planPage, setPlanPage] = useState(1);
   const [planPageSize, setPlanPageSize] = useState(15);
+  const [timeframe, setTimeframe] = useState<SpendingTimeframe>('90D');
 
   const transactionsQuery = trpc.listTransactions.useQuery(
     { limit: 500 },
     { enabled: !!session?.user }
+  );
+  const spendingAnalyticsQuery = trpc.getSpendingAnalytics.useQuery(
+    { timeframe },
+    { enabled: !!session?.user && activeTab === 'LEDGER' }
   );
   const poolsQuery = trpc.listPools.useQuery(undefined, { enabled: !!session?.user });
   const bankAccountsQuery = trpc.listBankAccounts.useQuery(undefined, {
@@ -76,6 +82,7 @@ export default function TransactionsScreen() {
     setRefreshing(true);
     await Promise.all([
       transactionsQuery.refetch(),
+      spendingAnalyticsQuery.refetch(),
       poolsQuery.refetch(),
       bankAccountsQuery.refetch(),
       allPlansQuery.refetch(),
@@ -150,6 +157,10 @@ export default function TransactionsScreen() {
             bankAccounts={bankAccounts}
             onExportCsv={() => exportLedgerCsv(sortedTransactions)}
             onNavigateToPool={(pId) => router.push(`/(app)/envelopes?poolId=${pId}` as never)}
+            spendingAnalytics={spendingAnalyticsQuery.data}
+            isAnalyticsLoading={spendingAnalyticsQuery.isLoading}
+            timeframe={timeframe}
+            onTimeframeChange={setTimeframe}
           />
         ) : (
           <IncomeSplitsTab

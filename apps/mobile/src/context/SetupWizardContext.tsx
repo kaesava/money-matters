@@ -1,9 +1,6 @@
-import React, { createContext, useContext, useState, useMemo } from 'react';
-import { useGlobalSearchParams } from 'expo-router';
+import React, { createContext, useContext, useState, useMemo, useEffect } from 'react';
+import { useGlobalSearchParams, useRouter } from 'expo-router';
 import {
-  HousingType,
-  VehicleConfig,
-  ChildConfig,
   IncomeItem,
   UserGoalItem,
   EstimatedCategoryItem,
@@ -12,13 +9,30 @@ import { SetupWizardContextValue } from './setup-wizard-types';
 import { formatIsoDate } from '../lib/format';
 import { useSetupWizardPrepopulation } from './useSetupWizardPrepopulation';
 import { useSetupWizardCalculations } from './useSetupWizardCalculations';
+import { useSetupWizardLifestyleState } from './useSetupWizardLifestyleState';
+import { useSetupWizardAccountsState } from './useSetupWizardAccountsState';
+import { trpc } from '../lib/trpc';
 
 const SetupWizardContext = createContext<SetupWizardContextValue | null>(null);
 
 export function SetupWizardProvider({ children: reactChildren }: { children: React.ReactNode }) {
+  const router = useRouter();
   const globalParams = useGlobalSearchParams<{ mode?: string }>();
-  const isRerun = globalParams.mode === 'rerun';
-  const totalSteps = isRerun ? 3 : 5;
+  const userPrefQuery = trpc.getUserPreferences.useQuery();
+
+  const isRerunParam = globalParams.mode === 'rerun';
+  const setupAlreadyCompleted = Boolean(userPrefQuery.data?.setupCompleted);
+  const isRerun = isRerunParam || setupAlreadyCompleted;
+  const totalSteps = isRerun ? 2 : 4;
+
+  useEffect(() => {
+    if (setupAlreadyCompleted && !isRerunParam) {
+      router.replace({ pathname: '/(setup)/income', params: { mode: 'rerun' } });
+    }
+  }, [setupAlreadyCompleted, isRerunParam, router]);
+
+  const lifestyle = useSetupWizardLifestyleState();
+  const accounts = useSetupWizardAccountsState();
 
   const [incomes, setIncomes] = useState<IncomeItem[]>([
     {
@@ -30,47 +44,28 @@ export function SetupWizardProvider({ children: reactChildren }: { children: Rea
       startDate: new Intl.DateTimeFormat('en-CA', { timeZone: 'Australia/Sydney' }).format(new Date()),
     },
   ]);
+  const [archivedIncomeIds, setArchivedIncomeIds] = useState<Set<string>>(new Set());
 
   const [goals, setGoals] = useState<UserGoalItem[]>([
     {
       id: 'g-1',
-      name: 'Emergency Reserve (3-6 Months)',
-      goalMode: 'TARGET_DATE',
+      name: 'Emergency Reserve',
+      goalMode: 'ONGOING',
       monthlyAmount: 300,
-      icon: '🛡️',
+      icon: 'shield',
       targetAmount: 10000,
-      dueDate: formatIsoDate(new Date(Date.now() + 365 * 24 * 60 * 60 * 1000)),
+      budgetFrequency: 'MONTHLY',
     },
     {
       id: 'g-2',
       name: 'Annual Family Holiday',
       goalMode: 'TARGET_DATE',
       monthlyAmount: 250,
-      icon: '✈️',
-      targetAmount: 5000,
+      icon: 'plane',
+      targetAmount: 3000,
       dueDate: formatIsoDate(new Date(Date.now() + 365 * 24 * 60 * 60 * 1000)),
     },
   ]);
-
-  const [housingType, setHousingType] = useState<HousingType>('RENT_SOLO');
-  const [hasCars, setHasCars] = useState(true);
-  const [vehicles, setVehicles] = useState<VehicleConfig[]>([{ id: 'veh-1', name: 'Vehicle 1', size: 'MID_SUV' }]);
-  const [usePublicTransport, setUsePublicTransport] = useState(true);
-  const [useRideshare, setUseRideshare] = useState(false);
-  const [hasKids, setHasKids] = useState(false);
-  const [children, setChildren] = useState<ChildConfig[]>([{ id: 'child-1', name: 'Child 1', stage: 'PRIMARY', type: 'PUBLIC' }]);
-  const [hasPrivateHealth, setHasPrivateHealth] = useState(true);
-  const [hasGym, setHasGym] = useState(false);
-  const [hasMedicalOutofPocket, setHasMedicalOutofPocket] = useState(false);
-  const [hasDebt, setHasDebt] = useState(false);
-  const [debtMonthlyRepayment, setDebtMonthlyRepayment] = useState(0);
-  const [hasPets, setHasPets] = useState(false);
-  const [petsCount, setPetsCount] = useState(1);
-  const [hasCharityGiving, setHasCharityGiving] = useState(false);
-  const [charityMonthlyAmount, setCharityMonthlyAmount] = useState(0);
-  const [weeklyGroceries, setWeeklyGroceries] = useState(270);
-  const [weeklyDining, setWeeklyDining] = useState(240);
-  const [weeklyPersonal, setWeeklyPersonal] = useState(100);
 
   const [customCategories, setCustomCategories] = useState<EstimatedCategoryItem[]>([]);
   const [removedCategoryNames, setRemovedCategoryNames] = useState<Set<string>>(new Set());
@@ -88,6 +83,7 @@ export function SetupWizardProvider({ children: reactChildren }: { children: Rea
   const { rawPools, isLoading: isLoadingExistingData } = useSetupWizardPrepopulation({
     isRerun,
     setIncomes,
+    setBankAccounts: accounts.setBankAccounts,
     setGoals,
     setCustomCategories,
   });
@@ -97,18 +93,22 @@ export function SetupWizardProvider({ children: reactChildren }: { children: Rea
     [rawPools]
   );
 
+  const handleRemoveIncome = (id: string) => {
+    if (!id.startsWith('inc-')) setArchivedIncomeIds((prev) => new Set(prev).add(id));
+    setIncomes((prev) => prev.filter((item) => item.id !== id));
+  };
+
   const handleRemoveGoal = (id: string) => {
-    const existingPool = rawPools.find((p) => p.id === id);
-    const balance = existingPool?.currentBalance || 0;
-    if (balance > 0.005) {
-      setActiveSweepPool({ id, name: existingPool?.name || 'Goal', balance });
-      const availableDests = rawPools.filter((p) => p.id !== id);
-      const defaultDest = availableDests.find((p) => p.isSurplusTarget)?.id || availableDests[0]?.id || '';
-      setSelectedSweepDest(defaultDest);
+    const pool = rawPools.find((p) => p.id === id);
+    const balance = pool ? parseFloat((pool as unknown as { currentBalance?: string }).currentBalance || '0') : 0;
+    if (balance > 0 && pool) {
+      setActiveSweepPool({ id: pool.id, name: pool.name, balance });
+      const dest = availablePools.find((p) => p.id !== pool.id)?.id || '';
+      setSelectedSweepDest(dest);
     } else {
       setGoals((prev) => prev.filter((g) => g.id !== id));
-      if (!id.startsWith('g-')) {
-        setSweepQueue((prev) => [...prev, { poolId: id }]);
+      if (pool) {
+        setSweepQueue((prev) => [...prev, { poolId: pool.id, sweepDestinationPoolId: null }]);
       }
     }
   };
@@ -117,7 +117,7 @@ export function SetupWizardProvider({ children: reactChildren }: { children: Rea
     if (!activeSweepPool) return;
     setSweepQueue((prev) => [
       ...prev,
-      { poolId: activeSweepPool.id, sweepDestinationPoolId: selectedSweepDest },
+      { poolId: activeSweepPool.id, sweepDestinationPoolId: selectedSweepDest || null },
     ]);
     setGoals((prev) => prev.filter((g) => g.id !== activeSweepPool.id));
     setActiveSweepPool(null);
@@ -126,106 +126,90 @@ export function SetupWizardProvider({ children: reactChildren }: { children: Rea
   const calculations = useSetupWizardCalculations({
     isRerun,
     incomes,
-    housingType,
-    hasCars,
-    vehicles,
-    usePublicTransport,
-    useRideshare,
-    hasKids,
-    children,
-    hasPrivateHealth,
-    hasGym,
-    hasPets,
-    petsCount,
-    debtMonthlyRepayment,
-    hasCharityGiving,
-    charityMonthlyAmount,
-    weeklyGroceries,
-    weeklyDining,
-    weeklyPersonal,
+    housingType: lifestyle.housingType,
+    hasCars: lifestyle.hasCars,
+    vehicles: lifestyle.vehicles,
+    usePublicTransport: lifestyle.usePublicTransport,
+    useRideshare: lifestyle.useRideshare,
+    hasKids: lifestyle.hasKids,
+    children: lifestyle.children,
+    hasPrivateHealth: lifestyle.hasPrivateHealth,
+    hasGym: lifestyle.hasGym,
+    hasPets: lifestyle.hasPets,
+    petsCount: lifestyle.petsCount,
+    debtMonthlyRepayment: lifestyle.debtMonthlyRepayment,
+    hasCharityGiving: lifestyle.hasCharityGiving,
+    charityMonthlyAmount: lifestyle.charityMonthlyAmount,
+    weeklyGroceries: lifestyle.weeklyGroceries,
+    weeklyDining: lifestyle.weeklyDining,
+    weeklyPersonal: lifestyle.weeklyPersonal,
     customCategories,
     removedCategoryNames,
     amountOverrides,
   });
 
-  return (
-    <SetupWizardContext.Provider
-      value={{
-        isRerun,
-        totalSteps,
-        isLoadingExistingData,
-        incomes,
-        setIncomes,
-        goals,
-        setGoals,
-        housingType,
-        setHousingType,
-        hasCars,
-        setHasCars,
-        vehicles,
-        setVehicles,
-        usePublicTransport,
-        setUsePublicTransport,
-        useRideshare,
-        setUseRideshare,
-        hasKids,
-        setHasKids,
-        children,
-        setChildren,
-        hasPrivateHealth,
-        setHasPrivateHealth,
-        hasGym,
-        setHasGym,
-        hasMedicalOutofPocket,
-        setHasMedicalOutofPocket,
-        hasDebt,
-        setHasDebt,
-        debtMonthlyRepayment,
-        setDebtMonthlyRepayment,
-        hasPets,
-        setHasPets,
-        petsCount,
-        setPetsCount,
-        hasCharityGiving,
-        setHasCharityGiving,
-        charityMonthlyAmount,
-        setCharityMonthlyAmount,
-        weeklyGroceries,
-        setWeeklyGroceries,
-        weeklyDining,
-        setWeeklyDining,
-        weeklyPersonal,
-        setWeeklyPersonal,
-        customCategories,
-        setCustomCategories,
-        removedCategoryNames,
-        setRemovedCategoryNames,
-        amountOverrides,
-        setAmountOverrides,
-        categoryFrequencies,
-        setCategoryFrequencies,
-        autoCreateExpenseSchedules,
-        setAutoCreateExpenseSchedules,
-        sweepQueue,
-        activeSweepPool,
-        setActiveSweepPool,
-        selectedSweepDest,
-        setSelectedSweepDest,
-        availablePools,
-        handleRemoveGoal,
-        confirmSweepAndRemove,
-        ...calculations,
-      }}
-    >
-      {reactChildren}
-    </SetupWizardContext.Provider>
+  const value = useMemo<SetupWizardContextValue>(
+    () => ({
+      isRerun,
+      totalSteps,
+      isLoadingExistingData,
+      ...lifestyle,
+      incomes,
+      setIncomes,
+      handleRemoveIncome,
+      ...accounts,
+      archivedIncomeIds,
+      goals,
+      setGoals,
+      customCategories,
+      setCustomCategories,
+      removedCategoryNames,
+      setRemovedCategoryNames,
+      amountOverrides,
+      setAmountOverrides,
+      categoryFrequencies,
+      setCategoryFrequencies,
+      sweepQueue,
+      activeSweepPool,
+      setActiveSweepPool,
+      selectedSweepDest,
+      setSelectedSweepDest,
+      availablePools,
+      handleRemoveGoal,
+      confirmSweepAndRemove,
+      autoCreateExpenseSchedules,
+      setAutoCreateExpenseSchedules,
+      ...calculations,
+    }),
+    [
+      isRerun,
+      totalSteps,
+      isLoadingExistingData,
+      lifestyle,
+      incomes,
+      accounts,
+      archivedIncomeIds,
+      goals,
+      customCategories,
+      removedCategoryNames,
+      amountOverrides,
+      categoryFrequencies,
+      sweepQueue,
+      activeSweepPool,
+      selectedSweepDest,
+      availablePools,
+      autoCreateExpenseSchedules,
+      calculations,
+    ]
   );
+
+  return <SetupWizardContext.Provider value={value}>{reactChildren}</SetupWizardContext.Provider>;
 }
 
 export function useSetupWizard() {
-  const ctx = useContext(SetupWizardContext);
-  if (!ctx) throw new Error('useSetupWizard must be used within SetupWizardProvider');
-  return ctx;
+  const context = useContext(SetupWizardContext);
+  if (!context) {
+    throw new Error('useSetupWizard must be used within a SetupWizardProvider');
+  }
+  return context;
 }
-
-export * from './setup-wizard-types';

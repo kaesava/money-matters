@@ -17,6 +17,21 @@ export function formatCurrency(
   return new Intl.NumberFormat(locale, { style: "currency", currency }).format(num);
 }
 
+export function formatAmountNumber(
+  value: number | string | null | undefined,
+  locale: string = "en-AU",
+  minorUnits: number = 2
+): string {
+  if (value === null || value === undefined || value === "") return "";
+  const num = typeof value === "string" ? parseFloat(value.replace(/,/g, "")) : value;
+  if (isNaN(num)) return "";
+  return new Intl.NumberFormat(locale, {
+    minimumFractionDigits: minorUnits,
+    maximumFractionDigits: minorUnits,
+    useGrouping: true,
+  }).format(num);
+}
+
 export function fmtBalance(
   value: number | string | null | undefined,
   locale: string = "en-AU",

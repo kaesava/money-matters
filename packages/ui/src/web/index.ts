@@ -72,3 +72,8 @@ export * from './BillModeToggle';
 export * from './BillCoverageBadge';
 export * from './ProductTourPopover';
 export * from './ProductTourSpotlight';
+
+export * from './charts/DonutChart';
+export * from './charts/BarTrendChart';
+export * from './charts/HorizontalRankedBarChart';
+export * from './charts/SpendingOverviewCard';

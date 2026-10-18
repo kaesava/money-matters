@@ -4,9 +4,9 @@ import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { t } from '@money-matters/i18n';
 import { DESIGN_TOKENS, InfoTooltip, useMobileToast } from '@money-matters/ui/mobile';
+import { formatMobileCurrency } from '../../lib/format';
 import { useSetupWizard } from '../../context/SetupWizardContext';
 import { SetupCategoryRow } from '../../components/setup/SetupCategoryRow';
-import { SetupProgressBar } from '../../components/setup/SetupProgressBar';
 import { SetupCategoriesCustomInput } from '../../components/setup/SetupCategoriesCustomInput';
 import { SetupCategoriesGoalsList } from '../../components/setup/SetupCategoriesGoalsList';
 import { SetupBalanceSweepModal } from '../../components/setup/SetupBalanceSweepModal';
@@ -18,9 +18,7 @@ export default function SetupCategoriesScreen() {
   const toast = useMobileToast();
   const {
     isRerun,
-    totalSteps,
     goals,
-    activeCategories,
     activeEveryday,
     activeRegular,
     activeGoals,
@@ -65,35 +63,32 @@ export default function SetupCategoriesScreen() {
       ]}
       keyboardShouldPersistTaps="handled"
     >
-      <SetupProgressBar currentStep={totalSteps} totalSteps={totalSteps} isRerun={isRerun} />
-
-      <Text style={styles.stepLabel}>{t('setup.stepOf', { step: totalSteps, total: totalSteps })}</Text>
       <View style={styles.titleRow}>
         <Text style={styles.title}>
-          {isRerun ? t('setup.recalibrateTitle') : t('setup.reviewSummaryTitle')}
+          {t('setup.reviewSummary.title')}
         </Text>
-        <InfoTooltip title={t('setup.reviewSummaryTooltipTitle')} content={t('setup.reviewSummaryTooltipContent')} />
+        <InfoTooltip title={t('setup.reviewSummary.title')} content={t('setup.reviewSummary.subtitle')} />
       </View>
 
       <View style={styles.summaryGrid}>
         <View style={styles.summaryCard}>
-          <Text style={styles.summaryCardLabel}>{t('setup.netIncomeLabel')}</Text>
-          <Text style={styles.summaryCardVal}>${estimation.totalMonthlyIncomeAud.toLocaleString()}</Text>
+          <Text style={styles.summaryCardLabel}>{t('setup.reviewSummary.monthlyNetIncome')}</Text>
+          <Text style={styles.summaryCardVal}>{formatMobileCurrency(estimation.totalMonthlyIncomeAud)}</Text>
         </View>
         <View style={styles.summaryCard}>
-          <Text style={styles.summaryCardLabel}>{t('setup.allocatedLabel')}</Text>
-          <Text style={styles.summaryCardVal}>${totalAllocatedMonthly.toLocaleString()}</Text>
+          <Text style={styles.summaryCardLabel}>{t('setup.reviewSummary.totalAllocated')}</Text>
+          <Text style={styles.summaryCardVal}>{formatMobileCurrency(totalAllocatedMonthly)}</Text>
         </View>
         <View style={[styles.summaryCard, netSurplus >= 0 ? styles.surplusBg : styles.deficitBg]}>
-          <Text style={styles.summaryCardLabel}>{netSurplus >= 0 ? t('setup.surplusLabel') : t('setup.deficitLabel')}</Text>
-          <Text style={styles.summaryCardVal}>${Math.abs(netSurplus).toLocaleString()}</Text>
+          <Text style={styles.summaryCardLabel}>{t('setup.reviewSummary.netSurplusDeficit')}</Text>
+          <Text style={styles.summaryCardVal}>{formatMobileCurrency(netSurplus)}</Text>
         </View>
       </View>
 
       <View style={styles.sectionCard}>
         <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>{t('setup.everydayPoolTitle')}</Text>
-          <Text style={styles.sectionTotal}>${totalEverydayMonthly.toLocaleString()}/mo</Text>
+          <Text style={styles.sectionTitle}>{t('setup.reviewSummary.everydaySpending')}</Text>
+          <Text style={styles.sectionTotal}>{formatMobileCurrency(totalEverydayMonthly)}/mo</Text>
         </View>
         {activeEveryday.map((cat) => (
           <SetupCategoryRow
@@ -109,8 +104,8 @@ export default function SetupCategoriesScreen() {
 
       <View style={styles.sectionCard}>
         <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>{t('setup.billsPoolTitle')}</Text>
-          <Text style={styles.sectionTotal}>${totalRegularMonthly.toLocaleString()}/mo</Text>
+          <Text style={styles.sectionTitle}>{t('setup.reviewSummary.regularBills')}</Text>
+          <Text style={styles.sectionTotal}>{formatMobileCurrency(totalRegularMonthly)}/mo</Text>
         </View>
         <TouchableOpacity
           style={styles.toggleRow}
@@ -159,7 +154,7 @@ export default function SetupCategoriesScreen() {
             <ActivityIndicator color={DESIGN_TOKENS.colors.onAccent} size="small" />
           ) : (
             <Text style={styles.nextBtnText}>
-              {isRerun ? t('setup.recalibrateBudget') : t('setup.finish.cta')}
+              {isRerun ? t('setup.reviewSummary.recalibrateBudget') : t('setup.reviewSummary.saveBudget')}
             </Text>
           )}
         </TouchableOpacity>
@@ -180,19 +175,18 @@ export default function SetupCategoriesScreen() {
 
 const styles = StyleSheet.create({
   container: { padding: 20, backgroundColor: DESIGN_TOKENS.colors.background, flexGrow: 1 },
-  stepLabel: { fontSize: 12, fontWeight: '700', color: DESIGN_TOKENS.colors.accent, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 },
   titleRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 16 },
   title: { fontSize: 20, fontWeight: '900', color: DESIGN_TOKENS.colors.primary, flex: 1 },
   summaryGrid: { flexDirection: 'row', gap: 8, marginBottom: 16 },
   summaryCard: { flex: 1, backgroundColor: DESIGN_TOKENS.colors.surface, padding: 10, borderRadius: DESIGN_TOKENS.radius.md, borderWidth: 1, borderColor: DESIGN_TOKENS.colors.slate[200] },
   summaryCardLabel: { fontSize: 10, fontWeight: '800', textTransform: 'uppercase', color: DESIGN_TOKENS.colors.textMuted },
-  summaryCardVal: { fontSize: 15, fontWeight: '800', color: DESIGN_TOKENS.colors.primary, marginTop: 2 },
+  summaryCardVal: { fontSize: 15, fontWeight: '800', color: DESIGN_TOKENS.colors.primary, marginTop: 2, fontFamily: 'monospace' },
   surplusBg: { backgroundColor: DESIGN_TOKENS.colors.successLight, borderColor: DESIGN_TOKENS.colors.successBorder },
   deficitBg: { backgroundColor: DESIGN_TOKENS.colors.criticalLight, borderColor: DESIGN_TOKENS.colors.criticalBorder },
   sectionCard: { backgroundColor: DESIGN_TOKENS.colors.surface, padding: 14, borderRadius: DESIGN_TOKENS.radius.lg, borderWidth: 1, borderColor: DESIGN_TOKENS.colors.slate[200], marginBottom: 16 },
   sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', borderBottomWidth: 1, borderBottomColor: DESIGN_TOKENS.colors.slate[100], paddingBottom: 8, marginBottom: 4 },
   sectionTitle: { fontSize: 13, fontWeight: '800', color: DESIGN_TOKENS.colors.primary },
-  sectionTotal: { fontSize: 12, fontWeight: '700', color: DESIGN_TOKENS.colors.accent },
+  sectionTotal: { fontSize: 12, fontWeight: '700', color: DESIGN_TOKENS.colors.accent, fontFamily: 'monospace' },
   actionRow: { flexDirection: 'row', gap: 12, marginTop: 8, marginBottom: 40 },
   backBtn: { flex: 1, paddingVertical: 14, backgroundColor: DESIGN_TOKENS.colors.surface, borderWidth: 1, borderColor: DESIGN_TOKENS.colors.slate[300], borderRadius: DESIGN_TOKENS.radius.md, alignItems: 'center' },
   backBtnText: { fontSize: 14, fontWeight: '700', color: DESIGN_TOKENS.colors.slate[600] },
