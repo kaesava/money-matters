@@ -6,42 +6,46 @@
 * If you need clarity, [/grill-me](slashCommand;grill-me) (don't make assumptions). Be critical.
 * I don't need walkthrough at the end. I don't need a fancy report. Just a detail implementation plan that can be unambiguously followed.
 * Aggressively cull un-used code, l18n keys, files and database tables/fields.
-* When you write address a new/change/fix for the Web app, also ensure that the mobile app is in parity and address it there too. When you write address a new/change/fix for the Mobile app, also ensure that the web app is in parity and address it there too. Re-use code as much as possible while keeping native UI experiences.
+* All user-facing literals (this includes screen/modal names, headers, titles, sub-titles, descrtiptions, filter labels, button labels, drop-down text, pagination labels, tab names, placeholder text, error messages, warning messages, information, info tooltips, etc.) must be consistent within and across the web app and mobile app UIs and importantly, must re-uses en.ts keys for like-for-like functionality across web and mobile app. Rationalise keys and cull un-used keys.
+* When you write address a new/change/fix for the Web app, also ensure that the mobile app is in parity and address it there too. When you write address a new/change/fix for the Mobile app, also ensure that the web app is in parity and address it there too. Do this even if not explicitly asked, unless I explicitly state the app (Mobile: or Web:). Re-use code as much as possible while keeping native UI experiences.
 * No hardcoding user-facing literals - use en.ts; re-use as much as possible within and across mobile and web apps, and cull un-used keys.
+* Ensure parity between mobile and web - UI & functionality.
 
-# Web App
-* The amount field along with it's increase/decrease buttons sometimes hides other fields - example - Step 5 of 5 in the /setup - it overlaps with the "/mo" drop-down. Fix across the app. In fact, let's remove the increase/decrease buttons next on the amount field. Make the change centrally. Also, it should allow two decimal places for Australian dollars. Ensure currency symbol and default convention for that currency for number of decimal places and where commas are placed, is adhered to for the currencies supported. THis applies centrally across all currency fields.
-
-## Setup
-### Step 2
-* 
-1,000.00
-Unbudgeted Buffer / Reserved Funds
-
-* Account name should be set when institution or accounttype changes based onexisting rules. can be overidden but must be set once those fields change
-* current bank edit (inplace) looks too busy, use two lines
-
-* When I clic "Add Bank Account" - it gives me an error: "[ { "code": "too_small", "minimum": 1, "type": "string", "inclusive": true, "exact": false, "message": "String must contain at least 1 character(s)", "path": [ "name" ] } ]"
-
-### Step 3
-* The tooltip (i) is not user-friendly - Remember the user can setup Goal envelopes to save for a goal by a certain date (like a holiday) or save frequently (for example, put away money for child's education). Also, the examples also don't reflect these two types - show examples from both and mark with a simple icon to show recurring or target date goal type. Re-design the UI to allow entry of both kinds of goals inline.  Keep the popular section. Re-think the UX to be easy and friction-free.
-* Don't show the "$250/mo guide".
-* There are too many icons - remove when not needed
-* As they enter goals, include an inline option between target date and recurring, and if target date, capture amount and date, and if recurring, capture amount, (I know the Add/Edit Goal modal is complex and allows capture of frequency, "every", etc. Find a way to simplify, but also get into that detail if needed - maybe we keep it fortnightly/monthly/custom and if custom, we re-use and popup the Edit Goal modal)?
+# General
 
 
+# Register Tenant
+* Both: Include Country "Other". If user select "Other" as country, use Australia standards for currency symbol & format, date formats, etc.
+* Mobile: On registration, it didn't load the screen asking for 6 digit code. It just hung (though the email was triggered).
+* Both: Remove Time-zone from UI - and default it to the most likely time-zone based on country.
 
-## Envelopes
+# Sign-In
+* Web: When I signed in for the first time, I got taken to /setup/household, but during registration, I already picked a country, and the time-zone & currency must be based on country. The household name could default to Name's Household (so Jane Doe would be Jane Doe's household). Then, there is no need for this screen. Clean-up this code. Ensure defaults are set correctly - you may need to check timing and sequence of database udpates. Interestingly, when I log in for the first time on mobile, it simply logs me in - as it should.
 
-## General - the below changes apply to the screens listed in the next section.
+# Reset password
+* Both: Make error more meaningful when wrong code is entered, not "Invalid OTP" - re-use "The verification code you entered is incorrect or has expired. Please check your email and try again."
 
+# Tour (first time)
+* Mobile: the tour steps don't look right - they simply come up as bottom drawer, and don't point to what each tab does, etc.
+* Mobile: Also, it didn't trigger the tour when I logged in for the first time. Ensure capability & trigger are in parity with web app, including marking that tour completed for user for platform. Audit this capability in web and mobile thoroughly to ensure they are valid, point to the right part of the app, and are useful.
 
-## Screens that the previous section apply to:
-* Every screen, modal, drawer, popup, confirmation/alert/message box, edit screen, screen tab, etc.
+# Home
+* Web: Remove this card "💡Add your expense schedule to protect upcoming expenses. Money Matters automatically allocates income into bills, savings, and everyday spending when pay dates are configured. ➕ Add Schedules Now →" and all associated logic. Cull un-used code.
+* Web: "Show more" should only be there if there are more than what is shown.
+* Web: "Income Name  Next Payday  $9.00 · Payday today! 🎉 (19/10/2026)  Other Financial Institution (Everyday) · $0.00 available to budget" looks too busy - remove amount available to budget. Remove "Payday today!"
 
+# Settings
+* Mobile: The tabs spill over and the tour, feedback and sign-out buttons look squashed - move them somewhere else that is makes sense - the UI needs to be clean.
 
+# Scheduled Bill Envelope (New/Update)
+* Both: When a new Scheduled Bill Envelope is created (either when a new tenant is created, during setup, during setup?mode=rerun, or when the user aborts setup),  if the amount is $0, don't show the Envelope in the Bill Schedules tab and don't explode. Otherwise explode. In some insteances, I noticed the start date (next date) is blank - set to reasonable default as it is required for explode.
+* Both: When an Scheduled Bill Envelope is updated (either from Envelopes or Income Schedules & Bills > Schedules), all Existing rules on preserving confirmed events and removing unconfirmed events still hold, but if amount is $0, don't show the Envelope in the Bill Schedules tab and don't explode.
 
-# Web Application 
+# Setup
+* Mobile: On first login, it didn't trigger setup. Ensure capability & trigger are in parity with web app, including marking that setup completed for tenant.
+
+# New tenant creation
+* Both: I noticed when a new tenant was setup, multiple everday envelopes were created. This violates our principle. We only one everyday envelope, and it should be share.
 
 ## General
 
@@ -52,17 +56,7 @@ Unbudgeted Buffer / Reserved Funds
 
 You are now going to do a Mobile app screen by screen check to ensure that each mobile app screen is equivalent (parity) in functionality with the web screen and re-uses user-facing literals.
 
-
-# Rules
-* Strict adherence to AGENTS.md
-* If you need clarity, /grill-me.
-* I don't need walkthrough at the end. I don't need a fancy report. Just a detail implementation plan that can be unambiguously followed.
-* Important: Align mobile app functionality to web app (this includes required fields, branching logic, data retrieval/setting logic, calculation logic, and any functiona logic used). However, the UX for the mobile app must follow UX best practice, and must used every opportunity for reusable UX/UI so other screens have consistent look and feel. If there is significant capability gaps, check with me.
-* Actively look for opportunities to rationalise en.ts keys within and across the mobile & web apps. There is a lot of repetition that makes it hard to change terminology in one place. Iteratively identify rationalisation opportunities and apply them across web and mobile apps.
-* In the mobile app, all user-facing literals (this includes screen/modal names, headers, titles, sub-titles, descrtiptions, filter labels, button labels, drop-down text, pagination labels, tab names, placeholder text, error messages, warning messages, information, info tooltips, etc.) must be consistent with the corresponding web app UI and importantly, re-uses en.ts keys for like-for-like functionality across web and mobile app. Do not add keys unless certain that they are specific for mobile or web and cannot be re-used.
-* Agressively cull unused/redundant keys from en.ts. No hardcoding of literals.
-* Mobile app must re-use as much UX as possible, defining UI elements (like fields, calendars, sort/search filter settings, etc.) centrally and re-using - MECE. The UI (theme, colours, general look-and-feel) must be consistent.
-    
+  
 
 # Mobile App
 Testing on Android Google Pixel 10.
@@ -284,30 +278,6 @@ Billing Portal
  Data Sovereignty & Zipped CSV Backup
 
 These may include Waterfall engine, CSV Bank Statement input, Setup flow, Mark Spent capability, Income Split, New/Edit various entities (like Bank Accounts, Allocations, Allocation Plans,), Personal Settings, Household Settings, Household Member Invite, Free Trial Expiry, Subscription purchase, Subscription Update/Cancel & Grace Period
-
-
-
-# Rules
-* Strict adherence to AGENTS.md including no hardcoding of user facing literals, keeping FUNCTIONAL & Technical Specs md current, NO hardcoding user facing literals, vertical slice architecture, O dead/redundant tables/table fields/API code/UI code/capability code/other package code/etc, ensure UI elements, look-and-feel, colour, UI styling, etc is defined once and re-used, MECE principle for re-use of logic/screens/modals/etc., test cases coverage, etc.
-* As you build code, you decide whether you want to run pnpm typecheck/lint/test/test coverage/i8ln-check/install/ for the modules you want. However, at the end, ensure pnpm validate runs successfully. Because pnpm validate is made up of multiple commands, just run the commands that failed sequentially until all of them pass, then try pnpm validate again. If it fails, repeat by running just the failed commands and then by running pnpm validate again. Once successful, commit code, but ask me before pushing the code.
-* Ignore mobile app
-* Create a detailed implementation plan detailed enough for an agent like Gemini 3.6 Medium to unambiguously interprent and execute.
-
-
-
-
-
-
-# RULES
-
-* Strict adherence to AGENTS.md including no hardcoding of user facing literals, keeping FUNCTIONAL & Technical Specs md current, NO hardcoding user facing literals, vertical slice architecture, O dead/redundant tables/table fields/API code/UI code/capability code/other package code/etc, ensure UI elements, look-and-feel, colour, UI styling, etc is defined once and re-used, MECE principle for re-use of logic/screens/modals/etc., test cases coverage, etc.
-* As you build code, you decide whether you want to run pnpm typecheck/lint/test/test coverage/i8ln-check/install/ for the modules you want. However, at the end, ensure pnpm validate runs successfully. Because pnpm validate is made up of multiple commands, just run the commands that failed sequentially until all of them pass, then try pnpm validate again. If it fails, repeat by running just the failed commands and then by running pnpm validate again. Once successful, commit code, but ask me before pushing the code.
-* Ignore mobile app
-* OUtput - detailed implementation plan that can be unambiguously carried out by a low token agent. No need for reports.
-* Make multiple passes if needed - as there may be cross-dependencies you'll miss if you don't
-* Be critical, think deep - review code if you're not sure.
-* If section below is blank, it means I don't have any updates for you to make - leave it alone.
-* [/grill-me](slashCommand;grill-me) instead of making assumptions.
 
 
 
