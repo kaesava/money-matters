@@ -4,7 +4,7 @@
  * Provides type-safe localization token resolution, key path traversal, fallback defaults,
  * and string interpolation parameters for UI components on web and mobile platforms.
  */
-import { en } from "./dictionaries/en";
+import { en } from "./dictionaries/en.js";
 
 /**
  * Registry of supported localization dictionaries.

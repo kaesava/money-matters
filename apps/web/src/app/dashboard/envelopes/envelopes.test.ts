@@ -1,4 +1,5 @@
 import { describe, it, expect } from "vitest";
+import { t } from "@money-matters/i18n";
 
 describe("Web UI Bucket categorization and health filtering", () => {
   const categories = [
@@ -24,4 +25,13 @@ describe("Web UI Bucket categorization and health filtering", () => {
     expect(onTrack).toBe(2);
     expect(atRisk).toBe(1);
   });
+
+  it("resolves correct badge copy for all envelope types", () => {
+    expect(t("categories.scheduledBillBadge")).toBe("Scheduled Bill");
+    expect(t("categories.flexibleBillBadge")).toBe("Flexible Bill");
+    expect(t("categories.targetDateGoalBadge")).toBe("Target Goal");
+    expect(t("categories.ongoingGoalBadge")).toBe("Saving Goal");
+    expect(t("categories.everydayBadge")).toBe("Everyday");
+  });
 });
+

@@ -34,6 +34,8 @@ export function PoolTableRowItem({
       ? t("categories.targetDateGoalBadge")
       : pool.envelopeType === "ONGOING_GOAL"
       ? t("categories.ongoingGoalBadge")
+      : pool.envelopeType === "EVERYDAY" || pool.poolType === "EVERYDAY"
+      ? t("categories.everydayBadge")
       : null;
 
   return (
@@ -61,10 +63,12 @@ export function PoolTableRowItem({
                 pool.envelopeType === "SCHEDULED_BILL"
                   ? "bg-blue-50 text-blue-700 border border-blue-200"
                   : pool.envelopeType === "FLEXIBLE_BILL"
-                  ? "bg-purple-50 text-purple-700 border border-purple-200"
+                  ? "bg-sky-50 text-sky-700 border border-sky-200"
                   : pool.envelopeType === "TARGET_GOAL"
                   ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
-                  : "bg-teal-50 text-teal-700 border border-teal-200"
+                  : pool.envelopeType === "ONGOING_GOAL"
+                  ? "bg-teal-50 text-teal-700 border border-teal-200"
+                  : "bg-purple-50 text-purple-700 border border-purple-200"
               }`}
             >
               {subTypeBadge}

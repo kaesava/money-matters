@@ -32,7 +32,7 @@ export function PoolSummaryCard({
     : pool.envelopeType === 'ONGOING_GOAL'
     ? t('categories.ongoingGoalBadge')
     : pool.envelopeType === 'EVERYDAY' || pool.poolType === 'EVERYDAY'
-    ? t('poolTypes.everyday')
+    ? t('categories.everydayBadge')
     : pool.poolType === 'GOAL'
     ? t('poolTypes.goals')
     : t('poolTypes.bills');
@@ -42,7 +42,33 @@ export function PoolSummaryCard({
       <View style={styles.header}>
         <View style={{ flex: 1 }}>
           <View style={styles.tagsRow}>
-            <Text style={styles.poolTypeTag}>{badgeText}</Text>
+            <View style={[
+              styles.badgeWrap,
+              pool.envelopeType === 'SCHEDULED_BILL'
+                ? styles.scheduledBillBadge
+                : pool.envelopeType === 'FLEXIBLE_BILL'
+                ? styles.flexibleBillBadge
+                : pool.envelopeType === 'TARGET_GOAL'
+                ? styles.targetGoalBadge
+                : pool.envelopeType === 'ONGOING_GOAL'
+                ? styles.ongoingGoalBadge
+                : styles.everydayBadge
+            ]}>
+              <Text style={[
+                styles.poolTypeTag,
+                pool.envelopeType === 'SCHEDULED_BILL'
+                  ? styles.scheduledBillBadgeText
+                  : pool.envelopeType === 'FLEXIBLE_BILL'
+                  ? styles.flexibleBillBadgeText
+                  : pool.envelopeType === 'TARGET_GOAL'
+                  ? styles.targetGoalBadgeText
+                  : pool.envelopeType === 'ONGOING_GOAL'
+                  ? styles.ongoingGoalBadgeText
+                  : styles.everydayBadgeText
+              ]}>
+                {badgeText}
+              </Text>
+            </View>
             {pool.isSurplusTarget && (
               <View style={styles.surplusPill}>
                 <Text style={styles.surplusPillText}>{t('categories.surplusBadgeText')}</Text>
@@ -89,16 +115,28 @@ const styles = StyleSheet.create({
   },
   header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
   tagsRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 6 },
-  poolTypeTag: {
-    fontSize: 10,
-    fontWeight: '700',
-    color: DESIGN_TOKENS.colors.slate[500],
-    backgroundColor: DESIGN_TOKENS.colors.slate[100],
+  badgeWrap: {
     paddingHorizontal: 6,
     paddingVertical: 2,
     borderRadius: 6,
+    borderWidth: 1,
+  },
+  poolTypeTag: {
+    fontSize: 10,
+    fontWeight: '800',
+    letterSpacing: 0.3,
     textTransform: 'uppercase',
   },
+  scheduledBillBadge: { backgroundColor: '#EFF6FF', borderColor: '#BFDBFE' },
+  scheduledBillBadgeText: { color: '#1D4ED8' },
+  flexibleBillBadge: { backgroundColor: '#F0F9FF', borderColor: '#BAE6FD' },
+  flexibleBillBadgeText: { color: '#0369A1' },
+  targetGoalBadge: { backgroundColor: '#ECFDF5', borderColor: '#A7F3D0' },
+  targetGoalBadgeText: { color: '#047857' },
+  ongoingGoalBadge: { backgroundColor: '#F0FDFA', borderColor: '#99F6E4' },
+  ongoingGoalBadgeText: { color: '#0F766E' },
+  everydayBadge: { backgroundColor: '#FAF5FF', borderColor: '#E9D5FF' },
+  everydayBadgeText: { color: '#7E22CE' },
   surplusPill: { backgroundColor: DESIGN_TOKENS.colors.successLight, paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6 },
   surplusPillText: { fontSize: 10, fontWeight: '700', color: DESIGN_TOKENS.colors.successDark },
   name: { fontSize: 18, fontWeight: '900', color: DESIGN_TOKENS.colors.primary },

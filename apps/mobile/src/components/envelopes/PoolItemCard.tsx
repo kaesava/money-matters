@@ -42,6 +42,8 @@ export function PoolItemCard({
     ? t('categories.targetDateGoalBadge')
     : pool.envelopeType === 'ONGOING_GOAL'
     ? t('categories.ongoingGoalBadge')
+    : pool.envelopeType === 'EVERYDAY' || pool.poolType === 'EVERYDAY'
+    ? t('categories.everydayBadge')
     : null;
 
   return (
@@ -63,7 +65,9 @@ export function PoolItemCard({
                   ? styles.flexibleBillBadge
                   : pool.envelopeType === 'TARGET_GOAL'
                   ? styles.targetGoalBadge
-                  : styles.ongoingGoalBadge
+                  : pool.envelopeType === 'ONGOING_GOAL'
+                  ? styles.ongoingGoalBadge
+                  : styles.everydayBadge
               ]}>
                 <Text style={[
                   styles.subTypeBadgeText,
@@ -73,7 +77,9 @@ export function PoolItemCard({
                     ? styles.flexibleBillBadgeText
                     : pool.envelopeType === 'TARGET_GOAL'
                     ? styles.targetGoalBadgeText
-                    : styles.ongoingGoalBadgeText
+                    : pool.envelopeType === 'ONGOING_GOAL'
+                    ? styles.ongoingGoalBadgeText
+                    : styles.everydayBadgeText
                 ]}>
                   {subTypeBadge}
                 </Text>
@@ -136,12 +142,14 @@ const styles = StyleSheet.create({
   subTypeBadgeText: { fontSize: 9, fontWeight: '800', letterSpacing: 0.3, textTransform: 'uppercase' },
   scheduledBillBadge: { backgroundColor: '#EFF6FF', borderColor: '#BFDBFE' },
   scheduledBillBadgeText: { color: '#1D4ED8' },
-  flexibleBillBadge: { backgroundColor: '#FAF5FF', borderColor: '#E9D5FF' },
-  flexibleBillBadgeText: { color: '#7E22CE' },
+  flexibleBillBadge: { backgroundColor: '#F0F9FF', borderColor: '#BAE6FD' },
+  flexibleBillBadgeText: { color: '#0369A1' },
   targetGoalBadge: { backgroundColor: '#ECFDF5', borderColor: '#A7F3D0' },
   targetGoalBadgeText: { color: '#047857' },
   ongoingGoalBadge: { backgroundColor: '#F0FDFA', borderColor: '#99F6E4' },
   ongoingGoalBadgeText: { color: '#0F766E' },
+  everydayBadge: { backgroundColor: '#FAF5FF', borderColor: '#E9D5FF' },
+  everydayBadgeText: { color: '#7E22CE' },
   surplusBadge: { backgroundColor: '#ECFDF5', paddingHorizontal: 6, paddingVertical: 1, borderRadius: 6 },
   surplusBadgeText: { fontSize: 9, fontWeight: '700', color: '#047857' },
   bankBadgeWrap: { marginTop: 3 },
