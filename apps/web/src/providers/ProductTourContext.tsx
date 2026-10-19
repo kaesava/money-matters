@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useRef, ReactNode } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { trpc } from '../lib/trpc';
 import posthog from '../lib/posthog-client';
@@ -102,6 +102,7 @@ export function ProductTourProvider({ children }: { children: ReactNode }) {
   const [isTourActive, setIsTourActive] = useState(false);
   const [currentStep, setCurrentStep] = useState(1);
   const [targetRect, setTargetRect] = useState<DOMRect | null>(null);
+  const hasDismissedRef = useRef(false);
 
   // Check if tour should prompt on first dashboard visit
   useEffect(() => {
@@ -111,7 +112,14 @@ export function ProductTourProvider({ children }: { children: ReactNode }) {
     const currentAppPrefs = (userPrefQuery.data.appPreferences?.[appId] || {}) as Record<string, unknown>;
     const hasSeenTour = Boolean(currentAppPrefs.has_seen_product_tour);
 
-    if (!hasSeenTour && userPrefQuery.data.setupCompleted && pathname === '/dashboard' && !isTourActive && !showWelcome) {
+    if (
+      !hasSeenTour &&
+      !hasDismissedRef.current &&
+      userPrefQuery.data.setupCompleted &&
+      pathname === '/dashboard' &&
+      !isTourActive &&
+      !showWelcome
+    ) {
       setShowWelcome(true);
       posthog.capture('tour_prompted');
     }
@@ -119,6 +127,7 @@ export function ProductTourProvider({ children }: { children: ReactNode }) {
 
   const saveTourStatus = useCallback(
     async (completed: boolean) => {
+      hasDismissedRef.current = true;
       if (!userPrefQuery.data) return;
       const appId = userPrefQuery.data.appId;
       const existingAppPrefs = (userPrefQuery.data.appPreferences?.[appId] || {}) as Record<string, unknown>;
@@ -131,6 +140,18 @@ export function ProductTourProvider({ children }: { children: ReactNode }) {
           : { tour_dismissed_at: new Date().toISOString() }),
         tour_last_step: currentStep,
       };
+
+      // Optimistically update query cache immediately to prevent re-opening modal
+      utils.getUserPreferences.setData(undefined, (old) => {
+        if (!old) return old;
+        return {
+          ...old,
+          appPreferences: {
+            ...old.appPreferences,
+            [appId]: updatedBlob,
+          },
+        };
+      });
 
       try {
         await updatePrefMutation.mutateAsync({

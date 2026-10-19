@@ -211,8 +211,10 @@ All tables MUST include:
   - At the moment any file is authored or modified, it MUST immediately meet all strict standards: zero un-externalized text literals (`>Text<`, `title=`, `label=`, `placeholder=`), zero fallback expressions (`t(...) || '...'`), zero inline hex color literals, strict types (zero `any`), and files <= 250 lines / functions <= 30 lines.
   - Never accumulate un-externalized copy, hardcoded hex values, or type debt under the assumption of fixing them later.
 - **Targeted Intermediate Checks**: After modifying any component, view, or schema, execute the targeted validation commands immediately (`pnpm check-i18n`, `pnpm typecheck`, `pnpm lint`, `pnpm test`) to verify the file in-flight before proceeding to the next file.
-- **Mandatory Final Validation (`pnpm validate`)**: Before completing any task, feature, or refactor, `pnpm validate` MUST run and pass completely with exit code 0.
-- **Iterative Fail-Safe Recovery Loop**: `pnpm validate` consists of multiple underlying commands (`install` → `check-i18n` → `audit:schema` → `typecheck` → `test:coverage` → `test` → `lint` → `build`). If `pnpm validate` fails:
+- **Mandatory Validation (`pnpm validate` & `pnpm validate:prod`)**:
+  - `pnpm validate` is the rapid developer preflight check (`check-i18n` → `audit:schema` → `typecheck` → `test:coverage` → `test`). It avoids triggering production bundle builds (`next build`), ensuring that the local web dev server maintains hot-module replacement (HMR) without directory collisions in `.next/`.
+  - `pnpm validate:prod` runs `pnpm validate` and then executes `turbo run build` for complete full-stack production build readiness.
+- **Iterative Fail-Safe Recovery Loop**: `pnpm validate` consists of multiple underlying commands (`install` → `check-i18n` → `audit:schema` → `typecheck` → `test:coverage` → `test` → `lint`). If `pnpm validate` fails:
   1. Identify the specific sub-command(s) that failed.
   2. Run ONLY the failed sub-command(s) sequentially while diagnosing and fixing the errors until they pass.
   3. Re-run `pnpm validate`.
