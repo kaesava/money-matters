@@ -26,6 +26,7 @@ export function useHomeData(token?: string) {
   const [refreshing, setRefreshing] = useState(false);
 
   const summaryQuery = trpc.getMonthlySummary.useQuery({ year: todayYear, month: todayMonth }, { enabled: !!session?.user });
+  const homeSummaryQuery = trpc.getHomeSummary.useQuery(undefined, { enabled: !!session?.user });
   const poolsQuery = trpc.listPools.useQuery(undefined, { enabled: !!session?.user });
   const bankAccountsQuery = trpc.listBankAccounts.useQuery(undefined, { enabled: !!session?.user });
   const incomeEventsQuery = trpc.listIncomeEvents.useQuery(undefined, { enabled: !!session?.user });
@@ -63,6 +64,7 @@ export function useHomeData(token?: string) {
     setRefreshing(true);
     await Promise.all([
       summaryQuery.refetch(),
+      homeSummaryQuery.refetch(),
       poolsQuery.refetch(),
       bankAccountsQuery.refetch(),
       incomeEventsQuery.refetch(),
@@ -186,14 +188,18 @@ export function useHomeData(token?: string) {
     bankAccounts,
     incomeCount: incomeEventsQuery.data?.length ?? 0,
     billsCount: expenseEventsQuery.data?.length ?? 0,
-    everydayBalance,
+    homeSummary: homeSummaryQuery.data,
+    safeToSpend: homeSummaryQuery.data?.safeToSpend ?? everydayBalance,
+    dailyPace: homeSummaryQuery.data?.dailyPace,
+    paceStatus: homeSummaryQuery.data?.paceStatus,
+    everydayBalance: homeSummaryQuery.data?.everydayBalance ?? everydayBalance,
     everydayMonthlyBudget,
     everydaySafetyBuffer: pools
       .filter((c) => c.envelopeType === 'EVERYDAY')
       .reduce((sum, c) => sum + parseFloat(c.safetyBufferFloor || '0'), 0),
-    billsBalance,
+    billsBalance: homeSummaryQuery.data?.billsBalance ?? billsBalance,
     billsMonthlyBudget,
-    daysUntilPayday,
+    daysUntilPayday: homeSummaryQuery.data?.daysToPayday ?? daysUntilPayday,
     billsShortfall,
     billsDue14DaysCount: billsDue14Days.length,
     totalBillsDue14Days,
@@ -213,6 +219,7 @@ export function useHomeData(token?: string) {
       expenseEventsQuery.refetch();
       poolsQuery.refetch();
       summaryQuery.refetch();
+      homeSummaryQuery.refetch();
     },
   };
 }

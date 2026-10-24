@@ -12,10 +12,15 @@ import { AffordCheckSkeleton } from "../../app/dashboard/afford-check/components
 interface AffordCheckModalProps {
   isOpen: boolean;
   onClose: () => void;
+  initialAmount?: string;
 }
 
-export function AffordCheckModal({ isOpen, onClose }: AffordCheckModalProps) {
-  const [rawAmount, setRawAmount] = useState("");
+export function AffordCheckModal({ isOpen, onClose, initialAmount = "" }: AffordCheckModalProps) {
+  const [rawAmount, setRawAmount] = useState(initialAmount);
+
+  React.useEffect(() => {
+    if (initialAmount) setRawAmount(initialAmount);
+  }, [initialAmount]);
   const [mode, setMode] = useState<"ONE_OFF" | "RECURRING">("ONE_OFF");
   const [frequency, setFrequency] = useState<"WEEKLY" | "FORTNIGHTLY" | "MONTHLY" | "ANNUALLY">("MONTHLY");
 

@@ -3,13 +3,11 @@
 import React from "react";
 import { t } from "@money-matters/i18n";
 import { InfoTooltip } from "@money-matters/ui/web";
-import { SUPPORTED_LOCALES, COMMON_TIMEZONES } from "@money-matters/types";
+import { COMMON_TIMEZONES } from "@money-matters/types";
 
 interface ProfilePreferencesFieldsProps {
   language: "en";
   setLanguageState: (val: "en") => void;
-  locale: string;
-  setLocale: (val: string) => void;
   timezone: string;
   setTimezone: (val: string) => void;
   showIcons: boolean;
@@ -19,8 +17,6 @@ interface ProfilePreferencesFieldsProps {
 export function ProfilePreferencesFields({
   language,
   setLanguageState,
-  locale,
-  setLocale,
   timezone,
   setTimezone,
   showIcons,
@@ -28,39 +24,19 @@ export function ProfilePreferencesFields({
 }: ProfilePreferencesFieldsProps) {
   return (
     <>
-      {/* Language & Date Format */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div className="flex flex-col gap-1.5">
-          <label htmlFor="edit-language" className="text-xs font-bold text-[#1B2B4B]">
-            {t("settings.language")}
-          </label>
-          <select
-            id="edit-language"
-            value={language}
-            onChange={(e) => setLanguageState(e.target.value as "en")}
-            className="px-3 py-2 text-xs font-medium border border-slate-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-[#2563eb]"
-          >
-            <option value="en">English (en)</option>
-          </select>
-        </div>
-
-        <div className="flex flex-col gap-1.5">
-          <label htmlFor="edit-date-format" className="text-xs font-bold text-[#1B2B4B]">
-            {t("settings.dateFormat")}
-          </label>
-          <select
-            id="edit-date-format"
-            value={locale}
-            onChange={(e) => setLocale(e.target.value)}
-            className="px-3 py-2 text-xs font-medium border border-slate-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-[#2563eb]"
-          >
-            {SUPPORTED_LOCALES.map((l) => (
-              <option key={l.code} value={l.code}>
-                {l.label} ({l.dateFormatExample})
-              </option>
-            ))}
-          </select>
-        </div>
+      {/* Language */}
+      <div className="flex flex-col gap-1.5">
+        <label htmlFor="edit-language" className="text-xs font-bold text-[#1B2B4B]">
+          {t("settings.language")}
+        </label>
+        <select
+          id="edit-language"
+          value={language}
+          onChange={(e) => setLanguageState(e.target.value as "en")}
+          className="px-3 py-2 text-xs font-medium border border-slate-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-[#2563eb]"
+        >
+          <option value="en">English (en)</option>
+        </select>
       </div>
 
       {/* Timezone */}

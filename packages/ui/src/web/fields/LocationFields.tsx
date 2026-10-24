@@ -10,6 +10,8 @@ export interface LocationFieldsProps {
   postcode: string;
   onPostcodeChange: (postcode: string) => void;
   disabled?: boolean;
+  countryDisabled?: boolean;
+  countryTooltip?: string;
 }
 
 const AU_STATES = [
@@ -36,6 +38,8 @@ export function LocationFields({
   postcode,
   onPostcodeChange,
   disabled = false,
+  countryDisabled = false,
+  countryTooltip,
 }: LocationFieldsProps) {
   const isAustralia = country === "AU";
 
@@ -46,7 +50,8 @@ export function LocationFields({
         label="Country"
         value={country}
         onChange={onCountryChange}
-        disabled={disabled}
+        disabled={disabled || countryDisabled}
+        tooltip={countryTooltip}
       />
 
       {/* State / Province */}

@@ -94,24 +94,6 @@ export function PoolTableRowItem({
         </div>
       </td>
 
-      {/* Bank Account */}
-      <td className="py-2.5 px-4 text-left">
-        {pool.bankAccountName ? (
-          <Link
-            href={
-              pool.bankAccountId
-                ? `/dashboard/settings?tab=bank-accounts&id=${pool.bankAccountId}`
-                : `/dashboard/settings?tab=bank-accounts`
-            }
-            className="font-bold text-[#2563eb] hover:underline inline-flex items-center gap-1"
-          >
-            <span>{pool.bankAccountName}</span>
-            <span className="text-xs">↗</span>
-          </Link>
-        ) : (
-          <span className="text-zinc-400 font-medium">—</span>
-        )}
-      </td>
 
       {/* Current Balance */}
       <td className="py-2.5 px-4 text-right font-mono font-bold tabular-nums text-zinc-900">

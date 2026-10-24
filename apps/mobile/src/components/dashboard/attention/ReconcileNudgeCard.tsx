@@ -16,8 +16,8 @@ export const ReconcileNudgeCard: React.FC = () => {
     >
       <Feather name="refresh-cw" size={16} color={DESIGN_TOKENS.colors.warningDark} />
       <View style={styles.content}>
-        <Text style={styles.title}>{t('bankAccounts.reconcileNudgeTitle')}</Text>
-        <Text style={styles.desc}>{t('bankAccounts.reconcileNudgeDesc')}</Text>
+        <Text style={styles.title}>{t('dashboard.hero.balanceMatchNudgeTitle')}</Text>
+        <Text style={styles.desc}>{t('dashboard.hero.balanceMatchNudgeDesc')}</Text>
       </View>
       <Feather name="chevron-right" size={16} color={DESIGN_TOKENS.colors.warningDark} />
     </TouchableOpacity>

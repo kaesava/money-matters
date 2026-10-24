@@ -56,24 +56,20 @@ export function BankAccountsSection() {
         </div>
       </div>
 
-      {/* Household Banking Optimizer banner when user has 1 or fewer bank accounts */}
-      {list.accounts.length <= 1 && (
-        <div className="p-4 rounded-2xl bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200/80 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div className="space-y-1">
-            <h3 className="text-xs font-black text-[#1B2B4B] flex items-center gap-1.5">
-              <span>💡</span>
-              <span>{t("bankAccounts.optimizerBannerTitle")}</span>
+      {/* Bank Account Tip Card: Shown ONLY when active accounts count is 1 */}
+      {list.accounts.length === 1 && (
+        <div className="p-4 rounded-2xl bg-blue-50/70 dark:bg-blue-950/30 border border-blue-200/80 dark:border-blue-900/50 shadow-xs flex items-start gap-3.5">
+          <div className="w-8 h-8 rounded-xl bg-blue-500/10 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0 mt-0.5">
+            <span className="text-base">💡</span>
+          </div>
+          <div className="space-y-1 min-w-0 flex-1">
+            <h3 className="text-xs font-black text-[#1B2B4B] dark:text-zinc-100">
+              {t("bankAccounts.tipCardTitle")}
             </h3>
-            <p className="text-xs text-slate-600 max-w-2xl leading-relaxed">
-              {t("bankAccounts.optimizerBannerDesc")}
+            <p className="text-xs text-slate-600 dark:text-zinc-400 leading-relaxed">
+              {t("bankAccounts.tipCardBody")}
             </p>
           </div>
-          <a
-            href="/setup?mode=rerun"
-            className="px-3.5 py-2 text-xs font-extrabold text-white bg-blue-600 hover:bg-blue-700 rounded-xl transition-all shadow-xs shrink-0 self-start sm:self-center cursor-pointer"
-          >
-            {t("bankAccounts.optimizerBannerAction")}
-          </a>
         </div>
       )}
 

@@ -160,6 +160,8 @@ function SetupWizardContent() {
             setWeeklyDining={state.setWeeklyDining}
             weeklyPersonal={state.weeklyPersonal}
             setWeeklyPersonal={state.setWeeklyPersonal}
+            estimatedBillsMonthly={state.totalRegularMonthly}
+            estimatedEverydayMonthly={state.totalEverydayMonthly}
             onBack={() => state.setStep(3)}
             onNext={() => state.setStep(5)}
             totalSteps={totalSteps}

@@ -190,8 +190,13 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       }
     };
 
+    const handleOpenAskPenny = () => setAskPennyOpen(true);
+    window.addEventListener("open-ask-penny", handleOpenAskPenny);
     window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
+    return () => {
+      window.removeEventListener("open-ask-penny", handleOpenAskPenny);
+      window.removeEventListener("keydown", handleKeyDown);
+    };
   }, []);
 
   const handleSignOut = useCallback(async () => {

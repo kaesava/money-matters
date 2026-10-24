@@ -1,17 +1,62 @@
 "use client";
-import React from "react";
+
+import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { t } from "@money-matters/i18n";
-import { InfoTooltip } from "@money-matters/ui/web";
+import { InfoTooltip, useToast } from "@money-matters/ui/web";
+import { trpc } from "../../../../lib/trpc";
+
 export default function NotificationSettingsPage() {
   const router = useRouter();
+  const toast = useToast();
+  const utils = trpc.useUtils();
+
+  const userPrefQuery = trpc.getUserPreferences.useQuery();
+  const updatePrefMutation = trpc.updateUserPreferences.useMutation({
+    onSuccess: () => {
+      utils.getUserPreferences.invalidate();
+      toast.success(t("toasts.saved"));
+    },
+    onError: (err) => {
+      toast.error(err.message || t("common.errorTryAgain"));
+    },
+  });
+
+  const appPrefs = (userPrefQuery.data?.appPreferences || {}) as Record<string, unknown>;
+  const [weeklyDigest, setWeeklyDigest] = useState(true);
+  const [paydayAlerts, setPaydayAlerts] = useState(true);
+  const [balanceNudge, setBalanceNudge] = useState(true);
+
+  useEffect(() => {
+    if (userPrefQuery.data?.appPreferences) {
+      const prefs = userPrefQuery.data.appPreferences as Record<string, unknown>;
+      setWeeklyDigest(prefs.weekly_digest_enabled !== false);
+      setPaydayAlerts(prefs.payday_alerts_enabled !== false);
+      setBalanceNudge(prefs.balance_nudge_enabled !== false);
+    }
+  }, [userPrefQuery.data]);
+
+  const handleToggle = (key: string, value: boolean) => {
+    if (key === "weekly_digest_enabled") setWeeklyDigest(value);
+    if (key === "payday_alerts_enabled") setPaydayAlerts(value);
+    if (key === "balance_nudge_enabled") setBalanceNudge(value);
+
+    updatePrefMutation.mutate({
+      appPreferences: {
+        "money-matters": {
+          ...appPrefs,
+          [key]: value,
+        },
+      },
+    });
+  };
 
   return (
     <div className="flex flex-col gap-6 max-w-lg">
       <div className="flex items-center gap-3">
         <button
           onClick={() => router.back()}
-          className="p-2 rounded-xl bg-zinc-100 hover:bg-zinc-200 text-zinc-700 font-bold text-xs"
+          className="p-2 rounded-xl bg-zinc-100 hover:bg-zinc-200 text-zinc-700 font-bold text-xs cursor-pointer"
         >
           {t("notifications.settings.backCta")}
         </button>
@@ -25,9 +70,9 @@ export default function NotificationSettingsPage() {
       </div>
 
       <div className="flex flex-col gap-3">
-        {/* Transactional Email - Active Channel */}
-        <div className="p-4 rounded-xl bg-white border-2 border-[#2563eb]/30 flex items-center justify-between shadow-xs">
-          <div className="flex flex-col gap-1">
+        {/* Weekly Digest Toggle */}
+        <div className="p-4 rounded-xl bg-white border border-slate-200 flex items-center justify-between shadow-xs">
+          <div className="flex flex-col gap-1 pr-4">
             <div className="flex items-center gap-2">
               <span className="text-sm font-bold text-[#1B2B4B]">{t("notifications.settings.weeklyDigestTitle")}</span>
               <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-[#2563eb]/10 text-[#2563eb]">
@@ -38,51 +83,54 @@ export default function NotificationSettingsPage() {
               {t("notifications.settings.weeklyDigestDesc")}
             </span>
           </div>
+          <input
+            type="checkbox"
+            checked={weeklyDigest}
+            onChange={(e) => handleToggle("weekly_digest_enabled", e.target.checked)}
+            className="w-5 h-5 text-[#2563eb] rounded focus:ring-2 focus:ring-[#2563eb] cursor-pointer"
+          />
         </div>
 
-        {/* Payday Alerts - Release 2 Mobile Push */}
-        <div className="p-4 rounded-xl bg-white border border-zinc-200 flex items-center justify-between shadow-xs opacity-75">
-          <div className="flex flex-col gap-1">
+        {/* Payday Alerts Toggle */}
+        <div className="p-4 rounded-xl bg-white border border-slate-200 flex items-center justify-between shadow-xs">
+          <div className="flex flex-col gap-1 pr-4">
             <div className="flex items-center gap-2">
               <span className="text-sm font-bold text-[#1B2B4B]">{t("notifications.settings.paydayTitle")}</span>
-              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-zinc-100 text-zinc-600">
-                {t("notifications.settings.release2MobileBadge")}
+              <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-[#2563eb]/10 text-[#2563eb]">
+                {t("notifications.settings.activeEmailBadge")}
               </span>
             </div>
             <span className="text-xs text-zinc-500">
               {t("notifications.settings.paydayDesc")}
             </span>
           </div>
+          <input
+            type="checkbox"
+            checked={paydayAlerts}
+            onChange={(e) => handleToggle("payday_alerts_enabled", e.target.checked)}
+            className="w-5 h-5 text-[#2563eb] rounded focus:ring-2 focus:ring-[#2563eb] cursor-pointer"
+          />
         </div>
 
-        {/* Shortfall Alerts - Release 2 Mobile Push */}
-        <div className="p-4 rounded-xl bg-white border border-zinc-200 flex items-center justify-between shadow-xs opacity-75">
-          <div className="flex flex-col gap-1">
+        {/* Balance Nudge Toggle */}
+        <div className="p-4 rounded-xl bg-white border border-slate-200 flex items-center justify-between shadow-xs">
+          <div className="flex flex-col gap-1 pr-4">
             <div className="flex items-center gap-2">
-              <span className="text-sm font-bold text-[#1B2B4B]">{t("notifications.settings.shortfallTitle")}</span>
-              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-zinc-100 text-zinc-600">
-                {t("notifications.settings.release2MobileBadge")}
+              <span className="text-sm font-bold text-[#1B2B4B]">{t("notifications.settings.balanceMatchTitle")}</span>
+              <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-[#2563eb]/10 text-[#2563eb]">
+                {t("notifications.settings.activeEmailBadge")}
               </span>
             </div>
             <span className="text-xs text-zinc-500">
-              {t("notifications.settings.shortfallDesc")}
+              {t("notifications.settings.balanceMatchDesc")}
             </span>
           </div>
-        </div>
-
-        {/* Bill Reminders - Release 2 Mobile Push */}
-        <div className="p-4 rounded-xl bg-white border border-zinc-200 flex items-center justify-between shadow-xs opacity-75">
-          <div className="flex flex-col gap-1">
-            <div className="flex items-center gap-2">
-              <span className="text-sm font-bold text-[#1B2B4B]">{t("notifications.settings.billTitle")}</span>
-              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-zinc-100 text-zinc-600">
-                {t("notifications.settings.release2MobileBadge")}
-              </span>
-            </div>
-            <span className="text-xs text-zinc-500">
-              {t("notifications.settings.billDesc")}
-            </span>
-          </div>
+          <input
+            type="checkbox"
+            checked={balanceNudge}
+            onChange={(e) => handleToggle("balance_nudge_enabled", e.target.checked)}
+            className="w-5 h-5 text-[#2563eb] rounded focus:ring-2 focus:ring-[#2563eb] cursor-pointer"
+          />
         </div>
       </div>
     </div>

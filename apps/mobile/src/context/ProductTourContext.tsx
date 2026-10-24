@@ -27,11 +27,11 @@ export const MOBILE_TOUR_STEPS: Array<{
   badgeKey?: string;
 }> = [
   {
-    id: 'hero-metric',
+    id: 'envelopes-row',
     route: '/(app)/home',
-    titleKey: 'tour.steps.hero.title',
-    descKey: 'tour.steps.hero.desc',
-    badgeKey: 'tour.steps.hero.badge',
+    titleKey: 'tour.steps.envelopesRow.title',
+    descKey: 'tour.steps.envelopesRow.desc',
+    badgeKey: 'tour.steps.envelopesRow.badge',
   },
   {
     id: 'payday-card',
@@ -41,11 +41,11 @@ export const MOBILE_TOUR_STEPS: Array<{
     badgeKey: 'tour.steps.payday.badge',
   },
   {
-    id: 'envelopes-bento',
+    id: 'afford-check',
     route: '/(app)/home',
-    titleKey: 'tour.steps.envelopes.title',
-    descKey: 'tour.steps.envelopes.desc',
-    badgeKey: 'tour.steps.envelopes.badge',
+    titleKey: 'tour.steps.affordCheck.title',
+    descKey: 'tour.steps.affordCheck.desc',
+    badgeKey: 'tour.steps.affordCheck.badge',
   },
   {
     id: 'quick-actions',

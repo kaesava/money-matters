@@ -12,6 +12,8 @@ export interface HouseholdLocationFieldsProps {
   postcode: string;
   setPostcode: (val: string) => void;
   postcodeError?: string;
+  countryDisabled?: boolean;
+  countryTooltip?: string;
 }
 
 export function HouseholdLocationFields({
@@ -22,6 +24,8 @@ export function HouseholdLocationFields({
   postcode,
   setPostcode,
   postcodeError,
+  countryDisabled = false,
+  countryTooltip,
 }: HouseholdLocationFieldsProps) {
   const isAustralia = country === 'AU';
 
@@ -29,15 +33,28 @@ export function HouseholdLocationFields({
     <>
       {/* Country Selector */}
       <View style={styles.inputGroup}>
-        <FormLabel label={t('auth.countryLabel')} />
+        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+          <FormLabel label={t('auth.countryLabel')} />
+          {countryTooltip && (
+            <Text style={{ fontSize: 11, color: DESIGN_TOKENS.colors.slate[500], fontStyle: 'italic' }}>
+              {countryTooltip}
+            </Text>
+          )}
+        </View>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.scrollRow}>
           {SUPPORTED_COUNTRIES.map((c) => {
             const isSelected = country === c.code;
             return (
               <TouchableOpacity
                 key={c.code}
-                onPress={() => setCountry(c.code)}
-                style={[styles.chip, isSelected && styles.chipSelected]}
+                disabled={countryDisabled}
+                onPress={() => !countryDisabled && setCountry(c.code)}
+                style={[
+                  styles.chip,
+                  isSelected && styles.chipSelected,
+                  countryDisabled && !isSelected && { opacity: 0.4 },
+                  countryDisabled && isSelected && { opacity: 0.9 },
+                ]}
               >
                 <Text style={styles.chipFlag}>{c.flag}</Text>
                 <Text style={[styles.chipText, isSelected && styles.chipTextSelected]}>

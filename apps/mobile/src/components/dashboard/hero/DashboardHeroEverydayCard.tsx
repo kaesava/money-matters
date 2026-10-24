@@ -33,6 +33,7 @@ export const DashboardHeroEverydayCard: React.FC<DashboardHeroEverydayCardProps>
 }) => {
   return (
     <TouchableOpacity
+      testID="tour-envelopes-row"
       activeOpacity={0.9}
       onPress={onEverydayPress}
       style={styles.heroCard}
@@ -67,6 +68,7 @@ export const DashboardHeroEverydayCard: React.FC<DashboardHeroEverydayCardProps>
         <Text style={styles.heroAmount}>{formatAUD(everydayBalance)}</Text>
         {onAlignBalance && (
           <TouchableOpacity
+            testID="tour-bank-accounts"
             activeOpacity={0.7}
             onPress={onAlignBalance}
             style={styles.alignButton}

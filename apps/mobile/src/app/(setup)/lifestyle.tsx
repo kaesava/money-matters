@@ -26,6 +26,7 @@ export default function SetupLifestyleScreen() {
     hasKids, setHasKids, children, setChildren, hasPrivateHealth, setHasPrivateHealth,
     hasDebt, setHasDebt, debtMonthlyRepayment, setDebtMonthlyRepayment, hasPets, setHasPets,
     weeklyGroceries, weeklyDining, weeklyPersonal,
+    totalRegularMonthly, totalEverydayMonthly,
   } = useSetupWizard();
 
   return (
@@ -44,6 +45,12 @@ export default function SetupLifestyleScreen() {
         {country === 'AU' && (
           <InfoTooltip title={t('setup.lifestyle.benchmarksTitle')} content={t('setup.lifestyle.benchmarksContent')} />
         )}
+      </View>
+
+      <View style={styles.liveEstimatesCard}>
+        <Text style={styles.liveEstimatesText}>
+          📊 {t('setup.lifestyle.liveEstimates', { bills: Math.round(totalRegularMonthly), everyday: Math.round(totalEverydayMonthly) })}
+        </Text>
       </View>
 
       <View style={styles.sectionCard}>
@@ -193,6 +200,8 @@ const styles = StyleSheet.create({
   titleRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 16 },
   title: { fontSize: 20, fontWeight: '900', color: DESIGN_TOKENS.colors.primary },
   sectionCard: { backgroundColor: DESIGN_TOKENS.colors.surface, padding: 14, borderRadius: DESIGN_TOKENS.radius.lg, borderWidth: 1, borderColor: DESIGN_TOKENS.colors.slate[200], marginBottom: 12 },
+  liveEstimatesCard: { backgroundColor: DESIGN_TOKENS.colors.surfaceVariant, padding: 12, borderRadius: DESIGN_TOKENS.radius.md, borderWidth: 1, borderColor: DESIGN_TOKENS.colors.accentBorder, marginBottom: 14 },
+  liveEstimatesText: { fontSize: 13, fontWeight: '800', color: DESIGN_TOKENS.colors.primary },
   sectionTitle: { fontSize: 13, fontWeight: '800', color: DESIGN_TOKENS.colors.primary, marginBottom: 8 },
   rowBetween: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   toggleText: { fontSize: 12, fontWeight: '700', color: DESIGN_TOKENS.colors.accent },

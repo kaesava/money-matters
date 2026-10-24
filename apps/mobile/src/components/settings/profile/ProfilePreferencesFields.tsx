@@ -5,8 +5,6 @@ import { t } from '@money-matters/i18n';
 import { COMMON_TIMEZONES, SUPPORTED_LOCALES } from '@money-matters/types';
 
 interface ProfilePreferencesFieldsProps {
-  locale: string;
-  setLocale: (val: string) => void;
   timezone: string;
   setTimezone: (val: string) => void;
   showIcons: boolean;
@@ -14,8 +12,6 @@ interface ProfilePreferencesFieldsProps {
 }
 
 export function ProfilePreferencesFields({
-  locale,
-  setLocale,
   timezone,
   setTimezone,
   showIcons,
@@ -23,26 +19,7 @@ export function ProfilePreferencesFields({
 }: ProfilePreferencesFieldsProps) {
   return (
     <>
-      {/* Locale Format Selection */}
-      <View style={styles.inputGroup}>
-        <FormLabel label={t('settings.dateFormat')} />
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.scrollRow}>
-          {SUPPORTED_LOCALES.map((l) => {
-            const isSelected = locale === l.code;
-            return (
-              <TouchableOpacity
-                key={l.code}
-                onPress={() => setLocale(l.code)}
-                style={[styles.chip, isSelected && styles.chipSelected]}
-              >
-                <Text style={[styles.chipText, isSelected && styles.chipTextSelected]}>
-                  {l.label} ({l.dateFormatExample})
-                </Text>
-              </TouchableOpacity>
-            );
-          })}
-        </ScrollView>
-      </View>
+
 
       {/* Timezone (COMMON_TIMEZONES) */}
       <View style={styles.inputGroup}>

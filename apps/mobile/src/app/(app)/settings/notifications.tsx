@@ -1,101 +1,92 @@
-import React from 'react';
-import { View, Text, StyleSheet, ScrollView } from 'react-native';
-import { useRouter } from 'expo-router';
-import { DESIGN_TOKENS, MobileScreenWrapper } from '@money-matters/ui/mobile';
-import { t } from '@money-matters/i18n';
-import { authClient } from '../../../lib/auth';
+import React, { useState, useEffect } from "react";
+import { View, StyleSheet, ScrollView } from "react-native";
+import { useRouter } from "expo-router";
+import { DESIGN_TOKENS, MobileScreenWrapper, SwitchRow } from "@money-matters/ui/mobile";
+import { t } from "@money-matters/i18n";
+import { authClient } from "../../../lib/auth";
+import { trpc } from "../../../lib/trpc";
 
 export default function MobileNotificationSettingsScreen() {
   const router = useRouter();
   const { data: session } = authClient.useSession();
-  const D = DESIGN_TOKENS;
+  const utils = trpc.useUtils();
+
+  const userPrefQuery = trpc.getUserPreferences.useQuery();
+  const updatePrefMutation = trpc.updateUserPreferences.useMutation({
+    onSuccess: () => {
+      utils.getUserPreferences.invalidate();
+    },
+  });
+
+  const appPrefs = (userPrefQuery.data?.appPreferences || {}) as Record<string, unknown>;
+  const [weeklyDigest, setWeeklyDigest] = useState(true);
+  const [paydayAlerts, setPaydayAlerts] = useState(true);
+  const [balanceNudge, setBalanceNudge] = useState(true);
+
+  useEffect(() => {
+    if (userPrefQuery.data?.appPreferences) {
+      const prefs = userPrefQuery.data.appPreferences as Record<string, unknown>;
+      setWeeklyDigest(prefs.weekly_digest_enabled !== false);
+      setPaydayAlerts(prefs.payday_alerts_enabled !== false);
+      setBalanceNudge(prefs.balance_nudge_enabled !== false);
+    }
+  }, [userPrefQuery.data]);
+
+  const handleToggle = (key: string, value: boolean) => {
+    if (key === "weekly_digest_enabled") setWeeklyDigest(value);
+    if (key === "payday_alerts_enabled") setPaydayAlerts(value);
+    if (key === "balance_nudge_enabled") setBalanceNudge(value);
+
+    updatePrefMutation.mutate({
+      appPreferences: {
+        "money-matters": {
+          ...appPrefs,
+          [key]: value,
+        },
+      },
+    });
+  };
 
   return (
     <MobileScreenWrapper
-      title={t('notifications.settings.title')}
+      title={t("notifications.settings.title")}
       user={session?.user}
       showBack
       onBackPress={() => router.back()}
       infoTooltip={{
-        title: t('tooltips.notifications.title'),
-        content: t('tooltips.notifications.content'),
+        title: t("tooltips.notifications.title"),
+        content: t("tooltips.notifications.content"),
       }}
     >
       <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 100, gap: 12 }}>
-        {/* Weekly Summary Digest - Email Channel */}
-        <View style={[styles.card, { borderColor: D.colors.accentBorder }]}>
-          <View style={{ flex: 1, gap: 4 }}>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-              <Text style={styles.cardTitle}>
-                {t('notifications.settings.weeklyDigestTitle')}
-              </Text>
-              <View style={[styles.badge, { backgroundColor: D.colors.accentLight }]}>
-                <Text style={[styles.badgeText, { color: D.colors.accent }]}>
-                  {t('notifications.settings.activeEmailBadge')}
-                </Text>
-              </View>
-            </View>
-            <Text style={styles.cardSubtitle}>
-              {t('notifications.settings.weeklyDigestDesc')}
-            </Text>
-          </View>
+        {/* Weekly Summary Digest */}
+        <View style={styles.card}>
+          <SwitchRow
+            label={t("notifications.settings.weeklyDigestTitle")}
+            hint={t("notifications.settings.weeklyDigestDesc")}
+            value={weeklyDigest}
+            onValueChange={(val) => handleToggle("weekly_digest_enabled", val)}
+          />
         </View>
 
         {/* Payday Alerts */}
         <View style={styles.card}>
-          <View style={{ flex: 1, gap: 4 }}>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-              <Text style={styles.cardTitle}>
-                {t('notifications.settings.paydayTitle')}
-              </Text>
-              <View style={styles.badge}>
-                <Text style={styles.badgeText}>
-                  {t('notifications.settings.release2MobileBadge')}
-                </Text>
-              </View>
-            </View>
-            <Text style={styles.cardSubtitle}>
-              {t('notifications.settings.paydayDesc')}
-            </Text>
-          </View>
+          <SwitchRow
+            label={t("notifications.settings.paydayTitle")}
+            hint={t("notifications.settings.paydayDesc")}
+            value={paydayAlerts}
+            onValueChange={(val) => handleToggle("payday_alerts_enabled", val)}
+          />
         </View>
 
-        {/* Shortfall Alerts */}
+        {/* Balance Nudge */}
         <View style={styles.card}>
-          <View style={{ flex: 1, gap: 4 }}>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-              <Text style={styles.cardTitle}>
-                {t('notifications.settings.shortfallTitle')}
-              </Text>
-              <View style={styles.badge}>
-                <Text style={styles.badgeText}>
-                  {t('notifications.settings.release2MobileBadge')}
-                </Text>
-              </View>
-            </View>
-            <Text style={styles.cardSubtitle}>
-              {t('notifications.settings.shortfallDesc')}
-            </Text>
-          </View>
-        </View>
-
-        {/* Bill Reminders */}
-        <View style={styles.card}>
-          <View style={{ flex: 1, gap: 4 }}>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-              <Text style={styles.cardTitle}>
-                {t('notifications.settings.billTitle')}
-              </Text>
-              <View style={styles.badge}>
-                <Text style={styles.badgeText}>
-                  {t('notifications.settings.release2MobileBadge')}
-                </Text>
-              </View>
-            </View>
-            <Text style={styles.cardSubtitle}>
-              {t('notifications.settings.billDesc')}
-            </Text>
-          </View>
+          <SwitchRow
+            label={t("notifications.settings.balanceMatchTitle")}
+            hint={t("notifications.settings.balanceMatchDesc")}
+            value={balanceNudge}
+            onValueChange={(val) => handleToggle("balance_nudge_enabled", val)}
+          />
         </View>
       </ScrollView>
     </MobileScreenWrapper>
@@ -110,22 +101,6 @@ const styles = StyleSheet.create({
     padding: 16,
     borderWidth: 1,
     borderColor: D.colors.border,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
     gap: 12,
-  },
-  cardTitle: { fontSize: 14, fontWeight: '800', color: D.colors.primary },
-  cardSubtitle: { fontSize: 11, color: D.colors.textMuted },
-  badge: {
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 9999,
-    backgroundColor: D.colors.surfaceVariant,
-  },
-  badgeText: {
-    fontSize: 10,
-    fontWeight: '700',
-    color: D.colors.textMuted,
   },
 });

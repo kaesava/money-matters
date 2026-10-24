@@ -83,7 +83,6 @@ export function PoolGroupSection({
           <PoolItemCard
             key={p.id}
             pool={p}
-            bank={bankAccounts.find((b) => b.id === p.bankAccountId)}
           />
         ))}
     </View>

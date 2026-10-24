@@ -48,7 +48,6 @@ export function PoolsTable({
   const { fmtDate } = useLocale();
   const [widths, setWidths] = useState({
     name: 300,
-    bankAccount: 180,
     balance: 140,
     target: 140,
     progress: 150,
@@ -79,7 +78,7 @@ export function PoolsTable({
   if (isLoading) {
     return (
       <div className="bg-white rounded-2xl border border-zinc-200/80 shadow-xs overflow-hidden">
-        <SkeletonTable cols={6} rows={6} />
+        <SkeletonTable cols={5} rows={6} />
       </div>
     );
   }
@@ -103,18 +102,7 @@ export function PoolsTable({
                 </div>
               </ResizableTh>
 
-              {/* Bank Account */}
-              <ResizableTh
-                width={widths.bankAccount}
-                onResizeMouseDown={(e) => onMouseDown("bankAccount", e)}
-                className="py-3.5 px-4 cursor-pointer hover:text-zinc-800 transition-colors text-left"
-                onClick={() => toggleSort("bankAccountName")}
-              >
-                <div className="flex items-center gap-1">
-                  <span>{t("tables.bankAccount")}</span>
-                  {sortField === "bankAccountName" && <span>{sortDir === "asc" ? "▲" : "▼"}</span>}
-                </div>
-              </ResizableTh>
+
 
               {/* Current Balance */}
               <ResizableTh

@@ -33,8 +33,6 @@ interface MobileProfileEditViewProps {
   setTimezone: (val: string) => void;
   language: 'en';
   setLanguage: (val: 'en') => void;
-  locale: string;
-  setLocale: (val: string) => void;
   showIcons: boolean;
   setShowIcons: (val: boolean) => void;
   saving: boolean;
@@ -58,8 +56,6 @@ export function MobileProfileEditView({
   timezone,
   setTimezone,
   setLanguage,
-  locale,
-  setLocale,
   showIcons,
   setShowIcons,
   saving,
@@ -115,8 +111,6 @@ export function MobileProfileEditView({
 
       {/* Preferences (Locale, Timezone, Icons) */}
       <ProfilePreferencesFields
-        locale={locale}
-        setLocale={setLocale}
         timezone={timezone}
         setTimezone={setTimezone}
         showIcons={showIcons}

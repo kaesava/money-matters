@@ -1,12 +1,10 @@
 "use client";
 
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState } from "react";
 import { useRouter } from "next/navigation";
-import { ChevronDown, ArrowUpRight, ArrowDownLeft, ArrowLeftRight, Plus, Sparkles } from "lucide-react";
-
 import { trpc } from "../../lib/trpc";
 import { t } from "@money-matters/i18n";
-import { useToast, InfoTooltip, ConfirmDialog } from "@money-matters/ui/web";
+import { useToast, ConfirmDialog } from "@money-matters/ui/web";
 import { BentoPoolsSection } from "./components/BentoPoolsSection";
 import { GoalsProgressStrip } from "./components/GoalsProgressStrip";
 import { NextPaydayCard, WebIncomeItem } from "./components/NextPaydayCard";
@@ -14,6 +12,9 @@ import { AttentionItemsList, WebAttentionItem } from "./components/AttentionItem
 import { QuickActionDrawer } from "../../components/web/QuickExpenseDrawer";
 import { AffordCheckModal } from "../../components/web/AffordCheckModal";
 import { ReconciliationModal, PoolItem } from "../../components/ReconciliationModal";
+import { DashboardActionStrip } from "./components/DashboardActionStrip";
+import { BalanceMatchNudgeBanner } from "./components/BalanceMatchNudgeBanner";
+import { AffordCheckInlineCard } from "./components/AffordCheckInlineCard";
 import { useDashboardData } from "./hooks/useDashboardData";
 import { useLocale } from "../../providers/LocaleProvider";
 import posthog from "../../lib/posthog-client";
@@ -31,6 +32,7 @@ export default function DashboardPage() {
   const {
     todayStr,
     summaryQuery,
+    homeSummaryQuery,
     bankAccountsQuery,
     incomeEventsQuery,
     expenseEventsQuery,
@@ -46,7 +48,11 @@ export default function DashboardPage() {
   const [incomeToDelete, setIncomeToDelete] = useState<{ id: string; name: string } | null>(null);
 
   const goalCategories = pools.filter((p) => p.envelopeType === "TARGET_GOAL" || p.envelopeType === "ONGOING_GOAL");
-  const everydayBalance = parseFloat(summaryQuery.data?.everydayRemaining || "0");
+  const homeData = homeSummaryQuery.data;
+  const everydayBalance = homeData?.everydayBalance ?? parseFloat(summaryQuery.data?.everydayRemaining || "0");
+  const safeToSpend = homeData?.safeToSpend ?? everydayBalance;
+  const dailyPace = homeData?.dailyPace;
+  const paceStatus = homeData?.paceStatus;
   const everydayMonthlyBudget = pools
     .filter((p) => p.envelopeType === "EVERYDAY")
     .reduce((sum, p) => sum + parseFloat(p.monthlyAmount || p.targetAmount || "0"), 0);
@@ -55,7 +61,7 @@ export default function DashboardPage() {
     .filter((p) => p.envelopeType === "EVERYDAY")
     .reduce((sum, p) => sum + parseFloat(p.safetyBufferFloor || "0"), 0);
 
-  const billsBalance = parseFloat(summaryQuery.data?.billsRemaining || "0");
+  const billsBalance = homeData?.billsBalance ?? parseFloat(summaryQuery.data?.billsRemaining || "0");
   const billsMonthlyBudget = pools
     .filter((p) => p.envelopeType === "SCHEDULED_BILL" || p.envelopeType === "FLEXIBLE_BILL")
     .reduce((sum, p) => sum + parseFloat(p.monthlyAmount || p.targetAmount || "0"), 0);
@@ -83,9 +89,17 @@ export default function DashboardPage() {
     });
 
   const nextPaycheck = upcomingIncomeList[0] ?? null;
-  const daysUntilPayday = nextPaycheck
+  const daysUntilPayday = homeData?.daysToPayday ?? (nextPaycheck
     ? Math.max(0, Math.round((new Date(nextPaycheck.expectedDate + "T00:00:00Z").getTime() - new Date(todayStr + "T00:00:00Z").getTime()) / (1000 * 60 * 60 * 24)))
-    : 14;
+    : 14);
+
+  // Show balance match nudge if accounts exist and oldest match is null or > 14 days ago
+  const isBalanceMatchOverdue = React.useMemo(() => {
+    if (bankAccounts.length === 0) return false;
+    if (!homeData?.oldestBalanceMatchAt) return true;
+    const lastMatchDate = new Date(homeData.oldestBalanceMatchAt).getTime();
+    return (Date.now() - lastMatchDate) > 14 * 24 * 60 * 60 * 1000;
+  }, [bankAccounts.length, homeData?.oldestBalanceMatchAt]);
 
   const todayObj = new Date(todayStr);
 
@@ -196,7 +210,7 @@ export default function DashboardPage() {
   const [quickDrawerInitialTab, setQuickDrawerInitialTab] = useState<"DEBIT" | "CREDIT" | "TRANSFER">("DEBIT");
   const [isMoveMoneyOpen, setIsMoveMoneyOpen] = useState(false);
   const [isAffordModalOpen, setIsAffordModalOpen] = useState(false);
-  const [isQuickActionMenuOpen, setIsQuickActionMenuOpen] = useState(false);
+  const [affordInitialAmount, setAffordInitialAmount] = useState("");
   const [reconcileState, setReconcileState] = useState<{
     accountName: string;
     accountId: string;
@@ -206,7 +220,6 @@ export default function DashboardPage() {
     pools: PoolItem[];
   } | null>(null);
   const reconcileMut = trpc.reconcileBankBalance.useMutation();
-  const quickActionMenuRef = useRef<HTMLDivElement>(null);
 
   const handleOpenEverydayReconciliation = () => {
     const everydayPool = pools.find((p) => p.envelopeType === "EVERYDAY");
@@ -274,26 +287,7 @@ export default function DashboardPage() {
     setReconcileState(null);
   };
 
-  useEffect(() => {
-    function handleClickOutside(event: MouseEvent) {
-      if (quickActionMenuRef.current && !quickActionMenuRef.current.contains(event.target as Node)) {
-        setIsQuickActionMenuOpen(false);
-      }
-    }
-    function handleKeyDown(event: KeyboardEvent) {
-      if (event.key === "Escape") {
-        setIsQuickActionMenuOpen(false);
-      }
-    }
-    if (isQuickActionMenuOpen) {
-      document.addEventListener("mousedown", handleClickOutside);
-      document.addEventListener("keydown", handleKeyDown);
-    }
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-      document.removeEventListener("keydown", handleKeyDown);
-    };
-  }, [isQuickActionMenuOpen]);
+
 
   const upcomingBillsList = (expenseEventsQuery.data ?? [])
     .filter((e) => e.status === "PENDING")
@@ -315,104 +309,32 @@ export default function DashboardPage() {
 
   return (
     <div className="max-w-6xl mx-auto space-y-6 pb-12 px-4 sm:px-6 animate-in fade-in duration-200">
-      {/* Top Header Row with Side-by-Side Quick Actions */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-1 border-b border-slate-200/60 dark:border-zinc-800/80">
-        <div className="flex flex-col gap-1">
-          <div className="flex items-center gap-2.5">
-            <h1 className="font-heading text-2xl sm:text-3xl font-black text-[#1B2B4B] dark:text-zinc-50 tracking-tight">
-              {t("nav.dashboard")}
-            </h1>
-            <InfoTooltip
-              title={t("tooltips.dashboard.title")}
-              content={t("tooltips.dashboard.content")}
-            />
-          </div>
-          <p className="text-xs font-medium text-slate-500 dark:text-zinc-400">
-            {t("app.tagline")}
-          </p>
-        </div>
+      {/* Top Header Action Strip */}
+      <DashboardActionStrip
+        onOpenQuickExpense={() => {
+          setQuickDrawerInitialTab("DEBIT");
+          setQuickDrawerOpen(true);
+        }}
+        onOpenQuickIncome={() => {
+          setQuickDrawerInitialTab("CREDIT");
+          setQuickDrawerOpen(true);
+        }}
+        onOpenMoveMoney={() => setIsMoveMoneyOpen(true)}
+        onOpenAffordCheck={() => {
+          setAffordInitialAmount("");
+          setIsAffordModalOpen(true);
+        }}
+        onOpenAskPenny={() => {
+          if (typeof window !== "undefined") {
+            window.dispatchEvent(new CustomEvent("open-ask-penny"));
+          }
+        }}
+      />
 
-        {/* Header Action Strip */}
-        <div className="flex flex-wrap sm:flex-nowrap items-center gap-3 shrink-0">
-          {/* Quick Action Split / Dropdown Button */}
-          <div className="relative" ref={quickActionMenuRef}>
-            <div className="inline-flex items-center rounded-xl shadow-xs overflow-hidden border border-blue-600 bg-[#2563eb]">
-              <button
-                type="button"
-                onClick={() => {
-                  setQuickDrawerInitialTab("DEBIT");
-                  setQuickDrawerOpen(true);
-                  setIsQuickActionMenuOpen(false);
-                }}
-                className="px-3.5 py-2 h-9 bg-[#2563eb] hover:bg-[#1d4ed8] text-white font-extrabold text-xs transition-colors flex items-center gap-1.5 cursor-pointer"
-              >
-                <Plus className="w-4 h-4 shrink-0 stroke-[2.5]" />
-                <span>{t("dashboard.quickAction")}</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => setIsQuickActionMenuOpen((prev) => !prev)}
-                className="px-2.5 py-2 h-9 bg-[#2563eb] hover:bg-[#1d4ed8] border-l border-blue-400/50 text-white transition-colors flex items-center justify-center cursor-pointer"
-                aria-haspopup="true"
-                aria-expanded={isQuickActionMenuOpen}
-                aria-label={t("dashboard.quickAction")}
-              >
-                <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-150 ${isQuickActionMenuOpen ? "rotate-180" : ""}`} />
-              </button>
-            </div>
-
-            {isQuickActionMenuOpen && (
-              <div className="absolute right-0 mt-1.5 w-56 bg-white dark:bg-zinc-900 border border-zinc-200/90 dark:border-zinc-800 rounded-xl shadow-xl py-1.5 z-50 animate-in fade-in zoom-in-95 duration-100">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setQuickDrawerInitialTab("DEBIT");
-                    setQuickDrawerOpen(true);
-                    setIsQuickActionMenuOpen(false);
-                  }}
-                  className="w-full px-3.5 py-2 text-left text-xs font-semibold text-zinc-700 dark:text-zinc-200 hover:bg-blue-50 dark:hover:bg-zinc-800 hover:text-blue-600 transition-colors flex items-center gap-2.5 cursor-pointer"
-                >
-                  <ArrowUpRight className="w-4 h-4 text-rose-500" />
-                  <span>{t("dashboard.recordExpense")}</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setQuickDrawerInitialTab("CREDIT");
-                    setQuickDrawerOpen(true);
-                    setIsQuickActionMenuOpen(false);
-                  }}
-                  className="w-full px-3.5 py-2 text-left text-xs font-semibold text-zinc-700 dark:text-zinc-200 hover:bg-emerald-50 dark:hover:bg-zinc-800 hover:text-emerald-600 transition-colors flex items-center gap-2.5 cursor-pointer"
-                >
-                  <ArrowDownLeft className="w-4 h-4 text-emerald-500" />
-                  <span>{t("dashboard.recordIncome")}</span>
-                </button>
-                <div className="my-1 border-t border-zinc-100 dark:border-zinc-800" />
-                <button
-                  type="button"
-                  onClick={() => {
-                    setIsMoveMoneyOpen(true);
-                    setIsQuickActionMenuOpen(false);
-                  }}
-                  className="w-full px-3.5 py-2 text-left text-xs font-semibold text-zinc-700 dark:text-zinc-200 hover:bg-blue-50 dark:hover:bg-zinc-800 hover:text-blue-600 transition-colors flex items-center gap-2.5 cursor-pointer"
-                >
-                  <ArrowLeftRight className="w-4 h-4 text-blue-500" />
-                  <span>{t("dashboard.transferBetweenPools")}</span>
-                </button>
-              </div>
-            )}
-          </div>
-
-          <button
-            type="button"
-            onClick={() => setIsAffordModalOpen(true)}
-            className="px-3.5 py-2 h-9 bg-white dark:bg-zinc-900 hover:bg-slate-50 dark:hover:bg-zinc-800/80 border border-slate-300/80 dark:border-zinc-700 text-[#1B2B4B] dark:text-zinc-100 font-extrabold text-xs rounded-xl transition-all shadow-xs flex items-center gap-1.5 cursor-pointer shrink-0"
-          >
-            <Sparkles className="w-3.5 h-3.5 text-[#2563eb] shrink-0" />
-            <span>{t("canIAfford.title")}</span>
-          </button>
-        </div>
-      </div>
+      {/* Balance Match Nudge Banner (Overdue > 14 days) */}
+      {isBalanceMatchOverdue && (
+        <BalanceMatchNudgeBanner onOpenMatch={handleOpenEverydayReconciliation} />
+      )}
 
       {/* Row 1: Hero Balances (Left) + Goals Motivation (Right) */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
@@ -424,6 +346,9 @@ export default function DashboardPage() {
             billsBalance={billsBalance}
             billsMonthlyBudget={billsMonthlyBudget}
             daysUntilPayday={daysUntilPayday}
+            safeToSpend={safeToSpend}
+            dailyPace={dailyPace}
+            paceStatus={paceStatus}
             billsShortfall={billsShortfall}
             billsDue14DaysCount={billsDue14Days.length}
             totalBillsDue14Days={totalBillsDue14Days}
@@ -452,6 +377,14 @@ export default function DashboardPage() {
           />
         </div>
       </div>
+
+      {/* Inline Quick Afford Check Card */}
+      <AffordCheckInlineCard
+        onCheck={(amt) => {
+          setAffordInitialAmount(amt);
+          setIsAffordModalOpen(true);
+        }}
+      />
 
       {/* Row 2: Cashflow Stream (Two-Column Split: Upcoming Expenses & Upcoming Income) */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
@@ -542,7 +475,11 @@ export default function DashboardPage() {
       {isAffordModalOpen && (
         <AffordCheckModal
           isOpen={isAffordModalOpen}
-          onClose={() => setIsAffordModalOpen(false)}
+          initialAmount={affordInitialAmount}
+          onClose={() => {
+            setIsAffordModalOpen(false);
+            setAffordInitialAmount("");
+          }}
         />
       )}
 

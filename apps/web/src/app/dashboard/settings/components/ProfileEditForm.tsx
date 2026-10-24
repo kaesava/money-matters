@@ -21,8 +21,6 @@ interface ProfileEditFormProps {
   setTimezone: (val: string) => void;
   language: "en";
   setLanguageState: (val: "en") => void;
-  locale: string;
-  setLocale: (val: string) => void;
   showIcons: boolean;
   setShowIcons: (val: boolean) => void;
   avatarUrl: string;
@@ -50,8 +48,6 @@ export function ProfileEditForm({
   setTimezone,
   language,
   setLanguageState,
-  locale,
-  setLocale,
   showIcons,
   setShowIcons,
   avatarUrl,
@@ -178,8 +174,6 @@ export function ProfileEditForm({
         <ProfilePreferencesFields
           language={language}
           setLanguageState={setLanguageState}
-          locale={locale}
-          setLocale={setLocale}
           timezone={timezone}
           setTimezone={setTimezone}
           showIcons={showIcons}

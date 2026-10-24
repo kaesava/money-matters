@@ -117,6 +117,8 @@ export function HouseholdEditView({
       <HouseholdLocationFields
         country={country}
         setCountry={setCountry}
+        countryDisabled={true}
+        countryTooltip={t('settings.countryLockedTooltip')}
         state={state}
         setState={setState}
         postcode={postcode}

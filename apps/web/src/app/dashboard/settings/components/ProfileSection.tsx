@@ -60,8 +60,6 @@ export function ProfileSection({
           setTimezone={form.setTimezone}
           language={form.language}
           setLanguageState={form.setLanguageState}
-          locale={form.locale}
-          setLocale={form.setLocale}
           showIcons={form.showIcons}
           setShowIcons={form.setShowIcons}
           avatarUrl={form.avatarUrl}

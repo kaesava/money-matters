@@ -36,8 +36,6 @@ export function MobileProfileSection({
         setTimezone={data.setTimezone}
         language={data.language}
         setLanguage={data.setLanguage}
-        locale={data.locale}
-        setLocale={data.setLocale}
         showIcons={data.showIcons}
         setShowIcons={data.setShowIcons}
         saving={data.saving}
@@ -57,7 +55,6 @@ export function MobileProfileSection({
       avatarUri={data.avatarUri}
       timezone={data.timezone}
       language={data.language}
-      locale={data.locale}
       showIcons={data.showIcons}
       biometricsAvailable={data.biometricsAvailable}
       biometricsEnabled={data.biometricsEnabled}

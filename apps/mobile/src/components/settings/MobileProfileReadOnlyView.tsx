@@ -25,7 +25,6 @@ interface MobileProfileReadOnlyViewProps {
   avatarUri: string | null;
   timezone: string;
   language: 'en';
-  locale: string;
   showIcons: boolean;
   biometricsAvailable: boolean;
   biometricsEnabled: boolean;
@@ -43,7 +42,6 @@ export function MobileProfileReadOnlyView({
   avatarUri,
   timezone,
   language,
-  locale,
   showIcons,
   biometricsAvailable,
   biometricsEnabled,
@@ -51,7 +49,6 @@ export function MobileProfileReadOnlyView({
   onToggleBiometrics,
   onEdit,
 }: MobileProfileReadOnlyViewProps) {
-  const selectedLocale = SUPPORTED_LOCALES.find((l) => l.code === locale) || SUPPORTED_LOCALES[0];
 
   const initials = name
     ? name
@@ -107,10 +104,7 @@ export function MobileProfileReadOnlyView({
             label={t('settings.language')}
             value={language === 'en' ? 'English (en)' : 'English (en)'}
           />
-          <ReadOnlyField
-            label={t('settings.dateFormat')}
-            value={`${selectedLocale.label} (${selectedLocale.dateFormatExample})`}
-          />
+
           <ReadOnlyField label={t('settings.items.timezone')} value={timezone} />
           <ReadOnlyField
             label={t('settings.items.showIcons')}

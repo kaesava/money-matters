@@ -12,6 +12,9 @@ export interface BentoPoolsSectionProps {
   readonly billsBalance: number;
   readonly billsMonthlyBudget?: number;
   readonly daysUntilPayday?: number;
+  readonly safeToSpend?: number;
+  readonly dailyPace?: number;
+  readonly paceStatus?: "AHEAD" | "ON_TRACK" | "BEHIND" | "CRITICAL";
   
   // Integrated Shortfall Alert Props
   readonly billsShortfall: number;
@@ -30,6 +33,9 @@ export const BentoPoolsSection: React.FC<BentoPoolsSectionProps> = ({
   billsBalance,
   billsMonthlyBudget = 0,
   daysUntilPayday,
+  safeToSpend,
+  dailyPace: passedDailyPace,
+  paceStatus,
   billsShortfall,
   billsDue14DaysCount,
   totalBillsDue14Days,
@@ -49,18 +55,20 @@ export const BentoPoolsSection: React.FC<BentoPoolsSectionProps> = ({
     ? daysUntilPayday
     : Math.max(1, daysInMonth - currentDay);
 
-  const dailySpendable = Math.max(0, everydayBalance / effectiveDays);
+  const effectiveSafeToSpend = safeToSpend !== undefined ? safeToSpend : everydayBalance;
+  const dailySpendable = passedDailyPace !== undefined ? passedDailyPace : Math.max(0, effectiveSafeToSpend / effectiveDays);
   const targetDailyBudget = everydayMonthlyBudget > 0 ? (everydayMonthlyBudget * 12) / 365 : 0;
 
   const isBillsRisk = billsShortfall > 0;
-  const isPacingTight = !isBillsRisk && targetDailyBudget > 0 && dailySpendable < targetDailyBudget * 0.8;
+  const isPacingTight = paceStatus
+    ? paceStatus === "BEHIND" || paceStatus === "CRITICAL"
+    : !isBillsRisk && targetDailyBudget > 0 && dailySpendable < targetDailyBudget * 0.8;
 
   return (
-    <div data-tour="envelopes-bento" className="space-y-4">
+    <div data-tour="envelopes-row" className="space-y-4">
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         {/* Everyday Spending Pool Card */}
         <div
-          data-tour="hero-metric"
           className="bg-white dark:bg-zinc-900 border border-zinc-200/80 dark:border-zinc-800 rounded-2xl p-5 shadow-xs flex flex-col justify-between hover:border-zinc-300 dark:hover:border-zinc-700 transition-all"
         >
           <div className="space-y-3">

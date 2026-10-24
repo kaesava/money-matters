@@ -18,15 +18,10 @@ interface PoolItemCardProps {
     targetAmount?: string | null;
     isSurplusTarget?: boolean | null;
   };
-  bank?: {
-    id: string;
-    name: string;
-  };
 }
 
 export function PoolItemCard({
   pool,
-  bank,
 }: PoolItemCardProps) {
   const router = useRouter();
   const isGoal = pool.envelopeType === 'TARGET_GOAL' || pool.envelopeType === 'ONGOING_GOAL' || pool.poolType === 'GOAL';
@@ -91,11 +86,7 @@ export function PoolItemCard({
               </View>
             )}
           </View>
-          {bank && (
-            <View style={styles.bankBadgeWrap}>
-              <Text style={styles.bankNameText}>{bank.name}</Text>
-            </View>
-          )}
+
         </View>
 
         <View style={styles.balWrap}>

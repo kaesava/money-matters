@@ -717,13 +717,17 @@ export const tenantRouter = {
       }
 
       const [currentTenant] = await ctx.db
-        .select({ currency: tenants.currency })
+        .select({ currency: tenants.currency, country: tenants.country })
         .from(tenants)
         .where(eq(tenants.id, ctx.tenantId!))
         .limit(1);
 
       if (input.currency && currentTenant && input.currency !== currentTenant.currency) {
         throw new Error("Household currency is permanently locked and cannot be changed.");
+      }
+
+      if (input.country && currentTenant && input.country !== currentTenant.country) {
+        throw new Error("Household country is permanently locked and cannot be changed.");
       }
 
       await ctx.db

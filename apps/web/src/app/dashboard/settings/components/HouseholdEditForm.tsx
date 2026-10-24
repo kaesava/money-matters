@@ -111,6 +111,8 @@ export function HouseholdEditForm({
       <LocationFields
         country={country}
         onCountryChange={setCountry}
+        countryDisabled={true}
+        countryTooltip={t("settings.countryLockedTooltip")}
         state={state}
         onStateChange={setState}
         postcode={postcode}

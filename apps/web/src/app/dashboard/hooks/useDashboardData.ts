@@ -18,6 +18,7 @@ export function useDashboardData() {
   const [paydayPreviewEventId, setPaydayPreviewEventId] = useState<string | null>(null);
 
   const summaryQuery = trpc.getMonthlySummary.useQuery({ year: todayYear, month: todayMonth });
+  const homeSummaryQuery = trpc.getHomeSummary.useQuery();
   const poolsQuery = trpc.listPools.useQuery();
   const bankAccountsQuery = trpc.listBankAccountsWithExpected.useQuery();
   const incomeEventsQuery = trpc.listIncomeEvents.useQuery();
@@ -97,6 +98,7 @@ export function useDashboardData() {
     paydayPreviewEventId,
     setPaydayPreviewEventId,
     summaryQuery,
+    homeSummaryQuery,
     categoriesQuery: poolsQuery,
     poolsQuery,
     bankAccountsQuery,

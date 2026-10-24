@@ -11,6 +11,9 @@ export interface DashboardHeroCardProps {
   readonly billsBalance: number;
   readonly billsMonthlyBudget?: number;
   readonly daysUntilPayday?: number;
+  readonly safeToSpend?: number;
+  readonly dailyPace?: number;
+  readonly paceStatus?: "AHEAD" | "ON_TRACK" | "BEHIND" | "CRITICAL";
   readonly billsShortfall: number;
   readonly billsDue14DaysCount: number;
   readonly totalBillsDue14Days: number;
@@ -27,6 +30,9 @@ export const DashboardHeroCard: React.FC<DashboardHeroCardProps> = ({
   billsBalance,
   billsMonthlyBudget = 0,
   daysUntilPayday,
+  safeToSpend,
+  dailyPace: passedDailyPace,
+  paceStatus,
   billsShortfall,
   billsDue14DaysCount,
   totalBillsDue14Days,
@@ -46,13 +52,15 @@ export const DashboardHeroCard: React.FC<DashboardHeroCardProps> = ({
       ? daysUntilPayday
       : Math.max(1, daysInMonth - currentDay);
 
-  const dailySpendable = Math.max(0, everydayBalance / effectiveDays);
+  const effectiveSafeToSpend = safeToSpend !== undefined ? safeToSpend : everydayBalance;
+  const dailySpendable = passedDailyPace !== undefined ? passedDailyPace : Math.max(0, effectiveSafeToSpend / effectiveDays);
   const targetDailyBudget =
     everydayMonthlyBudget > 0 ? (everydayMonthlyBudget * 12) / 365 : 0;
 
   const isBillsRisk = billsShortfall > 0;
-  const isPacingTight =
-    !isBillsRisk && targetDailyBudget > 0 && dailySpendable < targetDailyBudget * 0.8;
+  const isPacingTight = paceStatus
+    ? paceStatus === "BEHIND" || paceStatus === "CRITICAL"
+    : !isBillsRisk && targetDailyBudget > 0 && dailySpendable < targetDailyBudget * 0.8;
 
   const progressPercent = Math.min(
     100,

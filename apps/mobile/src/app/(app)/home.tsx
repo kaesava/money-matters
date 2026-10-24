@@ -1,5 +1,5 @@
 import React from 'react';
-import { ScrollView, RefreshControl, StyleSheet } from 'react-native';
+import { ScrollView, RefreshControl, StyleSheet, View } from 'react-native';
 import { useRouter, useLocalSearchParams, type Href } from 'expo-router';
 import { usePostHog } from 'posthog-react-native';
 import { DESIGN_TOKENS, MobileAskSheet } from '@money-matters/ui/mobile';
@@ -14,6 +14,8 @@ import { TrialBanner } from '../../components/dashboard/TrialBanner';
 import { MarkPaidModal } from '../../components/MarkPaidModal';
 import { QuickExpenseModal } from '../../components/QuickExpenseModal';
 import { MobileAffordCheckModal } from '../../components/afford-check/MobileAffordCheckModal';
+import { MobileAffordCheckCard } from '../../components/dashboard/MobileAffordCheckCard';
+import { ReconcileNudgeCard } from '../../components/dashboard/attention/ReconcileNudgeCard';
 import { MobileReconciliationModal } from '../../components/envelopes/MobileReconciliationModal';
 import { useHomeData } from '../../components/dashboard/useHomeData';
 import { useHomeModals } from '../../components/dashboard/useHomeModals';
@@ -35,6 +37,10 @@ export default function HomeScreen() {
     bankAccounts,
     incomeCount,
     billsCount,
+    homeSummary,
+    safeToSpend,
+    dailyPace,
+    paceStatus,
     everydayBalance,
     everydayMonthlyBudget,
     everydaySafetyBuffer,
@@ -74,6 +80,13 @@ export default function HomeScreen() {
     handleOpenEverydayReconciliation,
     handleAssistantPrefill,
   } = useHomeModals(pools, bankAccounts, everydayPool);
+
+  const isBalanceMatchOverdue = React.useMemo(() => {
+    if (bankAccounts.length === 0) return false;
+    if (!homeSummary?.oldestBalanceMatchAt) return true;
+    const lastMatch = new Date(homeSummary.oldestBalanceMatchAt).getTime();
+    return (Date.now() - lastMatch) > 14 * 24 * 60 * 60 * 1000;
+  }, [bankAccounts.length, homeSummary?.oldestBalanceMatchAt]);
 
   return (
     <AppScreenWrapper

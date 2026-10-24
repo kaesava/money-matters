@@ -52,6 +52,8 @@ interface SetupLifestyleStepProps {
   setWeeklyDining: (val: number) => void;
   weeklyPersonal: number;
   setWeeklyPersonal: (val: number) => void;
+  estimatedBillsMonthly?: number;
+  estimatedEverydayMonthly?: number;
   onBack: () => void;
   onNext: () => void;
   totalSteps?: number;
@@ -101,6 +103,8 @@ export function SetupLifestyleStep({
   setWeeklyDining,
   weeklyPersonal,
   setWeeklyPersonal,
+  estimatedBillsMonthly = 0,
+  estimatedEverydayMonthly = 0,
   onBack,
   onNext,
   totalSteps = 4,
@@ -129,6 +133,14 @@ export function SetupLifestyleStep({
             ? t("setup.lifestyle.benchmarksContent")
             : t("setup.lifestyle.subtitle")}
         </p>
+
+        {/* Live Estimated Bills & Everyday Spending Panel */}
+        <div className="mt-3 p-3 rounded-xl bg-blue-50/70 border border-blue-200/60 flex items-center justify-between text-xs font-bold text-[#1B2B4B]">
+          <span className="flex items-center gap-1.5">
+            <span className="text-blue-600">📊</span>
+            <span>{t("setup.lifestyle.liveEstimates", { bills: Math.round(estimatedBillsMonthly), everyday: Math.round(estimatedEverydayMonthly) })}</span>
+          </span>
+        </div>
       </div>
 
       <LifestyleHousingTransport

@@ -1,3 +1,4 @@
+import { InfoTooltip } from "../InfoTooltip";
 import React, { useId } from "react";
 
 export interface CountrySelectProps {
@@ -5,6 +6,7 @@ export interface CountrySelectProps {
   onChange: (countryCode: string) => void;
   label?: string;
   disabled?: boolean;
+  tooltip?: string;
 }
 
 export const ALL_COUNTRIES = [
@@ -23,22 +25,25 @@ export const ALL_COUNTRIES = [
   { code: "US", name: "United States 🇺🇸" },
 ];
 
-export function CountrySelect({ value, onChange, label, disabled = false }: CountrySelectProps) {
+export function CountrySelect({ value, onChange, label, disabled = false, tooltip }: CountrySelectProps) {
   const inputId = useId();
 
   return (
     <div className="flex flex-col gap-1.5 w-full">
       {label && (
-        <label htmlFor={inputId} className="text-xs font-bold text-[#1B2B4B]">
-          {label}
-        </label>
+        <div className="flex items-center gap-1.5">
+          <label htmlFor={inputId} className="text-xs font-bold text-[#1B2B4B]">
+            {label}
+          </label>
+          {tooltip && <InfoTooltip content={tooltip} />}
+        </div>
       )}
       <select
         id={inputId}
         value={value}
         onChange={(e) => onChange(e.target.value)}
         disabled={disabled}
-        className="px-3 py-2 text-xs font-medium border border-slate-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-[#2563eb] disabled:opacity-50 cursor-pointer"
+        className="px-3 py-2 text-xs font-medium border border-slate-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-[#2563eb] disabled:opacity-60 disabled:cursor-not-allowed disabled:bg-slate-50 cursor-pointer"
       >
         {ALL_COUNTRIES.map((c) => (
           <option key={c.code} value={c.code}>

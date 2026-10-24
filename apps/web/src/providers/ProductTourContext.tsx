@@ -32,12 +32,12 @@ export const TOUR_STEPS: Array<{
   badgeKey?: string;
 }> = [
   {
-    id: 'hero-metric',
+    id: 'envelopes-row',
     route: '/dashboard',
-    selector: '[data-tour="hero-metric"]',
-    titleKey: 'tour.steps.hero.title',
-    descKey: 'tour.steps.hero.desc',
-    badgeKey: 'tour.steps.hero.badge',
+    selector: '[data-tour="envelopes-row"]',
+    titleKey: 'tour.steps.envelopesRow.title',
+    descKey: 'tour.steps.envelopesRow.desc',
+    badgeKey: 'tour.steps.envelopesRow.badge',
   },
   {
     id: 'payday-card',
@@ -48,12 +48,12 @@ export const TOUR_STEPS: Array<{
     badgeKey: 'tour.steps.payday.badge',
   },
   {
-    id: 'envelopes-bento',
+    id: 'afford-check',
     route: '/dashboard',
-    selector: '[data-tour="envelopes-bento"]',
-    titleKey: 'tour.steps.envelopes.title',
-    descKey: 'tour.steps.envelopes.desc',
-    badgeKey: 'tour.steps.envelopes.badge',
+    selector: '[data-tour="afford-check"]',
+    titleKey: 'tour.steps.affordCheck.title',
+    descKey: 'tour.steps.affordCheck.desc',
+    badgeKey: 'tour.steps.affordCheck.badge',
   },
   {
     id: 'quick-actions',

@@ -217,6 +217,17 @@ export function MobileBankAccountsSection() {
         </View>
       )}
 
+            {/* Tip Card: Shown ONLY when active accounts count is 1 */}
+      {accounts.length === 1 && (
+        <View style={styles.tipCard}>
+          <Feather name="info" size={16} color={DESIGN_TOKENS.colors.sereneBlue} style={{ marginTop: 2 }} />
+          <View style={{ flex: 1, gap: 2 }}>
+            <Text style={styles.tipCardTitle}>{t('bankAccounts.tipCardTitle')}</Text>
+            <Text style={styles.tipCardBody}>{t('bankAccounts.tipCardBody')}</Text>
+          </View>
+        </View>
+      )}
+
       {/* Bank Accounts List */}
       {bankAccountsQuery.isLoading ? (
         <ActivityIndicator color={DESIGN_TOKENS.colors.sereneBlue} style={styles.loader} />
@@ -391,6 +402,27 @@ export function MobileBankAccountsSection() {
 }
 
 const styles = StyleSheet.create({
+  tipCard: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    backgroundColor: '#EFF6FF',
+    borderRadius: DESIGN_TOKENS.radius.lg,
+    borderWidth: 1,
+    borderColor: '#BFDBFE',
+    padding: 12,
+    gap: 10,
+    marginBottom: 10,
+  },
+  tipCardTitle: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: DESIGN_TOKENS.colors.slate[900],
+  },
+  tipCardBody: {
+    fontSize: 11,
+    color: DESIGN_TOKENS.colors.slate[600],
+    lineHeight: 16,
+  },
   container: {
     gap: 16,
     width: '100%',
