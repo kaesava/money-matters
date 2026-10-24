@@ -90,7 +90,7 @@ export default function ForgotPasswordPage() {
     if (!validation.success) {
       const formatted = validation.error.format();
       setFieldErrors({
-        otp: formatted.otp?._errors[0] ? t("auth.invalidOtpError") : undefined,
+        otp: formatted.otp?._errors[0] ? t("auth.invalidOtp") : undefined,
         password: formatted.password?._errors[0] ? t("auth.passwordTooShort") : undefined,
         confirmPassword: formatted.confirmPassword?._errors[0]
           ? (formatted.confirmPassword._errors[0] === "passwordsMustMatch"
@@ -110,15 +110,15 @@ export default function ForgotPasswordPage() {
       });
 
       if (res.error) {
-        throw new Error(res.error.message || t("auth.invalidOtpError"));
+        throw new Error(t("auth.invalidOtp"));
       }
 
       setStep("success");
       setTimeout(() => {
         router.push("/sign-in");
       }, 3000);
-    } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : t("auth.invalidOtpError"));
+    } catch (_err: unknown) {
+      setError(t("auth.invalidOtp"));
     } finally {
       setIsResetting(false);
     }

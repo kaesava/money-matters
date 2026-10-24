@@ -29,7 +29,7 @@ export function IncomeSplitHistoryRow({ item, onPress }: IncomeSplitHistoryRowPr
         <View style={styles.datesCol}>
           <Text style={styles.planDateText}>
             <Text style={styles.planDateLabel}>{t('paydayDrawer.incomeDate')}: </Text>
-            {formatDate(item.expectedDate)}
+            {formatDate(item.expectedDate || item.createdAt)}
           </Text>
           <Text style={styles.planDateText}>
             <Text style={styles.planDateLabel}>{t('paydayDrawer.incomeSplitDate')}: </Text>

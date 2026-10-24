@@ -11,7 +11,6 @@ import { BentoPoolsSection } from "./components/BentoPoolsSection";
 import { GoalsProgressStrip } from "./components/GoalsProgressStrip";
 import { NextPaydayCard, WebIncomeItem } from "./components/NextPaydayCard";
 import { AttentionItemsList, WebAttentionItem } from "./components/AttentionItemsList";
-import { MissingSchedulesBanner } from "./components/MissingSchedulesBanner";
 import { QuickActionDrawer } from "../../components/web/QuickExpenseDrawer";
 import { AffordCheckModal } from "../../components/web/AffordCheckModal";
 import { ReconciliationModal, PoolItem } from "../../components/ReconciliationModal";
@@ -414,12 +413,6 @@ export default function DashboardPage() {
           </button>
         </div>
       </div>
-
-
-      <MissingSchedulesBanner
-        incomeCount={incomeEventsQuery.data?.length ?? 0}
-        billsCount={expenseEventsQuery.data?.length ?? 0}
-      />
 
       {/* Row 1: Hero Balances (Left) + Goals Motivation (Right) */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">

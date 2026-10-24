@@ -85,7 +85,7 @@ export default function ForgotPasswordScreen() {
     if (!validation.success) {
       const formatted = validation.error.format();
       setFieldErrors({
-        otp: formatted.otp?._errors[0] ? t("auth.invalidOtpError") : undefined,
+        otp: formatted.otp?._errors[0] ? t("auth.invalidOtp") : undefined,
         password: formatted.password?._errors[0] ? t("auth.passwordTooShort") : undefined,
         confirmPassword: formatted.confirmPassword?._errors[0] ? t("auth.passwordsMustMatch") : undefined,
       });
@@ -101,14 +101,13 @@ export default function ForgotPasswordScreen() {
       });
 
       if (result.error) {
-        setError(result.error.message || t("auth.resetPasswordGenericError"));
+        setError(t("auth.invalidOtp"));
         return;
       }
 
       setStep("success");
-    } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : t("auth.resetPasswordGenericError");
-      setError(message);
+    } catch (_err: unknown) {
+      setError(t("auth.invalidOtp"));
     } finally {
       setIsResetting(false);
     }

@@ -156,7 +156,7 @@ export const paydayRouter = {
           incomeName: sql<string>`COALESCE(${incomeEvents.name}, ${incomeSources.name}, 'Income Deposit')`,
           receivingAccountName: bankAccounts.name,
           receivingAccountId: bankAccounts.id,
-          expectedDate: incomeEvents.expectedDate,
+          expectedDate: sql<string>`COALESCE(${incomeEvents.expectedDate}::text, ${incomeEvents.actualDate}::text, TO_CHAR(${allocationPlans.createdAt}, 'YYYY-MM-DD'))`,
           actualDate: incomeEvents.actualDate,
           note: incomeEvents.note,
         })

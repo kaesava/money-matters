@@ -97,14 +97,14 @@ export default function AppLayout() {
   React.useEffect(() => {
     if (
       session?.user &&
-      !userPrefQuery.isLoading &&
-      userPrefQuery.data &&
-      userPrefQuery.data.setupCompleted === false &&
+      !tenantStatusQuery.isLoading &&
+      tenantStatusQuery.data &&
+      tenantStatusQuery.data.setupCompleted === false &&
       !(segments as string[]).includes('(setup)')
     ) {
       router.replace('/(setup)/income' as Href);
     }
-  }, [session?.user, userPrefQuery.isLoading, userPrefQuery.data?.setupCompleted, segments, router]);
+  }, [session?.user, tenantStatusQuery.isLoading, tenantStatusQuery.data?.setupCompleted, segments, router]);
 
   // Automatically register device push token upon authenticated layout mount & handle foreground notifications
   usePushNotifications(

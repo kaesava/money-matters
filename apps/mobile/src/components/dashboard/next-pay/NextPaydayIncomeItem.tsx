@@ -59,15 +59,6 @@ export const NextPaydayIncomeItem: React.FC<NextPaydayIncomeItemProps> = ({
         {item.bankAccountName ? (
           <Text style={styles.bankAccountText}>
             {item.bankAccountName}
-            {item.availableToBudget !== undefined && item.availableToBudget !== null && (
-              <>
-                {' · '}
-                <Text style={styles.budgetAmount}>
-                  {formatAUD(item.availableToBudget)}
-                </Text>
-                {' '}{t('dashboard.availableToBudget')}
-              </>
-            )}
           </Text>
         ) : null}
       </View>

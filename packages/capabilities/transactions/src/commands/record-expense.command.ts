@@ -32,7 +32,41 @@ export async function recordExpenseCommand(
       throw new Error("Unauthorized: Cannot record expenses against partner's private envelope.");
     }
 
-    // 2. Insert expense ledger debit
+    // 2. Validate sufficient envelope balance for immediate debits
+    const numAmount = parseFloat(input.amount);
+    if ((input.flowType || "DEBIT") === "DEBIT" && numAmount > 0) {
+      const existingTxs = await tx
+        .select({
+          amount: transactionLedger.amount,
+          flowType: transactionLedger.flowType,
+        })
+        .from(transactionLedger)
+        .where(
+          and(
+            eq(transactionLedger.envelopeId, input.envelopeId),
+            eq(transactionLedger.tenantId, tenantId),
+            eq(transactionLedger.appId, appId)
+          )
+        );
+
+      let currentBalance = 0;
+      for (const t of existingTxs) {
+        const val = parseFloat(t.amount);
+        if (t.flowType === "CREDIT") {
+          currentBalance += val;
+        } else {
+          currentBalance -= val;
+        }
+      }
+
+      if (numAmount > currentBalance) {
+        throw new Error(
+          `Insufficient envelope balance. Available: $${currentBalance.toFixed(2)}, requested: $${numAmount.toFixed(2)}`
+        );
+      }
+    }
+
+    // 3. Insert expense ledger debit
     const [expense] = await tx
       .insert(transactionLedger)
       .values({

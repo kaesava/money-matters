@@ -16,9 +16,16 @@ export function fmtDate(
   try {
     let dateObj: Date;
     if (typeof input === "string") {
-      // Handle YYYY-MM-DD string without UTC offset interpretation shift
-      if (/^\d{4}-\d{2}-\d{2}$/.test(input)) {
-        const [year, month, day] = input.split("-").map(Number);
+      const trimmed = input.trim();
+      // If already in DD/MM/YYYY format, parse directly without invalid Date conversion
+      if (/^\d{2}\/\d{2}\/\d{4}$/.test(trimmed)) {
+        const [day, month, year] = trimmed.split("/").map(Number);
+        dateObj = new Date(Date.UTC(year, month - 1, day, 12, 0, 0));
+      } else if (/^\d{4}\/\d{2}\/\d{2}$/.test(trimmed)) {
+        const [year, month, day] = trimmed.split("/").map(Number);
+        dateObj = new Date(Date.UTC(year, month - 1, day, 12, 0, 0));
+      } else if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) {
+        const [year, month, day] = trimmed.split("-").map(Number);
         dateObj = new Date(Date.UTC(year, month - 1, day, 12, 0, 0));
       } else {
         dateObj = new Date(input);
@@ -53,8 +60,15 @@ export function fmtDateMedium(
   try {
     let dateObj: Date;
     if (typeof input === "string") {
-      if (/^\d{4}-\d{2}-\d{2}$/.test(input)) {
-        const [year, month, day] = input.split("-").map(Number);
+      const trimmed = input.trim();
+      if (/^\d{2}\/\d{2}\/\d{4}$/.test(trimmed)) {
+        const [day, month, year] = trimmed.split("/").map(Number);
+        dateObj = new Date(Date.UTC(year, month - 1, day, 12, 0, 0));
+      } else if (/^\d{4}\/\d{2}\/\d{2}$/.test(trimmed)) {
+        const [year, month, day] = trimmed.split("/").map(Number);
+        dateObj = new Date(Date.UTC(year, month - 1, day, 12, 0, 0));
+      } else if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) {
+        const [year, month, day] = trimmed.split("-").map(Number);
         dateObj = new Date(Date.UTC(year, month - 1, day, 12, 0, 0));
       } else {
         dateObj = new Date(input);

@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
-import { View, StyleSheet, ScrollView } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, ScrollView } from 'react-native';
 import { useRouter, Href } from 'expo-router';
+import { Feather } from '@expo/vector-icons';
 import { t } from '@money-matters/i18n';
-import { SegmentedTabs, showMobileConfirm, useMobileToast } from '@money-matters/ui/mobile';
+import { SegmentedTabs, DESIGN_TOKENS, showMobileConfirm, useMobileToast } from '@money-matters/ui/mobile';
 import { authClient } from '../../lib/auth';
 import { setActiveSessionToken, setActiveTenantId, trpc } from '../../lib/trpc';
 import * as SecureStore from 'expo-secure-store';
@@ -23,7 +24,6 @@ import { useMobileProductTour } from '../../context/ProductTourContext';
 
 import { SettingsNotificationsCard } from '../../components/settings/layout/SettingsNotificationsCard';
 import { SettingsActiveHouseholdCard } from '../../components/settings/layout/SettingsActiveHouseholdCard';
-import { SettingsHeaderActions } from '../../components/settings/layout/SettingsHeaderActions';
 import { SettingsVersionFooter } from '../../components/settings/layout/SettingsVersionFooter';
 import { useSettingsTabManagement, SettingsTab } from '../../components/settings/layout/useSettingsTabManagement';
 
@@ -111,22 +111,14 @@ export default function SettingsScreen() {
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
         >
-          {/* Top 5-Tab Segmented Control with right-aligned actions */}
-          <View style={styles.tabsHeaderRow}>
-            <View style={styles.tabsWrapper}>
-              <SegmentedTabs
-                tabs={tabs}
-                activeKey={activeTab}
-                onChange={handleTabChange}
-                scrollable={true}
-                style={styles.segmentedTabs}
-              />
-            </View>
-            <SettingsHeaderActions
-              loading={loading}
-              onOpenFeedback={() => setFeedbackVisible(true)}
-              onSignOut={handleSignOut}
-              onStartTour={startTour}
+          {/* Top 5-Tab Segmented Control (Full Width) */}
+          <View style={styles.tabsWrapper}>
+            <SegmentedTabs
+              tabs={tabs}
+              activeKey={activeTab}
+              onChange={handleTabChange}
+              scrollable={true}
+              style={styles.segmentedTabs}
             />
           </View>
 
@@ -189,6 +181,42 @@ export default function SettingsScreen() {
             </View>
           )}
 
+          {/* Help & Support Section */}
+          <View style={styles.helpSection}>
+            <TouchableOpacity
+              style={styles.helpRowBtn}
+              onPress={startTour}
+              activeOpacity={0.7}
+            >
+              <Feather name="help-circle" size={16} color={DESIGN_TOKENS.colors.sereneBlue} />
+              <Text style={styles.helpRowText}>{t('tour.settings.revisitTour')}</Text>
+              <Feather name="chevron-right" size={16} color={DESIGN_TOKENS.colors.slate[400]} />
+            </TouchableOpacity>
+
+            <View style={styles.helpDivider} />
+
+            <TouchableOpacity
+              style={styles.helpRowBtn}
+              onPress={() => setFeedbackVisible(true)}
+              activeOpacity={0.7}
+            >
+              <Feather name="message-square" size={16} color={DESIGN_TOKENS.colors.sereneBlue} />
+              <Text style={styles.helpRowText}>{t('settings.reportBugLink')}</Text>
+              <Feather name="chevron-right" size={16} color={DESIGN_TOKENS.colors.slate[400]} />
+            </TouchableOpacity>
+          </View>
+
+          {/* Sign Out CTA */}
+          <TouchableOpacity
+            style={styles.signOutButton}
+            onPress={handleSignOut}
+            disabled={loading}
+            activeOpacity={0.8}
+          >
+            <Feather name="log-out" size={16} color={DESIGN_TOKENS.colors.critical} />
+            <Text style={styles.signOutButtonText}>{t('settings.signOut')}</Text>
+          </TouchableOpacity>
+
           {/* Inconspicuous Version Footer */}
           <SettingsVersionFooter
             onCopyDiagnostics={handleCopyDiagnostics}
@@ -220,17 +248,55 @@ const styles = StyleSheet.create({
   tabSection: {
     gap: 14,
   },
-  tabsHeaderRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 14,
-    gap: 8,
-  },
   tabsWrapper: {
-    flex: 1,
-    minWidth: 0,
+    width: '100%',
+    marginBottom: 14,
   },
   segmentedTabs: {
     marginBottom: 0,
+  },
+  helpSection: {
+    backgroundColor: DESIGN_TOKENS.colors.surface,
+    borderRadius: DESIGN_TOKENS.radius.lg,
+    borderWidth: 1,
+    borderColor: DESIGN_TOKENS.colors.slate[200],
+    marginTop: 20,
+    overflow: 'hidden',
+  },
+  helpRowBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    gap: 12,
+  },
+  helpRowText: {
+    flex: 1,
+    fontSize: 14,
+    fontWeight: '600',
+    color: DESIGN_TOKENS.colors.slate[800],
+  },
+  helpDivider: {
+    height: 1,
+    backgroundColor: DESIGN_TOKENS.colors.slate[100],
+    marginLeft: 44,
+  },
+  signOutButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: DESIGN_TOKENS.colors.surface,
+    borderRadius: DESIGN_TOKENS.radius.lg,
+    borderWidth: 1,
+    borderColor: '#FECDD3',
+    paddingVertical: 13,
+    marginTop: 12,
+    marginBottom: 8,
+    gap: 8,
+  },
+  signOutButtonText: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: DESIGN_TOKENS.colors.critical,
   },
 });

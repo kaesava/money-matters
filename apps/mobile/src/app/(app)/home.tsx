@@ -11,7 +11,6 @@ import { MobileNextPaydayCard } from '../../components/dashboard/MobileNextPayda
 import { AttentionItemsList } from '../../components/AttentionItemsList';
 import { GoalsProgressStrip } from '../../components/dashboard/GoalsProgressStrip';
 import { TrialBanner } from '../../components/dashboard/TrialBanner';
-import { MobileMissingSchedulesBanner } from '../../components/dashboard/MobileMissingSchedulesBanner';
 import { MarkPaidModal } from '../../components/MarkPaidModal';
 import { QuickExpenseModal } from '../../components/QuickExpenseModal';
 import { MobileAffordCheckModal } from '../../components/afford-check/MobileAffordCheckModal';
@@ -99,10 +98,6 @@ export default function HomeScreen() {
           />
         }
       >
-        <MobileMissingSchedulesBanner
-          incomeCount={incomeCount}
-          billsCount={billsCount}
-        />
 
         <DashboardHeroCard
           everydayBalance={everydayBalance}

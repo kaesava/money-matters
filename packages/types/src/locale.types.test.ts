@@ -39,6 +39,9 @@ describe("Locale and Currency Types", () => {
 
     expect(COUNTRY_DEFAULTS.US.currency).toBe("USD");
     expect(COUNTRY_DEFAULTS.GB.currency).toBe("GBP");
+    expect(COUNTRY_DEFAULTS.OT.currency).toBe("AUD");
+    expect(COUNTRY_DEFAULTS.OT.timezone).toBe("Australia/Sydney");
+    expect(COUNTRY_DEFAULTS.OT.locale).toBe("en-AU");
   });
 
   it("has top-level default fallbacks", () => {

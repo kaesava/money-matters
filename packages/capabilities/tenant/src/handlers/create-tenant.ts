@@ -187,13 +187,10 @@ export function createTenantHandler(db: DbOrTx) {
 
         // 4. Bulk-insert default Envelopes on Primary Account in one statement.
     const defaultEnvelopes = [
-      { name: "Everyday Spending", envelopeType: "EVERYDAY" as const, monthlyAmount: "1000.00", orderIndex: 0 },
-      { name: "Groceries & Food", envelopeType: "EVERYDAY" as const, monthlyAmount: "1170.00", orderIndex: 1 },
-      { name: "Dining Out & Coffee", envelopeType: "EVERYDAY" as const, monthlyAmount: "1040.00", orderIndex: 2 },
-      { name: "Petrol & Fuel", envelopeType: "EVERYDAY" as const, monthlyAmount: "260.00", orderIndex: 3 },
-      { name: "Rent & Housing", envelopeType: "SCHEDULED_BILL" as const, monthlyAmount: "2400.00", enteredAmount: "2400.00", budgetFrequency: "MONTHLY", isEssential: true, orderIndex: 4 },
-      { name: "Electricity & Utilities", envelopeType: "SCHEDULED_BILL" as const, monthlyAmount: "300.00", enteredAmount: "300.00", budgetFrequency: "MONTHLY", isEssential: true, orderIndex: 5 },
-      { name: "Emergency Reserve", envelopeType: "ONGOING_GOAL" as const, targetAmount: "10000.00", isCommitted: true, isSurplusTarget: true, orderIndex: 6 },
+      { name: "Everyday Spending", envelopeType: "EVERYDAY" as const, monthlyAmount: "1000.00", isPrivate: false, orderIndex: 0 },
+      { name: "Rent & Housing", envelopeType: "SCHEDULED_BILL" as const, monthlyAmount: "2400.00", enteredAmount: "2400.00", budgetFrequency: "MONTHLY", isEssential: true, orderIndex: 1 },
+      { name: "Electricity & Utilities", envelopeType: "SCHEDULED_BILL" as const, monthlyAmount: "300.00", enteredAmount: "300.00", budgetFrequency: "MONTHLY", isEssential: true, orderIndex: 2 },
+      { name: "Emergency Reserve", envelopeType: "ONGOING_GOAL" as const, targetAmount: "10000.00", isCommitted: true, isSurplusTarget: true, orderIndex: 3 },
     ];
 
     await db.insert(envelopes).values(

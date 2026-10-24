@@ -4,7 +4,7 @@ import React, { useState } from "react";
 import Link from "next/link";
 import { t } from "@money-matters/i18n";
 import { Button, FormLabel, FormFieldError, FormErrorBanner } from "@money-matters/ui/web";
-import { SUPPORTED_COUNTRIES, COMMON_TIMEZONES, SignUpInputSchema, isValidEmail, getCountryDefaults, detectBestGuessCountry } from "@money-matters/types";
+import { SUPPORTED_COUNTRIES, SignUpInputSchema, isValidEmail, getCountryDefaults, detectBestGuessCountry } from "@money-matters/types";
 import { authClient } from "../../lib/auth";
 import { trpc } from "../../lib/trpc";
 import { PasswordStrengthIndicator } from "./PasswordStrengthIndicator";
@@ -255,43 +255,23 @@ export function SignUpForm({
         <FormFieldError error={fieldErrors.name} />
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-        <div>
-          <FormLabel required={true} htmlFor="signup-country">
-            {t("auth.countryLabel")}
-          </FormLabel>
-          <select
-            id="signup-country"
-            value={country}
-            onChange={(e) => handleCountryChange(e.target.value)}
-            className="w-full px-3.5 py-2.5 text-sm rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-[#2563eb] bg-white text-slate-900"
-          >
-            {SUPPORTED_COUNTRIES.map((c) => (
-              <option key={c.code} value={c.code}>
-                {c.flag} {c.name}
-              </option>
-            ))}
-          </select>
-          <FormFieldError error={fieldErrors.country} />
-        </div>
-
-        <div>
-          <FormLabel required={true} htmlFor="signup-timezone">
-            {t("settings.timezone")}
-          </FormLabel>
-          <select
-            id="signup-timezone"
-            value={timezone}
-            onChange={(e) => setTimezone(e.target.value)}
-            className="w-full px-3.5 py-2.5 text-sm rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-[#2563eb] bg-white text-slate-900"
-          >
-            {COMMON_TIMEZONES.map((tz) => (
-              <option key={tz.value} value={tz.value}>
-                {tz.label}
-              </option>
-            ))}
-          </select>
-        </div>
+      <div>
+        <FormLabel required={true} htmlFor="signup-country">
+          {t("auth.countryLabel")}
+        </FormLabel>
+        <select
+          id="signup-country"
+          value={country}
+          onChange={(e) => handleCountryChange(e.target.value)}
+          className="w-full px-3.5 py-2.5 text-sm rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-[#2563eb] bg-white text-slate-900"
+        >
+          {SUPPORTED_COUNTRIES.map((c) => (
+            <option key={c.code} value={c.code}>
+              {c.flag} {c.name}
+            </option>
+          ))}
+        </select>
+        <FormFieldError error={fieldErrors.country} />
       </div>
 
       <div>

@@ -30,12 +30,20 @@ describe("transactions capability", () => {
     ).rejects.toThrow("Envelope target invalid or access unauthorized.");
   });
 
-  it("records an expense debit successfully", async () => {
+  it("records an expense debit successfully when sufficient balance exists", async () => {
     const mockExpense = { id: "tx-1", envelopeId: "p-123", amount: "50.00" };
+    let selectCount = 0;
     const mockTx = {
       select: vi.fn().mockReturnValue({
         from: vi.fn().mockReturnValue({
-          where: vi.fn().mockResolvedValue([{ id: "p-123", tenantId }]),
+          where: vi.fn().mockImplementation(() => {
+            selectCount++;
+            if (selectCount === 1) {
+              return Promise.resolve([{ id: "p-123", tenantId }]);
+            }
+            // Return existing credit transaction giving balance of 100.00
+            return Promise.resolve([{ amount: "100.00", flowType: "CREDIT" }]);
+          }),
         }),
       }),
       insert: vi.fn().mockReturnValue({
@@ -57,5 +65,36 @@ describe("transactions capability", () => {
     );
 
     expect(result).toEqual(mockExpense);
+  });
+
+  it("rejects immediate expense debit when insufficient balance exists", async () => {
+    let selectCount = 0;
+    const mockTx = {
+      select: vi.fn().mockReturnValue({
+        from: vi.fn().mockReturnValue({
+          where: vi.fn().mockImplementation(() => {
+            selectCount++;
+            if (selectCount === 1) {
+              return Promise.resolve([{ id: "p-123", tenantId }]);
+            }
+            // Return existing balance of only 20.00
+            return Promise.resolve([{ amount: "20.00", flowType: "CREDIT" }]);
+          }),
+        }),
+      }),
+    };
+    const mockDb = {
+      transaction: vi.fn().mockImplementation(async (cb: (tx: unknown) => Promise<unknown>) => cb(mockTx)),
+    } as unknown as DbOrTx;
+
+    await expect(
+      recordExpenseCommand(
+        { envelopeId: "p-123", amount: "50.00", flowType: "DEBIT", source: "MANUAL" },
+        tenantId,
+        appId,
+        userId,
+        mockDb
+      )
+    ).rejects.toThrow("Insufficient envelope balance");
   });
 });

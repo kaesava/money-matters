@@ -93,12 +93,6 @@ export const AttentionItemsList: React.FC<WebAttentionItemsListProps> = ({
               content={t("dashboard.upcomingExpensesTransfers.tooltip")}
             />
           </div>
-          <Link
-            href="/dashboard/income-and-bills?tab=EVENTS"
-            className="text-xs font-bold text-blue-600 hover:text-blue-700 transition-colors"
-          >
-            {t("common.showMore")}
-          </Link>
         </div>
         <p className="text-xs text-gray-400 py-4 text-center">
           {t("dashboard.upcomingExpensesTransfers.empty")}
@@ -131,12 +125,14 @@ export const AttentionItemsList: React.FC<WebAttentionItemsListProps> = ({
             content={t("dashboard.upcomingExpensesTransfers.tooltip")}
           />
         </div>
-        <Link
-          href="/dashboard/income-and-bills?tab=EVENTS"
-          className="text-xs font-bold text-blue-600 hover:text-blue-700 transition-colors"
-        >
-          {t("common.showMore")}
-        </Link>
+        {items.length > 3 && (
+          <Link
+            href="/dashboard/income-and-bills?tab=EVENTS"
+            className="text-xs font-bold text-blue-600 hover:text-blue-700 transition-colors"
+          >
+            {t("common.showMore")}
+          </Link>
+        )}
       </div>
 
       <div className="space-y-3">

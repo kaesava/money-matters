@@ -94,6 +94,7 @@ export const COUNTRY_DEFAULTS: Record<string, CountryDefaults> = {
   CA: { country: "CA", currency: "CAD", timezone: "America/Toronto", locale: "en-CA", phoneCountryCode: "+1" },
   JP: { country: "JP", currency: "JPY", timezone: "Asia/Tokyo", locale: "ja-JP", phoneCountryCode: "+81" },
   SG: { country: "SG", currency: "SGD", timezone: "Asia/Singapore", locale: "en-SG", phoneCountryCode: "+65" },
+  OT: { country: "OT", currency: "AUD", timezone: "Australia/Sydney", locale: "en-AU", phoneCountryCode: "+61" },
 };
 
 export const DEFAULT_COUNTRY = "AU";
@@ -116,6 +117,7 @@ export const SUPPORTED_COUNTRIES: CountryOption[] = [
   { code: "CA", name: "Canada", flag: "🇨🇦" },
   { code: "SG", name: "Singapore", flag: "🇸🇬" },
   { code: "JP", name: "Japan", flag: "🇯🇵" },
+  { code: "OT", name: "Other", flag: "🌐" },
 ];
 
 export function getCountryDefaults(countryCode: string): CountryDefaults {

@@ -65,16 +65,12 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   }, [userLocale]);
 
 
-  // Setup & Tenant Guards: redirect to /setup/household if user has no tenant, or /setup if setup is pending
+  // Setup Guard: redirect to /setup if setup is pending
   useEffect(() => {
     if (isPending || !session?.user || tenantStatusQuery.isLoading) return;
 
     if (tenantStatusQuery.data) {
-      if (!tenantStatusQuery.data.hasTenant && !pathname.startsWith("/setup/household")) {
-        router.replace("/setup/household");
-        return;
-      }
-      if (tenantStatusQuery.data.hasTenant && !tenantStatusQuery.data.setupCompleted && !pathname.startsWith("/setup")) {
+      if (!tenantStatusQuery.data.setupCompleted && !pathname.startsWith("/setup")) {
         router.replace("/setup");
       }
     }

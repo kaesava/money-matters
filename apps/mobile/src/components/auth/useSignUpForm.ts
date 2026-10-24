@@ -117,11 +117,6 @@ export function useSignUpForm() {
         return;
       }
 
-      await authClient.emailOtp.sendVerificationOtp({
-        email: normalizedEmail,
-        type: "email-verification",
-      });
-
       setPasswordForOtp(password);
       setUnverifiedEmail(normalizedEmail);
     } catch (err: unknown) {

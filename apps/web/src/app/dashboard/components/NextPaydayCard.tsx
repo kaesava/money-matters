@@ -54,12 +54,6 @@ export const NextPaydayCard: React.FC<NextPaydayCardProps> = ({
           <div className="flex items-center gap-2">
             <h2 className="text-sm font-extrabold text-[#1B2B4B]">{t('dashboard.nextPay.upcomingIncome')}</h2>
           </div>
-          <Link
-            href="/dashboard/income-split"
-            className="text-xs font-bold text-blue-600 hover:text-blue-700 transition-colors"
-          >
-            {t('dashboard.nextPay.showMore')} →
-          </Link>
         </div>
         <p className="text-xs text-gray-400 py-4 text-center">{t('dashboard.nextPay.noUpcoming')}</p>
       </div>
@@ -76,12 +70,14 @@ export const NextPaydayCard: React.FC<NextPaydayCardProps> = ({
             {t('dashboard.nextPay.upcomingIncomeWithCount', { count: upcomingIncomes.length })}
           </h2>
         </div>
-        <Link
-          href="/dashboard/income-split"
-          className="text-xs font-bold text-blue-600 hover:text-blue-700 transition-colors"
-        >
-          {t('dashboard.nextPay.twelveMonthSplit')} →
-        </Link>
+        {upcomingIncomes.length > 3 && (
+          <Link
+            href="/dashboard/income-split"
+            className="text-xs font-bold text-blue-600 hover:text-blue-700 transition-colors"
+          >
+            {t('dashboard.nextPay.twelveMonthSplit')} →
+          </Link>
+        )}
       </div>
 
       <div className="space-y-3">
@@ -127,20 +123,14 @@ export const NextPaydayCard: React.FC<NextPaydayCardProps> = ({
                   )}
                 </div>
                 <p className="text-[11px] text-gray-500 font-mono">
-                  <span className="font-semibold text-gray-900">{format(income.amount)}</span> · {daysAwayText}{' '}
-                  {isOverdue && <strong className="font-extrabold text-rose-600 dark:text-rose-400">{t('common.overdue').toLowerCase()}{' '}</strong>}
+                  <span className="font-semibold text-gray-900">{format(income.amount)}</span>
+                  {daysAwayText && ` · ${daysAwayText}`}
+                  {isOverdue && <strong className="font-extrabold text-rose-600 dark:text-rose-400"> {t('common.overdue').toLowerCase()}</strong>}{' '}
                   ({formatLocaleDate(income.expectedDate)})
                 </p>
                 {income.bankAccountName && (
                   <p className="text-[11px] text-gray-500">
                     <span className="font-medium text-gray-700 dark:text-gray-300">{income.bankAccountName}</span>
-                    {income.availableToBudget !== undefined && income.availableToBudget !== null && (
-                      <>
-                        {' '}·{' '}
-                        <span className="font-mono font-medium text-gray-700 dark:text-gray-300">{format(income.availableToBudget)}</span>{' '}
-                        {t('dashboard.availableToBudget')}
-                      </>
-                    )}
                   </p>
                 )}
               </div>

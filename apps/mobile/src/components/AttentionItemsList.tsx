@@ -109,14 +109,16 @@ export const AttentionItemsList: React.FC<AttentionItemsListProps> = ({
               </Text>
             </View>
 
-            <TouchableOpacity
-              onPress={() => router.push('/(app)/upcoming' as Href)}
-              style={styles.showMoreBtn}
-              activeOpacity={0.7}
-            >
-              <Text style={styles.showMoreText}>{t('common.showMore')}</Text>
-              <Feather name="chevron-right" size={14} color={DESIGN_TOKENS.colors.accent} />
-            </TouchableOpacity>
+            {items.length > 3 && (
+              <TouchableOpacity
+                onPress={() => router.push('/(app)/upcoming' as Href)}
+                style={styles.showMoreBtn}
+                activeOpacity={0.7}
+              >
+                <Text style={styles.showMoreText}>{t('common.showMore')}</Text>
+                <Feather name="chevron-right" size={14} color={DESIGN_TOKENS.colors.accent} />
+              </TouchableOpacity>
+            )}
           </View>
 
           <View style={styles.listWrap}>

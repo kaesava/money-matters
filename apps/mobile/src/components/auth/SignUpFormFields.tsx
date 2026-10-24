@@ -6,7 +6,7 @@ import {
   MobileInput,
   FormLabel,
 } from "@money-matters/ui/mobile";
-import { SUPPORTED_COUNTRIES, COMMON_TIMEZONES } from "@money-matters/types";
+import { SUPPORTED_COUNTRIES } from "@money-matters/types";
 import { MobilePasswordStrength } from "./MobilePasswordStrength";
 
 interface SignUpFormFieldsProps {
@@ -18,8 +18,8 @@ interface SignUpFormFieldsProps {
   onCountryChange: (v: string) => void;
   currency?: string;
   setCurrency?: (v: string) => void;
-  timezone: string;
-  setTimezone: (v: string) => void;
+  timezone?: string;
+  setTimezone?: (v: string) => void;
   password: string;
   setPassword: (v: string) => void;
   confirmPassword: string;
@@ -91,28 +91,6 @@ export function SignUpFormFields({
                 <Text style={styles.countryFlag}>{c.flag}</Text>
                 <Text style={[styles.countryText, isSelected && styles.countryTextSelected]}>
                   {c.name}
-                </Text>
-              </TouchableOpacity>
-            );
-          })}
-        </ScrollView>
-      </View>
-
-      {/* Timezone Selector */}
-
-      <View style={styles.inputGroup}>
-        <FormLabel required={true}>{t("settings.timezone")}</FormLabel>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.countryRow}>
-          {COMMON_TIMEZONES.map((tz) => {
-            const isSelected = timezone === tz.value;
-            return (
-              <TouchableOpacity
-                key={tz.value}
-                onPress={() => setTimezone(tz.value)}
-                style={[styles.countryChip, isSelected && styles.countryChipSelected]}
-              >
-                <Text style={[styles.countryText, isSelected && styles.countryTextSelected]}>
-                  {tz.label}
                 </Text>
               </TouchableOpacity>
             );

@@ -24,7 +24,7 @@ export function useQuickExpenseSubmissions({
   const router = useRouter();
   const toast = useMobileToast();
 
-  const handleExpenseSubmit = async (skipBalanceCheck = false) => {
+  const handleExpenseSubmit = async () => {
     state.setGeneralError('');
     const numAmount = parseFloat(state.amount);
     const selectedPool = state.pools.find((p) => p.id === state.selectedPoolId);
@@ -33,14 +33,14 @@ export function useQuickExpenseSubmissions({
         ? selectedPool.currentBalance
         : parseFloat(String(selectedPool?.currentBalance || '0'));
 
-    if (!skipBalanceCheck && state.date <= state.todayStr && numAmount > poolBal && selectedPool) {
-      showMobileConfirm({
-        title: t('incomeBillsTabs.insufficientModalTitle'),
-        message: `Expense of ${formatAUD(numAmount)} exceeds available "${selectedPool.name}" pool balance (${formatAUD(poolBal)}). Proceed?`,
-        confirmText: t('common.confirm'),
-        isDestructive: false,
-        onConfirm: () => handleExpenseSubmit(true),
-      });
+    if (state.date <= state.todayStr && numAmount > poolBal && selectedPool) {
+      state.setGeneralError(
+        t('modals.transfer.insufficientBalanceWarning', {
+          poolName: selectedPool.name,
+          available: formatAUD(poolBal),
+          amount: formatAUD(numAmount),
+        })
+      );
       return;
     }
 

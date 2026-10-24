@@ -128,9 +128,7 @@ export function calculateQuizEstimates(answers: QuizAnswers): EstimationResult {
     }
     goalSinkingFunds.push({ name: "Emergency Buffer Fund", type: "GOAL", monthlyAud: 0, icon: "shield", isCommitted: true });
 
-    everydayCategories.push({ name: "Groceries & Supermarket", type: "EVERYDAY", monthlyAud: monthlyGroceries, icon: "shopping-cart" });
-    everydayCategories.push({ name: "Eating Out & Takeaway", type: "EVERYDAY", monthlyAud: monthlyDining, icon: "utensils" });
-    everydayCategories.push({ name: "Personal & Entertainment", type: "EVERYDAY", monthlyAud: monthlyPersonal, icon: "ticket" });
+    everydayCategories.push({ name: "Everyday Spending", type: "EVERYDAY", monthlyAud: monthlyEverydayTotal, icon: "wallet" });
 
     let totalMonthlyIncome = 0;
     answers.incomes.forEach((inc) => {
@@ -300,15 +298,17 @@ export function calculateQuizEstimates(answers: QuizAnswers): EstimationResult {
   const monthlyPersonal = Math.round(weeklyP * (52 / 12));
   const monthlyIncidental = Math.round(weeklyM * (52 / 12));
 
-  everydayCategories.push({ name: "Groceries & Supermarket", type: "EVERYDAY", monthlyAud: monthlyGroceries, icon: "🛒", rationale: `Calculated from your weekly grocery slider answer ($${weeklyG}/wk).` });
-  everydayCategories.push({ name: "Eating Out & Takeaway", type: "EVERYDAY", monthlyAud: monthlyDining, icon: "🍔", rationale: `Calculated from your weekly dining slider answer ($${weeklyD}/wk).` });
-  everydayCategories.push({ name: "Personal & Entertainment", type: "EVERYDAY", monthlyAud: monthlyPersonal, icon: "🎟️", rationale: `Calculated from your weekly personal spend slider answer ($${weeklyP}/wk).` });
-  everydayCategories.push({ name: "Everyday Incidentals", type: "EVERYDAY", monthlyAud: monthlyIncidental, icon: "☕", rationale: `Estimated 5-15% incidental buffer for un-budgeted micro-purchases.` });
-
   const monthlyEverydayTotal = monthlyGroceries + monthlyDining + monthlyPersonal + monthlyIncidental;
+  everydayCategories.push({
+    name: "Everyday Spending",
+    type: "EVERYDAY",
+    monthlyAud: monthlyEverydayTotal,
+    icon: "💳",
+    rationale: "Combined daily expenses (groceries, dining, personal, incidentals) for friction-free spending.",
+  });
 
   const everydayPool: EstimatedCategoryItem = {
-    name: "Everyday Spending Pool",
+    name: "Everyday Spending",
     type: "EVERYDAY",
     monthlyAud: monthlyEverydayTotal,
     icon: "💳",

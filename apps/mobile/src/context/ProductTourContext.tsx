@@ -85,6 +85,7 @@ export function MobileProductTourProvider({ children }: { children: ReactNode })
   const utils = trpc.useUtils();
 
   const userPrefQuery = trpc.getUserPreferences.useQuery(undefined);
+  const tenantStatusQuery = trpc.getTenantStatus.useQuery(undefined);
   const updatePrefMutation = trpc.updateUserPreferences.useMutation();
 
   const [isTourActive, setIsTourActive] = useState(false);
@@ -93,17 +94,18 @@ export function MobileProductTourProvider({ children }: { children: ReactNode })
 
   // Check if tour should prompt on first home visit
   useEffect(() => {
-    if (!userPrefQuery.data || userPrefQuery.isLoading) return;
+    if (!userPrefQuery.data || userPrefQuery.isLoading || tenantStatusQuery.isLoading) return;
 
     const appId = userPrefQuery.data.appId;
     const currentAppPrefs = (userPrefQuery.data.appPreferences?.[appId] || {}) as Record<string, unknown>;
     const hasSeenTour = Boolean(currentAppPrefs.has_seen_product_tour);
     const isHomeScreen = segments.includes('home');
+    const isSetupCompleted = Boolean(tenantStatusQuery.data?.setupCompleted ?? userPrefQuery.data.setupCompleted);
 
     if (
       !hasSeenTour &&
       !hasDismissedRef.current &&
-      userPrefQuery.data.setupCompleted &&
+      isSetupCompleted &&
       isHomeScreen &&
       !isTourActive
     ) {
@@ -111,7 +113,7 @@ export function MobileProductTourProvider({ children }: { children: ReactNode })
       setCurrentStep(1);
       posthog.capture('tour_prompted');
     }
-  }, [userPrefQuery.data, userPrefQuery.isLoading, segments, isTourActive, posthog]);
+  }, [userPrefQuery.data, userPrefQuery.isLoading, tenantStatusQuery.data, tenantStatusQuery.isLoading, segments, isTourActive, posthog]);
 
   const saveTourStatus = useCallback(
     async (completed: boolean) => {

@@ -14,41 +14,6 @@
 # General
 
 
-# Register Tenant
-* Both: Include Country "Other". If user select "Other" as country, use Australia standards for currency symbol & format, date formats, etc.
-* Mobile: On registration, it didn't load the screen asking for 6 digit code. It just hung (though the email was triggered).
-* Both: Remove Time-zone from UI - and default it to the most likely time-zone based on country.
-
-# Sign-In
-* Web: When I signed in for the first time, I got taken to /setup/household, but during registration, I already picked a country, and the time-zone & currency must be based on country. The household name could default to Name's Household (so Jane Doe would be Jane Doe's household). Then, there is no need for this screen. Clean-up this code. Ensure defaults are set correctly - you may need to check timing and sequence of database udpates. Interestingly, when I log in for the first time on mobile, it simply logs me in - as it should.
-
-# Reset password
-* Both: Make error more meaningful when wrong code is entered, not "Invalid OTP" - re-use "The verification code you entered is incorrect or has expired. Please check your email and try again."
-
-# Tour (first time)
-* Mobile: the tour steps don't look right - they simply come up as bottom drawer, and don't point to what each tab does, etc.
-* Mobile: Also, it didn't trigger the tour when I logged in for the first time. Ensure capability & trigger are in parity with web app, including marking that tour completed for user for platform. Audit this capability in web and mobile thoroughly to ensure they are valid, point to the right part of the app, and are useful.
-
-# Home
-* Web: Remove this card "💡Add your expense schedule to protect upcoming expenses. Money Matters automatically allocates income into bills, savings, and everyday spending when pay dates are configured. ➕ Add Schedules Now →" and all associated logic. Cull un-used code.
-* Web: "Show more" should only be there if there are more than what is shown.
-* Web: "Income Name  Next Payday  $9.00 · Payday today! 🎉 (19/10/2026)  Other Financial Institution (Everyday) · $0.00 available to budget" looks too busy - remove amount available to budget. Remove "Payday today!"
-
-# Settings
-* Mobile: The tabs spill over and the tour, feedback and sign-out buttons look squashed - move them somewhere else that is makes sense - the UI needs to be clean.
-
-# Scheduled Bill Envelope (New/Update)
-* Both: When a new Scheduled Bill Envelope is created (either when a new tenant is created, during setup, during setup?mode=rerun, or when the user aborts setup),  if the amount is $0, don't show the Envelope in the Bill Schedules tab and don't explode. Otherwise explode. In some insteances, I noticed the start date (next date) is blank - set to reasonable default as it is required for explode.
-* Both: When an Scheduled Bill Envelope is updated (either from Envelopes or Income Schedules & Bills > Schedules), all Existing rules on preserving confirmed events and removing unconfirmed events still hold, but if amount is $0, don't show the Envelope in the Bill Schedules tab and don't explode.
-
-# Setup
-* Mobile: On first login, it didn't trigger setup. Ensure capability & trigger are in parity with web app, including marking that setup completed for tenant.
-
-# New tenant creation
-* Both: I noticed when a new tenant was setup, multiple everday envelopes were created. This violates our principle. We only one everyday envelope, and it should be share.
-
-## General
-
 
 
 #####################################

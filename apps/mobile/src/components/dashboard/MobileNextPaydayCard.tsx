@@ -94,7 +94,7 @@ export function MobileNextPaydayCard({
           </Text>
         </View>
 
-        {upcomingIncomes.length > 0 && (
+        {upcomingIncomes.length > 3 && (
           <View style={styles.headerLinksWrap}>
             <TouchableOpacity
               onPress={() => router.push('/(app)/income-split' as Href)}

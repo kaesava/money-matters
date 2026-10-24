@@ -31,9 +31,9 @@ function AuthCallbackContent() {
       return;
     }
 
-    // New OAuth users without a household tenant must first configure household details
-    if (session?.user && tenantStatusQuery.data && !tenantStatusQuery.data.hasTenant) {
-      window.location.href = "/setup/household";
+    // If setup pending, redirect to /setup; otherwise redirect to requested target or dashboard
+    if (session?.user && tenantStatusQuery.data && !tenantStatusQuery.data.setupCompleted) {
+      window.location.href = "/setup";
       return;
     }
 

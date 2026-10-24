@@ -540,7 +540,7 @@ function TransactionsPageContent() {
                   <tbody className="divide-y divide-zinc-100 text-xs">
                     {paginatedTransactions.map((tx) => (
                       <tr key={tx.id} className="hover:bg-slate-50/50 transition-colors">
-                        <td className="py-3 px-4 font-mono text-zinc-500 text-center">{fmtDate(tx.date)}</td>
+                        <td className="py-3 px-4 font-mono text-zinc-500 text-center">{tx.date}</td>
                         <td className="py-3 px-4 text-center text-zinc-600 dark:text-zinc-300 font-medium">
                           {getTransactionTypeLabel(tx.transactionType)}
                         </td>

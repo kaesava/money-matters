@@ -299,7 +299,7 @@ export function useQuickActionState(
     }
   }
 
-  function executeSubmit(skipBalanceCheck = false, skipSplit = false) {
+  function executeSubmit(_skipBalanceCheck = false, skipSplit = false) {
     setError(null);
 
     const amountNum = parseFloat(amount);
@@ -357,18 +357,16 @@ export function useQuickActionState(
         return;
       }
       const targetCat = categories.find((c) => c.id === categoryId);
-      if (targetCat && !isFutureDate && !skipBalanceCheck) {
+      if (targetCat && !isFutureDate) {
         const catBal = parseFloat(String(targetCat.currentBalance || "0"));
         if (amountNum > catBal) {
-          setConfirmState({
-            isOpen: true,
-            title: "Insufficient Pool Balance",
-            description: `Warning: Expense of $${amountNum.toFixed(2)} exceeds available "${targetCat.name}" pool balance ($${catBal.toFixed(2)}). Proceed?`,
-            onConfirm: () => {
-              setConfirmState(null);
-              executeSubmit(true, skipSplit);
-            },
-          });
+          setError(
+            t("modals.transfer.insufficientBalanceWarning", {
+              poolName: targetCat.name,
+              available: `$${catBal.toFixed(2)}`,
+              amount: `$${amountNum.toFixed(2)}`,
+            })
+          );
           return;
         }
       }
