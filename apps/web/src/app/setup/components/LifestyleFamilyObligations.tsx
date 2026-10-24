@@ -103,17 +103,17 @@ export function LifestyleFamilyObligations({
                     onChange={(e) => onUpdateChild(ch.id, "stage", e.target.value as SchoolStage)}
                     className="px-3 py-1.5 text-xs font-bold rounded-lg border border-zinc-200 bg-white"
                   >
-                    <option value="DAYCARE">Daycare / Infant</option>
-                    <option value="PRIMARY">Primary School</option>
-                    <option value="HIGH_SCHOOL">High School</option>
+                    <option value="DAYCARE">{t("setup.lifestyle.stageDaycare")}</option>
+                    <option value="PRIMARY">{t("setup.lifestyle.stagePrimary")}</option>
+                    <option value="HIGH_SCHOOL">{t("setup.lifestyle.stageHighSchool")}</option>
                   </select>
                   <select
                     value={ch.type}
                     onChange={(e) => onUpdateChild(ch.id, "type", e.target.value as SchoolType)}
                     className="px-3 py-1.5 text-xs font-bold rounded-lg border border-zinc-200 bg-white"
                   >
-                    <option value="PUBLIC">Public</option>
-                    <option value="PRIVATE">Private</option>
+                    <option value="PUBLIC">{t("setup.lifestyle.schoolPublic")}</option>
+                    <option value="PRIVATE">{t("setup.lifestyle.schoolPrivate")}</option>
                   </select>
                 </div>
               </div>
@@ -203,7 +203,7 @@ export function LifestyleFamilyObligations({
             </label>
             {hasPets && (
               <div className="flex items-center gap-2 mt-1">
-                <span className="text-xs font-bold">Count:</span>
+                <span className="text-xs font-bold">{t("common.count")}:</span>
                 <input
                   type="number"
                   min="1"

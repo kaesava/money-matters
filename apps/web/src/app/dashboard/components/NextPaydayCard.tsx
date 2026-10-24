@@ -3,7 +3,7 @@
 import React, { useMemo } from 'react';
 import Link from 'next/link';
 import { t } from '@money-matters/i18n';
-import { getEarliestPendingIncomeId } from '@money-matters/capability-budgeting';
+import { getEarliestPendingIncomeId } from '@money-matters/types';
 import { useLocale } from '../../../providers/LocaleProvider';
 
 export interface WebIncomeItem {

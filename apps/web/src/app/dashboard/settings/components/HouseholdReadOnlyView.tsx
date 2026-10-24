@@ -34,9 +34,9 @@ export function HouseholdReadOnlyView({
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <h2 className="text-base font-extrabold text-[#1B2B4B]">
-            Household Profile & Location
+            {t("settings.householdProfileAndLocation")}
           </h2>
-          <InfoTooltip content="Update your household name, base currency, and location details. Shared across household members." />
+          <InfoTooltip content={t("settings.householdProfileTooltip")} />
         </div>
 
         {isOwner && (
@@ -49,7 +49,7 @@ export function HouseholdReadOnlyView({
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div className="p-3.5 bg-slate-50/70 border border-slate-200/80 rounded-xl flex flex-col gap-1">
           <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">
-            Household Name
+            {t("settings.householdNameLabel")}
           </span>
           <span className="text-xs font-semibold text-[#1B2B4B]">
             {householdName || "—"}
@@ -76,7 +76,7 @@ export function HouseholdReadOnlyView({
 
         <div className="p-3.5 bg-slate-50/70 border border-slate-200/80 rounded-xl flex flex-col gap-1">
           <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">
-            Country
+            {t("settings.countryLabel")}
           </span>
           <span className="text-xs font-semibold text-[#1B2B4B]">
             {countryConfig ? `${countryConfig.flag} ${countryConfig.name}` : country}

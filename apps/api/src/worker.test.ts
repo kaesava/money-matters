@@ -87,5 +87,38 @@ describe('API Worker - Correlation ID and Endpoints', () => {
     expect(res.status).toBe(204);
     expect(res.headers.get('x-correlation-id')).toBe('cors-test-id');
   });
+
+  it('rejects Stripe webhook without signature with HTTP 400 Bad Request', async () => {
+    const req = new Request('https://api.moneymatters.kaesava.au/webhooks/stripe', {
+      method: 'POST',
+      body: JSON.stringify({ type: 'customer.subscription.updated' }),
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+    const res = await worker.fetch(req, mockEnv, mockCtx);
+    expect(res.status).toBe(400);
+    const body = (await res.json()) as { error: string };
+    expect(body.error).toContain('Missing stripe-signature or webhook secret');
+  });
+
+  it('rejects Stripe webhook with invalid signature with HTTP 400 Bad Request', async () => {
+    const req = new Request('https://api.moneymatters.kaesava.au/webhooks/stripe', {
+      method: 'POST',
+      body: JSON.stringify({ type: 'customer.subscription.updated' }),
+      headers: {
+        'Content-Type': 'application/json',
+        'stripe-signature': 't=12345,v1=invalidsig',
+      },
+    });
+    const res = await worker.fetch(
+      req,
+      { ...mockEnv, STRIPE_WEBHOOK_SECRET: 'whsec_test', STRIPE_SECRET_KEY: 'sk_test_12345' },
+      mockCtx
+    );
+    expect(res.status).toBe(400);
+    const body = (await res.json()) as { error: string };
+    expect(body.error).toContain('Stripe webhook signature verification failed');
+  });
 });
 

@@ -1,6 +1,5 @@
 import { privateTenantProcedure, requiresWriteAccess } from '../trpc/trpc.js';
 import { posthog } from '../lib/posthog.js';
-import { inngest } from '../inngest/client.js';
 import {
   recordExpenseCommand,
   listTransactionsQuery,
@@ -20,21 +19,6 @@ export const transactionsRouter = {
     .mutation(async ({ input, ctx }) => {
       requiresWriteAccess(ctx);
       const result = await recordExpenseCommand(input, ctx.tenantId!, ctx.appId!, ctx.userId!, ctx.db);
-      
-      if (inngest) {
-        await inngest.send({
-          name: 'transaction/recorded',
-          data: {
-            tenantId: ctx.tenantId!,
-            appId: ctx.appId!,
-            envelopeId: input.envelopeId,
-            amount: input.amount,
-            note: input.note,
-          },
-        }).catch((err) => {
-          console.error('[Inngest] Failed to dispatch transaction/recorded event:', err);
-        });
-      }
 
       if (posthog && ctx.userId) {
         posthog.capture({

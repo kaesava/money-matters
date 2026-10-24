@@ -92,7 +92,7 @@ export function MobilePlanPickerModal({
             <Text style={styles.planHeading}>{t('subscription.householdPlanName')}</Text>
             {billingCycle === 'annual' && (
               <View style={styles.discountBadge}>
-                <Text style={styles.discountBadgeText}>22% OFF</Text>
+                <Text style={styles.discountBadgeText}>{t('subscription.annualDiscountBadge')}</Text>
               </View>
             )}
           </View>

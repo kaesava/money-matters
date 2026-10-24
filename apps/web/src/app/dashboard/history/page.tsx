@@ -457,7 +457,7 @@ function TransactionsPageContent() {
               />
               {isFilterParamInvalid && (
                 <span className="text-xs text-amber-700 bg-amber-50 border border-amber-200 px-2.5 py-1 rounded-lg font-medium">
-                  Requested item was not found or is archived. Showing all records.
+                  {t("bankAccounts.itemNotFoundOrArchived")}
                 </span>
               )}
             </div>
@@ -469,7 +469,7 @@ function TransactionsPageContent() {
               <SkeletonTable cols={5} rows={pageSize} />
             ) : sortedTransactions.length === 0 ? (
               <div className="py-16 text-center text-zinc-400 text-xs font-semibold">
-                No transaction records found matching your filters.
+                {t("transactions.noTransactionsFound")}
               </div>
             ) : (
               <div className="overflow-x-auto">
@@ -637,7 +637,7 @@ function TransactionsPageContent() {
               <SearchInput
                 value={planSearchQuery}
                 onChange={setPlanSearchQuery}
-                placeholder={t("transactions.searchPaydaysPlaceholder") || "Search income, bank account, or amount..."}
+                placeholder={t("transactions.searchPaydaysPlaceholder")}
               />
 
               <div className="h-6 w-px bg-zinc-200 hidden sm:block" />
@@ -713,7 +713,7 @@ function TransactionsPageContent() {
               />
               {Boolean(bankAccountIdParam && !matchedBankAccount) && (
                 <span className="text-xs text-amber-700 bg-amber-50 border border-amber-200 px-2.5 py-1 rounded-lg font-medium">
-                  Requested item was not found or is archived. Showing all records.
+                  {t("bankAccounts.itemNotFoundOrArchived")}
                 </span>
               )}
             </div>
@@ -725,7 +725,7 @@ function TransactionsPageContent() {
               <SkeletonTable cols={6} rows={planPageSize} />
             ) : sortedPaydayPlans.length === 0 ? (
               <div className="p-12 text-center text-xs text-zinc-400 font-semibold">
-                No income split plans found matching your filters.
+                {t("transactions.noPaydaysFound")}
               </div>
             ) : (
               <div className="overflow-x-auto">

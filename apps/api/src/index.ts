@@ -148,6 +148,52 @@ server.register(fastifyTRPCPlugin, {
   trpcOptions: { router: appRouter, createContext },
 });
 
+server.addContentTypeParser(
+  'application/json',
+  { parseAs: 'buffer' },
+  function (req, body, done) {
+    if (req.url === '/webhooks/stripe') {
+      done(null, body);
+    } else {
+      try {
+        const json = JSON.parse(body.toString('utf8'));
+        done(null, json);
+      } catch (err) {
+        done(err as Error, undefined);
+      }
+    }
+  }
+);
+
+server.post('/webhooks/stripe', async (req, reply) => {
+  const signature = req.headers['stripe-signature'];
+  const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
+
+  if (!signature || typeof signature !== 'string' || !webhookSecret) {
+    return reply.code(400).send({ error: 'Missing stripe-signature or webhook secret' });
+  }
+
+  const rawBody = Buffer.isBuffer(req.body)
+    ? req.body.toString('utf8')
+    : typeof req.body === 'string'
+      ? req.body
+      : JSON.stringify(req.body);
+
+  const { db } = await import('@money-matters/db');
+  const { handleStripeWebhook, StripeSignatureError } = await import('@money-matters/capability-billing');
+
+  try {
+    const result = await handleStripeWebhook(rawBody, signature, webhookSecret, db);
+    return reply.code(200).send({ received: true, ...result });
+  } catch (err: unknown) {
+    if (err instanceof StripeSignatureError || (err && typeof err === 'object' && 'name' in err && err.name === 'StripeSignatureError')) {
+      return reply.code(400).send({ error: (err as Error).message });
+    }
+    server.log.error({ err }, '[Stripe Webhook Fastify Error]');
+    return reply.code(500).send({ error: 'Internal server error processing webhook' });
+  }
+});
+
 server.route({
   method: ["GET", "POST", "PUT"],
   handler: serve({

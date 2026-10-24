@@ -420,7 +420,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
                     <details className="text-left text-[10px] text-zinc-400 dark:text-zinc-500 pt-2 border-t border-zinc-100 dark:border-zinc-800">
                       <summary className="cursor-pointer font-bold hover:text-zinc-600 dark:hover:text-zinc-300 transition-colors">
-                        Technical details
+                        {t("common.technicalDetails")}
                       </summary>
                       <div className="mt-2 p-2.5 bg-zinc-100 dark:bg-zinc-800 rounded-lg font-mono break-all text-[10px]">
                         {lastErrorMessage || (envelopesQuery.error || tenantsQuery.error || userPrefQuery.error)?.message || "Network unreachable / timeout"}
@@ -440,11 +440,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               </div>
               <div className="flex items-center gap-3">
                 <a href="/privacy" target="_blank" rel="noopener noreferrer" className="hover:text-zinc-900 transition-colors">
-                  Privacy Policy
+                  {t("legal.privacyPolicy")}
                 </a>
                 <span>•</span>
                 <a href="/terms" target="_blank" rel="noopener noreferrer" className="hover:text-zinc-900 transition-colors">
-                  Terms of Use
+                  {t("legal.termsOfService")}
                 </a>
               </div>
             </footer>

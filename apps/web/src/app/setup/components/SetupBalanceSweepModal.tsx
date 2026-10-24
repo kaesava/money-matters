@@ -2,6 +2,7 @@
 
 import React from "react";
 import { t } from "@money-matters/i18n";
+import { ModalDialog, Button } from "@money-matters/ui/web";
 
 interface SetupBalanceSweepModalProps {
   activeSweepPool: { id: string; name: string; balance: number } | null;
@@ -23,11 +24,13 @@ export function SetupBalanceSweepModal({
   if (!activeSweepPool) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-xs p-4">
-      <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-xl border border-slate-100 space-y-4">
-        <h3 className="text-base font-extrabold text-[#1B2B4B]">
-          {t("setup.sweepModalTitle")}
-        </h3>
+    <ModalDialog
+      isOpen={Boolean(activeSweepPool)}
+      onClose={onCancel}
+      title={t("setup.sweepModalTitle")}
+      maxWidthClass="max-w-md"
+    >
+      <div className="space-y-4">
         <p className="text-xs text-slate-600 leading-relaxed">
           {t("setup.sweepModalDesc", {
             poolName: activeSweepPool.name,
@@ -52,23 +55,23 @@ export function SetupBalanceSweepModal({
               ))}
           </select>
         </div>
-        <div className="flex items-center justify-end gap-2 pt-2">
-          <button
+        <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100">
+          <Button
             type="button"
+            variant="secondary"
             onClick={onCancel}
-            className="px-4 py-2 text-xs font-bold text-slate-500 hover:text-slate-800 bg-slate-100 hover:bg-slate-200 rounded-xl transition-all cursor-pointer"
           >
             {t("common.cancel")}
-          </button>
-          <button
+          </Button>
+          <Button
             type="button"
+            variant="primary"
             onClick={onConfirm}
-            className="px-4 py-2 text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-xl transition-all cursor-pointer shadow-xs"
           >
             {t("setup.sweepConfirmButton")}
-          </button>
+          </Button>
         </div>
       </div>
-    </div>
+    </ModalDialog>
   );
 }

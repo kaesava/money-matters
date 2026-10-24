@@ -173,10 +173,21 @@ export function MobileTransferModal({
     });
   };
 
+  const isDirty = Boolean(
+    transfer && (
+      name !== (transfer.name || t('common.transfer')) ||
+      amount !== parseFloat(transfer.expectedAmount || '0').toFixed(2) ||
+      expectedDate !== formatIsoDate(transfer.expectedDate || new Date()) ||
+      sourcePoolId !== (transfer.sourcePoolId || '') ||
+      destinationPoolId !== (transfer.destinationPoolId || '')
+    )
+  );
+
   return (
     <MobileModalDialog
       visible={visible}
       onClose={onClose}
+      isDirty={isDirty}
       title={t('common.transfer')}
       subtitle={transfer.name || undefined}
     >

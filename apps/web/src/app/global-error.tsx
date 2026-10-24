@@ -3,6 +3,7 @@
 import { useEffect } from 'react';
 import Link from 'next/link';
 import posthog from '../lib/posthog-client';
+import { t } from '@money-matters/i18n';
 
 export default function GlobalError({
   error,
@@ -24,11 +25,11 @@ export default function GlobalError({
           </div>
 
           <h1 className="text-xl font-bold tracking-tight">
-            Something Went Wrong
+            {t("errors.somethingWentWrongTitle")}
           </h1>
 
           <p className="text-xs text-zinc-600 leading-relaxed">
-            An unexpected application error occurred. Our team has been notified automatically.
+            {t("errors.somethingWentWrongBody")}
           </p>
 
           {error.digest && (
@@ -43,13 +44,13 @@ export default function GlobalError({
               onClick={() => reset()}
               className="px-4 py-2 text-xs font-bold text-white bg-[#2563eb] hover:bg-blue-700 rounded-xl transition-colors shadow-xs"
             >
-              Try Again
+              {t("common.tryAgain")}
             </button>
             <Link
               href="/"
               className="px-4 py-2 text-xs font-bold text-zinc-700 bg-zinc-100 hover:bg-zinc-200 rounded-xl transition-colors"
             >
-              Go to Home Page
+              {t("notFound.backToHome")}
             </Link>
           </div>
         </div>

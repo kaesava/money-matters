@@ -99,7 +99,7 @@ export function SetupCategoriesStep({
             />
           </div>
           <span className="text-xs font-bold text-emerald-800 bg-emerald-50 px-3 py-1 rounded-full border border-emerald-200">
-            Summary Preview
+            {t("setup.reviewSummary.summaryPreviewBadge")}
           </span>
         </div>
       </div>

@@ -393,7 +393,7 @@ The onboarding flow delivers an engaging interactive estimation experience compl
   - Dedicated Pool Detail screen (`/(app)/pools/[id]`) with itemized category list, Move Money modal, and Category Detail bottom sheet (`CategoryItemModal`).
 - **Can-Afford Simulator (`/(app)/afford-check`)**:
   - Full-featured simulation screen testing ad-hoc purchase amounts against Everyday discretionary funds.
-  - 5-level verdict (`Affordable`, `Caution`, `Stretch`, `Deficit`, `Critical`), daily spending velocity impact, and savings goal delay calculations.
+  - 5-level verdict (`Affordable`, `Caution`, `Stretch`, `Deficit`, `Critical`), forward Everyday pool impact, and savings goal delay calculations.
 - **2-Tab History & Audit Ledger (`/(app)/transactions`)**:
   - **Tab 1: Transactions Ledger**: Paired transfer detection (`Source ➔ Dest`), search, multi-filter dropdowns, pagination bar, and CSV export via native `Share.share`.
   - **Tab 2: Payday Allocations**: Historical waterfall allocation runs with itemized 5-step breakdown modal (`MobilePaydayAllocationDetailModal`).

@@ -53,7 +53,7 @@ export const MobileBankPicker: React.FC<MobileBankPickerProps> = ({
   const [modalVisible, setModalVisible] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
 
-  const resolvedAllLabel = allOptionLabel || t('transactions.allBanks') || 'All Bank Accounts';
+  const resolvedAllLabel = allOptionLabel || t('transactions.allBanks');
   const selectedBank = banks.find((b) => b.id === selectedBankId || b.name === selectedBankId);
 
   const displayLabel = useMemo(() => {
@@ -141,11 +141,11 @@ export const MobileBankPicker: React.FC<MobileBankPickerProps> = ({
             {/* Header */}
             <View style={styles.header}>
               <View>
-                <Text style={styles.title}>{t('bankAccounts.title') || 'Bank Accounts'}</Text>
+                <Text style={styles.title}>{t('bankAccounts.title')}</Text>
                 <Text style={styles.subtitle}>
                   {displayStyle === 'field'
-                    ? t('bankAccounts.selectBankAccount') || 'Select Bank Account'
-                    : t('transactions.filterByBank') || 'Filter by Bank'}
+                    ? t('bankAccounts.selectBankAccount')
+                    : t('transactions.filterByBank')}
                 </Text>
               </View>
               <TouchableOpacity
@@ -240,7 +240,7 @@ export const MobileBankPicker: React.FC<MobileBankPickerProps> = ({
               }}
               ListEmptyComponent={
                 <View style={styles.emptyWrap}>
-                  <Text style={styles.emptyText}>{t('common.noMatchingOptions') || 'No matching bank accounts found'}</Text>
+                  <Text style={styles.emptyText}>{t('common.noMatchingOptions')}</Text>
                 </View>
               }
             />

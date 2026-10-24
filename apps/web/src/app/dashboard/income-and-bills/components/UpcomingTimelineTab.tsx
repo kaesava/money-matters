@@ -302,7 +302,7 @@ export function UpcomingTimelineTab({
                   : "text-zinc-500 hover:text-zinc-900 dark:hover:text-white"
               }`}
             >
-              Overdue
+              {t("expenseStatus.overdueLabel")}
             </button>
           </div>
 
@@ -317,7 +317,7 @@ export function UpcomingTimelineTab({
                   : "text-zinc-500 hover:text-zinc-900 dark:hover:text-white"
               }`}
             >
-              All
+              {t("common.all")}
             </button>
             <button
               type="button"
@@ -328,7 +328,7 @@ export function UpcomingTimelineTab({
                   : "text-zinc-500 hover:text-zinc-900 dark:hover:text-white"
               }`}
             >
-              Shared
+              {t("common.shared")}
             </button>
             <button
               type="button"
@@ -339,7 +339,7 @@ export function UpcomingTimelineTab({
                   : "text-zinc-500 hover:text-zinc-900 dark:hover:text-white"
               }`}
             >
-              Private
+              {t("common.private")}
             </button>
           </div>
 
@@ -354,7 +354,7 @@ export function UpcomingTimelineTab({
                   : "text-zinc-500 hover:text-zinc-900 dark:hover:text-white"
               }`}
             >
-              All
+              {t("common.all")}
             </button>
             <button
               type="button"
@@ -365,7 +365,7 @@ export function UpcomingTimelineTab({
                   : "text-zinc-500 hover:text-zinc-900 dark:hover:text-white"
               }`}
             >
-              Income
+              {t("common.income")}
             </button>
             <button
               type="button"
@@ -376,7 +376,7 @@ export function UpcomingTimelineTab({
                   : "text-zinc-500 hover:text-zinc-900 dark:hover:text-white"
               }`}
             >
-              Expense
+              {t("common.expense")}
             </button>
             <button
               type="button"
@@ -387,7 +387,7 @@ export function UpcomingTimelineTab({
                   : "text-zinc-500 hover:text-zinc-900 dark:hover:text-white"
               }`}
             >
-              Transfer
+              {t("incomeBillsTabs.transferTab")}
             </button>
           </div>
         </div>
@@ -399,7 +399,7 @@ export function UpcomingTimelineTab({
       ) : filteredTimeline.length === 0 ? (
         <div className="p-12 text-center border-2 border-dashed border-zinc-200 dark:border-zinc-800 rounded-2xl bg-white dark:bg-zinc-900">
           <p className="text-xs font-semibold text-zinc-500">
-            No upcoming events found matching your search or filters.
+            {t("incomeBillsTabs.noUpcomingEventsFound")}
           </p>
         </div>
       ) : (
@@ -504,7 +504,7 @@ export function UpcomingTimelineTab({
                           </span>
                           {isPast && (
                             <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-red-100 dark:bg-red-950/60 text-red-700 dark:text-red-300">
-                              Overdue
+                              {t("expenseStatus.overdueLabel")}
                             </span>
                           )}
                         </div>

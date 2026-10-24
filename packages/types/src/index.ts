@@ -601,3 +601,20 @@ export type ProjectionEngineFn = (input: {
   currentUserId?: string;
 }) => ProjectionOutput;
 
+/**
+ * Returns the ID of the earliest pending income event (sorted chronologically by expectedDate).
+ * A pending income event is one that is not confirmed/processed (status !== "CONFIRMED").
+ */
+export function getEarliestPendingIncomeId<T extends { id: string; expectedDate: string; status?: string }>(
+  incomeItems: readonly T[] | T[]
+): string | null {
+  if (!incomeItems || incomeItems.length === 0) return null;
+  const pending = incomeItems.filter((item) => item.status !== "CONFIRMED");
+  if (pending.length === 0) return null;
+  const sorted = [...pending].sort(
+    (a, b) => new Date(a.expectedDate).getTime() - new Date(b.expectedDate).getTime()
+  );
+  return sorted[0].id;
+}
+
+

@@ -116,12 +116,28 @@ export async function handleStripeWebhookRequest(
   const connectionString = env.DATABASE_URL || process.env.DATABASE_URL;
   const dbClient = connectionString ? createDbClient(connectionString) : defaultDb;
 
-  const result = await handleStripeWebhook(rawBody, signature, env.STRIPE_WEBHOOK_SECRET, dbClient);
+  try {
+    const result = await handleStripeWebhook(
+      rawBody,
+      signature,
+      env.STRIPE_WEBHOOK_SECRET,
+      dbClient,
+      env.STRIPE_SECRET_KEY
+    );
 
-  return new Response(JSON.stringify({ received: true, ...result }), {
-    status: 200,
-    headers: { 'Content-Type': 'application/json', ...baseHeaders },
-  });
+    return new Response(JSON.stringify({ received: true, ...result }), {
+      status: 200,
+      headers: { 'Content-Type': 'application/json', ...baseHeaders },
+    });
+  } catch (err: unknown) {
+    if (err && typeof err === 'object' && 'name' in err && err.name === 'StripeSignatureError') {
+      return new Response(JSON.stringify({ error: (err as Error).message }), {
+        status: 400,
+        headers: { 'Content-Type': 'application/json', ...baseHeaders },
+      });
+    }
+    throw err;
+  }
 }
 
 export function handleResetPasswordRequest(url: URL, baseHeaders: Record<string, string>): Response {
@@ -358,11 +374,18 @@ export default {
       });
     } catch (err: unknown) {
       logger.error('[WORKER UNCAUGHT ERROR]', { correlationId, err });
-      const message = err instanceof Error ? err.message : 'Internal Server Error';
+      const rawMessage = err instanceof Error ? err.message : 'Internal Server Error';
+      const isInternalOrDbError =
+        /violates.*constraint|foreign key|syntax error|relation.*does not exist|table ".*"|column ".*"/i.test(rawMessage);
+      const isDevelopment = (env as { ENVIRONMENT?: string }).ENVIRONMENT === 'development' || process.env.NODE_ENV === 'development';
+      const safeMessage = (!isDevelopment && isInternalOrDbError)
+        ? 'Internal Server Error. Please contact info@moneymatters.kaesava.au with your correlation ID.'
+        : rawMessage;
+
       return new Response(
         JSON.stringify({
           error: {
-            message,
+            message: safeMessage,
             code: 'INTERNAL_SERVER_ERROR',
           },
         }),

@@ -68,6 +68,13 @@ export function EventOverrideModal({ visible, eventToEdit, onClose, onSuccess, o
   };
 
   const isPending = overrideEventMut.isPending;
+  const isDirty = Boolean(
+    eventToEdit && (
+      expectedDate !== formatIsoDate(eventToEdit.expectedDate) ||
+      expectedAmount !== eventToEdit.expectedAmount
+    )
+  );
+
   const handleDelete = () => {
     if (!eventToEdit || !onDelete) return;
     onDelete(eventToEdit);
@@ -78,6 +85,7 @@ export function EventOverrideModal({ visible, eventToEdit, onClose, onSuccess, o
     <MobileModalDialog
       visible={visible && !!eventToEdit}
       onClose={onClose}
+      isDirty={isDirty}
       title={t('modals.eventOverride.title')}
       subtitle={eventToEdit ? t('modals.eventOverride.subtitle', { name: eventToEdit.name }) : ''}
       footer={

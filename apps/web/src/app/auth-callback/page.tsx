@@ -3,6 +3,7 @@ import React, { useEffect, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { authClient } from "../../lib/auth";
 import { trpc } from "../../lib/trpc";
+import { t } from "@money-matters/i18n";
 
 function AuthCallbackContent() {
   const { data: session, isPending } = authClient.useSession();
@@ -47,7 +48,7 @@ function AuthCallbackContent() {
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-zinc-50 gap-4">
       <div className="w-8 h-8 rounded-full border-2 border-[#2563eb] border-t-transparent animate-spin" />
-      <p className="text-sm font-medium text-zinc-600">Completing authentication...</p>
+      <p className="text-sm font-medium text-zinc-600">{t("common.completingAuth")}</p>
     </div>
   );
 }
@@ -58,7 +59,7 @@ export default function AuthCallbackPage() {
       fallback={
         <div className="flex flex-col items-center justify-center min-h-screen bg-zinc-50 gap-4">
           <div className="w-8 h-8 rounded-full border-2 border-[#2563eb] border-t-transparent animate-spin" />
-          <p className="text-sm font-medium text-zinc-600">Completing authentication...</p>
+          <p className="text-sm font-medium text-zinc-600">{t("common.completingAuth")}</p>
         </div>
       }
     >

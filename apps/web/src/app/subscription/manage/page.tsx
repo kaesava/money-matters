@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { trpc } from "../../../lib/trpc";
 import { Spinner } from "@money-matters/ui/web";
+import { t } from "@money-matters/i18n";
 
 export default function SubscriptionManagePage() {
   const [error, setError] = useState<string | null>(null);
@@ -34,13 +35,13 @@ export default function SubscriptionManagePage() {
         {error ? (
           <>
             <span className="text-3xl">⚠️</span>
-            <h1 className="text-lg font-bold text-rose-800">Billing Portal Error</h1>
+            <h1 className="text-lg font-bold text-rose-800">{t("subscription.portalError")}</h1>
             <p className="text-xs text-zinc-600">{error}</p>
           </>
         ) : (
           <>
             <Spinner size="lg" className="text-[#2563eb]" />
-            <p className="text-sm font-semibold text-zinc-700">Opening Stripe Billing Portal…</p>
+            <p className="text-sm font-semibold text-zinc-700">{t("subscription.openingStripePortal")}</p>
           </>
         )}
       </div>

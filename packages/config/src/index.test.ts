@@ -1,7 +1,12 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { validateEnv } from './env';
 import { resolveAppConfig } from './app-registry';
-import { isFeatureEnabled, FEATURE_FLAGS } from './feature-flags';
+import {
+  isFeatureEnabled,
+  FEATURE_FLAGS,
+  setTenantFeatureFlagOverride,
+  clearTenantFeatureFlagOverrides,
+} from './feature-flags';
 import { resolveAiConfig, AI_TIER_LIMITS, DEFAULT_AI_MODEL_ID } from './ai.config';
 
 describe('Config Package Utilities', () => {
@@ -91,6 +96,20 @@ describe('Config Package Utilities', () => {
     it('evaluates standard feature flags from app configuration', () => {
       expect(isFeatureEnabled('partnerInvite', validAppId)).toBe(false);
       expect(isFeatureEnabled('offlineSync', validAppId)).toBe(false);
+    });
+
+    it('supports tenant-scoped overrides when tenantScopable is true', () => {
+      const tenantId = '01908bde-tenant-test-uuid';
+      expect(isFeatureEnabled('offlineSync', validAppId, tenantId)).toBe(false);
+      setTenantFeatureFlagOverride(tenantId, 'offlineSync', true);
+      expect(isFeatureEnabled('offlineSync', validAppId, tenantId)).toBe(true);
+
+      // Non-scopable flags ignore tenant overrides
+      setTenantFeatureFlagOverride(tenantId, 'foundingMemberPromo', true);
+      expect(isFeatureEnabled('foundingMemberPromo', validAppId, tenantId)).toBe(true); // default in appConfig
+
+      clearTenantFeatureFlagOverrides();
+      expect(isFeatureEnabled('offlineSync', validAppId, tenantId)).toBe(false);
     });
 
     it('exposes FEATURE_FLAGS registry metadata correctly including killSwitchEnabled', () => {

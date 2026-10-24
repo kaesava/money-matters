@@ -102,11 +102,11 @@ function SettingsPageContent() {
   };
 
   const tabsList = [
-    { id: "profile", label: t("settings.tabs.profile") || "My Details" },
-    { id: "household", label: t("settings.tabs.household") || "Household" },
-    { id: "bank-accounts", label: t("settings.tabs.bankAccounts") || "Bank Accounts" },
-    { id: "archived", label: t("settings.tabs.archived") || "Archived Data" },
-    { id: "account-data", label: t("settings.tabs.accountData") || "Data & Subscription" },
+    { id: "profile", label: t("settings.tabs.profile") },
+    { id: "household", label: t("settings.tabs.household") },
+    { id: "bank-accounts", label: t("settings.tabs.bankAccounts") },
+    { id: "archived", label: t("settings.tabs.archived") },
+    { id: "account-data", label: t("settings.tabs.accountData") },
   ];
 
   return (

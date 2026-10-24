@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import { ConfirmDialog, AmountField } from "@money-matters/ui/web";
 import { useLocale } from "../../../../providers/LocaleProvider";
+import { t } from "@money-matters/i18n";
 
 function parseSchedule(rrule?: string | null, startDate?: string | null, formatDate?: (d?: string | null) => string) {
   const isRecurring = Boolean(rrule && rrule.trim().length > 0);
@@ -115,7 +116,7 @@ export function BurstModal({
             {mode === "INCOME" ? "Scheduled Income" : "Scheduled Bills & Expenses"} ({sourceEvents.length})
           </h4>
           {sourceEvents.length === 0 ? (
-            <div className="p-8 text-center text-xs text-zinc-400 bg-zinc-50/50 rounded-xl border border-zinc-100">No scheduled items for this source.</div>
+            <div className="p-8 text-center text-xs text-zinc-400 bg-zinc-50/50 rounded-xl border border-zinc-100">{t("incomeBillsTabs.noScheduledItemsForSource")}</div>
           ) : (
             <div className="flex flex-col gap-2">
               {sourceEvents.map((evt) => {
@@ -125,7 +126,7 @@ export function BurstModal({
 
                 let statusIcon = "📅";
                 let statusLabel = "";
-                if (isPaid) { statusIcon = "✅"; statusLabel = mode === "INCOME" ? "Received" : "Paid"; }
+                if (isPaid) { statusIcon = "✅"; statusLabel = mode === "INCOME" ? t("incomeBillsTabs.receivedBadge") : t("common.paid"); }
 
                 return (
                   <div key={evt.id} className={`rounded-xl border p-3.5 transition-colors ${isPaid ? "bg-emerald-50/40 border-emerald-100" : "bg-white border-zinc-100 hover:bg-zinc-50/50"}`}>
@@ -177,16 +178,16 @@ export function BurstModal({
                               disabled={isPendingMarkPaid}
                               className={`px-3 py-1.5 rounded-lg text-xs font-bold text-white transition-colors ${isFutureSaveMode ? "bg-blue-600 hover:bg-blue-700" : "bg-emerald-600 hover:bg-emerald-700"}`}
                             >
-                              {isFutureSaveMode ? "Save" : mode === "INCOME" ? "Mark Received" : "Mark Paid"}
+                              {isFutureSaveMode ? t("common.save") : mode === "INCOME" ? t("incomeBillsTabs.markReceived") : t("actions.markPaid")}
                             </button>
-                            <button type="button" onClick={cancelEdit} className="px-3 py-1.5 rounded-lg text-xs font-bold text-zinc-600 hover:bg-zinc-100 transition-colors">Cancel</button>
+                            <button type="button" onClick={cancelEdit} className="px-3 py-1.5 rounded-lg text-xs font-bold text-zinc-600 hover:bg-zinc-100 transition-colors">{t("common.cancel")}</button>
                           </>
                         ) : (
                           <>
                             <button type="button" onClick={() => startEdit(evt)} className="px-3 py-1.5 rounded-lg text-xs font-bold bg-emerald-600 text-white hover:bg-emerald-700 transition-colors">
-                              Edit
+                              {t("common.edit")}
                             </button>
-                            <button type="button" onClick={() => setEventToDeleteId(evt.id)} className="px-3 py-1.5 rounded-lg text-xs font-bold bg-zinc-100 text-zinc-600 hover:bg-rose-600 hover:text-white border border-zinc-200 transition-colors">Delete</button>
+                            <button type="button" onClick={() => setEventToDeleteId(evt.id)} className="px-3 py-1.5 rounded-lg text-xs font-bold bg-zinc-100 text-zinc-600 hover:bg-rose-600 hover:text-white border border-zinc-200 transition-colors">{t("common.delete")}</button>
                           </>
                         )}
                       </div>
@@ -200,10 +201,10 @@ export function BurstModal({
 
         <div className="p-4 border-t border-zinc-100 flex justify-between items-center bg-zinc-50/50 rounded-b-2xl">
           <button type="button" onClick={onArchive} className="text-xs font-bold text-slate-400 hover:text-slate-600 transition-colors">
-            Archive {mode === "INCOME" ? "Income" : "Expense"}
+            {mode === "INCOME" ? t("incomeBillsTabs.archiveIncome") : t("incomeBillsTabs.archiveExpense")}
           </button>
           <button type="button" onClick={onClose} className="px-4 py-2 text-xs font-bold text-zinc-700 hover:bg-zinc-200 bg-zinc-100 rounded-xl transition-colors">
-            Close
+            {t("common.close")}
           </button>
         </div>
       </div>

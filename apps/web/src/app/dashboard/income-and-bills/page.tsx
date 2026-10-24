@@ -95,8 +95,8 @@ function IncomeAndBillsContent() {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-black text-[#1B2B4B] dark:text-white tracking-tight">Income Schedules &amp; Bills</h1>
-          <p className="text-xs text-zinc-500 font-semibold mt-1">Manage scheduled income and track upcoming bill events.</p>
+          <h1 className="text-2xl font-black text-[#1B2B4B] dark:text-white tracking-tight">{t("incomeBillsTabs.incomeSchedulesAndBillsTitle")}</h1>
+          <p className="text-xs text-zinc-500 font-semibold mt-1">{t("incomeBillsTabs.incomeSchedulesAndBillsSubtitle")}</p>
         </div>
         <div className="flex items-center gap-2">
           <Link

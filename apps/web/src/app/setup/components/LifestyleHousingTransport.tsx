@@ -98,7 +98,7 @@ export function LifestyleHousingTransport({
               onChange={(e) => setUsePublicTransport(e.target.checked)}
               className="w-4 h-4 text-[#2563eb] rounded-md"
             />
-            Public Transport
+            {t("setup.lifestyle.publicTransport")}
           </label>
           <label className="flex items-center gap-2 text-xs font-bold cursor-pointer">
             <input

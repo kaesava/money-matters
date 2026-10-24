@@ -2,6 +2,7 @@
 import React, { useEffect } from "react";
 import { useParams, useSearchParams } from "next/navigation";
 import { logger } from "@/lib/logger";
+import { t } from "@money-matters/i18n";
 
 function isAllowedHost(hostname: string): boolean {
   return (
@@ -55,7 +56,7 @@ function DevCallbackContent() {
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-zinc-50 gap-4">
       <div className="w-8 h-8 rounded-full border-2 border-t-transparent animate-spin border-[#2563eb]" />
-      <p className="text-sm font-medium text-zinc-600">Redirecting to development server...</p>
+      <p className="text-sm font-medium text-zinc-600">{t("common.redirectingToDev")}</p>
     </div>
   );
 }

@@ -99,14 +99,14 @@ export default function PrivacyPolicyPage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-200 text-slate-600">
-                  <tr><td className="p-3 font-semibold text-left">Neon DB</td><td className="p-3 text-left">Primary database host (PostgreSQL serverless with RLS)</td><td className="p-3 text-left">Asia-Pacific (Sydney) / AWS</td></tr>
-                  <tr><td className="p-3 font-semibold text-left">Cloudflare Workers / OpenNext</td><td className="p-3 text-left">Edge compute & API execution</td><td className="p-3 text-left">Global Edge Network</td></tr>
-                  <tr><td className="p-3 font-semibold text-left">Cloudflare R2</td><td className="p-3 text-left">Receipts & file attachment storage</td><td className="p-3 text-left">Global Edge Network</td></tr>
-                  <tr><td className="p-3 font-semibold text-left">Stripe</td><td className="p-3 text-left">Subscription billing & payment processing</td><td className="p-3 text-left">United States</td></tr>
-                  <tr><td className="p-3 font-semibold text-left">Resend API</td><td className="p-3 text-left">Transactional emails & partner invites</td><td className="p-3 text-left">United States</td></tr>
-                  <tr><td className="p-3 font-semibold text-left">Inngest Cloud</td><td className="p-3 text-left">Scheduled notification workflows & async events</td><td className="p-3 text-left">United States</td></tr>
-                  <tr><td className="p-3 font-semibold text-left">PostHog</td><td className="p-3 text-left">Product analytics & session replays (PII redacted)</td><td className="p-3 text-left">United States / EU</td></tr>
-                  <tr><td className="p-3 font-semibold text-left">Sentry</td><td className="p-3 text-left">Application performance & error tracking (PII redacted)</td><td className="p-3 text-left">United States</td></tr>
+                  <tr><td className="p-3 font-semibold text-left">Neon DB</td><td className="p-3 text-left">{t("privacy.spNeonPurpose")}</td><td className="p-3 text-left">{t("privacy.spNeonLocation")}</td></tr>
+                  <tr><td className="p-3 font-semibold text-left">Cloudflare Workers / OpenNext</td><td className="p-3 text-left">{t("privacy.spCloudflareWorkersPurpose")}</td><td className="p-3 text-left">{t("privacy.spCloudflareWorkersLocation")}</td></tr>
+                  <tr><td className="p-3 font-semibold text-left">Cloudflare R2</td><td className="p-3 text-left">{t("privacy.spCloudflareR2Purpose")}</td><td className="p-3 text-left">{t("privacy.spCloudflareR2Location")}</td></tr>
+                  <tr><td className="p-3 font-semibold text-left">Stripe</td><td className="p-3 text-left">{t("privacy.spStripePurpose")}</td><td className="p-3 text-left">{t("privacy.spStripeLocation")}</td></tr>
+                  <tr><td className="p-3 font-semibold text-left">Resend API</td><td className="p-3 text-left">{t("privacy.spResendPurpose")}</td><td className="p-3 text-left">{t("privacy.spResendLocation")}</td></tr>
+                  <tr><td className="p-3 font-semibold text-left">Inngest Cloud</td><td className="p-3 text-left">{t("privacy.spInngestPurpose")}</td><td className="p-3 text-left">{t("privacy.spInngestLocation")}</td></tr>
+                  <tr><td className="p-3 font-semibold text-left">PostHog</td><td className="p-3 text-left">{t("privacy.spPostHogPurpose")}</td><td className="p-3 text-left">{t("privacy.spPostHogLocation")}</td></tr>
+                  <tr><td className="p-3 font-semibold text-left">Sentry</td><td className="p-3 text-left">{t("privacy.spSentryPurpose")}</td><td className="p-3 text-left">{t("privacy.spSentryLocation")}</td></tr>
                 </tbody>
               </table>
             </div>

@@ -181,13 +181,18 @@ export const privateOwnerProcedure = privateTenantProcedure.use(async ({ ctx, ne
 });
 
 /**
- * Throws TRPCError FORBIDDEN if tenant's trial has ended.
+ * Throws TRPCError FORBIDDEN if tenant's trial has ended, is in read-only grace period, past due, or deactivated.
  */
 export function requiresWriteAccess(ctx: { subscriptionStatus: SubscriptionStatusDto }) {
-  if (ctx.subscriptionStatus.isTrialExpired) {
+  if (
+    ctx.subscriptionStatus.isTrialExpired ||
+    ctx.subscriptionStatus.isGracePeriod ||
+    ctx.subscriptionStatus.isPastDue ||
+    ctx.subscriptionStatus.isDeactivated
+  ) {
     throw new TRPCError({
       code: 'FORBIDDEN',
-      message: 'Your trial has ended. Please reactivate your subscription to make changes.',
+      message: 'Your account is currently read-only. Please update your billing details to resume making changes.',
     });
   }
 }

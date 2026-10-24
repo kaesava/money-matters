@@ -358,7 +358,7 @@ export function MatrixPlanTab({
                   : "text-zinc-500 hover:text-zinc-900 dark:hover:text-white"
               }`}
             >
-              Shared
+              {t("common.shared")}
             </button>
             <button
               type="button"
@@ -369,7 +369,7 @@ export function MatrixPlanTab({
                   : "text-zinc-500 hover:text-zinc-900 dark:hover:text-white"
               }`}
             >
-              Private
+              {t("common.private")}
             </button>
           </div>
 
@@ -392,7 +392,7 @@ export function MatrixPlanTab({
             {/* Column Headers (Paydays) */}
             <tr className="bg-zinc-50 dark:bg-zinc-800/80 border-b border-zinc-200 dark:border-zinc-800">
               <th className="sticky left-0 z-20 bg-zinc-50 dark:bg-zinc-800/90 p-4 font-bold text-[#1B2B4B] dark:text-zinc-200 min-w-[260px] border-r border-zinc-200 dark:border-zinc-700">
-                Pools & Goal Categories
+                {t("incomeBillsTabs.matrixTableCategoriesHeader")}
               </th>
               {visibleColumns.map((col) => {
                 const incomeEvt = incomeEvents.find((e) => e.id === col.id);

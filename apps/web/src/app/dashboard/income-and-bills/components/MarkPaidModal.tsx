@@ -92,6 +92,9 @@ export function MarkPaidModal({
     return isNaN(bal) ? 0 : bal;
   }, [targetPool]);
 
+  const formattedPoolName = targetPool?.name || poolName || "Envelope";
+  const formattedPoolType = targetPool?.poolType || poolType || "Bills";
+
   const shortfallAmount = useMemo(() => {
     return Math.max(0, numAmount - targetBalance);
   }, [numAmount, targetBalance]);
@@ -188,6 +191,15 @@ export function MarkPaidModal({
   const isAmountValid = numAmount > 0;
   const isValid = isAmountValid && isDateValid && isFulfilled;
 
+  const isDirty = useMemo(() => {
+    const initAmt = typeof initialAmount === "number" ? initialAmount.toFixed(2) : String(initialAmount || "0.00");
+    const initDate = wasFutureDate ? todayStr : initialDate || todayStr;
+    const hasAmountChanged = amountStr !== initAmt;
+    const hasDateChanged = dateStr !== initDate;
+    const hasTransfers = Object.values(transferAmounts).some((v) => parseFloat(v || "0") > 0);
+    return hasAmountChanged || hasDateChanged || hasTransfers;
+  }, [amountStr, dateStr, initialAmount, initialDate, wasFutureDate, todayStr, transferAmounts]);
+
   if (!isOpen) return null;
 
   const handleConfirm = async () => {
@@ -215,13 +227,11 @@ export function MarkPaidModal({
     }
   };
 
-  const formattedPoolType = poolType ? (poolType === "EVERYDAY" ? "Everyday" : poolType === "REGULAR" ? "Bills" : "Goal") : "Everyday";
-  const formattedPoolName = poolName || targetPool?.name || "Pool";
-
   return (
     <ModalDialog
       isOpen={isOpen}
       onClose={onClose}
+      isDirty={isDirty}
       title={t("incomeBillsTabs.markSpentModalTitle")}
       maxWidth="max-w-xl"
     >
@@ -373,7 +383,7 @@ export function MarkPaidModal({
                                       <span>{pool.name}</span>
                                       {pool.isSurplusTarget && (
                                         <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300">
-                                          Surplus
+                                          {t("incomeBillsTabs.surplus")}
                                         </span>
                                       )}
                                     </div>

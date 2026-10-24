@@ -14,6 +14,7 @@ import {
 } from "@money-matters/types";
 import { getAnalyticsCutoff } from "./income-split-analytics-buckets";
 import { buildIncomeSplitAnalytics } from "./income-split-analytics-processors";
+import { getTenantDateString } from "@money-matters/core";
 
 export interface IncomeSplitAnalyticsFilterParams {
   timeframe: SpendingTimeframe;
@@ -31,7 +32,7 @@ export async function getIncomeSplitAnalyticsQuery(
 ): Promise<IncomeSplitAnalyticsDTO> {
   const { timeframe, bankAccountId, searchQuery, envelopeId } = params;
   const cutoffDate = getAnalyticsCutoff(timeframe, referenceDate);
-  const cutoffDateStr = cutoffDate.toISOString().slice(0, 10);
+  const cutoffDateStr = getTenantDateString(cutoffDate);
 
   const conditions = [
     eq(allocationPlans.tenantId, tenantId),

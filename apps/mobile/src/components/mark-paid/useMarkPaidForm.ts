@@ -165,10 +165,20 @@ export function useMarkPaidForm(
     }
   };
 
+  const isDirty = useMemo(() => {
+    if (!event) return false;
+    const initAmt = event.expectedAmount.toFixed(2);
+    const initDate = wasFutureDate ? todayStr : event.expectedDate || todayStr;
+    const hasAmountChanged = actualAmount !== initAmt;
+    const hasDateChanged = actualDate !== initDate;
+    const hasTransfers = Object.values(transferAmounts).some((v) => parseFloat(v || '0') > 0);
+    return hasAmountChanged || hasDateChanged || hasTransfers;
+  }, [event, wasFutureDate, todayStr, actualAmount, actualDate, transferAmounts]);
+
   return {
     actualAmount, setActualAmount, actualDate, setActualDate, wasFutureDate, originalDate,
     currentPool, poolBal, shortfallAmount, hasShortfall, groupedPools, expandedGroups,
     transferAmounts, setTransferAmounts, surplusPool, totalAllocated, shortfallValidation, toggleGroup, handleAmountChange,
-    handleConfirm, submitting, generalError, isValid, isAmountValid, isDateValid,
+    handleConfirm, submitting, generalError, isValid, isAmountValid, isDateValid, isDirty,
   };
 }

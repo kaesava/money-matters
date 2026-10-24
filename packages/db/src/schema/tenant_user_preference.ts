@@ -34,6 +34,8 @@ export const tenantUserPreferences = pgTable(
     createdBy: uuid("created_by"),
     updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
     updatedBy: uuid("updated_by"),
+    archivedAt: timestamp("archived_at", { withTimezone: true }),
+    archivedBy: uuid("archived_by"),
   },
   (table) => [
     uniqueIndex("idx_tenant_user_prefs_unique").on(table.userId, table.tenantId, table.appId),

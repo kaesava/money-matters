@@ -201,7 +201,7 @@ export function FeedbackFormModal({ visible, onClose }: FeedbackFormModalProps) 
             thumbColor={consent ? DESIGN_TOKENS.colors.sereneBlue : DESIGN_TOKENS.colors.surface}
           />
           <Text style={styles.consentText}>
-            Email me receipt & updates regarding this ticket
+            {t("feedback.emailUpdatesConsent")}
           </Text>
         </View>
 

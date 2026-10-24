@@ -206,7 +206,7 @@ export function BankAccountTable({
                     <td className="py-4 px-4 text-center">
                       <div className="flex flex-col items-center gap-1">
                         {(acc.linkedPoolsCount ?? 0) === 0 ? (
-                          <span className="text-[11px] font-medium text-zinc-400 italic">No pools linked</span>
+                          <span className="text-[11px] font-medium text-zinc-400 italic">{t("bankAccounts.noPoolsLinked")}</span>
                         ) : (
                           <>
                             <div className="flex flex-wrap items-center justify-center gap-1.5 max-w-xs">
@@ -262,7 +262,7 @@ export function BankAccountTable({
           <div className="bg-white max-w-sm w-full rounded-2xl shadow-xl border border-zinc-200 p-5 space-y-4 animate-in fade-in duration-150">
             <div className="flex items-center justify-between border-b border-zinc-100 pb-3">
               <div>
-                <h4 className="font-extrabold text-sm text-[#1B2B4B]">Linked Pools</h4>
+                <h4 className="font-extrabold text-sm text-[#1B2B4B]">{t("bankAccounts.linkedPoolsHeading")}</h4>
                 <p className="text-[11px] text-zinc-500">{selectedAccForPools.name}</p>
               </div>
               <button
@@ -276,12 +276,12 @@ export function BankAccountTable({
 
             <div className="space-y-2 max-h-60 overflow-y-auto pr-1">
               {!(selectedAccForPools.linkedPools) || selectedAccForPools.linkedPools.length === 0 ? (
-                <p className="text-xs text-zinc-400 italic py-2">No pools currently linked.</p>
+                <p className="text-xs text-zinc-400 italic py-2">{t("bankAccounts.noPoolsCurrentlyLinked")}</p>
               ) : (
                 <>
                   <div className="flex items-center justify-between text-[10px] font-bold text-zinc-400 uppercase tracking-wider px-1 pb-1 border-b border-zinc-100">
-                    <span>Pool Name &amp; Type</span>
-                    <span>Balance</span>
+                    <span>{t("bankAccounts.poolNameAndType")}</span>
+                    <span>{t("common.balance")}</span>
                   </div>
                   {selectedAccForPools.linkedPools.map((p) => (
                     <div key={p.id} className="flex items-center justify-between p-2.5 rounded-xl border border-zinc-200 bg-zinc-50/70 text-xs">
@@ -295,13 +295,13 @@ export function BankAccountTable({
                         </Link>
                         {p.isSurplusTarget && (
                           <span className="text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 bg-blue-100 text-blue-700 rounded-md">
-                            Sweep Pool
+                            {t("bankAccounts.sweepPoolBadge")}
                           </span>
                         )}
                         <span className={`text-[9px] font-black px-1.5 py-0.5 rounded-md ${
                           p.poolType === "EVERYDAY" ? "bg-emerald-50 text-emerald-700" : p.poolType === "REGULAR" ? "bg-blue-50 text-[#2563eb]" : "bg-indigo-50 text-indigo-700"
                         }`}>
-                          {p.poolType === "EVERYDAY" ? "Everyday" : p.poolType === "REGULAR" ? "Bills" : "Goal"}
+                          {p.poolType === "EVERYDAY" ? t("incomeBillsTabs.everyday") : p.poolType === "REGULAR" ? t("incomeBillsTabs.bills") : t("incomeBillsTabs.goals")}
                         </span>
                       </div>
                       <span className="font-mono font-bold text-zinc-800">{fmtMoney(p.currentBalance || 0)}</span>
@@ -316,7 +316,7 @@ export function BankAccountTable({
               onClick={() => setSelectedAccForPools(null)}
               className="w-full py-2 bg-zinc-100 hover:bg-zinc-200 text-zinc-700 font-bold text-xs rounded-xl transition-all"
             >
-              Close
+              {t("common.close")}
             </button>
           </div>
         </div>

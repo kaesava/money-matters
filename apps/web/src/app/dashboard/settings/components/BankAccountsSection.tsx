@@ -127,7 +127,7 @@ export function BankAccountsSection() {
           />
           {list.isAccountParamInvalid && (
             <span className="text-xs text-amber-700 bg-amber-50 border border-amber-200 px-2.5 py-1 rounded-lg font-medium">
-              Requested item was not found or is archived. Showing all records.
+              {t("bankAccounts.itemNotFoundOrArchived")}
             </span>
           )}
         </div>

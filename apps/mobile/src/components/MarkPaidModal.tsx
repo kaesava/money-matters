@@ -57,6 +57,7 @@ export function MarkPaidModal({
     isValid,
     isAmountValid,
     isDateValid,
+    isDirty,
   } = useMarkPaidForm(visible, event, onClose, onSuccess);
 
   if (!visible || !event) return null;
@@ -73,6 +74,7 @@ export function MarkPaidModal({
     <MobileModalDialog
       visible={visible}
       onClose={onClose}
+      isDirty={isDirty}
       title={t('incomeBillsTabs.markSpentModalTitle')}
       footer={
         <View style={styles.footerRow}>

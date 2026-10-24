@@ -16,13 +16,13 @@ export default function BlogPostReaderPage() {
   if (!post) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center p-6 bg-[#F7F8FA] text-[#1B2B4B]">
-        <h1 className="text-2xl font-bold mb-2">Article Not Found</h1>
-        <p className="text-xs text-zinc-500 mb-4">The requested article slug could not be located.</p>
+        <h1 className="text-2xl font-bold mb-2">{t("landing.blogArticleNotFound")}</h1>
+        <p className="text-xs text-zinc-500 mb-4">{t("landing.blogArticleNotFoundDesc")}</p>
         <button
           onClick={() => router.push("/blog")}
           className="bg-[#2563eb] text-white font-bold text-xs px-4 py-2 rounded-xl"
         >
-          ← Back to Blog
+          {t("landing.blogBackToBlog")}
         </button>
       </div>
     );
@@ -114,11 +114,11 @@ export default function BlogPostReaderPage() {
         {/* Visual HTML Breadcrumbs for Google SERPs & UX */}
         <nav aria-label="Breadcrumb" className="flex items-center gap-2 text-xs font-semibold text-zinc-500">
           <Link href="/" className="hover:text-[#2563eb] transition-colors">
-            Home
+            {t("nav.home")}
           </Link>
           <span>/</span>
           <Link href="/blog" className="hover:text-[#2563eb] transition-colors">
-            Blog
+            {t("nav.blog")}
           </Link>
           <span>/</span>
           <span className="text-[#1B2B4B] font-bold truncate max-w-[240px] sm:max-w-md">
@@ -170,7 +170,7 @@ export default function BlogPostReaderPage() {
         {post.keyTakeaways.length > 0 && (
           <div className="p-6 rounded-2xl bg-blue-50/60 border border-blue-200 space-y-3 mt-8">
             <h4 className="text-xs font-bold text-[#2563eb] uppercase tracking-wider">
-              Key Takeaways
+              {t("landing.blogKeyTakeaways")}
             </h4>
             <ul className="space-y-2 text-xs font-semibold text-blue-950">
               {post.keyTakeaways.map((takeaway, idx) => (
@@ -185,15 +185,15 @@ export default function BlogPostReaderPage() {
 
         {/* Conversion Banner Callout */}
         <div className="mt-12 p-8 rounded-2xl bg-[#1B2B4B] text-white text-center space-y-4 shadow-xl">
-          <h3 className="text-xl sm:text-2xl font-bold">Experience Automated Cashflow Calm</h3>
+          <h3 className="text-xl sm:text-2xl font-bold">{t("landing.blogConversionTitle")}</h3>
           <p className="text-xs sm:text-sm text-zinc-300 max-w-xl mx-auto leading-relaxed">
-            Ready to replace spreadsheet maintenance with a self-healing 5-step waterfall?
+            {t("landing.blogConversionDesc")}
           </p>
           <button
             onClick={() => router.push("/")}
             className="bg-[#2563eb] hover:bg-blue-700 text-white font-bold text-xs px-6 py-3 rounded-xl transition-all shadow-md inline-block"
           >
-            Start 60-Day Free Trial
+            {t("subscription.startTrial")}
           </button>
         </div>
       </main>
@@ -205,7 +205,7 @@ export default function BlogPostReaderPage() {
             {t("landing.copyright", { appName: t("app.title") })}
           </span>
           <div className="flex gap-4 font-semibold">
-            <Link href="/blog" className="hover:underline text-[#2563eb]">All Articles</Link>
+            <Link href="/blog" className="hover:underline text-[#2563eb]">{t("landing.blogAllArticles")}</Link>
             <a href="/privacy" className="hover:underline text-[#2563eb]">{t("landing.privacyPolicy")}</a>
           </div>
         </div>

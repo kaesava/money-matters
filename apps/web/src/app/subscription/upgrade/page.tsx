@@ -134,7 +134,7 @@ export default function UpgradePage() {
             <div className="w-full max-w-xl mx-auto">
               <div className="bg-white rounded-3xl p-8 md:p-10 border-2 border-[#2563eb] flex flex-col justify-between shadow-2xl relative overflow-hidden">
                 <div className="absolute top-0 right-0 bg-[#2563eb] text-white text-[10px] font-black px-4 py-1.5 rounded-bl-xl uppercase tracking-widest shadow-sm">
-                  100% UNLIMITED HOUSEHOLD ACCESS
+                  {t("subscription.unlimitedHouseholdAccess")}
                 </div>
 
                 <div className="flex flex-col gap-6">

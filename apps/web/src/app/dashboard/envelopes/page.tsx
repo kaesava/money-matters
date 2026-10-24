@@ -474,7 +474,7 @@ function PoolsPageContent() {
             <div className="mt-4 p-3 bg-amber-50 dark:bg-amber-950/50 border border-amber-300 dark:border-amber-800 rounded-xl flex items-center justify-between text-xs animate-in slide-in-from-top-2 duration-150">
               <div className="flex items-center gap-2">
                 <span className="font-bold text-amber-900 dark:text-amber-200">
-                  PROJECTION: Showing estimated pool balances as of <strong>{projectionTargetDate}</strong>.
+                  {t("categories.projectionNotice", { date: projectionTargetDate })}
                 </span>
               </div>
               <button
@@ -482,7 +482,7 @@ function PoolsPageContent() {
                 onClick={() => setProjectionMonths(0)}
                 className="text-xs font-bold text-amber-700 dark:text-amber-300 hover:underline cursor-pointer"
               >
-                Reset to Today →
+                {t("categories.resetToToday")} →
               </button>
             </div>
           )}
@@ -567,7 +567,7 @@ function PoolsPageContent() {
           />
           {isFilterParamInvalid && (
             <span className="text-xs text-amber-700 bg-amber-50 border border-amber-200 px-2.5 py-1 rounded-lg font-medium">
-              Requested item was not found or is archived. Showing all records.
+              {t("bankAccounts.itemNotFoundOrArchived")}
             </span>
           )}
         </div>
@@ -578,7 +578,7 @@ function PoolsPageContent() {
         {showProjectionMatrix && projectionMonths > 0.05 && (
           <div className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center overflow-hidden select-none">
             <span className="transform -rotate-12 text-7xl md:text-9xl font-black text-slate-900/[0.06] dark:text-white/[0.06] tracking-widest whitespace-nowrap uppercase">
-              PROJECTION MODE
+              {t("categories.projectionModeWatermark")}
             </span>
           </div>
         )}

@@ -3,6 +3,9 @@ import { useMobileToast, showMobileConfirm } from '@money-matters/ui/mobile';
 import { t } from '@money-matters/i18n';
 import { SourceToEdit } from '../IncomeExpenseFormModal';
 
+const getSydneyTodayString = () =>
+  new Intl.DateTimeFormat('en-CA', { timeZone: 'Australia/Sydney' }).format(new Date());
+
 interface UseIncomeExpenseMutationsProps {
   mode: 'INCOME' | 'EXPENSE';
   isEdit: boolean;
@@ -97,7 +100,7 @@ export function useIncomeExpenseMutations({
               endDate: params.isRecurring && params.endDate ? params.endDate : undefined,
             },
           });
-          toast.success('Income schedule updated successfully.');
+          toast.success(t('toasts.saved'));
         } else {
           await createIncomeMut.mutateAsync({
             name: params.name.trim(),
@@ -109,9 +112,7 @@ export function useIncomeExpenseMutations({
             startDate: params.startDate || undefined,
             endDate: params.isRecurring && params.endDate ? params.endDate : undefined,
           });
-          toast.success(
-            params.isRecurring ? t('toasts.saved') : 'One-off income saved to Upcoming Timeline.'
-          );
+          toast.success(t('toasts.saved'));
         }
       } else {
         if (!params.isRecurring) {
@@ -119,9 +120,9 @@ export function useIncomeExpenseMutations({
             name: params.name.trim(),
             amount: formattedAmount,
             envelopeId: params.poolId,
-            expectedDate: params.startDate || new Date().toISOString().slice(0, 10),
+            expectedDate: params.startDate || getSydneyTodayString(),
           });
-          toast.success('One-off expense saved to Upcoming Timeline.');
+          toast.success(t('toasts.saved'));
         } else if (isEdit && sourceToEdit) {
           await updateEnvelopeMut.mutateAsync({
             envelopeId: sourceToEdit.id,
@@ -133,7 +134,7 @@ export function useIncomeExpenseMutations({
               endDate: params.endDate || undefined,
             },
           });
-          toast.success('Expense schedule updated successfully.');
+          toast.success(t('toasts.saved'));
         } else {
           await createEnvelopeMut.mutateAsync({
             name: params.name.trim(),
@@ -150,7 +151,7 @@ export function useIncomeExpenseMutations({
       onSuccess?.();
       onClose();
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Failed to save');
+      toast.error(err instanceof Error ? err.message : t('common.error'));
     }
   };
 

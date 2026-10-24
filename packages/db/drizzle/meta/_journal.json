@@ -260,6 +260,27 @@
       "when": 1784128494251,
       "tag": "0037_add_performance_indexes",
       "breakpoints": true
+    },
+    {
+      "idx": 37,
+      "version": "7",
+      "when": 1784138494251,
+      "tag": "0038_early_access_subscribers",
+      "breakpoints": true
+    },
+    {
+      "idx": 38,
+      "version": "7",
+      "when": 1784148494251,
+      "tag": "0039_fix_user_preferences_rls",
+      "breakpoints": true
+    },
+    {
+      "idx": 39,
+      "version": "7",
+      "when": 1784158494251,
+      "tag": "0040_add_tenant_user_preferences_soft_delete",
+      "breakpoints": true
     }
   ]
 }

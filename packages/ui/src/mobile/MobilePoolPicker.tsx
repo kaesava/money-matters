@@ -72,14 +72,14 @@ export const MobilePoolPicker: React.FC<MobilePoolPickerProps> = ({
   const [searchQuery, setSearchQuery] = useState('');
   const [collapsedSections, setCollapsedSections] = useState<Record<string, boolean>>({});
 
-  const resolvedAllLabel = allOptionLabel || t('transactions.allPools') || 'All Pools';
+  const resolvedAllLabel = allOptionLabel || t('transactions.allPools');
   const selectedPool = pools.find((p) => p.id === selectedPoolId);
   const selectedCat = selectedPool?.categories?.find((c) => c.id === selectedCategoryId);
 
   const displayLabel = useMemo(() => {
     if (!selectedPoolId || selectedPoolId === 'ALL') {
       if (displayStyle === 'field') {
-        return placeholder || t('common.selectPool') || 'Select pool';
+        return placeholder || t('common.selectPool');
       }
       return compact ? resolvedAllLabel : (placeholder || resolvedAllLabel);
     }
@@ -107,22 +107,22 @@ export const MobilePoolPicker: React.FC<MobilePoolPickerProps> = ({
   const sections = useMemo(() => {
     const regularGroup = {
       type: 'REGULAR',
-      title: t('categories.billsPoolsUpper') || t('categories.regularBills') || 'BILLS ENVELOPES',
+      title: t('categories.billsPoolsUpper'),
       data: [] as MobilePoolOption[],
     };
     const goalGroup = {
       type: 'GOAL',
-      title: t('categories.goalsUpper') || t('categories.savingsGoals') || 'GOALS',
+      title: t('categories.goalsUpper'),
       data: [] as MobilePoolOption[],
     };
     const everydayGroup = {
       type: 'EVERYDAY',
-      title: t('categories.everydayPoolsUpper') || t('categories.typeEveryday') || 'EVERYDAY ENVELOPES',
+      title: t('categories.everydayPoolsUpper'),
       data: [] as MobilePoolOption[],
     };
     const otherGroup = {
       type: 'OTHER',
-      title: 'OTHER ENVELOPES',
+      title: t('categories.otherPoolsUpper'),
       data: [] as MobilePoolOption[],
     };
 
@@ -178,7 +178,7 @@ export const MobilePoolPicker: React.FC<MobilePoolPickerProps> = ({
       <Feather name="search" size={14} color="#94A3B8" />
       <TextInput
         style={styles.searchInput}
-        placeholder={t('categories.searchPlaceholder') || 'Search pools or categories...'}
+        placeholder={t('categories.searchPlaceholder')}
         placeholderTextColor="#94A3B8"
         value={searchQuery}
         onChangeText={setSearchQuery}
@@ -200,7 +200,7 @@ export const MobilePoolPicker: React.FC<MobilePoolPickerProps> = ({
       return (
         <View style={styles.emptyWrap}>
           <Text style={styles.emptyText}>
-            {t('common.noMatchingOptions') || 'No matching pools found'}
+            {t('common.noMatchingOptions')}
           </Text>
         </View>
       );
@@ -575,7 +575,7 @@ export const MobilePoolPicker: React.FC<MobilePoolPickerProps> = ({
                 ListEmptyComponent={
                   <View style={styles.emptyWrap}>
                     <Text style={styles.emptyText}>
-                      {t('common.noMatchingOptions') || 'No matching pools found'}
+                      {t('common.noMatchingOptions')}
                     </Text>
                   </View>
                 }

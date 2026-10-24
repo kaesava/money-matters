@@ -486,7 +486,7 @@ export const tenantRouter = {
       return await handler(ctx.tenantId!, ctx.userId!, ctx.appId!);
     }),
 
-  deleteMyAccount: ownerProcedure
+  deleteMyAccount: privateOwnerProcedure
     .mutation(async ({ ctx }) => {
       const handler = deleteMyAccountHandler(ctx.db);
       const result = await handler(ctx.tenantId!, ctx.userId!, ctx.email!, ctx.appId!);
@@ -503,7 +503,7 @@ export const tenantRouter = {
       return result;
     }),
 
-  leaveMyHousehold: authenticatedProcedure
+  leaveMyHousehold: privateTenantProcedure
     .mutation(async ({ ctx }) => {
       const handler = leaveTenantHandler(ctx.db);
       return await handler(ctx.tenantId!, ctx.userId!, ctx.email!, ctx.appId!);
@@ -613,7 +613,7 @@ export const tenantRouter = {
       };
     }),
 
-  removeHouseholdMember: tenantProcedure
+  removeHouseholdMember: privateOwnerProcedure
     .input(
       z.object({
         targetUserId: z.string().optional(),

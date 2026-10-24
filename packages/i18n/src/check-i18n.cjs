@@ -169,14 +169,11 @@ for (const file of files) {
         const line = getLineNumber(content, jsxMatch.index);
         const lineContent = content.split('\n')[line - 1] || '';
         if (
-          file.includes('/app/') ||
-          file.includes('apps/mobile') ||
-          file.includes('PaycheckSimulator') ||
-          file.includes('ReconciliationModal') ||
           /^\s*(\*|\/\*|\/\/|interface|type|export interface|export type)\b/.test(lineContent) ||
           /(:\s*|=>\s*|<)(Record|Promise|Array|React|KeyboardEvent|StyleProp)\b|;\s*|\bprev\s*-\s*1\b|\bonKeyDown\b/.test(lineContent) ||
-          text === 'Money Matters' ||
-          /Record|Array|Promise|KeyboardEvent|onKeyDown|prev - 1|&amp;|&apos;/.test(text)
+          /^(Money Matters|Neon DB|Cloudflare R2|Cloudflare Workers \/ OpenNext|Inngest Cloud|PostHog|Sentry|Stripe|Resend API)$/.test(text.trim()) ||
+          /Record|Array|Promise|KeyboardEvent|onKeyDown|prev - 1|&amp;|&apos;|\.length\b|&&|\|\|/.test(text) ||
+          /^\d+\s*(&&|\|\|)/.test(text)
         ) {
           continue;
         }

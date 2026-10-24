@@ -20,46 +20,45 @@ export function createScheduledNotificationFunctions(inngest: Inngest) {
     // Sunday 9:00 AM UTC = Sunday 7:00 PM AEST (UTC+10) — see AGENTS.md Rule 13
     { cron: '0 9 * * 0' },
     async ({ step }) => {
-      const activeTenants = await step.run('fetch-active-tenants', async () => {
-        const { tenants } = await import('@money-matters/db');
+      const tenantMembers = await step.run('fetch-active-tenant-members', async () => {
+        const { tenants, tenantUsers, users } = await import('@money-matters/db');
+        const { eq, and, inArray } = await import('drizzle-orm');
         return await db
-          .select()
+          .select({
+            tenantId: tenants.id,
+            tenantName: tenants.name,
+            email: users.email,
+          })
           .from(tenants)
-          .where(sql`${tenants.archivedAt} IS NULL`);
+          .innerJoin(tenantUsers, and(eq(tenantUsers.tenantId, tenants.id), sql`${tenantUsers.archivedAt} IS NULL`))
+          .innerJoin(users, eq(tenantUsers.userId, users.id))
+          .where(
+            and(
+              sql`${tenants.archivedAt} IS NULL`,
+              inArray(tenants.subscriptionStatus, ['TRIAL_ACTIVE', 'SUBSCRIBED'])
+            )
+          );
       });
 
       const CHUNK_SIZE = 50;
-      for (let i = 0; i < activeTenants.length; i += CHUNK_SIZE) {
-        const chunk = activeTenants.slice(i, i + CHUNK_SIZE);
+      for (let i = 0; i < tenantMembers.length; i += CHUNK_SIZE) {
+        const chunk = tenantMembers.slice(i, i + CHUNK_SIZE);
         const chunkIndex = Math.floor(i / CHUNK_SIZE);
         await step.run(`send-weekly-digest-batch-${chunkIndex}`, async () => {
-          const { tenantUsers, users } = await import('@money-matters/db');
-          const { eq, and } = await import('drizzle-orm');
-
           await Promise.all(
-            chunk.map(async (tenant) => {
-              const members = await db
-                .select({ email: users.email })
-                .from(tenantUsers)
-                .innerJoin(users, eq(tenantUsers.userId, users.id))
-                .where(and(eq(tenantUsers.tenantId, tenant.id), sql`${tenantUsers.archivedAt} IS NULL`));
-
-              await Promise.all(
-                members.map(async (member) => {
-                  if (!member.email) return;
-                  await sendNotificationEmail(
-                    member.email,
-                    `Weekly Cashflow Summary — ${tenant.name}`,
-                    `Here is your weekly budget summary for ${tenant.name}.\n\nLog in to Money Matters to review your 12-month cashflow matrix and payday allocations!`
-                  );
-                })
+            chunk.map(async (record) => {
+              if (!record.email) return;
+              await sendNotificationEmail(
+                record.email,
+                `Weekly Cashflow Summary — ${record.tenantName}`,
+                `Here is your weekly budget summary for ${record.tenantName}.\n\nLog in to Money Matters to review your Payday Split and forward-looking bill allocations!`
               );
             })
           );
         });
       }
 
-      return { digestsSent: activeTenants.length };
+      return { digestsSent: tenantMembers.length };
     }
   );
 

@@ -146,6 +146,9 @@ export function runAllocationEngine(input: AllocationEngineInput): AllocationEng
   };
 
   // STEP 1: IMMEDIATE CASHFLOW FEASIBILITY GUARD
+  // Why: Prevents immediate overdraft and bill bounce penalties. Before funding everyday
+  // spending or discretionary goals, we must guarantee that any scheduled bills falling due
+  // within the current paycheck cycle (plus buffer days) are 100% covered.
   const billBuckets = input.buckets.filter(isBillsBucket);
   const sortedForStep1 = [...billBuckets].sort((a, b) => {
     if (a.isEssential && !b.isEssential) return -1;
@@ -171,6 +174,9 @@ export function runAllocationEngine(input: AllocationEngineInput): AllocationEng
   }
 
   // STEP 2: DEFICIT REPAIR
+  // Why: Restores underwater envelopes to $0 balance. Negative balances occur when transactions
+  // exceed previous allocations or unexpected debits occur. Repairing negative balances
+  // immediately prevents snowballing ledger drift and maintains mathematical solvency.
   for (const bucket of input.buckets) {
     if (bucket.currentBalance < 0) {
       const deficitCents = Math.abs(toCents(bucket.currentBalance));
@@ -186,6 +192,8 @@ export function runAllocationEngine(input: AllocationEngineInput): AllocationEng
   }
 
   // STEP 3: BILLS SAFETY FLOOR CUSHION
+  // Why: Top-up minimum safety reserves for committed bills before funding discretionary living.
+  // This provides an operational cushion against billing timing discrepancies and variable rate spikes.
   for (const bucket of sortedForStep1) {
     const floorCents = toCents(bucket.safetyBufferFloor ?? 0);
     if (floorCents > 0) {

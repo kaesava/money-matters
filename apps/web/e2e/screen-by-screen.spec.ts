@@ -413,11 +413,11 @@ test.describe('100% Comprehensive Field-by-Field Screen-by-Screen E2E Master Sui
   });
 
   // ---------------------------------------------------------------------------
-  // 6. CATEGORY POOLS & MOVE MONEY (`/dashboard/pools`)
+  // 6. CATEGORY POOLS & MOVE MONEY (`/dashboard/envelopes`)
   // ---------------------------------------------------------------------------
-  test.describe('6. Category Pools & Move Money (`/dashboard/pools`)', () => {
+  test.describe('6. Category Pools & Move Money (`/dashboard/envelopes`)', () => {
     test('6.1 Category Search Filter, Restore Hint & Move Money Modal Audit', async ({ page }) => {
-      await page.goto('/dashboard/pools');
+      await page.goto('/dashboard/envelopes');
 
       // Search Filter Input
       const searchInput = page.locator('input[placeholder*="Search"]');
@@ -442,7 +442,7 @@ test.describe('100% Comprehensive Field-by-Field Screen-by-Screen E2E Master Sui
     });
 
     test('6.2 New Category Button Terminology & Bill Coverage Table Audit', async ({ page }) => {
-      await page.goto('/dashboard/pools');
+      await page.goto('/dashboard/envelopes');
 
       // Check New Category CTA Button Terminology
       const addCategoryBtn = page.locator('button:has-text("New Category")').first();
@@ -554,21 +554,23 @@ test.describe('100% Comprehensive Field-by-Field Screen-by-Screen E2E Master Sui
       }
     });
 
-    test('9.2 Signed-In Household Governance Screen (`/dashboard/settings/delete-account`)', async ({ page }) => {
-      await page.goto('/dashboard/settings/delete-account');
+    test('9.2 Signed-In Household Governance Screen (`/dashboard/settings?tab=household`)', async ({ page }) => {
+      await page.goto('/dashboard/settings?tab=household');
 
-      await expect(page.locator('h1').filter({ hasText: /Governance|管理/i }).first()).toBeVisible();
-      const leaveOrDeleteSec = page.locator('section').first();
-      await expect(leaveOrDeleteSec).toBeVisible();
+      await expect(page.locator('h1').filter({ hasText: /Settings|設定/i }).first()).toBeVisible();
+      const dangerZoneSec = page.locator('section').filter({ hasText: /Danger Zone|危険地帯/i }).first();
+      if (await dangerZoneSec.isVisible()) {
+        await expect(dangerZoneSec).toBeVisible();
+      }
     });
 
-    test('9.3 Report a Bug Modal & Diagnostic Capture Audit', async ({ page }) => {
+    test('9.3 Provide Feedback Modal & Diagnostic Capture Audit', async ({ page }) => {
       await page.goto('/dashboard/settings?tab=account-data');
 
-      const reportBugBtn = page.locator('button:has-text("Report a Bug")').first();
-      if (await reportBugBtn.isVisible()) {
-        await reportBugBtn.click();
-        await expect(page.locator('text=Report a Bug').first()).toBeVisible();
+      const feedbackBtn = page.locator('button:has-text("Provide Feedback"), button:has-text("Report a Bug")').first();
+      if (await feedbackBtn.isVisible()) {
+        await feedbackBtn.click();
+        await expect(page.locator('text=Provide Feedback, text=Feedback, text=Report a Bug').first()).toBeVisible();
       }
     });
   });

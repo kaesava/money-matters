@@ -125,7 +125,7 @@ export const PaycheckSimulator: React.FC = () => {
             <div className="flex justify-between items-center">
               <div className="flex items-center gap-2">
                 <span className="text-[10px] font-bold font-mono text-zinc-500 bg-zinc-100 px-2 py-0.5 rounded-md">
-                  STEP 4
+                  {t("landing.step4Badge")}
                 </span>
                 <span className="font-extrabold text-[#1B2B4B] text-sm">
                   {t("landing.waterfallStep4")}
@@ -143,7 +143,7 @@ export const PaycheckSimulator: React.FC = () => {
 
             <div className="space-y-2">
               <div className="flex justify-between items-baseline">
-                <span className="text-xs text-slate-500 font-semibold">Offset Buffer</span>
+                <span className="text-xs text-slate-500 font-semibold">{t("landing.offsetBuffer")}</span>
                 <span className="text-[#22c55e] font-mono font-extrabold text-base tabular-nums">
                   +${state.surplusOffset} AUD
                 </span>

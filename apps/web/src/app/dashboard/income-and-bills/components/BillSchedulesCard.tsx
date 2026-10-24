@@ -81,7 +81,7 @@ export function BillSchedulesCard({
     <div className="p-6 bg-white/80 dark:bg-zinc-900/80 backdrop-blur-md rounded-2xl border border-zinc-200 dark:border-zinc-800 shadow-sm flex flex-col justify-between">
       <div>
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-3">
-          <h3 className="font-bold text-[#1B2B4B] dark:text-white text-base">Bill Schedules</h3>
+          <h3 className="font-bold text-[#1B2B4B] dark:text-white text-base">{t("incomeBillsTabs.billSchedulesHeading")}</h3>
           <div className="flex items-center gap-2">
             <button
               type="button"
@@ -107,14 +107,14 @@ export function BillSchedulesCard({
               onChange={(e) => setSelectedPoolId(e.target.value)}
               className="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-left text-xs font-medium text-slate-900 transition-colors cursor-pointer dark:border-slate-800 dark:bg-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#2563eb]"
             >
-              <option value="">All Bills Envelopes</option>
+              <option value="">{t("incomeBillsTabs.allBillsEnvelopes")}</option>
               {poolsList.map((p) => (<option key={p.id} value={p.id}>{p.name}</option>))}
             </select>
           </div>
         </div>
 
         {filtered.length === 0 ? (
-          <div className="py-8 text-center text-xs font-semibold text-zinc-400">No bill schedules found matching filters.</div>
+          <div className="py-8 text-center text-xs font-semibold text-zinc-400">{t("incomeBillsTabs.noBillSchedulesFound")}</div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse">
