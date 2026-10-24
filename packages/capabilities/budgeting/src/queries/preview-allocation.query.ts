@@ -90,7 +90,7 @@ export async function previewAllocationQuery(
     incomeType: event?.incomeType || "SALARIED",
     runwayDays: runwayDays ?? 30,
     buckets: engineBuckets,
-    paycheckDate: event ? new Date(event.expectedDate + "T00:00:00+10:00") : new Date(),
+    paycheckDate: event ? new Date(event.expectedDate + "T00:00:00Z") : new Date(),
     paycheckFrequencyDays: freqDays,
     upcomingExpenses: pendingExpenses.map((e) => ({
       envelopeId: e.envelopeId,

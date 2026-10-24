@@ -6,7 +6,7 @@ export interface SaveSetupAccountInput {
   id?: string;
   name: string;
   bankProvider?: string | null;
-  accountType?: "CREDIT_CARD" | "EVERYDAY" | "SAVINGS" | "LOAN_OFFSET";
+  accountType?: "EVERYDAY" | "SAVINGS" | "LOAN_OFFSET";
   lastKnownBalance?: string;
   unbudgetedBuffer?: string;
   isPrivate?: boolean;

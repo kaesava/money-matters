@@ -13,7 +13,6 @@ export const BANK_PROVIDERS = [
 export type BankProvider = (typeof BANK_PROVIDERS)[number];
 
 export const ACCOUNT_TYPES = [
-  "CREDIT_CARD",
   "EVERYDAY",
   "SAVINGS",
   "LOAN_OFFSET",
@@ -24,7 +23,6 @@ export type AccountType = (typeof ACCOUNT_TYPES)[number];
 export const ACCOUNT_TYPE_LABELS: Record<AccountType, string> = {
   EVERYDAY: "Everyday",
   SAVINGS: "Savings",
-  CREDIT_CARD: "Credit Card",
   LOAN_OFFSET: "Loan Offset",
 };
 

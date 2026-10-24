@@ -43,6 +43,8 @@ export const envelopes = pgTable(
     isSurplusTarget: boolean("is_surplus_target").notNull().default(false),
     isPrivate: boolean("is_private").notNull().default(false),
     userId: uuid("user_id"), // Applicable for private envelopes
+    emoji: varchar("emoji", { length: 16 }),
+    colorKey: varchar("color_key", { length: 30 }),
     orderIndex: integer("order_index").notNull().default(0),
 
     ...tenantAndTimestamps,

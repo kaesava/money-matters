@@ -42,9 +42,9 @@ describe('Command Schemas Validation', () => {
     expect(bankCmd.accountType).toBe('SAVINGS');
     expect(bankCmd.bankProvider).toBe('Other');
 
-    const updateBank = UpdateBankAccountCommand.parse({ lastKnownBalance: '1500.25', accountType: 'CREDIT_CARD' });
+    const updateBank = UpdateBankAccountCommand.parse({ lastKnownBalance: '1500.25', accountType: 'EVERYDAY' });
     expect(updateBank.lastKnownBalance).toBe('1500.25');
-    expect(updateBank.accountType).toBe('CREDIT_CARD');
+    expect(updateBank.accountType).toBe('EVERYDAY');
   });
 
   it('validates CreateEnvelopeCommand and UpdateEnvelopeCommand', () => {

@@ -281,6 +281,13 @@
       "when": 1784158494251,
       "tag": "0040_add_tenant_user_preferences_soft_delete",
       "breakpoints": true
+    },
+    {
+      "idx": 40,
+      "version": "7",
+      "when": 1784168494251,
+      "tag": "0041_schema_parity_updates",
+      "breakpoints": true
     }
   ]
 }

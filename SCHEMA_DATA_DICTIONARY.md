@@ -69,6 +69,7 @@
 | `accountType` | account_type_enum | - | Domain column |
 | `lastKnownBalance` | numeric | - | Domain column |
 | `unbudgetedBuffer` | numeric | - | Domain column |
+| `lastBalanceMatchedAt` | timestamp | Yes | Balance reconciliation timestamp |
 | `isPrivate` | boolean | - | Domain column |
 | `userId` | uuid | - | Domain column |
 | `tenantId` | uuid | No | Tenant Foreign Key (RLS isolation) |
@@ -170,6 +171,8 @@
 | `isSurplusTarget` | boolean | - | Domain column |
 | `isPrivate` | boolean | - | Domain column |
 | `userId` | uuid | - | Domain column |
+| `emoji` | varchar | Yes | Visual envelope emoji icon |
+| `colorKey` | varchar | Yes | Visual envelope theme color key |
 | `orderIndex` | integer | - | Domain column |
 | `tenantId` | uuid | No | Tenant Foreign Key (RLS isolation) |
 | `appId` | varchar | No | Application ID |

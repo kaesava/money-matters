@@ -10,6 +10,7 @@ import {
   listArchivedItemsQuery,
   getProjectedPoolBalancesQuery,
   saveSetupBudgetHandler,
+  getHomeSummaryQuery,
 } from "@money-matters/capability-budgeting";
 import {
   CreateEnvelopeCommand,
@@ -140,5 +141,10 @@ export const budgetingRouter = {
       requiresWriteAccess(ctx);
       const handler = saveSetupBudgetHandler(ctx.db);
       return await handler(input, ctx.appId!, ctx.userId!, ctx.tenantId!);
+    }),
+
+  getHomeSummary: privateTenantProcedure
+    .query(async ({ ctx }) => {
+      return await getHomeSummaryQuery(ctx.tenantId!, ctx.appId!, ctx.userId!, ctx.db);
     }),
 };

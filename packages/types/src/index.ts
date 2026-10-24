@@ -36,6 +36,7 @@ export * from "./subscription.types";
 export * from "./shortfall-allocation";
 export * from "./quick-presets";
 export * from "./assistant.types";
+export * from "./home-summary.types";
 
 /**
  * Subscription status lifecycle state machine.

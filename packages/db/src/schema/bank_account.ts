@@ -1,8 +1,7 @@
-import { pgTable, uuid, varchar, numeric, boolean, pgEnum } from "drizzle-orm/pg-core";
+import { pgTable, uuid, varchar, numeric, boolean, pgEnum, timestamp } from "drizzle-orm/pg-core";
 import { tenantAndTimestamps } from "./base.js";
 
 export const accountTypeEnum = pgEnum("account_type_enum", [
-  "CREDIT_CARD",
   "EVERYDAY",
   "SAVINGS",
   "LOAN_OFFSET",
@@ -15,6 +14,7 @@ export const bankAccounts = pgTable("bank_accounts", {
   accountType: accountTypeEnum("account_type").notNull().default("EVERYDAY"),
   lastKnownBalance: numeric("last_known_balance", { precision: 12, scale: 2 }).notNull().default("0.00"),
   unbudgetedBuffer: numeric("unbudgeted_buffer", { precision: 12, scale: 2 }).notNull().default("0.00"),
+  lastBalanceMatchedAt: timestamp("last_balance_matched_at", { withTimezone: true }),
   isPrivate: boolean("is_private").notNull().default(false),
   userId: uuid("user_id"), // Applicable for private bank accounts
   ...tenantAndTimestamps,

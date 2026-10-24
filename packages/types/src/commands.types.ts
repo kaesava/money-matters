@@ -26,7 +26,7 @@ export const UpdateUserPreferencesCommand = z.object({
   appPreferences: z.record(z.string(), z.record(z.string(), z.unknown())).optional(),
 }).strict();
 
-export const AccountTypeSchema = z.enum(["CREDIT_CARD", "EVERYDAY", "SAVINGS", "LOAN_OFFSET"]);
+export const AccountTypeSchema = z.enum(["EVERYDAY", "SAVINGS", "LOAN_OFFSET"]);
 
 export const CreateBankAccountCommand = z.object({
   name: z.string().min(1),
@@ -43,6 +43,7 @@ export const UpdateBankAccountCommand = z.object({
   accountType: AccountTypeSchema.optional(),
   lastKnownBalance: z.string().regex(/^\d{1,12}(\.\d{1,2})?$/).optional(),
   unbudgetedBuffer: z.string().regex(/^\d{1,12}(\.\d{1,2})?$/).optional(),
+  lastBalanceMatchedAt: z.string().optional(),
   isPrivate: z.boolean().optional(),
 }).strict();
 
@@ -69,6 +70,8 @@ export const CreateEnvelopeCommand = z.object({
   isCommitted: z.boolean().default(false).optional(),
   isSurplusTarget: z.boolean().default(false).optional(),
   isPrivate: z.boolean().default(false).optional(),
+  emoji: z.string().max(16).optional().nullable(),
+  colorKey: z.string().max(30).optional().nullable(),
   orderIndex: z.number().int().default(0).optional(),
 }).strict().superRefine((data, ctx) => {
   if (data.envelopeType === "TARGET_GOAL" || data.envelopeType === "ONGOING_GOAL") {
@@ -107,6 +110,8 @@ export const UpdateEnvelopeCommand = z.object({
   isCommitted: z.boolean().optional(),
   isSurplusTarget: z.boolean().optional(),
   isPrivate: z.boolean().optional(),
+  emoji: z.string().max(16).optional().nullable(),
+  colorKey: z.string().max(30).optional().nullable(),
   orderIndex: z.number().int().optional(),
 }).strict();
 

@@ -65,4 +65,15 @@ export class DbUsageStore implements UsageStorePort {
 
     return result.length > 0;
   }
+
+  async decrementLlmCalls(tenantId: string): Promise<void> {
+    const periodMonth = getCurrentPeriodMonth();
+    await this.db
+      .update(aiUsage)
+      .set({
+        llmCalls: sql`GREATEST(0, ${aiUsage.llmCalls} - 1)`,
+        updatedAt: new Date(),
+      })
+      .where(and(eq(aiUsage.tenantId, tenantId), eq(aiUsage.periodMonth, periodMonth)));
+  }
 }

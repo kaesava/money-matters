@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { isNonBankingDay, adjustForBankingCalendar, getSydneyTimezoneOffsetMinutes } from "./australian-calendar.js";
+import { isNonBankingDay, adjustForBankingCalendar, getSydneyTimezoneOffsetMinutes, todayInZone, calendarDaysBetween } from "./australian-calendar.js";
 
 describe("Australian Calendar & Banking Settlement Utilities", () => {
   it("correctly identifies weekends and public holidays as non-banking days", () => {
@@ -27,5 +27,21 @@ describe("Australian Calendar & Banking Settlement Utilities", () => {
 
     expect(getSydneyTimezoneOffsetMinutes(winterDate)).toBe(600);
     expect(getSydneyTimezoneOffsetMinutes(summerDate)).toBe(660);
+  });
+
+  it("calculates todayInZone across different Australian timezones", () => {
+    // 2026-06-01 15:00:00 UTC is:
+    // Sydney (UTC+10): 2026-06-02 01:00 -> "2026-06-02"
+    // Perth (UTC+8): 2026-06-01 23:00 -> "2026-06-01"
+    const instant = new Date("2026-06-01T15:00:00Z");
+    expect(todayInZone("Australia/Sydney", instant)).toBe("2026-06-02");
+    expect(todayInZone("Australia/Perth", instant)).toBe("2026-06-01");
+  });
+
+  it("calculates calendar days between dates correctly without time offset drift", () => {
+    expect(calendarDaysBetween("2026-10-25", "2026-10-25")).toBe(0);
+    expect(calendarDaysBetween("2026-10-25", "2026-10-26")).toBe(1);
+    expect(calendarDaysBetween("2026-10-25", "2026-11-08")).toBe(14);
+    expect(calendarDaysBetween("2026-11-08", "2026-10-25")).toBe(-14);
   });
 });

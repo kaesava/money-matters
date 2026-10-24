@@ -21,8 +21,26 @@ const AU_NATIONAL_HOLIDAYS = new Set<string>([
   "2027-01-26", // Australia Day
 ]);
 
+export function todayInZone(timeZone: string = 'Australia/Sydney', now: Date = new Date()): string {
+  return new Intl.DateTimeFormat('en-CA', { timeZone }).format(now);
+}
+
+export function calendarDaysBetween(fromDate: string, toDate: string): number {
+  const [y1, m1, d1] = fromDate.split('-').map(Number);
+  const [y2, m2, d2] = toDate.split('-').map(Number);
+  return Math.round((Date.UTC(y2, m2 - 1, d2) - Date.UTC(y1, m1 - 1, d1)) / 86400000);
+}
+
+export function formatInstantInZone(
+  instant: Date,
+  timeZone: string = 'Australia/Sydney',
+  options?: Intl.DateTimeFormatOptions
+): string {
+  return new Intl.DateTimeFormat('en-AU', { timeZone, ...options }).format(instant);
+}
+
 export function getAestIsoDate(date: Date = new Date()): string {
-  return new Intl.DateTimeFormat('en-CA', { timeZone: 'Australia/Sydney' }).format(date);
+  return todayInZone('Australia/Sydney', date);
 }
 
 /**

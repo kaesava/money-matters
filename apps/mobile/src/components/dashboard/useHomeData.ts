@@ -109,7 +109,7 @@ export function useHomeData(token?: string) {
 
   const nextPaycheck = upcomingIncomeList[0] ?? null;
   const daysUntilPayday = nextPaycheck
-    ? Math.max(0, Math.ceil((new Date(nextPaycheck.expectedDate + 'T00:00:00+10:00').getTime() - new Date().getTime()) / 86400000))
+    ? Math.max(0, Math.round((new Date(nextPaycheck.expectedDate + 'T00:00:00Z').getTime() - new Date(todayStr + 'T00:00:00Z').getTime()) / 86400000))
     : 14;
 
   const upcomingBillsList = (expenseEventsQuery.data ?? [])

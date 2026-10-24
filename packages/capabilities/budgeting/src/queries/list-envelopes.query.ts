@@ -68,8 +68,9 @@ export async function listEnvelopesQuery(
         const target = env.targetAmount ? parseFloat(env.targetAmount) : 0;
         progressPercentage = target > 0 ? Math.min(100, Math.round((currentBalance / target) * 100)) : 0;
         if (env.endDate) {
-          const targetD = new Date(env.endDate + "T00:00:00+10:00").getTime();
-          if (today.getTime() > targetD && currentBalance < target) {
+          const targetD = new Date(env.endDate + "T00:00:00Z").getTime();
+          const todayUtc = new Date(new Intl.DateTimeFormat('en-CA', { timeZone: 'Australia/Sydney' }).format(today) + "T00:00:00Z").getTime();
+          if (todayUtc > targetD && currentBalance < target) {
             healthStatus = "RED";
           } else if (progressPercentage < 50) {
             healthStatus = "AMBER";

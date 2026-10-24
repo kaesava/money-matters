@@ -26,4 +26,5 @@ export * from "./engine/cumulative-projection.js";
 export * from "./engine/bill-lifecycle-fsm.js";
 export * from "./engine/shortfall-allocation.js";
 export * from "./queries/get-income-split-analytics.query.js";
+export * from "./queries/get-home-summary.query.js";
 

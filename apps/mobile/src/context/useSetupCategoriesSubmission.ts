@@ -33,7 +33,7 @@ export function useSetupCategoriesSubmission() {
         id: acc.id.startsWith('acc-') ? undefined : acc.id,
         name: acc.name,
         bankProvider: acc.bankProvider || 'Other',
-        accountType: (acc.accountType || 'EVERYDAY') as 'EVERYDAY' | 'CREDIT_CARD' | 'SAVINGS' | 'LOAN_OFFSET',
+        accountType: (acc.accountType || 'EVERYDAY') as 'EVERYDAY' | 'SAVINGS' | 'LOAN_OFFSET',
         lastKnownBalance: String(acc.lastKnownBalance || '0.00'),
         unbudgetedBuffer: String(acc.unbudgetedBuffer || '0.00'),
         isPrivate: Boolean(acc.isPrivate),

@@ -177,8 +177,9 @@ export async function canAffordSimulationQuery(
 
   const daysUntilPayday = Math.max(
     1,
-    Math.ceil(
-      (new Date(nextPaycheckDateStr + "T00:00:00+10:00").getTime() - today.getTime()) /
+    Math.round(
+      (new Date(nextPaycheckDateStr + "T00:00:00Z").getTime() -
+        new Date(todayStr + "T00:00:00Z").getTime()) /
         (1000 * 60 * 60 * 24)
     )
   );
@@ -417,7 +418,7 @@ export async function canAffordSimulationQuery(
 
       let newDateStr: string | null = null;
       if (pool.endDate) {
-        const originalDate = new Date(pool.endDate + "T00:00:00+10:00");
+        const originalDate = new Date(pool.endDate + "T00:00:00Z");
         const newDate = new Date(originalDate.getTime() + delayDays * 24 * 60 * 60 * 1000);
         newDateStr = new Intl.DateTimeFormat("en-CA", { timeZone: "Australia/Sydney" }).format(newDate);
       }
@@ -560,7 +561,7 @@ export async function canAffordSimulationQuery(
 
       let newTargetDate: string | null = null;
       if (candidateGoal.endDate) {
-        const origDate = new Date(candidateGoal.endDate + "T00:00:00+10:00");
+        const origDate = new Date(candidateGoal.endDate + "T00:00:00Z");
         const nDate = new Date(origDate.getTime() + delayDays * 24 * 60 * 60 * 1000);
         newTargetDate = new Intl.DateTimeFormat("en-CA", { timeZone: "Australia/Sydney" }).format(nDate);
       }

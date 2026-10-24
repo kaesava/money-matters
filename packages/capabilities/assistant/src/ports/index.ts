@@ -21,6 +21,7 @@ export interface LlmProviderPort {
 export interface UsageStorePort {
   getUsage(tenantId: string): Promise<{ used: number; limit: number; remaining: number; resetsOn: string }>;
   incrementLlmCalls(tenantId: string, limit: number): Promise<boolean>;
+  decrementLlmCalls?(tenantId: string): Promise<void>;
 }
 
 export interface EntityResolverPort {

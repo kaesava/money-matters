@@ -128,7 +128,7 @@ export async function runAllocationCommand(
     incomeType: eventWithSource?.incomeType || "SALARIED",
     runwayDays: runwayDays ?? 30,
     buckets: engineBuckets,
-    paycheckDate: eventWithSource ? new Date(eventWithSource.expectedDate + "T00:00:00+10:00") : new Date(),
+    paycheckDate: eventWithSource ? new Date(eventWithSource.expectedDate + "T00:00:00Z") : new Date(),
     paycheckFrequencyDays: freqDays,
     upcomingExpenses: pendingExpenses.map((e) => ({
       envelopeId: e.envelopeId,

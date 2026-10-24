@@ -50,7 +50,16 @@ export async function askAssistant(opts: AskAssistantOptions): Promise<Assistant
   }
 
   // 6. LLM Fallback Classification
-  const classified = await llmProvider.classifyIntent(query);
+  let classified;
+  try {
+    classified = await llmProvider.classifyIntent(query);
+  } catch (err) {
+    if (typeof usageStore.decrementLlmCalls === "function") {
+      await usageStore.decrementLlmCalls(context.tenantId);
+    }
+    throw err;
+  }
+
   if (!classified || classified.intent === "UNKNOWN") {
     return {
       type: "clarify",

@@ -58,7 +58,7 @@ export function SetupReviewCustomCategoryForm({
           onClick={onAddCustomCategory}
           className="px-4 py-2 bg-[#2563eb] text-white text-xs font-bold rounded-xl hover:bg-blue-700 transition-colors cursor-pointer"
         >
-          + Add
+          {t("common.add")}
         </button>
       </div>
     </div>

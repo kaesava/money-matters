@@ -298,17 +298,17 @@ export async function seedDatabase(connectionString: string, envLabel: string) {
   // 4. Bank Accounts (Shared Joint Accounts & Private Accounts)
   const [everydayAccount] = await db
     .insert(bankAccounts)
-    .values({ name: "Everyday Account", bankProvider: "CBA", lastKnownBalance: "2641.54", unbudgetedBuffer: "0.00", isPrivate: false, tenantId, appId, createdBy: userId, updatedBy: userId })
+    .values({ name: "Everyday Account", bankProvider: "CBA", accountType: "EVERYDAY", lastKnownBalance: "2641.54", unbudgetedBuffer: "0.00", lastBalanceMatchedAt: now, isPrivate: false, tenantId, appId, createdBy: userId, updatedBy: userId })
     .returning();
 
   const [misaAccount] = await db
     .insert(bankAccounts)
-    .values({ name: "MISA (Offset) Account", bankProvider: "CBA", lastKnownBalance: "167581.35", unbudgetedBuffer: "0.00", isPrivate: false, tenantId, appId, createdBy: userId, updatedBy: userId })
+    .values({ name: "MISA (Offset) Account", bankProvider: "CBA", accountType: "LOAN_OFFSET", lastKnownBalance: "167581.35", unbudgetedBuffer: "0.00", lastBalanceMatchedAt: now, isPrivate: false, tenantId, appId, createdBy: userId, updatedBy: userId })
     .returning();
 
   const [personalSaverAccount] = await db
     .insert(bankAccounts)
-    .values({ name: "Kaesava Personal Saver", bankProvider: "Macquarie", lastKnownBalance: "500.00", unbudgetedBuffer: "0.00", isPrivate: true, userId, tenantId, appId, createdBy: userId, updatedBy: userId })
+    .values({ name: "Kaesava Personal Saver", bankProvider: "Macquarie", accountType: "SAVINGS", lastKnownBalance: "500.00", unbudgetedBuffer: "0.00", lastBalanceMatchedAt: now, isPrivate: true, userId, tenantId, appId, createdBy: userId, updatedBy: userId })
     .returning();
 
   // 5. Envelopes Definition (Flat Architecture: EVERYDAY, SCHEDULED_BILL, FLEXIBLE_BILL, TARGET_GOAL, ONGOING_GOAL)
