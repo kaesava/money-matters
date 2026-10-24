@@ -8,7 +8,15 @@ import {
 } from "@money-matters/types";
 import { z } from 'zod';
 
-const getAestDateString = (d: Date = new Date()) => new Intl.DateTimeFormat('en-CA', { timeZone: 'Australia/Sydney' }).format(d);
+import { getTenantDateString } from '@money-matters/core';
+import { tenants } from "@money-matters/db";
+
+async function getTenantLocalDateString(db: any, tenantId: string, d: Date = new Date()): Promise<string> {
+  const [tenantRecord] = typeof db.select === "function"
+    ? await db.select({ timezone: tenants.timezone }).from(tenants).where(eq(tenants.id, tenantId)).limit(1)
+    : [null];
+  return getTenantDateString(d, { timezone: tenantRecord?.timezone || "Australia/Sydney" });
+}
 
 export const incomeRouter = {
   createIncomeSource: privateTenantProcedure
@@ -38,7 +46,7 @@ export const incomeRouter = {
 
       if (!input.isRecurring) {
         // One-off income: create standalone unlinked event directly without creating a schedule record
-        const eventDate = input.startDate || getAestDateString();
+        const eventDate = input.startDate || await getTenantLocalDateString(ctx.db, ctx.tenantId!);
         const [insertedEvent] = await ctx.db
           .insert(incomeEvents)
           .values({
@@ -95,17 +103,19 @@ export const incomeRouter = {
         const dates = generateBurstDates(rrule, input.startDate, input.endDate, 12);
         if (dates.length > 0) {
           const insertedEvents = await ctx.db.insert(incomeEvents).values(
-            dates.map((d) => ({
-              incomeSourceId: source.id,
-              name: input.name,
-              expectedDate: getAestDateString(d),
-              expectedAmount: input.amount,
-              status: "PENDING" as const,
-              tenantId: ctx.tenantId!,
-              appId: ctx.appId!,
-              createdBy: ctx.userId!,
-              updatedBy: ctx.userId!,
-            }))
+            await Promise.all(
+              dates.map(async (d) => ({
+                incomeSourceId: source.id,
+                name: input.name,
+                expectedDate: await getTenantLocalDateString(ctx.db, ctx.tenantId!, d),
+                expectedAmount: input.amount,
+                status: "PENDING" as const,
+                tenantId: ctx.tenantId!,
+                appId: ctx.appId!,
+                createdBy: ctx.userId!,
+                updatedBy: ctx.userId!,
+              }))
+            )
           ).returning();
           firstEventId = insertedEvents[0]?.id ?? null;
         }
@@ -182,7 +192,7 @@ export const incomeRouter = {
       if (!newStartDate) {
         if (source.startDate) newStartDate = source.startDate;
         else if (unperformedEvents.length > 0 && unperformedEvents[0].expectedDate) newStartDate = unperformedEvents[0].expectedDate;
-        else newStartDate = getAestDateString();
+        else newStartDate = await getTenantLocalDateString(ctx.db, ctx.tenantId!);
       }
 
       // When converting a recurring income schedule to a one-off event:
@@ -266,16 +276,18 @@ export const incomeRouter = {
         const dates = generateBurstDates(rrule, newStartDate, newEndDate, 12);
         if (dates.length > 0) {
           await ctx.db.insert(incomeEvents).values(
-            dates.map((d) => ({
-              incomeSourceId: source.id,
-              expectedDate: getAestDateString(d),
-              expectedAmount: newAmount,
-              status: "PENDING" as const,
-              tenantId: ctx.tenantId!,
-              appId: ctx.appId!,
-              createdBy: ctx.userId!,
-              updatedBy: ctx.userId!,
-            }))
+            await Promise.all(
+              dates.map(async (d) => ({
+                incomeSourceId: source.id,
+                expectedDate: await getTenantLocalDateString(ctx.db, ctx.tenantId!, d),
+                expectedAmount: newAmount,
+                status: "PENDING" as const,
+                tenantId: ctx.tenantId!,
+                appId: ctx.appId!,
+                createdBy: ctx.userId!,
+                updatedBy: ctx.userId!,
+              }))
+            )
           );
         }
       }
@@ -672,20 +684,22 @@ export const incomeRouter = {
           .where(inArray(incomeEvents.id, unperformedEvents.map((e) => e.id)));
       }
 
-      const startDate = source.startDate || getAestDateString();
+      const startDate = source.startDate || await getTenantLocalDateString(ctx.db, ctx.tenantId!);
       const dates = generateBurstDates(source.rrule, startDate, source.endDate, 12);
       if (dates.length > 0) {
         await ctx.db.insert(incomeEvents).values(
-          dates.map((d) => ({
-            incomeSourceId: source.id,
-            expectedDate: getAestDateString(d),
-            expectedAmount: source.amount,
-            status: "PENDING" as const,
-            tenantId: ctx.tenantId!,
-            appId: ctx.appId!,
-            createdBy: ctx.userId!,
-            updatedBy: ctx.userId!,
-          }))
+          await Promise.all(
+            dates.map(async (d) => ({
+              incomeSourceId: source.id,
+              expectedDate: await getTenantLocalDateString(ctx.db, ctx.tenantId!, d),
+              expectedAmount: source.amount,
+              status: "PENDING" as const,
+              tenantId: ctx.tenantId!,
+              appId: ctx.appId!,
+              createdBy: ctx.userId!,
+              updatedBy: ctx.userId!,
+            }))
+          )
         );
       }
 

@@ -110,7 +110,12 @@ All tables MUST include:
 - **Product Core Philosophy (Zero Friction)**: Money Matters automates forward-looking payday allocation (ring-fencing bills and committed savings) so users can spend their remaining Everyday pool freely with zero friction and zero guilt. NEVER describe the product as requiring "daily tracking", "micro-managing every dollar", or "tracking daily spending velocity".
 - **Modal Dialog & Drawer Behavior**: All modal dialogs and slide-over drawers MUST support `Escape` key dismissal when form state is clean.
 - MUST use `React.useId()` for generating unique component/input HTML IDs. `Math.random()` for element IDs is strictly banned.
-- Dates stored in UTC; rendered in timezone-aware AEST/en-AU format. NEVER use raw `new Date().toISOString().split('T')[0]` (causes off-by-one date errors in Australian UTC+10/11 timezones); format using `new Intl.DateTimeFormat('en-CA', { timeZone: 'Australia/Sydney' })`.
+- **Global Currency & Presentation Parity (Zero Regional Leakage & Anti-Drift)**:
+  - Money Matters is 100% globally parameterized with zero regional assumptions or leaks.
+  - Hardcoded currency codes (e.g. `AUD`, `USD`), fixed symbols (`$`), fixed timezone strings (e.g. `'Australia/Sydney'`), or hardcoded locale strings (e.g. `'en-AU'`) in UI components, form inputs, error messages, and i18n dictionaries are STRICTLY PROHIBITED.
+  - All currency symbols, minor units, and formatting MUST be resolved dynamically via `CurrencyLocaleContext` (`useCurrencyLocale` from `@money-matters/ui`) or `useLocale()` / `formatMobileCurrency`.
+  - All dates and timestamps stored in PostgreSQL or SQLite MUST remain strictly in UTC (or ISO `YYYY-MM-DD` for calendar keys).
+  - All date presentations MUST dynamically format according to the user's active timezone (`user_preferences.timezone` falling back to `tenants.timezone`) with 100% parity across Web and Mobile. Server-side date boundaries MUST use `getTenantDateString(date, { timezone: tenant.timezone })`.
 - Next.js App Router prerendering: pages/components using `useSearchParams()` MUST be wrapped in a `<Suspense>` boundary to prevent build errors during production export.
 - Serene Finance visual identity: Serene Blue `#2563eb`, Navy `#1B2B4B`, Off-white `#F7F8FA`, Green `#22c55e`, Red `#ba1a1a`, JetBrains Mono for monetary metrics.
 - **Design Token Integrity (Zero Invented Token Names)**: All styles across web and mobile MUST strictly reference canonical keys defined in `DESIGN_TOKENS.colors` (e.g. `sereneBlue`, `primary`, `accent`, `accentLight`, `accentBorder`, `success`, `successLight`, `successDark`, `slate[50..900]`). Never invent non-existent color token names (e.g. `emerald`, `sereneBlueLight`).

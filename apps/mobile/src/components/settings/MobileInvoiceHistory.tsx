@@ -3,7 +3,7 @@ import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator, Linking } 
 import { Feather } from '@expo/vector-icons';
 import { DESIGN_TOKENS, MobilePaginationBar } from '@money-matters/ui/mobile';
 import { t } from '@money-matters/i18n';
-import { fmtDateMedium } from '@money-matters/ui';
+import { formatDate, formatMobileCurrency } from '../../lib/format';
 
 interface InvoiceItem {
   id: string;
@@ -59,7 +59,7 @@ export function MobileInvoiceHistory({ invoices, isLoading }: MobileInvoiceHisto
               <View key={inv.id} style={styles.invoiceRow}>
                 <View style={styles.topMetaRow}>
                   <Text style={styles.invoiceDate}>
-                    {inv.paidAt ? fmtDateMedium(inv.paidAt) : '—'}
+                    {inv.paidAt ? formatDate(inv.paidAt) : '—'}
                   </Text>
                   <View
                     style={[
@@ -80,7 +80,7 @@ export function MobileInvoiceHistory({ invoices, isLoading }: MobileInvoiceHisto
 
                 <View style={styles.bottomActionRow}>
                   <Text style={styles.invoiceAmount}>
-                    ${inv.amountPaid} {inv.currency.toUpperCase()}
+                    {formatMobileCurrency(inv.amountPaid, inv.currency)}
                   </Text>
 
                   {receiptUrl ? (

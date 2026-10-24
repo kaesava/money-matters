@@ -47,7 +47,7 @@ export function IncomeSplitScreen({ incomeEventId, returnTo = "/dashboard" }: In
   const router = useRouter();
   const toast = useToast();
   const utils = trpc.useUtils();
-  const { userTimezone, timezone } = useLocale();
+  const { fmt, userTimezone, timezone } = useLocale();
   const activeTz = userTimezone || timezone || "Australia/Sydney";
 
   const poolsQuery = trpc.listPools.useQuery();
@@ -555,7 +555,7 @@ export function IncomeSplitScreen({ incomeEventId, returnTo = "/dashboard" }: In
         onLockSplit={!isReadOnly ? handleSaveSplit : undefined}
         onSaveChanges={!isReadOnly ? handleSaveSplit : undefined}
         onDiscardEdits={!isReadOnly ? handleDiscardEdits : undefined}
-        formatAUD={(amount) => `$${amount.toLocaleString("en-AU", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
+        formatAUD={(amount) => fmt(amount)}
       />
 
       <div className="flex-1 w-full space-y-4">
@@ -650,7 +650,7 @@ export function IncomeSplitScreen({ incomeEventId, returnTo = "/dashboard" }: In
       <UnsavedSplitExitDialog
         isOpen={showExitDialog}
         isDeficit={isDeficit}
-        deficitAmount={`$${Math.abs(sweepPoolRemainder).toLocaleString("en-AU", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
+        deficitAmount={fmt(Math.abs(sweepPoolRemainder))}
         submitting={submitting}
         onClose={() => setShowExitDialog(false)}
         onDiscardAndExit={handleDiscardAndExit}

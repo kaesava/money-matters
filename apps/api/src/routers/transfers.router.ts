@@ -91,8 +91,16 @@ export const transfersRouter = {
         throw new Error("Source or destination envelope not found.");
       }
 
+      const [tenantRecord] = await ctx.db
+        .select({ timezone: (await import("@money-matters/db")).tenants.timezone })
+        .from((await import("@money-matters/db")).tenants)
+        .where(eq((await import("@money-matters/db")).tenants.id, ctx.tenantId!))
+        .limit(1);
+      const tenantTz = tenantRecord?.timezone || "Australia/Sydney";
+      const { getTenantDateString } = await import("@money-matters/core");
+
       const transferName = input.name || `Transfer: ${sourceEnv.name} ➔ ${destEnv.name}`;
-      const eventDate = input.startDate || new Intl.DateTimeFormat('en-CA', { timeZone: 'Australia/Sydney' }).format(new Date());
+      const eventDate = input.startDate || getTenantDateString(new Date(), { timezone: tenantTz });
 
       const [insertedEvent] = await ctx.db
         .insert(transferEvents)

@@ -6,6 +6,7 @@ import { t } from '@money-matters/i18n';
 import { DESIGN_TOKENS, InfoTooltip, AmountInput } from '@money-matters/ui/mobile';
 import { useSetupWizard } from '../../context/SetupWizardContext';
 import { HousingType } from '@money-matters/types';
+import { formatMobileCurrency } from '../../lib/format';
 import { LifestyleVehicleSubCard } from '../../components/setup/LifestyleVehicleSubCard';
 import { LifestyleChildSubCard } from '../../components/setup/LifestyleChildSubCard';
 import { SetupProgressBar } from '../../components/setup/SetupProgressBar';
@@ -170,15 +171,15 @@ export default function SetupLifestyleScreen() {
         <Text style={styles.sectionTitle}>{t('setup.lifestyle.spendingTitle')}</Text>
         <View style={styles.budgetRow}>
           <Text style={styles.budgetLabel}>{t('setup.lifestyle.groceries')}</Text>
-          <Text style={styles.budgetValue}>${weeklyGroceries}{t('setup.lifestyle.perWeek')}</Text>
+          <Text style={styles.budgetValue}>{formatMobileCurrency(weeklyGroceries)}{t('setup.lifestyle.perWeek')}</Text>
         </View>
         <View style={styles.budgetRow}>
           <Text style={styles.budgetLabel}>{t('setup.lifestyle.dining')}</Text>
-          <Text style={styles.budgetValue}>${weeklyDining}{t('setup.lifestyle.perWeek')}</Text>
+          <Text style={styles.budgetValue}>{formatMobileCurrency(weeklyDining)}{t('setup.lifestyle.perWeek')}</Text>
         </View>
         <View style={styles.budgetRow}>
           <Text style={styles.budgetLabel}>{t('setup.lifestyle.personalBuffer')}</Text>
-          <Text style={styles.budgetValue}>${weeklyPersonal}{t('setup.lifestyle.perWeek')}</Text>
+          <Text style={styles.budgetValue}>{formatMobileCurrency(weeklyPersonal)}{t('setup.lifestyle.perWeek')}</Text>
         </View>
       </View>
 

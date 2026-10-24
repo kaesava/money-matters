@@ -53,6 +53,10 @@ const BANNED_PATTERNS = [
   { pattern: /\bPrimary Auth\b/i, reason: "Use 'Login Email' instead of dev speak 'Primary Auth'." },
   { pattern: /\b(Partner|Housemate)s?\b/i, reason: "Use 'Household member(s)' instead of 'Partner/Housemate'." },
   { pattern: /\bReconcile\b/i, reason: "Use 'Check Balances' or 'Match Bank' instead of accounting jargon 'Reconcile'." },
+  { pattern: /\(\$\s*AUD\)/i, reason: "Hardcoded '($ AUD)' in i18n label. Money Matters is 100% globally parameterized; use dynamic currency." },
+  { pattern: /\(\$\s*USD\)/i, reason: "Hardcoded '($ USD)' in i18n label. Money Matters is 100% globally parameterized; use dynamic currency." },
+  { pattern: /\bAUD\s*\/\s*(mo|yr|week|month|year)\b/i, reason: "Hardcoded 'AUD' in frequency pricing. Use dynamic currency format." },
+  { pattern: />\s*\$0/i, reason: "Hardcoded '$0' in comparison label. Use zero currency format or dynamic currency." },
 ];
 
 const terminologyErrors = [];

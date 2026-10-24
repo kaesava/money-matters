@@ -28,6 +28,8 @@ export * from '../hooks/IconVisibilityContext';
 export * from '../lib/format';
 export * from '../lib/is-dirty';
 export * from '../dates/date-formatting';
+export * from '../hooks/CurrencyLocaleContext';
+export * from '../hooks/DateLocaleContext';
 
 export * from './useResizableColumns';
 export * from './ResizableTh';

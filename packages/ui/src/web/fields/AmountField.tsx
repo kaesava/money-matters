@@ -4,6 +4,7 @@ import React, { useId, useState, useCallback } from 'react';
 import { FormLabel } from '../FormLabel';
 import { FormFieldError } from '../FormFieldError';
 import { formatAmountNumber, getCurrencyMinorUnits, getCurrencySymbol } from '../../lib/format';
+import { useCurrencyLocale } from '../../hooks/CurrencyLocaleContext';
 
 export interface AmountFieldProps {
   /** Controlled string value — keep as empty string when blank */
@@ -95,10 +96,10 @@ export const AmountField = React.forwardRef<HTMLInputElement, AmountFieldProps>(
       placeholder = '0.00',
       allowNegative = false,
       maxIntegerDigits = 10,
-      currency = 'AUD',
-      currencySymbol,
-      minorUnits,
-      locale = 'en-AU',
+      currency: propCurrency,
+      currencySymbol: propCurrencySymbol,
+      minorUnits: propMinorUnits,
+      locale: propLocale,
       required = false,
       disabled = false,
       autoFocus = false,
@@ -112,15 +113,25 @@ export const AmountField = React.forwardRef<HTMLInputElement, AmountFieldProps>(
     },
     ref
   ) => {
+    const currencyContext = useCurrencyLocale();
+    const currency = propCurrency ?? currencyContext.currency;
+    const locale = propLocale ?? currencyContext.locale;
+    const effectiveMinorUnits =
+      propMinorUnits !== undefined
+        ? propMinorUnits
+        : currencyContext.minorUnits !== undefined && !propCurrency
+        ? currencyContext.minorUnits
+        : getCurrencyMinorUnits(currency);
+    const effectiveSymbol =
+      propCurrencySymbol ??
+      (!propCurrency && !propLocale && currencyContext.currencySymbol
+        ? currencyContext.currencySymbol
+        : getCurrencySymbol(locale, currency));
+
     const generatedId = useId();
     const inputId = id ?? name ?? generatedId;
     const [isFocused, setIsFocused] = useState(false);
     const [localEditingText, setLocalEditingText] = useState<string | null>(null);
-
-    const effectiveMinorUnits =
-      minorUnits !== undefined ? minorUnits : getCurrencyMinorUnits(currency);
-    const effectiveSymbol =
-      currencySymbol ?? getCurrencySymbol(locale, currency);
     const effectiveMin = min !== undefined ? min : allowNegative ? undefined : 0;
 
     const sanitise = useCallback(

@@ -3,7 +3,7 @@ import { View, Text, TouchableOpacity, ActivityIndicator, StyleSheet } from 'rea
 import { Feather } from '@expo/vector-icons';
 import { DESIGN_TOKENS, MobileButton } from '@money-matters/ui/mobile';
 import { t } from '@money-matters/i18n';
-import { fmtDateMedium } from '@money-matters/ui';
+import { formatDate } from '../../../lib/format';
 
 export interface SubscriptionStatusCardProps {
   planName: string;
@@ -75,7 +75,7 @@ export function SubscriptionStatusCard({
       {isSubscribed && !isCanceling && nextBillingAt && (
         <Text style={styles.billingSubtext}>
           {t('subscription.renewsOn', {
-            date: fmtDateMedium(nextBillingAt),
+            date: formatDate(nextBillingAt),
           })}
         </Text>
       )}
@@ -83,7 +83,7 @@ export function SubscriptionStatusCard({
       {isCanceling && subscriptionEndsAt && (
         <Text style={styles.cancelingSubtext}>
           {t('subscription.cancelingNotice', {
-            date: fmtDateMedium(subscriptionEndsAt),
+            date: formatDate(subscriptionEndsAt),
           })}
         </Text>
       )}

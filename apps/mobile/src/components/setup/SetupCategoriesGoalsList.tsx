@@ -3,6 +3,7 @@ import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { t } from '@money-matters/i18n';
 import { DESIGN_TOKENS } from '@money-matters/ui/mobile';
 import { EstimatedCategoryItem, UserGoalItem } from '@money-matters/types';
+import { formatMobileCurrency } from '../../lib/format';
 
 interface SetupCategoriesGoalsListProps {
   goals: EstimatedCategoryItem[];
@@ -23,7 +24,7 @@ export function SetupCategoriesGoalsList({
     <View style={styles.sectionCard}>
       <View style={styles.sectionHeader}>
         <Text style={styles.sectionTitle}>{t('setup.categories.goalSection')}</Text>
-        <Text style={styles.sectionTotal}>${totalGoalMonthly.toLocaleString()}/mo</Text>
+        <Text style={styles.sectionTotal}>{formatMobileCurrency(totalGoalMonthly)}/mo</Text>
       </View>
 
       {goals.map((cat) => {
@@ -35,8 +36,8 @@ export function SetupCategoriesGoalsList({
           (g) => g.name.trim().toLowerCase() === cat.name.trim().toLowerCase()
         );
         const targetStr = userGoal
-          ? `$${(userGoal.targetAmount || 0).toLocaleString()}`
-          : `$${cat.monthlyAud.toLocaleString()}`;
+          ? formatMobileCurrency(userGoal.targetAmount || 0)
+          : formatMobileCurrency(cat.monthlyAud);
 
         return (
           <View key={cat.name} style={styles.row}>

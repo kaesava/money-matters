@@ -2,7 +2,7 @@ import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { DESIGN_TOKENS, MobileButton } from '@money-matters/ui/mobile';
 import { t } from '@money-matters/i18n';
-import { fmtDateMedium } from '@money-matters/ui';
+import { formatDate } from '../../../lib/format';
 
 export interface MobileSubscriptionCancellationCalloutProps {
   status?: {
@@ -50,7 +50,7 @@ export function MobileSubscriptionCancellationCallout({
               </Text>
               <Text style={styles.cancelingDesc}>
                 {t('subscription.cancelingBannerDesc', {
-                  date: fmtDateMedium(status.subscriptionEndsAt),
+                  date: formatDate(status.subscriptionEndsAt),
                 })}
               </Text>
             </View>
@@ -78,7 +78,7 @@ export function MobileSubscriptionCancellationCallout({
               </Text>
               <Text style={styles.renewalDesc}>
                 {t('subscription.upcomingRenewalDesc', {
-                  date: fmtDateMedium(status.nextBillingAt),
+                  date: formatDate(status.nextBillingAt),
                 })}
               </Text>
             </View>

@@ -2,6 +2,7 @@
 
 import React from "react";
 import { t } from "@money-matters/i18n";
+import { useLocale } from "../../../providers/LocaleProvider";
 
 interface LifestyleDiscretionarySlidersProps {
   weeklyGroceries: number;
@@ -22,6 +23,7 @@ export function LifestyleDiscretionarySliders({
   setWeeklyPersonal,
   isZeroBased = false,
 }: LifestyleDiscretionarySlidersProps) {
+  const { fmt } = useLocale();
   return (
     <div className="flex flex-col gap-4 p-4 bg-slate-50 rounded-2xl border border-zinc-200/60">
       <span className="text-xs font-black uppercase tracking-wider text-zinc-400">
@@ -31,7 +33,7 @@ export function LifestyleDiscretionarySliders({
         <div className="flex flex-col gap-1.5 bg-white p-3 rounded-xl border border-zinc-200">
           <div className="flex justify-between items-center text-xs font-bold text-[#1B2B4B]">
             <span>{t("setup.lifestyle.groceries")}</span>
-            <span className="text-[#2563eb] font-mono">${weeklyGroceries}/wk</span>
+            <span className="text-[#2563eb] font-mono">{fmt(weeklyGroceries)}/wk</span>
           </div>
           <input
             type="range"
@@ -47,7 +49,7 @@ export function LifestyleDiscretionarySliders({
         <div className="flex flex-col gap-1.5 bg-white p-3 rounded-xl border border-zinc-200">
           <div className="flex justify-between items-center text-xs font-bold text-[#1B2B4B]">
             <span>{t("setup.lifestyle.dining")}</span>
-            <span className="text-[#2563eb] font-mono">${weeklyDining}/wk</span>
+            <span className="text-[#2563eb] font-mono">{fmt(weeklyDining)}/wk</span>
           </div>
           <input
             type="range"
@@ -63,7 +65,7 @@ export function LifestyleDiscretionarySliders({
         <div className="flex flex-col gap-1.5 bg-white p-3 rounded-xl border border-zinc-200">
           <div className="flex justify-between items-center text-xs font-bold text-[#1B2B4B]">
             <span>{t("setup.lifestyle.personalBuffer")}</span>
-            <span className="text-[#2563eb] font-mono">${weeklyPersonal}/wk</span>
+            <span className="text-[#2563eb] font-mono">{fmt(weeklyPersonal)}/wk</span>
           </div>
           <input
             type="range"

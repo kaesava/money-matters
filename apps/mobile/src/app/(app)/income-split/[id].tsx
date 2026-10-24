@@ -21,6 +21,7 @@ import { MobilePaydayTransferModal } from '../../../components/paychecks/MobileP
 import { MobileUnsavedSplitExitDialog } from '../../../components/paychecks/MobileUnsavedSplitExitDialog';
 import { MobileIncomeSplitPoolList } from '../../../components/paychecks/MobileIncomeSplitPoolList';
 import { usePaycheckStudio } from '../../../components/paychecks/usePaycheckStudio';
+import { formatMobileCurrency } from '../../../lib/format';
 
 export default function IncomeSplitStudioScreen() {
   const { id, returnTo } = useLocalSearchParams<{ id: string; returnTo?: string }>();
@@ -157,7 +158,7 @@ export default function IncomeSplitStudioScreen() {
         <MobileUnsavedSplitExitDialog
           visible={showExitDialog}
           isDeficit={isDeficit}
-          deficitAmount={`$${Math.abs(sweepPoolRemainder).toFixed(2)}`}
+          deficitAmount={formatMobileCurrency(Math.abs(sweepPoolRemainder))}
           submitting={submitting}
           onClose={() => setShowExitDialog(false)}
           onDiscardAndExit={handleDiscardAndExit}

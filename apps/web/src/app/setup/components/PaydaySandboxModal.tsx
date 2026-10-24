@@ -5,6 +5,8 @@ import { Sparkles, ShieldCheck, Target, Wallet, ArrowRight } from "lucide-react"
 import { ModalDialog, AmountField, Button } from "@money-matters/ui/web";
 import { t } from "@money-matters/i18n";
 
+import { useLocale } from "../../../providers/LocaleProvider";
+
 interface PaydaySandboxModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -22,6 +24,7 @@ export function PaydaySandboxModal({
   estimatedGoals,
   defaultPaycheck,
 }: PaydaySandboxModalProps) {
+  const { fmt } = useLocale();
   const [paycheckStr, setPaycheckStr] = useState(String(defaultPaycheck > 0 ? defaultPaycheck : 2500));
   const [isSimulated, setIsSimulated] = useState(false);
 
@@ -30,8 +33,7 @@ export function PaydaySandboxModal({
   const goalsAllocated = Math.min(Math.max(0, parsedPaycheck - billsAllocated), estimatedGoals > 0 ? estimatedGoals : 400);
   const safeToSpend = Math.max(0, parsedPaycheck - billsAllocated - goalsAllocated);
 
-  const formatAUD = (val: number) =>
-    `$${val.toLocaleString("en-AU", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  const formatAUD = (val: number) => fmt(val);
 
   return (
     <ModalDialog

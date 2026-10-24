@@ -2,6 +2,7 @@ import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { t } from '@money-matters/i18n';
 import { DESIGN_TOKENS } from '@money-matters/ui/mobile';
+import { formatMobileCurrency } from '../../lib/format';
 
 export interface MobileGoalPresetConfig {
   name: string;
@@ -91,7 +92,7 @@ export function SetupGoalsPresetsGrid({
               </View>
               <Text style={styles.presetName} numberOfLines={1}>{displayLabel}</Text>
               <Text style={styles.presetMeta}>
-                {isOngoing ? `$${preset.defaultTarget.toLocaleString()}/mo` : `Target: $${preset.defaultTarget.toLocaleString()}`}
+                {isOngoing ? `${formatMobileCurrency(preset.defaultTarget)}/mo` : `Target: ${formatMobileCurrency(preset.defaultTarget)}`}
               </Text>
             </TouchableOpacity>
           );

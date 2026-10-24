@@ -13,7 +13,8 @@ import {
 import { DESIGN_TOKENS } from '../tokens';
 import { FormLabel } from './FormLabel';
 import { FormFieldError } from './FormFieldError';
-import { formatAmountNumber } from '../lib/format';
+import { formatAmountNumber, getCurrencyMinorUnits, getCurrencySymbol } from '../lib/format';
+import { useCurrencyLocale } from '../hooks/CurrencyLocaleContext';
 
 export interface AmountInputProps extends Omit<TextInputProps, 'onChangeText' | 'value'> {
   value: string;
@@ -59,9 +60,9 @@ export const AmountInputBase = (
     required,
     error,
     hint,
-    currencySymbol = '$',
-    locale = 'en-AU',
-    minorUnits = 2,
+    currencySymbol: propCurrencySymbol,
+    locale: propLocale,
+    minorUnits: propMinorUnits,
     placeholder = '0.00',
     containerStyle,
     editable = true,
@@ -73,6 +74,25 @@ export const AmountInputBase = (
   }: AmountInputProps,
   ref: React.ForwardedRef<TextInput>
 ) => {
+  let currencyCtx: { currency: string; currencySymbol: string; minorUnits: number; locale: string } | null = null;
+  try {
+    currencyCtx = useCurrencyLocale();
+  } catch {
+    // Outside of React tree or provider
+  }
+
+  const locale = propLocale ?? currencyCtx?.locale ?? 'en-AU';
+  const currencySymbol =
+    propCurrencySymbol ??
+    currencyCtx?.currencySymbol ??
+    getCurrencySymbol(locale, currencyCtx?.currency || 'AUD');
+  const minorUnits =
+    propMinorUnits !== undefined
+      ? propMinorUnits
+      : currencyCtx?.minorUnits !== undefined
+      ? currencyCtx.minorUnits
+      : getCurrencyMinorUnits(currencyCtx?.currency || 'AUD');
+
   let isFocused = false;
   let setIsFocused: (v: boolean) => void = () => {};
   let localEditingText: string | null = null;

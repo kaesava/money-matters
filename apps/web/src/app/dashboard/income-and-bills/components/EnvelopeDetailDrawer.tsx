@@ -37,7 +37,7 @@ export function EnvelopeDetailDrawer({
   onMarkPaid,
   onEditPool,
 }: EnvelopeDetailDrawerProps) {
-  const { fmtDate } = useLocale();
+  const { fmt, fmtDate, fmtTx } = useLocale();
   const [activeTab, setActiveTab] = useState<"expenses" | "activity">("expenses");
 
   // Fetch pool, categories, transactions, and fallback upcoming events
@@ -192,7 +192,7 @@ export function EnvelopeDetailDrawer({
                   {t("categoryDrawer.currentBalance")}
                 </span>
                 <span className="text-sm font-black font-mono text-[#1B2B4B] dark:text-white">
-                  ${currentBal.toFixed(2)}
+                  {fmt(currentBal)}
                 </span>
               </div>
 
@@ -202,7 +202,7 @@ export function EnvelopeDetailDrawer({
                   {t("categoryDrawer.targetAmount")}
                 </span>
                 <span className="text-sm font-black font-mono text-zinc-700 dark:text-zinc-300">
-                  {targetAmt ? `$${targetAmt.toFixed(2)}${!isGoalPool ? ` ${t("categoryDrawer.perMonth")}` : ""}` : "—"}
+                  {targetAmt ? `${fmt(targetAmt)}${!isGoalPool ? ` ${t("categoryDrawer.perMonth")}` : ""}` : "—"}
                 </span>
               </div>
 
@@ -289,7 +289,7 @@ export function EnvelopeDetailDrawer({
                               {evt.dueDate}
                             </td>
                             <td className="p-3 text-right font-mono font-bold text-[#1B2B4B] dark:text-white">
-                              ${parseFloat(evt.amount || "0").toFixed(2)}
+                              {fmt(evt.amount || "0")}
                             </td>
                             <td className="p-3 text-center">
                               {evt.isPaid ? (
@@ -371,7 +371,7 @@ export function EnvelopeDetailDrawer({
                               <td className={`p-3 text-right font-mono font-bold ${
                                 isDebit ? "text-rose-600" : "text-emerald-600"
                               }`}>
-                                {isDebit ? "-" : "+"}${parseFloat(String(tx.amount || "0")).toFixed(2)}
+                                {fmtTx(tx.amount || "0", tx.flowType)}
                               </td>
                             </tr>
                           );

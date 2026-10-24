@@ -10,6 +10,7 @@ import {
   MobileToastContainer,
   MobileConfirmContainer,
   DateLocaleProvider,
+  CurrencyLocaleProvider,
   NotificationServiceProvider,
 } from '@money-matters/ui/mobile';
 import { setLanguage, SupportedLanguage } from '@money-matters/i18n';
@@ -59,12 +60,20 @@ function MobilePreferencesSync({ children }: { children: React.ReactNode }) {
     }
   }, [pref, resolvedLocale, userTimezone]);
 
+  const currency = pref?.currency || 'AUD';
+
   return (
-    <DateLocaleProvider locale={resolvedLocale} timeZone={userTimezone}>
-      <IconVisibilityProvider initialShowIcons={showIcons}>
-        {children}
-      </IconVisibilityProvider>
-    </DateLocaleProvider>
+    <CurrencyLocaleProvider
+      currency={currency}
+      locale={resolvedLocale}
+      currencySymbol={pref ? undefined : '$'}
+    >
+      <DateLocaleProvider locale={resolvedLocale} timeZone={userTimezone}>
+        <IconVisibilityProvider initialShowIcons={showIcons}>
+          {children}
+        </IconVisibilityProvider>
+      </DateLocaleProvider>
+    </CurrencyLocaleProvider>
   );
 }
 

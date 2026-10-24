@@ -43,10 +43,6 @@ export interface IncomeSplitPoolTableProps {
   readonly onOpenPoolDrawer?: (poolId: string, poolName: string) => void;
 }
 
-function fmt(val: number) {
-  return `$${val.toLocaleString("en-AU", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-}
-
 export function IncomeSplitPoolTable({
   groups,
   pools,
@@ -61,7 +57,7 @@ export function IncomeSplitPoolTable({
   onLineReasoningChange,
   onOpenPoolDrawer,
 }: IncomeSplitPoolTableProps) {
-  const { fmtDate } = useLocale();
+  const { fmt, fmtDate } = useLocale();
   // Collapsed state for each group (default: none collapsed)
   const [collapsedGroups, setCollapsedGroups] = useState<Record<string, boolean>>({});
   const [openReasoningPools, setOpenReasoningPools] = useState<Record<string, boolean>>({});

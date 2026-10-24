@@ -1,7 +1,6 @@
-"use client";
-
 import React from "react";
 import { t } from "@money-matters/i18n";
+import { useLocale } from "../../../providers/LocaleProvider";
 
 export interface GoalPresetConfig {
   name: string;
@@ -71,6 +70,7 @@ export function SetupGoalsPresetsGrid({
   onTogglePreset,
   isPresetActive,
 }: SetupGoalsPresetsGridProps) {
+  const { fmt } = useLocale();
   return (
     <div className="flex flex-col gap-2">
       <label className="text-xs font-black text-[#1B2B4B]">
@@ -119,8 +119,8 @@ export function SetupGoalsPresetsGrid({
                 </div>
                 <div className="text-[11px] font-semibold text-zinc-500 mt-0.5 font-mono">
                   {isOngoing
-                    ? `$${preset.defaultTarget.toLocaleString()}/mo`
-                    : `Target: $${preset.defaultTarget.toLocaleString()}`}
+                    ? `${fmt(preset.defaultTarget)}/mo`
+                    : `Target: ${fmt(preset.defaultTarget)}`}
                 </div>
               </div>
             </button>

@@ -116,7 +116,7 @@ export function MarkPaidModal({
               required
               value={actualAmount}
               onChangeText={setActualAmount}
-              error={!isAmountValid && Boolean(actualAmount) ? 'Amount must be > $0' : undefined}
+              error={!isAmountValid && Boolean(actualAmount) ? 'Amount must be greater than 0' : undefined}
             />
           </View>
           <View style={styles.flex1}>

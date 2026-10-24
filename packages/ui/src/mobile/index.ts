@@ -32,6 +32,7 @@ export type { MobileLogoProps } from './Logo';
 export { DESIGN_TOKENS } from '../tokens';
 export * from '../hooks/IconVisibilityContext';
 export * from '../hooks/DateLocaleContext';
+export * from '../hooks/CurrencyLocaleContext';
 export * from './ToastContext';
 export * from './Toast';
 export * from './AlertBanner';

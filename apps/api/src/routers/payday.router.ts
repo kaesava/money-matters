@@ -395,14 +395,22 @@ export const paydayRouter = {
           )
         );
 
+      const [tenantRecord] = await ctx.db
+        .select({ timezone: (await import("@money-matters/db")).tenants.timezone })
+        .from((await import("@money-matters/db")).tenants)
+        .where(eq((await import("@money-matters/db")).tenants.id, ctx.tenantId!))
+        .limit(1);
+      const tenantTz = tenantRecord?.timezone || "Australia/Sydney";
+
       const balancesMap = await getEnvelopeBalancesMap(ctx.tenantId!, ctx.appId!, ctx.db);
 
       const now = new Date();
       const futureDate = new Date();
       futureDate.setMonth(now.getMonth() + (input.monthsAhead || 12));
 
-      const nowStr = new Intl.DateTimeFormat("en-CA", { timeZone: "Australia/Sydney" }).format(now);
-      const futureStr = new Intl.DateTimeFormat("en-CA", { timeZone: "Australia/Sydney" }).format(futureDate);
+      const { getTenantDateString } = await import("@money-matters/core");
+      const nowStr = getTenantDateString(now, { timezone: tenantTz });
+      const futureStr = getTenantDateString(futureDate, { timezone: tenantTz });
 
       const dbIncomeEvents = await ctx.db
         .select({

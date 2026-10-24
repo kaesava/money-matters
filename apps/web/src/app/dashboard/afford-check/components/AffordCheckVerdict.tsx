@@ -10,7 +10,7 @@ interface AffordCheckVerdictProps {
 }
 
 export function AffordCheckVerdict({ data }: AffordCheckVerdictProps) {
-  const { fmtDate } = useLocale();
+  const { fmt, fmtDate } = useLocale();
   const getVerdictStyle = () => {
     switch (data.verdict) {
       case 'SAFE_YES':
@@ -87,10 +87,10 @@ export function AffordCheckVerdict({ data }: AffordCheckVerdictProps) {
             {data.verdict === 'PACING_TIGHT' && (
               <div>
                 <p className="text-sm opacity-90 mt-0.5 font-medium">
-                  {t('canIAfford.remainingUntilPayday', { amount: data.everydayRemaining, date: fmtDate(data.nextPaydayDate) })}
+                  {t('canIAfford.remainingUntilPayday', { amount: fmt(data.everydayRemaining), date: fmtDate(data.nextPaydayDate) })}
                 </p>
                 <p className="text-xs opacity-75 mt-0.5">
-                  {t('canIAfford.tightCushionNotice', { amount: data.cushionShortfall, cushion: data.safeCushion })}
+                  {t('canIAfford.tightCushionNotice', { amount: fmt(data.cushionShortfall), cushion: fmt(data.safeCushion) })}
                 </p>
                 {data.startAdvice && (
                   <p className="text-xs font-medium text-amber-800 dark:text-amber-200 mt-2 bg-amber-100/60 dark:bg-amber-900/40 px-3 py-1.5 rounded-lg border border-amber-200 dark:border-amber-800">
@@ -101,23 +101,23 @@ export function AffordCheckVerdict({ data }: AffordCheckVerdictProps) {
             )}
             {data.verdict === 'BILLS_RISK' && (
               <p className="text-sm opacity-90 mt-0.5">
-                {t('canIAfford.billsBeforePayday')}: <span className="font-mono font-semibold tabular-nums">${data.upcomingBillsBeforePayday}</span> • {t('canIAfford.netEffectiveSpendable')}: <span className="font-mono font-semibold tabular-nums">${data.effectiveAfterBills}</span>
+                {t('canIAfford.billsBeforePayday')}: <span className="font-mono font-semibold tabular-nums">{fmt(data.upcomingBillsBeforePayday)}</span> • {t('canIAfford.netEffectiveSpendable')}: <span className="font-mono font-semibold tabular-nums">{fmt(data.effectiveAfterBills)}</span>
               </p>
             )}
             {data.verdict === 'WAIT_FOR_PAYCYCLE' && (
               <div>
                 <p className="text-sm opacity-90 mt-0.5">
-                  {t('canIAfford.shortfallLabel', { amount: data.shortfallToday })} • {t('canIAfford.paycyclesAwayLabel', { n: data.paycyclesAway })}
+                  {t('canIAfford.shortfallLabel', { amount: fmt(data.shortfallToday) })} • {t('canIAfford.paycyclesAwayLabel', { n: data.paycyclesAway })}
                 </p>
                 <p className="text-xs opacity-75 mt-0.5">
-                  {t('canIAfford.projectedEverydayLabel', { amount: data.projectedEverydayAtThatDate })}
+                  {t('canIAfford.projectedEverydayLabel', { amount: fmt(data.projectedEverydayAtThatDate) })}
                 </p>
               </div>
             )}
             {data.verdict === 'GOAL_DELAYED' && (
               <div>
                 <p className="text-sm opacity-90 mt-0.5">
-                  {t('canIAfford.recurringMonthlyImpactLabel', { amount: data.recurringMonthlyImpact })} • {data.goalDelays.length} goal(s) pushed back
+                  {t('canIAfford.recurringMonthlyImpactLabel', { amount: fmt(data.recurringMonthlyImpact) })} • {data.goalDelays.length} goal(s) pushed back
                 </p>
                 <p className="text-xs opacity-75 mt-0.5">
                   {t('canIAfford.billsProtectedNotice')}

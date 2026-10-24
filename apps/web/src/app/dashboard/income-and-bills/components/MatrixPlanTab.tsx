@@ -74,6 +74,7 @@ function MatrixCellInput({
   value: number;
   isSurplusTarget?: boolean;
 }) {
+  const { fmt } = useLocale();
   const isDeficit = Boolean(isSurplusTarget && value < 0);
 
   if (isSurplusTarget) {
@@ -87,7 +88,7 @@ function MatrixCellInput({
           }`}
           title={isDeficit ? "DEFICIT: Allocations exceed income!" : "Surplus Target"}
         >
-          {isDeficit ? `-$${Math.abs(value).toFixed(2)}` : `$${value.toFixed(2)}`}
+          {isDeficit ? `-${fmt(Math.abs(value))}` : fmt(value)}
         </span>
       </div>
     );
@@ -95,7 +96,7 @@ function MatrixCellInput({
 
   return (
     <div className="w-20 text-center font-mono font-bold text-xs py-0.5 text-[#1B2B4B] dark:text-white">
-      ${value.toFixed(2)}
+      {fmt(value)}
     </div>
   );
 }
