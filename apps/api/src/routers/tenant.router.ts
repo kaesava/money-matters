@@ -734,7 +734,7 @@ export const tenantRouter = {
         .update(tenants)
         .set({
           name: input.name,
-          country: input.country ?? "AU",
+          country: currentTenant?.country ?? input.country ?? "AU",
           ...(input.timezone ? { timezone: input.timezone } : {}),
           state: input.state || null,
           postcode: input.postcode || null,
