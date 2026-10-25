@@ -57,13 +57,13 @@ export function TransferModal({
   onDeleteTransfer,
   formatAUD,
 }: TransferModalProps) {
-  const { fmt, fmtDate, currency, currencySymbol, minorUnits, timezone: contextTz } = useLocale();
+  const { fmt, fmtDate, currency, currencySymbol, minorUnits, timezone: contextTz, userTimezone } = useLocale();
   const format = formatAUD ?? fmt;
   const nameInputId = useId();
 
   const todayStr = useMemo(() => {
-    return new Intl.DateTimeFormat("en-CA", { timeZone: contextTz || "Australia/Sydney" }).format(new Date());
-  }, [contextTz]);
+    return new Intl.DateTimeFormat("en-CA", { timeZone: userTimezone || contextTz }).format(new Date());
+  }, [userTimezone, contextTz]);
 
   const [name, setName] = useState("");
   const [amount, setAmount] = useState("");

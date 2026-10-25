@@ -5,12 +5,24 @@ import { authClient } from '../../lib/auth';
 import { formatIsoDate } from '../../lib/format';
 import { triggerHaptic } from '../../lib/haptics';
 import { t } from '@money-matters/i18n';
+import { getCachedQueryData, setCachedQueryData } from '../../lib/sqlite-cache';
 import { MobileIncomeItem } from './MobileNextPaydayCard';
 import { AttentionItem } from '../AttentionItemsList';
 
 export function useHomeData(token?: string) {
   const utils = trpc.useUtils();
   const { data: session } = authClient.useSession();
+  const [cachedHomeSummary, setCachedHomeSummary] = useState<any>(null);
+  const [cachedPools, setCachedPools] = useState<any[] | null>(null);
+
+  useEffect(() => {
+    getCachedQueryData<any>('home_summary').then((val) => {
+      if (val) setCachedHomeSummary(val);
+    });
+    getCachedQueryData<any[]>('home_pools').then((val) => {
+      if (val) setCachedPools(val);
+    });
+  }, []);
 
   useEffect(() => {
     if (token) {
@@ -28,12 +40,25 @@ export function useHomeData(token?: string) {
   const summaryQuery = trpc.getMonthlySummary.useQuery({ year: todayYear, month: todayMonth }, { enabled: !!session?.user });
   const homeSummaryQuery = trpc.getHomeSummary.useQuery(undefined, { enabled: !!session?.user });
   const poolsQuery = trpc.listPools.useQuery(undefined, { enabled: !!session?.user });
+
+  useEffect(() => {
+    if (homeSummaryQuery.data) {
+      setCachedQueryData('home_summary', homeSummaryQuery.data);
+    }
+  }, [homeSummaryQuery.data]);
+
+  useEffect(() => {
+    if (poolsQuery.data) {
+      setCachedQueryData('home_pools', poolsQuery.data);
+    }
+  }, [poolsQuery.data]);
   const bankAccountsQuery = trpc.listBankAccounts.useQuery(undefined, { enabled: !!session?.user });
   const incomeEventsQuery = trpc.listIncomeEvents.useQuery(undefined, { enabled: !!session?.user });
   const expenseEventsQuery = trpc.listExpenseEvents.useQuery(undefined, { enabled: !!session?.user });
   const transferEventsQuery = trpc.listTransferEvents.useQuery(undefined, { enabled: !!session?.user });
 
-  const pools = poolsQuery.data ?? [];
+  const pools = poolsQuery.data ?? cachedPools ?? [];
+  const activeHomeSummary = homeSummaryQuery.data ?? cachedHomeSummary;
   const bankAccounts = bankAccountsQuery.data ?? [];
 
   const executeTransferMutation = trpc.executeTransferEvent.useMutation({
@@ -188,18 +213,18 @@ export function useHomeData(token?: string) {
     bankAccounts,
     incomeCount: incomeEventsQuery.data?.length ?? 0,
     billsCount: expenseEventsQuery.data?.length ?? 0,
-    homeSummary: homeSummaryQuery.data,
-    safeToSpend: homeSummaryQuery.data?.safeToSpend ?? everydayBalance,
-    dailyPace: homeSummaryQuery.data?.dailyPace,
-    paceStatus: homeSummaryQuery.data?.paceStatus,
-    everydayBalance: homeSummaryQuery.data?.everydayBalance ?? everydayBalance,
+    homeSummary: activeHomeSummary,
+    safeToSpend: activeHomeSummary?.safeToSpend ?? everydayBalance,
+    dailyPace: activeHomeSummary?.dailyPace,
+    paceStatus: activeHomeSummary?.paceStatus,
+    everydayBalance: activeHomeSummary?.everydayBalance ?? everydayBalance,
     everydayMonthlyBudget,
     everydaySafetyBuffer: pools
       .filter((c) => c.envelopeType === 'EVERYDAY')
       .reduce((sum, c) => sum + parseFloat(c.safetyBufferFloor || '0'), 0),
-    billsBalance: homeSummaryQuery.data?.billsBalance ?? billsBalance,
+    billsBalance: activeHomeSummary?.billsBalance ?? billsBalance,
     billsMonthlyBudget,
-    daysUntilPayday: homeSummaryQuery.data?.daysToPayday ?? daysUntilPayday,
+    daysUntilPayday: activeHomeSummary?.daysToPayday ?? daysUntilPayday,
     billsShortfall,
     billsDue14DaysCount: billsDue14Days.length,
     totalBillsDue14Days,

@@ -71,6 +71,7 @@ export const DashboardHeroCard: React.FC<DashboardHeroCardProps> = ({
     <View style={styles.container}>
       <DashboardHeroEverydayCard
         everydayBalance={everydayBalance}
+        safeToSpend={effectiveSafeToSpend}
         everydayMonthlyBudget={everydayMonthlyBudget}
         safetyBufferFloor={safetyBufferFloor}
         dailySpendable={dailySpendable}

@@ -119,6 +119,9 @@ export default function HomeScreen() {
           billsBalance={billsBalance}
           billsMonthlyBudget={billsMonthlyBudget}
           daysUntilPayday={daysUntilPayday}
+          safeToSpend={safeToSpend}
+          dailyPace={dailyPace}
+          paceStatus={paceStatus}
           billsShortfall={billsShortfall}
           billsDue14DaysCount={billsDue14DaysCount}
           totalBillsDue14Days={totalBillsDue14Days}

@@ -70,15 +70,15 @@ export const AttentionItemsList: React.FC<WebAttentionItemsListProps> = ({
   onConfirmTransferAndPay,
   formatAUD,
 }) => {
-  const { fmt, fmtDate: formatLocaleDate, timezone: contextTz } = useLocale();
+  const { fmt, fmtDate: formatLocaleDate, timezone: contextTz, userTimezone } = useLocale();
   const format = formatAUD ?? fmt;
   const [selectedMarkPaidItem, setSelectedMarkPaidItem] = useState<WebAttentionItem | null>(null);
   const [selectedTransferItem, setSelectedTransferItem] = useState<WebAttentionItem | null>(null);
   const [selectedDeleteItem, setSelectedDeleteItem] = useState<WebAttentionItem | null>(null);
 
   const todayStr = useMemo(() => {
-    return new Intl.DateTimeFormat("en-CA", { timeZone: contextTz || "Australia/Sydney" }).format(new Date());
-  }, [contextTz]);
+    return new Intl.DateTimeFormat("en-CA", { timeZone: userTimezone || contextTz }).format(new Date());
+  }, [userTimezone, contextTz]);
 
   if (!items || items.length === 0) {
     return (

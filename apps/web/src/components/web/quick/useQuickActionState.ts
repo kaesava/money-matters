@@ -14,7 +14,7 @@ export function useQuickActionState(
 ) {
   const router = useRouter();
   const toast = useToast();
-  const { userTimezone, timezone } = useLocale();
+  const { userTimezone, timezone, fmt } = useLocale();
   const activeTz = userTimezone || timezone || "Australia/Sydney";
   const todayStr = useMemo(() => new Intl.DateTimeFormat("en-CA", {
     timeZone: activeTz,
@@ -363,8 +363,8 @@ export function useQuickActionState(
           setError(
             t("modals.transfer.insufficientBalanceWarning", {
               poolName: targetCat.name,
-              available: `$${catBal.toFixed(2)}`,
-              amount: `$${amountNum.toFixed(2)}`,
+              available: fmt(catBal),
+              amount: fmt(amountNum),
             })
           );
           return;

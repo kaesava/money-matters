@@ -2,7 +2,8 @@
 
 import React from "react";
 import { EstimatedCategoryItem } from "@money-matters/types";
-import { AmountField, formatCurrency } from "@money-matters/ui/web";
+import { AmountField } from "@money-matters/ui/web";
+import { useLocale } from "../../../providers/LocaleProvider";
 
 interface SetupReviewCategoryListProps {
   title: string;
@@ -35,6 +36,7 @@ export function SetupReviewCategoryList({
   convertFromMonthly,
   children,
 }: SetupReviewCategoryListProps) {
+  const { fmt } = useLocale();
   return (
     <div className="flex flex-col gap-3 p-4 bg-slate-50 rounded-2xl border border-zinc-200/80">
       <div className="flex items-center justify-between border-b border-zinc-200/60 pb-2">
@@ -42,7 +44,7 @@ export function SetupReviewCategoryList({
           {title}
         </span>
         <span className={`text-xs font-bold px-2.5 py-1 rounded-md border font-mono ${badgeColorClass}`}>
-          {badgeLabel || `${formatCurrency(totalMonthly)}/mo`}
+          {badgeLabel || `${fmt(totalMonthly)}/mo`}
         </span>
       </div>
 

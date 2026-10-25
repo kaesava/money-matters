@@ -93,9 +93,14 @@ export const BentoPoolsSection: React.FC<BentoPoolsSectionProps> = ({
 
             <div>
               <div className="flex items-center justify-between gap-2">
-                <span className="text-3xl font-extrabold font-mono tabular-nums tracking-tight text-[#1B2B4B] dark:text-zinc-100">
-                  {format(everydayBalance)}
-                </span>
+                <div>
+                  <span className="text-3xl font-extrabold font-mono tabular-nums tracking-tight text-[#1B2B4B] dark:text-zinc-100">
+                    {format(effectiveSafeToSpend)}
+                  </span>
+                  <p className="text-[11px] font-semibold text-gray-500 uppercase tracking-wide mt-0.5">
+                    {t('dashboard.hero.safeToSpendLabel')}
+                  </p>
+                </div>
                 {onAlignEverydayBalance && (
                   <button
                     data-tour="bank-accounts"
@@ -108,11 +113,10 @@ export const BentoPoolsSection: React.FC<BentoPoolsSectionProps> = ({
                   </button>
                 )}
               </div>
-              <p className="text-xs text-gray-500 mt-1 font-medium">
-                {t('dashboard.hero.safeToSpendLabel')} · {t('dashboard.hero.dailyPaceSubtext', { amount: format(dailySpendable) })} · {
-                  daysUntilPayday !== undefined && daysUntilPayday <= 0
-                    ? t('dashboard.hero.estRemainingToday', { amount: format(everydayBalance) })
-                    : t('dashboard.hero.estRemaining', { amount: format(everydayBalance), days: effectiveDays })
+              <p className="text-xs text-gray-500 mt-2 font-medium">
+                {daysUntilPayday !== undefined && daysUntilPayday <= 0
+                  ? t('dashboard.hero.estRemainingToday', { amount: format(everydayBalance) })
+                  : t('dashboard.hero.estRemaining', { amount: format(everydayBalance), days: effectiveDays })
                 }
               </p>
             </div>

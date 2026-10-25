@@ -84,12 +84,13 @@ export const NextPaydayCard: React.FC<NextPaydayCardProps> = ({
         {itemsToShow.map((income) => {
           let daysAwayText = '';
           let isOverdue = false;
+          let diffDays: number | null = null;
           if (income.expectedDate) {
             const payDate = new Date(income.expectedDate);
             payDate.setHours(0, 0, 0, 0);
             const todayZero = new Date();
             todayZero.setHours(0, 0, 0, 0);
-            const diffDays = Math.ceil((payDate.getTime() - todayZero.getTime()) / (1000 * 60 * 60 * 24));
+            diffDays = Math.ceil((payDate.getTime() - todayZero.getTime()) / (1000 * 60 * 60 * 24));
             if (diffDays === 0) daysAwayText = t('dashboard.hero.dueToday');
             else if (diffDays > 0) daysAwayText = `${diffDays} day${diffDays === 1 ? '' : 's'} away`;
             else {
@@ -139,10 +140,18 @@ export const NextPaydayCard: React.FC<NextPaydayCardProps> = ({
                 <button
                   type="button"
                   onClick={() => handleSplitClick(income.id)}
-                  className="text-xs font-bold text-[#2563eb] hover:underline cursor-pointer transition-colors px-2 py-1"
+                  className={`text-xs font-bold transition-all px-2.5 py-1.5 rounded-lg cursor-pointer ${
+                    diffDays === 0 || isSaved
+                      ? 'bg-[#2563eb] text-white hover:bg-blue-700 shadow-xs'
+                      : 'text-[#2563eb] hover:underline hover:bg-blue-50 dark:hover:bg-zinc-800'
+                  }`}
                   title={t('dashboard.nextPay.reviewSplits')}
                 >
-                  {t("common.runSplit")}
+                  {diffDays === 0
+                    ? `⚡ ${t("common.runSplit")}`
+                    : isSaved
+                    ? `✓ ${t("common.runSplit")}`
+                    : t("common.runSplit")}
                 </button>
                 {onDeleteIncome && (
                   <button

@@ -2,9 +2,9 @@
 
 import React from "react";
 import { EstimatedCategoryItem } from "@money-matters/types";
-import { formatCurrency } from "@money-matters/ui/web";
 import { t } from "@money-matters/i18n";
 import { UserGoalItem } from "./SetupGoalsStep";
+import { useLocale } from "../../../providers/LocaleProvider";
 
 interface SetupReviewGoalsListProps {
   activeGoals: EstimatedCategoryItem[];
@@ -19,6 +19,7 @@ export function SetupReviewGoalsList({
   totalGoalMonthly,
   onRemoveCategory,
 }: SetupReviewGoalsListProps) {
+  const { fmt } = useLocale();
   return (
     <div className="flex flex-col gap-3 p-4 bg-slate-50 rounded-2xl border border-zinc-200/80">
       <div className="flex items-center justify-between border-b border-zinc-200/60 pb-2">
@@ -26,7 +27,7 @@ export function SetupReviewGoalsList({
           {t("setup.reviewSummary.savingsGoals")}
         </span>
         <span className="text-xs font-bold text-teal-800 bg-teal-50 px-2.5 py-1 rounded-md border border-teal-200 font-mono">
-          Monthly Est: {formatCurrency(totalGoalMonthly)}/mo
+          Monthly Est: {fmt(totalGoalMonthly)}/mo
         </span>
       </div>
 
@@ -47,12 +48,12 @@ export function SetupReviewGoalsList({
           let displayMetric: string;
           if (isOngoing) {
             displayMetric = freq === "MONTHLY"
-              ? `${formatCurrency(enteredAmt)}/mo`
-              : `${formatCurrency(enteredAmt)}${freqSuffix} (Est: ${formatCurrency(cat.monthlyAud)}/mo)`;
+              ? `${fmt(enteredAmt)}/mo`
+              : `${fmt(enteredAmt)}${freqSuffix} (Est: ${fmt(cat.monthlyAud)}/mo)`;
           } else {
             const targetAmt = userGoal?.targetAmount ?? cat.monthlyAud;
             const targetDateStr = userGoal?.dueDate ? ` • By ${userGoal.dueDate}` : "";
-            displayMetric = `Target: ${formatCurrency(targetAmt)}${targetDateStr} (Est: ${formatCurrency(cat.monthlyAud)}/mo)`;
+            displayMetric = `Target: ${fmt(targetAmt)}${targetDateStr} (Est: ${fmt(cat.monthlyAud)}/mo)`;
           }
 
           return (

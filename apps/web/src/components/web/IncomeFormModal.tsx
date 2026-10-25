@@ -6,9 +6,6 @@ import { t } from "@money-matters/i18n";
 import { trpc } from "../../lib/trpc";
 import { useLocale } from "../../providers/LocaleProvider";
 
-const toAestDateString = (iso: string): string =>
-  new Intl.DateTimeFormat('en-CA', { timeZone: 'Australia/Sydney' }).format(new Date(iso));
-
 export interface IncomeSourceToEdit {
   id: string;
   name: string;
@@ -57,7 +54,16 @@ export function IncomeFormModal({ isOpen, onClose, sourceToEdit }: IncomeFormMod
 
   const [showRuleChangeConfirm, setShowRuleChangeConfirm] = useState(false);
 
+  const { userTimezone, timezone } = useLocale();
+  const activeTz = userTimezone || timezone || "UTC";
+
+  const toTenantDateString = React.useCallback(
+    (iso: string): string => new Intl.DateTimeFormat('en-CA', { timeZone: activeTz }).format(new Date(iso)),
+    [activeTz]
+  );
+
   useEffect(() => {
+
     if (sourceToEdit) {
       setName(sourceToEdit.name || "");
       setAmount(sourceToEdit.amount || "");
@@ -66,9 +72,9 @@ export function IncomeFormModal({ isOpen, onClose, sourceToEdit }: IncomeFormMod
       setIsRecurring(parsed.isRecurring || !!sourceToEdit.startDate);
       setFrequency(parsed.frequency);
       setInterval(parsed.interval);
-      const today = new Intl.DateTimeFormat('en-CA', { timeZone: 'Australia/Sydney' }).format(new Date());
-      setStartDate(sourceToEdit.startDate ? toAestDateString(sourceToEdit.startDate) : today);
-      setEndDate(sourceToEdit.endDate ? toAestDateString(sourceToEdit.endDate) : null);
+      const today = new Intl.DateTimeFormat('en-CA', { timeZone: activeTz }).format(new Date());
+      setStartDate(sourceToEdit.startDate ? toTenantDateString(sourceToEdit.startDate) : today);
+      setEndDate(sourceToEdit.endDate ? toTenantDateString(sourceToEdit.endDate) : null);
     } else {
       setName("");
       setAmount("");
@@ -76,11 +82,11 @@ export function IncomeFormModal({ isOpen, onClose, sourceToEdit }: IncomeFormMod
       setIsRecurring(true);
       setFrequency("MONTHLY");
       setInterval(1);
-      setStartDate(new Intl.DateTimeFormat('en-CA', { timeZone: 'Australia/Sydney' }).format(new Date()));
+      setStartDate(new Intl.DateTimeFormat('en-CA', { timeZone: activeTz }).format(new Date()));
       setEndDate(null);
     }
     setErrorMsg("");
-  }, [sourceToEdit, isOpen, bankAccounts, setEndDate, setFrequency, setInterval, setIsRecurring, setStartDate]);
+  }, [sourceToEdit, isOpen, bankAccounts, setEndDate, setFrequency, setInterval, setIsRecurring, setStartDate, activeTz, toTenantDateString]);
 
   const confirmArchive = async () => {
     if (!sourceToEdit) return;
@@ -101,14 +107,14 @@ export function IncomeFormModal({ isOpen, onClose, sourceToEdit }: IncomeFormMod
   const isScheduleRuleChanged = useMemo(() => {
     if (!isEdit || !sourceToEdit) return false;
     const initialParsed = parseRecurrenceRule(sourceToEdit.rrule);
-    const initialStartDate = sourceToEdit.startDate ? toAestDateString(sourceToEdit.startDate) : "";
+    const initialStartDate = sourceToEdit.startDate ? toTenantDateString(sourceToEdit.startDate) : "";
     const currentStart = startDate || "";
     return (
       frequency !== initialParsed.frequency ||
       interval !== initialParsed.interval ||
       currentStart !== initialStartDate
     );
-  }, [isEdit, sourceToEdit, frequency, interval, startDate]);
+  }, [isEdit, sourceToEdit, frequency, interval, startDate, toTenantDateString]);
 
   const executeSave = async () => {
     setSubmitting(true);

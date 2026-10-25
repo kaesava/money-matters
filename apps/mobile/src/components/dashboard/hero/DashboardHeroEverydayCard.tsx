@@ -6,6 +6,7 @@ import { formatAUD } from '../../../lib/format';
 
 interface DashboardHeroEverydayCardProps {
   readonly everydayBalance: number;
+  readonly safeToSpend?: number;
   readonly everydayMonthlyBudget: number;
   readonly safetyBufferFloor?: number;
   readonly dailySpendable: number;
@@ -20,6 +21,7 @@ interface DashboardHeroEverydayCardProps {
 
 export const DashboardHeroEverydayCard: React.FC<DashboardHeroEverydayCardProps> = ({
   everydayBalance,
+  safeToSpend,
   everydayMonthlyBudget,
   safetyBufferFloor = 0,
   dailySpendable,
@@ -65,7 +67,10 @@ export const DashboardHeroEverydayCard: React.FC<DashboardHeroEverydayCardProps>
       </View>
 
       <View style={styles.metricRow}>
-        <Text style={styles.heroAmount}>{formatAUD(everydayBalance)}</Text>
+        <View>
+          <Text style={styles.heroAmount}>{formatAUD(safeToSpend !== undefined ? safeToSpend : everydayBalance)}</Text>
+          <Text style={styles.safeToSpendSub}>{t('dashboard.hero.safeToSpendLabel')}</Text>
+        </View>
         {onAlignBalance && (
           <TouchableOpacity
             testID="tour-bank-accounts"
@@ -80,15 +85,14 @@ export const DashboardHeroEverydayCard: React.FC<DashboardHeroEverydayCardProps>
       </View>
 
       <Text style={styles.pacingSubtitle}>
-        {t('dashboard.hero.safeToSpendLabel')} · {t('dashboard.hero.dailyPaceSubtext', { amount: formatAUD(dailySpendable) })} · {
-          daysUntilPayday !== undefined && daysUntilPayday <= 0
-            ? t('dashboard.hero.estRemainingToday', {
-                amount: formatAUD(everydayBalance),
-              })
-            : t('dashboard.hero.estRemaining', {
-                amount: formatAUD(everydayBalance),
-                days: effectiveDays,
-              })
+        {daysUntilPayday !== undefined && daysUntilPayday <= 0
+          ? t('dashboard.hero.estRemainingToday', {
+              amount: formatAUD(everydayBalance),
+            })
+          : t('dashboard.hero.estRemaining', {
+              amount: formatAUD(everydayBalance),
+              days: effectiveDays,
+            })
         }
       </Text>
 
@@ -194,6 +198,14 @@ const styles = StyleSheet.create({
     fontWeight: '900',
     fontFamily: 'monospace',
     color: DESIGN_TOKENS.colors.primary,
+  },
+  safeToSpendSub: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: DESIGN_TOKENS.colors.textMuted,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    marginTop: 2,
   },
   alignButton: {
     paddingHorizontal: 8,

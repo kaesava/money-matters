@@ -50,7 +50,7 @@ export function MarkPaidModal({
   onConfirmMarkPaid,
   onOpenTransferModal,
 }: MarkPaidModalProps) {
-  const { fmt, fmtDate, currency, currencySymbol, minorUnits, timezone: contextTz } = useLocale();
+  const { fmt, fmtDate, currency, currencySymbol, minorUnits, timezone: contextTz, userTimezone } = useLocale();
   const [amountStr, setAmountStr] = useState<string>("");
   const [dateStr, setDateStr] = useState<string>("");
   const [wasFutureDate, setWasFutureDate] = useState(false);
@@ -60,8 +60,8 @@ export function MarkPaidModal({
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const todayStr = useMemo(() => {
-    return new Intl.DateTimeFormat("en-CA", { timeZone: contextTz || "Australia/Sydney" }).format(new Date());
-  }, [contextTz]);
+    return new Intl.DateTimeFormat("en-CA", { timeZone: userTimezone || contextTz }).format(new Date());
+  }, [userTimezone, contextTz]);
 
   useEffect(() => {
     if (isOpen) {

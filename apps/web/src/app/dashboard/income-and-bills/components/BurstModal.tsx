@@ -60,8 +60,8 @@ export interface BurstModalProps {
 export function BurstModal({
   mode, source, events, onClose, onEdit, onArchive, onMarkPaid, onSkip, onUpdateEvent, isPendingMarkPaid,
 }: BurstModalProps) {
-  const { fmt, fmtDate: formatLocaleDate, currency, currencySymbol, minorUnits, timezone: contextTz } = useLocale();
-  const todayStr = new Intl.DateTimeFormat('en-CA', { timeZone: contextTz || 'Australia/Sydney' }).format(new Date());
+  const { fmt, fmtDate: formatLocaleDate, currency, currencySymbol, minorUnits, timezone: contextTz, userTimezone } = useLocale();
+  const todayStr = new Intl.DateTimeFormat('en-CA', { timeZone: userTimezone || contextTz }).format(new Date());
   const sched = parseSchedule(source.rrule, source.startDate, formatLocaleDate);
   const [editingEventId, setEditingEventId] = useState<string | null>(null);
   const [editAmount, setEditAmount] = useState("");

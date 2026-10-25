@@ -14,24 +14,37 @@ export function createScheduledNotificationFunctions(inngest: Inngest) {
     { cron: '0 9 * * 0' },
     async ({ step }) => {
       const tenantMembers = await step.run('fetch-active-tenant-members', async () => {
-        const { tenants, tenantUsers, users } = await import('@money-matters/db');
+        const { tenants, tenantUsers, users, tenantUserPreferences } = await import('@money-matters/db');
         const { eq, and, inArray } = await import('drizzle-orm');
-        return await db
+        const members = await db
           .select({
             tenantId: tenants.id,
             tenantName: tenants.name,
             userId: users.id,
             email: users.email,
+            appPreferences: tenantUserPreferences.appPreferences,
           })
           .from(tenants)
           .innerJoin(tenantUsers, and(eq(tenantUsers.tenantId, tenants.id), sql`"tenant_users"."archived_at" IS NULL`))
           .innerJoin(users, eq(tenantUsers.userId, users.id))
+          .leftJoin(
+            tenantUserPreferences,
+            and(
+              eq(tenantUserPreferences.userId, users.id),
+              eq(tenantUserPreferences.tenantId, tenants.id)
+            )
+          )
           .where(
             and(
               sql`"tenants"."archived_at" IS NULL`,
               inArray(tenants.subscriptionStatus, ['TRIAL_ACTIVE', 'SUBSCRIBED'])
             )
           );
+
+        return members.filter((m) => {
+          const prefs = (m.appPreferences?.['money-matters'] || m.appPreferences || {}) as Record<string, unknown>;
+          return prefs.weekly_digest_enabled !== false;
+        });
       });
 
       const CHUNK_SIZE = 25;
@@ -44,7 +57,7 @@ export function createScheduledNotificationFunctions(inngest: Inngest) {
               if (!record.email) return;
               try {
                 const { envelopes, getEnvelopeBalancesMap } = await import('@money-matters/db');
-                const { eq, and } = await import('drizzle-orm');
+                const { eq, and, or } = await import('drizzle-orm');
 
                 const envList = await db
                   .select({
@@ -53,9 +66,20 @@ export function createScheduledNotificationFunctions(inngest: Inngest) {
                     monthlyAmount: envelopes.monthlyAmount,
                     targetAmount: envelopes.targetAmount,
                     safetyBufferFloor: envelopes.safetyBufferFloor,
+                    isPrivate: envelopes.isPrivate,
+                    userId: envelopes.userId,
                   })
                   .from(envelopes)
-                  .where(and(eq(envelopes.tenantId, record.tenantId), sql`"envelopes"."archived_at" IS NULL`));
+                  .where(
+                    and(
+                      eq(envelopes.tenantId, record.tenantId),
+                      sql`"envelopes"."archived_at" IS NULL`,
+                      or(
+                        eq(envelopes.isPrivate, false),
+                        eq(envelopes.userId, record.userId)
+                      )
+                    )
+                  );
 
                 const balances = await getEnvelopeBalancesMap(record.tenantId, 'default', db);
                 let everydayBal = 0;
@@ -104,11 +128,12 @@ export function createScheduledNotificationFunctions(inngest: Inngest) {
     { cron: '0 * * * *' },
     async ({ step }) => {
       const paydaysToday = await step.run('fetch-paydays-today', async () => {
-        const { incomeEvents, tenants, tenantUsers, users, userPreferences } = await import('@money-matters/db');
+        const { incomeEvents, tenants, tenantUsers, users, userPreferences, tenantUserPreferences } = await import('@money-matters/db');
         const { eq, and } = await import('drizzle-orm');
 
         const activeIncomes = await db
           .select({
+            eventId: incomeEvents.id,
             tenantId: tenants.id,
             tenantName: tenants.name,
             userId: users.id,
@@ -116,12 +141,20 @@ export function createScheduledNotificationFunctions(inngest: Inngest) {
             expectedDate: incomeEvents.expectedDate,
             amount: incomeEvents.expectedAmount,
             userTimezone: userPreferences.timezone,
+            appPreferences: tenantUserPreferences.appPreferences,
           })
           .from(incomeEvents)
           .innerJoin(tenants, eq(incomeEvents.tenantId, tenants.id))
           .innerJoin(tenantUsers, and(eq(tenantUsers.tenantId, tenants.id), sql`"tenant_users"."archived_at" IS NULL`))
           .innerJoin(users, eq(tenantUsers.userId, users.id))
           .leftJoin(userPreferences, eq(userPreferences.userId, users.id))
+          .leftJoin(
+            tenantUserPreferences,
+            and(
+              eq(tenantUserPreferences.userId, users.id),
+              eq(tenantUserPreferences.tenantId, tenants.id)
+            )
+          )
           .where(
             and(
               sql`"income_events"."archived_at" IS NULL`,
@@ -130,6 +163,8 @@ export function createScheduledNotificationFunctions(inngest: Inngest) {
           );
 
         return activeIncomes.filter((item) => {
+          const prefs = (item.appPreferences?.['money-matters'] || item.appPreferences || {}) as Record<string, unknown>;
+          if (prefs.payday_alerts_enabled === false) return false;
           const tz = item.userTimezone || 'Australia/Sydney';
           const today = todayInZone(tz);
           return item.expectedDate === today;
@@ -138,12 +173,12 @@ export function createScheduledNotificationFunctions(inngest: Inngest) {
 
       for (const item of paydaysToday) {
         if (!item.email) continue;
-        await step.run(`send-payday-alert-${item.tenantId}-${item.userId}`, async () => {
+        await step.run(`send-payday-alert-${item.eventId}-${item.expectedDate}`, async () => {
           await sendNotificationEmail(
             item.email,
             `Payday Alert — ${item.tenantName}`,
             `It's payday! An expected deposit of $${parseFloat(item.amount).toFixed(2)} is due today.
-
+ 
 ` +
             `Log in to Money Matters to allocate your payday split and ring-fence your committed expenses!`
           );
@@ -159,7 +194,7 @@ export function createScheduledNotificationFunctions(inngest: Inngest) {
     { cron: '0 10 * * 1' },
     async ({ step }) => {
       const overdueTenants = await step.run('fetch-overdue-balance-match-tenants', async () => {
-        const { tenants, bankAccounts, tenantUsers, users } = await import('@money-matters/db');
+        const { tenants, bankAccounts, tenantUsers, users, tenantUserPreferences } = await import('@money-matters/db');
         const { eq, and } = await import('drizzle-orm');
 
         const accounts = await db
@@ -169,11 +204,19 @@ export function createScheduledNotificationFunctions(inngest: Inngest) {
             userId: users.id,
             email: users.email,
             lastMatchedAt: bankAccounts.lastBalanceMatchedAt,
+            appPreferences: tenantUserPreferences.appPreferences,
           })
           .from(bankAccounts)
           .innerJoin(tenants, eq(bankAccounts.tenantId, tenants.id))
           .innerJoin(tenantUsers, and(eq(tenantUsers.tenantId, tenants.id), sql`"tenant_users"."archived_at" IS NULL`))
           .innerJoin(users, eq(tenantUsers.userId, users.id))
+          .leftJoin(
+            tenantUserPreferences,
+            and(
+              eq(tenantUserPreferences.userId, users.id),
+              eq(tenantUserPreferences.tenantId, tenants.id)
+            )
+          )
           .where(sql`"bank_accounts"."archived_at" IS NULL`);
 
         const fourteenDaysAgo = Date.now() - 14 * 24 * 60 * 60 * 1000;
@@ -181,6 +224,8 @@ export function createScheduledNotificationFunctions(inngest: Inngest) {
 
         for (const acc of accounts) {
           if (!acc.email) continue;
+          const prefs = (acc.appPreferences?.['money-matters'] || acc.appPreferences || {}) as Record<string, unknown>;
+          if (prefs.balance_nudge_enabled === false) continue;
           const isOverdue = !acc.lastMatchedAt || new Date(acc.lastMatchedAt).getTime() < fourteenDaysAgo;
           if (isOverdue && !tenantMap.has(acc.tenantId)) {
             tenantMap.set(acc.tenantId, { email: acc.email, tenantName: acc.tenantName });
@@ -196,7 +241,7 @@ export function createScheduledNotificationFunctions(inngest: Inngest) {
             t.email,
             `Balance Match Reminder — ${t.tenantName}`,
             `It has been over 14 days since your last bank balance match.
-
+ 
 ` +
             `Take 30 seconds to align your bank balances in Money Matters to keep your safe-to-spend allowance 100% accurate!`
           );

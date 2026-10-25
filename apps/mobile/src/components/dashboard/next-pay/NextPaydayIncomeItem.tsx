@@ -65,11 +65,25 @@ export const NextPaydayIncomeItem: React.FC<NextPaydayIncomeItemProps> = ({
 
       <View style={styles.actionColumn}>
         <TouchableOpacity
-          style={styles.splitBtn}
+          style={[
+            styles.splitBtn,
+            (daysAwayText === t('dashboard.hero.dueToday') || isSaved) && styles.splitBtnActive,
+          ]}
           onPress={() => onPressRunSplit(item.id)}
           activeOpacity={0.8}
         >
-          <Text style={styles.splitBtnText}>{t('common.runSplit')}</Text>
+          <Text
+            style={[
+              styles.splitBtnText,
+              (daysAwayText === t('dashboard.hero.dueToday') || isSaved) && styles.splitBtnTextActive,
+            ]}
+          >
+            {daysAwayText === t('dashboard.hero.dueToday')
+              ? `⚡ ${t('common.runSplit')}`
+              : isSaved
+              ? `✓ ${t('common.runSplit')}`
+              : t('common.runSplit')}
+          </Text>
         </TouchableOpacity>
 
         <TouchableOpacity
@@ -175,10 +189,17 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 5,
   },
+  splitBtnActive: {
+    backgroundColor: DESIGN_TOKENS.colors.sereneBlue,
+    borderColor: DESIGN_TOKENS.colors.sereneBlue,
+  },
   splitBtnText: {
     fontSize: 11,
     fontWeight: '800',
     color: DESIGN_TOKENS.colors.accent,
+  },
+  splitBtnTextActive: {
+    color: '#ffffff',
   },
   deleteBtn: {
     paddingHorizontal: 6,

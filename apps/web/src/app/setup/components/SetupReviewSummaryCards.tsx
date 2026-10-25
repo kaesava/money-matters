@@ -2,7 +2,7 @@
 
 import React from "react";
 import { t } from "@money-matters/i18n";
-import { formatCurrency } from "@money-matters/ui/web";
+import { useLocale } from "../../../providers/LocaleProvider";
 
 interface SetupReviewSummaryCardsProps {
   totalMonthlyIncomeAud: number;
@@ -15,6 +15,7 @@ export function SetupReviewSummaryCards({
   totalAllocatedMonthly,
   netSurplus,
 }: SetupReviewSummaryCardsProps) {
+  const { fmt } = useLocale();
   return (
     <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
       <div className="p-3.5 rounded-2xl bg-blue-50/70 border border-blue-200/80 flex flex-col gap-1">
@@ -22,7 +23,7 @@ export function SetupReviewSummaryCards({
           {t("setup.reviewSummary.monthlyNetIncome")}
         </span>
         <span className="text-lg font-black text-[#1B2B4B] font-mono">
-          {formatCurrency(totalMonthlyIncomeAud)}
+          {fmt(totalMonthlyIncomeAud)}
         </span>
       </div>
       <div className="p-3.5 rounded-2xl bg-emerald-50/70 border border-emerald-200/80 flex flex-col gap-1">
@@ -30,7 +31,7 @@ export function SetupReviewSummaryCards({
           {t("setup.reviewSummary.totalAllocated")}
         </span>
         <span className="text-lg font-black text-[#1B2B4B] font-mono">
-          {formatCurrency(totalAllocatedMonthly)}
+          {fmt(totalAllocatedMonthly)}
         </span>
       </div>
       <div
@@ -46,7 +47,7 @@ export function SetupReviewSummaryCards({
             : t("setup.reviewSummary.estimatedMonthlyShortfall")}
         </span>
         <span className="text-lg font-black text-[#1B2B4B] font-mono">
-          {formatCurrency(Math.abs(netSurplus))}
+          {fmt(Math.abs(netSurplus))}
         </span>
       </div>
     </div>

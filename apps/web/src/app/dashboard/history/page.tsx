@@ -25,7 +25,7 @@ import { getTenantDateString } from "@money-matters/core";
 import { useLocale } from "../../../providers/LocaleProvider";
 
 function TransactionsPageContent() {
-  const { fmt, fmtDate } = useLocale();
+  const { fmt, fmtDate, currency } = useLocale();
   const router = useRouter();
   const searchParams = useSearchParams();
   const initialTab = searchParams.get("tab") || "transactions";
@@ -195,10 +195,10 @@ function TransactionsPageContent() {
     const start = (page - 1) * pageSize;
     return sortedTransactions.slice(start, start + pageSize);
   }, [sortedTransactions, page, pageSize]);
-
   const handleExportCSV = () => {
     if (sortedTransactions.length === 0) return;
-    const headers = ["Date", "Type", "Description", "Category / Pool", "Source", "Amount (AUD)"];
+    const currencyLabel = currency || "AUD";
+    const headers = ["Date", "Type", "Description", "Category / Pool", "Source", `Amount (${currencyLabel})`];
     const rows = sortedTransactions.map((tx) => [
       `"${tx.date}"`,
       `"${getTransactionTypeLabel(tx.transactionType)}"`,
