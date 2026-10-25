@@ -24,6 +24,7 @@ interface CalculationsProps {
   customCategories: EstimatedCategoryItem[];
   removedCategoryNames: Set<string>;
   amountOverrides: Record<string, number>;
+  billTypeOverrides?: Record<string, "SCHEDULED_BILL" | "FLEXIBLE_BILL">;
 }
 
 function getGoalMonthsDiff(targetDateStr?: string | null): number {
@@ -41,6 +42,7 @@ export function useSetupWizardCalculations({
   customCategories,
   removedCategoryNames,
   amountOverrides,
+  billTypeOverrides = {},
 }: CalculationsProps) {
   const estimation = useMemo(() => calculateQuizEstimates(quizAnswers), [quizAnswers]);
 
@@ -83,8 +85,10 @@ export function useSetupWizardCalculations({
       .filter((cat) => !removedCategoryNames.has(cat.name))
       .map((cat) => {
         const override = amountOverrides[cat.name];
+        const typeOverride = billTypeOverrides[cat.name];
         return {
           ...cat,
+          envelopeType: typeOverride || cat.envelopeType || (cat.type === "EVERYDAY" ? "EVERYDAY" : "SCHEDULED_BILL"),
           monthlyAud: override !== undefined ? override : cat.monthlyAud,
         };
       });
@@ -97,6 +101,7 @@ export function useSetupWizardCalculations({
     customCategories,
     removedCategoryNames,
     amountOverrides,
+    billTypeOverrides,
     activeGoals,
   ]);
 

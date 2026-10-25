@@ -43,6 +43,7 @@ export interface CalculationsProps {
   customCategories: EstimatedCategoryItem[];
   removedCategoryNames: Set<string>;
   amountOverrides: Record<string, number>;
+  billTypeOverrides?: Record<string, 'SCHEDULED_BILL' | 'FLEXIBLE_BILL'>;
 }
 
 function getGoalMonthsDiff(targetDateStr?: string | null): number {
@@ -110,12 +111,15 @@ export function computeSetupWizardCalculations(props: CalculationsProps) {
         ...props.customCategories.filter((c) => c.type !== 'GOAL'),
       ];
 
+  const billTypeOverrides = props.billTypeOverrides || {};
   const mappedNonGoals = nonGoalCategories
     .filter((cat) => !props.removedCategoryNames.has(cat.name))
     .map((cat) => {
       const override = props.amountOverrides[cat.name];
+      const typeOverride = billTypeOverrides[cat.name];
       return {
         ...cat,
+        envelopeType: typeOverride || cat.envelopeType || (cat.type === 'EVERYDAY' ? 'EVERYDAY' : 'SCHEDULED_BILL'),
         monthlyAud: override !== undefined ? override : cat.monthlyAud,
       };
     });

@@ -422,7 +422,6 @@
 | `userId` | uuid | - | Domain column |
 | `theme` | varchar | - | Domain column |
 | `language` | varchar | - | Domain column |
-| `locale` | varchar | - | Domain column |
 | `timezone` | varchar | - | Domain column |
 | `showIcons` | boolean | - | Domain column |
 | `notificationEmail` | varchar | - | Domain column |

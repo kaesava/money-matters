@@ -10,7 +10,6 @@ export const UpdateProfileFormSchema = z
     phone: z.string().trim().max(30).optional().default(""),
     timezone: z.string().min(1).default("Australia/Sydney"),
     showIcons: z.boolean().default(true),
-    locale: z.string().min(1).default("en-AU"),
   })
   .strict();
 

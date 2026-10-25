@@ -13,7 +13,6 @@ export interface ProfileFormData {
   phoneNumber: string;
   timezone: string;
   language: "en";
-  locale: string;
   showIcons: boolean;
 }
 
@@ -46,7 +45,6 @@ export function useProfileForm({ user, currentTimezone }: UseProfileFormParams) 
     phoneNumber: "",
     timezone: currentTimezone,
     language: "en",
-    locale: "auto",
     showIcons: true,
   });
 
@@ -62,7 +60,6 @@ export function useProfileForm({ user, currentTimezone }: UseProfileFormParams) 
         phoneNumber: userProfileQuery.data.phoneNumber || "",
         timezone: userProfileQuery.data.timezone || currentTimezone,
         language: "en",
-        locale: userPrefQuery.data?.locale || "auto",
         showIcons: userProfileQuery.data.showIcons ?? true,
       };
       setData(init);
@@ -129,7 +126,6 @@ export function useProfileForm({ user, currentTimezone }: UseProfileFormParams) 
       });
       await updatePrefMutation.mutateAsync({
         language: data.language,
-        locale: data.locale,
         timezone: data.timezone,
         showIcons: data.showIcons,
       });
@@ -172,8 +168,6 @@ export function useProfileForm({ user, currentTimezone }: UseProfileFormParams) 
     setTimezone: (val: string) => setData((prev) => ({ ...prev, timezone: val })),
     language: data.language,
     setLanguageState: (val: "en") => setData((prev) => ({ ...prev, language: val })),
-    locale: data.locale,
-    setLocale: (val: string) => setData((prev) => ({ ...prev, locale: val })),
     showIcons: data.showIcons,
     setShowIcons: (val: boolean) => setData((prev) => ({ ...prev, showIcons: val })),
     avatarUrl: data.avatarUrl,

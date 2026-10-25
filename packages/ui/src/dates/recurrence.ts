@@ -84,7 +84,7 @@ export function formatScheduleSummary(
 ): string {
   const { rrule, startDate, endDate, envelopeType } = options;
   if (envelopeType === "FLEXIBLE_BILL") {
-    return t("categories.billModeFlexible");
+    return t("categories.drawdownAsNeeded");
   }
 
   const fmt = dateFormatter || defaultFmtDate;

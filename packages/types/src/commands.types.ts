@@ -73,6 +73,7 @@ export const CreateEnvelopeCommand = z.object({
   emoji: z.string().max(16).optional().nullable(),
   colorKey: z.string().max(30).optional().nullable(),
   orderIndex: z.number().int().default(0).optional(),
+  generateEvents: z.boolean().optional(),
 }).strict().superRefine((data, ctx) => {
   if (data.envelopeType === "TARGET_GOAL" || data.envelopeType === "ONGOING_GOAL") {
     const hasAmount = (data.targetAmount && parseFloat(data.targetAmount) > 0) || (data.enteredAmount && parseFloat(data.enteredAmount) > 0);
@@ -113,6 +114,7 @@ export const UpdateEnvelopeCommand = z.object({
   emoji: z.string().max(16).optional().nullable(),
   colorKey: z.string().max(30).optional().nullable(),
   orderIndex: z.number().int().optional(),
+  generateEvents: z.boolean().optional(),
 }).strict();
 
 export const CreateIncomeSourceCommand = z.object({

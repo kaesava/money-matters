@@ -28,6 +28,7 @@ export default function SetupCategoriesScreen() {
     categoryFrequencies,
     setCategoryFrequencies,
     setAmountOverrides,
+    setBillTypeOverrides,
     setRemovedCategoryNames,
     setCustomCategories,
     totalAllocatedMonthly,
@@ -119,6 +120,7 @@ export default function SetupCategoriesScreen() {
             freq={categoryFrequencies[cat.name] || 'MONTHLY'}
             onUpdateAmount={(amt) => setAmountOverrides((prev) => ({ ...prev, [cat.name]: amt }))}
             onUpdateFreq={(f) => setCategoryFrequencies((prev) => ({ ...prev, [cat.name]: f }))}
+            onToggleBillType={(newType) => setBillTypeOverrides((prev) => ({ ...prev, [cat.name]: newType }))}
             onRemove={() => handleAttemptRemoveCategory(cat.name)}
           />
         ))}

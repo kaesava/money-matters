@@ -83,7 +83,6 @@ export function ProfileSection({
           phoneNumber={form.phoneNumber}
           timezone={form.timezone}
           language={form.language}
-          locale={form.locale}
           showIcons={form.showIcons}
           avatarUrl={form.avatarUrl}
           initials={form.initials}

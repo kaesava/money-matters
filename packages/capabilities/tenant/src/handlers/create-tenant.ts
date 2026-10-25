@@ -134,7 +134,6 @@ export function createTenantHandler(db: DbOrTx) {
       });
 
     // 5. Initialize or synchronize userPreferences with country defaults
-    const locale = countryDefaults.locale || "en-AU";
     const phoneCountryCode = countryDefaults.phoneCountryCode || "+61";
 
     const [existingPref] = typeof (db as any).select === "function"
@@ -146,7 +145,6 @@ export function createTenantHandler(db: DbOrTx) {
         await db
           .update(userPreferences)
           .set({
-            locale,
             timezone,
             phoneCountryCode: existingPref.phoneCountryCode || phoneCountryCode,
             updatedAt: now,
@@ -159,7 +157,6 @@ export function createTenantHandler(db: DbOrTx) {
         .insert(userPreferences)
         .values({
           userId,
-          locale,
           timezone,
           phoneCountryCode,
           createdBy: userId,

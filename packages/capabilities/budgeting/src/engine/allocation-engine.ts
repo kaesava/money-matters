@@ -24,6 +24,7 @@ export interface EngineBucket {
   isCommitted?: boolean;
   isSurplusTarget?: boolean;
   monthlyAmount?: number | null;
+  enteredAmount?: number | null;
   targetAmount?: number | null;
   safetyBufferFloor?: number | null;
   goalMode?: "TARGET_DATE" | "ONGOING" | null;
@@ -262,7 +263,7 @@ export function runAllocationEngine(input: AllocationEngineInput): AllocationEng
     });
 
     for (const bucket of sorted) {
-      const monthlyCents = toCents(bucket.monthlyAmount ?? bucket.targetAmount ?? 0);
+      const monthlyCents = toCents(bucket.monthlyAmount ?? bucket.enteredAmount ?? bucket.targetAmount ?? 0);
       const cycleTargetCents = Math.round(monthlyCents * cycleFactor);
       const priorAlloc = step1AllocatedCentsMap.get(bucket.id) ?? 0;
       const additionalNeededCents = Math.max(0, cycleTargetCents - priorAlloc);

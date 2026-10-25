@@ -19,7 +19,6 @@ describe("Settings Types & Schemas", () => {
         phone: "+61412345678",
         timezone: "Australia/Sydney",
         showIcons: true,
-        locale: "en-AU",
       });
       expect(parsed.displayName).toBe("Alice Smith");
       expect(parsed.notificationEmail).toBe("alice@example.com");

@@ -32,6 +32,7 @@ interface SetupCategoriesStepProps {
   onBack: () => void;
   onFinish: () => void;
   onSimulatePayday?: () => void;
+  onToggleBillType?: (name: string, newType: "SCHEDULED_BILL" | "FLEXIBLE_BILL") => void;
   isRerun?: boolean;
 }
 
@@ -56,6 +57,7 @@ export function SetupCategoriesStep({
   onBack,
   onFinish,
   onSimulatePayday,
+  onToggleBillType,
   isRerun = false,
 }: SetupCategoriesStepProps) {
   const [warningMsg, setWarningMsg] = useState<string | null>(null);
@@ -123,6 +125,7 @@ export function SetupCategoriesStep({
           onRemoveCategory={handleAttemptRemove}
           convertToMonthly={convertToMonthly}
           convertFromMonthly={convertFromMonthly}
+          onToggleBillType={onToggleBillType}
         />
 
         {/* Savings Goals */}

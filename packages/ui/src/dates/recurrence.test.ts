@@ -79,7 +79,7 @@ describe("recurrence utils", () => {
     const mockFmt = (d: any) => String(d);
 
     it("formats flexible bill", () => {
-      expect(formatScheduleSummary({ envelopeType: "FLEXIBLE_BILL" })).toBe("Flexible Bill");
+      expect(formatScheduleSummary({ envelopeType: "FLEXIBLE_BILL" })).toBe("Drawdown as needed");
     });
 
     it("formats monthly with interval 2", () => {

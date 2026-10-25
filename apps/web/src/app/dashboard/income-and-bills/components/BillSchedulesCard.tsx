@@ -145,25 +145,36 @@ export function BillSchedulesCard({
                   <tr key={b.id} className="hover:bg-slate-50/50 dark:hover:bg-zinc-800/50 transition-colors">
                     <td className="py-2.5 px-3 text-left">
                       <div className="flex flex-col gap-0.5">
-                        <button
-                          type="button"
-                          onClick={() =>
-                            onEditCategory({
-                              id: b.id,
-                              name: b.name,
-                              poolId: b.poolId,
-                              envelopeType: b.envelopeType,
-                              monthlyAmount: String(b.amount),
-                              enteredAmount: String(b.amount),
-                              budgetFrequency: b.budgetFrequency || "MONTHLY",
-                              isEssential: b.isEssential ?? false,
-                            })
-                          }
-                          className="font-bold text-[#2563eb] hover:underline text-left cursor-pointer inline-flex items-center gap-1.5"
-                        >
-                          <span>{b.name}</span>
-                          <span className="text-[10px] text-slate-400 dark:text-zinc-500 font-normal">✎</span>
-                        </button>
+                        <div className="flex items-center gap-1.5">
+                          <button
+                            type="button"
+                            onClick={() =>
+                              onEditCategory({
+                                id: b.id,
+                                name: b.name,
+                                poolId: b.poolId,
+                                envelopeType: b.envelopeType,
+                                monthlyAmount: String(b.amount),
+                                enteredAmount: String(b.amount),
+                                budgetFrequency: b.budgetFrequency || "MONTHLY",
+                                isEssential: b.isEssential ?? false,
+                              })
+                            }
+                            className="font-bold text-[#2563eb] hover:underline text-left cursor-pointer inline-flex items-center gap-1.5"
+                          >
+                            <span>{b.name}</span>
+                            <span className="text-[10px] text-slate-400 dark:text-zinc-500 font-normal">✎</span>
+                          </button>
+                          <span
+                            className={`px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider ${
+                              b.envelopeType === "FLEXIBLE_BILL"
+                                ? "bg-slate-100 dark:bg-zinc-800 text-slate-600 dark:text-zinc-400 border border-slate-200 dark:border-zinc-700"
+                                : "bg-blue-50 dark:bg-blue-950/60 text-[#2563eb] dark:text-blue-400 border border-blue-200 dark:border-blue-800"
+                            }`}
+                          >
+                            {b.envelopeType === "FLEXIBLE_BILL" ? t("categories.billModeFlexible") : t("categories.billModeScheduled")}
+                          </span>
+                        </div>
                         <span className="text-[10px] text-zinc-400 font-medium">
                           {formatScheduleSummary({ rrule: b.rrule, startDate: b.startDate, endDate: b.endDate, envelopeType: b.envelopeType }, fmtDate)}
                         </span>

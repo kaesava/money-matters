@@ -105,8 +105,9 @@ export function useSetupWizardPrepopulation({
           id: c.id,
           name: c.name,
           type: (c.envelopeType === "EVERYDAY" ? "EVERYDAY" : "REGULAR") as "REGULAR" | "GOAL" | "EVERYDAY",
+          envelopeType: (c.envelopeType as "SCHEDULED_BILL" | "FLEXIBLE_BILL" | "EVERYDAY") || (c.envelopeType === "EVERYDAY" ? "EVERYDAY" : "SCHEDULED_BILL"),
           monthlyAud: parseFloat(c.monthlyAmount || c.targetAmount || "0"),
-          icon: "wallet",
+          icon: c.envelopeType === "EVERYDAY" ? "wallet" : "pin",
         }))
       );
     }

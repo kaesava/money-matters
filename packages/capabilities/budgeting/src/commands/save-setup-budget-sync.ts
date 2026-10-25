@@ -92,16 +92,30 @@ export async function synchronizeUpdatedEnvelopeEvents(
   envelopeId: string,
   scheduleChanged: boolean,
   nameOrAmountChanged: boolean,
-  params: { name: string; amount: string; rrule: string; startDate: string; tenantId: string; appId: string; userId: string; now: Date }
+  params: {
+    name: string;
+    amount: string;
+    rrule: string;
+    startDate: string;
+    isScheduledBill?: boolean;
+    timeZone?: string;
+    tenantId: string;
+    appId: string;
+    userId: string;
+    now: Date;
+  }
 ): Promise<void> {
   if (typeof tx.update !== "function") return;
+  const tz = params.timeZone || "Australia/Sydney";
+  const shouldBurst = params.isScheduledBill !== false;
+
   if (scheduleChanged) {
     await tx
       .update(expenseEvents)
       .set({ archivedAt: params.now, updatedBy: params.userId, updatedAt: params.now })
       .where(and(eq(expenseEvents.envelopeId, envelopeId), eq(expenseEvents.isScheduled, true), eq(expenseEvents.status, "PENDING"), sql`${expenseEvents.archivedAt} IS NULL`));
 
-    if (parseFloat(params.amount) > 0 && typeof tx.insert === "function") {
+    if (shouldBurst && parseFloat(params.amount) > 0 && typeof tx.insert === "function") {
       const dates = generateBurstDates(params.rrule, params.startDate, null, 12);
       if (dates.length > 0) {
         await tx.insert(expenseEvents).values(
@@ -110,7 +124,7 @@ export async function synchronizeUpdatedEnvelopeEvents(
             appId: params.appId,
             envelopeId,
             name: params.name,
-            expectedDate: new Intl.DateTimeFormat("en-CA", { timeZone: "Australia/Sydney" }).format(d),
+            expectedDate: new Intl.DateTimeFormat("en-CA", { timeZone: tz }).format(d),
             expectedAmount: params.amount,
             isScheduled: true,
             status: "PENDING" as const,

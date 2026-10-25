@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { useRouter, type Href } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
 import { CardDrawerIndicator, EntityLinkChip, DESIGN_TOKENS } from '@money-matters/ui/mobile';
+import { t } from '@money-matters/i18n';
 import { formatAUD, formatScheduleDetail } from '../../lib/format';
 
 export interface ExpenseSourceItem {
@@ -48,6 +49,21 @@ export const ExpenseBillCard: React.FC<ExpenseBillCardProps> = ({
           <Text style={styles.title} numberOfLines={1}>
             {exp.name}
           </Text>
+          <View
+            style={[
+              styles.pillBadge,
+              exp.envelopeType === 'FLEXIBLE_BILL' ? styles.pillFlexible : styles.pillScheduled,
+            ]}
+          >
+            <Text
+              style={[
+                styles.pillText,
+                exp.envelopeType === 'FLEXIBLE_BILL' ? styles.pillTextFlexible : styles.pillTextScheduled,
+              ]}
+            >
+              {exp.envelopeType === 'FLEXIBLE_BILL' ? t('categories.billModeFlexible') : t('categories.billModeScheduled')}
+            </Text>
+          </View>
           <Text style={styles.freqText} numberOfLines={1}>
             • {formatScheduleDetail(exp.rrule, exp.startDate, undefined, undefined, exp.envelopeType).detailText}
           </Text>
@@ -143,5 +159,30 @@ const styles = StyleSheet.create({
     color: DESIGN_TOKENS.colors.slate[500],
     fontWeight: '500',
     flexShrink: 1,
+  },
+  pillBadge: {
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+    borderWidth: 1,
+  },
+  pillFlexible: {
+    backgroundColor: DESIGN_TOKENS.colors.slate[100],
+    borderColor: DESIGN_TOKENS.colors.slate[200],
+  },
+  pillScheduled: {
+    backgroundColor: DESIGN_TOKENS.colors.accentLight,
+    borderColor: DESIGN_TOKENS.colors.accentBorder,
+  },
+  pillText: {
+    fontSize: 9,
+    fontWeight: '700',
+    textTransform: 'uppercase',
+  },
+  pillTextFlexible: {
+    color: DESIGN_TOKENS.colors.slate[600],
+  },
+  pillTextScheduled: {
+    color: DESIGN_TOKENS.colors.sereneBlue,
   },
 });

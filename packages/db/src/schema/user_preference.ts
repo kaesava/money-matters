@@ -14,7 +14,6 @@ export const userPreferences = pgTable("user_preferences", {
   userId: uuid("user_id").notNull().unique().references(() => users.id, { onDelete: "cascade" }),
   theme: varchar("theme", { length: 20 }).notNull().default("system"),
   language: varchar("language", { length: 10 }).notNull().default("en"),
-  locale: varchar("locale", { length: 20 }).notNull().default("auto"),
   timezone: varchar("timezone", { length: 100 }),
   showIcons: boolean("show_icons").notNull().default(true),
   notificationEmail: varchar("notification_email", { length: 255 }),

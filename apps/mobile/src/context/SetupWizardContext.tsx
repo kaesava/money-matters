@@ -85,6 +85,9 @@ export function SetupWizardProvider({ children: reactChildren }: { children: Rea
   const [customCategories, setCustomCategories] = useState<EstimatedCategoryItem[]>([]);
   const [removedCategoryNames, setRemovedCategoryNames] = useState<Set<string>>(new Set());
   const [amountOverrides, setAmountOverrides] = useState<Record<string, number>>({});
+  const [billTypeOverrides, setBillTypeOverrides] = useState<
+    Record<string, 'SCHEDULED_BILL' | 'FLEXIBLE_BILL'>
+  >({});
   const [categoryFrequencies, setCategoryFrequencies] = useState<
     Record<string, 'WEEKLY' | 'FORTNIGHTLY' | 'MONTHLY' | 'YEARLY'>
   >({});
@@ -239,6 +242,7 @@ export function SetupWizardProvider({ children: reactChildren }: { children: Rea
     customCategories,
     removedCategoryNames,
     amountOverrides,
+    billTypeOverrides,
   });
 
   const value = useMemo<SetupWizardContextValue>(
@@ -260,6 +264,8 @@ export function SetupWizardProvider({ children: reactChildren }: { children: Rea
       setRemovedCategoryNames,
       amountOverrides,
       setAmountOverrides,
+      billTypeOverrides,
+      setBillTypeOverrides,
       categoryFrequencies,
       setCategoryFrequencies,
       sweepQueue,

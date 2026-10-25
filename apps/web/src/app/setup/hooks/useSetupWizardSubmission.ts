@@ -81,16 +81,21 @@ export function useSetupWizardSubmission({
           const catId = "id" in c && typeof c.id === "string" && !c.id.startsWith("temp-") ? c.id : undefined;
           const matchedPool = catId ? existingPools.find((p) => p.id === catId) : undefined;
           const isEveryday = c.type === "EVERYDAY";
-          const isBill = c.type === "REGULAR";
+          const resolvedEnvelopeType = isEveryday
+            ? ("EVERYDAY" as const)
+            : c.envelopeType === "FLEXIBLE_BILL"
+            ? ("FLEXIBLE_BILL" as const)
+            : ("SCHEDULED_BILL" as const);
+          const isBill = resolvedEnvelopeType === "SCHEDULED_BILL" || resolvedEnvelopeType === "FLEXIBLE_BILL";
           return {
             id: catId,
             bankAccountId: matchedPool?.bankAccountId || primaryBankAccountId,
             isPrivate: matchedPool?.isPrivate ?? false,
             name: c.name,
-            envelopeType: (isEveryday ? "EVERYDAY" : isBill ? "SCHEDULED_BILL" : "TARGET_GOAL") as "EVERYDAY" | "SCHEDULED_BILL" | "TARGET_GOAL",
+            envelopeType: resolvedEnvelopeType,
             monthlyAmount: (c.monthlyAud || 0).toFixed(2),
             enteredAmount: (c.monthlyAud || 0).toFixed(2),
-            budgetFrequency: budgetFreq,
+            budgetFrequency: resolvedEnvelopeType === "FLEXIBLE_BILL" ? ("MONTHLY" as const) : budgetFreq,
             isEssential: isBill,
             orderIndex: idx,
           };

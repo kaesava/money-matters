@@ -1,7 +1,13 @@
 import { privateTenantProcedure, requiresWriteAccess } from '../trpc/trpc.js';
-import { envelopes, expenseEvents } from "@money-matters/db";
+import { envelopes, expenseEvents, tenants } from "@money-matters/db";
 import { and, eq, sql, inArray } from "drizzle-orm";
 import { recordExpenseCommand } from "@money-matters/capability-transactions";
+import {
+  clearScheduledEnvelopeEvents,
+  burstEnvelopeEvents,
+  deriveRruleFromFrequency,
+  computeDefaultStartDate,
+} from "@money-matters/capability-budgeting";
 import { CreateOneOffExpenseCommand } from "@money-matters/types";
 import { z } from 'zod';
 import { posthog } from '../lib/posthog.js';
@@ -206,4 +212,77 @@ export const expensesRouter = {
 
       return { success: true, message: "Bill marked as paid." };
     }),
+
+  reburstBillSchedule: privateTenantProcedure
+    .input(z.object({ envelopeId: z.string().uuid() }).strict())
+    .mutation(async ({ input, ctx }) => {
+      requiresWriteAccess(ctx);
+
+      const [targetEnvelope] = await ctx.db
+        .select({
+          id: envelopes.id,
+          name: envelopes.name,
+          envelopeType: envelopes.envelopeType,
+          enteredAmount: envelopes.enteredAmount,
+          monthlyAmount: envelopes.monthlyAmount,
+          rrule: envelopes.rrule,
+          budgetFrequency: envelopes.budgetFrequency,
+          startDate: envelopes.startDate,
+          endDate: envelopes.endDate,
+        })
+        .from(envelopes)
+        .where(
+          and(
+            eq(envelopes.id, input.envelopeId),
+            eq(envelopes.tenantId, ctx.tenantId!),
+            eq(envelopes.appId, ctx.appId!),
+            sql`${envelopes.archivedAt} IS NULL`
+          )
+        )
+        .limit(1);
+
+      if (!targetEnvelope) {
+        throw new Error("Bill schedule not found.");
+      }
+
+      if (targetEnvelope.envelopeType !== "SCHEDULED_BILL") {
+        throw new Error("Only scheduled bills can be burst into calendar expense events.");
+      }
+
+      const amountVal = targetEnvelope.enteredAmount || targetEnvelope.monthlyAmount || "0.00";
+      if (parseFloat(amountVal) <= 0) {
+        throw new Error("Bill schedule amount must be greater than zero.");
+      }
+
+      // Fetch tenant timezone
+      const [tenantRecord] = await ctx.db
+        .select({ timezone: tenants.timezone })
+        .from(tenants)
+        .where(eq(tenants.id, ctx.tenantId!))
+        .limit(1);
+      const tz = tenantRecord?.timezone || "Australia/Sydney";
+
+      // Clear existing unconfirmed pending events for this envelope
+      await clearScheduledEnvelopeEvents(ctx.db, targetEnvelope.id, ctx.tenantId!, ctx.appId!);
+
+      const rrule = targetEnvelope.rrule || deriveRruleFromFrequency(targetEnvelope.budgetFrequency);
+      const defaultStart = computeDefaultStartDate(tz);
+      const startDate = targetEnvelope.startDate || defaultStart;
+
+      const burstCount = await burstEnvelopeEvents(ctx.db, {
+        envelopeId: targetEnvelope.id,
+        name: targetEnvelope.name,
+        amount: amountVal,
+        rrule,
+        startDate,
+        endDate: targetEnvelope.endDate,
+        tenantId: ctx.tenantId!,
+        appId: ctx.appId!,
+        userId: ctx.userId!,
+        timeZone: tz,
+      });
+
+      return { success: true, count: burstCount };
+    }),
 };
+

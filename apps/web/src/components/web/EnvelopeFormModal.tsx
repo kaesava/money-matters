@@ -86,6 +86,7 @@ export function EnvelopeFormModal({
   const [interval, setInterval] = useState<number>(1);
   const [goalStartDate, setGoalStartDate] = useState("");
   const [isSurplusTarget, setIsSurplusTarget] = useState(false);
+  const [generateEvents, setGenerateEvents] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [showArchiveConfirm, setShowArchiveConfirm] = useState(false);
@@ -114,6 +115,7 @@ export function EnvelopeFormModal({
       const rawStartDate = categoryToEdit.startDate || "";
       setGoalStartDate(rawStartDate ? rawStartDate.split("T")[0] : "");
       setIsSurplusTarget(categoryToEdit.isSurplusTarget ?? false);
+      setGenerateEvents(true);
     } else {
       setName("");
       setType("REGULAR");
@@ -127,6 +129,7 @@ export function EnvelopeFormModal({
       setInterval(1);
       setGoalStartDate(new Intl.DateTimeFormat("en-CA").format(new Date()));
       setIsSurplusTarget(false);
+      setGenerateEvents(true);
     }
     setErrorMsg(null);
   }, [categoryToEdit, isOpen, bankAccounts]);
@@ -305,6 +308,7 @@ export function EnvelopeFormModal({
       rrule: (isScheduledBill || isOngoingGoal) ? rruleString || undefined : undefined,
       goalMode: type === "GOAL" ? goalMode : undefined,
       isSurplusTarget: type !== "EVERYDAY" ? isSurplusTarget : undefined,
+      generateEvents: isScheduledBill ? generateEvents : undefined,
     };
   };
 
@@ -440,6 +444,8 @@ export function EnvelopeFormModal({
           isSurplusTarget={isSurplusTarget}
           setIsSurplusTarget={setIsSurplusTarget}
           isSurplusDisabled={Boolean(isEdit && categoryToEdit?.isSurplusTarget)}
+          generateEvents={generateEvents}
+          setGenerateEvents={setGenerateEvents}
         />
 
         <div className="flex justify-between items-center pt-4 border-t border-zinc-200">

@@ -47,6 +47,8 @@ export interface EnvelopeFormFieldsProps {
   setIsSurplusTarget: (v: boolean) => void;
   isEdit: boolean;
   isSurplusDisabled: boolean;
+  generateEvents?: boolean;
+  setGenerateEvents?: (v: boolean) => void;
   typeOptions: Array<{ key: string; label: string }>;
   bankOptions: Array<{ key: string; label: string }>;
 }
@@ -86,6 +88,8 @@ export const EnvelopeFormFields: React.FC<EnvelopeFormFieldsProps> = ({
   setIsSurplusTarget,
   isEdit,
   isSurplusDisabled,
+  generateEvents = true,
+  setGenerateEvents,
   typeOptions,
   bankOptions,
 }) => {
@@ -165,6 +169,16 @@ export const EnvelopeFormFields: React.FC<EnvelopeFormFieldsProps> = ({
               setEndDate={setEndDate}
               calculatedMonthly={calculatedMonthly}
             />
+          )}
+
+          {billMode === 'SCHEDULED_BILL' && setGenerateEvents && (
+            <View style={styles.surplusRow}>
+              <MobileCheckbox
+                label={t('categories.generateEventsLabel')}
+                checked={generateEvents}
+                onChange={setGenerateEvents}
+              />
+            </View>
           )}
         </View>
       )}

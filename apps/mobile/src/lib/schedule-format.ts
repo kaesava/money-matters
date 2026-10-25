@@ -20,8 +20,8 @@ export function formatScheduleDetail(
     return {
       isRecurring: false,
       badgeText: t('categories.billModeFlexible'),
-      detailText: t('categories.billModeFlexible'),
-      frequencyLabel: t('categories.billModeFlexible'),
+      detailText: t('categories.drawdownAsNeeded'),
+      frequencyLabel: t('categories.drawdownAsNeeded'),
     };
   }
 

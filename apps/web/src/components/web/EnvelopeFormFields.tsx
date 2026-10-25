@@ -43,6 +43,8 @@ export interface EnvelopeFormFieldsProps {
   isSurplusTarget: boolean;
   setIsSurplusTarget: (val: boolean) => void;
   isSurplusDisabled: boolean;
+  generateEvents?: boolean;
+  setGenerateEvents?: (val: boolean) => void;
 }
 
 export type CategoryFormFieldsProps = EnvelopeFormFieldsProps;
@@ -78,6 +80,8 @@ export function EnvelopeFormFields({
   isSurplusTarget,
   setIsSurplusTarget,
   isSurplusDisabled,
+  generateEvents = true,
+  setGenerateEvents,
 }: CategoryFormFieldsProps) {
   return (
     <>
@@ -162,6 +166,23 @@ export function EnvelopeFormFields({
               setEndDate={setTargetDate}
               calculatedMonthly={calculatedMonthly}
             />
+          )}
+
+          {billMode === 'SCHEDULED_BILL' && setGenerateEvents && (
+            <div className="pt-1">
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={generateEvents}
+                  onChange={(e) => setGenerateEvents(e.target.checked)}
+                  className="w-4 h-4 rounded text-[#2563eb] focus:ring-[#2563eb]"
+                />
+                <span className="font-bold text-xs text-zinc-800 dark:text-zinc-200 flex items-center gap-1.5">
+                  <span>{t('categories.generateEventsLabel')}</span>
+                  <InfoTooltip content={t('categories.tooltips.generateEvents')} align="left" />
+                </span>
+              </label>
+            </div>
           )}
         </div>
       )}

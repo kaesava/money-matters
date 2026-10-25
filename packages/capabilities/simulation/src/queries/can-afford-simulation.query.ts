@@ -19,6 +19,7 @@ import {
   incomeEvents,
   incomeSources,
   expenseEvents,
+  tenants,
   getEnvelopeBalancesMap,
   type DbOrTx,
 } from "@money-matters/db";
@@ -32,8 +33,6 @@ import type {
   ProjectionExpenseEvent,
 } from "@money-matters/types";
 import { getTenantDateString } from "@money-matters/core";
-
-const getAestDateString = (d: Date = new Date()) => getTenantDateString(d);
 
 /** Convert an amount from any frequency to its monthly-equivalent. */
 export function toMonthlyAmount(
@@ -72,12 +71,16 @@ export async function canAffordSimulationQuery(
   const mode = input.mode ?? "ONE_OFF";
   const frequency = input.frequency ?? "MONTHLY";
   const includePersonal = input.includePersonal ?? false;
-  const today = new Date();
-  const todayStr = getAestDateString(today);
 
   // ── 1. PARALLEL DATA FETCH ──────────────────────────────────────────────
-  const [dbEnvelopes, envelopeBalancesMap, pendingIncomesRaw, pendingExpensesRaw] =
+  const [tenantRecord, dbEnvelopes, envelopeBalancesMap, pendingIncomesRaw, pendingExpensesRaw] =
     await Promise.all([
+      dbClient
+        .select({ timezone: tenants.timezone })
+        .from(tenants)
+        .where(eq(tenants.id, tenantId))
+        .limit(1),
+
       // Envelopes joined with bank account privacy metadata
       dbClient
         .select({
@@ -87,6 +90,7 @@ export async function canAffordSimulationQuery(
           bankAccountId: envelopes.bankAccountId,
           safetyBufferFloor: envelopes.safetyBufferFloor,
           goalMode: envelopes.goalMode,
+          enteredAmount: envelopes.enteredAmount,
           monthlyAmount: envelopes.monthlyAmount,
           targetAmount: envelopes.targetAmount,
           endDate: envelopes.endDate,
@@ -150,6 +154,10 @@ export async function canAffordSimulationQuery(
         ),
     ]);
 
+  const timezone = tenantRecord[0]?.timezone || "Australia/Sydney";
+  const today = new Date();
+  const todayStr = getTenantDateString(today, { timezone });
+
   // ── 2. FILTER ENVELOPES BY PRIVACY ─────────────────────────────────────────
   const visibleEnvelopes = dbEnvelopes.filter((e) =>
     e.isPrivate ? (includePersonal && e.userId === userId) : true
@@ -173,7 +181,7 @@ export async function canAffordSimulationQuery(
   const nextPaycheck = sortedIncomes[0] ?? null;
   const nextPaycheckDateStr =
     nextPaycheck?.expectedDate ??
-    getAestDateString(new Date(today.getTime() + 14 * 24 * 60 * 60 * 1000));
+    getTenantDateString(new Date(today.getTime() + 14 * 24 * 60 * 60 * 1000), { timezone });
 
   const daysUntilPayday = Math.max(
     1,
@@ -219,7 +227,7 @@ export async function canAffordSimulationQuery(
 
   // ── 6. PRORATED EVERYDAY SAFE CUSHION ─────────────────────────────────
   const everydayMonthlyAllowance = everydayEnvelopes.reduce((sum, e) => {
-    const amt = parseFloat(e.monthlyAmount ?? e.targetAmount ?? "0");
+    const amt = parseFloat(e.monthlyAmount ?? e.enteredAmount ?? e.targetAmount ?? "0");
     return sum + amt;
   }, 0);
   const dailyAllowance = everydayMonthlyAllowance / 30;
@@ -232,6 +240,7 @@ export async function canAffordSimulationQuery(
   // ── 7. BUILD ENGINE BUCKETS ───────────────────────────────────────────
   const engineBuckets: ProjectionEngineBucket[] = visibleEnvelopes.map((env) => {
     const balance = envelopeBalancesMap[env.id] ?? 0;
+    const rawMonthly = env.monthlyAmount ?? env.enteredAmount;
     return {
       id: env.id,
       name: env.name,
@@ -239,7 +248,7 @@ export async function canAffordSimulationQuery(
       envelopeType: env.envelopeType,
       isCommitted: env.isCommitted ?? false,
       isSurplusTarget: env.isSurplusTarget ?? false,
-      monthlyAmount: env.monthlyAmount ? parseFloat(env.monthlyAmount) : null,
+      monthlyAmount: rawMonthly ? parseFloat(rawMonthly) : null,
       targetAmount: env.targetAmount ? parseFloat(env.targetAmount) : null,
       safetyBufferFloor: env.safetyBufferFloor
         ? parseFloat(env.safetyBufferFloor)
@@ -307,7 +316,7 @@ export async function canAffordSimulationQuery(
       phantomExpenses.push({
         poolId: phantomBucket.id,
         amount,
-        dueDate: getAestDateString(d),
+        dueDate: getTenantDateString(d, { timezone }),
         status: "PENDING",
       });
     }

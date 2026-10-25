@@ -193,6 +193,7 @@ function SetupWizardContent() {
             onBack={() => state.setStep(state.isRerun ? 2 : 4)}
             onFinish={state.handleFinish}
             onSimulatePayday={() => setShowSandboxModal(true)}
+            onToggleBillType={(name, newType) => state.setBillTypeOverrides((prev) => ({ ...prev, [name]: newType }))}
             isRerun={state.isRerun}
           />
         )}

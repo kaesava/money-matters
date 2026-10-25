@@ -89,7 +89,8 @@ export async function createEnvelopeCommand(
       .returning();
 
     const amountVal = input.enteredAmount || input.monthlyAmount || "0.00";
-    if (isScheduled && rrule && startDate && parseFloat(amountVal) > 0) {
+    const shouldBurst = isScheduled && input.generateEvents !== false;
+    if (shouldBurst && rrule && startDate && parseFloat(amountVal) > 0) {
       await burstEnvelopeEvents(tx, {
         envelopeId: envelope.id,
         name: input.name,

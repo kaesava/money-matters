@@ -97,6 +97,7 @@ export function EnvelopeFormModal({
   const [goalStartDate, setGoalStartDate] = useState('');
   const [bankAccountId, setBankAccountId] = useState('');
   const [isSurplusTarget, setIsSurplusTarget] = useState(false);
+  const [generateEvents, setGenerateEvents] = useState(true);
 
   useEffect(() => {
     if (categoryToEdit) {
@@ -126,6 +127,7 @@ export function EnvelopeFormModal({
       const rawStartDate = categoryToEdit.startDate || '';
       setGoalStartDate(rawStartDate ? formatIsoDate(rawStartDate) : '');
       setIsSurplusTarget(categoryToEdit.isSurplusTarget ?? false);
+      setGenerateEvents(true);
     } else {
       setName('');
       setType(defaultType || 'REGULAR');
@@ -139,6 +141,7 @@ export function EnvelopeFormModal({
       setInterval(1);
       setGoalStartDate(new Intl.DateTimeFormat('en-CA').format(new Date()));
       setIsSurplusTarget(false);
+      setGenerateEvents(true);
     }
     setNameError('');
   }, [categoryToEdit, defaultType, visible, bankAccounts]);
@@ -359,6 +362,7 @@ export function EnvelopeFormModal({
       rrule: (isScheduledBill || isOngoingGoal) ? rruleString || undefined : undefined,
       goalMode: type === 'GOAL' ? goalMode : undefined,
       isSurplusTarget: type !== 'EVERYDAY' ? isSurplusTarget : undefined,
+      generateEvents: isScheduledBill ? generateEvents : undefined,
     };
   };
 
@@ -504,6 +508,8 @@ export function EnvelopeFormModal({
         setIsSurplusTarget={setIsSurplusTarget}
         isEdit={isEdit}
         isSurplusDisabled={isSurplusDisabled}
+        generateEvents={generateEvents}
+        setGenerateEvents={setGenerateEvents}
         typeOptions={typeOptions}
         bankOptions={bankOptions}
       />

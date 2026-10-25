@@ -14,20 +14,21 @@ export interface EnvelopeScheduleCandidate {
 
 export function computeBillScheduleAnchorDate(
   budgetFrequency: "WEEKLY" | "FORTNIGHTLY" | "MONTHLY" | "ANNUALLY",
-  refDate: Date = new Date()
+  refDate: Date = new Date(),
+  timeZone: string = "Australia/Sydney"
 ): string {
   if (budgetFrequency === "WEEKLY") {
     const target = new Date(refDate.getTime() + 7 * 24 * 60 * 60 * 1000);
-    return new Intl.DateTimeFormat("en-CA", { timeZone: "Australia/Sydney" }).format(target);
+    return new Intl.DateTimeFormat("en-CA", { timeZone }).format(target);
   }
   if (budgetFrequency === "FORTNIGHTLY") {
     const target = new Date(refDate.getTime() + 14 * 24 * 60 * 60 * 1000);
-    return new Intl.DateTimeFormat("en-CA", { timeZone: "Australia/Sydney" }).format(target);
+    return new Intl.DateTimeFormat("en-CA", { timeZone }).format(target);
   }
 
-  // Monthly / Annually: 1st of next month in Australia/Sydney
+  // Monthly / Annually: 1st of next month in dynamic timezone
   const parts = new Intl.DateTimeFormat("en-AU", {
-    timeZone: "Australia/Sydney",
+    timeZone,
     year: "numeric",
     month: "numeric",
   }).formatToParts(refDate);
@@ -64,13 +65,14 @@ export function buildEnvelopeEventPayloads(
   tenantId: string,
   appId: string,
   userId: string,
-  now: Date
+  now: Date,
+  timeZone: string = "Australia/Sydney"
 ) {
   const eventsToInsert: Array<typeof expenseEvents.$inferInsert> = [];
 
   for (const item of candidates) {
     const rrule = item.rrule || deriveRrule(item.budgetFrequency);
-    const startDate = item.startDate || computeBillScheduleAnchorDate(item.budgetFrequency, now);
+    const startDate = item.startDate || computeBillScheduleAnchorDate(item.budgetFrequency, now, timeZone);
 
     const burstDates = generateBurstDates(rrule, startDate, item.endDate || null, 12);
     for (const d of burstDates) {
@@ -80,7 +82,7 @@ export function buildEnvelopeEventPayloads(
         appId,
         envelopeId: item.envelopeId,
         name: item.name,
-        expectedDate: new Intl.DateTimeFormat("en-CA", { timeZone: "Australia/Sydney" }).format(d),
+        expectedDate: new Intl.DateTimeFormat("en-CA", { timeZone }).format(d),
         expectedAmount: item.amount,
         isScheduled: true,
         status: "PENDING",

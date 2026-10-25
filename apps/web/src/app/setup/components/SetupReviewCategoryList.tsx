@@ -19,6 +19,7 @@ interface SetupReviewCategoryListProps {
   onRemoveCategory: (name: string) => void;
   convertToMonthly: (amount: number, freq: "WEEKLY" | "FORTNIGHTLY" | "MONTHLY" | "YEARLY") => number;
   convertFromMonthly: (monthlyAmount: number, freq: "WEEKLY" | "FORTNIGHTLY" | "MONTHLY" | "YEARLY") => number;
+  onToggleBillType?: (name: string, newType: "SCHEDULED_BILL" | "FLEXIBLE_BILL") => void;
   children?: React.ReactNode;
 }
 
@@ -34,6 +35,7 @@ export function SetupReviewCategoryList({
   onRemoveCategory,
   convertToMonthly,
   convertFromMonthly,
+  onToggleBillType,
   children,
 }: SetupReviewCategoryListProps) {
   const { fmt } = useLocale();
@@ -54,13 +56,28 @@ export function SetupReviewCategoryList({
         {categories.map((cat) => {
           const freq = categoryFrequencies[cat.name] || "MONTHLY";
           const displayVal = convertFromMonthly(cat.monthlyAud, freq);
+          const isBill = cat.type === "REGULAR";
+          const isFlexible = cat.envelopeType === "FLEXIBLE_BILL";
           return (
             <div
               key={cat.name}
-              className="flex items-center justify-between p-2.5 rounded-xl border border-zinc-200 bg-white"
+              className="flex items-center justify-between p-2.5 rounded-xl border border-zinc-200 bg-white gap-2 flex-wrap sm:flex-nowrap"
             >
-              <div className="flex items-center gap-2">
-                <span className="text-xs font-bold text-[#1B2B4B]">{cat.name}</span>
+              <div className="flex items-center gap-2 min-w-0">
+                <span className="text-xs font-bold text-[#1B2B4B] truncate">{cat.name}</span>
+                {isBill && onToggleBillType && (
+                  <button
+                    type="button"
+                    onClick={() => onToggleBillType(cat.name, isFlexible ? "SCHEDULED_BILL" : "FLEXIBLE_BILL")}
+                    className={`text-[10px] font-bold px-2 py-0.5 rounded-full border transition-all cursor-pointer shrink-0 ${
+                      isFlexible
+                        ? "bg-slate-100 text-slate-700 border-slate-300 hover:bg-slate-200"
+                        : "bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100"
+                    }`}
+                  >
+                    {isFlexible ? "Flexible" : "Scheduled"}
+                  </button>
+                )}
               </div>
               <div className="flex items-center gap-2">
                 <div className="w-28 sm:w-32">

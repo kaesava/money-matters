@@ -38,7 +38,6 @@ export function useMobileProfileData({
   const [avatarUri, setAvatarUri] = useState<string | null>(null);
   const [timezone, setTimezone] = useState('Australia/Sydney');
   const [language, setLanguage] = useState<'en'>('en');
-  const [locale, setLocale] = useState('auto');
   const [showIcons, setShowIcons] = useState(true);
 
   const initialDataRef = useRef({
@@ -48,7 +47,6 @@ export function useMobileProfileData({
     phoneNumber: '',
     timezone: 'Australia/Sydney',
     language: 'en' as const,
-    locale: 'auto',
     showIcons: true,
     avatarUri: null as string | null,
   });
@@ -70,7 +68,6 @@ export function useMobileProfileData({
     const uAvatar = prof?.avatarUrl || session?.user?.image || null;
     const uTz = prof?.timezone || pref?.timezone || 'Australia/Sydney';
     const uLang = 'en' as const;
-    const uLoc = pref?.locale || 'auto';
     const uIcons = prof?.showIcons ?? pref?.showIcons ?? true;
     const uNotifEmail = prof?.notificationEmail || pref?.notificationEmail || uEmail;
     const uPhoneCode = prof?.phoneCountryCode || pref?.phoneCountryCode || '+61';
@@ -83,7 +80,6 @@ export function useMobileProfileData({
     setAvatarUri(uAvatar);
     setTimezone(uTz);
     setLanguage(uLang);
-    setLocale(uLoc);
     setShowIcons(uIcons);
 
     initialDataRef.current = {
@@ -93,7 +89,6 @@ export function useMobileProfileData({
       phoneNumber: uPhoneNum,
       timezone: uTz,
       language: uLang,
-      locale: uLoc,
       showIcons: uIcons,
       avatarUri: uAvatar,
     };
@@ -115,7 +110,6 @@ export function useMobileProfileData({
     phoneNumber !== initialDataRef.current.phoneNumber ||
     timezone !== initialDataRef.current.timezone ||
     language !== initialDataRef.current.language ||
-    locale !== initialDataRef.current.locale ||
     showIcons !== initialDataRef.current.showIcons ||
     avatarUri !== initialDataRef.current.avatarUri;
 
@@ -131,7 +125,6 @@ export function useMobileProfileData({
     setPhoneNumber(init.phoneNumber);
     setTimezone(init.timezone);
     setLanguage(init.language);
-    setLocale(init.locale);
     setShowIcons(init.showIcons);
     setAvatarUri(init.avatarUri);
     setPhoneError(undefined);
@@ -168,7 +161,6 @@ export function useMobileProfileData({
       avatarUri,
       timezone,
       language,
-      locale,
       showIcons,
       setPhoneError,
       onSuccess: () => {
@@ -179,7 +171,6 @@ export function useMobileProfileData({
           phoneNumber: phoneNumber.trim(),
           timezone,
           language,
-          locale,
           showIcons,
           avatarUri,
         };
@@ -203,8 +194,6 @@ export function useMobileProfileData({
     setTimezone,
     language,
     setLanguage,
-    locale,
-    setLocale,
     showIcons,
     setShowIcons,
     biometricsAvailable,

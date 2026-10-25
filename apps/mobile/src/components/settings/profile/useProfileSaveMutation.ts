@@ -12,7 +12,6 @@ interface SaveProfileParams {
   avatarUri: string | null;
   timezone: string;
   language: 'en';
-  locale: string;
   showIcons: boolean;
   onSuccess: () => void;
   setPhoneError: (err: string | undefined) => void;
@@ -35,7 +34,6 @@ export function useProfileSaveMutation() {
     avatarUri,
     timezone,
     language,
-    locale,
     showIcons,
     onSuccess,
     setPhoneError,
@@ -62,7 +60,6 @@ export function useProfileSaveMutation() {
       await updatePrefMut.mutateAsync({
         timezone,
         language,
-        locale,
         showIcons,
       });
 

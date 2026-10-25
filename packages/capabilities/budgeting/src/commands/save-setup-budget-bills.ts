@@ -14,7 +14,8 @@ export async function processSetupScheduledBills(
   tenantId: string,
   appId: string,
   userId: string,
-  now: Date
+  now: Date,
+  timeZone: string = "Australia/Sydney"
 ): Promise<number> {
   const existingScheduledEvents = await tx
     .select({
@@ -57,7 +58,7 @@ export async function processSetupScheduledBills(
   }
 
   if (candidates.length > 0) {
-    const { eventsToInsert } = buildEnvelopeEventPayloads(candidates, tenantId, appId, userId, now);
+    const { eventsToInsert } = buildEnvelopeEventPayloads(candidates, tenantId, appId, userId, now, timeZone);
     return await insertEnvelopeEventsBulk(tx, eventsToInsert);
   }
 

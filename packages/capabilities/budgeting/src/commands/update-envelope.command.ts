@@ -148,8 +148,8 @@ export async function updateEnvelopeCommand(
       // Clear all unconfirmed pending events for this envelope
       await clearScheduledEnvelopeEvents(tx, envelopeId, tenantId, appId);
 
-      // If envelope is now SCHEDULED_BILL, regenerate fresh burst of 12 cycles
-      if (isNowScheduled && rrule && startDate && parseFloat(newAmountVal) > 0) {
+      // If envelope is now SCHEDULED_BILL and generateEvents is not false, regenerate fresh burst of 12 cycles
+      if (isNowScheduled && input.generateEvents !== false && rrule && startDate && parseFloat(newAmountVal) > 0) {
         await burstEnvelopeEvents(tx, {
           envelopeId,
           name: updated.name,

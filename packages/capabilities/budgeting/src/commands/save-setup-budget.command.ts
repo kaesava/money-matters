@@ -35,6 +35,22 @@ export function saveSetupBudgetHandler(dbClient: DbOrTx) {
     return await runInTx(async (tx) => {
       const now = new Date();
 
+      let tenantTimezone = "Australia/Sydney";
+      if (typeof tx.select === "function") {
+        try {
+          const tenantRows = await tx
+            .select({ timezone: tenants.timezone })
+            .from(tenants)
+            .where(eq(tenants.id, tenantId))
+            .limit(1);
+          if (tenantRows[0]?.timezone) {
+            tenantTimezone = tenantRows[0].timezone;
+          }
+        } catch {
+          // Safe mock fallback
+        }
+      }
+
       // 1. Process Bank Accounts
       const { accountIdMap, primaryBankAccountId } = await processSetupBankAccounts(
         tx,
@@ -56,7 +72,8 @@ export function saveSetupBudgetHandler(dbClient: DbOrTx) {
         tenantId,
         appId,
         userId,
-        now
+        now,
+        tenantTimezone
       );
 
       // 3. Process Income Schedules (Upserts, Archivals, Event Synchronization)
@@ -81,7 +98,8 @@ export function saveSetupBudgetHandler(dbClient: DbOrTx) {
         tenantId,
         appId,
         userId,
-        now
+        now,
+        tenantTimezone
       );
 
       // 5. Update Tenant Setup Status

@@ -8,6 +8,7 @@ interface SetupCategoryRowProps {
   freq: 'WEEKLY' | 'FORTNIGHTLY' | 'MONTHLY' | 'YEARLY';
   onUpdateAmount: (monthlyAmount: number) => void;
   onUpdateFreq: (freq: 'WEEKLY' | 'FORTNIGHTLY' | 'MONTHLY' | 'YEARLY') => void;
+  onToggleBillType?: (newType: 'SCHEDULED_BILL' | 'FLEXIBLE_BILL') => void;
   onRemove: () => void;
 }
 
@@ -23,6 +24,7 @@ export function SetupCategoryRow({
   freq,
   onUpdateAmount,
   onUpdateFreq,
+  onToggleBillType,
   onRemove,
 }: SetupCategoryRowProps) {
   const convertFromMonthly = (monthly: number, f: typeof freq) => {
@@ -40,11 +42,25 @@ export function SetupCategoryRow({
   };
 
   const displayVal = convertFromMonthly(cat.monthlyAud, freq);
+  const isBill = cat.type === 'REGULAR';
+  const isFlexible = cat.envelopeType === 'FLEXIBLE_BILL';
 
   return (
     <View style={styles.row}>
       <View style={styles.titleCol}>
-        <Text style={styles.name} numberOfLines={1}>{cat.icon || '📌'} {cat.name}</Text>
+        <View style={styles.titleWithBadge}>
+          <Text style={styles.name} numberOfLines={1}>{cat.icon || '📌'} {cat.name}</Text>
+          {isBill && onToggleBillType && (
+            <TouchableOpacity
+              onPress={() => onToggleBillType(isFlexible ? 'SCHEDULED_BILL' : 'FLEXIBLE_BILL')}
+              style={[styles.typeBadge, isFlexible ? styles.flexibleBadge : styles.scheduledBadge]}
+            >
+              <Text style={isFlexible ? styles.flexibleBadgeText : styles.scheduledBadgeText}>
+                {isFlexible ? 'Flexible' : 'Scheduled'}
+              </Text>
+            </TouchableOpacity>
+          )}
+        </View>
       </View>
       <View style={styles.inputCol}>
         <View style={styles.amountWrap}>
@@ -84,6 +100,31 @@ const styles = StyleSheet.create({
   },
   titleCol: { flex: 1, marginRight: 8 },
   name: { fontSize: 13, fontWeight: '700', color: DESIGN_TOKENS.colors.primary },
+  titleWithBadge: { flexDirection: 'row', alignItems: 'center', gap: 6, flexWrap: 'wrap' },
+  typeBadge: {
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 9999,
+    borderWidth: 1,
+  },
+  scheduledBadge: {
+    backgroundColor: '#EFF6FF',
+    borderColor: '#BFDBFE',
+  },
+  scheduledBadgeText: {
+    fontSize: 9,
+    fontWeight: '700',
+    color: '#1D4ED8',
+  },
+  flexibleBadge: {
+    backgroundColor: '#F1F5F9',
+    borderColor: '#CBD5E1',
+  },
+  flexibleBadgeText: {
+    fontSize: 9,
+    fontWeight: '700',
+    color: '#475569',
+  },
   inputCol: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   amountWrap: { width: 90 },
   freqBadge: {

@@ -197,9 +197,9 @@ export const tenantRouter = {
         currency: currentTenant?.currency || "AUD",
         country: currentTenant?.country || "AU",
         language: (globalPref?.language as "en") || "en",
-        locale: globalPref?.locale && globalPref.locale !== "auto"
-          ? globalPref.locale
-          : (currentTenant?.country ? ((COUNTRY_DEFAULTS as Record<string, any>)[currentTenant.country]?.locale || `en-${currentTenant.country}`) : "en-AU"),
+        locale: currentTenant?.country
+          ? ((COUNTRY_DEFAULTS as Record<string, any>)[currentTenant.country]?.locale || `en-${currentTenant.country}`)
+          : "en-AU",
         theme: globalPref?.theme ?? "system",
         showIcons: globalPref?.showIcons ?? true,
         notificationEmail: globalPref?.notificationEmail ?? null,
@@ -218,7 +218,6 @@ export const tenantRouter = {
       z.object({
         timezone: z.string().optional(),
         language: z.enum(["en"]).optional(),
-        locale: z.string().optional(),
         theme: z.string().optional(),
         showIcons: z.boolean().optional(),
         setupCompleted: z.boolean().optional(),
@@ -241,7 +240,6 @@ export const tenantRouter = {
             theme: input.theme ?? existingGlobal.theme,
             showIcons: input.showIcons ?? existingGlobal.showIcons,
             language: input.language ?? existingGlobal.language,
-            locale: input.locale ?? existingGlobal.locale,
             timezone: input.timezone !== undefined ? input.timezone : existingGlobal.timezone,
             updatedAt: new Date(),
           })
@@ -254,7 +252,6 @@ export const tenantRouter = {
             theme: input.theme ?? "system",
             showIcons: input.showIcons ?? true,
             language: input.language ?? "en",
-            locale: input.locale ?? "auto",
             timezone: input.timezone || null,
           });
       }

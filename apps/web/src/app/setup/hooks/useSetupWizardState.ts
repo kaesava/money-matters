@@ -124,6 +124,7 @@ export function useSetupWizardState() {
   const [customCatAmount, setCustomCatAmount] = useState("100");
   const [removedCategoryNames, setRemovedCategoryNames] = useState<Set<string>>(new Set());
   const [amountOverrides, setAmountOverrides] = useState<Record<string, number>>({});
+  const [billTypeOverrides, setBillTypeOverrides] = useState<Record<string, "SCHEDULED_BILL" | "FLEXIBLE_BILL">>({});
   const [categoryFrequencies, setCategoryFrequencies] = useState<Record<string, "WEEKLY" | "FORTNIGHTLY" | "MONTHLY" | "YEARLY">>({});
 
   const prepopulation = useSetupWizardPrepopulation({
@@ -179,6 +180,7 @@ export function useSetupWizardState() {
     customCategories,
     removedCategoryNames,
     amountOverrides,
+    billTypeOverrides,
   });
 
   const submission = useSetupWizardSubmission({
@@ -414,6 +416,8 @@ export function useSetupWizardState() {
     setRemovedCategoryNames,
     amountOverrides,
     setAmountOverrides,
+    billTypeOverrides,
+    setBillTypeOverrides,
     categoryFrequencies,
     setCategoryFrequencies,
     showIcons: userPrefQuery.data?.showIcons ?? true,

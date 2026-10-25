@@ -34,7 +34,8 @@ export async function processSetupEnvelopes(
   tenantId: string,
   appId: string,
   userId: string,
-  now: Date
+  now: Date,
+  timeZone: string = "Australia/Sydney"
 ): Promise<{ envelopeIdMap: Map<string, string>; sweptEnvelopesCount: number; sweptTotalAmount: number }> {
   const existingEnvelopes = await tx
     .select()
@@ -234,11 +235,14 @@ export async function processSetupEnvelopes(
       }
 
       const effectiveFreq = (envInput.budgetFrequency || matchedExisting.budgetFrequency || "MONTHLY") as "MONTHLY" | "WEEKLY" | "FORTNIGHTLY" | "ANNUALLY";
+      const isScheduledBill = envInput.envelopeType === "SCHEDULED_BILL";
       await synchronizeUpdatedEnvelopeEvents(tx, matchedExisting.id, scheduleChanged, nameOrAmountChanged, {
         name: envInput.name,
         amount: amountVal,
         rrule: rrule || deriveRrule(effectiveFreq),
-        startDate: startDate || computeBillScheduleAnchorDate(effectiveFreq, now),
+        startDate: startDate || computeBillScheduleAnchorDate(effectiveFreq, now, timeZone),
+        isScheduledBill,
+        timeZone,
         tenantId,
         appId,
         userId,

@@ -4,7 +4,6 @@ import Image from "next/image";
 import React from "react";
 import { t } from "@money-matters/i18n";
 import { Button, InfoTooltip } from "@money-matters/ui/web";
-import { SUPPORTED_LOCALES } from "@money-matters/types";
 
 interface ProfileReadOnlyViewProps {
   displayName: string;
@@ -14,7 +13,6 @@ interface ProfileReadOnlyViewProps {
   phoneNumber: string;
   timezone: string;
   language: "en";
-  locale: string;
   showIcons: boolean;
   avatarUrl: string;
   initials: string;
@@ -29,15 +27,11 @@ export function ProfileReadOnlyView({
   phoneNumber,
   timezone,
   language,
-  locale,
   showIcons,
   avatarUrl,
   initials,
   onEdit,
 }: ProfileReadOnlyViewProps) {
-  const selectedLocaleOption =
-    SUPPORTED_LOCALES.find((l) => l.code === locale) ||
-    SUPPORTED_LOCALES.find((l) => l.code === "auto");
 
   return (
     <div className="p-6 bg-white border border-slate-200 rounded-2xl shadow-xs space-y-6">
@@ -119,17 +113,6 @@ export function ProfileReadOnlyView({
           </span>
           <span className="text-xs font-semibold text-[#1B2B4B]">
             {language === "en" ? "English (en)" : "English (en)"}
-          </span>
-        </div>
-
-        <div className="p-3.5 bg-slate-50/70 border border-slate-200/80 rounded-xl flex flex-col gap-1">
-          <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">
-            {t("settings.dateFormat")}
-          </span>
-          <span className="text-xs font-semibold text-[#1B2B4B]">
-            {selectedLocaleOption
-              ? `${selectedLocaleOption.label} (${selectedLocaleOption.dateFormatExample})`
-              : locale}
           </span>
         </div>
 

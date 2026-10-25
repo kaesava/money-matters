@@ -288,6 +288,13 @@
       "when": 1784168494251,
       "tag": "0041_schema_parity_updates",
       "breakpoints": true
+    },
+    {
+      "idx": 41,
+      "version": "7",
+      "when": 1784178494251,
+      "tag": "0042_cull_user_preferences_locale",
+      "breakpoints": true
     }
   ]
 }
