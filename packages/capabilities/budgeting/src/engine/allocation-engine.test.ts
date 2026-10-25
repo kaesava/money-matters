@@ -61,17 +61,17 @@ describe("paycheck cascade allocation engine", () => {
     const rentLine = result.lines.find((l) => l.bucketId === "rent-id");
     expect(rentLine?.proposedAmount).toBe(553.85);
 
-    // Prorated Savings Committed: (500 - 100) / 2 months = 200 monthly target -> 200 * 12 / 26 = 92.31
+    // Exact remaining paychecks divisor: (500 - 100) / 4 fortnights = $100 per paycheck
     const carLine = result.lines.find((l) => l.bucketId === "holiday-committed-id");
-    expect(carLine?.proposedAmount).toBe(92.31);
+    expect(carLine?.proposedAmount).toBe(100);
 
-    // Prorated Savings Uncommitted: (1000 - 0) / 12 months = 83.33 monthly target -> 83.33 * 12 / 26 = 38.46
+    // Prorated Savings Uncommitted: (1000 - 0) / 26 paychecks = 38.46
     const holidayLine = result.lines.find((l) => l.bucketId === "uncommitted-id");
     expect(holidayLine?.proposedAmount).toBe(38.46);
 
-    // Everyday Excess: 3000 - (553.85 + 92.31 + 38.46) = 2315.38
+    // Everyday Excess: 3000 - (553.85 + 100 + 38.46) = 2307.69
     const everydayLine = result.lines.find((l) => l.bucketId === "everyday-id");
-    expect(everydayLine?.proposedAmount).toBe(2315.38);
+    expect(everydayLine?.proposedAmount).toBe(2307.69);
   });
 
   it("prioritises deficit repair (Step 0) for negative balances before funding bills or goals", () => {

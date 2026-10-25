@@ -12,9 +12,9 @@
       "require": "./src/index.ts"
     },
     "./engine": {
-      "types": "./src/engine/matrix-projection-engine.ts",
-      "import": "./src/engine/matrix-projection-engine.ts",
-      "require": "./src/engine/matrix-projection-engine.ts"
+      "types": "./src/engine/index.ts",
+      "import": "./src/engine/index.ts",
+      "require": "./src/engine/index.ts"
     }
   },
   "dependencies": {

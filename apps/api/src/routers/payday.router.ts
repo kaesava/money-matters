@@ -382,7 +382,7 @@ export const paydayRouter = {
     )
     .query(async ({ input, ctx }) => {
       const { envelopes, incomeEvents, expenseEvents, incomeSources, getEnvelopeBalancesMap } = await import("@money-matters/db");
-      const { computeMatrixProjection } = await import("@money-matters/capability-budgeting/engine");
+      const { computeMatrixProjection, mapEnvelopeToEngineBucket } = await import("@money-matters/capability-budgeting/engine");
 
       const activeEnvelopes = await ctx.db
         .select()
@@ -459,17 +459,9 @@ export const paydayRouter = {
         )
         .orderBy(expenseEvents.expectedDate);
 
-      const engineBuckets = activeEnvelopes.map((p) => ({
-        id: p.id,
-        name: p.name,
-        type: p.envelopeType,
-        envelopeType: p.envelopeType,
-        targetAmount: p.targetAmount ? parseFloat(p.targetAmount) : null,
-        currentBalance: balancesMap[p.id] || 0,
-        isPrivate: p.isPrivate,
-        isSurplusTarget: Boolean(p.isSurplusTarget),
-        userId: p.userId ?? undefined,
-      }));
+      const engineBuckets = activeEnvelopes.map((p) =>
+        mapEnvelopeToEngineBucket(p, balancesMap[p.id] || 0)
+      );
 
       const matrixIncomeEvents = dbIncomeEvents.map((evt) => ({
         id: evt.id,
@@ -537,6 +529,7 @@ export const paydayRouter = {
         expenseEvents: matrixExpenseEvents,
         cellOverrides,
         monthsAhead: input.monthsAhead,
+        timezone: tenantTz,
       });
 
       return {

@@ -1,7 +1,7 @@
 import React, { useState, useDeferredValue } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, ActivityIndicator } from 'react-native';
+import { View, Text, TextInput, StyleSheet, TouchableOpacity, ScrollView, ActivityIndicator, Switch } from 'react-native';
 import { Feather } from '@expo/vector-icons';
-import { DESIGN_TOKENS, MobileModalDialog, AmountInput } from '@money-matters/ui/mobile';
+import { DESIGN_TOKENS, MobileModalDialog, AmountInput, GoalDelayCard } from '@money-matters/ui/mobile';
 import { t } from '@money-matters/i18n';
 import { trpc } from '../../lib/trpc';
 import { AffordCheckVerdictCard } from './AffordCheckVerdictCard';
@@ -17,6 +17,8 @@ export function MobileAffordCheckModal({ visible, onClose, initialAmount }: Mobi
   const [rawAmount, setRawAmount] = useState(initialAmount || '');
   const [mode, setMode] = useState<'ONE_OFF' | 'RECURRING'>('ONE_OFF');
   const [frequency, setFrequency] = useState<'WEEKLY' | 'FORTNIGHTLY' | 'MONTHLY' | 'ANNUALLY'>('MONTHLY');
+  const [itemName, setItemName] = useState('');
+  const [includePersonal, setIncludePersonal] = useState(false);
 
   React.useEffect(() => {
     if (visible && initialAmount) {
@@ -33,7 +35,8 @@ export function MobileAffordCheckModal({ visible, onClose, initialAmount }: Mobi
       amount: deferredAmount,
       mode,
       frequency,
-      includePersonal: false,
+      itemName: itemName.trim() || undefined,
+      includePersonal,
     },
     {
       enabled: isValidAmount,
@@ -109,6 +112,32 @@ export function MobileAffordCheckModal({ visible, onClose, initialAmount }: Mobi
               </View>
             </View>
           )}
+
+          <View style={styles.inputGroup}>
+            <Text style={styles.inputLabel}>{t('canIAfford.itemNameLabel')}</Text>
+            <TextInput
+              style={styles.textInput}
+              placeholder={t('canIAfford.itemNamePlaceholder')}
+              value={itemName}
+              onChangeText={setItemName}
+              placeholderTextColor={DESIGN_TOKENS.colors.slate[400]}
+              maxLength={100}
+            />
+          </View>
+
+          <View style={styles.switchRow}>
+            <View style={styles.flex1}>
+              <Text style={styles.switchLabel}>{t('canIAfford.includePersonal')}</Text>
+              <Text style={styles.switchSubtext}>
+                {t('canIAfford.includePersonalSubtext')}
+              </Text>
+            </View>
+            <Switch
+              value={includePersonal}
+              onValueChange={setIncludePersonal}
+              trackColor={{ false: DESIGN_TOKENS.colors.slate[200], true: DESIGN_TOKENS.colors.sereneBlue }}
+            />
+          </View>
         </View>
 
         {/* Verdict Result */}
@@ -125,6 +154,9 @@ export function MobileAffordCheckModal({ visible, onClose, initialAmount }: Mobi
                   canAffordAt={'canAffordAt' in data ? (data.canAffordAt as string) : null}
                 />
                 <AffordCheckBreakdownCard data={data} />
+                {data.verdict === 'GOAL_DELAYED' && data.goalDelays && data.goalDelays.length > 0 && (
+                  <GoalDelayCard goalDelays={data.goalDelays} />
+                )}
               </View>
             )}
           </View>
@@ -215,5 +247,43 @@ const styles = StyleSheet.create({
   },
   results: {
     gap: 12,
+  },
+  inputGroup: {
+    gap: 6,
+  },
+  inputLabel: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: DESIGN_TOKENS.colors.slate[600],
+  },
+  textInput: {
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    fontSize: 13,
+    color: DESIGN_TOKENS.colors.primary,
+    backgroundColor: '#FFFFFF',
+  },
+  switchRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 4,
+    gap: 12,
+  },
+  switchLabel: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: DESIGN_TOKENS.colors.primary,
+  },
+  switchSubtext: {
+    fontSize: 11,
+    color: DESIGN_TOKENS.colors.slate[400],
+    marginTop: 1,
+  },
+  flex1: {
+    flex: 1,
   },
 });

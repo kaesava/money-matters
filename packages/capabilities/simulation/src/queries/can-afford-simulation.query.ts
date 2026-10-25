@@ -429,7 +429,7 @@ export async function canAffordSimulationQuery(
       if (pool.endDate) {
         const originalDate = new Date(pool.endDate + "T00:00:00Z");
         const newDate = new Date(originalDate.getTime() + delayDays * 24 * 60 * 60 * 1000);
-        newDateStr = new Intl.DateTimeFormat("en-CA", { timeZone: "Australia/Sydney" }).format(newDate);
+        newDateStr = new Intl.DateTimeFormat("en-CA", { timeZone: timezone }).format(newDate);
       }
 
       goalDelays.push({
@@ -572,7 +572,7 @@ export async function canAffordSimulationQuery(
       if (candidateGoal.endDate) {
         const origDate = new Date(candidateGoal.endDate + "T00:00:00Z");
         const nDate = new Date(origDate.getTime() + delayDays * 24 * 60 * 60 * 1000);
-        newTargetDate = new Intl.DateTimeFormat("en-CA", { timeZone: "Australia/Sydney" }).format(nDate);
+        newTargetDate = new Intl.DateTimeFormat("en-CA", { timeZone: timezone }).format(nDate);
       }
 
       goalAlternative = {
@@ -611,14 +611,11 @@ export async function canAffordSimulationQuery(
   });
 
   const everydayEnvelopeIds = new Set<string>(everydayEnvelopes.map((p) => p.id));
+  const surplusEnvelope = visibleEnvelopes.find((p) => p.isSurplusTarget);
   const ordinals = ["st", "nd", "rd"];
 
   for (let i = 0; i < projection.steps.length; i++) {
     const step = projection.steps[i];
-    let everydayAtStep = 0;
-    for (const envId of everydayEnvelopeIds) {
-      everydayAtStep += step.balancesAfterExpenses.get(envId) ?? 0;
-    }
 
     let daysInStep = 14;
     if (i < projection.steps.length - 1) {
@@ -628,12 +625,21 @@ export async function canAffordSimulationQuery(
     }
     const stepCushion = dailyAllowance > 0 ? dailyAllowance * 0.25 * daysInStep : 15 * daysInStep;
 
-    if (everydayAtStep - amount >= stepCushion) {
-      const paycyclesAway = i + 1;
-      const ordinal = ordinals[i] ?? "th";
+    const paycyclesAway = i + 1;
+    const ordinal = ordinals[i] ?? "th";
+
+    // TIER 1: Check fresh discretionary capacity injected on this payday
+    let freshEveryday = 0;
+    for (const envId of everydayEnvelopeIds) {
+      freshEveryday += step.allocations.get(envId)?.proposedAmount ?? 0;
+    }
+    const freshSurplus = surplusEnvelope ? (step.allocations.get(surplusEnvelope.id)?.proposedAmount ?? 0) : 0;
+    const freshDiscretionary = freshEveryday + freshSurplus;
+
+    if (freshDiscretionary - amount >= stepCushion) {
       const rationaleSteps = [
         `Current safe-to-spend Everyday cash: $${effectiveSpendable.toFixed(2)} (shortfall: -$${shortfall.toFixed(2)}).`,
-        `By your ${paycyclesAway === 1 ? "next" : `${paycyclesAway}${ordinal}`} paycycle (${step.date}), Everyday balance will reach ~$${everydayAtStep.toFixed(2)}, leaving enough surplus after purchase with your safe cushion intact.`,
+        `By your ${paycyclesAway === 1 ? "next" : `${paycyclesAway}${ordinal}`} paycycle (${step.date}), your incoming paycheck provides enough safe discretionary cash ($${freshDiscretionary.toFixed(2)}) to cover this purchase while keeping all bills and living essentials 100% protected.`,
       ];
 
       if (goalAlternative) {
@@ -646,7 +652,32 @@ export async function canAffordSimulationQuery(
         verdict: "WAIT_FOR_PAYCYCLE",
         canAffordAt: step.date,
         paycyclesAway,
-        projectedEverydayAtThatDate: everydayAtStep.toFixed(2),
+        projectedEverydayAtThatDate: freshDiscretionary.toFixed(2),
+        shortfallToday: shortfall.toFixed(2),
+        goalAlternative,
+        rationaleSteps,
+      };
+    }
+
+    // TIER 2: Check accumulated Surplus savings
+    const accumulatedSurplus = surplusEnvelope ? (step.balancesAfterExpenses.get(surplusEnvelope.id) ?? 0) : 0;
+    if (accumulatedSurplus >= amount) {
+      const rationaleSteps = [
+        `Current safe-to-spend Everyday cash: $${effectiveSpendable.toFixed(2)} (shortfall: -$${shortfall.toFixed(2)}).`,
+        `By your ${paycyclesAway === 1 ? "next" : `${paycyclesAway}${ordinal}`} paycycle (${step.date}), your accumulated savings in "${surplusEnvelope?.name}" will reach $${accumulatedSurplus.toFixed(2)}, allowing you to safely purchase this without touching everyday living or risking bills.`,
+      ];
+
+      if (goalAlternative) {
+        rationaleSteps.push(
+          `Alternatively, cover the $${shortfall.toFixed(2)} gap today using your "${goalAlternative.goalName}" goal (pushes target date back by ~${goalAlternative.delayDays} days).`
+        );
+      }
+
+      return {
+        verdict: "WAIT_FOR_PAYCYCLE",
+        canAffordAt: step.date,
+        paycyclesAway,
+        projectedEverydayAtThatDate: accumulatedSurplus.toFixed(2),
         shortfallToday: shortfall.toFixed(2),
         goalAlternative,
         rationaleSteps,

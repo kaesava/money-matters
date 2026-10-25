@@ -70,23 +70,10 @@ export async function getProjectedPoolBalancesQuery(
     }
   }
 
-  const engineBuckets: EngineBucket[] = dbEnvelopes.map((env) => ({
-    id: env.id,
-    name: env.name,
-    type: env.envelopeType,
-    envelopeType: env.envelopeType,
-    isEssential: env.isEssential,
-    isCommitted: env.isCommitted,
-    isSurplusTarget: env.isSurplusTarget,
-    monthlyAmount: env.monthlyAmount ? parseFloat(env.monthlyAmount) : null,
-    targetAmount: env.targetAmount ? parseFloat(env.targetAmount) : null,
-    safetyBufferFloor: env.safetyBufferFloor ? parseFloat(env.safetyBufferFloor) : 0,
-    goalMode: env.goalMode ?? (env.envelopeType === "TARGET_GOAL" ? "TARGET_DATE" : "ONGOING"),
-    targetDate: env.endDate || null,
-    currentBalance: envBalancesMap[env.id] || 0,
-    isPrivate: env.isPrivate,
-    userId: env.userId ?? undefined,
-  }));
+  const { mapEnvelopeToEngineBucket } = await import("../engine/envelope-engine-mapper.js");
+  const engineBuckets: EngineBucket[] = dbEnvelopes.map((env) =>
+    mapEnvelopeToEngineBucket(env, envBalancesMap[env.id] || 0)
+  );
 
   // 2. Fetch pending income events
   const pendingIncomesRaw = await dbClient

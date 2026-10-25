@@ -2,6 +2,7 @@ import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { DESIGN_TOKENS } from '@money-matters/ui/mobile';
 import { t } from '@money-matters/i18n';
+import { formatDate } from '../../lib/format';
 
 interface AffordCheckVerdictCardProps {
   verdict: string;
@@ -14,13 +15,7 @@ export function AffordCheckVerdictCard({
   rationaleSteps,
   canAffordAt,
 }: AffordCheckVerdictCardProps) {
-  const formattedDate = canAffordAt
-    ? new Intl.DateTimeFormat('en-AU', {
-        timeZone: 'Australia/Sydney',
-        day: 'numeric',
-        month: 'short',
-      }).format(new Date(canAffordAt))
-    : '';
+  const formattedDate = canAffordAt ? formatDate(canAffordAt) : '';
 
   return (
     <View

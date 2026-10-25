@@ -145,7 +145,11 @@ export function computeHorizonBreakdown(lines: ProcessedLine[]): HorizonBreakdow
   for (const line of lines) {
     if (line.envelopeType === "EVERYDAY") {
       everyday += line.amount;
-    } else if (line.envelopeType === "SCHEDULED_BILL" || line.envelopeType === "FLEXIBLE_BILL") {
+    } else if (
+      line.envelopeType === "SCHEDULED_BILL" ||
+      line.envelopeType === "FLEXIBLE_BILL" ||
+      (line.envelopeType as string) === "REGULAR"
+    ) {
       bills += line.amount;
     } else {
       goals += line.amount;

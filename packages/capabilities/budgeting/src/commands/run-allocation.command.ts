@@ -78,9 +78,11 @@ export async function runAllocationCommand(
   const eventDateStr = eventWithSource ? eventWithSource.expectedDate : todayStr;
   const isFuturePlanned = eventDateStr > todayStr && !markAsReceivedToday;
 
-  // 4. Fetch upcoming expenses due before the next cycle cutoff
+  // 4. Fetch upcoming expenses due before the next cycle cutoff + forward window for dynamic sinking
+  const bufferDays = 3;
   const eventTime = eventWithSource ? new Date(eventWithSource.expectedDate + "T00:00:00").getTime() : Date.now();
-  const nextCutoffDateStr = getLocalDateString(new Date(eventTime + freqDays * 24 * 60 * 60 * 1000));
+  const forwardWindowDays = 90;
+  const forwardCutoffDateStr = getLocalDateString(new Date(eventTime + forwardWindowDays * 24 * 60 * 60 * 1000));
 
   const pendingExpenses = await dbClient
     .select({
@@ -96,33 +98,15 @@ export async function runAllocationCommand(
         eq(expenseEvents.tenantId, tenantId),
         eq(expenseEvents.appId, appId),
         eq(expenseEvents.status, "PENDING"),
-        sql`${expenseEvents.expectedDate} <= ${nextCutoffDateStr}`,
+        sql`${expenseEvents.expectedDate} <= ${forwardCutoffDateStr}`,
         sql`${expenseEvents.archivedAt} IS NULL`
       )
     );
 
-  // Map to engine models
-  const engineBuckets: EngineBucket[] = dbEnvelopes.map((env) => {
-    const balance = balancesMap[env.id] || 0;
-    return {
-      id: env.id,
-      name: env.name,
-      type: env.envelopeType,
-      envelopeType: env.envelopeType,
-      isEssential: env.isEssential,
-      isCommitted: env.isCommitted,
-      isSurplusTarget: env.isSurplusTarget,
-      monthlyAmount: env.monthlyAmount ? parseFloat(env.monthlyAmount) : (env.enteredAmount ? parseFloat(env.enteredAmount) : null),
-      enteredAmount: env.enteredAmount ? parseFloat(env.enteredAmount) : null,
-      targetAmount: env.targetAmount ? parseFloat(env.targetAmount) : null,
-      safetyBufferFloor: env.safetyBufferFloor ? parseFloat(env.safetyBufferFloor) : 0,
-      goalMode: env.goalMode ?? (env.envelopeType === "TARGET_GOAL" ? "TARGET_DATE" : "ONGOING"),
-      targetDate: env.endDate || null,
-      currentBalance: balance,
-      isPrivate: env.isPrivate,
-      userId: env.userId ?? undefined,
-    };
-  });
+  const { mapEnvelopeToEngineBucket } = await import("../engine/envelope-engine-mapper.js");
+  const engineBuckets: EngineBucket[] = dbEnvelopes.map((env) =>
+    mapEnvelopeToEngineBucket(env, balancesMap[env.id] || 0)
+  );
 
   const engineOutput = runAllocationEngine({
     incomeAmount,
@@ -131,6 +115,8 @@ export async function runAllocationCommand(
     buckets: engineBuckets,
     paycheckDate: eventWithSource ? new Date(eventWithSource.expectedDate + "T00:00:00Z") : new Date(),
     paycheckFrequencyDays: freqDays,
+    dueBufferDays: bufferDays,
+    timezone: tenantTz,
     upcomingExpenses: pendingExpenses.map((e) => ({
       envelopeId: e.envelopeId,
       name: e.name,

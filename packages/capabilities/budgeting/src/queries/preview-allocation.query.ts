@@ -59,8 +59,10 @@ export async function previewAllocationQuery(
   }
 
   const todayStr = getTenantDateString(new Date(), { timezone: tenantTz });
+  const bufferDays = 3;
   const eventTime = event ? new Date(event.expectedDate + "T00:00:00").getTime() : Date.now();
-  const nextCutoffDateStr = getTenantDateString(new Date(eventTime + freqDays * 24 * 60 * 60 * 1000), { timezone: tenantTz });
+  const forwardWindowDays = 90;
+  const forwardCutoffDateStr = getTenantDateString(new Date(eventTime + forwardWindowDays * 24 * 60 * 60 * 1000), { timezone: tenantTz });
 
   const pendingExpenses = await dbClient
     .select({
@@ -76,29 +78,15 @@ export async function previewAllocationQuery(
         eq(expenseEvents.tenantId, tenantId),
         eq(expenseEvents.appId, appId),
         eq(expenseEvents.status, "PENDING"),
-        sql`${expenseEvents.expectedDate} <= ${nextCutoffDateStr}`,
+        sql`${expenseEvents.expectedDate} <= ${forwardCutoffDateStr}`,
         sql`${expenseEvents.archivedAt} IS NULL`
       )
     );
 
-  const engineBuckets: EngineBucket[] = dbEnvelopes.map((env) => ({
-    id: env.id,
-    name: env.name,
-    type: env.envelopeType,
-    envelopeType: env.envelopeType,
-    isEssential: env.isEssential,
-    isCommitted: env.isCommitted,
-    isSurplusTarget: env.isSurplusTarget,
-    monthlyAmount: env.monthlyAmount ? parseFloat(env.monthlyAmount) : (env.enteredAmount ? parseFloat(env.enteredAmount) : null),
-    enteredAmount: env.enteredAmount ? parseFloat(env.enteredAmount) : null,
-    targetAmount: env.targetAmount ? parseFloat(env.targetAmount) : null,
-    safetyBufferFloor: env.safetyBufferFloor ? parseFloat(env.safetyBufferFloor) : 0,
-    goalMode: env.goalMode ?? (env.envelopeType === "TARGET_GOAL" ? "TARGET_DATE" : "ONGOING"),
-    targetDate: env.endDate || null,
-    currentBalance: balancesMap[env.id] || 0,
-    isPrivate: env.isPrivate,
-    userId: env.userId ?? undefined,
-  }));
+  const { mapEnvelopeToEngineBucket } = await import("../engine/envelope-engine-mapper.js");
+  const engineBuckets: EngineBucket[] = dbEnvelopes.map((env) =>
+    mapEnvelopeToEngineBucket(env, balancesMap[env.id] || 0)
+  );
 
   const output = runAllocationEngine({
     incomeAmount,
@@ -107,6 +95,7 @@ export async function previewAllocationQuery(
     buckets: engineBuckets,
     paycheckDate: event ? new Date(event.expectedDate + "T00:00:00Z") : new Date(),
     paycheckFrequencyDays: freqDays,
+    dueBufferDays: bufferDays,
     timezone: tenantTz,
     currencySymbol,
     upcomingExpenses: pendingExpenses.map((e) => ({

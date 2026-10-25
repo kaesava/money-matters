@@ -42,8 +42,8 @@ interface MatrixPlanTabProps {
 function formatDateShort(
   dateStr?: string,
   fallbackLabel?: string,
-  timeZone: string = "Australia/Sydney",
-  locale: string = "en-AU"
+  timeZone: string = "UTC",
+  locale: string = "en"
 ): string {
   if (!dateStr) return fallbackLabel || "";
   try {
@@ -86,7 +86,7 @@ function MatrixCellInput({
               ? "bg-red-100 text-red-800 border-red-500 font-black animate-pulse"
               : "bg-emerald-50 text-emerald-800 border-emerald-200"
           }`}
-          title={isDeficit ? "DEFICIT: Allocations exceed income!" : "Surplus Target"}
+          title={isDeficit ? t("matrix.deficitWarning") : t("matrix.surplusTargetTitle")}
         >
           {isDeficit ? `-${fmt(Math.abs(value))}` : fmt(value)}
         </span>
@@ -95,7 +95,7 @@ function MatrixCellInput({
   }
 
   return (
-    <div className="w-20 text-center font-mono font-bold text-xs py-0.5 text-[#1B2B4B] dark:text-white">
+    <div className="w-20 text-center font-mono font-bold text-xs py-0.5 text-slate-900 dark:text-white">
       {fmt(value)}
     </div>
   );

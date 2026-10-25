@@ -1,5 +1,11 @@
 import { EngineBucket } from "./allocation-engine.js";
-import { runCumulativeProjection, CumulativeProjectionIncomeEvent, CumulativeProjectionExpenseEvent } from "./cumulative-projection.js";
+import {
+  runCumulativeProjection,
+  CumulativeProjectionIncomeEvent,
+  CumulativeProjectionExpenseEvent,
+} from "./cumulative-projection.js";
+import { isBillsBucket, isGoalBucket, isEverydayBucket } from "./envelope-engine-mapper.js";
+
 export type { EngineBucket };
 
 export interface MatrixIncomeEvent extends CumulativeProjectionIncomeEvent {
@@ -50,6 +56,8 @@ export interface MatrixProjectionInput {
   expenseEvents?: ScheduledExpenseEvent[];
   cellOverrides?: Record<string, number>; // `${incomeEventId}_${categoryId}` -> value
   monthsAhead?: number;
+  timezone?: string;
+  locale?: string;
 }
 
 export interface MatrixProjectionOutput {
@@ -66,39 +74,40 @@ export function computeMatrixProjection(input: MatrixProjectionInput): MatrixPro
     (c) => c.isPrivate && c.userId && c.userId !== input.currentUserId
   );
 
-  // Separate Pool Categories vs Individual Goal Categories
-  const everydayCats = visibleCategories.filter((c) => c.type === "EVERYDAY");
-  const billsCats = visibleCategories.filter((c) => c.type === "REGULAR");
-  const goalCats = visibleCategories.filter((c) => c.type === "GOAL" && !c.isSurplusTarget);
+  const everydayCats = visibleCategories.filter(isEverydayBucket);
+  const billsCats = visibleCategories.filter(isBillsBucket);
+  const goalCats = visibleCategories.filter((c) => isGoalBucket(c) && !c.isSurplusTarget);
   const surplusCats = visibleCategories.filter((c) => c.isSurplusTarget);
 
-  // Run the centralized cumulative engine projection
   const projectionResult = runCumulativeProjection({
     categories: input.categories,
     incomeEvents: input.incomeEvents,
     expenseEvents: input.expenseEvents,
     cellOverrides: input.cellOverrides,
     currentUserId: input.currentUserId,
+    timezone: input.timezone,
   });
 
   const columns: MatrixColumn[] = [];
-  const poolCellsMap = new Map<string, Map<string, MatrixCellData>>(); // categoryId -> (incomeEventId -> MatrixCellData)
+  const poolCellsMap = new Map<string, Map<string, MatrixCellData>>();
 
   for (const cat of visibleCategories) {
     poolCellsMap.set(cat.id, new Map());
   }
 
+  const tz = input.timezone || "UTC";
+  const loc = input.locale && input.locale !== "auto" ? input.locale : "en-AU";
+
   for (const step of projectionResult.steps) {
     const evt = step.incomeEvent;
-
     let dateLabel = step.date;
     try {
       const dateObj = new Date(step.date + "T00:00:00");
       if (!isNaN(dateObj.getTime())) {
-        dateLabel = new Intl.DateTimeFormat("en-AU", { day: "numeric", month: "short", timeZone: "Australia/Sydney" }).format(dateObj);
+        dateLabel = new Intl.DateTimeFormat(loc, { day: "numeric", month: "short", timeZone: tz }).format(dateObj);
       }
     } catch (_err) {
-      // Keep dateLabel fallback
+      // Keep fallback
     }
 
     let hiddenTotalForColumn = 0;
@@ -133,7 +142,6 @@ export function computeMatrixProjection(input: MatrixProjectionInput): MatrixPro
     }
   }
 
-  // Structure into 4 Clean Accordion Row Groups by Pool Type
   const buildRowsForCats = (cats: EngineBucket[], isPoolRow: boolean): MatrixRow[] => {
     return cats.map((cat) => {
       const rowCells: Record<string, MatrixCellData> = {};
@@ -154,38 +162,14 @@ export function computeMatrixProjection(input: MatrixProjectionInput): MatrixPro
     });
   };
 
-  const everydayRows = buildRowsForCats(everydayCats, true);
-  const billsRows = buildRowsForCats(billsCats, true);
-  const goalsRows = buildRowsForCats(goalCats, false);
-  const surplusRows = buildRowsForCats(surplusCats, false);
-
   const groups: MatrixAccordionGroup[] = [
-    {
-      id: "everyday",
-      title: "Everyday Envelopes",
-      rows: everydayRows,
-    },
-    {
-      id: "bills",
-      title: "Bills Envelopes",
-      rows: billsRows,
-    },
-    {
-      id: "goals",
-      title: "Goals",
-      rows: goalsRows,
-    },
-    {
-      id: "surplus",
-      title: "Surplus",
-      rows: surplusRows,
-    },
+    { id: "everyday", title: "Everyday Envelopes", rows: buildRowsForCats(everydayCats, true) },
+    { id: "bills", title: "Bills Envelopes", rows: buildRowsForCats(billsCats, true) },
+    { id: "goals", title: "Goals", rows: buildRowsForCats(goalCats, false) },
+    { id: "surplus", title: "Surplus", rows: buildRowsForCats(surplusCats, false) },
   ];
 
-  return {
-    columns,
-    groups,
-  };
+  return { columns, groups };
 }
 
 export interface BaseIncomeItem {
@@ -194,16 +178,9 @@ export interface BaseIncomeItem {
   status?: string;
 }
 
-/**
- * Returns the ID of the earliest pending income event (sorted chronologically by expectedDate).
- * A pending income event is one that is not confirmed/processed (status !== "CONFIRMED").
- */
 export function getEarliestPendingIncomeId<T extends BaseIncomeItem>(incomeItems: T[]): string | null {
   if (!incomeItems || incomeItems.length === 0) return null;
-  const pending = incomeItems.filter((item) => {
-    if (item.status === "CONFIRMED") return false;
-    return true;
-  });
+  const pending = incomeItems.filter((item) => item.status !== "CONFIRMED");
   if (pending.length === 0) return null;
   const sorted = [...pending].sort((a, b) => new Date(a.expectedDate).getTime() - new Date(b.expectedDate).getTime());
   return sorted[0].id;

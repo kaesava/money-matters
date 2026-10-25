@@ -3023,6 +3023,8 @@ export const en = {
     statusAll: "All",
     confirmedBadge: "CONFIRMED",
     deficitPrefix: "⚠️ Deficit {amount}",
+    deficitWarning: "DEFICIT: Allocations exceed income!",
+    surplusTargetTitle: "Surplus Target",
     surplusPrefix: "Surplus {amount}",
     hideBills: "Hide Bills",
     showBills: "Show Bills",
