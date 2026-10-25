@@ -153,7 +153,7 @@ export function IncomeSplitScreen({ incomeEventId, returnTo = "/dashboard" }: In
     return Math.max(-999999, roundedRemainder);
   }, [numericActual, nonSweepAllocatedSum]);
 
-  const isDeficit = sweepPoolRemainder < -0.005;
+  const isDeficit = sweepPoolRemainder < -0.01;
   const isReadOnly = isConfirmedPlan;
 
   const todayStr = useMemo(() => {

@@ -462,6 +462,7 @@ export function EnvelopeFormModal({
         <EnvelopeFormFooter
           isEdit={isEdit}
           showArchive={isEdit && type !== 'EVERYDAY'}
+          isSurplusTarget={Boolean(categoryToEdit?.isSurplusTarget)}
           isPending={isPending}
           isValid={isValid}
           isDirty={isDirty}

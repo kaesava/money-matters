@@ -11,7 +11,8 @@ export function useMarkPaidForm(
   visible: boolean,
   event: MarkPaidEvent | null,
   onClose: () => void,
-  onSuccess?: () => void
+  onSuccess?: () => void,
+  onConfirmOverride?: (data: { amount: number; date: string; transfers: Array<{ poolId: string; amount: string }> }) => Promise<void>
 ) {
   const toast = useMobileToast();
   const utils = trpc.useUtils();
@@ -30,6 +31,7 @@ export function useMarkPaidForm(
   const { data: pools = [] } = trpc.listPools.useQuery(undefined, { enabled: visible });
   const overrideMut = trpc.overrideEvent.useMutation();
   const moveMoneyMut = trpc.moveMoney.useMutation();
+  const recordExpenseMut = trpc.recordExpense.useMutation();
 
   useEffect(() => {
     if (event && visible) {
@@ -131,6 +133,15 @@ export function useMarkPaidForm(
     setGeneralError('');
     setSubmitting(true);
     try {
+      if (onConfirmOverride) {
+        const transfers = Object.entries(transferAmounts)
+          .map(([pId, amt]) => ({ poolId: pId, amount: parseFloat(amt || '0').toFixed(2) }))
+          .filter((t) => parseFloat(t.amount) > 0);
+        await onConfirmOverride({ amount: numAmount, date: actualDate, transfers });
+        onSuccess?.();
+        onClose();
+        return;
+      }
       if (hasShortfall && currentPool) {
         const transfers = Object.entries(transferAmounts)
           .map(([pId, amt]) => ({
@@ -142,14 +153,23 @@ export function useMarkPaidForm(
           .filter((t) => parseFloat(t.amount) > 0);
         if (transfers.length > 0) await Promise.all(transfers.map((t) => moveMoneyMut.mutateAsync(t)));
       }
-      await overrideMut.mutateAsync({
-        eventId: event.id,
-        eventType: 'EXPENSE',
-        status: 'CONFIRMED',
-        actualAmount: numAmount.toFixed(2),
-        actualDate,
-        note: note.trim() || event.name,
-      });
+      if (event.id === 'temp-quick' && currentPool) {
+        await recordExpenseMut.mutateAsync({
+          envelopeId: currentPool.id,
+          amount: numAmount.toFixed(2),
+          date: actualDate,
+          note: note.trim() || event.name,
+        });
+      } else {
+        await overrideMut.mutateAsync({
+          eventId: event.id,
+          eventType: 'EXPENSE',
+          status: 'CONFIRMED',
+          actualAmount: numAmount.toFixed(2),
+          actualDate,
+          note: note.trim() || event.name,
+        });
+      }
       utils.listPools.invalidate();
       utils.listExpenseEvents.invalidate();
       utils.listTransactions.invalidate();

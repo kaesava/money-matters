@@ -54,6 +54,7 @@ export interface AllocationEngineInput {
   sweepEverydayLeftover?: boolean;
   everydayLeftoverReported?: Record<string, number>;
   currencySymbol?: string;
+  timezone?: string;
 }
 
 export interface AllocationEngineOutput {
@@ -112,7 +113,8 @@ export function runAllocationEngine(input: AllocationEngineInput): AllocationEng
     : input.paycheckDate.getTime() + daysGap * 24 * 60 * 60 * 1000;
 
   const bufferedCutoffTime = baseNextCutoffTime + bufferDays * 24 * 60 * 60 * 1000;
-  const bufferedCutoffDateStr = new Intl.DateTimeFormat("en-CA", { timeZone: "Australia/Sydney" }).format(new Date(bufferedCutoffTime));
+  const targetTz = input.timezone || "UTC";
+  const bufferedCutoffDateStr = new Intl.DateTimeFormat("en-CA", { timeZone: targetTz }).format(new Date(bufferedCutoffTime));
 
   const upcomingExpenses = (input.upcomingExpenses ?? []).filter((e) => {
     if (!e || !e.dueDate) return false;

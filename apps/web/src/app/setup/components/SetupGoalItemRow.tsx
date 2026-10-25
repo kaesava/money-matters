@@ -23,13 +23,6 @@ function getMonthsDiff(targetDateStr?: string | null): number {
   return Math.max(1, months);
 }
 
-function getFrequencyUnitLabel(freq?: string | null): string {
-  if (freq === "WEEKLY") return "/wk";
-  if (freq === "FORTNIGHTLY") return "/fn";
-  if (freq === "ANNUALLY") return "/yr";
-  return "/mo";
-}
-
 export function SetupGoalItemRow({
   goal,
   onUpdateGoal,
@@ -39,7 +32,6 @@ export function SetupGoalItemRow({
   const isOngoing = goal.goalMode === "ONGOING";
   const months = isOngoing ? 1 : getMonthsDiff(goal.dueDate);
   const isPast = !isOngoing && goal.dueDate && new Date(goal.dueDate) < new Date(new Date().setHours(0, 0, 0, 0));
-  const unitLabel = getFrequencyUnitLabel(goal.budgetFrequency);
 
   return (
     <div className="p-3 bg-white rounded-xl border border-zinc-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xs">
@@ -79,8 +71,16 @@ export function SetupGoalItemRow({
             onChange={(val) => {
               const num = parseFloat(val) || 0;
               if (isOngoing) {
+                const freq = goal.budgetFrequency || "MONTHLY";
+                const monthly = freq === "WEEKLY"
+                  ? Math.round((num * 52) / 12)
+                  : freq === "FORTNIGHTLY"
+                  ? Math.round((num * 26) / 12)
+                  : freq === "ANNUALLY"
+                  ? Math.round(num / 12)
+                  : Math.round(num);
                 onUpdateGoal(goal.id, "enteredAmount", num);
-                onUpdateGoal(goal.id, "monthlyAmount", num);
+                onUpdateGoal(goal.id, "monthlyAmount", monthly);
                 onUpdateGoal(goal.id, "targetAmount", num);
               } else {
                 onUpdateGoal(goal.id, "targetAmount", num);
@@ -108,9 +108,28 @@ export function SetupGoalItemRow({
             />
           </div>
         ) : (
-          <span className="text-[11px] font-bold text-blue-700 bg-blue-50 px-2 py-1 rounded-md border border-blue-200/60 font-mono">
-            {unitLabel}
-          </span>
+          <select
+            value={goal.budgetFrequency || "MONTHLY"}
+            onChange={(e) => {
+              const freq = e.target.value as "WEEKLY" | "FORTNIGHTLY" | "MONTHLY" | "ANNUALLY";
+              onUpdateGoal(goal.id, "budgetFrequency", freq);
+              const rawAmt = goal.enteredAmount ?? goal.monthlyAmount ?? goal.targetAmount ?? 0;
+              const monthly = freq === "WEEKLY"
+                ? Math.round((rawAmt * 52) / 12)
+                : freq === "FORTNIGHTLY"
+                ? Math.round((rawAmt * 26) / 12)
+                : freq === "ANNUALLY"
+                ? Math.round(rawAmt / 12)
+                : Math.round(rawAmt);
+              onUpdateGoal(goal.id, "monthlyAmount", monthly);
+            }}
+            className="px-2 py-1 text-xs font-bold rounded-lg border border-zinc-200 bg-blue-50 text-blue-700 font-mono cursor-pointer"
+          >
+            <option value="WEEKLY">{t("categories.frequencyWeekly")} (/wk)</option>
+            <option value="FORTNIGHTLY">{t("categories.frequencyFortnightly")} (/fn)</option>
+            <option value="MONTHLY">{t("categories.frequencyMonthly")} (/mo)</option>
+            <option value="ANNUALLY">{t("categories.frequencyAnnually")} (/yr)</option>
+          </select>
         )}
 
         {onOpenCustomSchedule && (

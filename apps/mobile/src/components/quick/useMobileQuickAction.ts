@@ -51,6 +51,15 @@ export function useMobileQuickAction(
     amount: number;
   } | null>(null);
 
+  const [shortfallEvent, setShortfallEvent] = useState<{
+    id: string;
+    name: string;
+    expectedAmount: number;
+    expectedDate: string;
+    poolId: string;
+    categoryId: string;
+  } | null>(null);
+
   const poolsQuery = trpc.listPools.useQuery(undefined, { enabled: visible });
   const bankAccountsQuery = trpc.listBankAccountsWithExpected.useQuery(undefined, { enabled: visible });
   const transactionsQuery = trpc.listTransactions.useQuery({ limit: 100 }, { enabled: visible });
@@ -248,6 +257,8 @@ export function useMobileQuickAction(
     setConfirmOverdraft,
     crossBankData,
     setCrossBankData,
+    shortfallEvent,
+    setShortfallEvent,
     todayStr,
     pools,
     rawCategories: [] as unknown[],

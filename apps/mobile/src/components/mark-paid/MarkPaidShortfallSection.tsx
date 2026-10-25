@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { DESIGN_TOKENS } from '@money-matters/ui/mobile';
 import { t } from '@money-matters/i18n';
-import { formatAUD } from '../../lib/format';
+import { formatMobileCurrency } from '../../lib/format';
 import { MarkPaidAccordionGroup } from './MarkPaidAccordionGroup';
 import { FundingPoolItem } from './mark-paid-types';
 
@@ -25,6 +25,7 @@ interface MarkPaidShortfallSectionProps {
   onAmountChange: (poolId: string, maxBal: number, rawVal: string) => void;
   onCoverFromSurplus?: () => void;
   surplusPoolName?: string;
+  surplusCoverableAmount?: number;
 }
 
 export function MarkPaidShortfallSection({
@@ -41,6 +42,7 @@ export function MarkPaidShortfallSection({
   onAmountChange,
   onCoverFromSurplus,
   surplusPoolName,
+  surplusCoverableAmount = 0,
 }: MarkPaidShortfallSectionProps) {
   return (
     <View style={styles.shortfallSection}>
@@ -51,7 +53,7 @@ export function MarkPaidShortfallSection({
             billName: eventName || 'Expense',
             poolType: formattedPoolType,
             poolName: formattedPoolName,
-            amount: formatAUD(shortfallAmount),
+            amount: formatMobileCurrency(shortfallAmount),
           })}
         </Text>
         {shortfallValidation.isValid ? (
@@ -59,23 +61,19 @@ export function MarkPaidShortfallSection({
             <Text style={styles.coveredNoteText}>
               ✓ {t('incomeBillsTabs.shortfallCoveredNote', {
                 poolName: surplusPoolName || 'Emergency Reserve',
-                amount: formatAUD(shortfallAmount),
+                amount: formatMobileCurrency(shortfallAmount),
               })}
             </Text>
           </View>
-        ) : onCoverFromSurplus && surplusPoolName ? (
-          <TouchableOpacity
-            style={styles.coverChip}
-            onPress={onCoverFromSurplus}
-            activeOpacity={0.8}
-          >
-            <Text style={styles.coverChipText}>
-              ⚡ {t('incomeBillsTabs.coverShortfallChip', {
-                amount: formatAUD(shortfallAmount),
+        ) : surplusPoolName ? (
+          <View style={styles.partialSurplusWarning}>
+            <Text style={styles.partialSurplusWarningText}>
+              ⚠️ {t('incomeBillsTabs.partialSurplusCoveredWarning', {
+                amount: formatMobileCurrency(surplusCoverableAmount),
                 poolName: surplusPoolName,
               })}
             </Text>
-          </TouchableOpacity>
+          </View>
         ) : null}
       </View>
 
@@ -113,8 +111,8 @@ export function MarkPaidShortfallSection({
       <View style={styles.progressCard}>
         <Text style={styles.progressText}>
           {t('incomeBillsTabs.progressAllocatedHeader', {
-            allocated: formatAUD(totalAllocated),
-            shortfall: formatAUD(shortfallAmount),
+            allocated: formatMobileCurrency(totalAllocated),
+            shortfall: formatMobileCurrency(shortfallAmount),
           })}
         </Text>
         <Text
@@ -131,10 +129,10 @@ export function MarkPaidShortfallSection({
             ? t('incomeBillsTabs.shortfallCovered')
             : shortfallValidation.isOverAllocated
             ? t('incomeBillsTabs.shortfallOverAllocated', {
-                amount: formatAUD(shortfallValidation.difference),
+                amount: formatMobileCurrency(shortfallValidation.difference),
               })
             : t('incomeBillsTabs.shortfallRemaining', {
-                amount: formatAUD(shortfallValidation.difference),
+                amount: formatMobileCurrency(shortfallValidation.difference),
               })}
         </Text>
       </View>
@@ -144,7 +142,7 @@ export function MarkPaidShortfallSection({
           <Feather name="alert-triangle" size={14} color={DESIGN_TOKENS.colors.critical} style={{ marginTop: 1 }} />
           <Text style={styles.overAllocatedBannerText}>
             {t('incomeBillsTabs.shortfallOverAllocated', {
-              amount: formatAUD(shortfallValidation.difference),
+              amount: formatMobileCurrency(shortfallValidation.difference),
             })}
           </Text>
         </View>
@@ -171,17 +169,20 @@ const styles = StyleSheet.create({
     color: DESIGN_TOKENS.colors.warningDark,
     fontWeight: '600',
   },
-  coverChip: {
-    alignSelf: 'flex-start',
-    backgroundColor: DESIGN_TOKENS.colors.sereneBlue,
-    paddingVertical: 7,
-    paddingHorizontal: 12,
+  partialSurplusWarning: {
+    backgroundColor: '#FEF3C7',
+    borderWidth: 1,
+    borderColor: '#FCD34D',
     borderRadius: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    marginTop: 4,
   },
-  coverChipText: {
-    fontSize: 11,
-    fontWeight: '800',
-    color: '#FFFFFF',
+  partialSurplusWarningText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#92400E',
+    lineHeight: 16,
   },
   fundingHeaderRow: {
     gap: 2,

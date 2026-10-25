@@ -1,8 +1,9 @@
-import { envelopes, incomeEvents, incomeSources, expenseEvents, getEnvelopeBalancesMap, DbOrTx } from "@money-matters/db";
+import { envelopes, incomeEvents, incomeSources, expenseEvents, tenants, getEnvelopeBalancesMap, DbOrTx } from "@money-matters/db";
 import { eq, and, sql } from "drizzle-orm";
 import { runAllocationEngine, EngineBucket } from "../engine/allocation-engine.js";
 import { parseRruleFrequencyDays } from "../commands/run-allocation.command.js";
 import { getTenantDateString } from "@money-matters/core";
+import { SUPPORTED_CURRENCIES } from "@money-matters/types";
 
 export async function previewAllocationQuery(
   tenantId: string,
@@ -12,6 +13,19 @@ export async function previewAllocationQuery(
   dbClient: DbOrTx,
   runwayDays?: number
 ) {
+  // 0. Fetch Tenant for currency and timezone
+  const [tenantRecord] = typeof dbClient.select === "function"
+    ? await dbClient
+        .select({ timezone: tenants.timezone, currency: tenants.currency })
+        .from(tenants)
+        .where(eq(tenants.id, tenantId))
+        .limit(1)
+    : [{ timezone: "Australia/Sydney", currency: "AUD" }];
+
+  const tenantTz = tenantRecord?.timezone || "Australia/Sydney";
+  const currencyCode = tenantRecord?.currency || "AUD";
+  const currencySymbol = SUPPORTED_CURRENCIES[currencyCode]?.symbol || "$";
+
   // 1. Fetch Envelopes
   const dbEnvelopes = await dbClient
     .select()
@@ -44,9 +58,9 @@ export async function previewAllocationQuery(
     freqDays = parseRruleFrequencyDays(event.rrule);
   }
 
-  const todayStr = getTenantDateString(new Date(), { timezone: "Australia/Sydney" });
+  const todayStr = getTenantDateString(new Date(), { timezone: tenantTz });
   const eventTime = event ? new Date(event.expectedDate + "T00:00:00").getTime() : Date.now();
-  const nextCutoffDateStr = getTenantDateString(new Date(eventTime + freqDays * 24 * 60 * 60 * 1000), { timezone: "Australia/Sydney" });
+  const nextCutoffDateStr = getTenantDateString(new Date(eventTime + freqDays * 24 * 60 * 60 * 1000), { timezone: tenantTz });
 
   const pendingExpenses = await dbClient
     .select({
@@ -92,6 +106,8 @@ export async function previewAllocationQuery(
     buckets: engineBuckets,
     paycheckDate: event ? new Date(event.expectedDate + "T00:00:00Z") : new Date(),
     paycheckFrequencyDays: freqDays,
+    timezone: tenantTz,
+    currencySymbol,
     upcomingExpenses: pendingExpenses.map((e) => ({
       envelopeId: e.envelopeId,
       name: e.name,

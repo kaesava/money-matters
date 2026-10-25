@@ -6,6 +6,7 @@ import { t } from '@money-matters/i18n';
 export interface EnvelopeFormFooterProps {
   isEdit: boolean;
   showArchive?: boolean;
+  isSurplusTarget?: boolean;
   isPending: boolean;
   isValid: boolean;
   isDirty: boolean;
@@ -18,13 +19,14 @@ export type CategoryFormFooterProps = EnvelopeFormFooterProps;
 export const EnvelopeFormFooter: React.FC<EnvelopeFormFooterProps> = ({
   isEdit,
   showArchive,
+  isSurplusTarget,
   isPending,
   isValid,
   isDirty,
   onArchive,
   onSubmit,
 }) => {
-  const canArchive = showArchive ?? isEdit;
+  const canArchive = (showArchive ?? isEdit) && !isSurplusTarget;
   return (
     <View style={styles.footerContainer}>
       {canArchive ? (
@@ -36,6 +38,10 @@ export const EnvelopeFormFooter: React.FC<EnvelopeFormFooterProps> = ({
         >
           <Text style={styles.archiveBtnText}>{t('categories.archivePool')}</Text>
         </TouchableOpacity>
+      ) : isSurplusTarget && isEdit ? (
+        <View style={styles.archiveBtn}>
+          <Text style={[styles.archiveBtnText, { opacity: 0.4 }]}>{t('categories.archivePool')}</Text>
+        </View>
       ) : (
         <View style={styles.flex1} />
       )}

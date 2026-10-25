@@ -19,6 +19,7 @@ export interface UserGoalItem {
   startDate?: string | null;
   rrule?: string | null;
   isPrivate?: boolean;
+  isSurplusTarget?: boolean;
 }
 
 interface SetupGoalsStepProps {
@@ -56,6 +57,7 @@ export function SetupGoalsStep({
   const [customTarget, setCustomTarget] = useState("5000");
   const [customDate, setCustomDate] = useState("");
   const [customType, setCustomType] = useState<"TARGET_DATE" | "ONGOING">("TARGET_DATE");
+  const [customFrequency, setCustomFrequency] = useState<"WEEKLY" | "FORTNIGHTLY" | "MONTHLY" | "ANNUALLY">("MONTHLY");
 
   const isPresetActive = (name: string) =>
     goals.some((g) => g.name.trim().toLowerCase() === name.trim().toLowerCase());
@@ -82,14 +84,21 @@ export function SetupGoalsStep({
     if (!customName.trim()) return;
     const amountNum = parseFloat(customTarget) || (customType === "ONGOING" ? 250 : 1000);
     if (customType === "ONGOING") {
+      const monthly = customFrequency === "WEEKLY"
+        ? Math.round((amountNum * 52) / 12)
+        : customFrequency === "FORTNIGHTLY"
+        ? Math.round((amountNum * 26) / 12)
+        : customFrequency === "ANNUALLY"
+        ? Math.round(amountNum / 12)
+        : Math.round(amountNum);
       onAddGoal({
         name: customName.trim(),
         targetAmount: amountNum,
         enteredAmount: amountNum,
         dueDate: null,
         goalMode: "ONGOING",
-        monthlyAmount: amountNum,
-        budgetFrequency: "MONTHLY",
+        monthlyAmount: monthly,
+        budgetFrequency: customFrequency,
         icon: "target",
       });
     } else {
@@ -165,6 +174,18 @@ export function SetupGoalsStep({
               allowNegative={false}
             />
           </div>
+          {customType === "ONGOING" && (
+            <select
+              value={customFrequency}
+              onChange={(e) => setCustomFrequency(e.target.value as "WEEKLY" | "FORTNIGHTLY" | "MONTHLY" | "ANNUALLY")}
+              className="w-32 px-3 py-2 text-xs font-bold rounded-xl border border-zinc-200 bg-white font-mono cursor-pointer"
+            >
+              <option value="WEEKLY">{t("categories.frequencyWeekly")} (/wk)</option>
+              <option value="FORTNIGHTLY">{t("categories.frequencyFortnightly")} (/fn)</option>
+              <option value="MONTHLY">{t("categories.frequencyMonthly")} (/mo)</option>
+              <option value="ANNUALLY">{t("categories.frequencyAnnually")} (/yr)</option>
+            </select>
+          )}
           {customType === "TARGET_DATE" && (
             <input
               type="date"

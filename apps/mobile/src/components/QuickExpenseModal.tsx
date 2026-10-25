@@ -7,6 +7,7 @@ import {
 } from '@money-matters/ui/mobile';
 import { t } from '@money-matters/i18n';
 import { CrossBankTransferModal } from './CrossBankTransferModal';
+import { MarkPaidModal } from './MarkPaidModal';
 import {
   useMobileQuickAction,
   QuickActionType,
@@ -199,6 +200,19 @@ export function QuickExpenseModal({
           sourceAccountName={state.crossBankData.sourceAccountName}
           destAccountName={state.crossBankData.destAccountName}
           amount={state.crossBankData.amount}
+        />
+      )}
+
+      {state.shortfallEvent && (
+        <MarkPaidModal
+          visible={Boolean(state.shortfallEvent)}
+          event={state.shortfallEvent}
+          onClose={() => state.setShortfallEvent(null)}
+          onSuccess={() => {
+            state.setShortfallEvent(null);
+            invalidateAllQueries();
+            resetAndClose();
+          }}
         />
       )}
     </>

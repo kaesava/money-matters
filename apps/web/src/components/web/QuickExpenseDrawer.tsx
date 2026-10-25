@@ -4,6 +4,7 @@ import { SlideOverDrawer, PoolPicker, InfoTooltip, ConfirmDialog, Button, Amount
 import { useQuickActionState } from "./quick/useQuickActionState";
 import { QuickPickBadges } from "./quick/QuickPickBadges";
 import { CrossBankTransferModal } from "./CrossBankTransferModal";
+import { MarkPaidModal } from "../../app/dashboard/income-and-bills/components/MarkPaidModal";
 
 import { QuickActionInitialData } from "@money-matters/types";
 
@@ -51,6 +52,9 @@ export function QuickActionDrawer({ onClose, initialTab = "DEBIT", initialData }
     setConfirmState,
     crossBankPrompt,
     setCrossBankPrompt,
+    shortfallModalData,
+    setShortfallModalData,
+    handleConfirmShortfallPaid,
   } = useQuickActionState(onClose, initialTab, initialData);
 
   const activePresets = isTransfer
@@ -331,6 +335,27 @@ export function QuickActionDrawer({ onClose, initialTab = "DEBIT", initialData }
             onClose();
           }}
           {...crossBankPrompt}
+        />
+      )}
+
+      {shortfallModalData && (
+        <MarkPaidModal
+          isOpen={Boolean(shortfallModalData)}
+          onClose={() => setShortfallModalData(null)}
+          billName={shortfallModalData.billName}
+          initialAmount={shortfallModalData.amount}
+          initialDate={shortfallModalData.date}
+          poolId={shortfallModalData.poolId}
+          poolName={shortfallModalData.poolName}
+          poolType={shortfallModalData.poolType}
+          availableCategories={categories.map((c) => ({
+            id: c.id,
+            name: c.name,
+            poolType: c.envelopeType,
+            currentBalance: c.currentBalance,
+            isSurplusTarget: c.isSurplusTarget,
+          }))}
+          onConfirmMarkPaid={handleConfirmShortfallPaid}
         />
       )}
     </>

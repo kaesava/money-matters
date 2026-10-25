@@ -3,7 +3,7 @@ import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { DESIGN_TOKENS } from '@money-matters/ui/mobile';
 import { t } from '@money-matters/i18n';
-import { formatAUD } from '../../../lib/format';
+import { formatMobileCurrency } from '../../../lib/format';
 
 export interface MobileMatrixCategoryItem {
   id: string;
@@ -93,8 +93,8 @@ export const MobileMatrixFrozenColumn: React.FC<MobileMatrixFrozenColumnProps> =
                       </Text>
                     </TouchableOpacity>
                     <Text style={styles.categoryMetaText} numberOfLines={1}>
-                      {t('matrix.balanceShort')}: {formatAUD(curBal)}
-                      {targetVal != null && targetVal > 0 ? ` / ${formatAUD(targetVal)}` : ''}
+                      {t('matrix.balanceShort')}: {formatMobileCurrency(curBal)}
+                      {targetVal != null && targetVal > 0 ? ` / ${formatMobileCurrency(targetVal)}` : ''}
                     </Text>
                   </View>
                 );

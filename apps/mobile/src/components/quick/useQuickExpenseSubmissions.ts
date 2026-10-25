@@ -34,13 +34,14 @@ export function useQuickExpenseSubmissions({
         : parseFloat(String(selectedPool?.currentBalance || '0'));
 
     if (state.date <= state.todayStr && numAmount > poolBal && selectedPool) {
-      state.setGeneralError(
-        t('modals.transfer.insufficientBalanceWarning', {
-          poolName: selectedPool.name,
-          available: formatAUD(poolBal),
-          amount: formatAUD(numAmount),
-        })
-      );
+      state.setShortfallEvent({
+        id: 'temp-quick',
+        name: state.name.trim() || selectedPool.name,
+        expectedAmount: numAmount,
+        expectedDate: state.date.trim(),
+        poolId: selectedPool.id,
+        categoryId: selectedPool.id,
+      });
       return;
     }
 

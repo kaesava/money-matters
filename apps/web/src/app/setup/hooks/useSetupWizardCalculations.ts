@@ -58,7 +58,7 @@ export function useSetupWizardCalculations({
           else if (g.budgetFrequency === "ANNUALLY") baseMonthly = Math.round(rawAmt / 12);
           else baseMonthly = Math.round(rawAmt);
         } else {
-          baseMonthly = g.monthlyAmount || Math.round((g.targetAmount || 0) / getGoalMonthsDiff(g.dueDate));
+          baseMonthly = Math.round((g.targetAmount || 0) / getGoalMonthsDiff(g.dueDate));
         }
         return {
           id: g.id,

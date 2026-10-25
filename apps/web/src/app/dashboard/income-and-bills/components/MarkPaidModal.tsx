@@ -312,26 +312,24 @@ export function MarkPaidModal({
                   </span>
                 </div>
               ) : surplusCategory ? (
-                <div>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      const surplusBal = typeof surplusCategory.currentBalance === "string"
-                        ? parseFloat(surplusCategory.currentBalance || "0")
-                        : (surplusCategory.currentBalance ?? 0);
-                      const prefill = Math.min(shortfallAmount, surplusBal);
-                      setTransferAmounts({ [surplusCategory.id]: prefill.toFixed(2) });
-                    }}
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-lg shadow-xs transition-colors cursor-pointer"
-                  >
-                    <span>⚡</span>
-                    <span>
-                      {t("incomeBillsTabs.coverShortfallChip", {
-                        amount: fmt(shortfallAmount),
-                        poolName: surplusCategory.name,
-                      })}
-                    </span>
-                  </button>
+                <div className="flex items-start gap-2 p-2.5 bg-amber-100/70 dark:bg-amber-950/50 border border-amber-300 dark:border-amber-800 rounded-lg text-xs font-semibold text-amber-900 dark:text-amber-200">
+                  <span className="text-amber-600 dark:text-amber-400">⚠️</span>
+                  <span>
+                    {t("incomeBillsTabs.partialSurplusCoveredWarning", {
+                      amount: fmt(
+                        Math.max(
+                          0,
+                          Math.min(
+                            shortfallAmount,
+                            typeof surplusCategory.currentBalance === "string"
+                              ? parseFloat(surplusCategory.currentBalance || "0")
+                              : (surplusCategory.currentBalance ?? 0)
+                          )
+                        )
+                      ),
+                      poolName: surplusCategory.name,
+                    })}
+                  </span>
                 </div>
               ) : null}
             </div>

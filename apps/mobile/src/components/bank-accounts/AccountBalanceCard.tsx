@@ -2,7 +2,7 @@ import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { AmountInput, InfoTooltip, DESIGN_TOKENS } from '@money-matters/ui/mobile';
 import { t } from '@money-matters/i18n';
-import { formatAUD } from '../../lib/format';
+import { formatMobileCurrency, getMobileLocaleConfig } from '../../lib/format';
 
 interface AccountBalanceCardProps {
   balance: string;
@@ -21,10 +21,11 @@ export function AccountBalanceCard({
   onBalanceChange,
   onBufferChange,
 }: AccountBalanceCardProps) {
+  const { currency } = getMobileLocaleConfig();
   return (
     <>
       <AmountInput
-        label={`${t('settings.bankAccountForm.balanceLabel')} ($ AUD)`}
+        label={`${t('settings.bankAccountForm.balanceLabel')} (${currency})`}
         required
         value={balance}
         onChangeText={onBalanceChange}
@@ -46,7 +47,7 @@ export function AccountBalanceCard({
             <InfoTooltip content={t('settings.bankAccountForm.availableTooltip')} />
           </View>
           <Text style={[styles.metricVal, isNegativeAvailable ? styles.textNegative : styles.textPositive]}>
-            {formatAUD(availableToBudget)}
+            {formatMobileCurrency(availableToBudget)}
           </Text>
         </View>
       </View>

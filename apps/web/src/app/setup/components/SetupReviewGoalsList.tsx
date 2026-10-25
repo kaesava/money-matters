@@ -34,11 +34,9 @@ export function SetupReviewGoalsList({
       <div className="flex flex-col gap-2">
         {activeGoals.map((cat) => {
           const userGoal = goals.find((g) => g.name.trim().toLowerCase() === cat.name.trim().toLowerCase());
-          const isSurplusTarget =
-            userGoal?.name.toLowerCase().includes("emergency") ||
-            userGoal?.name.toLowerCase().includes("reserve") ||
-            cat.name.toLowerCase().includes("emergency") ||
-            cat.name.toLowerCase().includes("reserve");
+          const isSurplusTarget = Boolean(
+            userGoal?.isSurplusTarget ?? (cat as { isSurplusTarget?: boolean }).isSurplusTarget
+          );
 
           const isOngoing = userGoal?.goalMode === "ONGOING" || (!userGoal?.dueDate && userGoal?.budgetFrequency);
           const freq = userGoal?.budgetFrequency || "MONTHLY";

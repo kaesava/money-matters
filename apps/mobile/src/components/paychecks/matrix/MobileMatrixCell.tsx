@@ -1,7 +1,8 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { DESIGN_TOKENS } from '@money-matters/ui/mobile';
-import { formatAUD } from '../../../lib/format';
+import { t } from '@money-matters/i18n';
+import { formatMobileCurrency } from '../../../lib/format';
 
 interface MobileMatrixCellProps {
   readonly value: number;
@@ -21,12 +22,12 @@ export const MobileMatrixCell: React.FC<MobileMatrixCellProps> = ({
       <View style={styles.cellContainer}>
         <View style={[styles.surplusPill, isDeficit ? styles.deficitPill : styles.surplusPositivePill]}>
           <Text style={[styles.pillText, isDeficit ? styles.deficitText : styles.surplusText]}>
-            {isDeficit ? `-${formatAUD(Math.abs(value))}` : formatAUD(value)}
+            {isDeficit ? `-${formatMobileCurrency(Math.abs(value))}` : formatMobileCurrency(value)}
           </Text>
         </View>
         {projectedBalance !== undefined && (
           <Text style={styles.projectedText}>
-            Bal: {formatAUD(projectedBalance)}
+            {t('matrix.balanceShort')}: {formatMobileCurrency(projectedBalance)}
           </Text>
         )}
       </View>
@@ -36,11 +37,11 @@ export const MobileMatrixCell: React.FC<MobileMatrixCellProps> = ({
   return (
     <View style={styles.cellContainer}>
       <Text style={styles.regularAmountText}>
-        {formatAUD(value)}
+        {formatMobileCurrency(value)}
       </Text>
       {projectedBalance !== undefined && (
         <Text style={styles.projectedText}>
-          Bal: {formatAUD(projectedBalance)}
+          {t('matrix.balanceShort')}: {formatMobileCurrency(projectedBalance)}
         </Text>
       )}
     </View>

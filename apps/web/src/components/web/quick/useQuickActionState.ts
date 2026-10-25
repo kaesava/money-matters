@@ -14,7 +14,7 @@ export function useQuickActionState(
 ) {
   const router = useRouter();
   const toast = useToast();
-  const { userTimezone, timezone, fmt } = useLocale();
+  const { userTimezone, timezone } = useLocale();
   const activeTz = userTimezone || timezone || "Australia/Sydney";
   const todayStr = useMemo(() => new Intl.DateTimeFormat("en-CA", {
     timeZone: activeTz,
@@ -46,6 +46,15 @@ export function useQuickActionState(
     payId?: string | null;
     bsb?: string | null;
     accountNumber?: string | null;
+  } | null>(null);
+  const [shortfallModalData, setShortfallModalData] = useState<{
+    billName: string;
+    amount: number;
+    date: string;
+    poolId: string;
+    poolName: string;
+    poolType: string;
+    currentBalance: number;
   } | null>(null);
 
   const utils = trpc.useUtils();
@@ -360,13 +369,15 @@ export function useQuickActionState(
       if (targetCat && !isFutureDate) {
         const catBal = parseFloat(String(targetCat.currentBalance || "0"));
         if (amountNum > catBal) {
-          setError(
-            t("modals.transfer.insufficientBalanceWarning", {
-              poolName: targetCat.name,
-              available: fmt(catBal),
-              amount: fmt(amountNum),
-            })
-          );
+          setShortfallModalData({
+            billName: name.trim(),
+            amount: amountNum,
+            date,
+            poolId: targetCat.id,
+            poolName: targetCat.name,
+            poolType: targetCat.envelopeType,
+            currentBalance: catBal,
+          });
           return;
         }
       }
@@ -457,6 +468,38 @@ export function useQuickActionState(
     setConfirmState,
     crossBankPrompt,
     setCrossBankPrompt,
+    shortfallModalData,
+    setShortfallModalData,
+    handleConfirmShortfallPaid: async ({
+      amount: finalAmt,
+      date: finalDate,
+      transfers = [],
+    }: {
+      amount: number;
+      date: string;
+      transfers?: Array<{ poolId: string; amount: string }>;
+    }) => {
+      if (!shortfallModalData) return;
+      for (const tItem of transfers) {
+        if (parseFloat(tItem.amount || "0") > 0) {
+          await moveMoneyMutation.mutateAsync({
+            sourceEnvelopeId: tItem.poolId,
+            destinationEnvelopeId: shortfallModalData.poolId,
+            amount: tItem.amount,
+            note: `Cover shortfall for ${shortfallModalData.billName}`,
+          });
+        }
+      }
+      await recordExpenseMutation.mutateAsync({
+        envelopeId: shortfallModalData.poolId,
+        amount: finalAmt.toFixed(2),
+        note: shortfallModalData.billName,
+        date: finalDate,
+        transactionType: "EXPENSE",
+      });
+      setShortfallModalData(null);
+      handleDone();
+    },
     handleTabChange,
     handleSelectPreset,
     handleSubmit,

@@ -10,9 +10,12 @@ export function formatCurrency(
   if (value === null || value === undefined) {
     return new Intl.NumberFormat(locale, { style: "currency", currency }).format(0);
   }
-  const num = typeof value === "string" ? parseFloat(value) : value;
+  let num = typeof value === "string" ? parseFloat(value) : value;
   if (isNaN(num)) {
     return new Intl.NumberFormat(locale, { style: "currency", currency }).format(0);
+  }
+  if (Object.is(num, -0) || Math.abs(num) < 0.005) {
+    num = 0;
   }
   return new Intl.NumberFormat(locale, { style: "currency", currency }).format(num);
 }

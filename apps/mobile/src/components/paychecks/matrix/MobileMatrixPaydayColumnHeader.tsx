@@ -2,7 +2,7 @@ import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { DESIGN_TOKENS } from '@money-matters/ui/mobile';
 import { t } from '@money-matters/i18n';
-import { formatAUD, formatDate } from '../../../lib/format';
+import { formatMobileCurrency, formatDate } from '../../../lib/format';
 
 export interface MobileMatrixColumnData {
   id: string;
@@ -53,7 +53,7 @@ export const MobileMatrixPaydayColumnHeader: React.FC<MobileMatrixPaydayColumnHe
       <Text style={styles.dateText}>{dateStr}</Text>
 
       {/* Row 3: Total Income */}
-      <Text style={styles.incomeAmount}>+{formatAUD(col.totalIncome)}</Text>
+      <Text style={styles.incomeAmount}>+{formatMobileCurrency(col.totalIncome)}</Text>
 
       {/* Row 4: Actions & Badges */}
       {isConfirmed ? (
@@ -107,7 +107,7 @@ export const MobileMatrixPaydayColumnHeader: React.FC<MobileMatrixPaydayColumnHe
 
       {col.hiddenAllocationsTotal !== undefined && col.hiddenAllocationsTotal > 0 && (
         <Text style={styles.privateFootnote}>
-          ({formatAUD(col.hiddenAllocationsTotal)} {t('common.private')})
+          ({formatMobileCurrency(col.hiddenAllocationsTotal)} {t('common.private')})
         </Text>
       )}
     </View>

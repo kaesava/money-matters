@@ -549,7 +549,7 @@ export function MatrixPlanTab({
                               const targetVal = rawTarget != null ? Number(rawTarget) : null;
                               return (
                                 <div className="text-[10px] font-medium text-zinc-500 font-mono mt-0.5">
-                                  Bal: {fmt(curBal)}
+                                  {t("matrix.balanceShort")}: {fmt(curBal)}
                                   {targetVal != null && targetVal > 0 ? ` / Target: ${fmt(targetVal)}` : ""}
                                 </div>
                               );
@@ -582,7 +582,7 @@ export function MatrixPlanTab({
                                   isSurplusTarget={row.isSurplusTarget}
                                 />
                                 <span className="text-[10px] font-mono text-zinc-500 font-medium mt-0.5">
-                                  Bal: {fmt(cell.projectedBalance)}
+                                  {t("matrix.balanceShort")}: {fmt(cell.projectedBalance)}
                                 </span>
                               </div>
                             </td>

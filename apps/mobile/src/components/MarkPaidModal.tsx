@@ -10,7 +10,7 @@ import {
   FormErrorBanner,
 } from '@money-matters/ui/mobile';
 import { t } from '@money-matters/i18n';
-import { formatAUD, formatDate } from '../lib/format';
+import { formatMobileCurrency, formatDate } from '../lib/format';
 import { MarkPaidTargetPoolCard } from './mark-paid/MarkPaidTargetPoolCard';
 import { MarkPaidShortfallSection } from './mark-paid/MarkPaidShortfallSection';
 import { MarkPaidEvent } from './mark-paid/mark-paid-types';
@@ -23,6 +23,7 @@ export interface MarkPaidModalProps {
   event: MarkPaidEvent | null;
   onClose: () => void;
   onSuccess?: () => void;
+  onConfirmOverride?: (data: { amount: number; date: string; transfers: Array<{ poolId: string; amount: string }> }) => Promise<void>;
 }
 
 export function MarkPaidModal({
@@ -30,6 +31,7 @@ export function MarkPaidModal({
   event,
   onClose,
   onSuccess,
+  onConfirmOverride,
 }: MarkPaidModalProps) {
   const {
     actualAmount,
@@ -58,7 +60,7 @@ export function MarkPaidModal({
     isAmountValid,
     isDateValid,
     isDirty,
-  } = useMarkPaidForm(visible, event, onClose, onSuccess);
+  } = useMarkPaidForm(visible, event, onClose, onSuccess, onConfirmOverride);
 
   if (!visible || !event) return null;
 
@@ -155,13 +157,19 @@ export function MarkPaidModal({
             onToggleGroup={toggleGroup}
             onAmountChange={handleAmountChange}
             surplusPoolName={surplusPool?.name}
-            onCoverFromSurplus={surplusPool ? () => {
-              const b = typeof surplusPool.currentBalance === 'number'
-                ? surplusPool.currentBalance
-                : parseFloat(String(surplusPool.currentBalance) || '0');
-              const prefill = Math.min(shortfallAmount, b);
-              setTransferAmounts({ [surplusPool.id]: prefill.toFixed(2) });
-            } : undefined}
+            surplusCoverableAmount={
+              surplusPool
+                ? Math.max(
+                    0,
+                    Math.min(
+                      shortfallAmount,
+                      typeof surplusPool.currentBalance === 'number'
+                        ? surplusPool.currentBalance
+                        : parseFloat(String(surplusPool.currentBalance) || '0')
+                    )
+                  )
+                : 0
+            }
           />
         ) : (
           <View style={styles.sufficientBanner}>
@@ -169,7 +177,7 @@ export function MarkPaidModal({
             <Text style={styles.sufficientText}>
               {t('incomeBillsTabs.sufficientBalanceNotice', {
                 poolName: formattedPoolName,
-                balance: formatAUD(poolBal),
+                balance: formatMobileCurrency(poolBal),
               })}
             </Text>
           </View>
