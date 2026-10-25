@@ -128,6 +128,7 @@ export function AppProviders({ children }: AppProvidersProps) {
 
   const notificationServiceValue = {
     useRegisterToken: () => trpc.registerToken.useMutation,
+    useRemoveToken: () => trpc.removeToken.useMutation,
   };
 
   return (

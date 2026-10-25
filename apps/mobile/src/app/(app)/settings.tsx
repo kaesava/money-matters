@@ -63,6 +63,8 @@ export default function SettingsScreen() {
     toast.info(jsonStr, t('settings.app.diagnosticsCopied'));
   };
 
+  const removeToken = trpc.removeToken.useMutation();
+
   const handleSignOut = async () => {
     showMobileConfirm({
       title: t('settings.signOut'),
@@ -73,6 +75,11 @@ export default function SettingsScreen() {
       onConfirm: async () => {
         setLoading(true);
         try {
+          const cachedToken = await SecureStore.getItemAsync('push_device_token').catch(() => null);
+          if (cachedToken) {
+            await removeToken.mutateAsync({ platform: 'android', token: cachedToken }).catch(() => {});
+            await SecureStore.deleteItemAsync('push_device_token').catch(() => {});
+          }
           await authClient.signOut();
           await SecureStore.deleteItemAsync('money-matters_session_token');
           await SecureStore.deleteItemAsync('money-matters-session-token');

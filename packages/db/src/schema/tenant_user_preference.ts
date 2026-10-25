@@ -4,11 +4,17 @@ import { tenants } from "./tenant.js";
 import { apps } from "./app.js";
 
 export interface AppPreferencesBlob {
-  // Household / Cashflow Notification Alerts (Tenant Scoped)
+  // Household / Cashflow Notification Alerts (Tenant Scoped Granular Matrix)
+  weekly_digest_email?: boolean;
+  weekly_digest_push?: boolean;
+  payday_alerts_email?: boolean;
+  payday_alerts_push?: boolean;
+  balance_nudge_email?: boolean;
+  balance_nudge_push?: boolean;
+  // Legacy backward-compatibility fallbacks
   payday_alerts_enabled?: boolean;
-  shortfall_alerts_enabled?: boolean;
-  bill_reminders_enabled?: boolean;
   weekly_digest_enabled?: boolean;
+  balance_nudge_enabled?: boolean;
   // Unified Product Tour Lifecycle
   has_seen_product_tour?: boolean;
   tour_completed_at?: string;

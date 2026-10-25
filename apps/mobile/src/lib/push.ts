@@ -27,8 +27,22 @@ export async function registerPushNotificationsAsync(): Promise<string | null> {
       return null;
     }
 
-    const expoToken = await Notifications.getExpoPushTokenAsync();
-    return expoToken.data;
+    const projectId =
+      Constants.expoConfig?.extra?.eas?.projectId ??
+      Constants.easConfig?.projectId ??
+      '5cf01baf-7dc6-43bf-aa23-a72da2de4aaf';
+
+    const expoToken = await Notifications.getExpoPushTokenAsync({ projectId });
+    const token = expoToken.data;
+
+    try {
+      const SecureStore = (await import('expo-secure-store')) as typeof import('expo-secure-store');
+      await SecureStore.setItemAsync('push_device_token', token);
+    } catch {
+      // SecureStore fallback
+    }
+
+    return token;
   } catch (err) {
     console.warn('[PUSH] Failed to register push token:', err);
     return null;

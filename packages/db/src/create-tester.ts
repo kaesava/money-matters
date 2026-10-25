@@ -146,10 +146,12 @@ async function main() {
         appId,
         appPreferences: {
           [appId]: {
-            payday_alerts_enabled: true,
-            shortfall_alerts_enabled: true,
-            bill_reminders_enabled: true,
-            weekly_digest_enabled: true,
+            weekly_digest_email: true,
+            weekly_digest_push: true,
+            payday_alerts_email: true,
+            payday_alerts_push: true,
+            balance_nudge_email: true,
+            balance_nudge_push: true,
           },
         },
         createdBy: userId!,

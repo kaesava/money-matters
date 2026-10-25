@@ -1,6 +1,5 @@
-import { eq, and } from "drizzle-orm";
+import { eq, and, isNull } from "drizzle-orm";
 import { DbOrTx, deviceTokens } from "@money-matters/db";
-import { logger } from "@money-matters/core";
 
 export function registerDeviceTokenHandler(db: DbOrTx) {
   return async (
@@ -11,6 +10,7 @@ export function registerDeviceTokenHandler(db: DbOrTx) {
   ) => {
     const now = new Date();
 
+    // Check if token already exists (even if previously archived)
     const [existing] = await db
       .select()
       .from(deviceTokens)
@@ -18,7 +18,7 @@ export function registerDeviceTokenHandler(db: DbOrTx) {
         and(
           eq(deviceTokens.userId, userId),
           eq(deviceTokens.tenantId, tenantId),
-          eq(deviceTokens.platform, input.platform)
+          eq(deviceTokens.token, input.token)
         )
       )
       .limit(1);
@@ -27,7 +27,8 @@ export function registerDeviceTokenHandler(db: DbOrTx) {
       const [updated] = await db
         .update(deviceTokens)
         .set({
-          token: input.token,
+          platform: input.platform,
+          archivedAt: null,
           updatedAt: now,
           updatedBy: userId,
         })
@@ -56,31 +57,46 @@ export function registerDeviceTokenHandler(db: DbOrTx) {
 
 export function removeDeviceTokenHandler(db: DbOrTx) {
   return async (
-    input: { platform: "ios" | "android" | "web" },
+    input: { platform: "ios" | "android" | "web"; token?: string },
     tenantId: string,
     userId: string
   ) => {
-    const [existing] = await db
-      .select()
-      .from(deviceTokens)
-      .where(
-        and(
-          eq(deviceTokens.userId, userId),
-          eq(deviceTokens.tenantId, tenantId),
-          eq(deviceTokens.platform, input.platform)
-        )
-      )
-      .limit(1);
+    const conditions = [
+      eq(deviceTokens.userId, userId),
+      eq(deviceTokens.tenantId, tenantId),
+      eq(deviceTokens.platform, input.platform),
+      isNull(deviceTokens.archivedAt),
+    ];
 
-    if (!existing) {
-      return { success: true, message: "No token found to remove" };
+    if (input.token) {
+      conditions.push(eq(deviceTokens.token, input.token));
     }
 
-    await db.delete(deviceTokens).where(eq(deviceTokens.id, existing.id));
+    const activeTokens = await db
+      .select()
+      .from(deviceTokens)
+      .where(and(...conditions));
+
+    if (activeTokens.length === 0) {
+      return { success: true, message: "No active token found to remove" };
+    }
+
+    const now = new Date();
+    for (const t of activeTokens) {
+      await db
+        .update(deviceTokens)
+        .set({
+          archivedAt: now,
+          updatedAt: now,
+          updatedBy: userId,
+        })
+        .where(eq(deviceTokens.id, t.id));
+    }
+
     return { success: true, message: "Token removed" };
   };
 }
 
-export * from "./email.js";
 export * from "./inngest.js";
 export * from "./scheduled-notifications.js";
+

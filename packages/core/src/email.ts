@@ -37,6 +37,9 @@ export async function sendEmail(payload: SendEmailPayload): Promise<{ success: b
         subject: payload.subject,
         html: payload.html,
         text: payload.text,
+        headers: {
+          "List-Unsubscribe": "<https://moneymatters.kaesava.au/dashboard/settings/notifications>",
+        },
       }),
     });
 
@@ -56,9 +59,15 @@ export async function sendEmail(payload: SendEmailPayload): Promise<{ success: b
 }
 
 /**
- * High-level helper for simple plain-text / HTML notification emails.
+ * High-level helper for simple plain-text / HTML notification emails with Australian Spam Act compliant footer.
  */
 export async function sendNotificationEmail(to: string, subject: string, bodyText: string): Promise<{ success: boolean; id?: string }> {
-  const html = `<div style="font-family: sans-serif; padding: 20px; line-height: 1.6; color: #1B2B4B;">${bodyText.replace(/\n/g, "<br />")}</div>`;
+  const footerHtml = `
+    <div style="margin-top: 32px; padding-top: 16px; border-top: 1px solid #e2e8f0; font-size: 11px; color: #64748b; line-height: 1.5;">
+      Money Matters by Kaesava AU • Sydney, NSW, Australia • info@moneymatters.kaesava.au<br />
+      <a href="https://moneymatters.kaesava.au/dashboard/settings/notifications" style="color: #2563eb; text-decoration: underline;">Manage Notification Preferences & Unsubscribe</a>
+    </div>
+  `;
+  const html = `<div style="font-family: sans-serif; padding: 20px; line-height: 1.6; color: #1B2B4B;">${bodyText.replace(/\n/g, "<br />")}${footerHtml}</div>`;
   return sendEmail({ to, subject, html, text: bodyText });
 }

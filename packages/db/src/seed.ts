@@ -288,11 +288,20 @@ export async function seedDatabase(connectionString: string, envLabel: string) {
     { userId: testerUserId, theme: "system", showIcons: true, createdBy: testerUserId, updatedBy: testerUserId },
   ]);
 
+  const defaultAppPrefs = {
+    weekly_digest_email: true,
+    weekly_digest_push: true,
+    payday_alerts_email: true,
+    payday_alerts_push: true,
+    balance_nudge_email: true,
+    balance_nudge_push: true,
+  };
+
   await db.insert(tenantUserPreferences).values([
-    { userId, tenantId, appId, appPreferences: { [appId]: { payday_alerts_enabled: true, shortfall_alerts_enabled: true, bill_reminders_enabled: true, weekly_digest_enabled: true } }, createdBy: userId, updatedBy: userId },
-    { userId: snehaUserId, tenantId, appId, appPreferences: { [appId]: { payday_alerts_enabled: true, shortfall_alerts_enabled: true, bill_reminders_enabled: true, weekly_digest_enabled: true } }, createdBy: snehaUserId, updatedBy: snehaUserId },
-    { userId: raehanUserId, tenantId: raehanTenantId, appId, appPreferences: { [appId]: { payday_alerts_enabled: true, shortfall_alerts_enabled: true, bill_reminders_enabled: true, weekly_digest_enabled: true } }, createdBy: raehanUserId, updatedBy: raehanUserId },
-    { userId: testerUserId, tenantId: testerTenantId, appId, appPreferences: { [appId]: { payday_alerts_enabled: true, shortfall_alerts_enabled: true, bill_reminders_enabled: true, weekly_digest_enabled: true } }, createdBy: testerUserId, updatedBy: testerUserId },
+    { userId, tenantId, appId, appPreferences: { [appId]: defaultAppPrefs }, createdBy: userId, updatedBy: userId },
+    { userId: snehaUserId, tenantId, appId, appPreferences: { [appId]: defaultAppPrefs }, createdBy: snehaUserId, updatedBy: snehaUserId },
+    { userId: raehanUserId, tenantId: raehanTenantId, appId, appPreferences: { [appId]: defaultAppPrefs }, createdBy: raehanUserId, updatedBy: raehanUserId },
+    { userId: testerUserId, tenantId: testerTenantId, appId, appPreferences: { [appId]: defaultAppPrefs }, createdBy: testerUserId, updatedBy: testerUserId },
   ]);
 
   // 4. Bank Accounts (Shared Joint Accounts & Private Accounts)

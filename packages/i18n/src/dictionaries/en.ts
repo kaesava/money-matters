@@ -2511,10 +2511,6 @@ export const en = {
     },
   },
   notifications: {
-    email: {
-      budgetAlertSubject: "Budget Alert!",
-      budgetAlertBody: "Hello,\n\nThis is an automated notification that you have exceeded your target budget limit for category {category}.\n\nThank you for using MoneyMatters to keep your financial life aligned.\n\nAutomated notification. Please do not reply.",
-    },
     inngest: {
       trialActiveSubject: "Your 60-day full household trial is now active.",
       trialActiveBody: "Explore your dashboard to set up your allocation waterfall and bank accounts.",
@@ -2530,12 +2526,17 @@ export const en = {
       backCta: "← Back",
       loading: "Loading notification settings...",
       weeklyDigestTitle: "Weekly Balance Digest",
-      weeklyDigestDesc: "Receive a Sunday evening email digest of your total saved vs spent, upcoming bills coverage, and forecast.",
+      weeklyDigestDesc: "Receive a Sunday evening digest of your total saved vs spent, upcoming bills coverage, and forecast.",
       paydayTitle: "Payday Allocation Alerts",
       paydayDesc: "Receive morning alerts on expected paydays to allocate incoming deposits in 1 tap.",
       balanceMatchTitle: "Bank Balance Match Nudge",
       balanceMatchDesc: "Gentle reminder when your bank accounts haven't been balance-matched for over 14 days.",
-      activeEmailBadge: "Active (Email)",
+      emailChannel: "Email",
+      pushChannel: "Push",
+      sendTestButton: "Send Test Notification",
+      sendingTest: "Sending test...",
+      testSuccessToast: "Test notification dispatched successfully!",
+      permissionDeniedBanner: "Push notifications are disabled in your device settings.",
     },
   },
   badges: {
@@ -2659,7 +2660,7 @@ export const en = {
     },
   },
   incomeBillsTabs: {
-    shortfallCoveredNote: "✓ Shortfall covered from {poolName}",
+    shortfallCoveredNote: "Shortfall covered from {poolName}",
     coverShortfallNoEnvelopes: "No other envelopes with available balances found to cover the shortfall.",
     upcomingTimeline: "Upcoming",
     currentCycle: "Current Pay Period",

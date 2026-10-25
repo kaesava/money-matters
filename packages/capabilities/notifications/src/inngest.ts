@@ -2,7 +2,7 @@ import { Inngest } from 'inngest';
 import { db, deviceTokens } from '@money-matters/db';
 import { sendEmail, logAuditEvent } from '@money-matters/core';
 import { t } from '@money-matters/i18n';
-import { eq, and } from 'drizzle-orm';
+import { eq, and, isNull } from 'drizzle-orm';
 import { z } from 'zod';
 
 const pushPayloadSchema = z.object({
@@ -41,16 +41,20 @@ export function createNotificationFunctions(inngest: Inngest) {
       const { userId, tenantId, title, body, data } = payload;
 
       const tokens = await step.run('fetch-device-tokens', async () => {
-        return await db.query.deviceTokens.findMany({
-          where: and(
-            eq(deviceTokens.userId, userId),
-            eq(deviceTokens.tenantId, tenantId)
-          ),
-        });
+        return await db
+          .select()
+          .from(deviceTokens)
+          .where(
+            and(
+              eq(deviceTokens.userId, userId),
+              eq(deviceTokens.tenantId, tenantId),
+              isNull(deviceTokens.archivedAt)
+            )
+          );
       });
 
       if (tokens.length === 0) {
-        return { success: true, message: 'No device tokens registered for user', sentCount: 0 };
+        return { success: true, message: 'No active device tokens registered for user', sentCount: 0 };
       }
 
       const messages = tokens.map((t) => ({
@@ -62,9 +66,14 @@ export function createNotificationFunctions(inngest: Inngest) {
       }));
 
       const result = await step.run('dispatch-to-expo', async () => {
+        const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+        if (process.env.EXPO_ACCESS_TOKEN) {
+          headers['Authorization'] = `Bearer ${process.env.EXPO_ACCESS_TOKEN}`;
+        }
+
         const response = await fetch('https://exp.host/--/api/v2/push/send', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers,
           body: JSON.stringify(messages),
           signal: AbortSignal.timeout(5000),
         });
@@ -74,7 +83,23 @@ export function createNotificationFunctions(inngest: Inngest) {
           throw new Error(`Expo Push API returned error status ${response.status}: ${errText}`);
         }
 
-        return await response.json();
+        const expoData = (await response.json()) as { data?: Array<{ status: string; details?: { error?: string } }> };
+        if (expoData?.data && Array.isArray(expoData.data)) {
+          for (let i = 0; i < expoData.data.length; i++) {
+            const ticket = expoData.data[i];
+            if (ticket.status === 'error' && ticket.details?.error === 'DeviceNotRegistered') {
+              const deadToken = tokens[i]?.token;
+              if (deadToken) {
+                await db
+                  .update(deviceTokens)
+                  .set({ archivedAt: new Date(), updatedAt: new Date() })
+                  .where(eq(deviceTokens.token, deadToken));
+              }
+            }
+          }
+        }
+
+        return expoData;
       });
 
       return { success: true, sentCount: messages.length, expoResult: result };

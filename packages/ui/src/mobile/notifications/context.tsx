@@ -2,6 +2,7 @@ import React, { createContext, useContext } from 'react';
 
 export interface NotificationServiceContextValue {
   useRegisterToken: () => () => { mutateAsync: (args: { platform: 'ios' | 'android'; token: string }) => Promise<unknown> };
+  useRemoveToken: () => () => { mutateAsync: (args: { platform: 'ios' | 'android'; token?: string }) => Promise<unknown> };
 }
 
 
