@@ -1,5 +1,6 @@
 import React from "react";
 import { t } from "@money-matters/i18n";
+import { useCurrencyLocale } from "@money-matters/ui/web";
 
 export interface QuickPresetItem {
   name: string;
@@ -23,6 +24,7 @@ export function QuickPickBadges({
   presets,
   onSelect,
 }: QuickPickBadgesProps) {
+  const { currencySymbol } = useCurrencyLocale();
   const recents = recentPresets || (presets ? presets.slice(0, 2) : []);
   const frequents = frequentPresets || [];
 
@@ -46,7 +48,7 @@ export function QuickPickBadges({
                 <span>{p.name}</span>
                 {p.amount && (
                   <span className="text-[10px] font-mono text-zinc-500">
-                    (${p.amount})
+                    ({currencySymbol}{p.amount})
                   </span>
                 )}
               </button>
@@ -71,7 +73,7 @@ export function QuickPickBadges({
                 <span>{p.name}</span>
                 {p.amount && (
                   <span className="text-[10px] font-mono text-zinc-500">
-                    (${p.amount})
+                    ({currencySymbol}{p.amount})
                   </span>
                 )}
               </button>

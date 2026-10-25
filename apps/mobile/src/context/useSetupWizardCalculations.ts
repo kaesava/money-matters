@@ -38,6 +38,7 @@ export interface CalculationsProps {
     dueDate?: string | null;
     goalMode?: 'TARGET_DATE' | 'ONGOING';
     enteredAmount?: number | null;
+    budgetFrequency?: 'WEEKLY' | 'FORTNIGHTLY' | 'MONTHLY' | 'ANNUALLY';
   }>;
   customCategories: EstimatedCategoryItem[];
   removedCategoryNames: Set<string>;
@@ -80,13 +81,18 @@ export function computeSetupWizardCalculations(props: CalculationsProps) {
   const activeGoals: EstimatedCategoryItem[] = (props.goals || [])
     .filter((g) => !props.removedCategoryNames.has(g.name))
     .map((g) => {
-      const isOngoing = g.goalMode === 'ONGOING';
+      const isOngoing = g.goalMode === 'ONGOING' || (!g.dueDate && g.budgetFrequency);
       const override = props.amountOverrides[g.name];
-      const baseMonthly = isOngoing
-        ? g.enteredAmount !== undefined && g.enteredAmount !== null
-          ? g.enteredAmount
-          : g.monthlyAmount || g.targetAmount || 0
-        : g.monthlyAmount || Math.round((g.targetAmount || 0) / getGoalMonthsDiff(g.dueDate));
+      let baseMonthly = 0;
+      if (isOngoing) {
+        const rawAmt = g.enteredAmount !== undefined && g.enteredAmount !== null ? g.enteredAmount : (g.monthlyAmount || g.targetAmount || 0);
+        if (g.budgetFrequency === 'WEEKLY') baseMonthly = Math.round((rawAmt * 52) / 12);
+        else if (g.budgetFrequency === 'FORTNIGHTLY') baseMonthly = Math.round((rawAmt * 26) / 12);
+        else if (g.budgetFrequency === 'ANNUALLY') baseMonthly = Math.round(rawAmt / 12);
+        else baseMonthly = Math.round(rawAmt);
+      } else {
+        baseMonthly = g.monthlyAmount || Math.round((g.targetAmount || 0) / getGoalMonthsDiff(g.dueDate));
+      }
       return {
         id: g.id,
         name: g.name,

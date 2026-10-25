@@ -53,6 +53,7 @@ export interface AllocationEngineInput {
   upcomingExpenses?: UpcomingExpenseItem[];
   sweepEverydayLeftover?: boolean;
   everydayLeftoverReported?: Record<string, number>;
+  currencySymbol?: string;
 }
 
 export interface AllocationEngineOutput {
@@ -136,6 +137,8 @@ export function runAllocationEngine(input: AllocationEngineInput): AllocationEng
     return true;
   };
 
+  const sym = input.currencySymbol || "$";
+
   const allocateToBucket = (bucket: EngineBucket, amountCents: number, reasoning: string) => {
     if (amountCents <= 0) return;
     if (!isBucketEligible(bucket)) return;
@@ -166,7 +169,7 @@ export function runAllocationEngine(input: AllocationEngineInput): AllocationEng
         allocateToBucket(
           bucket,
           toAllocate,
-          `Immediate bill coverage ($${toDollars(immediateDueCents).toFixed(2)} due within cycle + ${bufferDays}d buffer): $${toDollars(toAllocate).toFixed(2)} allocated.`
+          `Immediate bill coverage (${sym}${toDollars(immediateDueCents).toFixed(2)} due within cycle + ${bufferDays}d buffer): ${sym}${toDollars(toAllocate).toFixed(2)} allocated.`
         );
         step1AllocatedCentsMap.set(bucket.id, toAllocate);
       }
@@ -185,7 +188,7 @@ export function runAllocationEngine(input: AllocationEngineInput): AllocationEng
         allocateToBucket(
           bucket,
           toAllocate,
-          `Deficit repair for negative balance (-$${Math.abs(bucket.currentBalance).toFixed(2)}): $${toDollars(toAllocate).toFixed(2)} allocated.`
+          `Deficit repair for negative balance (-${sym}${Math.abs(bucket.currentBalance).toFixed(2)}): ${sym}${toDollars(toAllocate).toFixed(2)} allocated.`
         );
       }
     }
@@ -206,7 +209,7 @@ export function runAllocationEngine(input: AllocationEngineInput): AllocationEng
         allocateToBucket(
           bucket,
           toAllocate,
-          `Bills safety buffer cushion (floor $${toDollars(floorCents).toFixed(2)}): $${toDollars(toAllocate).toFixed(2)} allocated.`
+          `Bills safety buffer cushion (floor ${sym}${toDollars(floorCents).toFixed(2)}): ${sym}${toDollars(toAllocate).toFixed(2)} allocated.`
         );
         step1AllocatedCentsMap.set(bucket.id, step1Alloc + toAllocate);
       }
@@ -233,17 +236,17 @@ export function runAllocationEngine(input: AllocationEngineInput): AllocationEng
     const toAllocate = Math.min(remainingCents, neededCents);
     if (toAllocate > 0 || neededCents > 0) {
       if (toAllocate > 0) {
-        const floorMsg = floorCents > 0 ? ` (incl $${toDollars(floorCents).toFixed(2)} safety floor)` : "";
-        const leftoverMsg = reportedLeftoverCents > 0 ? ` (adjusted for $${toDollars(reportedLeftoverCents).toFixed(2)} reported leftover)` : "";
+        const floorMsg = floorCents > 0 ? ` (incl ${sym}${toDollars(floorCents).toFixed(2)} safety floor)` : "";
+        const leftoverMsg = reportedLeftoverCents > 0 ? ` (adjusted for ${sym}${toDollars(reportedLeftoverCents).toFixed(2)} reported leftover)` : "";
         const runwayPrefix = isIrregular ? `[${daysGap}d runway] ` : "";
         allocateToBucket(
           bucket,
           toAllocate,
-          `${runwayPrefix}Everyday living allowance ($${toDollars(monthlyAllowanceCents).toFixed(2)}/mo across ${daysGap} days)${floorMsg}${leftoverMsg}: $${toDollars(toAllocate).toFixed(2)} allocated.`
+          `${runwayPrefix}Everyday living allowance (${sym}${toDollars(monthlyAllowanceCents).toFixed(2)}/mo across ${daysGap} days)${floorMsg}${leftoverMsg}: ${sym}${toDollars(toAllocate).toFixed(2)} allocated.`
         );
       } else {
         const line = linesMap.get(bucket.id)!;
-        line.reasonings.push(`Everyday living allowance: $0 allocated.`);
+        line.reasonings.push(`Everyday living allowance: ${sym}0 allocated.`);
       }
     }
   }
@@ -269,11 +272,11 @@ export function runAllocationEngine(input: AllocationEngineInput): AllocationEng
           allocateToBucket(
             bucket,
             toAllocate,
-            `${runwayPrefix}Pro-rata bill allocation ($${toDollars(monthlyCents).toFixed(2)}/mo across ${daysGap} days): $${toDollars(toAllocate).toFixed(2)} allocated.`
+            `${runwayPrefix}Pro-rata bill allocation (${sym}${toDollars(monthlyCents).toFixed(2)}/mo across ${daysGap} days): ${sym}${toDollars(toAllocate).toFixed(2)} allocated.`
           );
         } else {
           const line = linesMap.get(bucket.id)!;
-          line.reasonings.push(`Pro-rata bill target ($${toDollars(monthlyCents).toFixed(2)}/mo): $0 allocated (insufficient income).`);
+          line.reasonings.push(`Pro-rata bill target (${sym}${toDollars(monthlyCents).toFixed(2)}/mo): ${sym}0 allocated (insufficient income).`);
         }
       }
     }
@@ -306,11 +309,11 @@ export function runAllocationEngine(input: AllocationEngineInput): AllocationEng
             allocateToBucket(
               bucket,
               toAllocate,
-              `Ongoing goal contribution ($${toDollars(targetCents).toFixed(2)}/mo across ${daysGap} days): $${toDollars(toAllocate).toFixed(2)} allocated.`
+              `Ongoing goal contribution (${sym}${toDollars(targetCents).toFixed(2)}/mo across ${daysGap} days): ${sym}${toDollars(toAllocate).toFixed(2)} allocated.`
             );
           } else {
             const line = linesMap.get(bucket.id)!;
-            line.reasonings.push(`Ongoing goal contribution ($${toDollars(targetCents).toFixed(2)}/mo): $0 allocated (insufficient income).`);
+            line.reasonings.push(`Ongoing goal contribution (${sym}${toDollars(targetCents).toFixed(2)}/mo): ${sym}0 allocated (insufficient income).`);
           }
         }
         continue;
@@ -343,11 +346,11 @@ export function runAllocationEngine(input: AllocationEngineInput): AllocationEng
           allocateToBucket(
             bucket,
             toAllocate,
-            `Target $${toDollars(targetCents).toFixed(2)} by ${bucket.targetDate ?? "12-mo horizon"}: $${toDollars(toAllocate).toFixed(2)} allocated (${monthsRemaining} mo remaining).`
+            `Target ${sym}${toDollars(targetCents).toFixed(2)} by ${bucket.targetDate ?? "12-mo horizon"}: ${sym}${toDollars(toAllocate).toFixed(2)} allocated (${monthsRemaining} mo remaining).`
           );
         } else {
           const line = linesMap.get(bucket.id)!;
-          line.reasonings.push(`Goal target ($${toDollars(targetCents).toFixed(2)}): $0 allocated (insufficient income).`);
+          line.reasonings.push(`Goal target (${sym}${toDollars(targetCents).toFixed(2)}): ${sym}0 allocated (insufficient income).`);
         }
       }
     }
@@ -367,7 +370,7 @@ export function runAllocationEngine(input: AllocationEngineInput): AllocationEng
     allocateToBucket(
       excessBucket,
       toAllocate,
-      `Swept residual excess surplus of $${toDollars(toAllocate).toFixed(2)} to designated surplus envelope (${excessBucket.name}).`
+      `Swept residual excess surplus of ${sym}${toDollars(toAllocate).toFixed(2)} to designated surplus envelope (${excessBucket.name}).`
     );
   }
 

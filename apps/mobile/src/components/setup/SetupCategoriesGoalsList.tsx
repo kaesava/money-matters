@@ -35,9 +35,21 @@ export function SetupCategoriesGoalsList({
         const userGoal = userGoals.find(
           (g) => g.name.trim().toLowerCase() === cat.name.trim().toLowerCase()
         );
-        const targetStr = userGoal
-          ? formatMobileCurrency(userGoal.targetAmount || 0)
-          : formatMobileCurrency(cat.monthlyAud);
+        const isOngoing = userGoal?.goalMode === 'ONGOING' || (!userGoal?.dueDate && userGoal?.budgetFrequency);
+        const freq = userGoal?.budgetFrequency || 'MONTHLY';
+        const freqSuffix = freq === 'WEEKLY' ? '/wk' : freq === 'FORTNIGHTLY' ? '/fn' : freq === 'ANNUALLY' ? '/yr' : '/mo';
+        const enteredAmt = userGoal?.enteredAmount ?? userGoal?.targetAmount ?? cat.monthlyAud;
+
+        let displayMetric: string;
+        if (isOngoing) {
+          displayMetric = freq === 'MONTHLY'
+            ? `${formatMobileCurrency(enteredAmt)}/mo`
+            : `${formatMobileCurrency(enteredAmt)}${freqSuffix} (Est: ${formatMobileCurrency(cat.monthlyAud)}/mo)`;
+        } else {
+          const targetAmt = userGoal?.targetAmount ?? cat.monthlyAud;
+          const targetDateStr = userGoal?.dueDate ? ` • By ${userGoal.dueDate}` : '';
+          displayMetric = `Target: ${formatMobileCurrency(targetAmt)}${targetDateStr} (Est: ${formatMobileCurrency(cat.monthlyAud)}/mo)`;
+        }
 
         return (
           <View key={cat.name} style={styles.row}>
@@ -53,8 +65,7 @@ export function SetupCategoriesGoalsList({
                 )}
               </View>
               <Text style={styles.targetSub}>
-                Target: {targetStr}
-                {userGoal?.dueDate ? ` • By ${userGoal.dueDate}` : ''}
+                {displayMetric}
               </Text>
             </View>
 

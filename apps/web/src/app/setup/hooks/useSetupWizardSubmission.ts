@@ -43,6 +43,7 @@ export function useSetupWizardSubmission({
 }: SubmissionProps) {
   const router = useRouter();
   const toast = useToast();
+  const utils = trpc.useUtils();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const saveSetupBudgetMut = trpc.saveSetupBudget.useMutation();
 
@@ -62,6 +63,16 @@ export function useSetupWizardSubmission({
       const primaryBankAccountId = accountsPayload[0]?.id;
 
       const nonGoalCategories = activeCategories.filter((c) => c.type !== "GOAL");
+
+      // Find surplus target: Emergency Reserve -> first non-private goal -> everyday
+      const surplusGoalIndex = goals.findIndex(
+        (g) =>
+          !g.isPrivate &&
+          (g.name.toLowerCase().includes("emergency") || g.name.toLowerCase().includes("reserve"))
+      );
+      const effectiveSurplusIndex = surplusGoalIndex !== -1
+        ? surplusGoalIndex
+        : goals.findIndex((g) => !g.isPrivate);
 
       const envelopesPayload = [
         ...nonGoalCategories.map((c, idx) => {
@@ -87,21 +98,22 @@ export function useSetupWizardSubmission({
         ...goals.map((g, idx) => {
           const goalId = g.id?.startsWith("g-") ? undefined : g.id;
           const matchedPool = goalId ? existingPools.find((p) => p.id === goalId) : undefined;
+          const isOngoing = g.goalMode === "ONGOING" || (!g.dueDate && g.budgetFrequency);
           return {
             id: goalId,
             bankAccountId: matchedPool?.bankAccountId || primaryBankAccountId,
             name: g.name,
-            envelopeType: (g.goalMode === "ONGOING" ? "ONGOING_GOAL" : "TARGET_GOAL") as "ONGOING_GOAL" | "TARGET_GOAL",
+            envelopeType: (isOngoing ? "ONGOING_GOAL" : "TARGET_GOAL") as "ONGOING_GOAL" | "TARGET_GOAL",
             goalMode: g.goalMode ?? (g.dueDate ? "TARGET_DATE" : "ONGOING"),
-            targetAmount: (g.goalMode === "ONGOING" ? (g.monthlyAmount || g.targetAmount || 250) : (g.targetAmount || g.monthlyAmount * 12 || 1000)).toFixed(2),
-            endDate: g.goalMode === "ONGOING" ? null : (g.dueDate || null),
-            enteredAmount: g.enteredAmount ? g.enteredAmount.toFixed(2) : undefined,
-            budgetFrequency: g.budgetFrequency,
+            targetAmount: (isOngoing ? (g.enteredAmount || g.monthlyAmount || g.targetAmount || 250) : (g.targetAmount || g.monthlyAmount * 12 || 1000)).toFixed(2),
+            endDate: isOngoing ? null : (g.dueDate || null),
+            enteredAmount: g.enteredAmount ? g.enteredAmount.toFixed(2) : (g.monthlyAmount ? g.monthlyAmount.toFixed(2) : undefined),
+            budgetFrequency: g.budgetFrequency || (isOngoing ? "MONTHLY" : undefined),
             startDate: g.startDate,
             rrule: g.rrule,
-            isSurplusTarget: idx === 0,
+            isSurplusTarget: idx === effectiveSurplusIndex,
             isCommitted: true,
-            isPrivate: matchedPool?.isPrivate ?? false,
+            isPrivate: matchedPool?.isPrivate ?? Boolean(g.isPrivate),
             orderIndex: nonGoalCategories.length + idx,
           };
         }),
@@ -140,9 +152,14 @@ export function useSetupWizardSubmission({
         archivedIncomeIds: Array.from(archivedIncomeIds),
       });
 
+      await utils.getTenantStatus.invalidate();
+      await utils.invalidate();
+
       posthog.capture("setup_completed", { isRerun, income_count: incomes.length, category_count: activeCategories.length });
       if (isRerun) {
         toast.success(t("setup.recalibrateSuccess"));
+      } else {
+        toast.success(t("toasts.setupSaved"));
       }
       router.push("/dashboard");
     } catch (err: unknown) {

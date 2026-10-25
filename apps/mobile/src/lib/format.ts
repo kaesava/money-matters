@@ -50,6 +50,13 @@ export function formatMobileCurrency(
   return formatCurrency(value, l, c);
 }
 
+export function getMobileCurrencySymbol(currency?: string, locale?: string): string {
+  const cfg = getMobileLocaleConfig();
+  const c = currency || cfg.currency;
+  const l = locale || cfg.locale;
+  return getCurrencySymbol(l, c);
+}
+
 /**
  * Backward compatibility alias for formatMobileCurrency.
  */

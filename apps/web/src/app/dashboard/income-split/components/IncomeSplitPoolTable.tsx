@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { FileText } from "lucide-react";
+import { FileText, Trash2 } from "lucide-react";
 import { t } from "@money-matters/i18n";
 import { useLocale } from "../../../../providers/LocaleProvider";
 
@@ -283,11 +283,11 @@ export function IncomeSplitPoolTable({
                                   {!isReadOnly && (
                                     <button
                                       type="button"
-                                      onClick={() => onLineAmountChange(l.bucketId, "0.00")}
-                                      className="px-2 py-1 text-[10px] font-bold text-zinc-500 hover:text-zinc-800 dark:text-zinc-400 dark:hover:text-zinc-200 bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 rounded-md transition-colors cursor-pointer"
-                                      title={t("paydayDrawer.setZeroPercent")}
+                                      onClick={() => onLineAmountChange(l.bucketId, "")}
+                                      className="p-1.5 text-zinc-400 hover:text-rose-600 dark:hover:text-rose-400 bg-zinc-100 dark:bg-zinc-800 hover:bg-rose-50 dark:hover:bg-rose-950/40 rounded-lg transition-colors cursor-pointer"
+                                      title={t("paydayDrawer.clearAllocation")}
                                     >
-                                      0%
+                                      <Trash2 className="w-3.5 h-3.5" />
                                     </button>
                                   )}
                                   <input

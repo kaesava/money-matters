@@ -54,7 +54,16 @@ export function MarkPaidShortfallSection({
             amount: formatAUD(shortfallAmount),
           })}
         </Text>
-        {onCoverFromSurplus && surplusPoolName && (
+        {shortfallValidation.isValid ? (
+          <View style={styles.coveredNote}>
+            <Text style={styles.coveredNoteText}>
+              ✓ {t('incomeBillsTabs.shortfallCoveredNote', {
+                poolName: surplusPoolName || 'Emergency Reserve',
+                amount: formatAUD(shortfallAmount),
+              })}
+            </Text>
+          </View>
+        ) : onCoverFromSurplus && surplusPoolName ? (
           <TouchableOpacity
             style={styles.coverChip}
             onPress={onCoverFromSurplus}
@@ -67,7 +76,7 @@ export function MarkPaidShortfallSection({
               })}
             </Text>
           </TouchableOpacity>
-        )}
+        ) : null}
       </View>
 
       <View style={styles.fundingHeaderRow}>
@@ -239,5 +248,19 @@ const styles = StyleSheet.create({
     lineHeight: 16,
     color: DESIGN_TOKENS.colors.criticalDark,
     fontWeight: '600',
+  },
+  coveredNote: {
+    backgroundColor: '#DCFCE7',
+    borderWidth: 1,
+    borderColor: '#86EFAC',
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    marginTop: 4,
+  },
+  coveredNoteText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#15803D',
   },
 });

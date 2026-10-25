@@ -48,6 +48,49 @@ export async function processSetupEnvelopes(
     }
   }
 
+  // Determine which envelope will serve as the single public Surplus Sweep Target
+  let designatedSurplusIndex = envelopesInput.findIndex(
+    (e) => e.isSurplusTarget === true && !e.isPrivate
+  );
+  if (designatedSurplusIndex === -1) {
+    // Priority: Emergency Reserve -> first non-private Goal -> non-private Everyday
+    designatedSurplusIndex = envelopesInput.findIndex(
+      (e) => !e.isPrivate && (e.name.toLowerCase().includes("emergency") || e.name.toLowerCase().includes("reserve"))
+    );
+    if (designatedSurplusIndex === -1) {
+      designatedSurplusIndex = envelopesInput.findIndex(
+        (e) => !e.isPrivate && (e.envelopeType === "TARGET_GOAL" || e.envelopeType === "ONGOING_GOAL")
+      );
+    }
+    if (designatedSurplusIndex === -1) {
+      designatedSurplusIndex = envelopesInput.findIndex(
+        (e) => !e.isPrivate && e.envelopeType === "EVERYDAY"
+      );
+    }
+    if (designatedSurplusIndex === -1 && envelopesInput.length > 0) {
+      designatedSurplusIndex = 0;
+    }
+  }
+
+  // Normalize envelopesInput so exactly one isSurplusTarget is true, and none on private
+  envelopesInput.forEach((env, idx) => {
+    env.isSurplusTarget = idx === designatedSurplusIndex;
+  });
+
+  // Clear isSurplusTarget from any existing envelopes in DB that are not the designated surplus envelope
+  if (typeof tx.update === "function") {
+    await tx
+      .update(envelopes)
+      .set({ isSurplusTarget: false })
+      .where(
+        and(
+          eq(envelopes.tenantId, tenantId),
+          eq(envelopes.appId, appId),
+          eq(envelopes.isSurplusTarget, true)
+        )
+      );
+  }
+
   const envelopeBalancesMap = await getEnvelopeBalancesMap(tenantId, appId, tx);
   let sweptEnvelopesCount = 0;
   let sweptTotalAmount = 0;

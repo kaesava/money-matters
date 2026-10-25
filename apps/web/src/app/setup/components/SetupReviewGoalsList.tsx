@@ -32,13 +32,28 @@ export function SetupReviewGoalsList({
 
       <div className="flex flex-col gap-2">
         {activeGoals.map((cat) => {
-          const isSurplusTarget =
-            cat.name.toLowerCase().includes("emergency") || cat.name.toLowerCase().includes("reserve");
           const userGoal = goals.find((g) => g.name.trim().toLowerCase() === cat.name.trim().toLowerCase());
-          const targetAmountStr = userGoal && userGoal.targetAmount !== undefined && userGoal.targetAmount !== null
-            ? formatCurrency(userGoal.targetAmount)
-            : formatCurrency(cat.monthlyAud);
-          const targetDateStr = userGoal?.dueDate ? ` • By ${userGoal.dueDate}` : "";
+          const isSurplusTarget =
+            userGoal?.name.toLowerCase().includes("emergency") ||
+            userGoal?.name.toLowerCase().includes("reserve") ||
+            cat.name.toLowerCase().includes("emergency") ||
+            cat.name.toLowerCase().includes("reserve");
+
+          const isOngoing = userGoal?.goalMode === "ONGOING" || (!userGoal?.dueDate && userGoal?.budgetFrequency);
+          const freq = userGoal?.budgetFrequency || "MONTHLY";
+          const freqSuffix = freq === "WEEKLY" ? "/wk" : freq === "FORTNIGHTLY" ? "/fn" : freq === "ANNUALLY" ? "/yr" : "/mo";
+          const enteredAmt = userGoal?.enteredAmount ?? userGoal?.targetAmount ?? cat.monthlyAud;
+
+          let displayMetric: string;
+          if (isOngoing) {
+            displayMetric = freq === "MONTHLY"
+              ? `${formatCurrency(enteredAmt)}/mo`
+              : `${formatCurrency(enteredAmt)}${freqSuffix} (Est: ${formatCurrency(cat.monthlyAud)}/mo)`;
+          } else {
+            const targetAmt = userGoal?.targetAmount ?? cat.monthlyAud;
+            const targetDateStr = userGoal?.dueDate ? ` • By ${userGoal.dueDate}` : "";
+            displayMetric = `Target: ${formatCurrency(targetAmt)}${targetDateStr} (Est: ${formatCurrency(cat.monthlyAud)}/mo)`;
+          }
 
           return (
             <div
@@ -55,7 +70,7 @@ export function SetupReviewGoalsList({
               </div>
               <div className="flex items-center gap-2">
                 <span className="text-xs font-bold font-mono text-zinc-700">
-                  Target: {targetAmountStr}{targetDateStr}
+                  {displayMetric}
                 </span>
                 <button
                   type="button"

@@ -301,7 +301,17 @@ export function MarkPaidModal({
                   amount: fmt(shortfallAmount),
                 })}
               </p>
-              {surplusCategory && (
+              {isFulfilled ? (
+                <div className="flex items-center gap-2 p-2.5 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 rounded-lg text-xs font-bold text-emerald-800 dark:text-emerald-300">
+                  <span>✓</span>
+                  <span>
+                    {t("incomeBillsTabs.shortfallCoveredNote", {
+                      poolName: surplusCategory?.name || "Emergency Reserve",
+                      amount: fmt(shortfallAmount),
+                    })}
+                  </span>
+                </div>
+              ) : surplusCategory ? (
                 <div>
                   <button
                     type="button"
@@ -323,7 +333,7 @@ export function MarkPaidModal({
                     </span>
                   </button>
                 </div>
-              )}
+              ) : null}
             </div>
 
             <div className="flex items-center justify-between">

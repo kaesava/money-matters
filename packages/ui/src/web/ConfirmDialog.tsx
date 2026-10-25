@@ -46,6 +46,25 @@ export function ConfirmDialog({
     isBlocked: isLoading,
   });
 
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Enter") {
+        e.preventDefault();
+        e.stopPropagation();
+        if (!isLoading) onConfirm();
+      } else if (e.key === "Escape") {
+        e.preventDefault();
+        e.stopPropagation();
+        if (!isLoading) onClose();
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown, true);
+    return () => window.removeEventListener("keydown", handleKeyDown, true);
+  }, [isOpen, isLoading, onConfirm, onClose]);
+
   if (!isOpen || !mounted) return null;
 
   const defaultConfirmLabel = t("common.confirm");

@@ -36,7 +36,7 @@ export function IncomeSchedulesCard({
   onAddOneOff,
   onEdit,
 }: IncomeSchedulesCardProps) {
-  const { fmtDate } = useLocale();
+  const { fmtDate, fmt } = useLocale();
   const [selectedAccountId, setSelectedAccountId] = React.useState("");
   const [sortField, setSortField] = React.useState<"name" | "account" | "amount">("name");
   const [sortOrder, setSortOrder] = React.useState<"asc" | "desc">("asc");
@@ -161,7 +161,7 @@ export function IncomeSchedulesCard({
                       ) : inc.accountName}
                     </td>
                     <td className="py-2.5 px-3 text-right font-mono font-bold text-emerald-600 dark:text-emerald-400 tabular-nums">
-                      +${parseFloat(String(inc.amount)).toFixed(2)}
+                      +{fmt(parseFloat(String(inc.amount)))}
                     </td>
                   </tr>
                 ))}

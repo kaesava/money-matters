@@ -33,6 +33,10 @@ export async function createEnvelopeCommand(
 
     const isPrivate = Boolean(input.isPrivate ?? targetAccount.isPrivate);
 
+    if (input.isSurplusTarget === true && isPrivate) {
+      throw new Error("A private envelope cannot be designated as the household Surplus Sweep Target.");
+    }
+
     // 2. Clear previous surplus target if this one is designated
     if (input.isSurplusTarget === true) {
       await tx

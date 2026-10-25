@@ -202,17 +202,44 @@ export function EnvelopeDetailDrawer({
                   {t("categoryDrawer.targetAmount")}
                 </span>
                 <span className="text-sm font-black font-mono text-zinc-700 dark:text-zinc-300">
-                  {targetAmt ? `${fmt(targetAmt)}${!isGoalPool ? ` ${t("categoryDrawer.perMonth")}` : ""}` : "—"}
+                  {(() => {
+                    if (targetPool?.envelopeType === "ONGOING_GOAL") {
+                      const entered = targetPool.enteredAmount ? parseFloat(String(targetPool.enteredAmount)) : null;
+                      const freq = targetPool.budgetFrequency || "MONTHLY";
+                      const suffix = freq === "WEEKLY" ? "/wk" : freq === "FORTNIGHTLY" ? "/fn" : freq === "ANNUALLY" ? "/yr" : "/mo";
+                      const amtToShow = entered ?? targetAmt;
+                      if (!amtToShow) return "—";
+                      const monthlyEquivalent = targetPool.monthlyAmount ? parseFloat(String(targetPool.monthlyAmount)) : null;
+                      if (freq !== "MONTHLY" && monthlyEquivalent) {
+                        return `${fmt(amtToShow)}${suffix} (Est: ${fmt(monthlyEquivalent)}/mo)`;
+                      }
+                      return `${fmt(amtToShow)}${suffix}`;
+                    }
+                    if (targetPool?.envelopeType === "TARGET_GOAL") {
+                      const monthlyEquivalent = targetPool.monthlyAmount ? parseFloat(String(targetPool.monthlyAmount)) : null;
+                      if (targetAmt && monthlyEquivalent) {
+                        return `${fmt(targetAmt)} (Est: ${fmt(monthlyEquivalent)}/mo)`;
+                      }
+                      return targetAmt ? fmt(targetAmt) : "—";
+                    }
+                    return targetAmt ? `${fmt(targetAmt)} ${t("categoryDrawer.perMonth")}` : "—";
+                  })()}
                 </span>
               </div>
 
               {/* Row 2, Col 1: Pool Type / Target Date */}
               <div>
                 <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block">
-                  {isGoalPool ? t("categoryDrawer.targetDate") : t("categoryDrawer.poolType")}
+                  {targetPool?.envelopeType === "ONGOING_GOAL"
+                    ? t("categoryDrawer.recurrence")
+                    : isGoalPool
+                    ? t("categoryDrawer.targetDate")
+                    : t("categoryDrawer.poolType")}
                 </span>
                 <span className="text-sm font-black font-mono text-zinc-700 dark:text-zinc-300">
-                  {isGoalPool
+                  {targetPool?.envelopeType === "ONGOING_GOAL"
+                    ? targetPool.budgetFrequency || "MONTHLY"
+                    : isGoalPool
                     ? targetPool?.endDate
                       ? fmtDate(targetPool.endDate)
                       : "—"

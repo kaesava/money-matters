@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { t } from '@money-matters/i18n';
+import { useCurrencyLocale } from '../hooks/CurrencyLocaleContext';
 import { FilterPill } from './FilterPill';
 
 export interface MobilePoolOption {
@@ -41,11 +42,15 @@ export interface MobilePoolPickerProps {
   error?: string;
 }
 
-function formatPoolBalance(val?: string | number | null): string | null {
+function formatPoolBalance(
+  val?: string | number | null,
+  currencySymbol = '$',
+  locale = 'en-AU'
+): string | null {
   if (val === undefined || val === null || val === '') return null;
   const num = typeof val === 'number' ? val : parseFloat(String(val));
   if (isNaN(num)) return null;
-  return `$${num.toLocaleString('en-AU', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  return `${currencySymbol}${num.toLocaleString(locale, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
 export const MobilePoolPicker: React.FC<MobilePoolPickerProps> = ({
@@ -66,6 +71,10 @@ export const MobilePoolPicker: React.FC<MobilePoolPickerProps> = ({
   required = false,
   error,
 }) => {
+  const { currencySymbol, locale } = useCurrencyLocale();
+  const formatBalanceDynamic = (val?: string | number | null) =>
+    formatPoolBalance(val, currencySymbol, locale);
+
   const resolvedMode = mode || (displayStyle === 'field' ? 'inline' : 'modal');
   const [modalVisible, setModalVisible] = useState(false);
   const [isInlineOpen, setIsInlineOpen] = useState(false);
@@ -243,7 +252,7 @@ export const MobilePoolPicker: React.FC<MobilePoolPickerProps> = ({
                 section.data.map((item) => {
                   const isPoolSelected =
                     item.id === selectedPoolId && (!allowCategorySelection || !selectedCategoryId);
-                  const balText = formatPoolBalance(item.currentBalance);
+                  const balText = formatBalanceDynamic(item.currentBalance);
 
                   return (
                     <View key={item.id} style={styles.poolContainer}>
@@ -340,7 +349,7 @@ export const MobilePoolPicker: React.FC<MobilePoolPickerProps> = ({
     );
   };
 
-  const selectedPoolBal = selectedPool ? formatPoolBalance(selectedPool.currentBalance) : null;
+  const selectedPoolBal = selectedPool ? formatBalanceDynamic(selectedPool.currentBalance) : null;
 
   return (
     <View style={{ marginBottom: displayStyle === 'field' ? 12 : 0 }}>
@@ -484,7 +493,7 @@ export const MobilePoolPicker: React.FC<MobilePoolPickerProps> = ({
                 renderItem={({ item }) => {
                   const isPoolSelected =
                     item.id === selectedPoolId && (!allowCategorySelection || !selectedCategoryId);
-                  const balText = formatPoolBalance(item.currentBalance);
+                  const balText = formatBalanceDynamic(item.currentBalance);
 
                   return (
                     <View style={styles.poolContainer}>

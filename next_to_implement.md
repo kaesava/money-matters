@@ -10,13 +10,6 @@
 * Ensure parity between mobile and web - UI & functionality. So, when you write address a new/change/fix for the Web app, also ensure that the mobile app is in parity and address it there too. When you write address a new/change/fix for the Mobile app, also ensure that the web app is in parity and address it there too. Do this even if not explicitly asked, unless I explicitly state the app (Mobile: or Web:). Re-use code as much as possible while keeping native UI experiences.
 
 ## Setup (first time setup)
-* Web Step 2 - Move "We've set up a default Primary Account for you. Add extra accounts or adjust how your money envelopes are routed." into an information tooltip.(apply to Mobile too if applicable)
-* Web Step 3 - Move the "Your Savings Goals" table below the "Add Goal:" and don't put "Your Savings Goals" in a scrollable container. (apply to Mobile too if applicable)
-* Web Step 3 - Just as you show the "Estimated bills: $5125/mo · Everyday: $2923/mo" in Step 4, show the Total Target Goal amount and total monthly Ongoing Goal amounts in Step 3. (apply to Mobile too if applicable)
-* Final Step - Instead of static "Net Surplus / Deficit", show as "Estimated Monthly Extra" or "Estimated Monthly Shortfall" depending on positive/negative number. Also, remove the "Summary Preview" badge. (apply to Mobile too if applicable)
-* All Steps: Don't put Back & Next inside scrollable containers, and show these buttons at the top too (next to the "Step X of X" badge). Freeze (from a scroll perspective)the header part so users can scroll down but still see the top. The header would include the Step card which shows Step #, The Header, Back & Next and Step badge, and any Estimates/calculations that summarise what's selected. Don't put sections below it in scrollable containers. (apply to Mobile too if applicable)
-* The New/Edited Goals from Step 3 don't show up in the final Summary step. FIx.(apply to Mobile too if applicable)
-
 
 ## Ask Penny
 

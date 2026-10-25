@@ -3,6 +3,7 @@
 import React, { useState, useId, useRef, useEffect, useMemo } from "react";
 import { Lock, ChevronDown, Search, X, Check } from "lucide-react";
 import { t } from "@money-matters/i18n";
+import { useCurrencyLocale } from "../hooks/CurrencyLocaleContext";
 import { PoolPickerGroup } from "./PoolPickerGroup";
 import {
   PoolOption,
@@ -125,6 +126,10 @@ export function PoolPicker({
     }
   }, [searchQuery, pools]);
 
+  const { currencySymbol, locale } = useCurrencyLocale();
+  const formatBalanceDynamic = (val: number | string | null | undefined) =>
+    formatPoolBalance(val, currencySymbol, locale);
+
   return (
     <div ref={containerRef} className={`relative w-full ${className}`}>
       <button
@@ -222,7 +227,7 @@ export function PoolPicker({
                   showBalance={showBalance}
                   onSelectPool={handleSelectPool}
                   onSelectCategory={handleSelectCategory}
-                  formatBalance={formatPoolBalance}
+                  formatBalance={formatBalanceDynamic}
                   searchQuery={searchQuery}
                 />
               ))

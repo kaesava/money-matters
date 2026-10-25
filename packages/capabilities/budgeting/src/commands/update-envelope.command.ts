@@ -39,6 +39,29 @@ export async function updateEnvelopeCommand(
       throw new Error("Envelope not found or access unauthorized.");
     }
 
+    const effectiveIsPrivate = input.isPrivate !== undefined ? Boolean(input.isPrivate) : Boolean(existing.isPrivate);
+
+    if (input.isSurplusTarget === true && effectiveIsPrivate) {
+      throw new Error("A private envelope cannot be designated as the household Surplus Sweep Target.");
+    }
+
+    if (input.isSurplusTarget === false && existing.isSurplusTarget) {
+      const otherSurplusTargets = await tx
+        .select({ id: envelopes.id })
+        .from(envelopes)
+        .where(
+          and(
+            eq(envelopes.tenantId, tenantId),
+            eq(envelopes.appId, appId),
+            eq(envelopes.isSurplusTarget, true),
+            eq(envelopes.isPrivate, false)
+          )
+        );
+      if (otherSurplusTargets.length <= 1) {
+        throw new Error("The household must have at least one public Surplus Sweep Target.");
+      }
+    }
+
     if (input.isSurplusTarget === true) {
       await tx
         .update(envelopes)

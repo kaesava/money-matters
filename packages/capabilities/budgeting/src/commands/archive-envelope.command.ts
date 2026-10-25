@@ -29,18 +29,37 @@ export async function archiveEnvelopeCommand(
     throw new Error("The Everyday envelope cannot be archived.");
   }
 
-  // Clear surplus target designation if this envelope was the surplus target
-  if (envelope.isSurplusTarget && typeof dbClient.update === "function") {
-    await dbClient
-      .update(envelopes)
-      .set({ isSurplusTarget: false })
+  // Guard surplus target designation: cannot archive if it is the only active public surplus target
+  if (envelope.isSurplusTarget) {
+    const otherSurplusTargets = await dbClient
+      .select({ id: envelopes.id })
+      .from(envelopes)
       .where(
         and(
-          eq(envelopes.id, envelopeId),
           eq(envelopes.tenantId, tenantId),
-          eq(envelopes.appId, appId)
+          eq(envelopes.appId, appId),
+          eq(envelopes.isSurplusTarget, true),
+          sql`${envelopes.id} != ${envelopeId}`,
+          sql`${envelopes.archivedAt} IS NULL`
         )
       );
+
+    if (otherSurplusTargets.length === 0) {
+      throw new Error("The primary Surplus Sweep Target cannot be archived without designating another public envelope as the sweep target.");
+    }
+
+    if (typeof dbClient.update === "function") {
+      await dbClient
+        .update(envelopes)
+        .set({ isSurplusTarget: false })
+        .where(
+          and(
+            eq(envelopes.id, envelopeId),
+            eq(envelopes.tenantId, tenantId),
+            eq(envelopes.appId, appId)
+          )
+        );
+    }
   }
 
   // Soft-archive all pending (unconfirmed) expense events (both scheduled and one-off)

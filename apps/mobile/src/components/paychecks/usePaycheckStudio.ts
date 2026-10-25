@@ -91,10 +91,12 @@ export function usePaycheckStudio(id: string | undefined, returnTo?: string) {
   }, [linesMap, sweepPool]);
 
   const sweepPoolRemainder = useMemo(() => {
-    return Math.max(-999999, Math.round((numericActual - nonSweepAllocatedSum) * 100) / 100);
+    const raw = Math.round((numericActual - nonSweepAllocatedSum) * 100) / 100;
+    const rounded = Math.abs(raw) < 0.005 ? 0 : raw;
+    return Math.max(-999999, rounded);
   }, [numericActual, nonSweepAllocatedSum]);
 
-  const isDeficit = sweepPoolRemainder < 0;
+  const isDeficit = sweepPoolRemainder < -0.005;
 
   const isDirty = useMemo(() => {
     if (!previewQuery.data) return false;

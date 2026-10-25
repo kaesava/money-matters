@@ -4,6 +4,7 @@ import { Feather } from '@expo/vector-icons';
 import { DESIGN_TOKENS } from '../tokens';
 import { MobileModalDialog } from './MobileModalDialog';
 import { SegmentedTabs } from './SegmentedTabs';
+import { useCurrencyLocale } from '../hooks/CurrencyLocaleContext';
 import { t } from '@money-matters/i18n';
 
 export interface MobileEnvelopeDetailItem {
@@ -31,6 +32,8 @@ export interface MobileEnvelopeDetailSheetProps {
   poolType?: string;
   currentBalance?: number | string | null;
   targetAmount?: number | string | null;
+  enteredAmount?: number | string | null;
+  budgetFrequency?: string | null;
   targetDate?: string | null;
   upcomingEvents?: MobileEnvelopeDetailItem[];
   activities?: MobileActivityItem[];
@@ -40,29 +43,35 @@ export interface MobileEnvelopeDetailSheetProps {
 
 export type MobileCategoryDetailSheetProps = MobileEnvelopeDetailSheetProps;
 
-function fmtMoney(val: number | string | undefined | null): string {
-  const num = typeof val === 'number' ? val : parseFloat(String(val || '0'));
-  return `$${num.toLocaleString('en-AU', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-}
-
 export function MobileEnvelopeDetailSheet({
   visible,
   poolName,
   poolType,
   currentBalance,
   targetAmount,
+  enteredAmount,
+  budgetFrequency,
   targetDate,
   upcomingEvents = [],
   activities = [],
   onClose,
   onMarkPaid,
 }: MobileCategoryDetailSheetProps) {
+  const { currencySymbol, locale } = useCurrencyLocale();
+  const fmtMoney = (val: number | string | undefined | null): string => {
+    const num = typeof val === 'number' ? val : parseFloat(String(val || '0'));
+    return `${currencySymbol}${num.toLocaleString(locale, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  };
+
   const [activeTab, setActiveTab] = useState<'UPCOMING' | 'ACTIVITY'>('UPCOMING');
 
   if (!visible) return null;
 
   const balNum = typeof currentBalance === 'number' ? currentBalance : parseFloat(String(currentBalance || '0'));
   const targetNum = typeof targetAmount === 'number' ? targetAmount : parseFloat(String(targetAmount || '0'));
+  const enteredNum = typeof enteredAmount === 'number' ? enteredAmount : parseFloat(String(enteredAmount || '0'));
+  const isOngoing = poolType === 'ONGOING_GOAL' || (!targetDate && Boolean(budgetFrequency));
+  const freqSuffix = budgetFrequency === 'WEEKLY' ? '/wk' : budgetFrequency === 'FORTNIGHTLY' ? '/fn' : budgetFrequency === 'ANNUALLY' ? '/yr' : '/mo';
 
   const tabs = [
     { key: 'UPCOMING' as const, label: `${t('categoryDrawer.tabs.upcomingExpenses')} (${upcomingEvents.length})` },
@@ -92,11 +101,21 @@ export function MobileEnvelopeDetailSheet({
             <Text style={styles.statAmount}>{fmtMoney(balNum)}</Text>
           </View>
 
-          {targetNum > 0 && (
+          {(targetNum > 0 || enteredNum > 0) && (
             <View style={styles.statCard}>
               <Text style={styles.statLabel}>{t('paydayDrawer.tableColTarget')}</Text>
-              <Text style={styles.statAmount}>{fmtMoney(targetNum)}</Text>
-              {targetDate && <Text style={styles.targetDateText}>{targetDate}</Text>}
+              <Text style={styles.statAmount}>
+                {isOngoing
+                  ? enteredNum > 0
+                    ? `${fmtMoney(enteredNum)}${freqSuffix}`
+                    : `${fmtMoney(targetNum)}${freqSuffix}`
+                  : fmtMoney(targetNum)}
+              </Text>
+              {isOngoing ? (
+                <Text style={styles.targetDateText}>{budgetFrequency || 'MONTHLY'}</Text>
+              ) : (
+                targetDate && <Text style={styles.targetDateText}>{targetDate}</Text>
+              )}
             </View>
           )}
         </View>

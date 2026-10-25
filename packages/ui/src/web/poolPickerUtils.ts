@@ -33,11 +33,15 @@ export const POOL_TYPE_LABELS: Record<string, string> = {
   OTHER: "Other Envelopes",
 };
 
-export function formatPoolBalance(val: number | string | null | undefined): string | null {
+export function formatPoolBalance(
+  val: number | string | null | undefined,
+  currencySymbol = "$",
+  locale = "en-AU"
+): string | null {
   if (val === null || val === undefined || val === "") return null;
   const num = typeof val === "number" ? val : parseFloat(val);
   if (isNaN(num)) return null;
-  return `$${num.toLocaleString("en-AU", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  return `${currencySymbol}${num.toLocaleString(locale, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
 export function groupPoolsByType(

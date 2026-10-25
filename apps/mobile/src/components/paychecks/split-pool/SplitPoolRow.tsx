@@ -3,7 +3,7 @@ import { View, Text, TouchableOpacity, TextInput, StyleSheet } from 'react-nativ
 import { Feather } from '@expo/vector-icons';
 import { DESIGN_TOKENS } from '@money-matters/ui/mobile';
 import { t } from '@money-matters/i18n';
-import { formatAUD, formatDate } from '../../../lib/format';
+import { formatAUD, formatDate, getMobileCurrencySymbol } from '../../../lib/format';
 import type { AllocationLineItem, PoolRecord } from '../MobileIncomeSplitPoolList';
 import { SplitPoolReasoningField } from './SplitPoolReasoningField';
 
@@ -103,7 +103,7 @@ export const SplitPoolRow: React.FC<SplitPoolRowProps> = ({
 
         <View style={styles.amountInputCol}>
           <View style={styles.amountInputWrap}>
-            <Text style={styles.currencyPrefix}>$</Text>
+            <Text style={styles.currencyPrefix}>{getMobileCurrencySymbol()}</Text>
             <TextInput
               style={[styles.amountInput, isSweep && styles.sweepAmountInput]}
               keyboardType="decimal-pad"
@@ -119,10 +119,11 @@ export const SplitPoolRow: React.FC<SplitPoolRowProps> = ({
           <View style={styles.chipsRow}>
             {!isSweep && !isReadOnly && (
               <TouchableOpacity
-                onPress={() => onLineAmountChange(item.bucketId, '0.00')}
+                onPress={() => onLineAmountChange(item.bucketId, '')}
                 style={styles.zeroChip}
+                accessibilityLabel={t('paydayDrawer.clearAllocation')}
               >
-                <Text style={styles.zeroChipText}>{t('paydayDrawer.zeroPercent')}</Text>
+                <Feather name="trash-2" size={12} color={DESIGN_TOKENS.colors.slate[500]} />
               </TouchableOpacity>
             )}
 

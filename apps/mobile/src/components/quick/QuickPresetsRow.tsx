@@ -3,6 +3,7 @@ import { View, Text, TouchableOpacity, ScrollView, StyleSheet } from 'react-nati
 import { QuickPresetItem } from './useMobileQuickAction';
 import { t } from '@money-matters/i18n';
 import { triggerHaptic } from '../../lib/haptics';
+import { getMobileCurrencySymbol } from '../../lib/format';
 
 interface QuickPresetsRowProps {
   recentPresets: QuickPresetItem[];
@@ -16,6 +17,7 @@ export function QuickPresetsRow({
   onSelect,
 }: QuickPresetsRowProps) {
   if (recentPresets.length === 0 && frequentPresets.length === 0) return null;
+  const sym = getMobileCurrencySymbol();
 
   return (
     <View style={styles.container}>
@@ -30,7 +32,7 @@ export function QuickPresetsRow({
             {recentPresets.map((item, idx) => {
               const key = `recent-${item.name || item.displayName || 'preset'}-${idx}`;
               const title = item.displayName || item.name || '';
-              const subtitle = item.amount ? `$${item.amount}` : '';
+              const subtitle = item.amount ? `${sym}${item.amount}` : '';
 
               return (
                 <TouchableOpacity
@@ -62,7 +64,7 @@ export function QuickPresetsRow({
             {frequentPresets.map((item, idx) => {
               const key = `freq-${item.name || item.displayName || 'preset'}-${idx}`;
               const title = item.displayName || item.name || '';
-              const subtitle = item.amount ? `$${item.amount}` : '';
+              const subtitle = item.amount ? `${sym}${item.amount}` : '';
 
               return (
                 <TouchableOpacity

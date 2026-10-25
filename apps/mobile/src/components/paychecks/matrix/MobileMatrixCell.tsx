@@ -21,7 +21,7 @@ export const MobileMatrixCell: React.FC<MobileMatrixCellProps> = ({
       <View style={styles.cellContainer}>
         <View style={[styles.surplusPill, isDeficit ? styles.deficitPill : styles.surplusPositivePill]}>
           <Text style={[styles.pillText, isDeficit ? styles.deficitText : styles.surplusText]}>
-            {isDeficit ? `-$${Math.abs(value).toFixed(2)}` : formatAUD(value)}
+            {isDeficit ? `-${formatAUD(Math.abs(value))}` : formatAUD(value)}
           </Text>
         </View>
         {projectedBalance !== undefined && (

@@ -108,7 +108,7 @@ export function MatrixPlanTab({
   expenseEvents: propsExpenseEvents = [],
   onMarkPaid,
 }: MatrixPlanTabProps) {
-  const { locale, userTimezone } = useLocale();
+  const { locale, userTimezone, fmt } = useLocale();
   const router = useRouter();
   const pathname = usePathname();
   const toast = useToast();
@@ -432,7 +432,7 @@ export function MatrixPlanTab({
 
                       {/* Row 3: Amount in slightly bigger font (center aligned) */}
                       <div className="text-sm font-extrabold text-emerald-600 dark:text-emerald-400 font-mono mt-0.5">
-                        +${col.totalIncome.toFixed(2)}
+                        +{fmt(col.totalIncome)}
                       </div>
 
                       {/* Row 4: Action Links */}
@@ -496,7 +496,7 @@ export function MatrixPlanTab({
 
                       {col.hiddenAllocationsTotal > 0 && (
                         <div className="text-[9px] font-medium text-zinc-400 mt-1">
-                          (${col.hiddenAllocationsTotal.toFixed(2)} private)
+                          ({fmt(col.hiddenAllocationsTotal)} private)
                         </div>
                       )}
                     </div>
@@ -549,8 +549,8 @@ export function MatrixPlanTab({
                               const targetVal = rawTarget != null ? Number(rawTarget) : null;
                               return (
                                 <div className="text-[10px] font-medium text-zinc-500 font-mono mt-0.5">
-                                  Bal: ${curBal.toFixed(2)}
-                                  {targetVal != null && targetVal > 0 ? ` / Target: $${targetVal.toFixed(2)}` : ""}
+                                  Bal: {fmt(curBal)}
+                                  {targetVal != null && targetVal > 0 ? ` / Target: ${fmt(targetVal)}` : ""}
                                 </div>
                               );
                             })()}
@@ -582,7 +582,7 @@ export function MatrixPlanTab({
                                   isSurplusTarget={row.isSurplusTarget}
                                 />
                                 <span className="text-[10px] font-mono text-zinc-500 font-medium mt-0.5">
-                                  Bal: ${cell.projectedBalance.toFixed(2)}
+                                  Bal: {fmt(cell.projectedBalance)}
                                 </span>
                               </div>
                             </td>

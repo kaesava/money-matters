@@ -46,7 +46,7 @@ export function BillSchedulesCard({
   onAddOneOff,
   onEditCategory,
 }: BillSchedulesCardProps) {
-  const { fmtDate } = useLocale();
+  const { fmtDate, fmt } = useLocale();
   const [selectedPoolId, setSelectedPoolId] = React.useState("");
   const [sortField, setSortField] = React.useState<"name" | "pool" | "amount">("name");
   const [sortOrder, setSortOrder] = React.useState<"asc" | "desc">("asc");
@@ -176,7 +176,7 @@ export function BillSchedulesCard({
                       </Link>
                     </td>
                     <td className="py-2.5 px-3 text-right font-mono font-bold text-rose-600 dark:text-rose-400 tabular-nums">
-                      −${parseFloat(String(b.amount)).toFixed(2)}
+                      −{fmt(parseFloat(String(b.amount)))}
                     </td>
                   </tr>
                 ))}
