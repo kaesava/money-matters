@@ -48,7 +48,7 @@ export function SetupReviewCategoryList({
 
       {children}
 
-      <div className="flex flex-col gap-2 max-h-[35vh] overflow-y-auto pr-1">
+      <div className="flex flex-col gap-2">
         {categories.map((cat) => {
           const freq = categoryFrequencies[cat.name] || "MONTHLY";
           const displayVal = convertFromMonthly(cat.monthlyAud, freq);

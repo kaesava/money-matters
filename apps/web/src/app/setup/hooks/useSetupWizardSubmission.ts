@@ -22,9 +22,10 @@ interface SubmissionProps {
   goals: UserGoalItem[];
   categoryFrequencies: Record<string, "WEEKLY" | "FORTNIGHTLY" | "MONTHLY" | "YEARLY">;
   sweepQueue: Array<{ poolId: string; sweepDestinationPoolId?: string | null }>;
+  removedCategoryNames?: Set<string>;
   archivedAccountIds: Set<string>;
   archivedIncomeIds: Set<string>;
-  existingPools?: Array<{ id: string; bankAccountId?: string | null; isPrivate?: boolean | null }>;
+  existingPools?: Array<{ id: string; name?: string; bankAccountId?: string | null; isPrivate?: boolean | null }>;
 }
 
 export function useSetupWizardSubmission({
@@ -35,6 +36,7 @@ export function useSetupWizardSubmission({
   goals,
   categoryFrequencies,
   sweepQueue,
+  removedCategoryNames = new Set(),
   archivedAccountIds,
   archivedIncomeIds,
   existingPools = [],
@@ -59,8 +61,10 @@ export function useSetupWizardSubmission({
 
       const primaryBankAccountId = accountsPayload[0]?.id;
 
+      const nonGoalCategories = activeCategories.filter((c) => c.type !== "GOAL");
+
       const envelopesPayload = [
-        ...activeCategories.map((c, idx) => {
+        ...nonGoalCategories.map((c, idx) => {
           const rawFreq = categoryFrequencies[c.name];
           const budgetFreq = rawFreq === "YEARLY" ? ("ANNUALLY" as const) : ("MONTHLY" as const);
           const catId = "id" in c && typeof c.id === "string" && !c.id.startsWith("temp-") ? c.id : undefined;
@@ -76,7 +80,6 @@ export function useSetupWizardSubmission({
             monthlyAmount: (c.monthlyAud || 0).toFixed(2),
             enteredAmount: (c.monthlyAud || 0).toFixed(2),
             budgetFrequency: budgetFreq,
-            icon: c.icon || "wallet",
             isEssential: isBill,
             orderIndex: idx,
           };
@@ -91,7 +94,7 @@ export function useSetupWizardSubmission({
             envelopeType: (g.goalMode === "ONGOING" ? "ONGOING_GOAL" : "TARGET_GOAL") as "ONGOING_GOAL" | "TARGET_GOAL",
             goalMode: g.goalMode ?? (g.dueDate ? "TARGET_DATE" : "ONGOING"),
             targetAmount: (g.goalMode === "ONGOING" ? (g.monthlyAmount || g.targetAmount || 250) : (g.targetAmount || g.monthlyAmount * 12 || 1000)).toFixed(2),
-            targetDate: g.goalMode === "ONGOING" ? null : (g.dueDate || null),
+            endDate: g.goalMode === "ONGOING" ? null : (g.dueDate || null),
             enteredAmount: g.enteredAmount ? g.enteredAmount.toFixed(2) : undefined,
             budgetFrequency: g.budgetFrequency,
             startDate: g.startDate,
@@ -99,7 +102,7 @@ export function useSetupWizardSubmission({
             isSurplusTarget: idx === 0,
             isCommitted: true,
             isPrivate: matchedPool?.isPrivate ?? false,
-            orderIndex: activeCategories.length + idx,
+            orderIndex: nonGoalCategories.length + idx,
           };
         }),
       ];
@@ -120,6 +123,10 @@ export function useSetupWizardSubmission({
         };
       });
 
+      const resolvedArchivedEnvelopeIds = Array.from(removedCategoryNames)
+        .map((name) => existingPools.find((c) => c.name === name)?.id)
+        .filter((id): id is string => Boolean(id));
+
       await saveSetupBudgetMut.mutateAsync({
         incomes: incomesPayload,
         bankAccounts: accountsPayload.length > 0 ? accountsPayload : [
@@ -128,7 +135,7 @@ export function useSetupWizardSubmission({
         envelopes: envelopesPayload.length > 0 ? envelopesPayload : [
           { name: "Everyday Spending", envelopeType: "EVERYDAY", bankAccountId: primaryBankAccountId, monthlyAmount: "1000.00", isEssential: true }
         ],
-        archivedEnvelopeIds: sweepQueue.map((s) => s.poolId),
+        archivedEnvelopeIds: [...sweepQueue.map((s) => s.poolId), ...resolvedArchivedEnvelopeIds],
         archivedAccountIds: Array.from(archivedAccountIds),
         archivedIncomeIds: Array.from(archivedIncomeIds),
       });

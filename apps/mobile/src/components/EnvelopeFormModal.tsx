@@ -35,13 +35,29 @@ export interface EnvelopeItem {
   isSurplusTarget?: boolean | null;
 }
 
-export type CategoryItem = EnvelopeItem;
+export interface EnvelopeDraftPayload {
+  name: string;
+  type: 'GOAL' | 'REGULAR' | 'EVERYDAY';
+  envelopeType: 'EVERYDAY' | 'SCHEDULED_BILL' | 'FLEXIBLE_BILL' | 'TARGET_GOAL' | 'ONGOING_GOAL';
+  monthlyAmount?: string;
+  enteredAmount?: string;
+  targetAmount?: string;
+  endDate?: string;
+  budgetFrequency?: 'WEEKLY' | 'FORTNIGHTLY' | 'MONTHLY' | 'ANNUALLY';
+  startDate?: string;
+  rrule?: string;
+  goalMode?: 'TARGET_DATE' | 'ONGOING';
+  isSurplusTarget?: boolean;
+  bankAccountId?: string;
+}
 
 export interface EnvelopeFormModalProps {
   visible: boolean;
   envelopeToEdit?: EnvelopeItem | null;
   categoryToEdit?: EnvelopeItem | null;
   defaultType?: 'GOAL' | 'REGULAR' | 'EVERYDAY';
+  bankAccounts?: Array<{ id: string; name: string; isPrivate?: boolean | null }>;
+  onSaveDraft?: (draft: EnvelopeDraftPayload) => void;
   onClose: () => void;
   onSuccess?: () => void;
 }
@@ -53,6 +69,8 @@ export function EnvelopeFormModal({
   envelopeToEdit,
   categoryToEdit: legacyCategoryToEdit,
   defaultType,
+  bankAccounts: passedBankAccounts,
+  onSaveDraft,
   onClose,
   onSuccess,
 }: EnvelopeFormModalProps) {
@@ -60,8 +78,9 @@ export function EnvelopeFormModal({
   const toast = useMobileToast();
   const utils = trpc.useUtils();
 
-  const bankAccountsQuery = trpc.listBankAccountsWithExpected.useQuery(undefined, { enabled: visible });
-  const bankAccounts = bankAccountsQuery.data ?? [];
+  const isDraftMode = Boolean(onSaveDraft);
+  const bankAccountsQuery = trpc.listBankAccountsWithExpected.useQuery(undefined, { enabled: visible && !isDraftMode });
+  const bankAccounts = passedBankAccounts ?? bankAccountsQuery.data ?? [];
 
   const isEdit = Boolean(categoryToEdit?.id);
 
@@ -111,18 +130,26 @@ export function EnvelopeFormModal({
       setName('');
       setType(defaultType || 'REGULAR');
       setBillMode('SCHEDULED_BILL');
-      setBankAccountId('');
+      setBankAccountId(bankAccounts[0]?.id || '');
       setSafetyBufferFloor('');
       setTargetAmount('');
       setTargetDate('');
       setGoalMode('TARGET_DATE');
       setFrequency('MONTHLY');
       setInterval(1);
-      setGoalStartDate(new Intl.DateTimeFormat('en-CA', { timeZone: 'Australia/Sydney' }).format(new Date()));
+      setGoalStartDate(new Intl.DateTimeFormat('en-CA').format(new Date()));
       setIsSurplusTarget(false);
     }
     setNameError('');
-  }, [categoryToEdit, defaultType, visible]);
+  }, [categoryToEdit, defaultType, visible, bankAccounts]);
+
+  useEffect(() => {
+    if (!isEdit && bankAccounts.length > 0) {
+      if (type === 'REGULAR' || type === 'EVERYDAY') {
+        setBankAccountId(bankAccounts[0]?.id || '');
+      }
+    }
+  }, [type, isEdit, bankAccounts]);
 
   const calculatedMonthly = useMemo(() => {
     const val = parseFloat(targetAmount);
@@ -359,6 +386,17 @@ export function EnvelopeFormModal({
 
   const executeSubmit = () => {
     const payload = buildPayload();
+    if (isDraftMode && onSaveDraft) {
+      onSaveDraft({
+        ...payload,
+        type,
+        bankAccountId: bankAccountId || bankAccounts[0]?.id,
+      });
+      toast.success(t('toasts.created'));
+      onSuccess?.();
+      onClose();
+      return;
+    }
     if (categoryToEdit) {
       updateMut.mutate({ poolId: categoryToEdit.id, data: payload });
     } else {
@@ -412,6 +450,8 @@ export function EnvelopeFormModal({
     label: `${acc.name} ${acc.isPrivate ? t('categories.privateBadge') : t('categories.householdBadge')}`,
   }));
 
+  const isBankDisabled = isEdit || type === 'REGULAR' || type === 'EVERYDAY';
+
   return (
     <MobileModalDialog
       visible={visible}
@@ -458,6 +498,7 @@ export function EnvelopeFormModal({
         calculatedMonthly={calculatedMonthly}
         bankAccountId={bankAccountId}
         setBankAccountId={setBankAccountId}
+        bankDisabled={isBankDisabled}
         isSurplusTarget={isSurplusTarget}
         setIsSurplusTarget={setIsSurplusTarget}
         isEdit={isEdit}

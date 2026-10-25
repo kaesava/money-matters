@@ -8,21 +8,9 @@ interface LifestyleChildSubCardProps {
   child: ChildConfig;
   index: number;
   showRemove: boolean;
-  onUpdate: (id: string, field: 'name' | 'stage' | 'type', value: any) => void;
+  onUpdate: <K extends keyof ChildConfig>(id: string, field: K, value: ChildConfig[K]) => void;
   onRemove: (id: string) => void;
 }
-
-const STAGES: { key: SchoolStage; label: string }[] = [
-  { key: 'CHILDCARE', label: 'Daycare' },
-  { key: 'PRIMARY', label: 'Primary' },
-  { key: 'SECONDARY', label: 'High' },
-];
-
-const TYPES: { key: SchoolType; label: string }[] = [
-  { key: 'PUBLIC', label: 'Public' },
-  { key: 'CATHOLIC', label: 'Catholic' },
-  { key: 'PRIVATE', label: 'Private' },
-];
 
 export function LifestyleChildSubCard({
   child,
@@ -31,10 +19,22 @@ export function LifestyleChildSubCard({
   onUpdate,
   onRemove,
 }: LifestyleChildSubCardProps) {
+  const stages: { key: SchoolStage; label: string }[] = [
+    { key: 'CHILDCARE', label: t('setup.lifestyle.stageDaycare') },
+    { key: 'PRIMARY', label: t('setup.lifestyle.stagePrimary') },
+    { key: 'SECONDARY', label: t('setup.lifestyle.stageHighSchool') },
+  ];
+
+  const types: { key: SchoolType; label: string }[] = [
+    { key: 'PUBLIC', label: t('setup.lifestyle.schoolPublic') },
+    { key: 'CATHOLIC', label: t('setup.lifestyle.schoolCatholic') },
+    { key: 'PRIVATE', label: t('setup.lifestyle.schoolPrivate') },
+  ];
+
   return (
     <View style={styles.card}>
       <View style={styles.row}>
-        <Text style={styles.title}>Child #{index + 1}</Text>
+        <Text style={styles.title}>{t('setup.lifestyle.childIndexTitle', { index: index + 1 })}</Text>
         {showRemove && (
           <TouchableOpacity onPress={() => onRemove(child.id)}>
             <Text style={styles.removeText}>{t('common.remove')}</Text>
@@ -45,12 +45,12 @@ export function LifestyleChildSubCard({
         style={styles.input}
         value={child.name}
         onChangeText={(txt) => onUpdate(child.id, 'name', txt)}
-        placeholder="Child name"
+        placeholder={t('setup.lifestyle.childNamePlaceholder')}
         placeholderTextColor={DESIGN_TOKENS.colors.textMuted}
       />
       <View style={styles.chipsGroup}>
         <View style={styles.chipRow}>
-          {STAGES.map((s) => (
+          {stages.map((s) => (
             <TouchableOpacity
               key={s.key}
               style={[styles.chip, child.stage === s.key && styles.chipActive]}
@@ -63,7 +63,7 @@ export function LifestyleChildSubCard({
           ))}
         </View>
         <View style={styles.chipRow}>
-          {TYPES.map((ty) => (
+          {types.map((ty) => (
             <TouchableOpacity
               key={ty.key}
               style={[styles.chip, child.type === ty.key && styles.chipActive]}

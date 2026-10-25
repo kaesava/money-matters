@@ -42,8 +42,10 @@ export function useSetupCategoriesSubmission() {
       const primaryBankAccountId = accountsPayload[0]?.id;
       const existingPools = poolsQuery.data || [];
 
+      const nonGoalCategories = activeCategories.filter((c) => c.type !== 'GOAL');
+
       const envelopesPayload = [
-        ...activeCategories.map((c, idx) => {
+        ...nonGoalCategories.map((c, idx) => {
           const rawFreq = categoryFrequencies[c.name];
           const budgetFreq: 'WEEKLY' | 'FORTNIGHTLY' | 'MONTHLY' | 'ANNUALLY' =
             rawFreq === 'YEARLY' ? 'ANNUALLY' : 'MONTHLY';
@@ -60,7 +62,6 @@ export function useSetupCategoriesSubmission() {
             monthlyAmount: (c.monthlyAud || 0).toFixed(2),
             enteredAmount: (c.monthlyAud || 0).toFixed(2),
             budgetFrequency: budgetFreq,
-            icon: c.icon || 'wallet',
             isEssential: isBill,
             orderIndex: idx,
           };
@@ -78,7 +79,7 @@ export function useSetupCategoriesSubmission() {
               ? g.monthlyAmount || g.targetAmount || 250
               : g.targetAmount || g.monthlyAmount * 12 || 1000
             ).toFixed(2),
-            targetDate: g.goalMode === 'ONGOING' ? null : g.dueDate || null,
+            endDate: g.goalMode === 'ONGOING' ? null : g.dueDate || null,
             enteredAmount: g.enteredAmount ? g.enteredAmount.toFixed(2) : undefined,
             budgetFrequency: g.budgetFrequency,
             startDate: g.startDate,
@@ -86,7 +87,7 @@ export function useSetupCategoriesSubmission() {
             isSurplusTarget: idx === 0,
             isCommitted: true,
             isPrivate: matchedPool?.isPrivate ?? false,
-            orderIndex: activeCategories.length + idx,
+            orderIndex: nonGoalCategories.length + idx,
           };
         }),
       ];

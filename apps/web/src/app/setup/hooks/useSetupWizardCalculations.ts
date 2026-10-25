@@ -10,31 +10,70 @@ import {
 interface CalculationsProps {
   quizAnswers: QuizAnswers;
   isRerun: boolean;
+  goals?: Array<{
+    id: string;
+    name: string;
+    monthlyAmount: number;
+    icon?: string;
+    targetAmount?: number | null;
+    dueDate?: string | null;
+    goalMode?: "TARGET_DATE" | "ONGOING";
+    enteredAmount?: number | null;
+  }>;
   customCategories: EstimatedCategoryItem[];
   removedCategoryNames: Set<string>;
   amountOverrides: Record<string, number>;
 }
 
+function getGoalMonthsDiff(targetDateStr?: string | null): number {
+  if (!targetDateStr) return 12;
+  const now = new Date();
+  const target = new Date(targetDateStr);
+  const months = (target.getFullYear() - now.getFullYear()) * 12 + (target.getMonth() - now.getMonth());
+  return Math.max(1, months);
+}
+
 export function useSetupWizardCalculations({
   quizAnswers,
   isRerun,
+  goals = [],
   customCategories,
   removedCategoryNames,
   amountOverrides,
 }: CalculationsProps) {
   const estimation = useMemo(() => calculateQuizEstimates(quizAnswers), [quizAnswers]);
 
+  const activeGoals: EstimatedCategoryItem[] = useMemo(() => {
+    return goals
+      .filter((g) => !removedCategoryNames.has(g.name))
+      .map((g) => {
+        const isOngoing = g.goalMode === "ONGOING";
+        const override = amountOverrides[g.name];
+        const baseMonthly = isOngoing
+          ? g.enteredAmount !== undefined && g.enteredAmount !== null
+            ? g.enteredAmount
+            : g.monthlyAmount || g.targetAmount || 0
+          : g.monthlyAmount || Math.round((g.targetAmount || 0) / getGoalMonthsDiff(g.dueDate));
+        return {
+          id: g.id,
+          name: g.name,
+          type: "GOAL" as const,
+          monthlyAud: override !== undefined ? override : baseMonthly,
+          icon: g.icon || "target",
+        };
+      });
+  }, [goals, removedCategoryNames, amountOverrides]);
+
   const activeCategories = useMemo(() => {
-    const combined = isRerun
-      ? customCategories
+    const nonGoalCategories = isRerun
+      ? customCategories.filter((c) => c.type !== "GOAL")
       : [
           ...estimation.regularBills,
-          ...estimation.goalSinkingFunds,
           ...estimation.everydayCategories,
-          ...customCategories,
+          ...customCategories.filter((c) => c.type !== "GOAL"),
         ];
 
-    return combined
+    const mappedNonGoals = nonGoalCategories
       .filter((cat) => !removedCategoryNames.has(cat.name))
       .map((cat) => {
         const override = amountOverrides[cat.name];
@@ -43,14 +82,16 @@ export function useSetupWizardCalculations({
           monthlyAud: override !== undefined ? override : cat.monthlyAud,
         };
       });
+
+    return [...mappedNonGoals, ...activeGoals];
   }, [
     isRerun,
     estimation.regularBills,
-    estimation.goalSinkingFunds,
     estimation.everydayCategories,
     customCategories,
     removedCategoryNames,
     amountOverrides,
+    activeGoals,
   ]);
 
   const activeEveryday = useMemo(
@@ -59,10 +100,6 @@ export function useSetupWizardCalculations({
   );
   const activeRegular = useMemo(
     () => activeCategories.filter((c) => c.type === "REGULAR"),
-    [activeCategories]
-  );
-  const activeGoals = useMemo(
-    () => activeCategories.filter((c) => c.type === "GOAL"),
     [activeCategories]
   );
 

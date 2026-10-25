@@ -130,28 +130,6 @@ export function SetupGoalsStep({
         </div>
       </div>
 
-      {/* Rerun: Active goals first */}
-      {isRerun && goals.length > 0 && (
-        <div className="flex flex-col gap-2">
-          <span className="text-xs font-bold text-[#1B2B4B]">
-            {t("setup.goals.yourSavingsGoals", { count: goals.length })}
-          </span>
-          <div className="flex flex-col gap-2 max-h-[35vh] overflow-y-auto pr-1">
-            {goals.map((g) => (
-              <SetupGoalItemRow
-                key={g.id}
-                goal={g}
-                isRerun={isRerun}
-                isDirty={dirtyGoalIds.has(g.id)}
-                onUpdateGoal={onUpdateGoal}
-                onRemoveGoal={onRemoveGoal}
-                onSaveGoal={onSaveGoal}
-              />
-            ))}
-          </div>
-        </div>
-      )}
-
       {/* Popular Presets Grid */}
       <div className="flex flex-col gap-3">
         <SetupGoalsPresetsGrid
@@ -159,28 +137,6 @@ export function SetupGoalsStep({
           onTogglePreset={togglePreset}
         />
       </div>
-
-      {/* First-run: Goals list after presets */}
-      {!isRerun && goals.length > 0 && (
-        <div className="flex flex-col gap-2">
-          <span className="text-xs font-bold text-[#1B2B4B]">
-            {t("setup.goals.yourSavingsGoals", { count: goals.length })}
-          </span>
-          <div className="flex flex-col gap-2 max-h-[35vh] overflow-y-auto pr-1">
-            {goals.map((g) => (
-              <SetupGoalItemRow
-                key={g.id}
-                goal={g}
-                isRerun={isRerun}
-                isDirty={dirtyGoalIds.has(g.id)}
-                onUpdateGoal={onUpdateGoal}
-                onRemoveGoal={onRemoveGoal}
-                onSaveGoal={onSaveGoal}
-              />
-            ))}
-          </div>
-        </div>
-      )}
 
       {/* Add Custom Goal Section */}
       <div className="p-4 bg-white rounded-2xl border border-zinc-200/80 flex flex-col gap-3">
@@ -223,7 +179,7 @@ export function SetupGoalsStep({
             disabled={!customName.trim()}
             className="px-4 py-2 bg-blue-50 border border-blue-200 text-[#2563eb] text-xs font-bold rounded-xl hover:bg-blue-100 transition-colors disabled:opacity-50 cursor-pointer"
           >
-            + Add
+            + {t("common.add")}
           </button>
         </div>
         {customType === "TARGET_DATE" && isCustomPastDate && (
@@ -232,6 +188,28 @@ export function SetupGoalsStep({
           </p>
         )}
       </div>
+
+      {/* Goals List (Placed below Add Goal, with zero scroll trap) */}
+      {goals.length > 0 && (
+        <div className="flex flex-col gap-2">
+          <span className="text-xs font-bold text-[#1B2B4B]">
+            {t("setup.goals.yourSavingsGoals", { count: goals.length })}
+          </span>
+          <div className="flex flex-col gap-2">
+            {goals.map((g) => (
+              <SetupGoalItemRow
+                key={g.id}
+                goal={g}
+                isRerun={isRerun}
+                isDirty={dirtyGoalIds.has(g.id)}
+                onUpdateGoal={onUpdateGoal}
+                onRemoveGoal={onRemoveGoal}
+                onSaveGoal={onSaveGoal}
+              />
+            ))}
+          </div>
+        </div>
+      )}
 
       <div className="flex justify-between items-center pt-4 border-t border-zinc-100">
         <button

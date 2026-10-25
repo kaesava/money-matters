@@ -42,6 +42,7 @@ export interface EnvelopeFormFieldsProps {
   calculatedMonthly?: string;
   bankAccountId: string;
   setBankAccountId: (v: string) => void;
+  bankDisabled?: boolean;
   isSurplusTarget: boolean;
   setIsSurplusTarget: (v: boolean) => void;
   isEdit: boolean;
@@ -80,6 +81,7 @@ export const EnvelopeFormFields: React.FC<EnvelopeFormFieldsProps> = ({
   calculatedMonthly = '0.00',
   bankAccountId,
   setBankAccountId,
+  bankDisabled = false,
   isSurplusTarget,
   setIsSurplusTarget,
   isEdit,
@@ -118,7 +120,7 @@ export const EnvelopeFormFields: React.FC<EnvelopeFormFieldsProps> = ({
           options={bankOptions}
           value={bankAccountId}
           onChange={setBankAccountId}
-          disabled={isEdit}
+          disabled={isEdit || bankDisabled}
         />
       </View>
 

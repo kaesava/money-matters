@@ -43,16 +43,16 @@ export function LifestyleHousingTransport({
             {t("setup.lifestyle.housingTitle")}
           </label>
           <InfoTooltip
-            title="Housing Type"
-            content="Renting solo means covering full lease and utility connections. In a sharehouse, bills and rent are shared."
+            title={t("setup.lifestyle.housingTooltipTitle")}
+            content={t("setup.lifestyle.housingTooltipContent")}
           />
         </div>
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mt-1">
           {[
-            { id: "RENT_SOLO", label: "Rent (Solo)" },
-            { id: "RENT_SHARE", label: "Sharehouse" },
-            { id: "OWN_MORTGAGE", label: "Mortgage" },
-            { id: "OWN_OUTRIGHT", label: "Own Outright" },
+            { id: "RENT_SOLO", label: t("setup.lifestyle.housingSolo") },
+            { id: "RENT_SHARE", label: t("setup.lifestyle.housingShare") },
+            { id: "OWN_MORTGAGE", label: t("setup.lifestyle.housingMortgage") },
+            { id: "OWN_OUTRIGHT", label: t("setup.lifestyle.housingOutright") },
           ].map((opt) => (
             <button
               key={opt.id}
@@ -77,8 +77,8 @@ export function LifestyleHousingTransport({
             {t("setup.lifestyle.vehiclesTitle")}
           </span>
           <InfoTooltip
-            title="Vehicle Benchmarks"
-            content="Calculates baseline estimates for vehicle maintenance, rego, and fuel based on fleet sizes."
+            title={t("setup.lifestyle.benchmarksTitle")}
+            content={t("setup.lifestyle.benchmarksContent")}
           />
         </div>
         <div className="flex flex-wrap items-center gap-6">
@@ -107,7 +107,7 @@ export function LifestyleHousingTransport({
               onChange={(e) => setUseRideshare(e.target.checked)}
               className="w-4 h-4 text-[#2563eb] rounded-md"
             />
-            Rideshare / Taxi
+            {t("setup.lifestyle.rideshareTaxi")}
           </label>
         </div>
 
@@ -116,7 +116,7 @@ export function LifestyleHousingTransport({
             {vehicles.map((v, idx) => (
               <div key={v.id} className="p-3 bg-white rounded-xl border border-zinc-200 flex flex-col gap-2">
                 <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold text-[#1B2B4B]">Vehicle #{idx + 1}</span>
+                  <span className="text-xs font-bold text-[#1B2B4B]">{t("setup.lifestyle.vehicleIndexTitle", { index: idx + 1 })}</span>
                   {vehicles.length > 1 && (
                     <button
                       type="button"
@@ -132,7 +132,7 @@ export function LifestyleHousingTransport({
                     type="text"
                     value={v.name}
                     onChange={(e) => onUpdateVehicle(v.id, "name", e.target.value)}
-                    placeholder="Label (e.g. My SUV, Car 1)"
+                    placeholder={t("setup.lifestyle.vehicleNamePlaceholder")}
                     className="px-3 py-1.5 text-xs font-bold rounded-lg border border-zinc-200"
                   />
                   <select
@@ -140,9 +140,9 @@ export function LifestyleHousingTransport({
                     onChange={(e) => onUpdateVehicle(v.id, "size", e.target.value as CarSize)}
                     className="px-3 py-1.5 text-xs font-bold rounded-lg border border-zinc-200 bg-white"
                   >
-                    <option value="SMALL">Small / Hatchback</option>
-                    <option value="MID_SUV">Mid-size SUV / Sedan</option>
-                    <option value="LUXURY">4WD / Performance</option>
+                    <option value="SMALL">{t("setup.lifestyle.carSizeSmall")}</option>
+                    <option value="MID_SUV">{t("setup.lifestyle.carSizeMid")}</option>
+                    <option value="LUXURY">{t("setup.lifestyle.carSizeLuxury")}</option>
                   </select>
                 </div>
               </div>

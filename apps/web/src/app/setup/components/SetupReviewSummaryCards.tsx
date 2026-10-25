@@ -41,10 +41,12 @@ export function SetupReviewSummaryCards({
         }`}
       >
         <span className="text-[10px] font-black uppercase">
-          {t("setup.reviewSummary.netSurplusDeficit")}
+          {netSurplus >= 0
+            ? t("setup.reviewSummary.estimatedMonthlyExtra")
+            : t("setup.reviewSummary.estimatedMonthlyShortfall")}
         </span>
         <span className="text-lg font-black text-[#1B2B4B] font-mono">
-          {formatCurrency(netSurplus)}
+          {formatCurrency(Math.abs(netSurplus))}
         </span>
       </div>
     </div>

@@ -30,7 +30,7 @@ export function SetupReviewGoalsList({
         </span>
       </div>
 
-      <div className="flex flex-col gap-2 max-h-[35vh] overflow-y-auto pr-1">
+      <div className="flex flex-col gap-2">
         {activeGoals.map((cat) => {
           const isSurplusTarget =
             cat.name.toLowerCase().includes("emergency") || cat.name.toLowerCase().includes("reserve");

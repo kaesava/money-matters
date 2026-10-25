@@ -90,7 +90,7 @@ export function useSetupWizardPrepopulation({
             budgetFrequency: (g.budgetFrequency as "MONTHLY" | "WEEKLY" | "FORTNIGHTLY" | "ANNUALLY" | null) || undefined,
             startDate: g.startDate,
             rrule: g.rrule,
-            dueDate: isOngoing ? null : (g.endDate || new Intl.DateTimeFormat('en-CA', { timeZone: 'Australia/Sydney' }).format(new Date(Date.now() + 365 * 24 * 60 * 60 * 1000))),
+            dueDate: isOngoing ? null : (g.endDate || new Intl.DateTimeFormat('en-CA').format(new Date(Date.now() + 365 * 24 * 60 * 60 * 1000))),
           };
         })
       );

@@ -6,7 +6,9 @@ describe('useSetupWizardCalculations logic', () => {
     const customCategories = [
       { id: 'c1', name: 'Groceries', type: 'EVERYDAY' as const, monthlyAud: 800, icon: '🛒' },
       { id: 'c2', name: 'Internet', type: 'REGULAR' as const, monthlyAud: 90, icon: '📌' },
-      { id: 'c3', name: 'Car Fund', type: 'GOAL' as const, monthlyAud: 200, icon: '🎯' },
+    ];
+    const goals = [
+      { id: 'c3', name: 'Car Fund', monthlyAmount: 200, targetAmount: 2400, goalMode: 'ONGOING' as const, icon: '🎯' },
     ];
 
     const result = computeSetupWizardCalculations({
@@ -29,6 +31,7 @@ describe('useSetupWizardCalculations logic', () => {
       weeklyGroceries: 200,
       weeklyDining: 100,
       weeklyPersonal: 50,
+      goals,
       customCategories,
       removedCategoryNames: new Set(),
       amountOverrides: {},

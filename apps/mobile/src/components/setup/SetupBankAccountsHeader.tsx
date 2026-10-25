@@ -14,9 +14,8 @@ export function SetupBankAccountsHeader({ currentStep, totalSteps }: SetupBankAc
       <Text style={styles.stepLabel}>{t('setup.stepOf', { step: currentStep, total: totalSteps })}</Text>
       <View style={styles.titleRow}>
         <Text style={styles.title}>{t('setup.bankAccountsStep.title')}</Text>
-        <InfoTooltip title={t('setup.bankAccountsStep.tooltipTitle')} content={t('setup.bankAccountsStep.tooltip')} />
+        <InfoTooltip title={t('setup.bankAccountsStep.title')} content={t('setup.bankAccountsStep.subtitle')} />
       </View>
-      <Text style={styles.subtitle}>{t('setup.bankAccountsStep.subtitle')}</Text>
 
       <View style={styles.tipCard}>
         <View style={styles.tipTitleRow}>

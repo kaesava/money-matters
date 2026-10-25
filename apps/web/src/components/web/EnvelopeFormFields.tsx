@@ -21,6 +21,7 @@ export interface EnvelopeFormFieldsProps {
   setBillMode?: (val: 'SCHEDULED_BILL' | 'FLEXIBLE_BILL') => void;
   bankAccountId: string;
   setBankAccountId: (val: string) => void;
+  bankAccountDisabled?: boolean;
   bankAccountOptions: Array<{ value: string; label: string }>;
   poolTypeOptions: Array<{ value: string; label: string }>;
   isEdit: boolean;
@@ -55,6 +56,7 @@ export function EnvelopeFormFields({
   setBillMode,
   bankAccountId,
   setBankAccountId,
+  bankAccountDisabled,
   bankAccountOptions,
   poolTypeOptions,
   isEdit,
@@ -117,7 +119,7 @@ export function EnvelopeFormFields({
         value={bankAccountId}
         onChange={setBankAccountId}
         options={bankAccountOptions}
-        disabled={isEdit}
+        disabled={isEdit || Boolean(bankAccountDisabled)}
         required={!isEdit}
       />
 

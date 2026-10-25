@@ -79,7 +79,7 @@ export function LifestyleFamilyObligations({
             {childrenList.map((ch, idx) => (
               <div key={ch.id} className="p-3 bg-white rounded-xl border border-zinc-200 flex flex-col gap-2">
                 <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold text-[#1B2B4B]">Child #{idx + 1}</span>
+                  <span className="text-xs font-bold text-[#1B2B4B]">{t("setup.lifestyle.childIndexTitle", { index: idx + 1 })}</span>
                   {childrenList.length > 1 && (
                     <button
                       type="button"
@@ -95,7 +95,7 @@ export function LifestyleFamilyObligations({
                     type="text"
                     value={ch.name}
                     onChange={(e) => onUpdateChild(ch.id, "name", e.target.value)}
-                    placeholder="Name / Label"
+                    placeholder={t("setup.lifestyle.childNamePlaceholder")}
                     className="px-3 py-1.5 text-xs font-bold rounded-lg border border-zinc-200"
                   />
                   <select
@@ -103,9 +103,9 @@ export function LifestyleFamilyObligations({
                     onChange={(e) => onUpdateChild(ch.id, "stage", e.target.value as SchoolStage)}
                     className="px-3 py-1.5 text-xs font-bold rounded-lg border border-zinc-200 bg-white"
                   >
-                    <option value="DAYCARE">{t("setup.lifestyle.stageDaycare")}</option>
+                    <option value="CHILDCARE">{t("setup.lifestyle.stageDaycare")}</option>
                     <option value="PRIMARY">{t("setup.lifestyle.stagePrimary")}</option>
-                    <option value="HIGH_SCHOOL">{t("setup.lifestyle.stageHighSchool")}</option>
+                    <option value="SECONDARY">{t("setup.lifestyle.stageHighSchool")}</option>
                   </select>
                   <select
                     value={ch.type}
@@ -113,6 +113,7 @@ export function LifestyleFamilyObligations({
                     className="px-3 py-1.5 text-xs font-bold rounded-lg border border-zinc-200 bg-white"
                   >
                     <option value="PUBLIC">{t("setup.lifestyle.schoolPublic")}</option>
+                    <option value="CATHOLIC">{t("setup.lifestyle.schoolCatholic")}</option>
                     <option value="PRIVATE">{t("setup.lifestyle.schoolPrivate")}</option>
                   </select>
                 </div>
@@ -151,7 +152,7 @@ export function LifestyleFamilyObligations({
               onChange={(e) => setHasGym(e.target.checked)}
               className="w-4 h-4 text-[#2563eb] rounded-md"
             />
-            Gym &amp; Fitness
+            {t("setup.lifestyle.gym")}
           </label>
           <label className="flex items-center gap-2 text-xs font-bold bg-white p-3 rounded-xl border border-zinc-200 cursor-pointer">
             <input
@@ -160,7 +161,7 @@ export function LifestyleFamilyObligations({
               onChange={(e) => setHasMedicalOutofPocket?.(e.target.checked)}
               className="w-4 h-4 text-[#2563eb] rounded-md"
             />
-            Medical &amp; Prescriptions
+            {t("setup.lifestyle.medicalOutofPocket")}
           </label>
         </div>
       </div>
@@ -182,7 +183,7 @@ export function LifestyleFamilyObligations({
             {hasDebt && (
               <div className="mt-1">
                 <AmountField
-                  placeholder="Monthly Repayment ($)"
+                  placeholder={t("setup.lifestyle.debtRepaymentPlaceholder")}
                   value={debtMonthlyRepayment ? String(debtMonthlyRepayment) : ""}
                   onChange={(val) => setDebtMonthlyRepayment?.(parseFloat(val) || 0)}
                   allowNegative={false}
@@ -224,12 +225,12 @@ export function LifestyleFamilyObligations({
                 onChange={(e) => setHasCharityGiving?.(e.target.checked)}
                 className="w-4 h-4 text-[#2563eb] rounded-md"
               />
-              Charity Donations &amp; Family Support
+              {t("setup.lifestyle.charityFamily")}
             </label>
             {hasCharityGiving && (
               <div className="mt-1 max-w-xs">
                 <AmountField
-                  placeholder="Monthly Contribution ($)"
+                  placeholder={t("setup.lifestyle.charityAmountPlaceholder")}
                   value={charityMonthlyAmount ? String(charityMonthlyAmount) : ""}
                   onChange={(val) => setCharityMonthlyAmount?.(parseFloat(val) || 0)}
                   allowNegative={false}

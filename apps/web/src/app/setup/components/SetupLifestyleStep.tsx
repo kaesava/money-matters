@@ -110,7 +110,7 @@ export function SetupLifestyleStep({
   totalSteps = 4,
 }: SetupLifestyleStepProps) {
   return (
-    <div className="flex flex-col gap-6 animate-in fade-in duration-200 max-h-[60vh] overflow-y-auto pr-1">
+    <div className="flex flex-col gap-6 animate-in fade-in duration-200">
       <div>
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">

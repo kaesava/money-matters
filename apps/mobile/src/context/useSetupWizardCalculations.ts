@@ -29,9 +29,27 @@ export interface CalculationsProps {
   weeklyGroceries: number;
   weeklyDining: number;
   weeklyPersonal: number;
+  goals?: Array<{
+    id: string;
+    name: string;
+    monthlyAmount: number;
+    icon?: string;
+    targetAmount?: number | null;
+    dueDate?: string | null;
+    goalMode?: 'TARGET_DATE' | 'ONGOING';
+    enteredAmount?: number | null;
+  }>;
   customCategories: EstimatedCategoryItem[];
   removedCategoryNames: Set<string>;
   amountOverrides: Record<string, number>;
+}
+
+function getGoalMonthsDiff(targetDateStr?: string | null): number {
+  if (!targetDateStr) return 12;
+  const now = new Date();
+  const target = new Date(targetDateStr);
+  const months = (target.getFullYear() - now.getFullYear()) * 12 + (target.getMonth() - now.getMonth());
+  return Math.max(1, months);
 }
 
 export function computeSetupWizardCalculations(props: CalculationsProps) {
@@ -59,16 +77,34 @@ export function computeSetupWizardCalculations(props: CalculationsProps) {
 
   const estimation = calculateQuizEstimates(quizAnswers);
 
-  const combined = props.isRerun
-    ? props.customCategories
+  const activeGoals: EstimatedCategoryItem[] = (props.goals || [])
+    .filter((g) => !props.removedCategoryNames.has(g.name))
+    .map((g) => {
+      const isOngoing = g.goalMode === 'ONGOING';
+      const override = props.amountOverrides[g.name];
+      const baseMonthly = isOngoing
+        ? g.enteredAmount !== undefined && g.enteredAmount !== null
+          ? g.enteredAmount
+          : g.monthlyAmount || g.targetAmount || 0
+        : g.monthlyAmount || Math.round((g.targetAmount || 0) / getGoalMonthsDiff(g.dueDate));
+      return {
+        id: g.id,
+        name: g.name,
+        type: 'GOAL' as const,
+        monthlyAud: override !== undefined ? override : baseMonthly,
+        icon: g.icon || 'target',
+      };
+    });
+
+  const nonGoalCategories = props.isRerun
+    ? props.customCategories.filter((c) => c.type !== 'GOAL')
     : [
         ...estimation.regularBills,
-        ...estimation.goalSinkingFunds,
         ...estimation.everydayCategories,
-        ...props.customCategories,
+        ...props.customCategories.filter((c) => c.type !== 'GOAL'),
       ];
 
-  const activeCategories = combined
+  const mappedNonGoals = nonGoalCategories
     .filter((cat) => !props.removedCategoryNames.has(cat.name))
     .map((cat) => {
       const override = props.amountOverrides[cat.name];
@@ -78,9 +114,10 @@ export function computeSetupWizardCalculations(props: CalculationsProps) {
       };
     });
 
+  const activeCategories = [...mappedNonGoals, ...activeGoals];
+
   const activeEveryday = activeCategories.filter((c) => c.type === 'EVERYDAY');
   const activeRegular = activeCategories.filter((c) => c.type === 'REGULAR');
-  const activeGoals = activeCategories.filter((c) => c.type === 'GOAL');
 
   const totalEverydayMonthly = activeEveryday.reduce((acc, c) => acc + c.monthlyAud, 0);
   const totalRegularMonthly = activeRegular.reduce((acc, c) => acc + c.monthlyAud, 0);
@@ -121,6 +158,7 @@ export function useSetupWizardCalculations(props: CalculationsProps) {
     props.weeklyGroceries,
     props.weeklyDining,
     props.weeklyPersonal,
+    props.goals,
     props.customCategories,
     props.removedCategoryNames,
     props.amountOverrides,

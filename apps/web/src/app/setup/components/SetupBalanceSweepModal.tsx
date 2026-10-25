@@ -1,8 +1,6 @@
-"use client";
-
 import React from "react";
 import { t } from "@money-matters/i18n";
-import { ModalDialog, Button } from "@money-matters/ui/web";
+import { ModalDialog, Button, formatCurrency } from "@money-matters/ui/web";
 
 interface SetupBalanceSweepModalProps {
   activeSweepPool: { id: string; name: string; balance: number } | null;
@@ -34,7 +32,7 @@ export function SetupBalanceSweepModal({
         <p className="text-xs text-slate-600 leading-relaxed">
           {t("setup.sweepModalDesc", {
             poolName: activeSweepPool.name,
-            balance: `$${activeSweepPool.balance.toFixed(2)}`,
+            balance: formatCurrency(activeSweepPool.balance),
           })}
         </p>
         <div className="space-y-1.5">
@@ -50,7 +48,7 @@ export function SetupBalanceSweepModal({
               .filter((p) => p.id !== activeSweepPool.id)
               .map((p) => (
                 <option key={p.id} value={p.id}>
-                  {p.name} {p.isSurplusTarget ? "(Surplus Target)" : ""}
+                  {p.name} {p.isSurplusTarget ? `(${t("setup.goals.surplusTargetBadge")})` : ""}
                 </option>
               ))}
           </select>

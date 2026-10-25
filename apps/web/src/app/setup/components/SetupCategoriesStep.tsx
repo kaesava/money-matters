@@ -8,7 +8,6 @@ import { UserGoalItem } from "./SetupGoalsStep";
 import { SetupReviewSummaryCards } from "./SetupReviewSummaryCards";
 import { SetupReviewCategoryList } from "./SetupReviewCategoryList";
 import { SetupReviewGoalsList } from "./SetupReviewGoalsList";
-import { SetupReviewCustomCategoryForm } from "./SetupReviewCustomCategoryForm";
 
 interface SetupCategoriesStepProps {
   activeEveryday: EstimatedCategoryItem[];
@@ -21,13 +20,7 @@ interface SetupCategoriesStepProps {
   >;
   setAmountOverrides: React.Dispatch<React.SetStateAction<Record<string, number>>>;
   onRemoveCategory: (name: string) => void;
-  customCatName: string;
-  setCustomCatName: (val: string) => void;
-  customCatType: "REGULAR" | "GOAL" | "EVERYDAY";
-  setCustomCatType: (val: "REGULAR" | "GOAL" | "EVERYDAY") => void;
-  customCatAmount: string;
-  setCustomCatAmount: (val: string) => void;
-  onAddCustomCategory: () => void;
+  onOpenAddEnvelope: () => void;
   convertToMonthly: (amount: number, freq: "WEEKLY" | "FORTNIGHTLY" | "MONTHLY" | "YEARLY") => number;
   convertFromMonthly: (monthlyAmount: number, freq: "WEEKLY" | "FORTNIGHTLY" | "MONTHLY" | "YEARLY") => number;
   totalMonthlyIncomeAud: number;
@@ -51,13 +44,7 @@ export function SetupCategoriesStep({
   setCategoryFrequencies,
   setAmountOverrides,
   onRemoveCategory,
-  customCatName,
-  setCustomCatName,
-  customCatType,
-  setCustomCatType,
-  customCatAmount,
-  setCustomCatAmount,
-  onAddCustomCategory,
+  onOpenAddEnvelope,
   convertToMonthly,
   convertFromMonthly,
   totalMonthlyIncomeAud,
@@ -86,21 +73,16 @@ export function SetupCategoriesStep({
   const netSurplus = totalMonthlyIncomeAud - totalAllocatedMonthly;
 
   return (
-    <div className="flex flex-col gap-6 animate-in fade-in duration-200 max-h-[68vh] overflow-y-auto pr-1 max-w-3xl mx-auto w-full">
+    <div className="flex flex-col gap-6 animate-in fade-in duration-200 max-w-3xl mx-auto w-full">
       <div>
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <h2 className="text-xl sm:text-2xl font-black text-[#1B2B4B]">
-              {t("setup.reviewSummary.title")}
-            </h2>
-            <InfoTooltip
-              title={t("setup.reviewSummary.title")}
-              content={t("setup.reviewSummary.subtitle")}
-            />
-          </div>
-          <span className="text-xs font-bold text-emerald-800 bg-emerald-50 px-3 py-1 rounded-full border border-emerald-200">
-            {t("setup.reviewSummary.summaryPreviewBadge")}
-          </span>
+        <div className="flex items-center gap-2">
+          <h2 className="text-xl sm:text-2xl font-black text-[#1B2B4B]">
+            {t("setup.reviewSummary.title")}
+          </h2>
+          <InfoTooltip
+            title={t("setup.reviewSummary.title")}
+            content={t("setup.reviewSummary.subtitle")}
+          />
         </div>
       </div>
 
@@ -151,16 +133,14 @@ export function SetupCategoriesStep({
           onRemoveCategory={handleAttemptRemove}
         />
 
-        {/* Add Custom Category Form */}
-        <SetupReviewCustomCategoryForm
-          customCatName={customCatName}
-          setCustomCatName={setCustomCatName}
-          customCatType={customCatType}
-          setCustomCatType={setCustomCatType}
-          customCatAmount={customCatAmount}
-          setCustomCatAmount={setCustomCatAmount}
-          onAddCustomCategory={onAddCustomCategory}
-        />
+        {/* Canonical Add Envelope CTA */}
+        <button
+          type="button"
+          onClick={onOpenAddEnvelope}
+          className="w-full py-3 px-4 bg-blue-50 border border-blue-200 text-[#2563eb] text-xs font-bold rounded-2xl hover:bg-blue-100 transition-colors flex items-center justify-center gap-2 cursor-pointer shadow-xs"
+        >
+          {t("setup.reviewSummary.addEnvelopeBtn")}
+        </button>
       </div>
 
       {/* Footer Navigation */}

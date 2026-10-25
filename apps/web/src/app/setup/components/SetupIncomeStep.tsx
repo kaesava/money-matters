@@ -64,7 +64,7 @@ export function SetupIncomeStep({
         )}
       </div>
 
-      <div className="flex flex-col gap-4 max-h-[50vh] overflow-y-auto pr-1">
+      <div className="flex flex-col gap-4">
         {incomes.map((inc, index) => (
           <SetupIncomeItemRow
             key={inc.id}
@@ -94,7 +94,7 @@ export function SetupIncomeStep({
           onClick={onNext}
           className="px-6 py-3 text-xs font-bold rounded-xl bg-[#2563eb] text-white hover:bg-blue-700 transition-all shadow-md cursor-pointer"
         >
-          {t("setup.income.continueToGoals")}
+          {t("common.next")} →
         </button>
       </div>
     </div>

@@ -1,7 +1,6 @@
-"use client";
-
 import React from "react";
 import { ConfirmDialog } from "@money-matters/ui/web";
+import { t } from "@money-matters/i18n";
 
 interface SetupDiscardModalProps {
   isOpen: boolean;
@@ -15,10 +14,10 @@ export function SetupDiscardModal({ isOpen, onClose, onConfirm }: SetupDiscardMo
       isOpen={isOpen}
       onClose={onClose}
       onConfirm={onConfirm}
-      title="Discard Changes?"
-      description="Are you sure you want to leave setup? Any un-saved setup changes will be discarded."
-      confirmLabel="Discard Changes"
-      cancelLabel="Keep Editing"
+      title={t("setup.cancelSetupConfirmTitle")}
+      description={t("setup.cancelSetupConfirmMessage")}
+      confirmLabel={t("common.discard")}
+      cancelLabel={t("common.cancel")}
       variant="danger"
     />
   );

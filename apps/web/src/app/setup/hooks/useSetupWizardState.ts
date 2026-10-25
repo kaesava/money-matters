@@ -75,7 +75,7 @@ export function useSetupWizardState() {
       amount: 3200,
       frequency: "FORTNIGHTLY",
       type: "SALARY",
-      startDate: new Intl.DateTimeFormat("en-CA", { timeZone: "Australia/Sydney" }).format(new Date()),
+      startDate: new Intl.DateTimeFormat("en-CA").format(new Date()),
     },
   ]);
   const [archivedIncomeIds, setArchivedIncomeIds] = useState<Set<string>>(new Set());
@@ -111,7 +111,7 @@ export function useSetupWizardState() {
       icon: "plane",
       targetAmount: 3000,
       goalMode: "TARGET_DATE",
-      dueDate: new Intl.DateTimeFormat("en-CA", { timeZone: "Australia/Sydney" }).format(
+      dueDate: new Intl.DateTimeFormat("en-CA").format(
         new Date(Date.now() + 365 * 24 * 60 * 60 * 1000)
       ),
     },
@@ -175,6 +175,7 @@ export function useSetupWizardState() {
   const calculations = useSetupWizardCalculations({
     quizAnswers,
     isRerun,
+    goals,
     customCategories,
     removedCategoryNames,
     amountOverrides,
@@ -188,6 +189,7 @@ export function useSetupWizardState() {
     goals,
     categoryFrequencies,
     sweepQueue: sweep.sweepQueue,
+    removedCategoryNames,
     archivedAccountIds,
     archivedIncomeIds,
     existingPools: prepopulation.pools,

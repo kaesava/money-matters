@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
 import { t } from "@money-matters/i18n";
 import { ConfirmDialog } from "@money-matters/ui/web";
 import { SetupIncomeStep } from "./components/SetupIncomeStep";
@@ -12,10 +12,12 @@ import { SetupDiscardModal } from "./components/SetupDiscardModal";
 import { PaydaySandboxModal } from "./components/PaydaySandboxModal";
 import { SetupBalanceSweepModal } from "./components/SetupBalanceSweepModal";
 import { SetupHeaderBar } from "./components/SetupHeaderBar";
+import { EnvelopeFormModal, EnvelopeDraftPayload } from "../../components/web/EnvelopeFormModal";
 import { useSetupWizardState } from "./hooks/useSetupWizardState";
 
 function SetupWizardContent() {
-  const [showSandboxModal, setShowSandboxModal] = React.useState(false);
+  const [showSandboxModal, setShowSandboxModal] = useState(false);
+  const [showAddEnvelopeModal, setShowAddEnvelopeModal] = useState(false);
   const state = useSetupWizardState();
 
   const totalSteps = state.isRerun ? 2 : 4;
@@ -60,7 +62,7 @@ function SetupWizardContent() {
                   amount: 2000,
                   frequency: "MONTHLY",
                   type: "SALARY",
-                  startDate: new Intl.DateTimeFormat("en-CA", { timeZone: "Australia/Sydney" }).format(new Date()),
+                  startDate: new Intl.DateTimeFormat("en-CA").format(new Date()),
                 },
               ]);
             }}
@@ -179,27 +181,7 @@ function SetupWizardContent() {
             setCategoryFrequencies={state.setCategoryFrequencies}
             setAmountOverrides={state.setAmountOverrides}
             onRemoveCategory={(name) => state.setRemovedCategoryNames((prev) => new Set(prev).add(name))}
-            customCatName={state.customCatName}
-            setCustomCatName={state.setCustomCatName}
-            customCatType={state.customCatType}
-            setCustomCatType={state.setCustomCatType}
-            customCatAmount={state.customCatAmount}
-            setCustomCatAmount={state.setCustomCatAmount}
-            onAddCustomCategory={() => {
-              if (!state.customCatName.trim()) return;
-              const amount = parseFloat(state.customCatAmount) || 0;
-              state.setCustomCategories((prev) => [
-                ...prev,
-                {
-                  name: state.customCatName.trim(),
-                  type: state.customCatType,
-                  monthlyAud: amount,
-                  icon: state.customCatType === "REGULAR" ? "pin" : state.customCatType === "GOAL" ? "target" : "wallet",
-                },
-              ]);
-              state.setCustomCatName("");
-              state.setCustomCatAmount("100");
-            }}
+            onOpenAddEnvelope={() => setShowAddEnvelopeModal(true)}
             convertToMonthly={state.convertToMonthly}
             convertFromMonthly={state.convertFromMonthly}
             totalMonthlyIncomeAud={state.estimation.totalMonthlyIncomeAud}
@@ -214,6 +196,45 @@ function SetupWizardContent() {
             isRerun={state.isRerun}
           />
         )}
+
+        <EnvelopeFormModal
+          isOpen={showAddEnvelopeModal}
+          onClose={() => setShowAddEnvelopeModal(false)}
+          bankAccounts={state.bankAccounts}
+          onSaveDraft={(draft: EnvelopeDraftPayload) => {
+            const num = parseFloat(draft.monthlyAmount || draft.targetAmount || "0") || 0;
+            if (draft.type === "GOAL") {
+              const id = `g-${Date.now()}`;
+              state.setGoals((prev) => [
+                ...prev,
+                {
+                  id,
+                  name: draft.name,
+                  targetAmount: parseFloat(draft.targetAmount || String(num)),
+                  enteredAmount: parseFloat(draft.enteredAmount || String(num)),
+                  dueDate: draft.goalMode === "ONGOING" ? null : draft.endDate || null,
+                  goalMode: draft.goalMode || "TARGET_DATE",
+                  monthlyAmount: num,
+                  budgetFrequency: draft.budgetFrequency || "MONTHLY",
+                  startDate: draft.startDate,
+                  rrule: draft.rrule,
+                  icon: "target",
+                },
+              ]);
+            } else {
+              state.setCustomCategories((prev) => [
+                ...prev,
+                {
+                  name: draft.name,
+                  type: draft.type,
+                  monthlyAud: num,
+                  icon: draft.type === "REGULAR" ? "pin" : "wallet",
+                },
+              ]);
+            }
+            setShowAddEnvelopeModal(false);
+          }}
+        />
 
         <SetupDiscardModal
           isOpen={state.showDiscardModal}

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, ScrollView, StyleSheet, ActivityIndicator } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -7,21 +7,24 @@ import { DESIGN_TOKENS, InfoTooltip, useMobileToast } from '@money-matters/ui/mo
 import { formatMobileCurrency } from '../../lib/format';
 import { useSetupWizard } from '../../context/SetupWizardContext';
 import { SetupCategoryRow } from '../../components/setup/SetupCategoryRow';
-import { SetupCategoriesCustomInput } from '../../components/setup/SetupCategoriesCustomInput';
 import { SetupCategoriesGoalsList } from '../../components/setup/SetupCategoriesGoalsList';
 import { SetupBalanceSweepModal } from '../../components/setup/SetupBalanceSweepModal';
+import { EnvelopeFormModal, EnvelopeDraftPayload } from '../../components/EnvelopeFormModal';
 import { useSetupCategoriesSubmission } from '../../context/useSetupCategoriesSubmission';
 
 export default function SetupCategoriesScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const toast = useMobileToast();
+  const [showAddEnvelopeModal, setShowAddEnvelopeModal] = useState(false);
   const {
     isRerun,
     goals,
+    setGoals,
     activeEveryday,
     activeRegular,
     activeGoals,
+    bankAccounts,
     categoryFrequencies,
     setCategoryFrequencies,
     setAmountOverrides,
@@ -78,8 +81,12 @@ export default function SetupCategoriesScreen() {
           <Text style={styles.summaryCardVal}>{formatMobileCurrency(totalAllocatedMonthly)}</Text>
         </View>
         <View style={[styles.summaryCard, netSurplus >= 0 ? styles.surplusBg : styles.deficitBg]}>
-          <Text style={styles.summaryCardLabel}>{t('setup.reviewSummary.netSurplusDeficit')}</Text>
-          <Text style={styles.summaryCardVal}>{formatMobileCurrency(netSurplus)}</Text>
+          <Text style={styles.summaryCardLabel}>
+            {netSurplus >= 0
+              ? t('setup.reviewSummary.estimatedMonthlyExtra')
+              : t('setup.reviewSummary.estimatedMonthlyShortfall')}
+          </Text>
+          <Text style={styles.summaryCardVal}>{formatMobileCurrency(Math.abs(netSurplus))}</Text>
         </View>
       </View>
 
@@ -124,8 +131,50 @@ export default function SetupCategoriesScreen() {
         onRemove={handleAttemptRemoveCategory}
       />
 
-      <SetupCategoriesCustomInput
-        onAdd={(newCat) => setCustomCategories((prev) => [...prev, newCat])}
+      <TouchableOpacity
+        onPress={() => setShowAddEnvelopeModal(true)}
+        style={styles.addEnvelopeBtn}
+      >
+        <Text style={styles.addEnvelopeBtnText}>{t('setup.reviewSummary.addEnvelopeBtn')}</Text>
+      </TouchableOpacity>
+
+      <EnvelopeFormModal
+        visible={showAddEnvelopeModal}
+        onClose={() => setShowAddEnvelopeModal(false)}
+        bankAccounts={bankAccounts}
+        onSaveDraft={(draft: EnvelopeDraftPayload) => {
+          const num = parseFloat(draft.monthlyAmount || draft.targetAmount || '0') || 0;
+          if (draft.type === 'GOAL') {
+            const id = `g-${Date.now()}`;
+            setGoals((prev) => [
+              ...prev,
+              {
+                id,
+                name: draft.name,
+                targetAmount: parseFloat(draft.targetAmount || String(num)),
+                enteredAmount: parseFloat(draft.enteredAmount || String(num)),
+                dueDate: draft.goalMode === 'ONGOING' ? null : draft.endDate || null,
+                goalMode: draft.goalMode || 'TARGET_DATE',
+                monthlyAmount: num,
+                budgetFrequency: draft.budgetFrequency || 'MONTHLY',
+                startDate: draft.startDate,
+                rrule: draft.rrule,
+                icon: 'target',
+              },
+            ]);
+          } else {
+            setCustomCategories((prev) => [
+              ...prev,
+              {
+                name: draft.name,
+                type: draft.type,
+                monthlyAud: num,
+                icon: draft.type === 'REGULAR' ? '📌' : '🛒',
+              },
+            ]);
+          }
+          setShowAddEnvelopeModal(false);
+        }}
       />
 
       <View style={styles.actionRow}>
@@ -180,6 +229,22 @@ const styles = StyleSheet.create({
   sectionTitle: { fontSize: 13, fontWeight: '800', color: DESIGN_TOKENS.colors.primary },
   sectionTotal: { fontSize: 12, fontWeight: '700', color: DESIGN_TOKENS.colors.accent, fontFamily: 'monospace' },
   actionRow: { flexDirection: 'row', gap: 12, marginTop: 8, marginBottom: 40 },
+  addEnvelopeBtn: {
+    paddingVertical: 12,
+    borderWidth: 1,
+    borderStyle: 'dashed',
+    borderColor: DESIGN_TOKENS.colors.accent,
+    borderRadius: DESIGN_TOKENS.radius.md,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 16,
+    backgroundColor: DESIGN_TOKENS.colors.accentLight,
+  },
+  addEnvelopeBtnText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: DESIGN_TOKENS.colors.accent,
+  },
   backBtn: { flex: 1, paddingVertical: 14, backgroundColor: DESIGN_TOKENS.colors.surface, borderWidth: 1, borderColor: DESIGN_TOKENS.colors.slate[300], borderRadius: DESIGN_TOKENS.radius.md, alignItems: 'center' },
   backBtnText: { fontSize: 14, fontWeight: '700', color: DESIGN_TOKENS.colors.slate[600] },
   nextBtn: { flex: 2, paddingVertical: 14, backgroundColor: DESIGN_TOKENS.colors.accent, borderRadius: DESIGN_TOKENS.radius.md, alignItems: 'center' },

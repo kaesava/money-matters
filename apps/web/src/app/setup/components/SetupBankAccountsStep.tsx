@@ -53,13 +53,14 @@ export function SetupBankAccountsStep({
     <div className="flex flex-col gap-6 animate-in fade-in duration-200">
       {/* Header */}
       <div className="flex flex-wrap items-center justify-between gap-3 pb-2 border-b border-slate-100">
-        <div>
+        <div className="flex items-center gap-1.5">
           <h2 className="text-xl font-black text-[#1B2B4B] tracking-tight">
             {t("setup.bankAccountsStep.title")}
           </h2>
-          <p className="text-xs text-slate-500 font-medium mt-0.5">
-            {t("setup.bankAccountsStep.subtitle")}
-          </p>
+          <InfoTooltip
+            title={t("setup.bankAccountsStep.title")}
+            content={t("setup.bankAccountsStep.subtitle")}
+          />
         </div>
       </div>
 

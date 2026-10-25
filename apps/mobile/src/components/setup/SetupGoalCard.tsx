@@ -1,8 +1,9 @@
 import React from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet } from 'react-native';
 import { UserGoalItem } from '@money-matters/types';
-import { DESIGN_TOKENS, AmountInput } from '@money-matters/ui/mobile';
+import { DESIGN_TOKENS, AmountInput, MobileDatePickerField } from '@money-matters/ui/mobile';
 import { t } from '@money-matters/i18n';
+import { formatMobileCurrency } from '../../lib/format';
 
 interface SetupGoalCardProps {
   goal: UserGoalItem;
@@ -91,9 +92,18 @@ export function SetupGoalCard({
             }}
           />
         </View>
+        {!isOngoing && (
+          <View style={styles.dateCol}>
+            <Text style={styles.fieldLabel}>{t('categories.targetDateLabel')}</Text>
+            <MobileDatePickerField
+              value={goal.dueDate || ''}
+              onChange={(d) => onUpdate(goal.id, 'dueDate', d)}
+            />
+          </View>
+        )}
         <View style={styles.guideBadge}>
           <Text style={styles.guideText}>
-            {isOngoing ? `Est. $${goal.enteredAmount || goal.monthlyAmount || 0}${unitLabel}` : `Est. $${estMonthly}/mo`}
+            {isOngoing ? `${formatMobileCurrency(goal.enteredAmount || goal.monthlyAmount || 0)}${unitLabel}` : `${formatMobileCurrency(estMonthly)}/mo`}
           </Text>
         </View>
       </View>
@@ -124,6 +134,7 @@ const styles = StyleSheet.create({
   removeBtn: { fontSize: 14, fontWeight: '700', color: DESIGN_TOKENS.colors.critical, paddingHorizontal: 4 },
   inputsRow: { flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between', gap: 12 },
   amountCol: { flex: 1 },
+  dateCol: { flex: 1 },
   fieldLabel: { fontSize: 11, fontWeight: '600', color: DESIGN_TOKENS.colors.textMuted, marginBottom: 4 },
   guideBadge: {
     backgroundColor: '#F0FDF4',

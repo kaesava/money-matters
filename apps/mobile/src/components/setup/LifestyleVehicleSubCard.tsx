@@ -8,15 +8,9 @@ interface LifestyleVehicleSubCardProps {
   vehicle: VehicleConfig;
   index: number;
   showRemove: boolean;
-  onUpdate: (id: string, field: 'name' | 'size', value: any) => void;
+  onUpdate: <K extends keyof VehicleConfig>(id: string, field: K, value: VehicleConfig[K]) => void;
   onRemove: (id: string) => void;
 }
-
-const CAR_SIZES: { key: CarSize; label: string }[] = [
-  { key: 'SMALL', label: 'Small' },
-  { key: 'MID_SUV', label: 'Mid SUV' },
-  { key: 'LUXURY', label: '4WD/Perf' },
-];
 
 export function LifestyleVehicleSubCard({
   vehicle,
@@ -25,10 +19,16 @@ export function LifestyleVehicleSubCard({
   onUpdate,
   onRemove,
 }: LifestyleVehicleSubCardProps) {
+  const carSizes: { key: CarSize; label: string }[] = [
+    { key: 'SMALL', label: t('setup.lifestyle.carSizeSmall') },
+    { key: 'MID_SUV', label: t('setup.lifestyle.carSizeMid') },
+    { key: 'LUXURY', label: t('setup.lifestyle.carSizeLuxury') },
+  ];
+
   return (
     <View style={styles.card}>
       <View style={styles.row}>
-        <Text style={styles.title}>Vehicle #{index + 1}</Text>
+        <Text style={styles.title}>{t('setup.lifestyle.vehicleIndexTitle', { index: index + 1 })}</Text>
         {showRemove && (
           <TouchableOpacity onPress={() => onRemove(vehicle.id)}>
             <Text style={styles.removeText}>{t('common.remove')}</Text>
@@ -39,11 +39,11 @@ export function LifestyleVehicleSubCard({
         style={styles.input}
         value={vehicle.name}
         onChangeText={(txt) => onUpdate(vehicle.id, 'name', txt)}
-        placeholder="Vehicle label (e.g. My SUV)"
+        placeholder={t('setup.lifestyle.vehicleNamePlaceholder')}
         placeholderTextColor={DESIGN_TOKENS.colors.textMuted}
       />
       <View style={styles.sizeRow}>
-        {CAR_SIZES.map((s) => (
+        {carSizes.map((s) => (
           <TouchableOpacity
             key={s.key}
             style={[styles.sizeChip, vehicle.size === s.key && styles.sizeChipActive]}

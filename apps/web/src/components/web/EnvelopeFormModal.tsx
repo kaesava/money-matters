@@ -6,6 +6,22 @@ import { t } from "@money-matters/i18n";
 import { trpc } from "../../lib/trpc";
 import { EnvelopeFormFields } from "./EnvelopeFormFields";
 
+export interface EnvelopeDraftPayload {
+  name: string;
+  type: "EVERYDAY" | "REGULAR" | "GOAL";
+  envelopeType: "EVERYDAY" | "SCHEDULED_BILL" | "FLEXIBLE_BILL" | "TARGET_GOAL" | "ONGOING_GOAL";
+  monthlyAmount?: string;
+  enteredAmount?: string;
+  targetAmount?: string;
+  endDate?: string;
+  budgetFrequency?: "WEEKLY" | "FORTNIGHTLY" | "MONTHLY" | "ANNUALLY";
+  startDate?: string;
+  rrule?: string;
+  goalMode?: "TARGET_DATE" | "ONGOING";
+  isSurplusTarget?: boolean;
+  bankAccountId?: string;
+}
+
 export interface EnvelopeFormModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -31,6 +47,8 @@ export interface EnvelopeFormModalProps {
     startDate?: string | null; rrule?: string | null;
     isSurplusTarget?: boolean | null;
   } | null;
+  bankAccounts?: Array<{ id: string; name: string; isPrivate?: boolean | null }>;
+  onSaveDraft?: (draft: EnvelopeDraftPayload) => void;
   onSuccess?: () => void;
 }
 
@@ -41,14 +59,18 @@ export function EnvelopeFormModal({
   onClose,
   envelopeToEdit,
   categoryToEdit: legacyCategoryToEdit,
+  bankAccounts: passedBankAccounts,
+  onSaveDraft,
   onSuccess,
 }: EnvelopeFormModalProps) {
   const categoryToEdit = envelopeToEdit ?? legacyCategoryToEdit;
   const toast = useToast();
   const utils = trpc.useUtils();
 
-  const bankAccountsQuery = trpc.getBankAccountsWithMappings.useQuery(undefined, { enabled: isOpen });
-  const bankAccounts = bankAccountsQuery.data ?? [];
+  const isDraftMode = Boolean(onSaveDraft);
+  const bankAccountsQuery = trpc.getBankAccountsWithMappings.useQuery(undefined, { enabled: isOpen && !isDraftMode });
+  const rawAccounts = bankAccountsQuery.data;
+  const bankAccounts = useMemo(() => passedBankAccounts ?? rawAccounts ?? [], [passedBankAccounts, rawAccounts]);
 
   const isEdit = Boolean(categoryToEdit?.id);
 
@@ -96,18 +118,27 @@ export function EnvelopeFormModal({
       setName("");
       setType("REGULAR");
       setBillMode("SCHEDULED_BILL");
-      setBankAccountId("");
+      setBankAccountId(bankAccounts[0]?.id || "");
       setSafetyBufferFloor("");
       setTargetAmount("");
       setTargetDate("");
       setGoalMode("TARGET_DATE");
       setFrequency("MONTHLY");
       setInterval(1);
-      setGoalStartDate(new Intl.DateTimeFormat("en-CA", { timeZone: "Australia/Sydney" }).format(new Date()));
+      setGoalStartDate(new Intl.DateTimeFormat("en-CA").format(new Date()));
       setIsSurplusTarget(false);
     }
     setErrorMsg(null);
-  }, [categoryToEdit, isOpen]);
+  }, [categoryToEdit, isOpen, bankAccounts]);
+
+  // When type changes: if REGULAR or EVERYDAY, enforce primary everyday bank account
+  useEffect(() => {
+    if (!isEdit && bankAccounts.length > 0) {
+      if (type === "REGULAR" || type === "EVERYDAY") {
+        setBankAccountId(bankAccounts[0]?.id || "");
+      }
+    }
+  }, [type, isEdit, bankAccounts]);
 
   const calculatedMonthly = useMemo(() => {
     const val = parseFloat(targetAmount);
@@ -305,6 +336,17 @@ export function EnvelopeFormModal({
     setSubmitting(true);
     try {
       const payload = buildPayload();
+      if (isDraftMode && onSaveDraft) {
+        onSaveDraft({
+          ...payload,
+          type,
+          bankAccountId: bankAccountId || bankAccounts[0]?.id,
+        });
+        toast.success(t("toasts.created"));
+        onSuccess?.();
+        onClose();
+        return;
+      }
       if (isEdit && categoryToEdit) {
         await updatePoolMut.mutateAsync({ poolId: categoryToEdit.id, data: payload });
       } else {
@@ -337,6 +379,8 @@ export function EnvelopeFormModal({
 
   if (!isOpen) return null;
 
+  const isAccountSelectionDisabled = isEdit || type === "REGULAR" || type === "EVERYDAY";
+
   return (
     <ModalDialog
       isOpen={isOpen}
@@ -357,8 +401,9 @@ export function EnvelopeFormModal({
           setBillMode={setBillMode}
           bankAccountId={bankAccountId}
           setBankAccountId={setBankAccountId}
+          bankAccountDisabled={isAccountSelectionDisabled}
           bankAccountOptions={[
-            ...(!isEdit ? [{ value: "", label: t("categories.selectBankAccount") }] : []),
+            ...(!isEdit && !isAccountSelectionDisabled ? [{ value: "", label: t("categories.selectBankAccount") }] : []),
             ...bankAccounts.map((acc) => ({
               value: acc.id,
               label: `${acc.name} ${acc.isPrivate ? t("categories.privateBadge") : t("categories.householdBadge")}`,

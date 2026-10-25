@@ -235,6 +235,7 @@ export function SetupWizardProvider({ children: reactChildren }: { children: Rea
     weeklyGroceries: lifestyle.weeklyGroceries,
     weeklyDining: lifestyle.weeklyDining,
     weeklyPersonal: lifestyle.weeklyPersonal,
+    goals,
     customCategories,
     removedCategoryNames,
     amountOverrides,

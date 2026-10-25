@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { Sparkles, ShieldCheck, Target, Wallet, ArrowRight } from "lucide-react";
+import { Sparkles, ShieldCheck, Target, Wallet } from "lucide-react";
 import { ModalDialog, AmountField, Button } from "@money-matters/ui/web";
 import { t } from "@money-matters/i18n";
 
@@ -10,7 +10,7 @@ import { useLocale } from "../../../providers/LocaleProvider";
 interface PaydaySandboxModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onFinish: () => void;
+  onFinish?: () => void;
   estimatedBills: number;
   estimatedGoals: number;
   defaultPaycheck: number;
@@ -19,7 +19,7 @@ interface PaydaySandboxModalProps {
 export function PaydaySandboxModal({
   isOpen,
   onClose,
-  onFinish,
+  onFinish: _onFinish,
   estimatedBills,
   estimatedGoals,
   defaultPaycheck,
@@ -110,14 +110,16 @@ export function PaydaySandboxModal({
               </div>
             </div>
 
-            <Button
-              type="button"
-              onClick={onFinish}
-              className="w-full py-3 bg-[#22c55e] hover:bg-emerald-600 text-white font-extrabold text-xs rounded-xl shadow-md flex items-center justify-center gap-2"
-            >
-              <span>{t("setup.sandbox.gotItCta")}</span>
-              <ArrowRight className="w-4 h-4" />
-            </Button>
+            <div className="pt-2 flex justify-end">
+              <Button
+                type="button"
+                variant="secondary"
+                onClick={onClose}
+                className="w-full sm:w-auto"
+              >
+                {t("setup.sandbox.returnToReview")}
+              </Button>
+            </div>
           </div>
         )}
       </div>

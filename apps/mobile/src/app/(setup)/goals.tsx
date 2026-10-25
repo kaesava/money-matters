@@ -142,45 +142,7 @@ export default function SetupGoalsScreen() {
         <Text style={styles.title}>{t('setup.goals.title')}</Text>
       </View>
 
-      {isRerun && goals.length > 0 && (
-        <View style={styles.rerunSection}>
-          <Text style={styles.sectionHeading}>
-            {t('setup.goals.yourSavingsGoals', { count: goals.length })}
-          </Text>
-          {goals.map((g) => (
-            <SetupGoalCard
-              key={g.id}
-              goal={g}
-              isRerun={isRerun}
-              isDirty={dirtyGoalIds.has(g.id)}
-              onUpdate={handleUpdateGoalField}
-              onRemove={handleRemoveGoal}
-              onSave={handleSaveGoalImmediate}
-            />
-          ))}
-        </View>
-      )}
-
       <SetupGoalsPresetsGrid onTogglePreset={togglePreset} isPresetActive={isPresetActive} />
-
-      {!isRerun && (
-        <>
-          <Text style={[styles.sectionHeading, styles.marginTop16]}>
-            {t('setup.goals.yourSavingsGoals', { count: goals.length })}
-          </Text>
-          {goals.map((g) => (
-            <SetupGoalCard
-              key={g.id}
-              goal={g}
-              isRerun={isRerun}
-              isDirty={dirtyGoalIds.has(g.id)}
-              onUpdate={handleUpdateGoalField}
-              onRemove={handleRemoveGoal}
-              onSave={handleSaveGoalImmediate}
-            />
-          ))}
-        </>
-      )}
 
       <View style={styles.customBox}>
         <Text style={styles.customHeading}>{t('setup.goals.addCustomGoal')}</Text>
@@ -212,10 +174,29 @@ export default function SetupGoalsScreen() {
             onPress={handleAddCustom}
             disabled={!customName.trim()}
           >
-            <Text style={styles.addCustomBtnText}>+ Add</Text>
+            <Text style={styles.addCustomBtnText}>+ {t('common.add')}</Text>
           </TouchableOpacity>
         </View>
       </View>
+
+      {goals.length > 0 && (
+        <View style={styles.rerunSection}>
+          <Text style={styles.sectionHeading}>
+            {t('setup.goals.yourSavingsGoals', { count: goals.length })}
+          </Text>
+          {goals.map((g) => (
+            <SetupGoalCard
+              key={g.id}
+              goal={g}
+              isRerun={isRerun}
+              isDirty={dirtyGoalIds.has(g.id)}
+              onUpdate={handleUpdateGoalField}
+              onRemove={handleRemoveGoal}
+              onSave={handleSaveGoalImmediate}
+            />
+          ))}
+        </View>
+      )}
 
       <View style={styles.actionRow}>
         <TouchableOpacity onPress={handleBack} style={styles.backBtn}>

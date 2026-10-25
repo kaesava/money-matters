@@ -93,11 +93,11 @@ export function MobilePaydaySandboxModal({
             </View>
 
             <MobileButton
-              variant="primary"
-              onPress={onFinish}
+              variant="secondary"
+              onPress={onClose}
               style={styles.finishBtn}
             >
-              {t('setup.sandbox.gotItCta')} →
+              {t('setup.sandbox.returnToReview')}
             </MobileButton>
           </View>
         )}
