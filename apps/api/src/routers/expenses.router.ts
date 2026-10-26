@@ -30,6 +30,15 @@ export const expensesRouter = {
           rrule: envelopes.rrule,
           startDate: envelopes.startDate,
           endDate: envelopes.endDate,
+          hasScheduledEvents: sql<boolean>`EXISTS (
+            SELECT 1 FROM ${expenseEvents}
+            WHERE ${expenseEvents.envelopeId} = ${envelopes.id}
+              AND ${expenseEvents.isScheduled} = true
+              AND ${expenseEvents.status} = 'PENDING'
+              AND ${expenseEvents.archivedAt} IS NULL
+              AND ${expenseEvents.tenantId} = ${ctx.tenantId!}
+              AND ${expenseEvents.appId} = ${ctx.appId!}
+          )`.as("has_scheduled_events"),
         })
         .from(envelopes)
         .where(

@@ -6,7 +6,7 @@ describe("Mobile Envelope Badge & Parity Tests", () => {
     expect(t("categories.scheduledBillBadge")).toBe("Scheduled Bill");
     expect(t("categories.flexibleBillBadge")).toBe("Flexible Bill");
     expect(t("categories.targetDateGoalBadge")).toBe("Target Goal");
-    expect(t("categories.ongoingGoalBadge")).toBe("Saving Goal");
+    expect(t("categories.ongoingGoalBadge")).toBe("Ongoing Goal");
     expect(t("categories.everydayBadge")).toBe("Everyday");
   });
 
@@ -23,7 +23,7 @@ describe("Mobile Envelope Badge & Parity Tests", () => {
     expect(resolveBadge("SCHEDULED_BILL")).toBe("Scheduled Bill");
     expect(resolveBadge("FLEXIBLE_BILL")).toBe("Flexible Bill");
     expect(resolveBadge("TARGET_GOAL")).toBe("Target Goal");
-    expect(resolveBadge("ONGOING_GOAL")).toBe("Saving Goal");
+    expect(resolveBadge("ONGOING_GOAL")).toBe("Ongoing Goal");
     expect(resolveBadge("EVERYDAY")).toBe("Everyday");
     expect(resolveBadge(null, "EVERYDAY")).toBe("Everyday");
   });

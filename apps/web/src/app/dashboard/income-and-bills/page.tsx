@@ -37,6 +37,7 @@ function IncomeAndBillsContent() {
     envelopeType?: string;
     poolType?: string;
     type?: string;
+    hasScheduledEvents?: boolean | null;
   } | null>(null);
 
   const [setupSearchQuery, setSetupSearchQuery] = useState("");
@@ -189,6 +190,7 @@ function IncomeAndBillsContent() {
                   envelopeType: resolvedEnvelopeType,
                   poolType: resolvedEnvelopeType,
                   type: resolvedEnvelopeType,
+                  hasScheduledEvents: (cat as unknown as { hasScheduledEvents?: boolean }).hasScheduledEvents ?? targetPool?.hasScheduledEvents,
                 });
                 setIsEnvelopeModalOpen(true);
               }}

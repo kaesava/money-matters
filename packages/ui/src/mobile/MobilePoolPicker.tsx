@@ -6,7 +6,7 @@ import {
   StyleSheet,
   TouchableOpacity,
   TextInput,
-  SectionList,
+  FlatList,
   SafeAreaView,
 } from 'react-native';
 import { Feather } from '@expo/vector-icons';
@@ -18,6 +18,8 @@ export interface MobilePoolOption {
   id: string;
   name: string;
   poolType?: string;
+  envelopeType?: string;
+  goalMode?: string;
   isPrivate?: boolean | null;
   currentBalance?: string | number;
   categories?: Array<{ id: string; name: string }>;
@@ -79,7 +81,6 @@ export const MobilePoolPicker: React.FC<MobilePoolPickerProps> = ({
   const [modalVisible, setModalVisible] = useState(false);
   const [isInlineOpen, setIsInlineOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const [collapsedSections, setCollapsedSections] = useState<Record<string, boolean>>({});
 
   const resolvedAllLabel = allOptionLabel || t('transactions.allPools');
   const selectedPool = pools.find((p) => p.id === selectedPoolId);
@@ -103,47 +104,76 @@ export const MobilePoolPicker: React.FC<MobilePoolPickerProps> = ({
 
   const isAllActive = !selectedPoolId || selectedPoolId === 'ALL';
 
+  const getBadgeStyle = (tagKey: string) => {
+    switch (tagKey) {
+      case 'SCHEDULED_BILL':
+        return {
+          bg: '#EFF6FF',
+          border: '#BFDBFE',
+          text: '#1D4ED8',
+        };
+      case 'FLEXIBLE_BILL':
+        return {
+          bg: '#F0F9FF',
+          border: '#BAE6FD',
+          text: '#0369A1',
+        };
+      case 'TARGET_GOAL':
+        return {
+          bg: '#ECFDF5',
+          border: '#A7F3D0',
+          text: '#047857',
+        };
+      case 'ONGOING_GOAL':
+        return {
+          bg: '#F0FDFA',
+          border: '#99F6E4',
+          text: '#0F766E',
+        };
+      case 'EVERYDAY':
+      default:
+        return {
+          bg: '#FAF5FF',
+          border: '#E9D5FF',
+          text: '#7E22CE',
+        };
+    }
+  };
+
+  const getEnvelopeBadgeInfo = (envelope: MobilePoolOption) => {
+    const rawType = envelope.envelopeType || envelope.poolType || '';
+    if (rawType === 'EVERYDAY') {
+      return { label: t('categories.everydayBadge'), tagKey: 'EVERYDAY' };
+    }
+    if (rawType === 'FLEXIBLE_BILL') {
+      return { label: t('categories.flexibleBillBadge'), tagKey: 'FLEXIBLE_BILL' };
+    }
+    if (rawType === 'SCHEDULED_BILL' || rawType === 'REGULAR') {
+      return { label: t('categories.scheduledBillBadge'), tagKey: 'SCHEDULED_BILL' };
+    }
+    if (rawType === 'ONGOING_GOAL' || envelope.goalMode === 'ONGOING') {
+      return { label: t('categories.ongoingGoalBadge'), tagKey: 'ONGOING_GOAL' };
+    }
+    if (rawType === 'TARGET_GOAL' || rawType === 'GOAL' || rawType.includes('GOAL')) {
+      return { label: t('categories.targetDateGoalBadge'), tagKey: 'TARGET_GOAL' };
+    }
+    return { label: t('categories.everydayBadge'), tagKey: 'EVERYDAY' };
+  };
+
   const filteredPools = useMemo(() => {
     const q = searchQuery.toLowerCase().trim();
     if (!q) return pools;
     return pools.filter((p) => {
-      const matchPool = p.name.toLowerCase().includes(q) || (p.poolType && p.poolType.toLowerCase().includes(q));
-      const matchCat = allowCategorySelection && p.categories?.some((c) => c.name.toLowerCase().includes(q));
+      const badge = getEnvelopeBadgeInfo(p);
+      const matchPool =
+        p.name.toLowerCase().includes(q) ||
+        badge.label.toLowerCase().includes(q) ||
+        (p.poolType && p.poolType.toLowerCase().includes(q));
+      const matchCat =
+        allowCategorySelection && p.categories?.some((c) => c.name.toLowerCase().includes(q));
       return matchPool || matchCat;
     });
   }, [pools, searchQuery, allowCategorySelection]);
-
-  const sections = useMemo(() => {
-    const regularGroup = {
-      type: 'REGULAR',
-      title: t('categories.billsPoolsUpper'),
-      data: [] as MobilePoolOption[],
-    };
-    const goalGroup = {
-      type: 'GOAL',
-      title: t('categories.goalsUpper'),
-      data: [] as MobilePoolOption[],
-    };
-    const everydayGroup = {
-      type: 'EVERYDAY',
-      title: t('categories.everydayPoolsUpper'),
-      data: [] as MobilePoolOption[],
-    };
-    const otherGroup = {
-      type: 'OTHER',
-      title: t('categories.otherPoolsUpper'),
-      data: [] as MobilePoolOption[],
-    };
-
-    for (const p of filteredPools) {
-      if (p.poolType === 'EVERYDAY') everydayGroup.data.push(p);
-      else if (p.poolType === 'REGULAR') regularGroup.data.push(p);
-      else if (p.poolType === 'GOAL') goalGroup.data.push(p);
-      else otherGroup.data.push(p);
-    }
-
-    return [everydayGroup, regularGroup, goalGroup, otherGroup].filter((g) => g.data.length > 0);
-  }, [filteredPools]);
 
   const handleSelect = (poolId: string, categoryId: string | null = null) => {
     const pool = pools.find((p) => p.id === poolId);
@@ -162,13 +192,6 @@ export const MobilePoolPicker: React.FC<MobilePoolPickerProps> = ({
     setModalVisible(false);
     setIsInlineOpen(false);
     setSearchQuery('');
-  };
-
-  const toggleSection = (sectionType: string) => {
-    setCollapsedSections((prev) => ({
-      ...prev,
-      [sectionType]: !prev[sectionType],
-    }));
   };
 
   const modalTitle = useMemo(() => {
@@ -204,8 +227,115 @@ export const MobilePoolPicker: React.FC<MobilePoolPickerProps> = ({
     </View>
   );
 
+  const renderPoolItem = (item: MobilePoolOption) => {
+    const isPoolSelected =
+      item.id === selectedPoolId && (!allowCategorySelection || !selectedCategoryId);
+    const balText = formatBalanceDynamic(item.currentBalance);
+    const badge = getEnvelopeBadgeInfo(item);
+    const badgeStyle = getBadgeStyle(badge.tagKey);
+
+    return (
+      <View key={item.id} style={styles.poolContainer}>
+        <TouchableOpacity
+          style={[styles.itemRow, isPoolSelected && styles.itemRowSelected]}
+          onPress={() => handleSelect(item.id, null)}
+          activeOpacity={0.7}
+        >
+          <View style={styles.itemInfo}>
+            <Feather
+              name="folder"
+              size={14}
+              color={isPoolSelected ? '#2563eb' : '#64748B'}
+            />
+            <Text
+              style={[styles.itemText, isPoolSelected && styles.itemTextSelected]}
+              numberOfLines={1}
+            >
+              {item.name}
+            </Text>
+            <View
+              style={[
+                styles.itemBadgeWrap,
+                { backgroundColor: badgeStyle.bg, borderColor: badgeStyle.border },
+              ]}
+            >
+              <Text style={[styles.itemBadgeText, { color: badgeStyle.text }]}>
+                {badge.label}
+              </Text>
+            </View>
+          </View>
+          <View style={styles.itemRight}>
+            {balText && (
+              <Text
+                style={[
+                  styles.itemBalance,
+                  isPoolSelected && styles.itemBalanceSelected,
+                ]}
+              >
+                {balText}
+              </Text>
+            )}
+            {isPoolSelected && <Feather name="check" size={16} color="#2563eb" />}
+          </View>
+        </TouchableOpacity>
+
+        {allowCategorySelection &&
+          item.categories &&
+          item.categories.length > 0 && (() => {
+            const q = searchQuery.toLowerCase().trim();
+            const poolMatches =
+              !q ||
+              item.name.toLowerCase().includes(q) ||
+              badge.label.toLowerCase().includes(q) ||
+              Boolean(item.poolType && item.poolType.toLowerCase().includes(q));
+            const visibleCats = poolMatches
+              ? item.categories
+              : item.categories.filter((c) => c.name.toLowerCase().includes(q));
+            if (visibleCats.length === 0) return null;
+
+            return (
+              <View style={styles.catSubList}>
+                {visibleCats.map((cat) => {
+                  const isCatSelected =
+                    item.id === selectedPoolId && selectedCategoryId === cat.id;
+                  return (
+                    <TouchableOpacity
+                      key={cat.id}
+                      style={[styles.catRow, isCatSelected && styles.catRowSelected]}
+                      onPress={() => handleSelect(item.id, cat.id)}
+                      activeOpacity={0.7}
+                    >
+                      <View style={styles.itemInfo}>
+                        <Feather
+                          name="tag"
+                          size={12}
+                          color={isCatSelected ? '#2563eb' : '#94A3B8'}
+                        />
+                        <Text
+                          style={[
+                            styles.catText,
+                            isCatSelected && styles.catTextSelected,
+                          ]}
+                          numberOfLines={1}
+                        >
+                          {cat.name}
+                        </Text>
+                      </View>
+                      {isCatSelected && (
+                        <Feather name="check" size={14} color="#2563eb" />
+                      )}
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+            );
+          })()}
+      </View>
+    );
+  };
+
   const renderGroupedContent = () => {
-    if (sections.length === 0) {
+    if (filteredPools.length === 0 && (!allowAllOption || searchQuery.trim())) {
       return (
         <View style={styles.emptyWrap}>
           <Text style={styles.emptyText}>
@@ -231,120 +361,7 @@ export const MobilePoolPicker: React.FC<MobilePoolPickerProps> = ({
           </TouchableOpacity>
         )}
 
-        {sections.map((section) => {
-          const isCollapsed = Boolean(collapsedSections[section.type]);
-          return (
-            <View key={section.type} style={styles.sectionWrap}>
-              <TouchableOpacity
-                onPress={() => toggleSection(section.type)}
-                style={styles.sectionHeader}
-                activeOpacity={0.7}
-              >
-                <Text style={styles.sectionHeaderText}>{section.title}</Text>
-                <Feather
-                  name={isCollapsed ? 'chevron-right' : 'chevron-down'}
-                  size={14}
-                  color="#64748B"
-                />
-              </TouchableOpacity>
-
-              {!isCollapsed &&
-                section.data.map((item) => {
-                  const isPoolSelected =
-                    item.id === selectedPoolId && (!allowCategorySelection || !selectedCategoryId);
-                  const balText = formatBalanceDynamic(item.currentBalance);
-
-                  return (
-                    <View key={item.id} style={styles.poolContainer}>
-                      <TouchableOpacity
-                        style={[styles.itemRow, isPoolSelected && styles.itemRowSelected]}
-                        onPress={() => handleSelect(item.id, null)}
-                        activeOpacity={0.7}
-                      >
-                        <View style={styles.itemInfo}>
-                          <Feather
-                            name="folder"
-                            size={14}
-                            color={isPoolSelected ? '#2563eb' : '#64748B'}
-                          />
-                          <Text
-                            style={[styles.itemText, isPoolSelected && styles.itemTextSelected]}
-                            numberOfLines={1}
-                          >
-                            {item.name}
-                          </Text>
-                          {item.poolType && (
-                            <Text style={styles.itemBadge}>{item.poolType}</Text>
-                          )}
-                        </View>
-                        <View style={styles.itemRight}>
-                          {balText && (
-                            <Text
-                              style={[
-                                styles.itemBalance,
-                                isPoolSelected && styles.itemBalanceSelected,
-                              ]}
-                            >
-                              {balText}
-                            </Text>
-                          )}
-                          {isPoolSelected && <Feather name="check" size={16} color="#2563eb" />}
-                        </View>
-                      </TouchableOpacity>
-
-                      {allowCategorySelection &&
-                        item.categories &&
-                        item.categories.length > 0 && (() => {
-                          const q = searchQuery.toLowerCase().trim();
-                          const poolMatches = !q || item.name.toLowerCase().includes(q) || Boolean(item.poolType && item.poolType.toLowerCase().includes(q));
-                          const visibleCats = poolMatches
-                            ? item.categories
-                            : item.categories.filter((c) => c.name.toLowerCase().includes(q));
-                          if (visibleCats.length === 0) return null;
-
-                          return (
-                            <View style={styles.catSubList}>
-                              {visibleCats.map((cat) => {
-                                const isCatSelected =
-                                  item.id === selectedPoolId && selectedCategoryId === cat.id;
-                                return (
-                                  <TouchableOpacity
-                                    key={cat.id}
-                                    style={[styles.catRow, isCatSelected && styles.catRowSelected]}
-                                    onPress={() => handleSelect(item.id, cat.id)}
-                                    activeOpacity={0.7}
-                                  >
-                                    <View style={styles.itemInfo}>
-                                      <Feather
-                                        name="tag"
-                                        size={12}
-                                        color={isCatSelected ? '#2563eb' : '#94A3B8'}
-                                      />
-                                      <Text
-                                        style={[
-                                          styles.catText,
-                                          isCatSelected && styles.catTextSelected,
-                                        ]}
-                                        numberOfLines={1}
-                                      >
-                                        {cat.name}
-                                      </Text>
-                                    </View>
-                                    {isCatSelected && (
-                                      <Feather name="check" size={14} color="#2563eb" />
-                                    )}
-                                  </TouchableOpacity>
-                                );
-                              })}
-                            </View>
-                          );
-                        })()}
-                    </View>
-                  );
-                })}
-            </View>
-          );
-        })}
+        {filteredPools.map((item) => renderPoolItem(item))}
       </View>
     );
   };
@@ -465,16 +482,11 @@ export const MobilePoolPicker: React.FC<MobilePoolPickerProps> = ({
 
               {renderSearchInput()}
 
-              <SectionList
-                sections={sections}
+              <FlatList
+                data={filteredPools}
                 keyExtractor={(item) => item.id}
                 showsVerticalScrollIndicator={false}
                 contentContainerStyle={styles.listContent}
-                renderSectionHeader={({ section: { title } }) => (
-                  <View style={styles.sectionHeader}>
-                    <Text style={styles.sectionHeaderText}>{title}</Text>
-                  </View>
-                )}
                 ListHeaderComponent={
                   allowAllOption && !searchQuery.trim() ? (
                     <TouchableOpacity
@@ -490,97 +502,7 @@ export const MobilePoolPicker: React.FC<MobilePoolPickerProps> = ({
                     </TouchableOpacity>
                   ) : null
                 }
-                renderItem={({ item }) => {
-                  const isPoolSelected =
-                    item.id === selectedPoolId && (!allowCategorySelection || !selectedCategoryId);
-                  const balText = formatBalanceDynamic(item.currentBalance);
-
-                  return (
-                    <View style={styles.poolContainer}>
-                      <TouchableOpacity
-                        style={[styles.itemRow, isPoolSelected && styles.itemRowSelected]}
-                        onPress={() => handleSelect(item.id, null)}
-                      >
-                        <View style={styles.itemInfo}>
-                          <Feather
-                            name="folder"
-                            size={14}
-                            color={isPoolSelected ? '#2563eb' : '#64748B'}
-                          />
-                          <Text
-                            style={[styles.itemText, isPoolSelected && styles.itemTextSelected]}
-                          >
-                            {item.name}
-                          </Text>
-                          {item.poolType && (
-                            <Text style={styles.itemBadge}>{item.poolType}</Text>
-                          )}
-                        </View>
-                        <View style={styles.itemRight}>
-                          {balText && (
-                            <Text
-                              style={[
-                                styles.itemBalance,
-                                isPoolSelected && styles.itemBalanceSelected,
-                              ]}
-                            >
-                              {balText}
-                            </Text>
-                          )}
-                          {isPoolSelected && <Feather name="check" size={16} color="#2563eb" />}
-                        </View>
-                      </TouchableOpacity>
-
-                      {allowCategorySelection &&
-                        item.categories &&
-                        item.categories.length > 0 && (() => {
-                          const q = searchQuery.toLowerCase().trim();
-                          const poolMatches = !q || item.name.toLowerCase().includes(q) || Boolean(item.poolType && item.poolType.toLowerCase().includes(q));
-                          const visibleCats = poolMatches
-                            ? item.categories
-                            : item.categories.filter((c) => c.name.toLowerCase().includes(q));
-                          if (visibleCats.length === 0) return null;
-
-                          return (
-                            <View style={styles.catSubList}>
-                              {visibleCats.map((cat) => {
-                                const isCatSelected =
-                                  item.id === selectedPoolId && selectedCategoryId === cat.id;
-                                return (
-                                  <TouchableOpacity
-                                    key={cat.id}
-                                    style={[styles.catRow, isCatSelected && styles.catRowSelected]}
-                                    onPress={() => handleSelect(item.id, cat.id)}
-                                    activeOpacity={0.7}
-                                  >
-                                    <View style={styles.itemInfo}>
-                                      <Feather
-                                        name="tag"
-                                        size={12}
-                                        color={isCatSelected ? '#2563eb' : '#94A3B8'}
-                                      />
-                                      <Text
-                                        style={[
-                                          styles.catText,
-                                          isCatSelected && styles.catTextSelected,
-                                        ]}
-                                        numberOfLines={1}
-                                      >
-                                        {cat.name}
-                                      </Text>
-                                    </View>
-                                    {isCatSelected && (
-                                      <Feather name="check" size={14} color="#2563eb" />
-                                    )}
-                                  </TouchableOpacity>
-                                );
-                              })}
-                            </View>
-                          );
-                        })()}
-                    </View>
-                  );
-                }}
+                renderItem={({ item }) => renderPoolItem(item)}
                 ListEmptyComponent={
                   <View style={styles.emptyWrap}>
                     <Text style={styles.emptyText}>
@@ -687,9 +609,6 @@ const styles = StyleSheet.create({
   },
   groupedListContent: {
     gap: 4,
-  },
-  sectionWrap: {
-    marginBottom: 6,
   },
   poolContainer: {
     marginBottom: 2,
@@ -804,37 +723,21 @@ const styles = StyleSheet.create({
   itemBalanceSelected: {
     color: '#1D4ED8',
   },
-  itemBadge: {
-    fontSize: 9,
-    fontWeight: '700',
-    color: '#64748B',
-    backgroundColor: '#F1F5F9',
-    paddingHorizontal: 5,
+  itemBadgeWrap: {
+    paddingHorizontal: 6,
     paddingVertical: 2,
     borderRadius: 4,
+    borderWidth: 1,
+  },
+  itemBadgeText: {
+    fontSize: 9,
+    fontWeight: '700',
     textTransform: 'uppercase',
+    letterSpacing: 0.5,
   },
   emptyWrap: {
     paddingVertical: 20,
     alignItems: 'center',
-  },
-  sectionHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingVertical: 6,
-    paddingHorizontal: 8,
-    backgroundColor: '#F1F5F9',
-    borderRadius: 6,
-    marginTop: 6,
-    marginBottom: 4,
-  },
-  sectionHeaderText: {
-    fontSize: 10,
-    fontWeight: '800',
-    color: '#64748B',
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
   },
   emptyText: {
     fontSize: 12,

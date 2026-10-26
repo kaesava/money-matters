@@ -35,6 +35,7 @@ export interface EnvelopeFormModalProps {
     enteredAmount?: string | null; budgetFrequency?: "WEEKLY" | "FORTNIGHTLY" | "MONTHLY" | "ANNUALLY" | string | null;
     startDate?: string | null; rrule?: string | null;
     isSurplusTarget?: boolean | null;
+    hasScheduledEvents?: boolean | null;
   } | null;
   categoryToEdit?: {
     id: string; poolId?: string; name: string;
@@ -46,6 +47,7 @@ export interface EnvelopeFormModalProps {
     enteredAmount?: string | null; budgetFrequency?: "WEEKLY" | "FORTNIGHTLY" | "MONTHLY" | "ANNUALLY" | string | null;
     startDate?: string | null; rrule?: string | null;
     isSurplusTarget?: boolean | null;
+    hasScheduledEvents?: boolean | null;
   } | null;
   bankAccounts?: Array<{ id: string; name: string; isPrivate?: boolean | null }>;
   onSaveDraft?: (draft: EnvelopeDraftPayload) => void;
@@ -115,7 +117,8 @@ export function EnvelopeFormModal({
       const rawStartDate = categoryToEdit.startDate || "";
       setGoalStartDate(rawStartDate ? rawStartDate.split("T")[0] : "");
       setIsSurplusTarget(categoryToEdit.isSurplusTarget ?? false);
-      setGenerateEvents(true);
+      const isInitialScheduled = (categoryToEdit.envelopeType || categoryToEdit.poolType || categoryToEdit.type || "REGULAR") === "SCHEDULED_BILL";
+      setGenerateEvents(categoryToEdit.hasScheduledEvents ?? isInitialScheduled);
     } else {
       setName("");
       setType("REGULAR");
@@ -189,7 +192,8 @@ export function EnvelopeFormModal({
         billMode !== "SCHEDULED_BILL" ||
         goalMode !== "TARGET_DATE" ||
         frequency !== "MONTHLY" ||
-        interval !== 1
+        interval !== 1 ||
+        (billMode === "SCHEDULED_BILL" && !generateEvents)
       );
     }
     if (!categoryToEdit) return false;
@@ -207,6 +211,7 @@ export function EnvelopeFormModal({
     const rawStartDate = categoryToEdit.startDate || "";
     const initialStartDate = rawStartDate ? rawStartDate.split("T")[0] : "";
     const initialSurplus = categoryToEdit.isSurplusTarget ?? false;
+    const initialGenerate = categoryToEdit.hasScheduledEvents ?? (initialBillMode === "SCHEDULED_BILL");
 
     return (
       name.trim() !== initialName ||
@@ -218,7 +223,8 @@ export function EnvelopeFormModal({
       frequency !== initialFreq ||
       interval !== initialInterval ||
       goalStartDate !== initialStartDate ||
-      isSurplusTarget !== initialSurplus
+      isSurplusTarget !== initialSurplus ||
+      ((billMode === "SCHEDULED_BILL" || initialBillMode === "SCHEDULED_BILL") && generateEvents !== initialGenerate)
     );
   }, [
     isEdit,
@@ -235,6 +241,7 @@ export function EnvelopeFormModal({
     goalStartDate,
     isSurplusTarget,
     type,
+    generateEvents,
   ]);
 
   const confirmArchive = async () => {
@@ -325,6 +332,9 @@ export function EnvelopeFormModal({
     const initialInterval = parsedInitialRecurrence.interval;
     const rawStartDate = categoryToEdit.startDate || "";
     const initialStartDate = rawStartDate ? rawStartDate.split("T")[0] : "";
+    const rawDate = categoryToEdit.endDate || categoryToEdit.targetDate || "";
+    const initialDate = rawDate ? rawDate.split("T")[0] : "";
+    const initialGenerate = categoryToEdit.hasScheduledEvents ?? (initialBillMode === "SCHEDULED_BILL");
 
     const isCurrentScheduled = type === "REGULAR" && billMode === "SCHEDULED_BILL";
     const wasScheduled = initialBillMode === "SCHEDULED_BILL";
@@ -334,9 +344,11 @@ export function EnvelopeFormModal({
       if (frequency !== initialFreq) return true;
       if (interval !== initialInterval) return true;
       if ((goalStartDate || "") !== initialStartDate) return true;
+      if ((targetDate || "") !== initialDate) return true;
+      if (generateEvents !== initialGenerate) return true;
     }
     return false;
-  }, [isEdit, categoryToEdit, type, billMode, frequency, interval, goalStartDate]);
+  }, [isEdit, categoryToEdit, type, billMode, frequency, interval, goalStartDate, targetDate, generateEvents]);
 
   const [showRuleChangeConfirm, setShowRuleChangeConfirm] = useState(false);
 

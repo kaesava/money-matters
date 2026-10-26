@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { PoolPicker } from "../PoolPicker";
-import { formatPoolBalance, groupPoolsByType, PoolOption } from "../poolPickerUtils";
+import { formatPoolBalance, filterPools, getEnvelopeBadgeInfo, PoolOption } from "../poolPickerUtils";
 
 describe("PoolPicker", () => {
   it("is exported and defined as a React component", () => {
@@ -23,28 +23,52 @@ describe("PoolPicker", () => {
     });
   });
 
-  describe("groupPoolsByType", () => {
+  describe("getEnvelopeBadgeInfo", () => {
+    it("maps all envelope types to their respective labels and tagKeys", () => {
+      expect(getEnvelopeBadgeInfo({ envelopeType: "SCHEDULED_BILL" })).toEqual({
+        label: "Scheduled Bill",
+        tagKey: "SCHEDULED_BILL",
+      });
+      expect(getEnvelopeBadgeInfo({ envelopeType: "FLEXIBLE_BILL" })).toEqual({
+        label: "Flexible Bill",
+        tagKey: "FLEXIBLE_BILL",
+      });
+      expect(getEnvelopeBadgeInfo({ envelopeType: "TARGET_GOAL" })).toEqual({
+        label: "Target Goal",
+        tagKey: "TARGET_GOAL",
+      });
+      expect(getEnvelopeBadgeInfo({ envelopeType: "ONGOING_GOAL" })).toEqual({
+        label: "Ongoing Goal",
+        tagKey: "ONGOING_GOAL",
+      });
+      expect(getEnvelopeBadgeInfo({ envelopeType: "EVERYDAY" })).toEqual({
+        label: "Everyday",
+        tagKey: "EVERYDAY",
+      });
+    });
+  });
+
+  describe("filterPools", () => {
     const samplePools: PoolOption[] = [
-      { id: "1", name: "Everyday Spending", poolType: "EVERYDAY", currentBalance: 300 },
-      { id: "2", name: "Electricity Bill", poolType: "REGULAR", currentBalance: 150 },
-      { id: "3", name: "Holiday Fund", poolType: "GOAL", currentBalance: 2000 },
-      { id: "4", name: "Miscellaneous", poolType: "OTHER", currentBalance: 50 },
+      { id: "1", name: "Everyday Spending", envelopeType: "EVERYDAY", currentBalance: 300 },
+      { id: "2", name: "Electricity Bill", envelopeType: "SCHEDULED_BILL", currentBalance: 150 },
+      { id: "3", name: "Holiday Fund", envelopeType: "TARGET_GOAL", currentBalance: 2000 },
+      { id: "4", name: "Vet Visits", envelopeType: "FLEXIBLE_BILL", currentBalance: 50 },
     ];
 
-    it("groups pools into respective categories", () => {
-      const groups = groupPoolsByType(samplePools, "", false);
-      expect(groups).toHaveLength(4);
-      expect(groups.find((g) => g.type === "EVERYDAY")?.items).toHaveLength(1);
-      expect(groups.find((g) => g.type === "REGULAR")?.items).toHaveLength(1);
-      expect(groups.find((g) => g.type === "GOAL")?.items).toHaveLength(1);
-      expect(groups.find((g) => g.type === "OTHER")?.items).toHaveLength(1);
+    it("returns all pools when query is empty", () => {
+      const result = filterPools(samplePools, "", false);
+      expect(result).toHaveLength(4);
     });
 
-    it("filters pools based on search query", () => {
-      const filtered = groupPoolsByType(samplePools, "holiday", false);
-      expect(filtered).toHaveLength(1);
-      expect(filtered[0]?.type).toBe("GOAL");
-      expect(filtered[0]?.items[0]?.name).toBe("Holiday Fund");
+    it("filters pools based on search query matching name or badge", () => {
+      const filteredByName = filterPools(samplePools, "holiday", false);
+      expect(filteredByName).toHaveLength(1);
+      expect(filteredByName[0]?.name).toBe("Holiday Fund");
+
+      const filteredByBadge = filterPools(samplePools, "flexible", false);
+      expect(filteredByBadge).toHaveLength(1);
+      expect(filteredByBadge[0]?.name).toBe("Vet Visits");
     });
 
     it("filters child categories when allowCategorySelection is true", () => {
@@ -52,7 +76,7 @@ describe("PoolPicker", () => {
         {
           id: "p1",
           name: "Utilities",
-          poolType: "REGULAR",
+          envelopeType: "SCHEDULED_BILL",
           categories: [
             { id: "c1", name: "Water" },
             { id: "c2", name: "Gas" },
@@ -60,10 +84,10 @@ describe("PoolPicker", () => {
         },
       ];
 
-      const matchWater = groupPoolsByType(poolsWithCategories, "water", true);
+      const matchWater = filterPools(poolsWithCategories, "water", true);
       expect(matchWater).toHaveLength(1);
 
-      const noMatch = groupPoolsByType(poolsWithCategories, "rent", true);
+      const noMatch = filterPools(poolsWithCategories, "rent", true);
       expect(noMatch).toHaveLength(0);
     });
   });

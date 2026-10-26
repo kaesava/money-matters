@@ -1,5 +1,5 @@
 import { envelopes, expenseEvents, DbOrTx } from "@money-matters/db";
-import { eq, and } from "drizzle-orm";
+import { eq, and, sql } from "drizzle-orm";
 import { z } from "zod";
 import { UpdateEnvelopeCommand } from "@money-matters/types";
 import {
@@ -128,60 +128,94 @@ export async function updateEnvelopeCommand(
       .returning();
 
     // Determine event handling according to the permutation matrix:
-    // 1. If schedule parameters changed or mode switched:
     const scheduleParametersChanged =
-      input.rrule !== undefined ||
-      input.startDate !== undefined ||
-      input.endDate !== undefined ||
-      input.budgetFrequency !== undefined ||
+      (input.rrule !== undefined && input.rrule !== existing.rrule) ||
+      (input.startDate !== undefined && input.startDate !== existing.startDate) ||
+      (input.endDate !== undefined && input.endDate !== (existing.endDate || null)) ||
+      (input.budgetFrequency !== undefined && input.budgetFrequency !== existing.budgetFrequency) ||
       (wasScheduled !== isNowScheduled);
 
-    const amountChanged =
-      input.enteredAmount !== undefined ||
-      input.monthlyAmount !== undefined;
-
-    const nameChanged = input.name !== undefined;
-
+    const oldAmountVal = existing.enteredAmount || existing.monthlyAmount || "0.00";
     const newAmountVal = updated.enteredAmount || updated.monthlyAmount || "0.00";
+    const amountChanged = parseFloat(newAmountVal) !== parseFloat(oldAmountVal);
 
-    if (scheduleParametersChanged) {
-      // Clear all unconfirmed pending events for this envelope
-      await clearScheduledEnvelopeEvents(tx, envelopeId, tenantId, appId);
+    const nameChanged = input.name !== undefined && input.name.trim() !== existing.name.trim();
 
-      // If envelope is now SCHEDULED_BILL and generateEvents is not false, regenerate fresh burst of 12 cycles
-      if (isNowScheduled && input.generateEvents !== false && rrule && startDate && parseFloat(newAmountVal) > 0) {
-        await burstEnvelopeEvents(tx, {
-          envelopeId,
-          name: updated.name,
-          amount: newAmountVal,
-          rrule,
-          startDate,
-          endDate,
-          tenantId,
-          appId,
-          userId,
-        });
-      }
-    } else if (isNowScheduled && (amountChanged || nameChanged)) {
-      // In-place update of all unconfirmed pending events (both past and future pending events)
-      // Confirmed history events are never modified.
-      if (typeof tx.update === "function") {
-        await tx
-          .update(expenseEvents)
-          .set({
-            name: updated.name,
-            expectedAmount: newAmountVal,
-            updatedBy: userId,
-            updatedAt: new Date(),
-          })
+    let hasExistingScheduledEvents = false;
+    if (typeof tx.select === "function") {
+      try {
+        const [pendingScheduled] = await tx
+          .select({ count: sql<number>`count(*)`.mapWith(Number) })
+          .from(expenseEvents)
           .where(
             and(
               eq(expenseEvents.envelopeId, envelopeId),
+              eq(expenseEvents.isScheduled, true),
               eq(expenseEvents.status, "PENDING"),
               eq(expenseEvents.tenantId, tenantId),
-              eq(expenseEvents.appId, appId)
+              eq(expenseEvents.appId, appId),
+              sql`${expenseEvents.archivedAt} IS NULL`
             )
           );
+        hasExistingScheduledEvents = (pendingScheduled?.count ?? 0) > 0;
+      } catch {
+        // Fallback for mock DBs
+      }
+    }
+
+    if (!isNowScheduled) {
+      // 1. Envelope is no longer a scheduled bill (e.g. converted to FLEXIBLE_BILL or GOAL):
+      // Clean up all pending scheduled events
+      if (wasScheduled || hasExistingScheduledEvents) {
+        await clearScheduledEnvelopeEvents(tx, envelopeId, tenantId, appId);
+      }
+    } else if (input.generateEvents === false) {
+      // 2. Scheduled bill with auto-generation disabled:
+      // Clear all existing pending scheduled events
+      await clearScheduledEnvelopeEvents(tx, envelopeId, tenantId, appId);
+    } else {
+      // 3. Scheduled bill with auto-generation enabled (input.generateEvents !== false)
+      const shouldBurstFresh =
+        scheduleParametersChanged ||
+        (!hasExistingScheduledEvents && input.generateEvents === true);
+
+      if (shouldBurstFresh) {
+        await clearScheduledEnvelopeEvents(tx, envelopeId, tenantId, appId);
+        if (rrule && startDate && parseFloat(newAmountVal) > 0) {
+          await burstEnvelopeEvents(tx, {
+            envelopeId,
+            name: updated.name,
+            amount: newAmountVal,
+            rrule,
+            startDate,
+            endDate,
+            tenantId,
+            appId,
+            userId,
+          });
+        }
+      } else if (amountChanged || nameChanged) {
+        // In-place update of all unconfirmed pending events
+        if (typeof tx.update === "function") {
+          const updatePayload: Record<string, unknown> = {
+            updatedBy: userId,
+            updatedAt: new Date(),
+          };
+          if (nameChanged) updatePayload.name = updated.name;
+          if (amountChanged) updatePayload.expectedAmount = newAmountVal;
+
+          await tx
+            .update(expenseEvents)
+            .set(updatePayload)
+            .where(
+              and(
+                eq(expenseEvents.envelopeId, envelopeId),
+                eq(expenseEvents.status, "PENDING"),
+                eq(expenseEvents.tenantId, tenantId),
+                eq(expenseEvents.appId, appId)
+              )
+            );
+        }
       }
     }
 

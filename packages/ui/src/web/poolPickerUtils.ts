@@ -1,7 +1,11 @@
+import { t } from "@money-matters/i18n";
+
 export interface PoolOption {
   id: string;
   name: string;
   poolType?: "EVERYDAY" | "REGULAR" | "GOAL" | string;
+  envelopeType?: "EVERYDAY" | "SCHEDULED_BILL" | "FLEXIBLE_BILL" | "TARGET_GOAL" | "ONGOING_GOAL" | string;
+  goalMode?: "TARGET_DATE" | "ONGOING" | string;
   currentBalance?: number | string | null;
   balance?: number | string | null;
   isPrivate?: boolean;
@@ -26,12 +30,38 @@ export interface PoolPickerProps {
   error?: string;
 }
 
-export const POOL_TYPE_LABELS: Record<string, string> = {
-  EVERYDAY: "Everyday Envelopes",
-  REGULAR: "Bills Envelopes",
-  GOAL: "Goals",
-  OTHER: "Other Envelopes",
-};
+export type EnvelopeBadgeKey = "EVERYDAY" | "SCHEDULED_BILL" | "FLEXIBLE_BILL" | "TARGET_GOAL" | "ONGOING_GOAL";
+
+export interface EnvelopeBadgeInfo {
+  label: string;
+  tagKey: EnvelopeBadgeKey;
+}
+
+export function getEnvelopeBadgeInfo(envelope: {
+  envelopeType?: string | null;
+  poolType?: string | null;
+  type?: string | null;
+  goalMode?: string | null;
+}): EnvelopeBadgeInfo {
+  const rawType = envelope.envelopeType || envelope.poolType || envelope.type || "";
+
+  if (rawType === "EVERYDAY") {
+    return { label: t("categories.everydayBadge"), tagKey: "EVERYDAY" };
+  }
+  if (rawType === "FLEXIBLE_BILL") {
+    return { label: t("categories.flexibleBillBadge"), tagKey: "FLEXIBLE_BILL" };
+  }
+  if (rawType === "SCHEDULED_BILL" || rawType === "REGULAR") {
+    return { label: t("categories.scheduledBillBadge"), tagKey: "SCHEDULED_BILL" };
+  }
+  if (rawType === "ONGOING_GOAL" || envelope.goalMode === "ONGOING") {
+    return { label: t("categories.ongoingGoalBadge"), tagKey: "ONGOING_GOAL" };
+  }
+  if (rawType === "TARGET_GOAL" || rawType === "GOAL" || rawType.includes("GOAL")) {
+    return { label: t("categories.targetDateGoalBadge"), tagKey: "TARGET_GOAL" };
+  }
+  return { label: t("categories.everydayBadge"), tagKey: "EVERYDAY" };
+}
 
 export function formatPoolBalance(
   val: number | string | null | undefined,
@@ -44,41 +74,18 @@ export function formatPoolBalance(
   return `${currencySymbol}${num.toLocaleString(locale, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
-export function groupPoolsByType(
+export function filterPools(
   regularPools: PoolOption[],
   searchQuery: string,
   allowCategorySelection: boolean
-): Array<{ type: string; label: string; items: PoolOption[] }> {
+): PoolOption[] {
   const q = searchQuery.toLowerCase().trim();
-  const filteredPools = regularPools.filter((p) => {
-    if (!q) return true;
-    const poolMatch = p.name.toLowerCase().includes(q);
+  if (!q) return regularPools;
+
+  return regularPools.filter((p) => {
+    const badge = getEnvelopeBadgeInfo(p);
+    const poolMatch = p.name.toLowerCase().includes(q) || badge.label.toLowerCase().includes(q);
     const catMatch = allowCategorySelection && p.categories?.some((c) => c.name.toLowerCase().includes(q));
     return poolMatch || catMatch;
   });
-
-  const groups: Array<{ type: string; label: string; items: PoolOption[] }> = [
-    { type: "EVERYDAY", label: POOL_TYPE_LABELS["EVERYDAY"] || "Everyday", items: [] },
-    { type: "REGULAR", label: POOL_TYPE_LABELS["REGULAR"] || "Bills", items: [] },
-    { type: "GOAL", label: POOL_TYPE_LABELS["GOAL"] || "Goals", items: [] },
-  ];
-  const otherItems: PoolOption[] = [];
-
-  for (const pool of filteredPools) {
-    if (pool.poolType === "EVERYDAY") {
-      groups[0]!.items.push(pool);
-    } else if (pool.poolType === "REGULAR") {
-      groups[1]!.items.push(pool);
-    } else if (pool.poolType === "GOAL") {
-      groups[2]!.items.push(pool);
-    } else {
-      otherItems.push(pool);
-    }
-  }
-
-  if (otherItems.length > 0) {
-    groups.push({ type: "OTHER", label: POOL_TYPE_LABELS["OTHER"] || "Other Pools", items: otherItems });
-  }
-
-  return groups.filter((g) => g.items.length > 0);
 }

@@ -33,6 +33,7 @@ export interface EnvelopeItem {
   safetyBufferFloor?: string | null;
   healthStatus?: string | null;
   isSurplusTarget?: boolean | null;
+  hasScheduledEvents?: boolean | null;
 }
 
 export interface EnvelopeDraftPayload {
@@ -127,7 +128,8 @@ export function EnvelopeFormModal({
       const rawStartDate = categoryToEdit.startDate || '';
       setGoalStartDate(rawStartDate ? formatIsoDate(rawStartDate) : '');
       setIsSurplusTarget(categoryToEdit.isSurplusTarget ?? false);
-      setGenerateEvents(true);
+      const isInitialScheduled = rawEnvelopeType === 'SCHEDULED_BILL';
+      setGenerateEvents(categoryToEdit.hasScheduledEvents ?? isInitialScheduled);
     } else {
       setName('');
       setType(defaultType || 'REGULAR');
@@ -242,7 +244,8 @@ export function EnvelopeFormModal({
         billMode !== 'SCHEDULED_BILL' ||
         goalMode !== 'TARGET_DATE' ||
         frequency !== 'MONTHLY' ||
-        interval !== 1
+        interval !== 1 ||
+        (billMode === 'SCHEDULED_BILL' && !generateEvents)
       );
     }
     if (!categoryToEdit) return false;
@@ -262,6 +265,7 @@ export function EnvelopeFormModal({
     const initialInterval = parsedInitialRecurrence.interval;
     const rawStartDate = categoryToEdit.startDate || '';
     const initialStartDate = rawStartDate ? formatIsoDate(rawStartDate) : '';
+    const initialGenerate = categoryToEdit.hasScheduledEvents ?? (initialBillMode === 'SCHEDULED_BILL');
 
     return (
       name.trim() !== initialName ||
@@ -273,7 +277,8 @@ export function EnvelopeFormModal({
       frequency !== initialFreq ||
       interval !== initialInterval ||
       goalStartDate !== initialStartDate ||
-      isSurplusTarget !== initialSurplus
+      isSurplusTarget !== initialSurplus ||
+      ((billMode === 'SCHEDULED_BILL' || initialBillMode === 'SCHEDULED_BILL') && generateEvents !== initialGenerate)
     );
   }, [
     isEdit,
@@ -291,6 +296,7 @@ export function EnvelopeFormModal({
     isSurplusTarget,
     type,
     defaultType,
+    generateEvents,
   ]);
 
   const isSurplusDisabled = Boolean(isEdit && categoryToEdit?.isSurplusTarget);
@@ -381,6 +387,9 @@ export function EnvelopeFormModal({
     const initialInterval = parsedInitialRecurrence.interval;
     const rawStartDate = categoryToEdit.startDate || '';
     const initialStartDate = rawStartDate ? formatIsoDate(rawStartDate) : '';
+    const rawDate = categoryToEdit.endDate || categoryToEdit.targetDate || '';
+    const initialDate = rawDate ? formatIsoDate(rawDate) : '';
+    const initialGenerate = categoryToEdit.hasScheduledEvents ?? (initialBillMode === 'SCHEDULED_BILL');
 
     const isCurrentScheduled = type === 'REGULAR' && billMode === 'SCHEDULED_BILL';
     const wasScheduled = initialBillMode === 'SCHEDULED_BILL';
@@ -390,9 +399,11 @@ export function EnvelopeFormModal({
       if (frequency !== initialFreq) return true;
       if (interval !== initialInterval) return true;
       if ((goalStartDate || '') !== initialStartDate) return true;
+      if ((targetDate || '') !== initialDate) return true;
+      if (generateEvents !== initialGenerate) return true;
     }
     return false;
-  }, [isEdit, categoryToEdit, type, billMode, frequency, interval, goalStartDate]);
+  }, [isEdit, categoryToEdit, type, billMode, frequency, interval, goalStartDate, targetDate, generateEvents]);
 
   const executeSubmit = () => {
     const payload = buildPayload();

@@ -30,7 +30,7 @@ describe("Web UI Bucket categorization and health filtering", () => {
     expect(t("categories.scheduledBillBadge")).toBe("Scheduled Bill");
     expect(t("categories.flexibleBillBadge")).toBe("Flexible Bill");
     expect(t("categories.targetDateGoalBadge")).toBe("Target Goal");
-    expect(t("categories.ongoingGoalBadge")).toBe("Saving Goal");
+    expect(t("categories.ongoingGoalBadge")).toBe("Ongoing Goal");
     expect(t("categories.everydayBadge")).toBe("Everyday");
   });
 });

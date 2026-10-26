@@ -1,4 +1,4 @@
-import { envelopes, bankAccounts, DbOrTx, getEnvelopeBalancesMap } from "@money-matters/db";
+import { envelopes, bankAccounts, expenseEvents, DbOrTx, getEnvelopeBalancesMap } from "@money-matters/db";
 import { eq, and, sql } from "drizzle-orm";
 
 export async function listEnvelopesQuery(
@@ -50,7 +50,32 @@ export async function listEnvelopesQuery(
   // 2. Compute balances using DB-side aggregate SUM(CASE WHEN...)
   const balancesMap = await getEnvelopeBalancesMap(tenantId, appId, dbClient);
 
-  // 3. Determine health status & progress percentage
+  // 3. Check for active scheduled pending events per envelope
+  let scheduledMap = new Set<string>();
+  if (typeof dbClient.select === "function") {
+    try {
+      const scheduledCounts = await dbClient
+        .select({
+          envelopeId: expenseEvents.envelopeId,
+        })
+        .from(expenseEvents)
+        .where(
+          and(
+            eq(expenseEvents.tenantId, tenantId),
+            eq(expenseEvents.appId, appId),
+            eq(expenseEvents.isScheduled, true),
+            eq(expenseEvents.status, "PENDING"),
+            sql`${expenseEvents.archivedAt} IS NULL`
+          )
+        )
+        .groupBy(expenseEvents.envelopeId);
+      scheduledMap = new Set(scheduledCounts.map((s) => s.envelopeId));
+    } catch {
+      // In mock DB environments without full group-by support
+    }
+  }
+
+  // 4. Determine health status & progress percentage
   const today = new Date();
 
   return visibleEnvelopes.map((env) => {
@@ -112,6 +137,7 @@ export async function listEnvelopesQuery(
       currentBalance,
       healthStatus,
       progressPercentage,
+      hasScheduledEvents: scheduledMap.has(env.id),
     };
   });
 }
