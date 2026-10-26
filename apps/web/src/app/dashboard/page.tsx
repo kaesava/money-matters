@@ -93,13 +93,19 @@ export default function DashboardPage() {
     ? Math.max(0, Math.round((new Date(nextPaycheck.expectedDate + "T00:00:00Z").getTime() - new Date(todayStr + "T00:00:00Z").getTime()) / (1000 * 60 * 60 * 24)))
     : 14);
 
-  // Show balance match nudge if accounts exist and oldest match is null or > 14 days ago
+  // Show balance match nudge if accounts exist and oldest match is null or > 14 days ago (guarded by account age)
   const isBalanceMatchOverdue = React.useMemo(() => {
     if (bankAccounts.length === 0) return false;
-    if (!homeData?.oldestBalanceMatchAt) return true;
-    const lastMatchDate = new Date(homeData.oldestBalanceMatchAt).getTime();
-    return (Date.now() - lastMatchDate) > 14 * 24 * 60 * 60 * 1000;
-  }, [bankAccounts.length, homeData?.oldestBalanceMatchAt]);
+    if (homeData?.oldestBalanceMatchAt) {
+      const lastMatchDate = new Date(homeData.oldestBalanceMatchAt).getTime();
+      return (Date.now() - lastMatchDate) > 14 * 24 * 60 * 60 * 1000;
+    }
+    if (homeData?.tenantCreatedAt) {
+      const accountAge = Date.now() - new Date(homeData.tenantCreatedAt).getTime();
+      return accountAge > 14 * 24 * 60 * 60 * 1000;
+    }
+    return false;
+  }, [bankAccounts.length, homeData?.oldestBalanceMatchAt, homeData?.tenantCreatedAt]);
 
   const todayObj = new Date(todayStr);
 
@@ -336,8 +342,8 @@ export default function DashboardPage() {
         <BalanceMatchNudgeBanner onOpenMatch={handleOpenEverydayReconciliation} />
       )}
 
-      {/* Row 1: Hero Balances (Left) + Goals Motivation (Right) */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
+      {/* Row 1: Hero Balances (Left) + Goals Motivation (Right) - All 3 Envelopes */}
+      <div data-tour="envelopes-row" className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
         <div className="lg:col-span-7">
           <BentoPoolsSection
             everydayBalance={everydayBalance}
@@ -349,6 +355,7 @@ export default function DashboardPage() {
             safeToSpend={safeToSpend}
             dailyPace={dailyPace}
             paceStatus={paceStatus}
+            isAwaitingFirstPayday={homeData?.isAwaitingFirstPayday}
             billsShortfall={billsShortfall}
             billsDue14DaysCount={billsDue14Days.length}
             totalBillsDue14Days={totalBillsDue14Days}

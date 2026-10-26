@@ -62,11 +62,18 @@ export const MOBILE_TOUR_STEPS: Array<{
     badgeKey: 'tour.steps.bankAccounts.badge',
   },
   {
-    id: 'matrix-plan',
+    id: 'upcoming-events',
     route: '/(app)/paychecks',
-    titleKey: 'tour.steps.matrixPlan.title',
-    descKey: 'tour.steps.matrixPlan.desc',
-    badgeKey: 'tour.steps.matrixPlan.badge',
+    titleKey: 'tour.steps.upcomingEvents.title',
+    descKey: 'tour.steps.upcomingEvents.desc',
+    badgeKey: 'tour.steps.upcomingEvents.badge',
+  },
+  {
+    id: 'schedules-tab',
+    route: '/(app)/paychecks',
+    titleKey: 'tour.steps.schedulesTab.title',
+    descKey: 'tour.steps.schedulesTab.desc',
+    badgeKey: 'tour.steps.schedulesTab.badge',
   },
   {
     id: 'history-ledger',

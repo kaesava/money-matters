@@ -1,7 +1,7 @@
 'use client';
 
 import React, { createContext, useContext, useState, useEffect, useCallback, useRef, ReactNode } from 'react';
-import { useRouter, usePathname } from 'next/navigation';
+import { useRouter, usePathname, useSearchParams } from 'next/navigation';
 import { trpc } from '../lib/trpc';
 import posthog from '../lib/posthog-client';
 import { useToast } from '@money-matters/ui/web';
@@ -72,12 +72,20 @@ export const TOUR_STEPS: Array<{
     badgeKey: 'tour.steps.bankAccounts.badge',
   },
   {
-    id: 'matrix-plan',
-    route: '/dashboard/income-and-bills',
-    selector: '[data-tour="matrix-plan"]',
-    titleKey: 'tour.steps.matrixPlan.title',
-    descKey: 'tour.steps.matrixPlan.desc',
-    badgeKey: 'tour.steps.matrixPlan.badge',
+    id: 'upcoming-events',
+    route: '/dashboard/income-and-bills?tab=events',
+    selector: '[data-tour="upcoming-events"]',
+    titleKey: 'tour.steps.upcomingEvents.title',
+    descKey: 'tour.steps.upcomingEvents.desc',
+    badgeKey: 'tour.steps.upcomingEvents.badge',
+  },
+  {
+    id: 'schedules-tab',
+    route: '/dashboard/income-and-bills?tab=streams',
+    selector: '[data-tour="schedules-tab"]',
+    titleKey: 'tour.steps.schedulesTab.title',
+    descKey: 'tour.steps.schedulesTab.desc',
+    badgeKey: 'tour.steps.schedulesTab.badge',
   },
   {
     id: 'history-ledger',
@@ -92,6 +100,7 @@ export const TOUR_STEPS: Array<{
 export function ProductTourProvider({ children }: { children: ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
+  const searchParams = useSearchParams();
   const toast = useToast();
   const utils = trpc.useUtils();
 
@@ -229,7 +238,10 @@ export function ProductTourProvider({ children }: { children: ReactNode }) {
     const stepDef = TOUR_STEPS[currentStep - 1];
     if (!stepDef) return;
 
-    if (pathname !== stepDef.route) {
+    const currentSearch = searchParams?.toString();
+    const currentFullPath = currentSearch ? `${pathname}?${currentSearch}` : pathname;
+
+    if (currentFullPath !== stepDef.route) {
       router.push(stepDef.route);
     }
 
@@ -238,7 +250,28 @@ export function ProductTourProvider({ children }: { children: ReactNode }) {
     }, 350);
 
     return () => clearTimeout(timer);
-  }, [isTourActive, currentStep, pathname, router, updateTargetRect]);
+  }, [isTourActive, currentStep, pathname, searchParams, router, updateTargetRect]);
+
+  // Document-level outside click to dismiss/skip tour
+  useEffect(() => {
+    if (!isTourActive) return;
+
+    const handleDocumentClick = (e: MouseEvent) => {
+      const popoverEl = document.querySelector('[role="dialog"]');
+      if (popoverEl && !popoverEl.contains(e.target as Node)) {
+        skipTour();
+      }
+    };
+
+    const timer = setTimeout(() => {
+      document.addEventListener('click', handleDocumentClick);
+    }, 200);
+
+    return () => {
+      clearTimeout(timer);
+      document.removeEventListener('click', handleDocumentClick);
+    };
+  }, [isTourActive, skipTour]);
 
   // Re-measure on window resize
   useEffect(() => {

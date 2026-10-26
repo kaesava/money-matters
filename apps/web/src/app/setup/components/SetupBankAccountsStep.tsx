@@ -70,7 +70,6 @@ export function SetupBankAccountsStep({
           <h3 className="text-xs font-black text-[#2563eb] flex items-center gap-1">
             <span>{t("setup.bankAccountsStep.tipTitle")}</span>
           </h3>
-          <InfoTooltip content={t("setup.bankAccountsStep.envelopesExplainerTooltip")} />
         </div>
         <p className="text-xs text-slate-600 leading-relaxed">
           {t("setup.bankAccountsStep.tipContent")}

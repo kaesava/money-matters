@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import { IncomeItem } from "@money-matters/types";
-import { AmountField, ConfirmDialog } from "@money-matters/ui/web";
+import { AmountField, ConfirmDialog, FormLabel } from "@money-matters/ui/web";
 import { t } from "@money-matters/i18n";
 
 interface SetupIncomeItemRowProps {
@@ -52,14 +52,14 @@ export function SetupIncomeItemRow({
         )}
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-        <div className="flex flex-col gap-1">
-          <label className="text-[11px] font-bold text-zinc-500">{t("setup.income.nameLabel")}</label>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 items-start">
+        <div className="flex flex-col">
+          <FormLabel>{t("setup.income.nameLabel")}</FormLabel>
           <input
             type="text"
             value={inc.name}
             onChange={(e) => onUpdateIncome(inc.id, "name", e.target.value)}
-            className="px-3 py-2 text-xs font-bold rounded-xl border border-zinc-200 bg-white"
+            className="ui-input w-full px-3 text-xs font-bold rounded-xl border border-zinc-200 bg-white h-[46px]"
             placeholder={t("setup.income.namePlaceholder")}
           />
         </div>
@@ -69,12 +69,12 @@ export function SetupIncomeItemRow({
           onChange={(val) => onUpdateIncome(inc.id, "amount", parseFloat(val) || 0)}
           allowNegative={false}
         />
-        <div className="flex flex-col gap-1">
-          <label className="text-[11px] font-bold text-zinc-500">{t("categories.frequencyLabel")}</label>
+        <div className="flex flex-col">
+          <FormLabel>{t("categories.frequencyLabel")}</FormLabel>
           <select
             value={inc.frequency}
             onChange={(e) => onUpdateIncome(inc.id, "frequency", e.target.value as IncomeItem["frequency"])}
-            className="px-3 py-2 text-xs font-bold rounded-xl border border-zinc-200 bg-white"
+            className="ui-input w-full px-3 text-xs font-bold rounded-xl border border-zinc-200 bg-white h-[46px] cursor-pointer"
           >
             <option value="WEEKLY">{t("categories.frequencyWeekly")}</option>
             <option value="FORTNIGHTLY">{t("categories.frequencyFortnightly")}</option>
@@ -82,13 +82,13 @@ export function SetupIncomeItemRow({
             <option value="ANNUALLY">{t("categories.frequencyAnnually")}</option>
           </select>
         </div>
-        <div className="flex flex-col gap-1">
-          <label className="text-[11px] font-bold text-zinc-500">{t("setup.income.nextPaydayLabel")}</label>
+        <div className="flex flex-col">
+          <FormLabel>{t("setup.income.nextPaydayLabel")}</FormLabel>
           <input
             type="date"
             value={inc.startDate || ""}
             onChange={(e) => onUpdateIncome(inc.id, "startDate", e.target.value)}
-            className="px-3 py-2 text-xs font-bold rounded-xl border border-zinc-200 bg-white text-zinc-800"
+            className="ui-input w-full px-3 text-xs font-bold rounded-xl border border-zinc-200 bg-white text-zinc-800 h-[46px]"
           />
         </div>
       </div>

@@ -127,7 +127,7 @@ function IncomeAndBillsContent() {
       />
 
       {activeTab === "STREAMS" && (
-        <div className="space-y-6">
+        <div data-tour="schedules-tab" className="space-y-6">
           <div className="flex flex-wrap items-center justify-between gap-4 p-4 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl shadow-xs">
             <div className="flex-1 w-full max-w-full">
               <SearchInput value={setupSearchQuery} onChange={setSetupSearchQuery} placeholder="Search income or bill schedules..." />
@@ -198,7 +198,7 @@ function IncomeAndBillsContent() {
       )}
 
       {activeTab === "EVENTS" && (
-        <div data-tour="matrix-plan">
+        <div data-tour="upcoming-events">
           <TimelineTabWrapper
             isLoading={isLoading}
             savedIncomeEventIds={savedIncomeEventIds}

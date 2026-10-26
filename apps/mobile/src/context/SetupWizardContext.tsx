@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useMemo, useEffect } from 'react';
+import React, { createContext, useContext, useState, useMemo, useEffect, useRef } from 'react';
 import { useGlobalSearchParams, useRouter } from 'expo-router';
 import {
   IncomeItem,
@@ -25,14 +25,19 @@ export function SetupWizardProvider({ children: reactChildren }: { children: Rea
   const setupAlreadyCompleted = Boolean(userPrefQuery.data?.setupCompleted);
   const [isRerun, setIsRerun] = useState<boolean>(() => isRerunParam || setupAlreadyCompleted);
   const totalSteps = isRerun ? 2 : 4;
+  const initialSetupCompletedRef = useRef<boolean | null>(null);
 
   const isAud = tenantQuery.data?.currency ? tenantQuery.data.currency === 'AUD' : true;
 
   useEffect(() => {
-    if (setupAlreadyCompleted && !isRerunParam) {
-      router.replace({ pathname: '/(setup)/income', params: { mode: 'rerun' } });
+    if (initialSetupCompletedRef.current === null && userPrefQuery.data !== undefined) {
+      initialSetupCompletedRef.current = Boolean(userPrefQuery.data?.setupCompleted);
+      if (initialSetupCompletedRef.current && !isRerunParam) {
+        setIsRerun(true);
+        router.replace({ pathname: '/(setup)/income', params: { mode: 'rerun' } });
+      }
     }
-  }, [setupAlreadyCompleted, isRerunParam, router]);
+  }, [userPrefQuery.data, isRerunParam, router]);
 
   const lifestyle = useSetupWizardLifestyleState();
   const accounts = useSetupWizardAccountsState();

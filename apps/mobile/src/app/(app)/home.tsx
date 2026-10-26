@@ -83,10 +83,16 @@ export default function HomeScreen() {
 
   const isBalanceMatchOverdue = React.useMemo(() => {
     if (bankAccounts.length === 0) return false;
-    if (!homeSummary?.oldestBalanceMatchAt) return true;
-    const lastMatch = new Date(homeSummary.oldestBalanceMatchAt).getTime();
-    return (Date.now() - lastMatch) > 14 * 24 * 60 * 60 * 1000;
-  }, [bankAccounts.length, homeSummary?.oldestBalanceMatchAt]);
+    if (homeSummary?.oldestBalanceMatchAt) {
+      const lastMatch = new Date(homeSummary.oldestBalanceMatchAt).getTime();
+      return (Date.now() - lastMatch) > 14 * 24 * 60 * 60 * 1000;
+    }
+    if (homeSummary?.tenantCreatedAt) {
+      const accountAge = Date.now() - new Date(homeSummary.tenantCreatedAt).getTime();
+      return accountAge > 14 * 24 * 60 * 60 * 1000;
+    }
+    return false;
+  }, [bankAccounts.length, homeSummary?.oldestBalanceMatchAt, homeSummary?.tenantCreatedAt]);
 
   return (
     <AppScreenWrapper
@@ -122,6 +128,7 @@ export default function HomeScreen() {
           safeToSpend={safeToSpend}
           dailyPace={dailyPace}
           paceStatus={paceStatus}
+          isAwaitingFirstPayday={homeSummary?.isAwaitingFirstPayday}
           billsShortfall={billsShortfall}
           billsDue14DaysCount={billsDue14DaysCount}
           totalBillsDue14Days={totalBillsDue14Days}

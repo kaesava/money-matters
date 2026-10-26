@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { trpc } from "../../../lib/trpc";
 import { useToast, parseRecurrenceRule } from "@money-matters/ui/web";
@@ -38,16 +38,17 @@ export function useSetupWizardState() {
   const isRerunParam = searchParams?.get("mode") === "rerun";
   const setupAlreadyCompleted = Boolean(userPrefQuery.data?.setupCompleted);
   const [isRerun, setIsRerun] = useState<boolean>(() => isRerunParam || setupAlreadyCompleted);
+  const initialSetupCompletedRef = useRef<boolean | null>(null);
 
   useEffect(() => {
-    if (!isRerunParam && userPrefQuery.data?.setupCompleted && step === 1) {
-      setIsRerun(true);
+    if (initialSetupCompletedRef.current === null && userPrefQuery.data !== undefined) {
+      initialSetupCompletedRef.current = Boolean(userPrefQuery.data?.setupCompleted);
+      if (initialSetupCompletedRef.current && !isRerunParam) {
+        setIsRerun(true);
+        router.replace("/setup?mode=rerun");
+      }
     }
-  }, [userPrefQuery.data?.setupCompleted, isRerunParam, step]);
-
-  useEffect(() => {
-    if (setupAlreadyCompleted && !isRerunParam) router.replace("/setup?mode=rerun");
-  }, [setupAlreadyCompleted, isRerunParam, router]);
+  }, [userPrefQuery.data, isRerunParam, router]);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {

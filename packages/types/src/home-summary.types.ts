@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-export const HomeSummaryPaceStatusSchema = z.enum(["AHEAD", "ON_TRACK", "BEHIND", "CRITICAL"]);
+export const HomeSummaryPaceStatusSchema = z.enum(["AHEAD", "ON_TRACK", "BEHIND", "CRITICAL", "AWAITING_FIRST_PAYDAY"]);
 export type HomeSummaryPaceStatus = z.infer<typeof HomeSummaryPaceStatusSchema>;
 
 export const HomeSummaryAttentionItemSchema = z.object({
@@ -59,6 +59,9 @@ export const HomeSummaryDtoSchema = z.object({
   attentionItems: z.array(HomeSummaryAttentionItemSchema),
   goals: z.array(HomeSummaryGoalItemSchema),
   oldestBalanceMatchAt: z.string().nullable(),
+  tenantCreatedAt: z.string().nullable(),
+  hasConfirmedIncome: z.boolean(),
+  isAwaitingFirstPayday: z.boolean(),
   todayDate: z.string(),
 }).strict();
 

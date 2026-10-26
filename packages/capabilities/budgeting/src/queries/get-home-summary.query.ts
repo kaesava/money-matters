@@ -106,6 +106,29 @@ export async function getHomeSummaryQuery(
     }
   }
 
+  // Fetch tenant creation timestamp
+  const [tenantRow] = await dbClient
+    .select({ createdAt: tenants.createdAt })
+    .from(tenants)
+    .where(eq(tenants.id, tenantId))
+    .limit(1);
+  const tenantCreatedAt = tenantRow?.createdAt ? new Date(tenantRow.createdAt).toISOString() : null;
+
+  // Check if tenant has any confirmed income events
+  const [confirmedIncomeRow] = await dbClient
+    .select({ count: sql<number>`count(*)` })
+    .from(incomeEvents)
+    .where(
+      and(
+        eq(incomeEvents.tenantId, tenantId),
+        eq(incomeEvents.appId, appId),
+        eq(incomeEvents.status, "CONFIRMED"),
+        sql`${incomeEvents.archivedAt} IS NULL`
+      )
+    );
+  const hasConfirmedIncome = (Number(confirmedIncomeRow?.count) || 0) > 0;
+  const isAwaitingFirstPayday = !hasConfirmedIncome;
+
   // 5. Calculate category balances & totals
   let everydayBalance = 0;
   let everydayBudget = 0;
@@ -295,7 +318,9 @@ export async function getHomeSummaryQuery(
   // Expected daily pace from total budget
   const expectedDailyBudget = everydayBudget > 0 ? everydayBudget / 30 : 0;
   let paceStatus: HomeSummaryPaceStatus = "ON_TRACK";
-  if (safeToSpend <= 0) {
+  if (isAwaitingFirstPayday) {
+    paceStatus = "AWAITING_FIRST_PAYDAY";
+  } else if (safeToSpend <= 0) {
     paceStatus = "CRITICAL";
   } else if (expectedDailyBudget > 0) {
     if (dailyPace >= expectedDailyBudget * 1.1) {
@@ -321,6 +346,9 @@ export async function getHomeSummaryQuery(
     attentionItems,
     goals,
     oldestBalanceMatchAt: oldestMatch,
+    tenantCreatedAt,
+    hasConfirmedIncome,
+    isAwaitingFirstPayday,
     todayDate,
   };
 }

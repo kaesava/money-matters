@@ -15,6 +15,7 @@ interface DashboardHeroEverydayCardProps {
   readonly progressPercent: number;
   readonly isBillsRisk: boolean;
   readonly isPacingTight: boolean;
+  readonly isAwaitingFirstPayday?: boolean;
   readonly onEverydayPress?: () => void;
   readonly onAlignBalance?: () => void;
 }
@@ -30,6 +31,7 @@ export const DashboardHeroEverydayCard: React.FC<DashboardHeroEverydayCardProps>
   progressPercent,
   isBillsRisk,
   isPacingTight,
+  isAwaitingFirstPayday = false,
   onEverydayPress,
   onAlignBalance,
 }) => {
@@ -45,7 +47,13 @@ export const DashboardHeroEverydayCard: React.FC<DashboardHeroEverydayCardProps>
           {t('dashboard.hero.everydayEnvelopeTitle')}
         </Text>
 
-        {isBillsRisk ? (
+        {isAwaitingFirstPayday ? (
+          <View style={[styles.badgePill, styles.badgeBlue]}>
+            <Text style={[styles.badgeText, styles.badgeTextBlue]}>
+              {t('dashboard.hero.firstPaydayPendingBadge')}
+            </Text>
+          </View>
+        ) : isBillsRisk ? (
           <View style={[styles.badgePill, styles.badgeRed]}>
             <Text style={[styles.badgeText, styles.badgeTextRed]}>
               {t('dashboard.hero.atRisk')}
@@ -173,6 +181,10 @@ const styles = StyleSheet.create({
     backgroundColor: DESIGN_TOKENS.colors.criticalLight,
     borderColor: DESIGN_TOKENS.colors.criticalBorder,
   },
+  badgeBlue: {
+    backgroundColor: '#EFF6FF',
+    borderColor: '#BFDBFE',
+  },
   badgeText: {
     fontSize: 10,
     fontWeight: '800',
@@ -185,6 +197,9 @@ const styles = StyleSheet.create({
   },
   badgeTextRed: {
     color: DESIGN_TOKENS.colors.criticalDark,
+  },
+  badgeTextBlue: {
+    color: DESIGN_TOKENS.colors.accent,
   },
   metricRow: {
     flexDirection: 'row',

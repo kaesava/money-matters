@@ -11,6 +11,7 @@ interface DashboardHeroBillsCardProps {
   readonly billsShortfall: number;
   readonly billsDue14DaysCount: number;
   readonly totalBillsDue14Days: number;
+  readonly isAwaitingFirstPayday?: boolean;
   readonly onBillsPress?: () => void;
   readonly onMoveMoney: () => void;
 }
@@ -21,6 +22,7 @@ export const DashboardHeroBillsCard: React.FC<DashboardHeroBillsCardProps> = ({
   billsShortfall,
   billsDue14DaysCount,
   totalBillsDue14Days,
+  isAwaitingFirstPayday = false,
   onBillsPress,
   onMoveMoney,
 }) => {
@@ -39,7 +41,13 @@ export const DashboardHeroBillsCard: React.FC<DashboardHeroBillsCardProps> = ({
         {t('dashboard.hero.billsRingFencedSubtitle')}
       </Text>
 
-      {billsShortfall > 0 ? (
+      {isAwaitingFirstPayday ? (
+        <View style={styles.calmNotice}>
+          <Text style={styles.calmNoticeText}>
+            {t('dashboard.hero.firstPaydayBillsNotice')}
+          </Text>
+        </View>
+      ) : billsShortfall > 0 ? (
         <View style={styles.shortfallAlert}>
           <View style={styles.shortfallTextWrap}>
             <Text style={styles.shortfallTitle}>
@@ -155,6 +163,19 @@ const styles = StyleSheet.create({
     color: DESIGN_TOKENS.colors.onAccent,
     fontSize: 11,
     fontWeight: '800',
+  },
+  calmNotice: {
+    backgroundColor: '#EFF6FF',
+    borderWidth: 1,
+    borderColor: '#BFDBFE',
+    borderRadius: DESIGN_TOKENS.radius.md,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+  },
+  calmNoticeText: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: DESIGN_TOKENS.colors.accent,
   },
   coveredAlert: {
     backgroundColor: DESIGN_TOKENS.colors.successLight,

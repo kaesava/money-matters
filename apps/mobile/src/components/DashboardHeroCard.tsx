@@ -13,7 +13,8 @@ export interface DashboardHeroCardProps {
   readonly daysUntilPayday?: number;
   readonly safeToSpend?: number;
   readonly dailyPace?: number;
-  readonly paceStatus?: "AHEAD" | "ON_TRACK" | "BEHIND" | "CRITICAL";
+  readonly paceStatus?: "AHEAD" | "ON_TRACK" | "BEHIND" | "CRITICAL" | "AWAITING_FIRST_PAYDAY";
+  readonly isAwaitingFirstPayday?: boolean;
   readonly billsShortfall: number;
   readonly billsDue14DaysCount: number;
   readonly totalBillsDue14Days: number;
@@ -33,6 +34,7 @@ export const DashboardHeroCard: React.FC<DashboardHeroCardProps> = ({
   safeToSpend,
   dailyPace: passedDailyPace,
   paceStatus,
+  isAwaitingFirstPayday = false,
   billsShortfall,
   billsDue14DaysCount,
   totalBillsDue14Days,
@@ -57,10 +59,10 @@ export const DashboardHeroCard: React.FC<DashboardHeroCardProps> = ({
   const targetDailyBudget =
     everydayMonthlyBudget > 0 ? (everydayMonthlyBudget * 12) / 365 : 0;
 
-  const isBillsRisk = billsShortfall > 0;
+  const isBillsRisk = !isAwaitingFirstPayday && billsShortfall > 0;
   const isPacingTight = paceStatus
     ? paceStatus === "BEHIND" || paceStatus === "CRITICAL"
-    : !isBillsRisk && targetDailyBudget > 0 && dailySpendable < targetDailyBudget * 0.8;
+    : !isBillsRisk && !isAwaitingFirstPayday && targetDailyBudget > 0 && dailySpendable < targetDailyBudget * 0.8;
 
   const progressPercent = Math.min(
     100,
@@ -80,6 +82,7 @@ export const DashboardHeroCard: React.FC<DashboardHeroCardProps> = ({
         progressPercent={progressPercent}
         isBillsRisk={isBillsRisk}
         isPacingTight={isPacingTight}
+        isAwaitingFirstPayday={isAwaitingFirstPayday}
         onEverydayPress={onEverydayPress}
         onAlignBalance={onAlignEverydayBalance}
       />
@@ -90,6 +93,7 @@ export const DashboardHeroCard: React.FC<DashboardHeroCardProps> = ({
         billsShortfall={billsShortfall}
         billsDue14DaysCount={billsDue14DaysCount}
         totalBillsDue14Days={totalBillsDue14Days}
+        isAwaitingFirstPayday={isAwaitingFirstPayday}
         onBillsPress={onBillsPress}
         onMoveMoney={onMoveMoney}
       />

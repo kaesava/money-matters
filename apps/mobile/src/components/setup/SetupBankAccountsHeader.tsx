@@ -20,7 +20,6 @@ export function SetupBankAccountsHeader({ currentStep, totalSteps }: SetupBankAc
       <View style={styles.tipCard}>
         <View style={styles.tipTitleRow}>
           <Text style={styles.tipTitle}>{t('setup.bankAccountsStep.tipTitle')}</Text>
-          <InfoTooltip content={t('setup.bankAccountsStep.envelopesExplainerTooltip')} />
         </View>
         <Text style={styles.tipContent}>{t('setup.bankAccountsStep.tipContent')}</Text>
       </View>

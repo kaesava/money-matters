@@ -192,7 +192,7 @@ export function useSetupWizardSubmission({
       } else {
         toast.success(t("toasts.setupSaved"));
       }
-      router.push("/dashboard");
+      router.replace("/dashboard");
     } catch (err: unknown) {
       console.error("Failed to complete setup:", err);
       toast.error(err instanceof Error ? err.message : t("setup.saveError"));

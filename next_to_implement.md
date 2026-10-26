@@ -9,7 +9,9 @@
 * All user-facing literals (this includes screen/modal names, headers, titles, sub-titles, descrtiptions, filter labels, button labels, drop-down text, pagination labels, tab names, placeholder text, error messages, warning messages, information, info tooltips, etc.) must be consistent within and across the web app and mobile app UIs and importantly, must re-uses en.ts keys for like-for-like functionality across web and mobile app. Re-use keys as much as possible, rationalise keys where possible, and always cull un-used keys.
 * Ensure parity between mobile and web - UI & functionality. So, when you write address a new/change/fix for the Web app, also ensure that the mobile app is in parity and address it there too. When you write address a new/change/fix for the Mobile app, also ensure that the web app is in parity and address it there too. Do this even if not explicitly asked, unless I explicitly state the app (Mobile: or Web:). Re-use code as much as possible while keeping native UI experiences.
 
-## Setup (first time setup)
+## General
+* Currency fields are taller than other fields and this looks misplaced - ensure they are consistent with other text fields in height
+
 
 ## Ask Penny
 

@@ -90,7 +90,7 @@ export function SetupGoalItemRow({
         </div>
 
         {!isOngoing ? (
-          <div className="flex items-center gap-1">
+          <div className="flex items-center gap-1.5">
             <span className="text-[11px] font-bold text-zinc-400">{t("setup.goals.byDateLabel")}</span>
             <input
               type="date"
@@ -101,7 +101,7 @@ export function SetupGoalItemRow({
                 const m = getMonthsDiff(dateVal);
                 onUpdateGoal(goal.id, "monthlyAmount", Math.round((goal.targetAmount || 0) / m));
               }}
-              className="px-2 py-1 text-xs font-bold rounded-lg border border-zinc-200 bg-slate-50 text-slate-800"
+              className="ui-input px-3 text-xs font-bold rounded-xl border border-zinc-200 bg-slate-50 text-slate-800 h-[46px]"
             />
           </div>
         ) : (
@@ -121,7 +121,7 @@ export function SetupGoalItemRow({
                 : Math.round(rawAmt);
               onUpdateGoal(goal.id, "monthlyAmount", monthly);
             }}
-            className="px-2 py-1 text-xs font-bold rounded-lg border border-zinc-200 bg-blue-50 text-blue-700 font-mono cursor-pointer"
+            className="ui-input px-3 text-xs font-bold rounded-xl border border-zinc-200 bg-blue-50 text-blue-700 font-mono cursor-pointer h-[46px]"
           >
             <option value="WEEKLY">{t("categories.frequencyWeekly")} (/wk)</option>
             <option value="FORTNIGHTLY">{t("categories.frequencyFortnightly")} (/fn)</option>

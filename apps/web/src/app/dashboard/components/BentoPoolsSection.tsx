@@ -14,7 +14,8 @@ export interface BentoPoolsSectionProps {
   readonly daysUntilPayday?: number;
   readonly safeToSpend?: number;
   readonly dailyPace?: number;
-  readonly paceStatus?: "AHEAD" | "ON_TRACK" | "BEHIND" | "CRITICAL";
+  readonly paceStatus?: "AHEAD" | "ON_TRACK" | "BEHIND" | "CRITICAL" | "AWAITING_FIRST_PAYDAY";
+  readonly isAwaitingFirstPayday?: boolean;
   
   // Integrated Shortfall Alert Props
   readonly billsShortfall: number;
@@ -36,6 +37,7 @@ export const BentoPoolsSection: React.FC<BentoPoolsSectionProps> = ({
   safeToSpend,
   dailyPace: passedDailyPace,
   paceStatus,
+  isAwaitingFirstPayday = false,
   billsShortfall,
   billsDue14DaysCount,
   totalBillsDue14Days,
@@ -59,13 +61,13 @@ export const BentoPoolsSection: React.FC<BentoPoolsSectionProps> = ({
   const dailySpendable = passedDailyPace !== undefined ? passedDailyPace : Math.max(0, effectiveSafeToSpend / effectiveDays);
   const targetDailyBudget = everydayMonthlyBudget > 0 ? (everydayMonthlyBudget * 12) / 365 : 0;
 
-  const isBillsRisk = billsShortfall > 0;
+  const isBillsRisk = !isAwaitingFirstPayday && billsShortfall > 0;
   const isPacingTight = paceStatus
     ? paceStatus === "BEHIND" || paceStatus === "CRITICAL"
-    : !isBillsRisk && targetDailyBudget > 0 && dailySpendable < targetDailyBudget * 0.8;
+    : !isBillsRisk && !isAwaitingFirstPayday && targetDailyBudget > 0 && dailySpendable < targetDailyBudget * 0.8;
 
   return (
-    <div data-tour="envelopes-row" className="space-y-4">
+    <div className="space-y-4">
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         {/* Everyday Spending Pool Card */}
         <div
@@ -76,7 +78,11 @@ export const BentoPoolsSection: React.FC<BentoPoolsSectionProps> = ({
               <span className="text-[11px] font-extrabold uppercase tracking-widest text-gray-500">
                 {t('dashboard.hero.everydayEnvelopeTitle')}
               </span>
-              {isBillsRisk ? (
+              {isAwaitingFirstPayday ? (
+                <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 border border-blue-200">
+                  {t('dashboard.hero.firstPaydayPendingBadge')}
+                </span>
+              ) : isBillsRisk ? (
                 <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-rose-100 text-rose-700 border border-rose-200">
                   {t('dashboard.hero.atRisk')}
                 </span>
@@ -166,7 +172,13 @@ export const BentoPoolsSection: React.FC<BentoPoolsSectionProps> = ({
             </div>
 
             {/* Shortfall or Coverage Status Banner */}
-            {billsShortfall > 0 ? (
+            {isAwaitingFirstPayday ? (
+              <div className="p-2.5 bg-blue-50 dark:bg-blue-950/30 border border-blue-200/80 dark:border-blue-900/50 rounded-xl flex items-center justify-between text-xs">
+                <span className="text-[11px] font-semibold text-blue-800 dark:text-blue-300">
+                  {t('dashboard.hero.firstPaydayBillsNotice')}
+                </span>
+              </div>
+            ) : billsShortfall > 0 ? (
               <div className="p-2.5 bg-rose-50 dark:bg-rose-950/30 border border-rose-200/80 dark:border-rose-900/50 rounded-xl flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <div>
