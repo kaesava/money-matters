@@ -21,6 +21,7 @@ interface BillSchedulesCardProps {
     isPrivate?: boolean;
     budgetFrequency?: string | null;
     isEssential?: boolean;
+    hasScheduledEvents?: boolean;
   }>;
   searchQuery: string;
   scopeFilter: "ALL" | "SHARED" | "PRIVATE";
@@ -34,7 +35,11 @@ interface BillSchedulesCardProps {
     monthlyAmount?: string | null;
     enteredAmount?: string | null;
     budgetFrequency?: string | null;
+    startDate?: string | null;
+    endDate?: string | null;
+    rrule?: string | null;
     isEssential?: boolean;
+    hasScheduledEvents?: boolean;
   }) => void;
 }
 
@@ -157,7 +162,11 @@ export function BillSchedulesCard({
                                 monthlyAmount: String(b.amount),
                                 enteredAmount: String(b.amount),
                                 budgetFrequency: b.budgetFrequency || "MONTHLY",
+                                startDate: b.startDate,
+                                endDate: b.endDate,
+                                rrule: b.rrule,
                                 isEssential: b.isEssential ?? false,
+                                hasScheduledEvents: b.hasScheduledEvents,
                               })
                             }
                             className="font-bold text-[#2563eb] hover:underline text-left cursor-pointer inline-flex items-center gap-1.5"

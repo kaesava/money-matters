@@ -347,6 +347,7 @@ export const SaveSetupBudgetCommand = z.object({
     isEssential: z.boolean().default(false),
     isPrivate: z.boolean().default(false),
     orderIndex: z.number().int().default(0),
+    generateEvents: z.boolean().optional(),
   }).strict()).min(1),
   archivedEnvelopeIds: z.array(z.string()).default([]),
   archivedAccountIds: z.array(z.string()).default([]),

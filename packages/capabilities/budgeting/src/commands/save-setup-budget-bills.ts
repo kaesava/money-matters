@@ -35,7 +35,7 @@ export async function processSetupScheduledBills(
   const candidates: EnvelopeScheduleCandidate[] = [];
 
   for (const envInput of envelopesInput) {
-    if (envInput.envelopeType !== "SCHEDULED_BILL") continue;
+    if (envInput.envelopeType !== "SCHEDULED_BILL" || envInput.generateEvents === false) continue;
 
     const amountVal = envInput.enteredAmount || envInput.monthlyAmount || "0.00";
     if (parseFloat(amountVal) <= 0) continue;

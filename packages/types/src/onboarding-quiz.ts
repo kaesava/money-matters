@@ -89,6 +89,11 @@ export interface EstimatedCategoryItem {
   colour?: string;
   rationale?: string;
   isCommitted?: boolean;
+  startDate?: string | null;
+  endDate?: string | null;
+  rrule?: string | null;
+  budgetFrequency?: "WEEKLY" | "FORTNIGHTLY" | "MONTHLY" | "ANNUALLY" | null;
+  generateEvents?: boolean;
 }
 
 export interface EstimationResult {

@@ -20,6 +20,7 @@ interface SetupReviewCategoryListProps {
   convertToMonthly: (amount: number, freq: "WEEKLY" | "FORTNIGHTLY" | "MONTHLY" | "YEARLY") => number;
   convertFromMonthly: (monthlyAmount: number, freq: "WEEKLY" | "FORTNIGHTLY" | "MONTHLY" | "YEARLY") => number;
   onToggleBillType?: (name: string, newType: "SCHEDULED_BILL" | "FLEXIBLE_BILL") => void;
+  onEditCategory?: (category: EstimatedCategoryItem) => void;
   children?: React.ReactNode;
 }
 
@@ -36,6 +37,7 @@ export function SetupReviewCategoryList({
   convertToMonthly,
   convertFromMonthly,
   onToggleBillType,
+  onEditCategory,
   children,
 }: SetupReviewCategoryListProps) {
   const { fmt } = useLocale();
@@ -64,7 +66,17 @@ export function SetupReviewCategoryList({
               className="flex items-center justify-between p-2.5 rounded-xl border border-zinc-200 bg-white gap-2 flex-wrap sm:flex-nowrap"
             >
               <div className="flex items-center gap-2 min-w-0">
-                <span className="text-xs font-bold text-[#1B2B4B] truncate">{cat.name}</span>
+                {onEditCategory ? (
+                  <button
+                    type="button"
+                    onClick={() => onEditCategory(cat)}
+                    className="text-xs font-bold text-[#2563eb] hover:underline truncate cursor-pointer text-left"
+                  >
+                    {cat.name}
+                  </button>
+                ) : (
+                  <span className="text-xs font-bold text-[#1B2B4B] truncate">{cat.name}</span>
+                )}
                 {isBill && onToggleBillType && (
                   <button
                     type="button"

@@ -23,6 +23,7 @@ export interface SaveSetupEnvelopeInput {
   isEssential?: boolean;
   isPrivate?: boolean;
   orderIndex?: number;
+  generateEvents?: boolean;
 }
 
 export async function processSetupEnvelopes(
@@ -242,7 +243,7 @@ export async function processSetupEnvelopes(
       }
 
       const effectiveFreq = (envInput.budgetFrequency || matchedExisting.budgetFrequency || "MONTHLY") as "MONTHLY" | "WEEKLY" | "FORTNIGHTLY" | "ANNUALLY";
-      const isScheduledBill = envInput.envelopeType === "SCHEDULED_BILL";
+      const isScheduledBill = envInput.envelopeType === "SCHEDULED_BILL" && envInput.generateEvents !== false;
       await synchronizeUpdatedEnvelopeEvents(tx, matchedExisting.id, scheduleChanged, nameOrAmountChanged, {
         name: envInput.name,
         amount: amountVal,

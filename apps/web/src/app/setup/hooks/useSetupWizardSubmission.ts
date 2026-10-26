@@ -25,7 +25,16 @@ interface SubmissionProps {
   removedCategoryNames?: Set<string>;
   archivedAccountIds: Set<string>;
   archivedIncomeIds: Set<string>;
-  existingPools?: Array<{ id: string; name?: string; envelopeType?: string; bankAccountId?: string | null; isPrivate?: boolean | null }>;
+  existingPools?: Array<{
+    id: string;
+    name?: string;
+    envelopeType?: string;
+    bankAccountId?: string | null;
+    isPrivate?: boolean | null;
+    startDate?: string | null;
+    endDate?: string | null;
+    rrule?: string | null;
+  }>;
 }
 
 export function useSetupWizardSubmission({
@@ -98,6 +107,10 @@ export function useSetupWizardSubmission({
             monthlyAmount: (c.monthlyAud || 0).toFixed(2),
             enteredAmount: (c.monthlyAud || 0).toFixed(2),
             budgetFrequency: resolvedEnvelopeType === "FLEXIBLE_BILL" ? ("MONTHLY" as const) : budgetFreq,
+            startDate: c.startDate || matchedPool?.startDate,
+            endDate: c.endDate || matchedPool?.endDate,
+            rrule: c.rrule || matchedPool?.rrule,
+            generateEvents: c.generateEvents,
             isEssential: isBill,
             orderIndex: idx,
           };

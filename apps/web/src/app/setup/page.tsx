@@ -12,12 +12,13 @@ import { SetupDiscardModal } from "./components/SetupDiscardModal";
 import { PaydaySandboxModal } from "./components/PaydaySandboxModal";
 import { SetupBalanceSweepModal } from "./components/SetupBalanceSweepModal";
 import { SetupHeaderBar } from "./components/SetupHeaderBar";
-import { EnvelopeFormModal, EnvelopeDraftPayload } from "../../components/web/EnvelopeFormModal";
+import { EnvelopeFormModal, EnvelopeDraftPayload, EnvelopeFormModalProps } from "../../components/web/EnvelopeFormModal";
 import { useSetupWizardState } from "./hooks/useSetupWizardState";
 
 function SetupWizardContent() {
   const [showSandboxModal, setShowSandboxModal] = useState(false);
   const [showAddEnvelopeModal, setShowAddEnvelopeModal] = useState(false);
+  const [envelopeToEditDraft, setEnvelopeToEditDraft] = useState<EnvelopeFormModalProps["categoryToEdit"]>(null);
   const state = useSetupWizardState();
 
   const totalSteps = state.step >= 4 || !state.isRerun ? 4 : 2;
@@ -195,46 +196,96 @@ function SetupWizardContent() {
             onFinish={state.handleFinish}
             onSimulatePayday={() => setShowSandboxModal(true)}
             onToggleBillType={(name, newType) => state.setBillTypeOverrides((prev) => ({ ...prev, [name]: newType }))}
+            onEditCategory={(cat) => {
+              setEnvelopeToEditDraft({
+                id: cat.id || `temp-${cat.name}`,
+                name: cat.name,
+                type: cat.type,
+                envelopeType: cat.envelopeType || (cat.type === "EVERYDAY" ? "EVERYDAY" : "SCHEDULED_BILL"),
+                monthlyAmount: String(cat.monthlyAud || "0"),
+                enteredAmount: String(cat.monthlyAud || "0"),
+                budgetFrequency: cat.budgetFrequency || state.categoryFrequencies[cat.name] || "MONTHLY",
+                startDate: cat.startDate,
+                endDate: cat.endDate,
+                rrule: cat.rrule,
+                hasScheduledEvents: cat.generateEvents ?? true,
+              });
+              setShowAddEnvelopeModal(true);
+            }}
             isRerun={state.isRerun}
           />
         )}
 
         <EnvelopeFormModal
           isOpen={showAddEnvelopeModal}
-          onClose={() => setShowAddEnvelopeModal(false)}
+          onClose={() => {
+            setShowAddEnvelopeModal(false);
+            setEnvelopeToEditDraft(null);
+          }}
+          categoryToEdit={envelopeToEditDraft}
           bankAccounts={state.bankAccounts}
           onSaveDraft={(draft: EnvelopeDraftPayload) => {
             const num = parseFloat(draft.monthlyAmount || draft.targetAmount || "0") || 0;
             if (draft.type === "GOAL") {
-              const id = `g-${Date.now()}`;
-              state.setGoals((prev) => [
-                ...prev,
-                {
-                  id,
-                  name: draft.name,
-                  targetAmount: parseFloat(draft.targetAmount || String(num)),
-                  enteredAmount: parseFloat(draft.enteredAmount || String(num)),
-                  dueDate: draft.goalMode === "ONGOING" ? null : draft.endDate || null,
-                  goalMode: draft.goalMode || "TARGET_DATE",
-                  monthlyAmount: num,
-                  budgetFrequency: draft.budgetFrequency || "MONTHLY",
-                  startDate: draft.startDate,
-                  rrule: draft.rrule,
-                  icon: "target",
-                },
-              ]);
+              const id = envelopeToEditDraft?.id && !envelopeToEditDraft.id.startsWith("temp-") ? envelopeToEditDraft.id : `g-${Date.now()}`;
+              state.setGoals((prev) => {
+                const existing = prev.filter((g) => g.name.trim().toLowerCase() !== draft.name.trim().toLowerCase());
+                return [
+                  ...existing,
+                  {
+                    id,
+                    name: draft.name,
+                    targetAmount: parseFloat(draft.targetAmount || String(num)),
+                    enteredAmount: parseFloat(draft.enteredAmount || String(num)),
+                    dueDate: draft.goalMode === "ONGOING" ? null : draft.endDate || null,
+                    goalMode: draft.goalMode || "TARGET_DATE",
+                    monthlyAmount: num,
+                    budgetFrequency: draft.budgetFrequency || "MONTHLY",
+                    startDate: draft.startDate,
+                    rrule: draft.rrule,
+                    icon: "target",
+                  },
+                ];
+              });
             } else {
-              state.setCustomCategories((prev) => [
+              state.setCustomCategories((prev) => {
+                const existing = prev.filter((c) => c.name.trim().toLowerCase() !== draft.name.trim().toLowerCase());
+                return [
+                  ...existing,
+                  {
+                    id: envelopeToEditDraft?.id && !envelopeToEditDraft.id.startsWith("temp-") ? envelopeToEditDraft.id : undefined,
+                    name: draft.name,
+                    type: draft.type,
+                    envelopeType: draft.envelopeType,
+                    monthlyAud: num,
+                    startDate: draft.startDate,
+                    endDate: draft.endDate,
+                    rrule: draft.rrule,
+                    budgetFrequency: draft.budgetFrequency,
+                    generateEvents: draft.generateEvents,
+                    icon: draft.type === "REGULAR" ? "pin" : "wallet",
+                  },
+                ];
+              });
+              if (draft.budgetFrequency) {
+                state.setCategoryFrequencies((prev) => ({
+                  ...prev,
+                  [draft.name]: draft.budgetFrequency === "ANNUALLY" ? "YEARLY" : (draft.budgetFrequency as "WEEKLY" | "FORTNIGHTLY" | "MONTHLY"),
+                }));
+              }
+              state.setAmountOverrides((prev) => ({
                 ...prev,
-                {
-                  name: draft.name,
-                  type: draft.type,
-                  monthlyAud: num,
-                  icon: draft.type === "REGULAR" ? "pin" : "wallet",
-                },
-              ]);
+                [draft.name]: num,
+              }));
+              if (draft.envelopeType === "SCHEDULED_BILL" || draft.envelopeType === "FLEXIBLE_BILL") {
+                state.setBillTypeOverrides((prev) => ({
+                  ...prev,
+                  [draft.name]: draft.envelopeType as "SCHEDULED_BILL" | "FLEXIBLE_BILL",
+                }));
+              }
             }
             setShowAddEnvelopeModal(false);
+            setEnvelopeToEditDraft(null);
           }}
         />
 

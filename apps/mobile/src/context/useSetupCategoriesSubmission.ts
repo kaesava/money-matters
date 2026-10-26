@@ -80,6 +80,10 @@ export function useSetupCategoriesSubmission() {
             monthlyAmount: (c.monthlyAud || 0).toFixed(2),
             enteredAmount: (c.monthlyAud || 0).toFixed(2),
             budgetFrequency: resolvedEnvelopeType === 'FLEXIBLE_BILL' ? ('MONTHLY' as const) : budgetFreq,
+            startDate: c.startDate || matchedPool?.startDate,
+            endDate: c.endDate || matchedPool?.endDate,
+            rrule: c.rrule || matchedPool?.rrule,
+            generateEvents: c.generateEvents,
             isEssential: isBill,
             orderIndex: idx,
           };

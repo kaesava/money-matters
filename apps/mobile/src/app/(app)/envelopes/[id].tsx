@@ -114,6 +114,7 @@ export default function PoolDetailScreen() {
           bankAccountId: pool.bankAccountId,
           safetyBufferFloor: pool.safetyBufferFloor,
           isSurplusTarget: pool.isSurplusTarget,
+          hasScheduledEvents: pool.hasScheduledEvents,
         }}
         onClose={() => setPoolModalVisible(false)}
         onSuccess={() => {

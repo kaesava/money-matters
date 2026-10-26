@@ -218,6 +218,7 @@ function PoolsPageContent() {
         safetyBufferFloor: p.safetyBufferFloor,
         goalMode: p.goalMode,
         isSurplusTarget: p.isSurplusTarget,
+        hasScheduledEvents: p.hasScheduledEvents,
       };
 
       return {

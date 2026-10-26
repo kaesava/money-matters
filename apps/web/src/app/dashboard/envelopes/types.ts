@@ -24,6 +24,7 @@ export interface EnvelopeSummaryItem {
   isSurplusTarget?: boolean | null;
   userId?: string | null;
   progressPercentage?: number;
+  hasScheduledEvents?: boolean | null;
 }
 
 export type CategorySummaryItem = EnvelopeSummaryItem;

@@ -9,7 +9,7 @@ import { useSetupWizard } from '../../context/SetupWizardContext';
 import { SetupCategoryRow } from '../../components/setup/SetupCategoryRow';
 import { SetupCategoriesGoalsList } from '../../components/setup/SetupCategoriesGoalsList';
 import { SetupBalanceSweepModal } from '../../components/setup/SetupBalanceSweepModal';
-import { EnvelopeFormModal, EnvelopeDraftPayload } from '../../components/EnvelopeFormModal';
+import { EnvelopeFormModal, EnvelopeDraftPayload, EnvelopeItem } from '../../components/EnvelopeFormModal';
 import { useSetupCategoriesSubmission } from '../../context/useSetupCategoriesSubmission';
 
 export default function SetupCategoriesScreen() {
@@ -17,6 +17,7 @@ export default function SetupCategoriesScreen() {
   const router = useRouter();
   const toast = useMobileToast();
   const [showAddEnvelopeModal, setShowAddEnvelopeModal] = useState(false);
+  const [envelopeToEditDraft, setEnvelopeToEditDraft] = useState<EnvelopeItem | null>(null);
   const {
     isRerun,
     goals,
@@ -121,6 +122,22 @@ export default function SetupCategoriesScreen() {
             onUpdateAmount={(amt) => setAmountOverrides((prev) => ({ ...prev, [cat.name]: amt }))}
             onUpdateFreq={(f) => setCategoryFrequencies((prev) => ({ ...prev, [cat.name]: f }))}
             onToggleBillType={(newType) => setBillTypeOverrides((prev) => ({ ...prev, [cat.name]: newType }))}
+            onEditCategory={() => {
+              setEnvelopeToEditDraft({
+                id: cat.id || `temp-${cat.name}`,
+                name: cat.name,
+                type: cat.type,
+                envelopeType: cat.envelopeType || (cat.type === 'EVERYDAY' ? 'EVERYDAY' : 'SCHEDULED_BILL'),
+                monthlyAmount: String(cat.monthlyAud || '0'),
+                enteredAmount: String(cat.monthlyAud || '0'),
+                budgetFrequency: cat.budgetFrequency || categoryFrequencies[cat.name] || 'MONTHLY',
+                startDate: cat.startDate,
+                endDate: cat.endDate,
+                rrule: cat.rrule,
+                hasScheduledEvents: cat.generateEvents ?? true,
+              });
+              setShowAddEnvelopeModal(true);
+            }}
             onRemove={() => handleAttemptRemoveCategory(cat.name)}
           />
         ))}
@@ -134,7 +151,10 @@ export default function SetupCategoriesScreen() {
       />
 
       <TouchableOpacity
-        onPress={() => setShowAddEnvelopeModal(true)}
+        onPress={() => {
+          setEnvelopeToEditDraft(null);
+          setShowAddEnvelopeModal(true);
+        }}
         style={styles.addEnvelopeBtn}
       >
         <Text style={styles.addEnvelopeBtnText}>{t('setup.reviewSummary.addEnvelopeBtn')}</Text>
@@ -142,40 +162,74 @@ export default function SetupCategoriesScreen() {
 
       <EnvelopeFormModal
         visible={showAddEnvelopeModal}
-        onClose={() => setShowAddEnvelopeModal(false)}
+        onClose={() => {
+          setShowAddEnvelopeModal(false);
+          setEnvelopeToEditDraft(null);
+        }}
+        categoryToEdit={envelopeToEditDraft}
         bankAccounts={bankAccounts}
         onSaveDraft={(draft: EnvelopeDraftPayload) => {
           const num = parseFloat(draft.monthlyAmount || draft.targetAmount || '0') || 0;
           if (draft.type === 'GOAL') {
-            const id = `g-${Date.now()}`;
-            setGoals((prev) => [
-              ...prev,
-              {
-                id,
-                name: draft.name,
-                targetAmount: parseFloat(draft.targetAmount || String(num)),
-                enteredAmount: parseFloat(draft.enteredAmount || String(num)),
-                dueDate: draft.goalMode === 'ONGOING' ? null : draft.endDate || null,
-                goalMode: draft.goalMode || 'TARGET_DATE',
-                monthlyAmount: num,
-                budgetFrequency: draft.budgetFrequency || 'MONTHLY',
-                startDate: draft.startDate,
-                rrule: draft.rrule,
-                icon: 'target',
-              },
-            ]);
+            const id = envelopeToEditDraft?.id && !envelopeToEditDraft.id.startsWith('temp-') ? envelopeToEditDraft.id : `g-${Date.now()}`;
+            setGoals((prev) => {
+              const existing = prev.filter((g) => g.name.trim().toLowerCase() !== draft.name.trim().toLowerCase());
+              return [
+                ...existing,
+                {
+                  id,
+                  name: draft.name,
+                  targetAmount: parseFloat(draft.targetAmount || String(num)),
+                  enteredAmount: parseFloat(draft.enteredAmount || String(num)),
+                  dueDate: draft.goalMode === 'ONGOING' ? null : draft.endDate || null,
+                  goalMode: draft.goalMode || 'TARGET_DATE',
+                  monthlyAmount: num,
+                  budgetFrequency: draft.budgetFrequency || 'MONTHLY',
+                  startDate: draft.startDate,
+                  rrule: draft.rrule,
+                  icon: 'target',
+                },
+              ];
+            });
           } else {
-            setCustomCategories((prev) => [
+            setCustomCategories((prev) => {
+              const existing = prev.filter((c) => c.name.trim().toLowerCase() !== draft.name.trim().toLowerCase());
+              return [
+                ...existing,
+                {
+                  id: envelopeToEditDraft?.id && !envelopeToEditDraft.id.startsWith('temp-') ? envelopeToEditDraft.id : undefined,
+                  name: draft.name,
+                  type: draft.type,
+                  envelopeType: draft.envelopeType,
+                  monthlyAud: num,
+                  startDate: draft.startDate,
+                  endDate: draft.endDate,
+                  rrule: draft.rrule,
+                  budgetFrequency: draft.budgetFrequency,
+                  generateEvents: draft.generateEvents,
+                  icon: draft.type === 'REGULAR' ? '📌' : '🛒',
+                },
+              ];
+            });
+            if (draft.budgetFrequency) {
+              setCategoryFrequencies((prev) => ({
+                ...prev,
+                [draft.name]: draft.budgetFrequency === 'ANNUALLY' ? 'YEARLY' : (draft.budgetFrequency as 'WEEKLY' | 'FORTNIGHTLY' | 'MONTHLY'),
+              }));
+            }
+            setAmountOverrides((prev) => ({
               ...prev,
-              {
-                name: draft.name,
-                type: draft.type,
-                monthlyAud: num,
-                icon: draft.type === 'REGULAR' ? '📌' : '🛒',
-              },
-            ]);
+              [draft.name]: num,
+            }));
+            if (draft.envelopeType === 'SCHEDULED_BILL' || draft.envelopeType === 'FLEXIBLE_BILL') {
+              setBillTypeOverrides((prev) => ({
+                ...prev,
+                [draft.name]: draft.envelopeType as 'SCHEDULED_BILL' | 'FLEXIBLE_BILL',
+              }));
+            }
           }
           setShowAddEnvelopeModal(false);
+          setEnvelopeToEditDraft(null);
         }}
       />
 

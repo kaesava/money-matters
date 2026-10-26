@@ -9,6 +9,7 @@ interface SetupCategoryRowProps {
   onUpdateAmount: (monthlyAmount: number) => void;
   onUpdateFreq: (freq: 'WEEKLY' | 'FORTNIGHTLY' | 'MONTHLY' | 'YEARLY') => void;
   onToggleBillType?: (newType: 'SCHEDULED_BILL' | 'FLEXIBLE_BILL') => void;
+  onEditCategory?: () => void;
   onRemove: () => void;
 }
 
@@ -25,6 +26,7 @@ export function SetupCategoryRow({
   onUpdateAmount,
   onUpdateFreq,
   onToggleBillType,
+  onEditCategory,
   onRemove,
 }: SetupCategoryRowProps) {
   const convertFromMonthly = (monthly: number, f: typeof freq) => {
@@ -49,7 +51,13 @@ export function SetupCategoryRow({
     <View style={styles.row}>
       <View style={styles.titleCol}>
         <View style={styles.titleWithBadge}>
-          <Text style={styles.name} numberOfLines={1}>{cat.icon || '📌'} {cat.name}</Text>
+          {onEditCategory ? (
+            <TouchableOpacity onPress={onEditCategory} hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}>
+              <Text style={[styles.name, styles.nameClickable]} numberOfLines={1}>{cat.icon || '📌'} {cat.name}</Text>
+            </TouchableOpacity>
+          ) : (
+            <Text style={styles.name} numberOfLines={1}>{cat.icon || '📌'} {cat.name}</Text>
+          )}
           {isBill && onToggleBillType && (
             <TouchableOpacity
               onPress={() => onToggleBillType(isFlexible ? 'SCHEDULED_BILL' : 'FLEXIBLE_BILL')}
@@ -100,6 +108,7 @@ const styles = StyleSheet.create({
   },
   titleCol: { flex: 1, marginRight: 8 },
   name: { fontSize: 13, fontWeight: '700', color: DESIGN_TOKENS.colors.primary },
+  nameClickable: { color: DESIGN_TOKENS.colors.accent },
   titleWithBadge: { flexDirection: 'row', alignItems: 'center', gap: 6, flexWrap: 'wrap' },
   typeBadge: {
     paddingHorizontal: 6,

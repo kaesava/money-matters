@@ -160,6 +160,7 @@ export default function RecurringSchedulesScreen() {
                 rrule: source.rrule || targetPool?.rrule || undefined,
                 startDate: source.startDate ? String(source.startDate) : targetPool?.startDate ? String(targetPool.startDate) : undefined,
                 endDate: targetPool?.endDate ? String(targetPool.endDate) : undefined,
+                hasScheduledEvents: (source as { hasScheduledEvents?: boolean }).hasScheduledEvents ?? targetPool?.hasScheduledEvents,
               });
               setCategoryModalVisible(true);
             }

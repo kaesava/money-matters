@@ -20,6 +20,7 @@ export interface EnvelopeDraftPayload {
   goalMode?: "TARGET_DATE" | "ONGOING";
   isSurplusTarget?: boolean;
   bankAccountId?: string;
+  generateEvents?: boolean;
 }
 
 export interface EnvelopeFormModalProps {

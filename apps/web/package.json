@@ -7,9 +7,9 @@
     "dev": "next dev",
 
     "build": "next build",
-    "cf-build": "opennextjs-cloudflare build",
-    "preview": "pnpm opennextjs-cloudflare build && wrangler dev",
-    "cf-deploy": "pnpm opennextjs-cloudflare build && wrangler deploy",
+    "cf-build": "opennextjs-cloudflare build --dangerouslyUseUnsupportedNextVersion",
+    "preview": "pnpm opennextjs-cloudflare build --dangerouslyUseUnsupportedNextVersion && wrangler dev",
+    "cf-deploy": "pnpm opennextjs-cloudflare build --dangerouslyUseUnsupportedNextVersion && wrangler deploy",
     "lint": "eslint . --cache",
     "test": "vitest run --exclude='e2e/**' --passWithNoTests",
     "test:e2e": "playwright test",
