@@ -112,7 +112,10 @@ export function MobileEnvelopeDetailSheet({
                   : fmtMoney(targetNum)}
               </Text>
               {isOngoing ? (
-                <Text style={styles.targetDateText}>{budgetFrequency || 'MONTHLY'}</Text>
+                <Text style={styles.targetDateText}>
+                  {budgetFrequency || 'MONTHLY'}
+                  {targetNum > 0 && targetNum !== enteredNum ? ` · Target: ${fmtMoney(targetNum)}` : ''}
+                </Text>
               ) : (
                 targetDate && <Text style={styles.targetDateText}>{targetDate}</Text>
               )}

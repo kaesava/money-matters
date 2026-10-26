@@ -173,9 +173,15 @@ export function EnvelopeFormModal({
     return buildRecurrenceRule(frequency, interval);
   }, [type, billMode, goalMode, frequency, interval]);
 
+  const invalidateQueries = () => {
+    utils.listPools.invalidate();
+    utils.listExpenseEvents.invalidate();
+    utils.getProjectedPoolBalances.invalidate();
+  };
+
   const createMut = trpc.createPool.useMutation({
     onSuccess: () => {
-      utils.listPools.invalidate();
+      invalidateQueries();
       toast.success(t('toasts.created'));
       onSuccess?.();
       onClose();
@@ -187,7 +193,7 @@ export function EnvelopeFormModal({
 
   const updateMut = trpc.updatePool.useMutation({
     onSuccess: () => {
-      utils.listPools.invalidate();
+      invalidateQueries();
       toast.success(t('toasts.saved'));
       onSuccess?.();
       onClose();
@@ -199,7 +205,7 @@ export function EnvelopeFormModal({
 
   const archiveMut = trpc.archivePool.useMutation({
     onSuccess: () => {
-      utils.listPools.invalidate();
+      invalidateQueries();
       toast.success(t('toasts.archived'));
       onSuccess?.();
       onClose();

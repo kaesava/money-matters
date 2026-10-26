@@ -21,6 +21,7 @@ export interface MobileBankAccountItem {
 
 export interface SetupWizardContextValue {
   isRerun: boolean;
+  isAud: boolean;
   totalSteps: number;
   isLoadingExistingData: boolean;
   country: 'AU' | 'NZ' | 'OTHER';

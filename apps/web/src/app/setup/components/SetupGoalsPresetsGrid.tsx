@@ -64,11 +64,13 @@ export const PRESET_GOALS: GoalPresetConfig[] = [
 interface SetupGoalsPresetsGridProps {
   onTogglePreset: (preset: GoalPresetConfig) => void;
   isPresetActive: (name: string) => boolean;
+  isAud?: boolean;
 }
 
 export function SetupGoalsPresetsGrid({
   onTogglePreset,
   isPresetActive,
+  isAud = true,
 }: SetupGoalsPresetsGridProps) {
   const { fmt } = useLocale();
   return (
@@ -119,8 +121,8 @@ export function SetupGoalsPresetsGrid({
                 </div>
                 <div className="text-[11px] font-semibold text-zinc-500 mt-0.5 font-mono">
                   {isOngoing
-                    ? `${fmt(preset.defaultTarget)}/mo`
-                    : `Target: ${fmt(preset.defaultTarget)}`}
+                    ? `${fmt(isAud ? preset.defaultTarget : 0)}/mo`
+                    : `Target: ${fmt(isAud ? preset.defaultTarget : 0)}`}
                 </div>
               </div>
             </button>

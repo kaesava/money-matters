@@ -64,11 +64,13 @@ export const PRESET_GOALS: MobileGoalPresetConfig[] = [
 interface SetupGoalsPresetsGridProps {
   onTogglePreset: (preset: MobileGoalPresetConfig) => void;
   isPresetActive: (name: string) => boolean;
+  isAud?: boolean;
 }
 
 export function SetupGoalsPresetsGrid({
   onTogglePreset,
   isPresetActive,
+  isAud = true,
 }: SetupGoalsPresetsGridProps) {
   return (
     <>
@@ -78,6 +80,7 @@ export function SetupGoalsPresetsGrid({
           const active = isPresetActive(preset.name);
           const isOngoing = preset.mode === 'ONGOING';
           const displayLabel = t(preset.nameKey as unknown as Parameters<typeof t>[0]);
+          const targetAmt = isAud ? preset.defaultTarget : 0;
 
           return (
             <TouchableOpacity
@@ -92,7 +95,7 @@ export function SetupGoalsPresetsGrid({
               </View>
               <Text style={styles.presetName} numberOfLines={1}>{displayLabel}</Text>
               <Text style={styles.presetMeta}>
-                {isOngoing ? `${formatMobileCurrency(preset.defaultTarget)}/mo` : `Target: ${formatMobileCurrency(preset.defaultTarget)}`}
+                {isOngoing ? `${formatMobileCurrency(targetAmt)}/mo` : `Target: ${formatMobileCurrency(targetAmt)}`}
               </Text>
             </TouchableOpacity>
           );

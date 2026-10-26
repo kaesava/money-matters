@@ -106,12 +106,16 @@ export function useSetupCategoriesSubmission() {
             envelopeType: (isOngoing ? 'ONGOING_GOAL' : 'TARGET_GOAL') as 'ONGOING_GOAL' | 'TARGET_GOAL',
             goalMode: g.goalMode ?? (g.dueDate ? 'TARGET_DATE' : 'ONGOING'),
             targetAmount: (isOngoing
-              ? (g.enteredAmount || g.monthlyAmount || g.targetAmount || 250)
+              ? (g.targetAmount !== undefined && g.targetAmount !== null && g.targetAmount > 0
+                  ? g.targetAmount
+                  : (g.enteredAmount || g.monthlyAmount || 0))
               : (g.targetAmount || g.monthlyAmount * 12 || 1000)
             ).toFixed(2),
             monthlyAmount: computedMonthly.toFixed(2),
             endDate: isOngoing ? null : (g.dueDate || null),
-            enteredAmount: g.enteredAmount ? g.enteredAmount.toFixed(2) : (g.monthlyAmount ? g.monthlyAmount.toFixed(2) : undefined),
+            enteredAmount: (g.enteredAmount !== undefined && g.enteredAmount !== null)
+              ? g.enteredAmount.toFixed(2)
+              : (g.monthlyAmount ? g.monthlyAmount.toFixed(2) : undefined),
             budgetFrequency: g.budgetFrequency || (isOngoing ? 'MONTHLY' : undefined),
             startDate: g.startDate,
             rrule: g.rrule,

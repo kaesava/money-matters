@@ -16,6 +16,8 @@ interface PoolItemCardProps {
     budgetFrequency?: string | null;
     currentBalance?: number | string | null;
     targetAmount?: string | null;
+    enteredAmount?: string | null;
+    monthlyAmount?: string | null;
     isSurplusTarget?: boolean | null;
   };
 }
@@ -26,6 +28,8 @@ export function PoolItemCard({
   const router = useRouter();
   const isGoal = pool.envelopeType === 'TARGET_GOAL' || pool.envelopeType === 'ONGOING_GOAL' || pool.poolType === 'GOAL';
   const target = pool.targetAmount ? parseFloat(pool.targetAmount) : 0;
+  const entered = pool.enteredAmount ? parseFloat(pool.enteredAmount) : 0;
+  const monthly = pool.monthlyAmount ? parseFloat(pool.monthlyAmount) : 0;
   const currentBal = typeof pool.currentBalance === 'number' ? pool.currentBalance : parseFloat(String(pool.currentBalance || 0));
   const pct = target > 0 ? Math.min(100, Math.round((currentBal / target) * 100)) : 0;
 
@@ -95,12 +99,27 @@ export function PoolItemCard({
             <Text style={styles.balSub}>
               {isGoal
                 ? pool.goalMode === 'ONGOING' || pool.envelopeType === 'ONGOING_GOAL'
-                  ? `${formatAUD(target)}/mo (${pool.budgetFrequency || t('categories.frequencyMonthly')})`
+                  ? (() => {
+                      const freq = pool.budgetFrequency || 'MONTHLY';
+                      const suffix = freq === 'WEEKLY' ? '/wk' : freq === 'FORTNIGHTLY' ? '/fn' : freq === 'ANNUALLY' ? '/yr' : '/mo';
+                      const contrib = entered > 0 ? entered : monthly > 0 ? monthly : 0;
+                      if (contrib > 0) {
+                        return `${formatAUD(contrib)}${suffix}`;
+                      }
+                      return target > 0 ? `${formatAUD(target)} target` : t('categories.noTarget');
+                    })()
                   : target > 0
                   ? `${pct}% of ${formatAUD(target)}`
                   : t('categories.noTarget')
-                : target > 0
-                ? `${formatAUD(target)}/mo`
+                : pool.envelopeType === 'SCHEDULED_BILL'
+                ? (() => {
+                    const freq = pool.budgetFrequency || 'MONTHLY';
+                    const suffix = freq === 'WEEKLY' ? '/wk' : freq === 'FORTNIGHTLY' ? '/fn' : freq === 'ANNUALLY' ? '/yr' : '/mo';
+                    const amt = entered > 0 ? entered : monthly > 0 ? monthly : target;
+                    return amt > 0 ? `${formatAUD(amt)}${suffix}` : t('categories.mainPool');
+                  })()
+                : (monthly > 0 ? monthly : target > 0 ? target : 0) > 0
+                ? `${formatAUD(monthly > 0 ? monthly : target)}/mo`
                 : t('categories.mainPool')}
             </Text>
           </View>

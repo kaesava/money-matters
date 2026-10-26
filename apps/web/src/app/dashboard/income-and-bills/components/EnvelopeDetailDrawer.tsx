@@ -196,24 +196,32 @@ export function EnvelopeDetailDrawer({
                 </span>
               </div>
 
-              {/* Row 1, Col 2: Target Amount */}
+              {/* Row 1, Col 2: Target / Contribution Amount */}
               <div>
                 <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block">
-                  {t("categoryDrawer.targetAmount")}
+                  {targetPool?.envelopeType === "ONGOING_GOAL"
+                    ? t("categoryDrawer.targetAmount")
+                    : t("categoryDrawer.targetAmount")}
                 </span>
                 <span className="text-sm font-black font-mono text-zinc-700 dark:text-zinc-300">
                   {(() => {
                     if (targetPool?.envelopeType === "ONGOING_GOAL") {
                       const entered = targetPool.enteredAmount ? parseFloat(String(targetPool.enteredAmount)) : null;
+                      const monthlyEquivalent = targetPool.monthlyAmount ? parseFloat(String(targetPool.monthlyAmount)) : null;
+                      const cushion = targetPool.targetAmount ? parseFloat(String(targetPool.targetAmount)) : null;
                       const freq = targetPool.budgetFrequency || "MONTHLY";
                       const suffix = freq === "WEEKLY" ? "/wk" : freq === "FORTNIGHTLY" ? "/fn" : freq === "ANNUALLY" ? "/yr" : "/mo";
-                      const amtToShow = entered ?? targetAmt;
-                      if (!amtToShow) return "—";
-                      const monthlyEquivalent = targetPool.monthlyAmount ? parseFloat(String(targetPool.monthlyAmount)) : null;
-                      if (freq !== "MONTHLY" && monthlyEquivalent) {
-                        return `${fmt(amtToShow)}${suffix} (Est: ${fmt(monthlyEquivalent)}/mo)`;
+                      const contributionAmt = entered ?? (monthlyEquivalent && monthlyEquivalent > 0 ? monthlyEquivalent : null);
+
+                      if (contributionAmt) {
+                        const estText = freq !== "MONTHLY" && monthlyEquivalent ? ` (Est: ${fmt(monthlyEquivalent)}/mo)` : "";
+                        const cushionText = cushion && cushion > 0 && cushion !== contributionAmt ? ` · Target: ${fmt(cushion)}` : "";
+                        return `${fmt(contributionAmt)}${suffix}${estText}${cushionText}`;
                       }
-                      return `${fmt(amtToShow)}${suffix}`;
+                      if (cushion && cushion > 0) {
+                        return `Target: ${fmt(cushion)}`;
+                      }
+                      return "—";
                     }
                     if (targetPool?.envelopeType === "TARGET_GOAL") {
                       const monthlyEquivalent = targetPool.monthlyAmount ? parseFloat(String(targetPool.monthlyAmount)) : null;
@@ -221,6 +229,18 @@ export function EnvelopeDetailDrawer({
                         return `${fmt(targetAmt)} (Est: ${fmt(monthlyEquivalent)}/mo)`;
                       }
                       return targetAmt ? fmt(targetAmt) : "—";
+                    }
+                    if (targetPool?.envelopeType === "SCHEDULED_BILL") {
+                      const entered = targetPool.enteredAmount ? parseFloat(String(targetPool.enteredAmount)) : null;
+                      const monthlyEquivalent = targetPool.monthlyAmount ? parseFloat(String(targetPool.monthlyAmount)) : null;
+                      const freq = targetPool.budgetFrequency || "MONTHLY";
+                      const suffix = freq === "WEEKLY" ? "/wk" : freq === "FORTNIGHTLY" ? "/fn" : freq === "ANNUALLY" ? "/yr" : "/mo";
+                      const amtToShow = entered ?? targetAmt;
+                      if (!amtToShow) return "—";
+                      if (freq !== "MONTHLY" && monthlyEquivalent) {
+                        return `${fmt(amtToShow)}${suffix} (Est: ${fmt(monthlyEquivalent)}/mo)`;
+                      }
+                      return `${fmt(amtToShow)}${suffix}`;
                     }
                     return targetAmt ? `${fmt(targetAmt)} ${t("categoryDrawer.perMonth")}` : "—";
                   })()}
@@ -230,14 +250,14 @@ export function EnvelopeDetailDrawer({
               {/* Row 2, Col 1: Pool Type / Target Date */}
               <div>
                 <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block">
-                  {targetPool?.envelopeType === "ONGOING_GOAL"
+                  {targetPool?.envelopeType === "ONGOING_GOAL" || targetPool?.envelopeType === "SCHEDULED_BILL"
                     ? t("categoryDrawer.recurrence")
                     : isGoalPool
                     ? t("categoryDrawer.targetDate")
                     : t("categoryDrawer.poolType")}
                 </span>
                 <span className="text-sm font-black font-mono text-zinc-700 dark:text-zinc-300">
-                  {targetPool?.envelopeType === "ONGOING_GOAL"
+                  {targetPool?.envelopeType === "ONGOING_GOAL" || targetPool?.envelopeType === "SCHEDULED_BILL"
                     ? targetPool.budgetFrequency || "MONTHLY"
                     : isGoalPool
                     ? targetPool?.endDate

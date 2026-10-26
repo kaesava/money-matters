@@ -34,10 +34,16 @@ export function useSetupWizardState() {
   const [step, setStep] = useState(1);
   const [showDiscardModal, setShowDiscardModal] = useState(false);
 
-  // Re-run mode & auto-trigger when setup was already completed
+  // Re-run mode & auto-trigger when setup was already completed - locked on mount to prevent submission flicker
   const isRerunParam = searchParams?.get("mode") === "rerun";
   const setupAlreadyCompleted = Boolean(userPrefQuery.data?.setupCompleted);
-  const isRerun = isRerunParam || setupAlreadyCompleted;
+  const [isRerun, setIsRerun] = useState<boolean>(() => isRerunParam || setupAlreadyCompleted);
+
+  useEffect(() => {
+    if (!isRerunParam && userPrefQuery.data?.setupCompleted && step === 1) {
+      setIsRerun(true);
+    }
+  }, [userPrefQuery.data?.setupCompleted, isRerunParam, step]);
 
   useEffect(() => {
     if (setupAlreadyCompleted && !isRerunParam) router.replace("/setup?mode=rerun");
@@ -53,20 +59,6 @@ export function useSetupWizardState() {
 
   const lifestyle = useSetupLifestyleState();
   const { setCountry, setWeeklyGroceries, setWeeklyDining, setWeeklyPersonal } = lifestyle;
-
-  useEffect(() => {
-    const tenantCountry = tenantQuery.data?.country;
-    if (tenantCountry) {
-      const normalizedCountry: "AU" | "NZ" | "OTHER" =
-        tenantCountry === "AU" || tenantCountry === "NZ" ? tenantCountry : "OTHER";
-      setCountry(normalizedCountry);
-      if (normalizedCountry !== "AU") {
-        setWeeklyGroceries(0);
-        setWeeklyDining(0);
-        setWeeklyPersonal(0);
-      }
-    }
-  }, [tenantQuery.data?.country, setCountry, setWeeklyGroceries, setWeeklyDining, setWeeklyPersonal]);
 
   const [incomes, setIncomes] = useState<IncomeItem[]>([
     {
@@ -101,6 +93,7 @@ export function useSetupWizardState() {
       monthlyAmount: 300,
       icon: "shield",
       targetAmount: 10000,
+      enteredAmount: 300,
       goalMode: "ONGOING",
       budgetFrequency: "MONTHLY",
     },
@@ -117,6 +110,45 @@ export function useSetupWizardState() {
     },
   ]);
   const [dirtyGoalIds, setDirtyGoalIds] = useState<Set<string>>(new Set());
+
+  const isAud = tenantQuery.data?.currency ? tenantQuery.data.currency === "AUD" : true;
+
+  useEffect(() => {
+    const tenantCountry = tenantQuery.data?.country;
+    if (tenantCountry) {
+      const normalizedCountry: "AU" | "NZ" | "OTHER" =
+        tenantCountry === "AU" || tenantCountry === "NZ" ? tenantCountry : "OTHER";
+      setCountry(normalizedCountry);
+      if (normalizedCountry !== "AU") {
+        setWeeklyGroceries(0);
+        setWeeklyDining(0);
+        setWeeklyPersonal(0);
+      }
+    }
+    const tenantCurrency = tenantQuery.data?.currency;
+    if (tenantCurrency && tenantCurrency !== "AUD" && !isRerun) {
+      setIncomes((prev) =>
+        prev.map((inc) => (inc.id === "inc-1" && inc.amount === 3200 ? { ...inc, amount: 0 } : inc))
+      );
+      setBankAccounts((prev) =>
+        prev.map((acc) => (acc.id === "acc-default" && acc.lastKnownBalance === "1000.00" ? { ...acc, lastKnownBalance: "0.00" } : acc))
+      );
+      setGoals((prev) =>
+        prev.map((g) => {
+          if (g.id === "g-1" && g.targetAmount === 10000) {
+            return { ...g, monthlyAmount: 0, targetAmount: 0, enteredAmount: 0 };
+          }
+          if (g.id === "g-2" && g.targetAmount === 3000) {
+            return { ...g, monthlyAmount: 0, targetAmount: 0 };
+          }
+          return g;
+        })
+      );
+      setWeeklyGroceries(0);
+      setWeeklyDining(0);
+      setWeeklyPersonal(0);
+    }
+  }, [tenantQuery.data?.country, tenantQuery.data?.currency, isRerun, setCountry, setWeeklyGroceries, setWeeklyDining, setWeeklyPersonal]);
 
   const [customCategories, setCustomCategories] = useState<EstimatedCategoryItem[]>([]);
   const [customCatName, setCustomCatName] = useState("");
@@ -435,6 +467,7 @@ export function useSetupWizardState() {
     },
     ...lifestyle,
     ...calculations,
+    isAud,
     handleFinish: submission.handleFinish,
     handleDiscard,
   };

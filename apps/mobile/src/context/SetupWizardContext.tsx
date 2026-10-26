@@ -23,8 +23,10 @@ export function SetupWizardProvider({ children: reactChildren }: { children: Rea
   const globalParams = useGlobalSearchParams<{ mode?: string }>();
   const isRerunParam = globalParams.mode === 'rerun';
   const setupAlreadyCompleted = Boolean(userPrefQuery.data?.setupCompleted);
-  const isRerun = isRerunParam || setupAlreadyCompleted;
+  const [isRerun, setIsRerun] = useState<boolean>(() => isRerunParam || setupAlreadyCompleted);
   const totalSteps = isRerun ? 2 : 4;
+
+  const isAud = tenantQuery.data?.currency ? tenantQuery.data.currency === 'AUD' : true;
 
   useEffect(() => {
     if (setupAlreadyCompleted && !isRerunParam) {
@@ -47,7 +49,30 @@ export function SetupWizardProvider({ children: reactChildren }: { children: Rea
         lifestyle.setWeeklyPersonal(0);
       }
     }
-  }, [tenantQuery.data?.country]);
+    const tenantCurrency = tenantQuery.data?.currency;
+    if (tenantCurrency && tenantCurrency !== 'AUD' && !isRerun) {
+      setIncomes((prev) =>
+        prev.map((inc) => (inc.id === 'inc-1' && inc.amount === 3200 ? { ...inc, amount: 0 } : inc))
+      );
+      accounts.setBankAccounts((prev) =>
+        prev.map((acc) => (acc.id === 'acc-default' && acc.lastKnownBalance === '1000.00' ? { ...acc, lastKnownBalance: '0.00' } : acc))
+      );
+      setGoals((prev) =>
+        prev.map((g) => {
+          if (g.id === 'g-1' && (g.targetAmount === 10000 || g.monthlyAmount === 300)) {
+            return { ...g, monthlyAmount: 0, targetAmount: 0, enteredAmount: 0 };
+          }
+          if (g.id === 'g-2' && (g.targetAmount === 3000 || g.monthlyAmount === 250)) {
+            return { ...g, monthlyAmount: 0, targetAmount: 0 };
+          }
+          return g;
+        })
+      );
+      lifestyle.setWeeklyGroceries(0);
+      lifestyle.setWeeklyDining(0);
+      lifestyle.setWeeklyPersonal(0);
+    }
+  }, [tenantQuery.data?.country, tenantQuery.data?.currency, isRerun]);
 
   const [incomes, setIncomes] = useState<IncomeItem[]>([
     {
@@ -248,6 +273,7 @@ export function SetupWizardProvider({ children: reactChildren }: { children: Rea
   const value = useMemo<SetupWizardContextValue>(
     () => ({
       isRerun,
+      isAud,
       totalSteps,
       isLoadingExistingData,
       ...lifestyle,
@@ -286,6 +312,7 @@ export function SetupWizardProvider({ children: reactChildren }: { children: Rea
     }),
     [
       isRerun,
+      isAud,
       totalSteps,
       isLoadingExistingData,
       lifestyle,

@@ -33,6 +33,7 @@ interface SetupGoalsStepProps {
   onBack: () => void;
   onNext: () => void;
   totalSteps?: number;
+  isAud?: boolean;
 }
 
 const getFutureDate = (months: number) => {
@@ -52,9 +53,10 @@ export function SetupGoalsStep({
   onBack,
   onNext,
   totalSteps = 4,
+  isAud = true,
 }: SetupGoalsStepProps) {
   const [customName, setCustomName] = useState("");
-  const [customTarget, setCustomTarget] = useState("5000");
+  const [customTarget, setCustomTarget] = useState(isAud ? "5000" : "0");
   const [customDate, setCustomDate] = useState("");
   const [customType, setCustomType] = useState<"TARGET_DATE" | "ONGOING">("TARGET_DATE");
   const [customFrequency, setCustomFrequency] = useState<"WEEKLY" | "FORTNIGHTLY" | "MONTHLY" | "ANNUALLY">("MONTHLY");
@@ -69,12 +71,13 @@ export function SetupGoalsStep({
     } else {
       const isOngoing = preset.mode === "ONGOING";
       const dueDate = isOngoing ? null : getFutureDate(preset.defaultMonths || 12);
+      const targetVal = isAud ? preset.defaultTarget : 0;
       onAddGoal({
         name: preset.name,
-        targetAmount: preset.defaultTarget,
+        targetAmount: targetVal,
         dueDate,
         goalMode: preset.mode,
-        monthlyAmount: isOngoing ? preset.defaultTarget : Math.round(preset.defaultTarget / (preset.defaultMonths || 12)),
+        monthlyAmount: isOngoing ? targetVal : Math.round(targetVal / (preset.defaultMonths || 12)),
         icon: preset.icon,
       });
     }
@@ -82,7 +85,7 @@ export function SetupGoalsStep({
 
   const handleAddCustom = () => {
     if (!customName.trim()) return;
-    const amountNum = parseFloat(customTarget) || (customType === "ONGOING" ? 250 : 1000);
+    const amountNum = parseFloat(customTarget) || (isAud ? (customType === "ONGOING" ? 250 : 1000) : 0);
     if (customType === "ONGOING") {
       const monthly = customFrequency === "WEEKLY"
         ? Math.round((amountNum * 52) / 12)
@@ -144,6 +147,7 @@ export function SetupGoalsStep({
         <SetupGoalsPresetsGrid
           isPresetActive={isPresetActive}
           onTogglePreset={togglePreset}
+          isAud={isAud}
         />
       </div>
 

@@ -647,7 +647,10 @@ function PoolsPageContent() {
         isOpen={isPoolModalOpen}
         onClose={() => setIsPoolModalOpen(false)}
         envelopeToEdit={poolToEdit}
-        onSuccess={() => utils.listPools.invalidate()}
+        onSuccess={() => {
+          utils.listPools.invalidate();
+          utils.listExpenseEvents.invalidate();
+        }}
       />
 
       {/* Envelope Side Drawer */}

@@ -20,8 +20,8 @@ function SetupWizardContent() {
   const [showAddEnvelopeModal, setShowAddEnvelopeModal] = useState(false);
   const state = useSetupWizardState();
 
-  const totalSteps = state.isRerun ? 2 : 4;
-  const isReviewStep = state.isRerun ? state.step === 3 : state.step === 5;
+  const totalSteps = state.step >= 4 || !state.isRerun ? 4 : 2;
+  const isReviewStep = state.step === 5 || (state.isRerun && state.step === 3);
 
   if (state.isRerun && state.isLoading) {
     return (
@@ -59,7 +59,7 @@ function SetupWizardContent() {
                 {
                   id,
                   name: `Income ${prev.length + 1}`,
-                  amount: 2000,
+                  amount: state.isAud ? 2000 : 0,
                   frequency: "MONTHLY",
                   type: "SALARY",
                   startDate: new Intl.DateTimeFormat("en-CA").format(new Date()),
@@ -93,6 +93,7 @@ function SetupWizardContent() {
             goals={state.goals}
             isRerun={state.isRerun}
             dirtyGoalIds={state.dirtyGoalIds}
+            isAud={state.isAud}
             onAddGoal={(g) => {
               const id = `g-${Date.now()}`;
               state.setGoals((prev) => [...prev, { ...g, id }]);

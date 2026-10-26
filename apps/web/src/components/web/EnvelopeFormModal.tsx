@@ -240,9 +240,13 @@ export function EnvelopeFormModal({
   const confirmArchive = async () => {
     if (!categoryToEdit?.id) return;
     try {
-      setSubmitting(true);
       await archivePoolMut.mutateAsync({ poolId: categoryToEdit.id });
-      await utils.listPools.invalidate();
+      await Promise.all([
+        utils.listPools.invalidate(),
+        utils.listExpenseEvents.invalidate(),
+        utils.listBillSchedules.invalidate(),
+        utils.getProjectedPoolBalances.invalidate(),
+      ]);
       toast.success(t("toasts.archived"));
       onSuccess?.();
       onClose();
@@ -356,7 +360,12 @@ export function EnvelopeFormModal({
       } else {
         await createPoolMut.mutateAsync({ ...payload, bankAccountId });
       }
-      await utils.listPools.invalidate();
+      await Promise.all([
+        utils.listPools.invalidate(),
+        utils.listExpenseEvents.invalidate(),
+        utils.listBillSchedules.invalidate(),
+        utils.getProjectedPoolBalances.invalidate(),
+      ]);
       onSuccess?.();
       onClose();
     } catch (submitErr: unknown) {

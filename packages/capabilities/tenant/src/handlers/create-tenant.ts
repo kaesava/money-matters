@@ -183,11 +183,12 @@ export function createTenantHandler(db: DbOrTx) {
       .returning();
 
         // 4. Bulk-insert default Envelopes on Primary Account in one statement.
+    const isAudCurrency = currency === "AUD";
     const defaultEnvelopes = [
-      { name: "Everyday Spending", envelopeType: "EVERYDAY" as const, monthlyAmount: "1000.00", isPrivate: false, orderIndex: 0 },
-      { name: "Rent & Housing", envelopeType: "SCHEDULED_BILL" as const, monthlyAmount: "2400.00", enteredAmount: "2400.00", budgetFrequency: "MONTHLY", isEssential: true, orderIndex: 1 },
-      { name: "Electricity & Utilities", envelopeType: "SCHEDULED_BILL" as const, monthlyAmount: "300.00", enteredAmount: "300.00", budgetFrequency: "MONTHLY", isEssential: true, orderIndex: 2 },
-      { name: "Emergency Reserve", envelopeType: "ONGOING_GOAL" as const, targetAmount: "10000.00", isCommitted: true, isSurplusTarget: true, orderIndex: 3 },
+      { name: "Everyday Spending", envelopeType: "EVERYDAY" as const, monthlyAmount: isAudCurrency ? "1000.00" : "0.00", isPrivate: false, orderIndex: 0 },
+      { name: "Rent & Housing", envelopeType: "SCHEDULED_BILL" as const, monthlyAmount: isAudCurrency ? "2400.00" : "0.00", enteredAmount: isAudCurrency ? "2400.00" : "0.00", budgetFrequency: "MONTHLY", isEssential: true, orderIndex: 1 },
+      { name: "Electricity & Utilities", envelopeType: "SCHEDULED_BILL" as const, monthlyAmount: isAudCurrency ? "300.00" : "0.00", enteredAmount: isAudCurrency ? "300.00" : "0.00", budgetFrequency: "MONTHLY", isEssential: true, orderIndex: 2 },
+      { name: "Emergency Reserve", envelopeType: "ONGOING_GOAL" as const, targetAmount: isAudCurrency ? "10000.00" : "0.00", enteredAmount: isAudCurrency ? "300.00" : "0.00", monthlyAmount: isAudCurrency ? "300.00" : "0.00", budgetFrequency: "MONTHLY", isCommitted: true, isSurplusTarget: true, orderIndex: 3 },
     ];
 
     await db.insert(envelopes).values(

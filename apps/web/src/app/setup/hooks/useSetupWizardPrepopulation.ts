@@ -78,15 +78,17 @@ export function useSetupWizardPrepopulation({
       setGoals(
         goalPools.map((g) => {
           const isOngoing = g.envelopeType === "ONGOING_GOAL" || g.goalMode === "ONGOING";
-          const amt = parseFloat(g.targetAmount || "1000");
+          const targetAmt = parseFloat(g.targetAmount || "0");
+          const monthlyAmt = g.monthlyAmount ? parseFloat(g.monthlyAmount) : 0;
+          const enteredAmt = g.enteredAmount ? parseFloat(g.enteredAmount) : monthlyAmt;
           return {
             id: g.id,
             name: g.name,
             goalMode: isOngoing ? ("ONGOING" as const) : ("TARGET_DATE" as const),
-            monthlyAmount: isOngoing ? amt : Math.round(amt / 12),
+            monthlyAmount: isOngoing ? monthlyAmt : (monthlyAmt || (targetAmt > 0 ? Math.round(targetAmt / 12) : 0)),
             icon: "target",
-            targetAmount: amt,
-            enteredAmount: g.enteredAmount ? parseFloat(g.enteredAmount) : amt,
+            targetAmount: targetAmt,
+            enteredAmount: enteredAmt,
             budgetFrequency: (g.budgetFrequency as "MONTHLY" | "WEEKLY" | "FORTNIGHTLY" | "ANNUALLY" | null) || undefined,
             startDate: g.startDate,
             rrule: g.rrule,

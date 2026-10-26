@@ -36,10 +36,22 @@ export function SetupGoalCard({
 }: SetupGoalCardProps) {
   const isOngoing = goal.goalMode === 'ONGOING';
   const months = isOngoing ? 1 : getMonthsDiff(goal.dueDate || '');
-  const estMonthly = isOngoing
-    ? Math.round(goal.targetAmount || 0)
-    : Math.round((goal.targetAmount || 0) / months);
-  const unitLabel = getFrequencyUnitLabel(goal.budgetFrequency);
+  const rawAmt = goal.enteredAmount !== undefined && goal.enteredAmount !== null ? goal.enteredAmount : (goal.monthlyAmount || 0);
+  const freq = goal.budgetFrequency || 'MONTHLY';
+  const unitLabel = getFrequencyUnitLabel(freq);
+
+  const handleFrequencyChange = (newFreq: 'WEEKLY' | 'FORTNIGHTLY' | 'MONTHLY' | 'ANNUALLY') => {
+    onUpdate(goal.id, 'budgetFrequency', newFreq);
+    onUpdate(goal.id, 'enteredAmount', rawAmt);
+    const monthly = newFreq === 'WEEKLY'
+      ? Math.round((rawAmt * 52) / 12)
+      : newFreq === 'FORTNIGHTLY'
+      ? Math.round((rawAmt * 26) / 12)
+      : newFreq === 'ANNUALLY'
+      ? Math.round(rawAmt / 12)
+      : Math.round(rawAmt);
+    onUpdate(goal.id, 'monthlyAmount', monthly);
+  };
 
   return (
     <View style={styles.card}>
@@ -69,7 +81,7 @@ export function SetupGoalCard({
       <View style={styles.inputsRow}>
         <View style={styles.amountCol}>
           <Text style={styles.fieldLabel}>
-            {isOngoing ? t('goalModes.monthlyContribution') : t('common.target')}
+            {isOngoing ? t('setup.goals.recurringContributionLabel') : t('common.target')}
           </Text>
           <AmountInput
             value={
@@ -82,9 +94,16 @@ export function SetupGoalCard({
             onChangeText={(val) => {
               const num = parseFloat(val) || 0;
               if (isOngoing) {
+                const currentFreq = goal.budgetFrequency || 'MONTHLY';
+                const monthly = currentFreq === 'WEEKLY'
+                  ? Math.round((num * 52) / 12)
+                  : currentFreq === 'FORTNIGHTLY'
+                  ? Math.round((num * 26) / 12)
+                  : currentFreq === 'ANNUALLY'
+                  ? Math.round(num / 12)
+                  : Math.round(num);
                 onUpdate(goal.id, 'enteredAmount', num);
-                onUpdate(goal.id, 'monthlyAmount', num);
-                onUpdate(goal.id, 'targetAmount', num);
+                onUpdate(goal.id, 'monthlyAmount', monthly);
               } else {
                 onUpdate(goal.id, 'targetAmount', num);
                 onUpdate(goal.id, 'monthlyAmount', Math.round(num / months));
@@ -92,7 +111,7 @@ export function SetupGoalCard({
             }}
           />
         </View>
-        {!isOngoing && (
+        {!isOngoing ? (
           <View style={styles.dateCol}>
             <Text style={styles.fieldLabel}>{t('categories.targetDateLabel')}</Text>
             <MobileDatePickerField
@@ -100,10 +119,27 @@ export function SetupGoalCard({
               onChange={(d) => onUpdate(goal.id, 'dueDate', d)}
             />
           </View>
+        ) : (
+          <View style={styles.freqCol}>
+            <Text style={styles.fieldLabel}>{t('categories.recurrence')}</Text>
+            <View style={styles.freqChipsRow}>
+              {(['WEEKLY', 'FORTNIGHTLY', 'MONTHLY', 'ANNUALLY'] as const).map((f) => (
+                <TouchableOpacity
+                  key={f}
+                  onPress={() => handleFrequencyChange(f)}
+                  style={[styles.freqChip, freq === f && styles.freqChipActive]}
+                >
+                  <Text style={[styles.freqChipText, freq === f && styles.freqChipTextActive]}>
+                    {getFrequencyUnitLabel(f)}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
         )}
         <View style={styles.guideBadge}>
           <Text style={styles.guideText}>
-            {isOngoing ? `${formatMobileCurrency(goal.enteredAmount || goal.monthlyAmount || 0)}${unitLabel}` : `${formatMobileCurrency(estMonthly)}/mo`}
+            {isOngoing ? `${formatMobileCurrency(rawAmt)}${unitLabel}` : `${formatMobileCurrency(Math.round((goal.targetAmount || 0) / months))}/mo`}
           </Text>
         </View>
       </View>
@@ -135,6 +171,28 @@ const styles = StyleSheet.create({
   inputsRow: { flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between', gap: 12 },
   amountCol: { flex: 1 },
   dateCol: { flex: 1 },
+  freqCol: { flex: 1.2 },
+  freqChipsRow: { flexDirection: 'row', gap: 4, flexWrap: 'wrap' },
+  freqChip: {
+    paddingHorizontal: 6,
+    paddingVertical: 4,
+    borderRadius: 6,
+    backgroundColor: DESIGN_TOKENS.colors.slate[100],
+    borderWidth: 1,
+    borderColor: DESIGN_TOKENS.colors.slate[200],
+  },
+  freqChipActive: {
+    backgroundColor: '#EFF6FF',
+    borderColor: '#93C5FD',
+  },
+  freqChipText: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: DESIGN_TOKENS.colors.slate[600],
+  },
+  freqChipTextActive: {
+    color: '#1D4ED8',
+  },
   fieldLabel: { fontSize: 11, fontWeight: '600', color: DESIGN_TOKENS.colors.textMuted, marginBottom: 4 },
   guideBadge: {
     backgroundColor: '#F0FDF4',

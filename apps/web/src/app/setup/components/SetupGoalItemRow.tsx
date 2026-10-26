@@ -12,7 +12,6 @@ interface SetupGoalItemRowProps {
   onUpdateGoal: (id: string, field: keyof UserGoalItem, value: string | number) => void;
   onRemoveGoal: (id: string) => void;
   onSaveGoal?: (id: string) => Promise<void>;
-  onOpenCustomSchedule?: (goal: UserGoalItem) => void;
 }
 
 function getMonthsDiff(targetDateStr?: string | null): number {
@@ -27,7 +26,6 @@ export function SetupGoalItemRow({
   goal,
   onUpdateGoal,
   onRemoveGoal,
-  onOpenCustomSchedule,
 }: SetupGoalItemRowProps) {
   const isOngoing = goal.goalMode === "ONGOING";
   const months = isOngoing ? 1 : getMonthsDiff(goal.dueDate);
@@ -81,7 +79,6 @@ export function SetupGoalItemRow({
                   : Math.round(num);
                 onUpdateGoal(goal.id, "enteredAmount", num);
                 onUpdateGoal(goal.id, "monthlyAmount", monthly);
-                onUpdateGoal(goal.id, "targetAmount", num);
               } else {
                 onUpdateGoal(goal.id, "targetAmount", num);
                 onUpdateGoal(goal.id, "monthlyAmount", Math.round(num / months));
@@ -113,7 +110,8 @@ export function SetupGoalItemRow({
             onChange={(e) => {
               const freq = e.target.value as "WEEKLY" | "FORTNIGHTLY" | "MONTHLY" | "ANNUALLY";
               onUpdateGoal(goal.id, "budgetFrequency", freq);
-              const rawAmt = goal.enteredAmount ?? goal.monthlyAmount ?? goal.targetAmount ?? 0;
+              const rawAmt = goal.enteredAmount ?? goal.monthlyAmount ?? 0;
+              onUpdateGoal(goal.id, "enteredAmount", rawAmt);
               const monthly = freq === "WEEKLY"
                 ? Math.round((rawAmt * 52) / 12)
                 : freq === "FORTNIGHTLY"
@@ -130,16 +128,6 @@ export function SetupGoalItemRow({
             <option value="MONTHLY">{t("categories.frequencyMonthly")} (/mo)</option>
             <option value="ANNUALLY">{t("categories.frequencyAnnually")} (/yr)</option>
           </select>
-        )}
-
-        {onOpenCustomSchedule && (
-          <button
-            type="button"
-            onClick={() => onOpenCustomSchedule(goal)}
-            className="text-[11px] font-bold text-[#2563eb] hover:underline cursor-pointer"
-          >
-            {t("setup.goals.customSchedule")}
-          </button>
         )}
 
         <button

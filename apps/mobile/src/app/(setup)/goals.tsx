@@ -18,6 +18,7 @@ export default function SetupGoalsScreen() {
     goals,
     setGoals,
     isRerun,
+    isAud,
     totalSteps,
     activeSweepPool,
     setActiveSweepPool,
@@ -32,7 +33,7 @@ export default function SetupGoalsScreen() {
   } = useSetupWizard();
 
   const [customName, setCustomName] = useState('');
-  const [customTarget, setCustomTarget] = useState('5000');
+  const [customTarget, setCustomTarget] = useState(isAud ? '5000' : '0');
   const [customType, setCustomType] = useState<'TARGET_DATE' | 'ONGOING'>('TARGET_DATE');
 
   const tz = getMobileLocaleConfig().timezone;
@@ -49,15 +50,16 @@ export default function SetupGoalsScreen() {
       const d = new Date();
       d.setMonth(d.getMonth() + (preset.defaultMonths || 12));
       const dueDate = isOngoing ? null : new Intl.DateTimeFormat('en-CA', { timeZone: tz }).format(d);
+      const targetAmt = isAud ? preset.defaultTarget : 0;
       setGoals((prev) => [
         ...prev,
         {
           id: `g-${Date.now()}`,
           name: preset.name,
-          targetAmount: preset.defaultTarget,
+          targetAmount: targetAmt,
           dueDate,
           goalMode: preset.mode,
-          monthlyAmount: isOngoing ? preset.defaultTarget : Math.round(preset.defaultTarget / (preset.defaultMonths || 12)),
+          monthlyAmount: isOngoing ? targetAmt : Math.round(targetAmt / (preset.defaultMonths || 12)),
           icon: preset.icon,
         },
       ]);
@@ -66,7 +68,8 @@ export default function SetupGoalsScreen() {
 
   const handleAddCustom = () => {
     if (!customName.trim()) return;
-    const amountNum = parseFloat(customTarget) || (customType === 'ONGOING' ? 250 : 1000);
+    const defaultCustomAmt = isAud ? (customType === 'ONGOING' ? 250 : 1000) : 0;
+    const amountNum = parseFloat(customTarget) || defaultCustomAmt;
     if (customType === 'ONGOING') {
       setGoals((prev) => [
         ...prev,
@@ -142,7 +145,7 @@ export default function SetupGoalsScreen() {
         <Text style={styles.title}>{t('setup.goals.title')}</Text>
       </View>
 
-      <SetupGoalsPresetsGrid onTogglePreset={togglePreset} isPresetActive={isPresetActive} />
+      <SetupGoalsPresetsGrid onTogglePreset={togglePreset} isPresetActive={isPresetActive} isAud={isAud} />
 
       <View style={styles.customBox}>
         <Text style={styles.customHeading}>{t('setup.goals.addCustomGoal')}</Text>

@@ -118,6 +118,7 @@ export default function PoolDetailScreen() {
         onClose={() => setPoolModalVisible(false)}
         onSuccess={() => {
           poolsQuery.refetch();
+          expenseEventsQuery.refetch();
         }}
       />
 
