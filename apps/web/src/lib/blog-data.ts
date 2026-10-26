@@ -16,7 +16,7 @@ export const BLOG_POSTS: BlogPost[] = [
   {
     slug: "why-we-built-money-matters",
     title: "Moving Beyond Spreadsheets: Why We Built Money Matters",
-    subtitle: "How a personal 2-tab cashflow spreadsheet evolved into an automated 5-step waterfall engine for Aussie households.",
+    subtitle: "How a personal 2-tab cashflow spreadsheet evolved into an automated 5-step payday plan for Aussie households.",
     category: "FOUNDER STORY",
     readTimeMinutes: 4,
     publishedAt: "August 15, 2026",
@@ -37,18 +37,18 @@ export const BLOG_POSTS: BlogPost[] = [
     ]
   },
   {
-    slug: "the-5-step-payday-waterfall",
-    title: "The 5-Step Cashflow Waterfall: Ring-Fencing Bills Before You Spend",
+    slug: "the-5-step-payday-plan",
+    title: "The 5-Step Payday Plan: Ring-Fencing Bills Before You Spend",
     subtitle: "A mechanical framework for allocating every paycheck the moment it lands in your account.",
     category: "CASHFLOW METHOD",
     readTimeMinutes: 5,
     publishedAt: "August 10, 2026",
     authorName: "Kesh",
     authorRole: "Principal Software Architect & Founder",
-    excerpt: "Discover how a self-healing 5-step waterfall ring-fences bill buffers and target goals so you can spend what's left with zero guilt.",
+    excerpt: "Discover how an automated 5-step payday plan ring-fences bill buffers and target goals so you can spend what's left with zero guilt.",
     paragraphs: [
       "Traditional budgeting asks you to track every cup of coffee after you've spent the money. Backward-looking tracking creates guilt without offering proactive direction.",
-      "The 5-Step Cashflow Waterfall flips this paradigm. The moment income lands in your bank account, funds flow automatically through five sequential priorities.",
+      "The 5-Step Payday Plan flips this paradigm. The moment income lands in your bank account, funds flow automatically through five sequential priorities.",
       "First, any negative category deficits are repaired. Second, your unified Bills Pool is topped up to cover upcoming fixed commitments. Third, committed savings goals are funded.",
       "Fourth, your Everyday discretionary allowance is allocated for safe spending. Finally, any residual surplus is automatically swept into your Offset Reserve.",
       "By ring-fencing bills and savings first, you can spend your Everyday allowance with 100% confidence, knowing every obligation is already taken care of."
@@ -96,7 +96,7 @@ export const BLOG_POSTS: BlogPost[] = [
       "This setup creates subconscious friction. Every time you tap your card for lunch or drinks on a Saturday, you see an aggregate balance of $3,500. But how much of that is actually yours to spend freely, and how much is reserved for council rates and car insurance due in 12 days?",
       "To answer that, traditional budgeting apps demand that you manually log every coffee, tag every transaction, and calculate your daily spending velocity. That is exhausting and unsustainable.",
       "The 2-Account Blueprint solves this mechanically. You designate one account for Bills & Sinking Funds (direct debits only) and a separate card for Everyday Discretionary Spending.",
-      "On payday, Money Matters' waterfall calculates your safe allowance and tells you to transfer that exact figure to your Everyday card. From that second on, you never have to check a budget or log an expense. When the card reaches zero, spending pauses—and your bills are 100% ring-fenced and secure."
+      "On payday, Money Matters' payday plan calculates your safe allowance and tells you to transfer that exact figure to your Everyday card. From that second on, you never have to check a budget or log an expense. When the card reaches zero, spending pauses—and your bills are 100% ring-fenced and secure."
     ],
     keyTakeaways: [
       "Card taps should never share a balance with direct debits and rent.",

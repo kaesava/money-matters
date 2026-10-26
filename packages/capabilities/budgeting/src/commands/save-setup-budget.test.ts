@@ -202,4 +202,51 @@ describe("saveSetupBudgetHandler", () => {
     expect(ledgerInserts[1].flowType).toBe("CREDIT");
     expect(ledgerInserts[1].envelopeId).toBe("env-emergency");
   });
+
+  it("updates pre-seeded envelopes in place without duplicates when setup payload omits IDs", async () => {
+    const mockDb = createMockDb({
+      accounts: [
+        { id: "acc-seeded", name: "Main Everyday Account", bankProvider: "Other", accountType: "EVERYDAY" },
+      ],
+      envelopes: [
+        { id: "env-seed-everyday", name: "Everyday Spending", envelopeType: "EVERYDAY", bankAccountId: "acc-seeded" },
+        { id: "env-seed-rent", name: "Rent & Housing", envelopeType: "SCHEDULED_BILL", bankAccountId: "acc-seeded" },
+        { id: "env-seed-utils", name: "Electricity & Utilities", envelopeType: "SCHEDULED_BILL", bankAccountId: "acc-seeded" },
+        { id: "env-seed-emergency", name: "Emergency Reserve", envelopeType: "ONGOING_GOAL", bankAccountId: "acc-seeded" },
+      ],
+    });
+    const handler = saveSetupBudgetHandler(mockDb);
+
+    const result = await handler(
+      {
+        incomes: [{ name: "Salary", type: "SALARY", amount: "3000.00", frequency: "MONTHLY", incomeType: "SALARIED" }],
+        bankAccounts: [
+          // Client sends no ID on first account
+          { name: "Main Everyday Account", bankProvider: "Other", accountType: "EVERYDAY", lastKnownBalance: "1000.00", unbudgetedBuffer: "0.00", isPrivate: false },
+        ],
+        envelopes: [
+          // Client sends no IDs on pre-seeded envelopes
+          { name: "Everyday Spending", envelopeType: "EVERYDAY", monthlyAmount: "1200.00", isSurplusTarget: false, isCommitted: false, isPrivate: false, orderIndex: 0 },
+          { name: "Rent & Housing", envelopeType: "SCHEDULED_BILL", monthlyAmount: "2400.00", enteredAmount: "2400.00", budgetFrequency: "MONTHLY", isSurplusTarget: false, isCommitted: true, isEssential: true, isPrivate: false, orderIndex: 1 },
+          { name: "Electricity & Utilities", envelopeType: "SCHEDULED_BILL", monthlyAmount: "350.00", enteredAmount: "350.00", budgetFrequency: "MONTHLY", isSurplusTarget: false, isCommitted: true, isEssential: true, isPrivate: false, orderIndex: 2 },
+          { name: "Emergency Reserve", envelopeType: "ONGOING_GOAL", targetAmount: "10000.00", enteredAmount: "300.00", monthlyAmount: "300.00", budgetFrequency: "MONTHLY", isSurplusTarget: true, isCommitted: true, isPrivate: false, orderIndex: 3 },
+          // Plus 1 brand new goal
+          { name: "Family Vacation", envelopeType: "TARGET_GOAL", targetAmount: "4000.00", monthlyAmount: "333.33", isSurplusTarget: false, isCommitted: true, isPrivate: false, orderIndex: 4 },
+        ],
+      },
+      appId,
+      userId,
+      tenantId
+    );
+
+    expect(result.success).toBe(true);
+    // Only 1 new envelope (Family Vacation) should be inserted; the 4 pre-seeded should be updated
+    const insertedEnvelopes = insertedRows["envelopes"] || [];
+    expect(insertedEnvelopes).toHaveLength(1);
+    expect(insertedEnvelopes[0].name).toBe("Family Vacation");
+
+    // No new bank account inserted
+    const insertedAccounts = insertedRows["bank_accounts"] || [];
+    expect(insertedAccounts).toHaveLength(0);
+  });
 });

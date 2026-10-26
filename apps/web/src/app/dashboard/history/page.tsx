@@ -658,7 +658,7 @@ function TransactionsPageContent() {
               type="button"
               onClick={() => {
                 if (!paydayPlansQuery.data) return;
-                const headers = ["Income Split Date", "Income Date", "Income Source", "Receiving Bank Account", "Total Income Amount", "Pool/Category", "Allocated Amount", "Reasoning"];
+                const headers = ["Payday Plan Date", "Income Date", "Income Source", "Receiving Bank Account", "Total Income Amount", "Envelope", "Planned Amount", "Reasoning"];
                 const rows: string[][] = [];
 
                 for (const plan of paydayPlans) {

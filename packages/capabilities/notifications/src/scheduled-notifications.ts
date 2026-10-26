@@ -114,7 +114,7 @@ export function createScheduledNotificationFunctions(inngest: Inngest) {
                     `Here is your weekly financial digest for ${record.tenantName}:\n\n` +
                     `• Safe to Spend: ${formattedSafe}\n` +
                     `• Bills Envelope Balance: ${formattedBills}\n\n` +
-                    `Log in to Money Matters to review your payday splits and forward-looking allocations!`
+                    `Log in to Money Matters to review your payday plans and forward-looking allocations!`
                   );
                 }
 
@@ -220,7 +220,7 @@ export function createScheduledNotificationFunctions(inngest: Inngest) {
               item.email,
               `Payday Alert — ${item.tenantName}`,
               `It's payday! An expected deposit of ${formattedAmount} is due today.\n\n` +
-              `Log in to Money Matters to allocate your payday split and ring-fence your committed expenses!`
+              `Log in to Money Matters to confirm your payday plan and ring-fence your committed expenses!`
             );
           }
 

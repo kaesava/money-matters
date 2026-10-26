@@ -176,9 +176,16 @@ export async function processSetupEnvelopes(
 
   for (let i = 0; i < envelopesInput.length; i++) {
     const envInput = envelopesInput[i];
-    const matchedExisting = envInput.id
-      ? existingEnvelopes.find((e) => e.id === envInput.id && !archivedEnvelopeIds.includes(e.id))
-      : null;
+    const matchedExisting =
+      (envInput.id
+        ? existingEnvelopes.find((e) => e.id === envInput.id && !archivedEnvelopeIds.includes(e.id))
+        : null) ||
+      existingEnvelopes.find(
+        (e) =>
+          !archivedEnvelopeIds.includes(e.id) &&
+          e.envelopeType === envInput.envelopeType &&
+          e.name.trim().toLowerCase() === envInput.name.trim().toLowerCase()
+      );
 
     const resolvedBankAccountId =
       (envInput.bankAccountId && accountIdMap.get(envInput.bankAccountId)) ||

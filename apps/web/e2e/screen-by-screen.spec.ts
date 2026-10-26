@@ -585,7 +585,7 @@ test.describe('100% Comprehensive Field-by-Field Screen-by-Screen E2E Master Sui
       await expect(page.locator('h1').filter({ hasText: /History|履歴/i }).first()).toBeVisible();
       await expect(page.locator('button').filter({ hasText: /Transactions|取引履歴/i }).first()).toBeVisible();
 
-      const paydayTab = page.locator('button').filter({ hasText: /Payday Allocations|給与日配分/i }).first();
+      const paydayTab = page.locator('button').filter({ hasText: /Payday Plans|Payday Allocations|給与日配分/i }).first();
       await expect(paydayTab).toBeVisible();
 
       // Check Spend Reporting Overview Section in Transactions tab
@@ -594,7 +594,7 @@ test.describe('100% Comprehensive Field-by-Field Screen-by-Screen E2E Master Sui
 
       await paydayTab.click();
 
-      await expect(page.locator('h2').filter({ hasText: /Payday Allocation History|履歴/i }).first()).toBeVisible();
+      await expect(page.locator('h2').filter({ hasText: /Payday Plan|Payday Allocation History|履歴/i }).first()).toBeVisible();
     });
   });
 

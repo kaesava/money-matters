@@ -39,8 +39,13 @@ const enKeySet = new Set(enKeys);
 // 1.5 Strict Banned Terminology & Tone Audit
 const BANNED_PATTERNS = [
   { pattern: /\bLedger\b/i, reason: "Use 'History' or 'Transactions' instead of accounting jargon 'Ledger'." },
-  { pattern: /\bMatrix\b/i, reason: "Use 'Payday Split' instead of technical jargon 'Matrix'." },
-  { pattern: /\bAllocation Grid\b/i, reason: "Use 'Payday Split' instead of technical jargon 'Allocation Grid'." },
+  { pattern: /\bMatrix\b/i, reason: "Use 'Payday Plan' instead of technical jargon 'Matrix'." },
+  { pattern: /\bAllocation Grid\b/i, reason: "Use 'Payday Plan' instead of technical jargon 'Allocation Grid'." },
+  { pattern: /\bWaterfall\b/i, reason: "Use 'Payday Plan' instead of technical jargon 'Waterfall'." },
+  { pattern: /\bIncome Splits?\b/i, reason: "Use 'Payday Plan(s)' instead of 'Income Split(s)'." },
+  { pattern: /\bPayday Splits?\b/i, reason: "Use 'Payday Plan(s)' instead of 'Payday Split(s)'." },
+  { pattern: /\bIncome Allocations?\b/i, reason: "Use 'Payday Plan(s)' instead of 'Income Allocation(s)'." },
+  { pattern: /\bPayday Allocations?\b/i, reason: "Use 'Payday Plan(s)' instead of 'Payday Allocation(s)'." },
   { pattern: /\bIncome Stream\b/i, reason: "Use 'Income Source' or 'Pay' instead of corporate speak 'Income Stream'." },
   { pattern: /\bObligations\b/i, reason: "Use 'Bills' or 'Commitments' instead of 'Obligations'." },
   { pattern: /\bDeficit Repair\b/i, reason: "Use 'Cover Shortfalls' or 'Fix Balances' instead of 'Deficit Repair'." },

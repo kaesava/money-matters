@@ -60,8 +60,6 @@ export function useSetupCategoriesSubmission() {
           const rawFreq = categoryFrequencies[c.name];
           const budgetFreq: 'WEEKLY' | 'FORTNIGHTLY' | 'MONTHLY' | 'ANNUALLY' =
             rawFreq === 'YEARLY' ? 'ANNUALLY' : 'MONTHLY';
-          const catId = 'id' in c && typeof c.id === 'string' && !c.id.startsWith('temp-') ? c.id : undefined;
-          const matchedPool = catId ? existingPools.find((p) => p.id === catId) : undefined;
           const isEveryday = c.type === 'EVERYDAY';
           const resolvedEnvelopeType = isEveryday
             ? ('EVERYDAY' as const)
@@ -69,8 +67,12 @@ export function useSetupCategoriesSubmission() {
             ? ('FLEXIBLE_BILL' as const)
             : ('SCHEDULED_BILL' as const);
           const isBill = resolvedEnvelopeType === 'SCHEDULED_BILL' || resolvedEnvelopeType === 'FLEXIBLE_BILL';
+          const catId = 'id' in c && typeof c.id === 'string' && !c.id.startsWith('temp-') ? c.id : undefined;
+          const matchedPool = (catId ? existingPools.find((p) => p.id === catId) : undefined) ||
+            existingPools.find((p) => p.envelopeType === resolvedEnvelopeType && p.name.trim().toLowerCase() === c.name.trim().toLowerCase());
+          const resolvedEnvId = catId || matchedPool?.id;
           return {
-            id: catId,
+            id: resolvedEnvId,
             bankAccountId: matchedPool?.bankAccountId || primaryBankAccountId,
             isPrivate: matchedPool?.isPrivate ?? false,
             name: c.name,
@@ -84,7 +86,9 @@ export function useSetupCategoriesSubmission() {
         }),
         ...goals.map((g, idx) => {
           const goalId = g.id?.startsWith('g-') ? undefined : g.id;
-          const matchedPool = goalId ? existingPools.find((p) => p.id === goalId) : undefined;
+          const matchedPool = (goalId ? existingPools.find((p) => p.id === goalId) : undefined) ||
+            existingPools.find((p) => (p.envelopeType === 'ONGOING_GOAL' || p.envelopeType === 'TARGET_GOAL') && p.name.trim().toLowerCase() === g.name.trim().toLowerCase());
+          const resolvedGoalId = goalId || matchedPool?.id;
           const isOngoing = g.goalMode === 'ONGOING' || (!g.dueDate && g.budgetFrequency);
           const rawAmt = g.enteredAmount !== undefined && g.enteredAmount !== null
             ? g.enteredAmount
@@ -100,7 +104,7 @@ export function useSetupCategoriesSubmission() {
             : (g.monthlyAmount || (g.targetAmount ? g.targetAmount / 12 : 100));
 
           return {
-            id: goalId,
+            id: resolvedGoalId,
             bankAccountId: matchedPool?.bankAccountId || primaryBankAccountId,
             name: g.name,
             envelopeType: (isOngoing ? 'ONGOING_GOAL' : 'TARGET_GOAL') as 'ONGOING_GOAL' | 'TARGET_GOAL',

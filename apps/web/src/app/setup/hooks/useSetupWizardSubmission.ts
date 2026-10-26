@@ -25,7 +25,7 @@ interface SubmissionProps {
   removedCategoryNames?: Set<string>;
   archivedAccountIds: Set<string>;
   archivedIncomeIds: Set<string>;
-  existingPools?: Array<{ id: string; name?: string; bankAccountId?: string | null; isPrivate?: boolean | null }>;
+  existingPools?: Array<{ id: string; name?: string; envelopeType?: string; bankAccountId?: string | null; isPrivate?: boolean | null }>;
 }
 
 export function useSetupWizardSubmission({
@@ -78,8 +78,6 @@ export function useSetupWizardSubmission({
         ...nonGoalCategories.map((c, idx) => {
           const rawFreq = categoryFrequencies[c.name];
           const budgetFreq = rawFreq === "YEARLY" ? ("ANNUALLY" as const) : ("MONTHLY" as const);
-          const catId = "id" in c && typeof c.id === "string" && !c.id.startsWith("temp-") ? c.id : undefined;
-          const matchedPool = catId ? existingPools.find((p) => p.id === catId) : undefined;
           const isEveryday = c.type === "EVERYDAY";
           const resolvedEnvelopeType = isEveryday
             ? ("EVERYDAY" as const)
@@ -87,8 +85,12 @@ export function useSetupWizardSubmission({
             ? ("FLEXIBLE_BILL" as const)
             : ("SCHEDULED_BILL" as const);
           const isBill = resolvedEnvelopeType === "SCHEDULED_BILL" || resolvedEnvelopeType === "FLEXIBLE_BILL";
+          const catId = "id" in c && typeof c.id === "string" && !c.id.startsWith("temp-") ? c.id : undefined;
+          const matchedPool = (catId ? existingPools.find((p) => p.id === catId) : undefined) ||
+            existingPools.find((p) => p.envelopeType === resolvedEnvelopeType && p.name?.trim().toLowerCase() === c.name.trim().toLowerCase());
+          const resolvedEnvId = catId || matchedPool?.id;
           return {
-            id: catId,
+            id: resolvedEnvId,
             bankAccountId: matchedPool?.bankAccountId || primaryBankAccountId,
             isPrivate: matchedPool?.isPrivate ?? false,
             name: c.name,
@@ -102,7 +104,9 @@ export function useSetupWizardSubmission({
         }),
         ...goals.map((g, idx) => {
           const goalId = g.id?.startsWith("g-") ? undefined : g.id;
-          const matchedPool = goalId ? existingPools.find((p) => p.id === goalId) : undefined;
+          const matchedPool = (goalId ? existingPools.find((p) => p.id === goalId) : undefined) ||
+            existingPools.find((p) => (p.envelopeType === "ONGOING_GOAL" || p.envelopeType === "TARGET_GOAL") && p.name?.trim().toLowerCase() === g.name.trim().toLowerCase());
+          const resolvedGoalId = goalId || matchedPool?.id;
           const isOngoing = g.goalMode === "ONGOING" || (!g.dueDate && g.budgetFrequency);
           const rawAmt = g.enteredAmount !== undefined && g.enteredAmount !== null
             ? g.enteredAmount
@@ -118,7 +122,7 @@ export function useSetupWizardSubmission({
             : (g.monthlyAmount || (g.targetAmount ? g.targetAmount / 12 : 100));
 
           return {
-            id: goalId,
+            id: resolvedGoalId,
             bankAccountId: matchedPool?.bankAccountId || primaryBankAccountId,
             name: g.name,
             envelopeType: (isOngoing ? "ONGOING_GOAL" : "TARGET_GOAL") as "ONGOING_GOAL" | "TARGET_GOAL",

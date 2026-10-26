@@ -39,7 +39,7 @@ export const metadata: Metadata = {
     "long-term goals tracker",
     "zero daily tracking budget",
     "Australian budget planner",
-    "5-step waterfall budget",
+    "5-step payday plan",
     "mortgage offset account optimizer",
     "forward looking paycheck allocation",
     "zero based budget app",

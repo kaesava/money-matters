@@ -37,7 +37,7 @@ export function useTransactionsExport() {
 
   const exportPlansCsv = async (plans: MobilePaydayAllocationRecord[]) => {
     if (plans.length === 0) return;
-    const headers = ['Split Date', 'Income Date', 'Income Source', 'Bank Account', 'Total Amount'];
+    const headers = ['Payday Plan Date', 'Income Date', 'Income Source', 'Bank Account', 'Total Amount'];
     const rows = plans.map((p) => [
       `"${formatDate(p.createdAt)}"`,
       `"${formatDate(p.expectedDate || p.createdAt)}"`,
@@ -47,7 +47,7 @@ export function useTransactionsExport() {
     ]);
     const csv = [headers.join(','), ...rows.map((r) => r.join(','))].join('\n');
     try {
-      const fileUri = `${FileSystem.cacheDirectory || FileSystem.documentDirectory}splits_${formatIsoDate(new Date())}.csv`;
+      const fileUri = `${FileSystem.cacheDirectory || FileSystem.documentDirectory}payday_plans_${formatIsoDate(new Date())}.csv`;
       await FileSystem.writeAsStringAsync(fileUri, csv, {
         encoding: FileSystem.EncodingType.UTF8,
       });

@@ -15,7 +15,6 @@ export function useDashboardData() {
   const todayStr = getTenantDateString(new Date());
 
   const [moveMoneyOpen, setMoveMoneyOpen] = useState(false);
-  const [paydayPreviewEventId, setPaydayPreviewEventId] = useState<string | null>(null);
 
   const summaryQuery = trpc.getMonthlySummary.useQuery({ year: todayYear, month: todayMonth });
   const homeSummaryQuery = trpc.getHomeSummary.useQuery();
@@ -95,8 +94,6 @@ export function useDashboardData() {
     todayStr,
     moveMoneyOpen,
     setMoveMoneyOpen,
-    paydayPreviewEventId,
-    setPaydayPreviewEventId,
     summaryQuery,
     homeSummaryQuery,
     categoriesQuery: poolsQuery,
