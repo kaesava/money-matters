@@ -1,11 +1,7 @@
-import { FlatCompat } from "@eslint/eslintrc";
-
-const compat = new FlatCompat({
-  baseDirectory: import.meta.dirname,
-});
+import nextConfig from "eslint-config-next";
 
 const eslintConfig = [
-  ...compat.extends("next/core-web-vitals", "next/typescript"),
+  ...nextConfig,
   {
     ignores: [
       ".next/**",
@@ -19,8 +15,8 @@ const eslintConfig = [
     ]
   },
   {
+    files: ["**/*.ts", "**/*.tsx"],
     rules: {
-      // Allow _ prefix to mark intentionally unused variables (TypeScript convention)
       "@typescript-eslint/no-unused-vars": [
         "error",
         {
@@ -30,7 +26,19 @@ const eslintConfig = [
         }
       ],
       "@typescript-eslint/no-explicit-any": "warn",
-      "@typescript-eslint/no-require-imports": "off"
+      "@typescript-eslint/no-require-imports": "off",
+      "react-hooks/preserve-manual-memoization": "off",
+      "react-hooks/set-state-in-render": "off",
+      "react-hooks/purity": "off",
+      "react-hooks/use-memo": "off",
+      "react-hooks/immutability": "off",
+      "react-hooks/refs": "off",
+      "react-hooks/static-components": "off",
+      "react-hooks/set-state-in-effect": "off",
+      "react-hooks/error-boundaries": "off",
+      "react-hooks/config": "off",
+      "react-hooks/gating": "off",
+      "react-hooks/globals": "off"
     }
   }
 ];

@@ -13,6 +13,7 @@ const nextConfig: NextConfig = {
     "@money-matters/capability-tenant",
     "@money-matters/capability-notifications",
   ],
+  turbopack: {},
   experimental: {
     optimizePackageImports: [
       "lucide-react",
