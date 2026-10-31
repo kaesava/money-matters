@@ -171,6 +171,7 @@ export default function RecurringSchedulesScreen() {
 
       <EnvelopeFormModal
         visible={categoryModalVisible}
+        initialMode="BILL_SCHEDULE"
         envelopeToEdit={poolToEdit}
         onClose={() => setCategoryModalVisible(false)}
         onSuccess={() => {

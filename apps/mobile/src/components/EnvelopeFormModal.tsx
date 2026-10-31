@@ -62,6 +62,7 @@ export interface EnvelopeFormModalProps {
   onSaveDraft?: (draft: EnvelopeDraftPayload) => void;
   onClose: () => void;
   onSuccess?: () => void;
+  initialMode?: 'ALL' | 'BILL_SCHEDULE';
 }
 
 export type CategoryFormModalProps = EnvelopeFormModalProps;
@@ -75,6 +76,7 @@ export function EnvelopeFormModal({
   onSaveDraft,
   onClose,
   onSuccess,
+  initialMode = 'ALL',
 }: EnvelopeFormModalProps) {
   const categoryToEdit = envelopeToEdit ?? legacyCategoryToEdit;
   const toast = useMobileToast();
@@ -443,10 +445,11 @@ export function EnvelopeFormModal({
 
   const handleArchive = () => {
     if (!categoryToEdit) return;
+    const archiveLabel = initialMode === 'BILL_SCHEDULE' ? t('categories.archiveBillSchedule') : t('categories.archivePool');
     showMobileConfirm({
-      title: t('categories.archivePool'),
+      title: archiveLabel,
       message: t('categories.archivePoolConfirm', { name: categoryToEdit.name }),
-      confirmText: t('categories.archivePool'),
+      confirmText: archiveLabel,
       isDestructive: true,
       onConfirm: () => {
         archiveMut.mutate({ poolId: categoryToEdit.id });
@@ -479,11 +482,20 @@ export function EnvelopeFormModal({
       visible={visible}
       onClose={onClose}
       isDirty={isDirty}
-      title={isEdit ? t('categories.editPoolTitle', { name: categoryToEdit?.name || '' }) : t('categories.createPool')}
+      title={
+        initialMode === 'BILL_SCHEDULE'
+          ? isEdit
+            ? t('incomeBillsTabs.editBillSchedule')
+            : t('incomeBillsTabs.addBillSchedule')
+          : isEdit
+            ? t('categories.editPoolTitle', { name: categoryToEdit?.name || '' })
+            : t('categories.createPool')
+      }
       footer={
         <EnvelopeFormFooter
           isEdit={isEdit}
           showArchive={isEdit && type !== 'EVERYDAY'}
+          archiveLabel={initialMode === 'BILL_SCHEDULE' ? t('categories.archiveBillSchedule') : t('categories.archivePool')}
           isSurplusTarget={Boolean(categoryToEdit?.isSurplusTarget)}
           isPending={isPending}
           isValid={isValid}
@@ -526,6 +538,7 @@ export function EnvelopeFormModal({
         setIsSurplusTarget={setIsSurplusTarget}
         isEdit={isEdit}
         isSurplusDisabled={isSurplusDisabled}
+        hideTypeOptions={initialMode === 'BILL_SCHEDULE'}
         generateEvents={generateEvents}
         setGenerateEvents={setGenerateEvents}
         typeOptions={typeOptions}

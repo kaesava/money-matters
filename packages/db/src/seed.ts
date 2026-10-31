@@ -377,6 +377,7 @@ export async function seedDatabase(connectionString: string, envLabel: string) {
       isCommitted: p.isCommitted,
       isSurplusTarget: p.isSurplusTarget,
       isPrivate: p.isPrivate,
+      generateEvents: (p as any).generateEvents ?? true,
       userId: (p as any).userId ?? null,
       tenantId,
       appId,

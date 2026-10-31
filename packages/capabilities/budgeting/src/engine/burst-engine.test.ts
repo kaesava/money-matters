@@ -34,17 +34,19 @@ describe('Recurrence Burst Date Engine', () => {
 
   it('generates all occurrences from past startDate up to today + 12 months horizon (or endDate if sooner)', () => {
     const fmtAest = (d: Date) => new Intl.DateTimeFormat('en-CA', { timeZone: 'Australia/Sydney' }).format(d);
+    // Anchor to 1st of month so months with fewer than 31 days don't skip in standard RRULE
     const now = new Date();
+    const anchorDay = 1;
     // Start date 12 months ago
-    const pastStart = fmtAest(new Date(now.getFullYear(), now.getMonth() - 12, now.getDate()));
+    const pastStart = fmtAest(new Date(now.getFullYear(), now.getMonth() - 12, anchorDay));
     // End date 6 months in the future -> expecting ~18-19 monthly occurrences (12 past + 6 future + start)
-    const futureEnd6 = fmtAest(new Date(now.getFullYear(), now.getMonth() + 6, now.getDate()));
+    const futureEnd6 = fmtAest(new Date(now.getFullYear(), now.getMonth() + 6, anchorDay));
     const dates18 = generateBurstDates('FREQ=MONTHLY', pastStart, futureEnd6, 12);
     expect(dates18.length).toBeGreaterThanOrEqual(18);
     expect(dates18.length).toBeLessThanOrEqual(20);
 
     // End date 24 months in future -> capped by 12 months ahead cutoff -> expecting ~24-25 monthly occurrences (12 past + 12 future + start)
-    const futureEnd24 = fmtAest(new Date(now.getFullYear(), now.getMonth() + 24, now.getDate()));
+    const futureEnd24 = fmtAest(new Date(now.getFullYear(), now.getMonth() + 24, anchorDay));
     const dates24 = generateBurstDates('FREQ=MONTHLY', pastStart, futureEnd24, 12);
     expect(dates24.length).toBeGreaterThanOrEqual(24);
     expect(dates24.length).toBeLessThanOrEqual(26);

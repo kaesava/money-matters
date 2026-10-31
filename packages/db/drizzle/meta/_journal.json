@@ -295,6 +295,13 @@
       "when": 1784178494251,
       "tag": "0042_cull_user_preferences_locale",
       "breakpoints": true
+    },
+    {
+      "idx": 42,
+      "version": "7",
+      "when": 1784188494251,
+      "tag": "0043_add_envelope_generate_events",
+      "breakpoints": true
     }
   ]
 }

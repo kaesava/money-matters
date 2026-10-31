@@ -33,6 +33,7 @@ export async function listEnvelopesQuery(
       isCommitted: envelopes.isCommitted,
       isSurplusTarget: envelopes.isSurplusTarget,
       isPrivate: envelopes.isPrivate,
+      generateEvents: envelopes.generateEvents,
       userId: envelopes.userId,
       orderIndex: envelopes.orderIndex,
       createdAt: envelopes.createdAt,
@@ -138,6 +139,7 @@ export async function listEnvelopesQuery(
       healthStatus,
       progressPercentage,
       hasScheduledEvents: scheduledMap.has(env.id),
+      generateEvents: env.generateEvents,
     };
   });
 }

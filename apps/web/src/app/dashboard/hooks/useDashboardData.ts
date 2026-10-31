@@ -33,14 +33,6 @@ export function useDashboardData() {
     },
   });
 
-  const markPaidMutation = trpc.overrideEvent.useMutation({
-    onSuccess: () => {
-      expenseEventsQuery.refetch();
-      poolsQuery.refetch();
-      summaryQuery.refetch();
-    },
-  });
-
   const overrideEventMutation = trpc.overrideEvent.useMutation({
     onSuccess: () => {
       expenseEventsQuery.refetch();
@@ -103,7 +95,6 @@ export function useDashboardData() {
     expenseEventsQuery,
     transferEventsQuery,
     reconcileMutation,
-    markPaidMutation,
     markExpensePaidMutation,
     deleteExpenseEventMutation,
     deleteIncomeEventMutation,

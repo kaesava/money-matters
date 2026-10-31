@@ -53,6 +53,7 @@ export interface EnvelopeFormModalProps {
   bankAccounts?: Array<{ id: string; name: string; isPrivate?: boolean | null }>;
   onSaveDraft?: (draft: EnvelopeDraftPayload) => void;
   onSuccess?: () => void;
+  initialMode?: "ALL" | "BILL_SCHEDULE";
 }
 
 export type CategoryFormModalProps = EnvelopeFormModalProps;
@@ -65,6 +66,7 @@ export function EnvelopeFormModal({
   bankAccounts: passedBankAccounts,
   onSaveDraft,
   onSuccess,
+  initialMode = "ALL",
 }: EnvelopeFormModalProps) {
   const categoryToEdit = envelopeToEdit ?? legacyCategoryToEdit;
   const toast = useToast();
@@ -412,13 +414,22 @@ export function EnvelopeFormModal({
       isOpen={isOpen}
       onClose={onClose}
       isDirty={isDirty}
-      title={isEdit ? t("categories.editPoolTitle", { name: categoryToEdit?.name || "" }) : t("categories.createPool")}
+      title={
+        initialMode === "BILL_SCHEDULE"
+          ? isEdit
+            ? t("incomeBillsTabs.editBillSchedule")
+            : t("incomeBillsTabs.addBillSchedule")
+          : isEdit
+            ? t("categories.editPoolTitle", { name: categoryToEdit?.name || "" })
+            : t("categories.createPool")
+      }
       maxWidth="max-w-lg"
     >
       <form onSubmit={handleSubmit} className="space-y-4 text-xs font-medium text-zinc-700">
         <FormErrorBanner message={errorMsg} />
 
         <EnvelopeFormFields
+          initialMode={initialMode}
           name={name}
           setName={setName}
           type={type}
@@ -477,16 +488,17 @@ export function EnvelopeFormModal({
                 className="px-3 py-2 text-xs font-medium text-slate-300 dark:text-slate-600 cursor-not-allowed"
                 title={t("categories.cannotArchiveSurplusTarget")}
               >
-                {t("categories.archivePool")}
+                {initialMode === "BILL_SCHEDULE" ? t("categories.archiveBillSchedule") : t("categories.archivePool")}
               </span>
             ) : (
               <button
                 type="button"
                 onClick={() => setShowArchiveConfirm(true)}
                 disabled={submitting}
+                title={t("categories.tooltips.archive")}
                 className="px-3 py-2 text-xs font-medium text-slate-400 hover:text-slate-600 dark:text-slate-500 dark:hover:text-slate-400 hover:underline cursor-pointer"
               >
-                {t("categories.archivePool")}
+                {initialMode === "BILL_SCHEDULE" ? t("categories.archiveBillSchedule") : t("categories.archivePool")}
               </button>
             )
           ) : <div />}
@@ -506,9 +518,9 @@ export function EnvelopeFormModal({
         isOpen={showArchiveConfirm}
         onClose={() => setShowArchiveConfirm(false)}
         onConfirm={confirmArchive}
-        title={t("categories.archivePool")}
+        title={initialMode === "BILL_SCHEDULE" ? t("categories.archiveBillSchedule") : t("categories.archivePool")}
         description={t("categories.archivePoolConfirm", { name: categoryToEdit?.name || "" })}
-        confirmLabel={t("categories.archivePool")}
+        confirmLabel={initialMode === "BILL_SCHEDULE" ? t("categories.archiveBillSchedule") : t("categories.archivePool")}
         variant="danger"
         isLoading={submitting}
       />

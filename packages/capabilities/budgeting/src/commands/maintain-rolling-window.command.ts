@@ -88,6 +88,7 @@ export async function maintainRollingWindowCommand({
         eq(envelopes.tenantId, tenantId),
         eq(envelopes.appId, appId),
         eq(envelopes.envelopeType, "SCHEDULED_BILL"),
+        eq(envelopes.generateEvents, true),
         sql`${envelopes.archivedAt} IS NULL`,
         sql`${envelopes.rrule} IS NOT NULL`
       )

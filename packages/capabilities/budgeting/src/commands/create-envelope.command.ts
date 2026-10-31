@@ -79,6 +79,7 @@ export async function createEnvelopeCommand(
         isCommitted: input.isCommitted ?? false,
         isSurplusTarget: input.isSurplusTarget ?? false,
         isPrivate,
+        generateEvents: input.generateEvents ?? true,
         userId: isPrivate ? (targetAccount.userId ?? userId) : null,
         orderIndex: input.orderIndex ?? 0,
         tenantId,

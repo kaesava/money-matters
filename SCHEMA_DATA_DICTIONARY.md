@@ -170,6 +170,7 @@
 | `isCommitted` | boolean | - | Domain column |
 | `isSurplusTarget` | boolean | - | Domain column |
 | `isPrivate` | boolean | - | Domain column |
+| `generateEvents` | boolean | No | Controls auto-generation of upcoming scheduled expense events |
 | `userId` | uuid | - | Domain column |
 | `emoji` | varchar | Yes | Visual envelope emoji icon |
 | `colorKey` | varchar | Yes | Visual envelope theme color key |

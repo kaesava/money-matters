@@ -106,6 +106,8 @@ export async function updateEnvelopeCommand(
       endDate = null;
     }
 
+    const effectiveGenerateEvents = input.generateEvents !== undefined ? input.generateEvents : existing.generateEvents;
+
     const [updated] = await tx
       .update(envelopes)
       .set({
@@ -115,6 +117,7 @@ export async function updateEnvelopeCommand(
         startDate,
         endDate,
         rrule,
+        generateEvents: effectiveGenerateEvents,
         updatedBy: userId,
         updatedAt: new Date(),
       })
@@ -169,15 +172,16 @@ export async function updateEnvelopeCommand(
       if (wasScheduled || hasExistingScheduledEvents) {
         await clearScheduledEnvelopeEvents(tx, envelopeId, tenantId, appId);
       }
-    } else if (input.generateEvents === false) {
+    } else if (effectiveGenerateEvents === false) {
       // 2. Scheduled bill with auto-generation disabled:
       // Clear all existing pending scheduled events
       await clearScheduledEnvelopeEvents(tx, envelopeId, tenantId, appId);
     } else {
-      // 3. Scheduled bill with auto-generation enabled (input.generateEvents !== false)
+      // 3. Scheduled bill with auto-generation enabled
       const shouldBurstFresh =
         scheduleParametersChanged ||
-        (!hasExistingScheduledEvents && input.generateEvents === true);
+        (!hasExistingScheduledEvents && effectiveGenerateEvents === true) ||
+        (existing.generateEvents === false && effectiveGenerateEvents === true);
 
       if (shouldBurstFresh) {
         await clearScheduledEnvelopeEvents(tx, envelopeId, tenantId, appId);

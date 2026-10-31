@@ -45,6 +45,7 @@ export interface EnvelopeFormFieldsProps {
   isSurplusDisabled: boolean;
   generateEvents?: boolean;
   setGenerateEvents?: (val: boolean) => void;
+  initialMode?: 'ALL' | 'BILL_SCHEDULE';
 }
 
 export type CategoryFormFieldsProps = EnvelopeFormFieldsProps;
@@ -82,6 +83,7 @@ export function EnvelopeFormFields({
   isSurplusDisabled,
   generateEvents = true,
   setGenerateEvents,
+  initialMode = 'ALL',
 }: CategoryFormFieldsProps) {
   return (
     <>
@@ -94,29 +96,31 @@ export function EnvelopeFormFields({
         autoFocus
       />
 
-      <div className="flex flex-col gap-1.5">
-        <FormLabel required>{t('categories.poolTypeLabel')}</FormLabel>
-        <div className="flex items-center gap-2">
-          {poolTypeOptions.map((opt) => {
-            const isSelected = type === opt.value;
-            return (
-              <button
-                key={opt.value}
-                type="button"
-                disabled={isEdit}
-                onClick={() => setType(opt.value as 'EVERYDAY' | 'REGULAR' | 'GOAL')}
-                className={`py-2 px-3.5 text-xs font-bold rounded-xl transition-all border ${
-                  isSelected
-                    ? 'bg-[#2563eb] text-white border-[#2563eb] shadow-xs'
-                    : 'bg-zinc-100 text-zinc-600 border-zinc-200 hover:text-zinc-900'
-                } ${isEdit ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
-              >
-                {opt.label}
-              </button>
-            );
-          })}
+      {initialMode !== 'BILL_SCHEDULE' && (
+        <div className="flex flex-col gap-1.5">
+          <FormLabel required>{t('categories.poolTypeLabel')}</FormLabel>
+          <div className="flex items-center gap-2">
+            {poolTypeOptions.map((opt) => {
+              const isSelected = type === opt.value;
+              return (
+                <button
+                  key={opt.value}
+                  type="button"
+                  disabled={isEdit}
+                  onClick={() => setType(opt.value as 'EVERYDAY' | 'REGULAR' | 'GOAL')}
+                  className={`py-2 px-3.5 text-xs font-bold rounded-xl transition-all border ${
+                    isSelected
+                      ? 'bg-[#2563eb] text-white border-[#2563eb] shadow-xs'
+                      : 'bg-zinc-100 text-zinc-600 border-zinc-200 hover:text-zinc-900'
+                  } ${isEdit ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+                >
+                  {opt.label}
+                </button>
+              );
+            })}
+          </div>
         </div>
-      </div>
+      )}
 
       <GenericSelectField
         label={t('categories.linkedAccountLabel')}

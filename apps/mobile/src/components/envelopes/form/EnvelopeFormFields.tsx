@@ -47,6 +47,7 @@ export interface EnvelopeFormFieldsProps {
   setIsSurplusTarget: (v: boolean) => void;
   isEdit: boolean;
   isSurplusDisabled: boolean;
+  hideTypeOptions?: boolean;
   generateEvents?: boolean;
   setGenerateEvents?: (v: boolean) => void;
   typeOptions: Array<{ key: string; label: string }>;
@@ -88,6 +89,7 @@ export const EnvelopeFormFields: React.FC<EnvelopeFormFieldsProps> = ({
   setIsSurplusTarget,
   isEdit,
   isSurplusDisabled,
+  hideTypeOptions = false,
   generateEvents = true,
   setGenerateEvents,
   typeOptions,
@@ -108,15 +110,17 @@ export const EnvelopeFormFields: React.FC<EnvelopeFormFieldsProps> = ({
         autoFocus={!isEdit}
       />
 
-      <View style={styles.formGroup}>
-        <FormLabel required>{t('categories.poolTypeLabel')}</FormLabel>
-        <ChipSelect
-          options={typeOptions}
-          value={type}
-          onChange={(val) => setType(val as 'GOAL' | 'REGULAR' | 'EVERYDAY')}
-          disabled={isEdit}
-        />
-      </View>
+      {!hideTypeOptions && (
+        <View style={styles.formGroup}>
+          <FormLabel required>{t('categories.poolTypeLabel')}</FormLabel>
+          <ChipSelect
+            options={typeOptions}
+            value={type}
+            onChange={(val) => setType(val as 'GOAL' | 'REGULAR' | 'EVERYDAY')}
+            disabled={isEdit}
+          />
+        </View>
+      )}
 
       <View style={styles.formGroup}>
         <FormLabel required={!isEdit}>{t('categories.linkedAccountLabel')}</FormLabel>

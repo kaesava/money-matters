@@ -6,6 +6,7 @@ import { t } from '@money-matters/i18n';
 export interface EnvelopeFormFooterProps {
   isEdit: boolean;
   showArchive?: boolean;
+  archiveLabel?: string;
   isSurplusTarget?: boolean;
   isPending: boolean;
   isValid: boolean;
@@ -19,6 +20,7 @@ export type CategoryFormFooterProps = EnvelopeFormFooterProps;
 export const EnvelopeFormFooter: React.FC<EnvelopeFormFooterProps> = ({
   isEdit,
   showArchive,
+  archiveLabel,
   isSurplusTarget,
   isPending,
   isValid,
@@ -27,6 +29,7 @@ export const EnvelopeFormFooter: React.FC<EnvelopeFormFooterProps> = ({
   onSubmit,
 }) => {
   const canArchive = (showArchive ?? isEdit) && !isSurplusTarget;
+  const label = archiveLabel || t('categories.archivePool');
   return (
     <View style={styles.footerContainer}>
       {canArchive ? (
@@ -36,11 +39,11 @@ export const EnvelopeFormFooter: React.FC<EnvelopeFormFooterProps> = ({
           style={styles.archiveBtn}
           hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
         >
-          <Text style={styles.archiveBtnText}>{t('categories.archivePool')}</Text>
+          <Text style={styles.archiveBtnText}>{label}</Text>
         </TouchableOpacity>
       ) : isSurplusTarget && isEdit ? (
         <View style={styles.archiveBtn}>
-          <Text style={[styles.archiveBtnText, { opacity: 0.4 }]}>{t('categories.archivePool')}</Text>
+          <Text style={[styles.archiveBtnText, { opacity: 0.4 }]}>{label}</Text>
         </View>
       ) : (
         <View style={styles.flex1} />

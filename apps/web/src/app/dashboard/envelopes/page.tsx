@@ -671,9 +671,9 @@ function PoolsPageContent() {
         isOpen={Boolean(poolToArchive)}
         onClose={() => setPoolToArchive(null)}
         onConfirm={confirmArchivePool}
-        title="Archive Pool"
-        description={`Are you sure you want to archive "${poolToArchive?.name || ""}"?`}
-        confirmLabel="Archive Pool"
+        title={t("categories.archivePool")}
+        description={t("categories.archivePoolConfirm", { name: poolToArchive?.name || "" })}
+        confirmLabel={t("categories.archivePool")}
         variant="danger"
         isLoading={archivePoolMut.isPending}
       />

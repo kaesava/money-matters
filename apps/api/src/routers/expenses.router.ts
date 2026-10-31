@@ -30,6 +30,7 @@ export const expensesRouter = {
           rrule: envelopes.rrule,
           startDate: envelopes.startDate,
           endDate: envelopes.endDate,
+          generateEvents: envelopes.generateEvents,
           hasScheduledEvents: sql<boolean>`EXISTS (
             SELECT 1 FROM ${expenseEvents}
             WHERE ${expenseEvents.envelopeId} = ${envelopes.id}

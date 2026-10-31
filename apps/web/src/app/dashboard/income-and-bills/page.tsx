@@ -247,6 +247,7 @@ function IncomeAndBillsContent() {
       {isEnvelopeModalOpen && (
         <EnvelopeFormModal
           isOpen={isEnvelopeModalOpen}
+          initialMode="BILL_SCHEDULE"
           onClose={() => { setIsEnvelopeModalOpen(false); setEnvelopeToEdit(null); }}
           envelopeToEdit={envelopeToEdit}
           onSuccess={() => {

@@ -121,7 +121,7 @@ export async function restoreItemCommand(
     } else if (itemType === "ENVELOPE") {
       const env = restored as typeof envelopes.$inferSelect;
       const amountVal = env.enteredAmount || env.monthlyAmount || "0.00";
-      if (env.envelopeType === "SCHEDULED_BILL" && env.rrule && env.startDate && parseFloat(amountVal) > 0) {
+      if (env.envelopeType === "SCHEDULED_BILL" && env.generateEvents !== false && env.rrule && env.startDate && parseFloat(amountVal) > 0) {
         const dates = generateBurstDates(env.rrule, env.startDate, env.endDate, 12);
         if (dates.length > 0) {
           await dbClient.insert(expenseEvents).values(
