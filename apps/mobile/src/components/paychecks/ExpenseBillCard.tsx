@@ -18,6 +18,7 @@ export interface ExpenseSourceItem {
   rrule?: string | null;
   startDate?: string | null;
   endDate?: string | null;
+  generateEvents?: boolean;
 }
 
 interface ExpenseBillCardProps {
@@ -52,16 +53,16 @@ export const ExpenseBillCard: React.FC<ExpenseBillCardProps> = ({
           <View
             style={[
               styles.pillBadge,
-              exp.envelopeType === 'FLEXIBLE_BILL' ? styles.pillFlexible : styles.pillScheduled,
+              exp.generateEvents !== false ? styles.pillEventsOn : styles.pillEventsOff,
             ]}
           >
             <Text
               style={[
                 styles.pillText,
-                exp.envelopeType === 'FLEXIBLE_BILL' ? styles.pillTextFlexible : styles.pillTextScheduled,
+                exp.generateEvents !== false ? styles.pillTextEventsOn : styles.pillTextEventsOff,
               ]}
             >
-              {exp.envelopeType === 'FLEXIBLE_BILL' ? t('categories.billModeFlexible') : t('categories.billModeScheduled')}
+              {exp.generateEvents !== false ? t('categories.badgeEventsOn') : t('categories.badgeEventsOff')}
             </Text>
           </View>
           <Text style={styles.freqText} numberOfLines={1}>
@@ -166,11 +167,11 @@ const styles = StyleSheet.create({
     borderRadius: 4,
     borderWidth: 1,
   },
-  pillFlexible: {
+  pillEventsOff: {
     backgroundColor: DESIGN_TOKENS.colors.slate[100],
     borderColor: DESIGN_TOKENS.colors.slate[200],
   },
-  pillScheduled: {
+  pillEventsOn: {
     backgroundColor: DESIGN_TOKENS.colors.accentLight,
     borderColor: DESIGN_TOKENS.colors.accentBorder,
   },
@@ -179,10 +180,10 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     textTransform: 'uppercase',
   },
-  pillTextFlexible: {
+  pillTextEventsOff: {
     color: DESIGN_TOKENS.colors.slate[600],
   },
-  pillTextScheduled: {
+  pillTextEventsOn: {
     color: DESIGN_TOKENS.colors.sereneBlue,
   },
 });

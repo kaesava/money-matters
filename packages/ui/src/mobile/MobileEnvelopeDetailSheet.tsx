@@ -5,6 +5,7 @@ import { DESIGN_TOKENS } from '../tokens';
 import { MobileModalDialog } from './MobileModalDialog';
 import { SegmentedTabs } from './SegmentedTabs';
 import { useCurrencyLocale } from '../hooks/CurrencyLocaleContext';
+import { formatRecurrenceLabel, formatRecurrenceSuffix } from '../dates/recurrence';
 import { t } from '@money-matters/i18n';
 
 export interface MobileEnvelopeDetailItem {
@@ -33,7 +34,9 @@ export interface MobileEnvelopeDetailSheetProps {
   currentBalance?: number | string | null;
   targetAmount?: number | string | null;
   enteredAmount?: number | string | null;
+  monthlyAmount?: number | string | null;
   budgetFrequency?: string | null;
+  rrule?: string | null;
   targetDate?: string | null;
   upcomingEvents?: MobileEnvelopeDetailItem[];
   activities?: MobileActivityItem[];
@@ -50,7 +53,9 @@ export function MobileEnvelopeDetailSheet({
   currentBalance,
   targetAmount,
   enteredAmount,
+  monthlyAmount,
   budgetFrequency,
+  rrule,
   targetDate,
   upcomingEvents = [],
   activities = [],
@@ -70,8 +75,9 @@ export function MobileEnvelopeDetailSheet({
   const balNum = typeof currentBalance === 'number' ? currentBalance : parseFloat(String(currentBalance || '0'));
   const targetNum = typeof targetAmount === 'number' ? targetAmount : parseFloat(String(targetAmount || '0'));
   const enteredNum = typeof enteredAmount === 'number' ? enteredAmount : parseFloat(String(enteredAmount || '0'));
-  const isOngoing = poolType === 'ONGOING_GOAL' || (!targetDate && Boolean(budgetFrequency));
-  const freqSuffix = budgetFrequency === 'WEEKLY' ? '/wk' : budgetFrequency === 'FORTNIGHTLY' ? '/fn' : budgetFrequency === 'ANNUALLY' ? '/yr' : '/mo';
+  const monthlyNum = typeof monthlyAmount === 'number' ? monthlyAmount : parseFloat(String(monthlyAmount || '0'));
+  const isOngoing = poolType === 'ONGOING_GOAL' || poolType === 'SCHEDULED_BILL' || (!targetDate && Boolean(budgetFrequency));
+  const freqSuffix = formatRecurrenceSuffix(rrule, budgetFrequency);
 
   const tabs = [
     { key: 'UPCOMING' as const, label: `${t('categoryDrawer.tabs.upcomingExpenses')} (${upcomingEvents.length})` },
@@ -101,20 +107,22 @@ export function MobileEnvelopeDetailSheet({
             <Text style={styles.statAmount}>{fmtMoney(balNum)}</Text>
           </View>
 
-          {(targetNum > 0 || enteredNum > 0) && (
+          {(targetNum > 0 || enteredNum > 0 || monthlyNum > 0) && (
             <View style={styles.statCard}>
               <Text style={styles.statLabel}>{t('paydayDrawer.tableColTarget')}</Text>
               <Text style={styles.statAmount}>
                 {isOngoing
                   ? enteredNum > 0
                     ? `${fmtMoney(enteredNum)}${freqSuffix}`
-                    : `${fmtMoney(targetNum)}${freqSuffix}`
+                    : targetNum > 0
+                    ? `${fmtMoney(targetNum)}${freqSuffix}`
+                    : `${fmtMoney(monthlyNum)}${freqSuffix}`
                   : fmtMoney(targetNum)}
               </Text>
               {isOngoing ? (
                 <Text style={styles.targetDateText}>
-                  {budgetFrequency || 'MONTHLY'}
-                  {targetNum > 0 && targetNum !== enteredNum ? ` · Target: ${fmtMoney(targetNum)}` : ''}
+                  {formatRecurrenceLabel(rrule, budgetFrequency)}
+                  {monthlyNum > 0 && (budgetFrequency !== 'MONTHLY' || rrule) ? ` (Est: ${fmtMoney(monthlyNum)}/mo)` : ''}
                 </Text>
               ) : (
                 targetDate && <Text style={styles.targetDateText}>{targetDate}</Text>

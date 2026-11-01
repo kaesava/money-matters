@@ -2,7 +2,7 @@ import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { t } from '@money-matters/i18n';
-import { DESIGN_TOKENS, CardDrawerIndicator } from '@money-matters/ui/mobile';
+import { DESIGN_TOKENS, CardDrawerIndicator, formatRecurrenceSuffix } from '@money-matters/ui/mobile';
 import { formatAUD } from '../../lib/format';
 import { useRouter, type Href } from 'expo-router';
 
@@ -14,6 +14,9 @@ interface PoolItemCardProps {
     poolType?: string | null;
     goalMode?: string | null;
     budgetFrequency?: string | null;
+    rrule?: string | null;
+    endDate?: string | null;
+    targetDate?: string | null;
     currentBalance?: number | string | null;
     targetAmount?: string | null;
     enteredAmount?: string | null;
@@ -101,7 +104,7 @@ export function PoolItemCard({
                 ? pool.goalMode === 'ONGOING' || pool.envelopeType === 'ONGOING_GOAL'
                   ? (() => {
                       const freq = pool.budgetFrequency || 'MONTHLY';
-                      const suffix = freq === 'WEEKLY' ? '/wk' : freq === 'FORTNIGHTLY' ? '/fn' : freq === 'ANNUALLY' ? '/yr' : '/mo';
+                      const suffix = formatRecurrenceSuffix(pool.rrule, freq);
                       const contrib = entered > 0 ? entered : monthly > 0 ? monthly : 0;
                       if (contrib > 0) {
                         return `${formatAUD(contrib)}${suffix}`;
@@ -114,7 +117,7 @@ export function PoolItemCard({
                 : pool.envelopeType === 'SCHEDULED_BILL'
                 ? (() => {
                     const freq = pool.budgetFrequency || 'MONTHLY';
-                    const suffix = freq === 'WEEKLY' ? '/wk' : freq === 'FORTNIGHTLY' ? '/fn' : freq === 'ANNUALLY' ? '/yr' : '/mo';
+                    const suffix = formatRecurrenceSuffix(pool.rrule, freq);
                     const amt = entered > 0 ? entered : monthly > 0 ? monthly : target;
                     return amt > 0 ? `${formatAUD(amt)}${suffix}` : t('categories.mainPool');
                   })()

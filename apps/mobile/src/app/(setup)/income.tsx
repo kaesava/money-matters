@@ -214,6 +214,17 @@ export default function SetupIncomeScreen() {
               ))}
             </View>
 
+            <Text style={[styles.label, styles.labelGap]}>{t('categories.recurrenceInterval')}</Text>
+            <TextInput
+              style={styles.input}
+              keyboardType="number-pad"
+              value={String(inc.interval ?? 1)}
+              onChangeText={(txt) => {
+                const val = Math.max(1, Math.min(365, parseInt(txt, 10) || 1));
+                handleUpdateIncomeField(inc.id, 'interval', val);
+              }}
+            />
+
             <View style={styles.datePickerWrap}>
               <MobileDatePickerField
                 label={t('setup.income.nextPaydayLabel')}

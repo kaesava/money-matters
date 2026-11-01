@@ -22,6 +22,7 @@ interface BillSchedulesCardProps {
     budgetFrequency?: string | null;
     isEssential?: boolean;
     hasScheduledEvents?: boolean;
+    generateEvents?: boolean;
   }>;
   searchQuery: string;
   scopeFilter: "ALL" | "SHARED" | "PRIVATE";
@@ -40,6 +41,7 @@ interface BillSchedulesCardProps {
     rrule?: string | null;
     isEssential?: boolean;
     hasScheduledEvents?: boolean;
+    generateEvents?: boolean;
   }) => void;
 }
 
@@ -167,6 +169,7 @@ export function BillSchedulesCard({
                                 rrule: b.rrule,
                                 isEssential: b.isEssential ?? false,
                                 hasScheduledEvents: b.hasScheduledEvents,
+                                generateEvents: b.generateEvents,
                               })
                             }
                             className="font-bold text-[#2563eb] hover:underline text-left cursor-pointer inline-flex items-center gap-1.5"
@@ -175,13 +178,14 @@ export function BillSchedulesCard({
                             <span className="text-[10px] text-slate-400 dark:text-zinc-500 font-normal">✎</span>
                           </button>
                           <span
-                            className={`px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider ${
-                              b.envelopeType === "FLEXIBLE_BILL"
-                                ? "bg-slate-100 dark:bg-zinc-800 text-slate-600 dark:text-zinc-400 border border-slate-200 dark:border-zinc-700"
-                                : "bg-blue-50 dark:bg-blue-950/60 text-[#2563eb] dark:text-blue-400 border border-blue-200 dark:border-blue-800"
+                            title={b.generateEvents !== false ? t("categories.tooltips.eventsOn") : t("categories.tooltips.eventsOff")}
+                            className={`px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider cursor-help ${
+                              b.generateEvents !== false
+                                ? "bg-blue-50 dark:bg-blue-950/60 text-[#2563eb] dark:text-blue-400 border border-blue-200 dark:border-blue-800"
+                                : "bg-slate-100 dark:bg-zinc-800 text-slate-600 dark:text-zinc-400 border border-slate-200 dark:border-zinc-700"
                             }`}
                           >
-                            {b.envelopeType === "FLEXIBLE_BILL" ? t("categories.billModeFlexible") : t("categories.billModeScheduled")}
+                            {b.generateEvents !== false ? t("categories.badgeEventsOn") : t("categories.badgeEventsOff")}
                           </span>
                         </div>
                         <span className="text-[10px] text-zinc-400 font-medium">

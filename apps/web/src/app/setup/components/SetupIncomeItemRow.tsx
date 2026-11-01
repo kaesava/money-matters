@@ -52,7 +52,7 @@ export function SetupIncomeItemRow({
         )}
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 items-start">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 items-start">
         <div className="flex flex-col">
           <FormLabel>{t("setup.income.nameLabel")}</FormLabel>
           <input
@@ -81,6 +81,20 @@ export function SetupIncomeItemRow({
             <option value="MONTHLY">{t("categories.frequencyMonthly")}</option>
             <option value="ANNUALLY">{t("categories.frequencyAnnually")}</option>
           </select>
+        </div>
+        <div className="flex flex-col">
+          <FormLabel>{t("categories.recurrenceInterval")}</FormLabel>
+          <input
+            type="number"
+            min={1}
+            max={365}
+            value={inc.interval ?? 1}
+            onChange={(e) => {
+              const val = Math.max(1, Math.min(365, parseInt(e.target.value, 10) || 1));
+              onUpdateIncome(inc.id, "interval", val);
+            }}
+            className="ui-input w-full px-3 text-xs font-bold rounded-xl border border-zinc-200 bg-white text-zinc-800 h-[46px]"
+          />
         </div>
         <div className="flex flex-col">
           <FormLabel>{t("setup.income.nextPaydayLabel")}</FormLabel>

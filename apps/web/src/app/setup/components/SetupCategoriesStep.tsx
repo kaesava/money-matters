@@ -114,6 +114,7 @@ export function SetupCategoriesStep({
           onRemoveCategory={handleAttemptRemove}
           convertToMonthly={convertToMonthly}
           convertFromMonthly={convertFromMonthly}
+          isRerun={isRerun}
         />
 
         {/* Regular Bills List */}
@@ -129,6 +130,7 @@ export function SetupCategoriesStep({
           convertFromMonthly={convertFromMonthly}
           onToggleBillType={onToggleBillType}
           onEditCategory={onEditCategory}
+          isRerun={isRerun}
         />
 
         {/* Savings Goals */}
@@ -137,6 +139,7 @@ export function SetupCategoriesStep({
           goals={goals}
           totalGoalMonthly={totalGoalMonthly}
           onRemoveCategory={handleAttemptRemove}
+          isRerun={isRerun}
         />
 
         {/* Canonical Add Envelope CTA */}

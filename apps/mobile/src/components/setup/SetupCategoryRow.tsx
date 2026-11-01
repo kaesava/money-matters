@@ -2,6 +2,7 @@ import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { EstimatedCategoryItem } from '@money-matters/types';
 import { DESIGN_TOKENS, AmountInput } from '@money-matters/ui/mobile';
+import { t } from '@money-matters/i18n';
 
 interface SetupCategoryRowProps {
   cat: EstimatedCategoryItem;
@@ -11,6 +12,7 @@ interface SetupCategoryRowProps {
   onToggleBillType?: (newType: 'SCHEDULED_BILL' | 'FLEXIBLE_BILL') => void;
   onEditCategory?: () => void;
   onRemove: () => void;
+  isRerun?: boolean;
 }
 
 const FREQS = [
@@ -28,6 +30,7 @@ export function SetupCategoryRow({
   onToggleBillType,
   onEditCategory,
   onRemove,
+  isRerun = false,
 }: SetupCategoryRowProps) {
   const convertFromMonthly = (monthly: number, f: typeof freq) => {
     if (f === 'WEEKLY') return Math.round(monthly / (52 / 12));
@@ -46,18 +49,18 @@ export function SetupCategoryRow({
   const displayVal = convertFromMonthly(cat.monthlyAud, freq);
   const isBill = cat.type === 'REGULAR';
   const isFlexible = cat.envelopeType === 'FLEXIBLE_BILL';
+  const isSpecial =
+    cat.envelopeType === 'EVERYDAY' ||
+    cat.type === 'EVERYDAY' ||
+    cat.name.toLowerCase().includes('everyday') ||
+    cat.name.toLowerCase().includes('surplus') ||
+    cat.name.toLowerCase().includes('emergency');
 
   return (
     <View style={styles.row}>
       <View style={styles.titleCol}>
         <View style={styles.titleWithBadge}>
-          {onEditCategory ? (
-            <TouchableOpacity onPress={onEditCategory} hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}>
-              <Text style={[styles.name, styles.nameClickable]} numberOfLines={1}>{cat.icon || '📌'} {cat.name}</Text>
-            </TouchableOpacity>
-          ) : (
-            <Text style={styles.name} numberOfLines={1}>{cat.icon || '📌'} {cat.name}</Text>
-          )}
+          <Text style={styles.name} numberOfLines={1}>{cat.icon || '📌'} {cat.name}</Text>
           {isBill && onToggleBillType && (
             <TouchableOpacity
               onPress={() => onToggleBillType(isFlexible ? 'SCHEDULED_BILL' : 'FLEXIBLE_BILL')}
@@ -71,27 +74,44 @@ export function SetupCategoryRow({
         </View>
       </View>
       <View style={styles.inputCol}>
-        <View style={styles.amountWrap}>
-          <AmountInput
-            value={displayVal ? String(displayVal) : ''}
-            onChangeText={(txt) => {
-              const num = parseFloat(txt) || 0;
-              onUpdateAmount(convertToMonthly(num, freq));
-            }}
-          />
-        </View>
-        <TouchableOpacity
-          style={styles.freqBadge}
-          onPress={() => {
-            const nextIdx = (FREQS.findIndex(f => f.key === freq) + 1) % FREQS.length;
-            onUpdateFreq(FREQS[nextIdx]!.key);
-          }}
-        >
-          <Text style={styles.freqText}>{FREQS.find(f => f.key === freq)?.label}</Text>
-        </TouchableOpacity>
-        <TouchableOpacity onPress={onRemove} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
-          <Text style={styles.removeBtn}>✕</Text>
-        </TouchableOpacity>
+        {isRerun ? (
+          <View style={styles.rerunInfoRow}>
+            <Text style={styles.rerunAmountText}>
+              ${displayVal} {FREQS.find(f => f.key === freq)?.label}
+            </Text>
+            {onEditCategory && (
+              <TouchableOpacity onPress={onEditCategory} style={styles.editBtn}>
+                <Text style={styles.editBtnText}>{t('common.edit')}</Text>
+              </TouchableOpacity>
+            )}
+          </View>
+        ) : (
+          <>
+            <View style={styles.amountWrap}>
+              <AmountInput
+                value={displayVal ? String(displayVal) : ''}
+                onChangeText={(txt) => {
+                  const num = parseFloat(txt) || 0;
+                  onUpdateAmount(convertToMonthly(num, freq));
+                }}
+              />
+            </View>
+            <TouchableOpacity
+              style={styles.freqBadge}
+              onPress={() => {
+                const nextIdx = (FREQS.findIndex(f => f.key === freq) + 1) % FREQS.length;
+                onUpdateFreq(FREQS[nextIdx]!.key);
+              }}
+            >
+              <Text style={styles.freqText}>{FREQS.find(f => f.key === freq)?.label}</Text>
+            </TouchableOpacity>
+          </>
+        )}
+        {!isSpecial && (
+          <TouchableOpacity onPress={onRemove} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+            <Text style={styles.removeBtn}>✕</Text>
+          </TouchableOpacity>
+        )}
       </View>
     </View>
   );
@@ -144,4 +164,15 @@ const styles = StyleSheet.create({
   },
   freqText: { fontSize: 11, fontWeight: '700', color: DESIGN_TOKENS.colors.textMuted },
   removeBtn: { fontSize: 13, fontWeight: '700', color: '#94A3B8', paddingHorizontal: 4 },
+  rerunInfoRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  rerunAmountText: { fontSize: 12, fontWeight: '700', fontFamily: 'monospace', color: DESIGN_TOKENS.colors.primary },
+  editBtn: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: '#BFDBFE',
+    backgroundColor: '#EFF6FF',
+  },
+  editBtnText: { fontSize: 11, fontWeight: '700', color: DESIGN_TOKENS.colors.accent },
 });

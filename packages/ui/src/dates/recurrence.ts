@@ -112,18 +112,7 @@ export function formatScheduleSummary(
     return t("forms.oneOff");
   }
 
-  const { frequency, interval } = parseRecurrenceRule(rrule);
-
-  let freqStr = "Recurring";
-  if (frequency === "WEEKLY") {
-    freqStr = interval > 1 ? `every ${interval} weeks` : "weekly";
-  } else if (frequency === "FORTNIGHTLY") {
-    freqStr = interval > 1 ? `every ${interval * 2} weeks` : "every 2 weeks";
-  } else if (frequency === "MONTHLY") {
-    freqStr = interval > 1 ? `every ${interval} months` : "monthly";
-  } else if (frequency === "ANNUALLY") {
-    freqStr = interval > 1 ? `every ${interval} years` : "yearly";
-  }
+  const freqStr = formatRecurrenceLabel(rrule);
 
   if (formattedStart && formattedEnd) {
     return `${freqStr} from ${formattedStart} to ${formattedEnd}`;
@@ -133,3 +122,67 @@ export function formatScheduleSummary(
   }
   return freqStr;
 }
+
+export function formatRecurrenceLabel(
+  rrule?: string | null,
+  preferredFrequency?: string | null
+): string {
+  if (preferredFrequency === "QUARTERLY") {
+    return t("categories.frequencyQuarterly");
+  }
+  const { frequency, interval } = parseRecurrenceRule(rrule, preferredFrequency);
+  if (interval === 1) {
+    switch (frequency) {
+      case "WEEKLY":
+        return t("categories.frequencyWeekly");
+      case "FORTNIGHTLY":
+        return t("categories.frequencyFortnightly");
+      case "ANNUALLY":
+        return t("categories.frequencyAnnually");
+      case "MONTHLY":
+      default:
+        return t("categories.frequencyMonthly");
+    }
+  }
+  if (frequency === "MONTHLY" && interval === 3) {
+    return t("categories.frequencyQuarterly");
+  }
+  if (frequency === "MONTHLY") {
+    return t("categories.everyMonths", { interval: String(interval) });
+  }
+  if (frequency === "WEEKLY") {
+    return t("categories.everyWeeks", { interval: String(interval) });
+  }
+  if (frequency === "FORTNIGHTLY") {
+    return t("categories.everyWeeks", { interval: String(interval * 2) });
+  }
+  return t("categories.everyYears", { interval: String(interval) });
+}
+
+export function formatRecurrenceSuffix(
+  rrule?: string | null,
+  preferredFrequency?: string | null
+): string {
+  if (preferredFrequency === "QUARTERLY") {
+    return "/qtr";
+  }
+  const { frequency, interval } = parseRecurrenceRule(rrule, preferredFrequency);
+  if (interval === 1) {
+    switch (frequency) {
+      case "WEEKLY":
+        return "/wk";
+      case "FORTNIGHTLY":
+        return "/fn";
+      case "ANNUALLY":
+        return "/yr";
+      case "MONTHLY":
+      default:
+        return "/mo";
+    }
+  }
+  if (frequency === "MONTHLY" && interval === 3) {
+    return "/qtr";
+  }
+  return ` ${formatRecurrenceLabel(rrule, preferredFrequency).toLowerCase()}`;
+}
+

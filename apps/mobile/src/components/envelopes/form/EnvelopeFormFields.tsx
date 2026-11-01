@@ -48,6 +48,7 @@ export interface EnvelopeFormFieldsProps {
   isEdit: boolean;
   isSurplusDisabled: boolean;
   hideTypeOptions?: boolean;
+  hideBillModeToggle?: boolean;
   generateEvents?: boolean;
   setGenerateEvents?: (v: boolean) => void;
   typeOptions: Array<{ key: string; label: string }>;
@@ -90,6 +91,7 @@ export const EnvelopeFormFields: React.FC<EnvelopeFormFieldsProps> = ({
   isEdit,
   isSurplusDisabled,
   hideTypeOptions = false,
+  hideBillModeToggle = false,
   generateEvents = true,
   setGenerateEvents,
   typeOptions,
@@ -142,7 +144,7 @@ export const EnvelopeFormFields: React.FC<EnvelopeFormFieldsProps> = ({
 
       {type === 'REGULAR' && (
         <View style={styles.billSection}>
-          {setBillMode && (
+          {setBillMode && !hideBillModeToggle && (
             <MobileBillModeToggle
               value={billMode}
               onChange={setBillMode}

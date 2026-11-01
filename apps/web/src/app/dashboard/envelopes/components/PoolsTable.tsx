@@ -47,10 +47,9 @@ export function PoolsTable({
 }: PoolsTableProps) {
   const { fmtDate } = useLocale();
   const [widths, setWidths] = useState({
-    name: 300,
-    balance: 140,
-    target: 140,
-    progress: 150,
+    name: 320,
+    balance: 180,
+    target: 180,
     actions: 100,
   });
 
@@ -78,7 +77,7 @@ export function PoolsTable({
   if (isLoading) {
     return (
       <div className="bg-white rounded-2xl border border-zinc-200/80 shadow-xs overflow-hidden">
-        <SkeletonTable cols={5} rows={6} />
+        <SkeletonTable cols={4} rows={6} />
       </div>
     );
   }
@@ -101,8 +100,6 @@ export function PoolsTable({
                   {sortField === "name" && <span>{sortDir === "asc" ? "▲" : "▼"}</span>}
                 </div>
               </ResizableTh>
-
-
 
               {/* Current Balance */}
               <ResizableTh
@@ -130,15 +127,6 @@ export function PoolsTable({
                 </div>
               </ResizableTh>
 
-              {/* Progress */}
-              <ResizableTh
-                width={widths.progress}
-                onResizeMouseDown={(e) => onMouseDown("progress", e)}
-                className="py-3.5 px-4 text-center"
-              >
-                <span>{t("tables.progress")}</span>
-              </ResizableTh>
-
               {/* Actions */}
               <ResizableTh
                 width={widths.actions}
@@ -152,13 +140,13 @@ export function PoolsTable({
           <tbody className="divide-y divide-zinc-100 text-xs">
             {isLoading ? (
               <tr className="animate-pulse">
-                <td colSpan={6} className="p-0">
-                  <SkeletonTable cols={6} rows={pageSize} />
+                <td colSpan={4} className="p-0">
+                  <SkeletonTable cols={4} rows={pageSize} />
                 </td>
               </tr>
             ) : pools.length === 0 ? (
               <tr>
-                <td colSpan={6} className="py-12 text-center text-zinc-400 font-medium">
+                <td colSpan={4} className="py-12 text-center text-zinc-400 font-medium">
                   {t("categories.noEnvelopesFound")}
                 </td>
               </tr>

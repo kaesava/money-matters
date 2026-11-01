@@ -4,7 +4,7 @@ import React, { useEffect, useState, useMemo } from "react";
 import Link from "next/link";
 import { t } from "@money-matters/i18n";
 import { trpc } from "../../../../lib/trpc";
-import { Tabs } from "@money-matters/ui/web";
+import { Tabs, formatRecurrenceLabel, formatRecurrenceSuffix } from "@money-matters/ui/web";
 import { useLocale } from "../../../../providers/LocaleProvider";
 import { CategorySummaryItem } from "../../envelopes/types";
 
@@ -208,18 +208,13 @@ export function EnvelopeDetailDrawer({
                     if (targetPool?.envelopeType === "ONGOING_GOAL") {
                       const entered = targetPool.enteredAmount ? parseFloat(String(targetPool.enteredAmount)) : null;
                       const monthlyEquivalent = targetPool.monthlyAmount ? parseFloat(String(targetPool.monthlyAmount)) : null;
-                      const cushion = targetPool.targetAmount ? parseFloat(String(targetPool.targetAmount)) : null;
                       const freq = targetPool.budgetFrequency || "MONTHLY";
-                      const suffix = freq === "WEEKLY" ? "/wk" : freq === "FORTNIGHTLY" ? "/fn" : freq === "ANNUALLY" ? "/yr" : "/mo";
+                      const suffix = formatRecurrenceSuffix(targetPool.rrule, freq);
                       const contributionAmt = entered ?? (monthlyEquivalent && monthlyEquivalent > 0 ? monthlyEquivalent : null);
 
                       if (contributionAmt) {
-                        const estText = freq !== "MONTHLY" && monthlyEquivalent ? ` (Est: ${fmt(monthlyEquivalent)}/mo)` : "";
-                        const cushionText = cushion && cushion > 0 && cushion !== contributionAmt ? ` · Target: ${fmt(cushion)}` : "";
-                        return `${fmt(contributionAmt)}${suffix}${estText}${cushionText}`;
-                      }
-                      if (cushion && cushion > 0) {
-                        return `Target: ${fmt(cushion)}`;
+                        const estText = monthlyEquivalent && (freq !== "MONTHLY" || targetPool.rrule) ? ` (Est: ${fmt(monthlyEquivalent)}/mo)` : "";
+                        return `${fmt(contributionAmt)}${suffix}${estText}`;
                       }
                       return "—";
                     }
@@ -234,10 +229,10 @@ export function EnvelopeDetailDrawer({
                       const entered = targetPool.enteredAmount ? parseFloat(String(targetPool.enteredAmount)) : null;
                       const monthlyEquivalent = targetPool.monthlyAmount ? parseFloat(String(targetPool.monthlyAmount)) : null;
                       const freq = targetPool.budgetFrequency || "MONTHLY";
-                      const suffix = freq === "WEEKLY" ? "/wk" : freq === "FORTNIGHTLY" ? "/fn" : freq === "ANNUALLY" ? "/yr" : "/mo";
+                      const suffix = formatRecurrenceSuffix(targetPool.rrule, freq);
                       const amtToShow = entered ?? targetAmt;
                       if (!amtToShow) return "—";
-                      if (freq !== "MONTHLY" && monthlyEquivalent) {
+                      if (monthlyEquivalent && (freq !== "MONTHLY" || targetPool.rrule)) {
                         return `${fmt(amtToShow)}${suffix} (Est: ${fmt(monthlyEquivalent)}/mo)`;
                       }
                       return `${fmt(amtToShow)}${suffix}`;
@@ -258,7 +253,7 @@ export function EnvelopeDetailDrawer({
                 </span>
                 <span className="text-sm font-black font-mono text-zinc-700 dark:text-zinc-300">
                   {targetPool?.envelopeType === "ONGOING_GOAL" || targetPool?.envelopeType === "SCHEDULED_BILL"
-                    ? targetPool.budgetFrequency || "MONTHLY"
+                    ? formatRecurrenceLabel(targetPool.rrule, targetPool.budgetFrequency)
                     : isGoalPool
                     ? targetPool?.endDate
                       ? fmtDate(targetPool.endDate)

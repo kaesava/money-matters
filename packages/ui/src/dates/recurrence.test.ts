@@ -1,5 +1,11 @@
 import { describe, it, expect } from "vitest";
-import { parseRecurrenceRule, buildRecurrenceRule, formatScheduleSummary } from "./recurrence";
+import {
+  parseRecurrenceRule,
+  buildRecurrenceRule,
+  formatScheduleSummary,
+  formatRecurrenceLabel,
+  formatRecurrenceSuffix,
+} from "./recurrence";
 
 describe("recurrence utils", () => {
   describe("parseRecurrenceRule", () => {
@@ -76,7 +82,7 @@ describe("recurrence utils", () => {
   });
 
   describe("formatScheduleSummary", () => {
-    const mockFmt = (d: any) => String(d);
+    const mockFmt = (d: unknown) => String(d);
 
     it("formats flexible bill", () => {
       expect(formatScheduleSummary({ envelopeType: "FLEXIBLE_BILL" })).toBe("Drawdown as needed");
@@ -87,7 +93,7 @@ describe("recurrence utils", () => {
         { rrule: "FREQ=MONTHLY;INTERVAL=2", startDate: "2026-10-01", endDate: "2027-01-01" },
         mockFmt
       );
-      expect(res).toBe("every 2 months from 2026-10-01 to 2027-01-01");
+      expect(res).toBe("Every 2 months from 2026-10-01 to 2027-01-01");
     });
 
     it("formats fortnightly", () => {
@@ -95,12 +101,39 @@ describe("recurrence utils", () => {
         { rrule: "FREQ=WEEKLY;INTERVAL=2", startDate: "2026-10-01" },
         mockFmt
       );
-      expect(res).toBe("every 2 weeks from 2026-10-01");
+      expect(res).toBe("Fortnightly from 2026-10-01");
     });
 
     it("formats one-off", () => {
       const res = formatScheduleSummary({ startDate: "2026-10-01" }, mockFmt);
       expect(res).toBe("One-off on 2026-10-01");
+    });
+  });
+
+  describe("formatRecurrenceLabel and formatRecurrenceSuffix", () => {
+    it("formats standard intervals", () => {
+      expect(formatRecurrenceLabel("FREQ=MONTHLY")).toBe("Monthly");
+      expect(formatRecurrenceSuffix("FREQ=MONTHLY")).toBe("/mo");
+
+      expect(formatRecurrenceLabel("FREQ=WEEKLY")).toBe("Weekly");
+      expect(formatRecurrenceSuffix("FREQ=WEEKLY")).toBe("/wk");
+
+      expect(formatRecurrenceLabel("FREQ=WEEKLY;INTERVAL=2")).toBe("Fortnightly");
+      expect(formatRecurrenceSuffix("FREQ=WEEKLY;INTERVAL=2")).toBe("/fn");
+
+      expect(formatRecurrenceLabel("FREQ=YEARLY")).toBe("Annually");
+      expect(formatRecurrenceSuffix("FREQ=YEARLY")).toBe("/yr");
+    });
+
+    it("formats custom intervals and quarterly", () => {
+      expect(formatRecurrenceLabel("FREQ=MONTHLY;INTERVAL=3")).toBe("Quarterly");
+      expect(formatRecurrenceSuffix("FREQ=MONTHLY;INTERVAL=3")).toBe("/qtr");
+
+      expect(formatRecurrenceLabel("FREQ=MONTHLY;INTERVAL=5")).toBe("Every 5 months");
+      expect(formatRecurrenceSuffix("FREQ=MONTHLY;INTERVAL=5")).toBe(" every 5 months");
+
+      expect(formatRecurrenceLabel("FREQ=WEEKLY;INTERVAL=5")).toBe("Every 5 weeks");
+      expect(formatRecurrenceSuffix("FREQ=WEEKLY;INTERVAL=5")).toBe(" every 5 weeks");
     });
   });
 });

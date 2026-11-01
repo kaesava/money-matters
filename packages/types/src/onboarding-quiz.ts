@@ -17,6 +17,8 @@ export const IncomeItemSchema = z.object({
   name: z.string().min(1),
   amount: z.number().positive(),
   frequency: z.enum(["WEEKLY", "FORTNIGHTLY", "MONTHLY", "ANNUALLY"]).default("FORTNIGHTLY"),
+  interval: z.number().int().min(1).max(365).default(1).optional(),
+  rrule: z.string().optional().nullable(),
   type: z.enum(["SALARY", "BUSINESS", "BENEFIT", "OTHER"]).default("SALARY"),
   receivingAccountId: z.string().optional().nullable(),
   startDate: z.string().optional().nullable(),

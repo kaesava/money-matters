@@ -1,8 +1,9 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
 import { EstimatedCategoryItem } from "@money-matters/types";
-import { AmountField } from "@money-matters/ui/web";
+import { AmountField, ConfirmDialog, InfoTooltip } from "@money-matters/ui/web";
+import { t } from "@money-matters/i18n";
 import { useLocale } from "../../../providers/LocaleProvider";
 
 interface SetupReviewCategoryListProps {
@@ -21,6 +22,7 @@ interface SetupReviewCategoryListProps {
   convertFromMonthly: (monthlyAmount: number, freq: "WEEKLY" | "FORTNIGHTLY" | "MONTHLY" | "YEARLY") => number;
   onToggleBillType?: (name: string, newType: "SCHEDULED_BILL" | "FLEXIBLE_BILL") => void;
   onEditCategory?: (category: EstimatedCategoryItem) => void;
+  isRerun?: boolean;
   children?: React.ReactNode;
 }
 
@@ -38,9 +40,11 @@ export function SetupReviewCategoryList({
   convertFromMonthly,
   onToggleBillType,
   onEditCategory,
+  isRerun = false,
   children,
 }: SetupReviewCategoryListProps) {
   const { fmt } = useLocale();
+  const [categoryToArchive, setCategoryToArchive] = useState<string | null>(null);
   return (
     <div className="flex flex-col gap-3 p-4 bg-slate-50 rounded-2xl border border-zinc-200/80">
       <div className="flex items-center justify-between border-b border-zinc-200/60 pb-2">
@@ -60,23 +64,20 @@ export function SetupReviewCategoryList({
           const displayVal = convertFromMonthly(cat.monthlyAud, freq);
           const isBill = cat.type === "REGULAR";
           const isFlexible = cat.envelopeType === "FLEXIBLE_BILL";
+          const isSpecial =
+            cat.envelopeType === "EVERYDAY" ||
+            cat.type === "EVERYDAY" ||
+            cat.name.toLowerCase().includes("everyday") ||
+            cat.name.toLowerCase().includes("surplus") ||
+            cat.name.toLowerCase().includes("emergency");
+
           return (
             <div
               key={cat.name}
               className="flex items-center justify-between p-2.5 rounded-xl border border-zinc-200 bg-white gap-2 flex-wrap sm:flex-nowrap"
             >
               <div className="flex items-center gap-2 min-w-0">
-                {onEditCategory ? (
-                  <button
-                    type="button"
-                    onClick={() => onEditCategory(cat)}
-                    className="text-xs font-bold text-[#2563eb] hover:underline truncate cursor-pointer text-left"
-                  >
-                    {cat.name}
-                  </button>
-                ) : (
-                  <span className="text-xs font-bold text-[#1B2B4B] truncate">{cat.name}</span>
-                )}
+                <span className="text-xs font-bold text-[#1B2B4B] truncate">{cat.name}</span>
                 {isBill && onToggleBillType && (
                   <button
                     type="button"
@@ -91,43 +92,91 @@ export function SetupReviewCategoryList({
                   </button>
                 )}
               </div>
+
               <div className="flex items-center gap-2">
-                <div className="w-28 sm:w-32">
-                  <AmountField
-                    value={String(displayVal ?? "")}
-                    onChange={(val) => {
-                      const num = parseFloat(val) || 0;
-                      const monthly = convertToMonthly(num, freq);
-                      setAmountOverrides((prev) => ({ ...prev, [cat.name]: monthly }));
+                {isRerun ? (
+                  <>
+                    <span className="text-xs font-bold font-mono text-zinc-700 whitespace-nowrap">
+                      {fmt(displayVal)} {freq === "WEEKLY" ? "/ wk" : freq === "FORTNIGHTLY" ? "/ fn" : freq === "YEARLY" ? "/ yr" : "/ mo"}
+                    </span>
+                    {onEditCategory && (
+                      <button
+                        type="button"
+                        onClick={() => onEditCategory(cat)}
+                        className="px-2 py-1 text-xs font-bold text-[#2563eb] hover:bg-blue-50 rounded-lg border border-blue-200 transition-colors cursor-pointer"
+                      >
+                        {t("common.edit")}
+                      </button>
+                    )}
+                  </>
+                ) : (
+                  <>
+                    <div className="w-28 sm:w-32">
+                      <AmountField
+                        value={String(displayVal ?? "")}
+                        onChange={(val) => {
+                          const num = parseFloat(val) || 0;
+                          const monthly = convertToMonthly(num, freq);
+                          setAmountOverrides((prev) => ({ ...prev, [cat.name]: monthly }));
+                        }}
+                        allowNegative={false}
+                      />
+                    </div>
+                    <select
+                      value={freq}
+                      onChange={(e) => {
+                        const newFreq = e.target.value as "WEEKLY" | "FORTNIGHTLY" | "MONTHLY" | "YEARLY";
+                        setCategoryFrequencies((prev) => ({ ...prev, [cat.name]: newFreq }));
+                      }}
+                      className="px-2 py-1.5 text-[11px] font-bold rounded-lg border border-zinc-200 bg-slate-50 text-zinc-700"
+                    >
+                      <option value="WEEKLY">/ wk</option>
+                      <option value="FORTNIGHTLY">/ fn</option>
+                      <option value="MONTHLY">/ mo</option>
+                      <option value="YEARLY">/ yr</option>
+                    </select>
+                  </>
+                )}
+
+                {isSpecial ? (
+                  <span className="inline-flex items-center" title={t("categories.cannotDeleteSpecialEnvelope")}>
+                    <InfoTooltip content={t("categories.cannotDeleteSpecialEnvelope")} />
+                  </span>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (isRerun) {
+                        setCategoryToArchive(cat.name);
+                      } else {
+                        onRemoveCategory(cat.name);
+                      }
                     }}
-                    allowNegative={false}
-                  />
-                </div>
-                <select
-                  value={freq}
-                  onChange={(e) => {
-                    const newFreq = e.target.value as "WEEKLY" | "FORTNIGHTLY" | "MONTHLY" | "YEARLY";
-                    setCategoryFrequencies((prev) => ({ ...prev, [cat.name]: newFreq }));
-                  }}
-                  className="px-2 py-1.5 text-[11px] font-bold rounded-lg border border-zinc-200 bg-slate-50 text-zinc-700"
-                >
-                  <option value="WEEKLY">/ wk</option>
-                  <option value="FORTNIGHTLY">/ fn</option>
-                  <option value="MONTHLY">/ mo</option>
-                  <option value="YEARLY">/ yr</option>
-                </select>
-                <button
-                  type="button"
-                  onClick={() => onRemoveCategory(cat.name)}
-                  className="text-xs font-bold text-red-400 hover:text-red-600 px-1 cursor-pointer"
-                >
-                  ✕
-                </button>
+                    className="text-xs font-bold text-red-400 hover:text-red-600 px-1 cursor-pointer"
+                  >
+                    ✕
+                  </button>
+                )}
               </div>
             </div>
           );
         })}
       </div>
+
+      <ConfirmDialog
+        isOpen={Boolean(categoryToArchive)}
+        onClose={() => setCategoryToArchive(null)}
+        onConfirm={() => {
+          if (categoryToArchive) {
+            onRemoveCategory(categoryToArchive);
+            setCategoryToArchive(null);
+          }
+        }}
+        title={t("categories.confirmArchiveTitle")}
+        description={t("categories.confirmArchiveDescription")}
+        confirmLabel={t("common.archive")}
+        variant="danger"
+      />
     </div>
   );
 }

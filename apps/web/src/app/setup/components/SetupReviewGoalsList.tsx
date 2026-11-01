@@ -1,7 +1,8 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
 import { EstimatedCategoryItem } from "@money-matters/types";
+import { ConfirmDialog, InfoTooltip } from "@money-matters/ui/web";
 import { t } from "@money-matters/i18n";
 import { UserGoalItem } from "./SetupGoalsStep";
 import { useLocale } from "../../../providers/LocaleProvider";
@@ -11,6 +12,7 @@ interface SetupReviewGoalsListProps {
   goals: UserGoalItem[];
   totalGoalMonthly: number;
   onRemoveCategory: (name: string) => void;
+  isRerun?: boolean;
 }
 
 export function SetupReviewGoalsList({
@@ -18,8 +20,11 @@ export function SetupReviewGoalsList({
   goals,
   totalGoalMonthly,
   onRemoveCategory,
+  isRerun = false,
 }: SetupReviewGoalsListProps) {
   const { fmt } = useLocale();
+  const [goalToArchive, setGoalToArchive] = useState<string | null>(null);
+
   return (
     <div className="flex flex-col gap-3 p-4 bg-slate-50 rounded-2xl border border-zinc-200/80">
       <div className="flex items-center justify-between border-b border-zinc-200/60 pb-2">
@@ -30,6 +35,12 @@ export function SetupReviewGoalsList({
           Monthly Est: {fmt(totalGoalMonthly)}/mo
         </span>
       </div>
+
+      {isRerun && (
+        <p className="text-[11px] text-zinc-500 font-medium italic">
+          {t("setup.reviewSummary.readOnlyGoalsNote")}
+        </p>
+      )}
 
       <div className="flex flex-col gap-2">
         {activeGoals.map((cat) => {
@@ -71,18 +82,45 @@ export function SetupReviewGoalsList({
                 <span className="text-xs font-bold font-mono text-zinc-700">
                   {displayMetric}
                 </span>
-                <button
-                  type="button"
-                  onClick={() => onRemoveCategory(cat.name)}
-                  className="text-xs font-bold text-red-400 hover:text-red-600 px-1 cursor-pointer"
-                >
-                  ✕
-                </button>
+                {isSurplusTarget ? (
+                  <span className="inline-flex items-center" title={t("categories.cannotDeleteSpecialEnvelope")}>
+                    <InfoTooltip content={t("categories.cannotDeleteSpecialEnvelope")} />
+                  </span>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (isRerun) {
+                        setGoalToArchive(cat.name);
+                      } else {
+                        onRemoveCategory(cat.name);
+                      }
+                    }}
+                    className="text-xs font-bold text-red-400 hover:text-red-600 px-1 cursor-pointer"
+                  >
+                    ✕
+                  </button>
+                )}
               </div>
             </div>
           );
         })}
       </div>
+
+      <ConfirmDialog
+        isOpen={Boolean(goalToArchive)}
+        onClose={() => setGoalToArchive(null)}
+        onConfirm={() => {
+          if (goalToArchive) {
+            onRemoveCategory(goalToArchive);
+            setGoalToArchive(null);
+          }
+        }}
+        title={t("categories.confirmArchiveTitle")}
+        description={t("categories.confirmArchiveDescription")}
+        confirmLabel={t("common.archive")}
+        variant="danger"
+      />
     </div>
   );
 }

@@ -10,6 +10,7 @@ interface SetupCategoriesGoalsListProps {
   userGoals: UserGoalItem[];
   totalGoalMonthly: number;
   onRemove: (name: string) => void;
+  isRerun?: boolean;
 }
 
 export function SetupCategoriesGoalsList({
@@ -17,6 +18,7 @@ export function SetupCategoriesGoalsList({
   userGoals,
   totalGoalMonthly,
   onRemove,
+  isRerun = false,
 }: SetupCategoriesGoalsListProps) {
   if (goals.length === 0) return null;
 
@@ -26,6 +28,10 @@ export function SetupCategoriesGoalsList({
         <Text style={styles.sectionTitle}>{t('setup.categories.goalSection')}</Text>
         <Text style={styles.sectionTotal}>{formatMobileCurrency(totalGoalMonthly)}/mo</Text>
       </View>
+
+      {isRerun && (
+        <Text style={styles.rerunNote}>{t('setup.reviewSummary.readOnlyGoalsNote')}</Text>
+      )}
 
       {goals.map((cat) => {
         const isSurplusTarget =
@@ -69,12 +75,14 @@ export function SetupCategoriesGoalsList({
               </Text>
             </View>
 
-            <TouchableOpacity
-              onPress={() => onRemove(cat.name)}
-              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-            >
-              <Text style={styles.removeBtn}>✕</Text>
-            </TouchableOpacity>
+            {!isSurplusTarget && (
+              <TouchableOpacity
+                onPress={() => onRemove(cat.name)}
+                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+              >
+                <Text style={styles.removeBtn}>✕</Text>
+              </TouchableOpacity>
+            )}
           </View>
         );
       })}
@@ -155,5 +163,11 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: DESIGN_TOKENS.colors.slate[400],
     paddingHorizontal: 4,
+  },
+  rerunNote: {
+    fontSize: 11,
+    fontStyle: 'italic',
+    color: DESIGN_TOKENS.colors.textMuted,
+    marginBottom: 8,
   },
 });

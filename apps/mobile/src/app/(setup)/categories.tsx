@@ -3,7 +3,7 @@ import { View, Text, TouchableOpacity, ScrollView, StyleSheet, ActivityIndicator
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { t } from '@money-matters/i18n';
-import { DESIGN_TOKENS, InfoTooltip, useMobileToast } from '@money-matters/ui/mobile';
+import { DESIGN_TOKENS, InfoTooltip, useMobileToast, showMobileConfirm } from '@money-matters/ui/mobile';
 import { formatMobileCurrency } from '../../lib/format';
 import { useSetupWizard } from '../../context/SetupWizardContext';
 import { SetupCategoryRow } from '../../components/setup/SetupCategoryRow';
@@ -53,6 +53,16 @@ export default function SetupCategoriesScreen() {
     const lower = name.trim().toLowerCase();
     if (lower.includes('emergency') || lower.includes('surplus') || lower.includes('reserve')) {
       toast.error(t('setup.surplusTargetDeleteWarning'), t('setup.protectedPoolTitle'));
+      return;
+    }
+    if (isRerun) {
+      showMobileConfirm({
+        title: t('categories.confirmArchiveTitle'),
+        message: t('categories.confirmArchiveDescription'),
+        confirmText: t('common.archive'),
+        isDestructive: true,
+        onConfirm: () => setRemovedCategoryNames((prev) => new Set(prev).add(name)),
+      });
       return;
     }
     setRemovedCategoryNames((prev) => new Set(prev).add(name));
@@ -105,6 +115,7 @@ export default function SetupCategoriesScreen() {
             onUpdateAmount={(amt) => setAmountOverrides((prev) => ({ ...prev, [cat.name]: amt }))}
             onUpdateFreq={(f) => setCategoryFrequencies((prev) => ({ ...prev, [cat.name]: f }))}
             onRemove={() => handleAttemptRemoveCategory(cat.name)}
+            isRerun={isRerun}
           />
         ))}
       </View>
@@ -139,6 +150,7 @@ export default function SetupCategoriesScreen() {
               setShowAddEnvelopeModal(true);
             }}
             onRemove={() => handleAttemptRemoveCategory(cat.name)}
+            isRerun={isRerun}
           />
         ))}
       </View>
@@ -148,6 +160,7 @@ export default function SetupCategoriesScreen() {
         userGoals={goals}
         totalGoalMonthly={totalGoalMonthly}
         onRemove={handleAttemptRemoveCategory}
+        isRerun={isRerun}
       />
 
       <TouchableOpacity

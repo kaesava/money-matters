@@ -345,8 +345,6 @@ export function EnvelopeFormModal({
 
     const finalTargetAmount = isTargetGoal || isFlexibleBill
       ? parseFloat(targetAmount).toFixed(2)
-      : isScheduledBill || isOngoingGoal
-      ? calculatedMonthly
       : undefined;
 
     const enteredAmountVal = (isScheduledBill || isFlexibleBill || isOngoingGoal)
@@ -369,7 +367,7 @@ export function EnvelopeFormModal({
       envelopeType,
       safetyBufferFloor: type === 'EVERYDAY' ? safetyBufferFloor || '0.00' : undefined,
       targetAmount: finalTargetAmount,
-      monthlyAmount: isFlexibleBill ? finalTargetAmount : isScheduledBill ? calculatedMonthly : undefined,
+      monthlyAmount: isFlexibleBill ? finalTargetAmount : (isScheduledBill || isOngoingGoal) ? calculatedMonthly : undefined,
       enteredAmount: enteredAmountVal,
       endDate: isTargetGoal ? targetDate || undefined : isScheduledBill ? targetDate || undefined : undefined,
       budgetFrequency: (isScheduledBill || isOngoingGoal) ? frequency : isFlexibleBill ? 'MONTHLY' : undefined,
@@ -539,6 +537,7 @@ export function EnvelopeFormModal({
         isEdit={isEdit}
         isSurplusDisabled={isSurplusDisabled}
         hideTypeOptions={initialMode === 'BILL_SCHEDULE'}
+        hideBillModeToggle={initialMode === 'BILL_SCHEDULE'}
         generateEvents={generateEvents}
         setGenerateEvents={setGenerateEvents}
         typeOptions={typeOptions}

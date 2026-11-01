@@ -139,7 +139,7 @@ export function EnvelopeFormFields({
 
       {type === 'REGULAR' && (
         <div className="space-y-3">
-          {setBillMode && (
+          {setBillMode && initialMode !== 'BILL_SCHEDULE' && (
             <BillModeToggle
               value={billMode}
               onChange={setBillMode}

@@ -46,7 +46,7 @@ export const expensesRouter = {
           and(
             eq(envelopes.tenantId, ctx.tenantId!),
             eq(envelopes.appId, ctx.appId!),
-            inArray(envelopes.envelopeType, ["SCHEDULED_BILL", "FLEXIBLE_BILL"]),
+            eq(envelopes.envelopeType, "SCHEDULED_BILL"),
             sql`${envelopes.archivedAt} IS NULL`,
             sql`CAST(COALESCE(${envelopes.enteredAmount}, ${envelopes.monthlyAmount}, '0.00') AS numeric) > 0`
           )

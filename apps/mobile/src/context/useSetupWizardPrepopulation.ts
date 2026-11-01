@@ -36,6 +36,8 @@ export function useSetupWizardPrepopulation({
           name: inc.name,
           amount: parseFloat(inc.amount || '0'),
           frequency: parsed.frequency,
+          interval: parsed.interval ?? 1,
+          rrule: inc.rrule,
           type: 'SALARY',
           receivingAccountId: inc.receivingAccountId,
           startDate: inc.startDate ? String(inc.startDate) : new Intl.DateTimeFormat('en-CA', { timeZone: tz }).format(new Date()),
@@ -70,7 +72,7 @@ export function useSetupWizardPrepopulation({
           const isOngoing = g.envelopeType === 'ONGOING_GOAL' || g.goalMode === 'ONGOING';
           const targetAmt = parseFloat(g.targetAmount || '0');
           const monthlyAmt = g.monthlyAmount ? parseFloat(g.monthlyAmount) : 0;
-          const enteredAmt = g.enteredAmount ? parseFloat(g.enteredAmount) : monthlyAmt;
+          const enteredAmt = g.enteredAmount ? parseFloat(g.enteredAmount) : (monthlyAmt || targetAmt);
           return {
             id: g.id,
             name: g.name,

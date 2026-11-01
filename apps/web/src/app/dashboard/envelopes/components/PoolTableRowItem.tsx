@@ -2,7 +2,7 @@
 
 import React from "react";
 import Link from "next/link";
-import { InfoTooltip } from "@money-matters/ui/web";
+import { InfoTooltip, formatRecurrenceLabel } from "@money-matters/ui/web";
 import { t } from "@money-matters/i18n";
 import { PoolTableRow } from "../types";
 
@@ -23,8 +23,6 @@ export function PoolTableRowItem({
   fmtMoney,
   fmtDate,
 }: PoolTableRowItemProps) {
-  const isGoal = pool.poolType === "GOAL";
-
   const subTypeBadge =
     pool.envelopeType === "SCHEDULED_BILL"
       ? t("categories.scheduledBillBadge")
@@ -96,37 +94,84 @@ export function PoolTableRowItem({
 
 
       {/* Current Balance */}
-      <td className="py-2.5 px-4 text-right font-mono font-bold tabular-nums text-zinc-900">
-        {fmtMoney(pool.currentBalance)}
+      <td className="py-2.5 px-4 text-right">
+        <div className="flex flex-col items-end gap-1">
+          <span className="font-mono font-bold tabular-nums text-zinc-900 text-sm">
+            {fmtMoney(pool.currentBalance)}
+          </span>
+          {(() => {
+            if (pool.envelopeType === "TARGET_GOAL") {
+              const target = pool.targetAmount || 0;
+              const pct = target > 0 ? Math.min(100, Math.round((pool.currentBalance / target) * 100)) : 0;
+              return (
+                <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-extrabold uppercase font-mono bg-emerald-50 text-emerald-700 border border-emerald-200">
+                  {pct}%
+                </span>
+              );
+            }
+            if (pool.envelopeType === "ONGOING_GOAL") {
+              return (
+                <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-extrabold uppercase font-mono bg-teal-50 text-teal-700 border border-teal-200">
+                  {t("categories.statusActive")}
+                </span>
+              );
+            }
+            if (pool.envelopeType === "SCHEDULED_BILL" || pool.envelopeType === "FLEXIBLE_BILL") {
+              const isCovered = pool.progressText === t("categories.fullyFunded") || pool.progressText.includes("100%");
+              const isPartial = pool.progressText === t("categories.onTrack");
+              const label = isCovered
+                ? t("categories.statusCovered")
+                : isPartial
+                ? t("categories.statusPartial")
+                : t("categories.statusShortfall");
+              return (
+                <span
+                  className={`inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-extrabold uppercase font-mono ${
+                    isCovered
+                      ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
+                      : isPartial
+                      ? "bg-amber-50 text-amber-700 border border-amber-200"
+                      : "bg-rose-50 text-rose-700 border border-rose-200"
+                  }`}
+                >
+                  {label}
+                </span>
+              );
+            }
+            if (pool.envelopeType === "EVERYDAY") {
+              const isOk = pool.currentBalance >= 0;
+              return (
+                <span
+                  className={`inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-extrabold uppercase font-mono ${
+                    isOk
+                      ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
+                      : "bg-rose-50 text-rose-700 border border-rose-200"
+                  }`}
+                >
+                  {isOk ? t("categories.readyToSpend") : t("categories.needsAttention")}
+                </span>
+              );
+            }
+            return null;
+          })()}
+        </div>
       </td>
 
       {/* Target Amount */}
-      <td className="py-2.5 px-4 text-right font-mono font-semibold tabular-nums text-zinc-600">
-        {fmtMoney(pool.targetAmount)}
-      </td>
-
-      {/* Progress Status */}
-      <td className="py-2.5 px-4 text-center">
-        <div className="flex flex-col items-center justify-center gap-0.5">
-          <span
-            className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-extrabold uppercase ${
-              pool.progressText.includes("On Track") ||
-              pool.progressText.includes("Ready") ||
-              pool.progressText.includes("100%") ||
-              pool.progressText.includes("Fully")
-                ? "bg-emerald-100 text-emerald-800"
-                : pool.progressText.includes("Risk") || pool.progressText.includes("Needs")
-                ? "bg-amber-100 text-amber-800"
-                : "bg-rose-100 text-rose-800"
-            }`}
-          >
-            {pool.progressText}
+      <td className="py-2.5 px-4 text-right">
+        <div className="flex flex-col items-end gap-1">
+          <span className="font-mono font-semibold tabular-nums text-zinc-700 text-sm">
+            {fmtMoney(pool.targetAmount)}
           </span>
-          {isGoal && pool.targetDate && (
-            <span className="text-[10px] font-medium text-zinc-500 dark:text-zinc-400 font-mono">
-              {fmtDate(pool.targetDate)}
-            </span>
-          )}
+          <span className="text-[11px] font-medium text-zinc-500 font-mono">
+            {pool.envelopeType === "TARGET_GOAL" && pool.targetDate
+              ? `by ${fmtDate(pool.targetDate)}`
+              : pool.envelopeType === "EVERYDAY"
+              ? t("categories.frequencyMonthly")
+              : pool.rawPool.rrule || pool.rawPool.budgetFrequency
+              ? formatRecurrenceLabel(pool.rawPool.rrule, pool.rawPool.budgetFrequency)
+              : t("categories.frequencyMonthly")}
+          </span>
         </div>
       </td>
 
