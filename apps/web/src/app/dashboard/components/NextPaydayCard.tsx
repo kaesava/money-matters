@@ -91,11 +91,20 @@ export const NextPaydayCard: React.FC<NextPaydayCardProps> = ({
             const todayZero = new Date();
             todayZero.setHours(0, 0, 0, 0);
             diffDays = Math.ceil((payDate.getTime() - todayZero.getTime()) / (1000 * 60 * 60 * 24));
-            if (diffDays === 0) daysAwayText = t('dashboard.hero.dueToday');
-            else if (diffDays > 0) daysAwayText = `${diffDays} day${diffDays === 1 ? '' : 's'} away`;
-            else {
+            if (diffDays === 0) {
+              daysAwayText = t('dashboard.hero.dueToday');
+            } else if (diffDays > 0) {
+              daysAwayText = t('dashboard.upcomingExpensesTransfers.daysAway', {
+                count: diffDays,
+                plural: diffDays === 1 ? '' : 's',
+              });
+            } else {
               isOverdue = true;
-              daysAwayText = `${Math.abs(diffDays)} day${Math.abs(diffDays) === 1 ? '' : 's'}`;
+              const count = Math.abs(diffDays);
+              daysAwayText = t('dashboard.upcomingExpensesTransfers.daysOverdue', {
+                count,
+                plural: count === 1 ? '' : 's',
+              });
             }
           }
 
@@ -148,10 +157,10 @@ export const NextPaydayCard: React.FC<NextPaydayCardProps> = ({
                   title={t('dashboard.nextPay.reviewSplits')}
                 >
                   {diffDays === 0
-                    ? `⚡ ${t("common.runSplit")}`
+                    ? `⚡ ${t("dashboard.nextPay.allocatePayday")}`
                     : isSaved
-                    ? `✓ ${t("common.runSplit")}`
-                    : t("common.runSplit")}
+                    ? `✓ ${t("dashboard.nextPay.allocatePayday")}`
+                    : t("dashboard.nextPay.allocatePayday")}
                 </button>
                 {onDeleteIncome && (
                   <button

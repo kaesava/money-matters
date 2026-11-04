@@ -19,34 +19,42 @@ export function EnvelopeEventsToggleSection({
 
   return (
     <div className="pt-1">
-      <label className="flex items-center gap-2 cursor-pointer">
-        <input
-          type="checkbox"
-          checked={generateEvents}
-          onChange={(e) => setGenerateEvents(e.target.checked)}
-          className="w-4 h-4 rounded text-[#2563eb] focus:ring-[#2563eb]"
-        />
-        <span className="font-bold text-xs text-zinc-800 dark:text-zinc-200 flex items-center gap-1.5">
-          <span>{t('categories.generateEventsLabel')}</span>
-          <InfoTooltip content={t('categories.tooltips.generateEvents')} align="left" />
-        </span>
-      </label>
+      <details className="group">
+        <summary className="text-[11px] font-bold text-slate-500 hover:text-slate-800 dark:hover:text-slate-300 cursor-pointer list-none flex items-center gap-1 select-none">
+          <span className="transition-transform group-open:rotate-90">▸</span>
+          <span>{t('common.advancedOptions')}</span>
+        </summary>
+        <div className="pt-2 pl-3">
+          <label className="flex items-center gap-2 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={generateEvents}
+              onChange={(e) => setGenerateEvents(e.target.checked)}
+              className="w-4 h-4 rounded text-[#2563eb] focus:ring-[#2563eb]"
+            />
+            <span className="font-bold text-xs text-zinc-800 dark:text-zinc-200 flex items-center gap-1.5">
+              <span>{t('categories.generateEventsLabel')}</span>
+              <InfoTooltip content={t('categories.tooltips.generateEvents')} align="left" />
+            </span>
+          </label>
 
-      {isModified && (
-        <div className="mt-2.5">
-          {generateEvents ? (
-            <AlertBanner variant="info" className="py-2.5 px-3">
-              {t('categories.generateEventsCheckedImplication')}
-            </AlertBanner>
-          ) : (
-            <AlertBanner variant="warning" className="py-2.5 px-3">
-              {hasExistingScheduledEvents
-                ? t('categories.generateEventsUncheckedEditImplication')
-                : t('categories.generateEventsUncheckedNewImplication')}
-            </AlertBanner>
+          {isModified && (
+            <div className="mt-2.5">
+              {generateEvents ? (
+                <AlertBanner variant="info" className="py-2.5 px-3">
+                  {t('categories.generateEventsCheckedImplication')}
+                </AlertBanner>
+              ) : (
+                <AlertBanner variant="warning" className="py-2.5 px-3">
+                  {hasExistingScheduledEvents
+                    ? t('categories.generateEventsUncheckedEditImplication')
+                    : t('categories.generateEventsUncheckedNewImplication')}
+                </AlertBanner>
+              )}
+            </div>
           )}
         </div>
-      )}
+      </details>
     </div>
   );
 }

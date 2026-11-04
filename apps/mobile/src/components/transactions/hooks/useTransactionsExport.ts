@@ -8,7 +8,15 @@ import { MobilePaydayAllocationRecord } from '../../paychecks/MobilePaydayAlloca
 export function useTransactionsExport() {
   const exportLedgerCsv = async (transactions: LedgerTxItem[]) => {
     if (transactions.length === 0) return;
-    const headers = ['Date', 'Amount', 'Type', 'Pool', 'Category', 'Account', 'Note'];
+    const headers = [
+      t('transactions.exportHeaders.date'),
+      t('transactions.exportHeaders.amount'),
+      t('transactions.exportHeaders.type'),
+      t('transactions.exportHeaders.envelope'),
+      t('transactions.exportHeaders.category'),
+      t('transactions.exportHeaders.account'),
+      t('transactions.exportHeaders.note'),
+    ];
     const rows = transactions.map((tx) => [
       `"${formatDate(tx.recordedAt)}"`,
       `"${tx.amount}"`,
@@ -37,7 +45,13 @@ export function useTransactionsExport() {
 
   const exportPlansCsv = async (plans: MobilePaydayAllocationRecord[]) => {
     if (plans.length === 0) return;
-    const headers = ['Payday Plan Date', 'Income Date', 'Income Source', 'Bank Account', 'Total Amount'];
+    const headers = [
+      t('transactions.exportHeaders.paydayPlanDate'),
+      t('transactions.exportHeaders.incomeDate'),
+      t('transactions.exportHeaders.incomeSource'),
+      t('transactions.exportHeaders.bankAccount'),
+      t('transactions.exportHeaders.totalAmount'),
+    ];
     const rows = plans.map((p) => [
       `"${formatDate(p.createdAt)}"`,
       `"${formatDate(p.expectedDate || p.createdAt)}"`,

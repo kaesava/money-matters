@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { Sparkles, CheckCircle2, Lock, RotateCcw } from "lucide-react";
+import { Sparkles, CheckCircle2, Lock } from "lucide-react";
 import { t } from "@money-matters/i18n";
 import { Button, InfoTooltip } from "@money-matters/ui/web";
 import { PaydayMetricsGrid } from "./PaydayMetricsGrid";
@@ -92,25 +92,21 @@ export function PaydayCelebrationCard({
 
         {!isConfirmed && (
           <div className="shrink-0 flex items-center gap-2.5 flex-wrap">
-            {/* If Locked & Clean */}
+            {/* If Draft & Clean */}
             {isLocked && !isDirty && (
-              <div className="flex items-center gap-1">
-                <Button
+              <div className="flex items-center gap-2">
+                <button
                   type="button"
-                  variant="ghost"
                   onClick={onUnlockAndRecalculate}
                   disabled={submitting}
-                  style={{ backgroundColor: "rgba(255, 255, 255, 0.12)", color: "#ffffff", borderColor: "rgba(255, 255, 255, 0.25)" }}
-                  className="px-4 py-2.5 hover:bg-white/20 border text-white font-bold text-xs rounded-xl cursor-pointer flex items-center gap-1.5"
+                  className="text-xs font-semibold text-blue-200 hover:text-white underline cursor-pointer transition-colors"
                 >
-                  <RotateCcw className="w-3.5 h-3.5 text-white" />
-                  <span>{t("paydayDrawer.unlockAndRecalculate")}</span>
-                </Button>
-                <InfoTooltip content={t("paydayDrawer.revertToAutoTooltip")} />
+                  {t("paydayDrawer.resetToRecommended")}
+                </button>
               </div>
             )}
 
-            {/* If Locked & Dirty */}
+            {/* If Draft & Dirty */}
             {isLocked && isDirty && (
               <>
                 <div className="flex items-center gap-1">
@@ -122,46 +118,32 @@ export function PaydayCelebrationCard({
                     style={{ backgroundColor: "#2563eb", color: "#ffffff" }}
                     className="px-4 py-2.5 hover:bg-blue-600 disabled:opacity-50 text-white font-bold text-xs rounded-xl cursor-pointer flex items-center gap-1.5 shadow-xs"
                   >
-                    <Lock className="w-3.5 h-3.5 text-white" />
                     <span>{t("paydayDrawer.saveChanges")}</span>
                   </Button>
-                  <InfoTooltip content={t("paydayDrawer.saveChangesTooltip")} />
                 </div>
 
-                <div className="flex items-center gap-1">
-                  <Button
+                <div className="flex items-center gap-2">
+                  <button
                     type="button"
-                    variant="ghost"
                     onClick={onDiscardEdits}
                     disabled={submitting}
-                    style={{ backgroundColor: "rgba(255, 255, 255, 0.12)", color: "#ffffff", borderColor: "rgba(255, 255, 255, 0.25)" }}
-                    className="px-3.5 py-2.5 hover:bg-white/20 border text-white font-bold text-xs rounded-xl cursor-pointer flex items-center gap-1.5"
+                    className="text-xs font-semibold text-blue-200 hover:text-white underline cursor-pointer transition-colors"
                   >
-                    <RotateCcw className="w-3.5 h-3.5 text-white" />
-                    <span>{t("paydayDrawer.discardEdits")}</span>
-                  </Button>
-                  <InfoTooltip content={t("paydayDrawer.discardEditsTooltip")} />
+                    {t("paydayDrawer.discardEdits")}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={onUnlockAndRecalculate}
+                    disabled={submitting}
+                    className="text-xs font-semibold text-blue-200 hover:text-white underline cursor-pointer transition-colors"
+                  >
+                    {t("paydayDrawer.resetToRecommended")}
+                  </button>
                 </div>
               </>
             )}
 
-            {/* If Unlocked & Clean */}
-            {!isLocked && !isDirty && (
-              <div className="flex items-center gap-1">
-                <Button
-                  type="button"
-                  variant="ghost"
-                  onClick={onLockSplit}
-                  disabled={isDeficit || submitting}
-                  style={{ backgroundColor: "rgba(255, 255, 255, 0.12)", color: "#ffffff", borderColor: "rgba(255, 255, 255, 0.25)" }}
-                  className="px-4 py-2.5 hover:bg-white/20 border text-white font-bold text-xs rounded-xl cursor-pointer flex items-center gap-1.5"
-                >
-                  <Lock className="w-3.5 h-3.5 text-white" />
-                  <span>{t("paydayDrawer.lockSplit")}</span>
-                </Button>
-                <InfoTooltip content={t("paydayDrawer.lockSplitTooltip")} />
-              </div>
-            )}
+            {/* If Unlocked & Clean: Nothing needed, auto-calculated */}
 
             {/* If Unlocked & Dirty */}
             {!isLocked && isDirty && (
@@ -175,25 +157,19 @@ export function PaydayCelebrationCard({
                     style={{ backgroundColor: "#2563eb", color: "#ffffff" }}
                     className="px-4 py-2.5 hover:bg-blue-600 disabled:opacity-50 text-white font-bold text-xs rounded-xl cursor-pointer flex items-center gap-1.5 shadow-xs"
                   >
-                    <Lock className="w-3.5 h-3.5 text-white" />
-                    <span>{t("paydayDrawer.lockSplit")}</span>
+                    <span>{t("paydayDrawer.saveIncomeSplit")}</span>
                   </Button>
-                  <InfoTooltip content={t("paydayDrawer.lockSplitTooltip")} />
                 </div>
 
-                <div className="flex items-center gap-1">
-                  <Button
+                <div className="flex items-center gap-2">
+                  <button
                     type="button"
-                    variant="ghost"
                     onClick={onRecalculate}
                     disabled={submitting}
-                    style={{ backgroundColor: "rgba(255, 255, 255, 0.12)", color: "#ffffff", borderColor: "rgba(255, 255, 255, 0.25)" }}
-                    className="px-3.5 py-2.5 hover:bg-white/20 border text-white font-bold text-xs rounded-xl cursor-pointer flex items-center gap-1.5"
+                    className="text-xs font-semibold text-blue-200 hover:text-white underline cursor-pointer transition-colors"
                   >
-                    <RotateCcw className="w-3.5 h-3.5 text-white" />
-                    <span>{t("paydayDrawer.recalculate")}</span>
-                  </Button>
-                  <InfoTooltip content={t("paydayDrawer.recalculateTooltip")} />
+                    {t("paydayDrawer.resetToRecommended")}
+                  </button>
                 </div>
               </>
             )}

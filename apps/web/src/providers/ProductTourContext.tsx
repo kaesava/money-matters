@@ -65,7 +65,7 @@ export const TOUR_STEPS: Array<{
   },
   {
     id: 'bank-accounts',
-    route: '/dashboard',
+    route: '/dashboard/bank-accounts',
     selector: '[data-tour="bank-accounts"]',
     titleKey: 'tour.steps.bankAccounts.title',
     descKey: 'tour.steps.bankAccounts.desc',

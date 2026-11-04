@@ -66,5 +66,47 @@ export const notificationsRouter = {
 
       return { success: true, dispatchedChannels };
     }),
+
+  submitFeedback: tenantProcedure
+    .input(
+      z.object({
+        category: z.string().min(1),
+        severity: z.string().min(1),
+        email: z.string().email().optional().or(z.literal('')),
+        title: z.string().min(1),
+        description: z.string().min(1),
+        appVersion: z.string().optional(),
+        route: z.string().optional(),
+        userAgent: z.string().optional(),
+        screen: z.string().optional(),
+      }).strict()
+    )
+    .mutation(async ({ ctx, input }) => {
+      requiresWriteAccess(ctx);
+      const subject = `[Feedback] ${input.title.trim()}`;
+      const body = [
+        `Category: ${input.category}`,
+        `Severity: ${input.severity}`,
+        `User ID: ${ctx.userId || 'N/A'}`,
+        `Tenant ID: ${ctx.tenantId || 'N/A'}`,
+        `Email: ${input.email || ctx.email || 'N/A'}`,
+        `App Version: ${input.appVersion || 'N/A'}`,
+        `Route: ${input.route || 'N/A'}`,
+        `User Agent: ${input.userAgent || 'N/A'}`,
+        `Screen: ${input.screen || 'N/A'}`,
+        '',
+        'Description:',
+        input.description.trim(),
+      ].join('\n');
+
+      await sendNotificationEmail(
+        'info@moneymatters.kaesava.au',
+        subject,
+        body
+      );
+
+      return { success: true };
+    }),
 };
+
 

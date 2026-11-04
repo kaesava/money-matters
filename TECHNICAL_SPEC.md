@@ -47,14 +47,14 @@ money-matters/
 │   │   ├── tenant/          # Household creation, partner invite, bank account CRUD, bank balance reconciliation
 │   │   ├── budgeting/       # Pool-centric architecture (`Bank Account → Pool → Category`), immutable pool-bank linking, unbudgeted buffer validation, 5-step waterfall allocation engine (Deficit Repair, Regular, Goal, Everyday, Surplus), rolling window maintainer, immutable confirmed allocations, cascading pool archival, last-category guard
 │   │   ├── transactions/    # Daily ledger, expense recording, transaction history, paired transfer resolution
-│   │   ├── simulation/      # Stateless "Can I Afford It?" engine with 6-verdict cumulative waterfall simulation & goal timeline impact analysis
-│   │   └── notifications/   # Expo push + scheduled weekly digest Inngest workflow
+│   │   ├── simulation/      # Stateless "Can I Afford It?" engine with 3-tier verdict model (Safe, Caution, Not Recommended) & goal timeline impact analysis
+│   │   └── notifications/   # Expo push + scheduled weekly digest Inngest workflow + feedback delivery (trpc.submitFeedback via Resend)
 │   ├── core/          # DB client, universal logger, auth session resolver, rate limiter, correlation ID hook
 │   ├── config/        # Zod env schemas, app registry, feature flags
 │   ├── db/            # Drizzle schemas (22 audited tables in SCHEMA_DATA_DICTIONARY.md), migrations & seeds
 │   ├── i18n/          # Centralized dictionary & type-safe t() helper
 │   ├── types/         # Zod domain contracts, setup presets, status state machines, API DTOs
-│   └── ui/            # Serene Finance UI components & design tokens
+│   └── ui/            # Serene Finance UI components & design tokens (standard h-10 inputs, modal autofocus, discard guardrails, SearchInput keyboard binding)
 ```
 
 ---

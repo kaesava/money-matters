@@ -24,7 +24,7 @@ const POOL_TYPE_ORDER: Record<string, number> = {
 };
 
 function PoolsPageContent() {
-  const { fmt, fmtDate, userTimezone, locale: resolvedLocale } = useLocale();
+  const { fmt, userTimezone } = useLocale();
   const toast = useToast();
   const utils = trpc.useUtils();
   const router = useRouter();
@@ -42,8 +42,8 @@ function PoolsPageContent() {
   const [searchQuery, setSearchQuery] = useState(paramSearch);
   const [typeFilter, setTypeFilter] = useState<PoolTypeFilter>(paramType);
   const [privacyFilter, setPrivacyFilter] = useState<"ALL" | "SHARED" | "PRIVATE">("ALL");
-  const [projectionMonths, setProjectionMonths] = useState(0);
-  const [showProjectionMatrix, setShowProjectionMatrix] = useState(false);
+  const [projectionMonths] = useState(0);
+  const [showProjectionMatrix] = useState(false);
 
   // Table pagination & sorting state
   const [page, setPage] = useState(1);
@@ -77,22 +77,6 @@ function PoolsPageContent() {
     window.addEventListener("open-create-category-modal", handleOpenCreateModal);
     return () => window.removeEventListener("open-create-category-modal", handleOpenCreateModal);
   }, []);
-
-  const projectionTargetDate = useMemo(() => {
-    if (projectionMonths <= 0.05) return t("common.today");
-    const d = new Date();
-    d.setDate(d.getDate() + Math.round(projectionMonths * 30.4375));
-    return fmtDate(d);
-  }, [projectionMonths, fmtDate]);
-
-  const axisDates = useMemo(() => {
-    return [0, 3, 6, 9, 12].map((m) => {
-      if (m === 0) return t("common.today");
-      const d = new Date();
-      d.setMonth(d.getMonth() + m);
-      return new Intl.DateTimeFormat(resolvedLocale, { month: "short", year: "2-digit", timeZone: userTimezone }).format(d);
-    });
-  }, [resolvedLocale, userTimezone]);
 
   const projectionQuery = trpc.getProjectedPoolBalances.useQuery(undefined, {
     enabled: showProjectionMatrix,
@@ -365,130 +349,23 @@ function PoolsPageContent() {
         <div className="flex items-center gap-3">
           <button
             type="button"
-            onClick={() => setShowProjectionMatrix(!showProjectionMatrix)}
-            className={`px-3.5 py-2.5 rounded-xl font-bold text-xs border transition-all shadow-2xs cursor-pointer ${
-              showProjectionMatrix
-                ? "bg-blue-100 text-[#2563eb] border-blue-300"
-                : "bg-white text-zinc-700 border-zinc-200 hover:bg-zinc-50"
-            }`}
+            onClick={() => setIsMoveMoneyOpen(true)}
+            className="px-4 py-2.5 rounded-xl font-bold text-xs bg-blue-50 text-[#2563eb] hover:bg-blue-100 border border-blue-200 transition-all flex items-center gap-2 shadow-2xs cursor-pointer"
           >
-            {showProjectionMatrix ? t("categories.endProjectionMode") : t("categories.projectionMode")}
+            <span>{t("categories.actions.moveMoney")}</span>
           </button>
-          {!showProjectionMatrix && (
-            <button
-              type="button"
-              onClick={() => setIsMoveMoneyOpen(true)}
-              className="px-4 py-2.5 rounded-xl font-bold text-xs bg-blue-50 text-[#2563eb] hover:bg-blue-100 border border-blue-200 transition-all flex items-center gap-2 shadow-2xs cursor-pointer"
-            >
-              <span>{t("categories.actions.moveMoney")}</span>
-            </button>
-          )}
-          {!showProjectionMatrix && (
-            <a
-              href="/setup?mode=rerun"
-              className="px-3.5 py-2.5 rounded-xl font-bold text-xs bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 transition-all flex items-center gap-1.5 shadow-2xs cursor-pointer"
-              title={t("setup.recalibrateSubtitle")}
-            >
-              <span>⚙️</span>
-              <span>{t("setup.recalibrateTitle")}</span>
-            </a>
-          )}
-          {!showProjectionMatrix && (
-            <button
-              type="button"
-              onClick={() => {
-                setPoolToEdit(null);
-                setIsPoolModalOpen(true);
-              }}
-              className="px-4 py-2.5 rounded-xl font-bold text-xs text-white bg-[#2563eb] hover:bg-blue-700 transition-all shadow-md flex items-center gap-2 cursor-pointer"
-            >
-              <span>{t("categories.addPool")}</span>
-            </button>
-          )}
+          <button
+            type="button"
+            onClick={() => {
+              setPoolToEdit(null);
+              setIsPoolModalOpen(true);
+            }}
+            className="px-4 py-2.5 rounded-xl font-bold text-xs text-white bg-[#2563eb] hover:bg-blue-700 transition-all shadow-md flex items-center gap-2 cursor-pointer"
+          >
+            <span>{t("categories.addPool")}</span>
+          </button>
         </div>
       </div>
-
-      {showProjectionMatrix && (
-        <div className="p-3 bg-blue-50/90 border border-blue-200 rounded-xl text-blue-900 text-xs font-semibold flex items-center gap-2 animate-in fade-in duration-150">
-          <span>🔒</span>
-          <span>{t("categories.projectionModeReadOnlyNotice")}</span>
-        </div>
-      )}
-
-      {/* Projection Matrix */}
-      {showProjectionMatrix && (
-        <div className="p-5 bg-gradient-to-r from-blue-50/90 via-indigo-50/80 to-purple-50/90 dark:from-blue-950/40 dark:via-indigo-950/40 dark:to-purple-950/40 border border-blue-200/80 dark:border-blue-900/60 rounded-2xl shadow-xs relative overflow-hidden animate-in fade-in duration-150">
-          <div className="flex flex-wrap items-center justify-between gap-3 mb-3">
-            <div className="flex items-center gap-2">
-              <span className="text-xs font-black uppercase text-[#1B2B4B] dark:text-blue-200 tracking-wider">
-                {t("incomeBillsTabs.timelineSliderLabel")}
-              </span>
-            </div>
-
-            <div className="flex items-center gap-2">
-              {projectionMonths > 0.05 && (
-                <button
-                  type="button"
-                  onClick={() => setProjectionMonths(0)}
-                  className="px-3 py-1 bg-amber-500 hover:bg-amber-600 text-white font-bold text-xs rounded-lg shadow-xs transition-all animate-in fade-in flex items-center gap-1 cursor-pointer"
-                >
-                  <span>{t("categories.snapToToday")}</span>
-                </button>
-              )}
-              <span className="text-xs font-bold font-mono text-[#2563eb] bg-white dark:bg-zinc-900 border border-blue-200 dark:border-blue-800 px-3 py-1 rounded-xl shadow-2xs">
-                {projectionMonths <= 0.05 ? "Today (Actuals)" : projectionTargetDate}
-              </span>
-            </div>
-          </div>
-
-          <div className="relative pt-6 pb-2">
-            <div
-              className="absolute top-0 text-[11px] font-black font-mono bg-[#2563eb] text-white px-2.5 py-0.5 rounded-md shadow-md pointer-events-none transition-all"
-              style={{
-                left: `${Math.min(94, Math.max(6, (projectionMonths / 12) * 100))}%`,
-                transform: "translateX(-50%)",
-              }}
-            >
-              {projectionTargetDate}
-            </div>
-
-            <input
-              type="range"
-              min={0}
-              max={12}
-              step={0.1}
-              value={projectionMonths}
-              onChange={(e) => setProjectionMonths(parseFloat(e.target.value))}
-              className="w-full h-2.5 bg-blue-200/80 dark:bg-blue-900 rounded-lg appearance-none cursor-pointer accent-[#2563eb] focus:outline-none"
-            />
-          </div>
-
-          <div className="flex justify-between text-[10px] font-bold text-zinc-400 font-mono mt-1 px-1">
-            {axisDates.map((label: string, idx: number) => (
-              <span key={idx} className={idx === 0 && projectionMonths <= 0.05 ? "text-[#2563eb] font-extrabold" : ""}>
-                {label}
-              </span>
-            ))}
-          </div>
-
-          {projectionMonths > 0.05 && (
-            <div className="mt-4 p-3 bg-amber-50 dark:bg-amber-950/50 border border-amber-300 dark:border-amber-800 rounded-xl flex items-center justify-between text-xs animate-in slide-in-from-top-2 duration-150">
-              <div className="flex items-center gap-2">
-                <span className="font-bold text-amber-900 dark:text-amber-200">
-                  {t("categories.projectionNotice", { date: projectionTargetDate })}
-                </span>
-              </div>
-              <button
-                type="button"
-                onClick={() => setProjectionMonths(0)}
-                className="text-xs font-bold text-amber-700 dark:text-amber-300 hover:underline cursor-pointer"
-              >
-                {t("categories.resetToToday")} →
-              </button>
-            </div>
-          )}
-        </div>
-      )}
 
       {/* Controls Bar & Segmented Filter */}
       <div className="flex flex-col sm:flex-row items-center justify-between gap-3 p-3 bg-slate-50 border border-zinc-200/80 rounded-2xl">

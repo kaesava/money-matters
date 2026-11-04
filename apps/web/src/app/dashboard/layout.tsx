@@ -15,7 +15,6 @@ import type { QuickActionInitialData } from "@money-matters/types";
 import { trpc } from "../../lib/trpc";
 import { SidebarContent } from "./components/SidebarContent";
 import { KeyboardShortcutsModal } from "./components/KeyboardShortcutsModal";
-import { QuickActionFab } from "./components/QuickActionFab";
 import { NAV_ITEMS } from "./components/navItems";
 import { getWebVersionInfo } from "../../lib/version";
 import { ProductTourProvider } from "../../providers/ProductTourContext";
@@ -404,16 +403,12 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
                     <div className="space-y-1.5">
                       <h2 className="text-lg font-black text-[#1B2B4B] dark:text-white">
-                        We&apos;re having trouble connecting
+                        {t("common.error")}
                       </h2>
                       <p className="text-xs text-zinc-600 dark:text-zinc-300 leading-relaxed font-medium">
-                        Your money and budget data are 100% safe. We&apos;re just having a moment communicating with our servers.
+                        {t("common.errorTryAgain")}
                       </p>
                     </div>
-
-                    <p className="text-[11px] text-zinc-500 dark:text-zinc-400 bg-zinc-50 dark:bg-zinc-800/60 p-3 rounded-xl border border-zinc-200/60 dark:border-zinc-700/60 text-center font-medium">
-                      💡 Please check your internet connection or tap retry below.
-                    </p>
 
                     <button
                       type="button"
@@ -424,9 +419,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                       {isRetrying ? (
                         <Spinner size="sm" />
                       ) : cooldownSeconds > 0 ? (
-                        <span>Wait {cooldownSeconds}s before retrying</span>
+                        <span>{t("common.retry")} ({cooldownSeconds}s)</span>
                       ) : (
-                        <span>🔄 Try Reconnecting</span>
+                        <span>{t("common.retry")}</span>
                       )}
                     </button>
 
@@ -461,17 +456,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               </div>
             </footer>
           </div>
-
-          <QuickActionFab
-            pathname={pathname}
-            onOpenModal={() => {
-              if (pathname.startsWith("/dashboard/envelopes")) {
-                window.dispatchEvent(new CustomEvent("open-create-category-modal"));
-              } else {
-                setQuickExpenseOpen(true);
-              }
-            }}
-          />
 
           {quickExpenseOpen && (
             <QuickExpenseDrawer

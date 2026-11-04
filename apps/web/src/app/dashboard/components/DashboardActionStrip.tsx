@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useRef, useState, useEffect } from 'react';
-import { Plus, ChevronDown, ArrowUpRight, ArrowDownLeft, ArrowLeftRight, Sparkles, Bot } from 'lucide-react';
+import { Plus, ChevronDown, ArrowUpRight, ArrowDownLeft, ArrowLeftRight, Sparkles } from 'lucide-react';
 import { t } from '@money-matters/i18n';
 import { InfoTooltip } from '@money-matters/ui/web';
 
@@ -10,7 +10,7 @@ export interface DashboardActionStripProps {
   readonly onOpenQuickIncome: () => void;
   readonly onOpenMoveMoney: () => void;
   readonly onOpenAffordCheck: () => void;
-  readonly onOpenAskPenny: () => void;
+  readonly onOpenAskPenny?: () => void;
 }
 
 export const DashboardActionStrip: React.FC<DashboardActionStripProps> = ({
@@ -18,7 +18,7 @@ export const DashboardActionStrip: React.FC<DashboardActionStripProps> = ({
   onOpenQuickIncome,
   onOpenMoveMoney,
   onOpenAffordCheck,
-  onOpenAskPenny,
+  onOpenAskPenny: _onOpenAskPenny,
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -62,7 +62,7 @@ export const DashboardActionStrip: React.FC<DashboardActionStripProps> = ({
       </div>
 
       <div className="flex flex-wrap sm:flex-nowrap items-center gap-3 shrink-0">
-        <div className="relative" ref={menuRef}>
+        <div className="relative" ref={menuRef} data-tour="quick-actions">
           <div className="inline-flex items-center rounded-xl shadow-xs overflow-hidden border border-blue-600 bg-[#2563eb]">
             <button
               type="button"
@@ -71,6 +71,9 @@ export const DashboardActionStrip: React.FC<DashboardActionStripProps> = ({
             >
               <Plus className="w-4 h-4 shrink-0 stroke-[2.5]" />
               <span>{t('dashboard.quickAction')}</span>
+              <kbd className="hidden sm:inline-block ml-1 px-1.5 py-0.5 text-[10px] font-mono bg-blue-700/60 text-blue-100 rounded border border-blue-400/40">
+                N
+              </kbd>
             </button>
             <button
               type="button"
@@ -120,23 +123,13 @@ export const DashboardActionStrip: React.FC<DashboardActionStripProps> = ({
                 <ArrowLeftRight className="w-4 h-4 text-blue-500" />
                 <span>{t('dashboard.transferBetweenPools')}</span>
               </button>
-              <button
-                type="button"
-                onClick={() => {
-                  onOpenAskPenny();
-                  setIsOpen(false);
-                }}
-                className="w-full px-3.5 py-2 text-left text-xs font-semibold text-zinc-700 dark:text-zinc-200 hover:bg-purple-50 dark:hover:bg-zinc-800 hover:text-purple-600 transition-colors flex items-center gap-2.5 cursor-pointer"
-              >
-                <Bot className="w-4 h-4 text-purple-500" />
-                <span>{t('assistant.trigger')}</span>
-              </button>
             </div>
           )}
         </div>
 
         <button
           type="button"
+          data-tour="afford-check"
           onClick={onOpenAffordCheck}
           className="px-3.5 py-2 h-9 bg-white dark:bg-zinc-900 hover:bg-slate-50 dark:hover:bg-zinc-800/80 border border-slate-300/80 dark:border-zinc-700 text-[#1B2B4B] dark:text-zinc-100 font-extrabold text-xs rounded-xl transition-all shadow-xs flex items-center gap-1.5 cursor-pointer shrink-0"
         >

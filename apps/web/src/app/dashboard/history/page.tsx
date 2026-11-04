@@ -198,7 +198,14 @@ function TransactionsPageContent() {
   const handleExportCSV = () => {
     if (sortedTransactions.length === 0) return;
     const currencyLabel = currency || "AUD";
-    const headers = ["Date", "Type", "Description", "Category / Pool", "Source", `Amount (${currencyLabel})`];
+    const headers = [
+      t("transactions.exportHeaders.date"),
+      t("transactions.exportHeaders.type"),
+      t("transactions.exportHeaders.description"),
+      t("transactions.exportHeaders.envelope"),
+      t("transactions.exportHeaders.source"),
+      t("transactions.exportHeaders.amountWithCurrency", { currency: currencyLabel }),
+    ];
     const rows = sortedTransactions.map((tx) => [
       `"${tx.date}"`,
       `"${getTransactionTypeLabel(tx.transactionType)}"`,

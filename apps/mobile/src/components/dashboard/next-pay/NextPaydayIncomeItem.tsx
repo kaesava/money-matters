@@ -79,10 +79,10 @@ export const NextPaydayIncomeItem: React.FC<NextPaydayIncomeItemProps> = ({
             ]}
           >
             {daysAwayText === t('dashboard.hero.dueToday')
-              ? `⚡ ${t('common.runSplit')}`
+              ? `⚡ ${t('dashboard.nextPay.allocatePayday')}`
               : isSaved
-              ? `✓ ${t('common.runSplit')}`
-              : t('common.runSplit')}
+              ? `✓ ${t('dashboard.nextPay.allocatePayday')}`
+              : t('dashboard.nextPay.allocatePayday')}
           </Text>
         </TouchableOpacity>
 

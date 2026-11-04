@@ -4,7 +4,7 @@ import React, { useState, useId, useDeferredValue } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { trpc } from '@/lib/trpc';
 import { t } from '@money-matters/i18n';
-import { InfoTooltip } from '@money-matters/ui';
+import { InfoTooltip, useCurrencyLocale } from '@money-matters/ui';
 import { AffordCheckVerdict } from './AffordCheckVerdict';
 import { AffordCheckBreakdown } from './AffordCheckBreakdown';
 import { GoalDelayCard } from './GoalDelayCard';
@@ -13,6 +13,7 @@ import { ArrowLeft, Repeat, ShoppingBag } from 'lucide-react';
 import Link from 'next/link';
 
 export function AffordCheckScreen() {
+  const { currencySymbol } = useCurrencyLocale();
   const searchParams = useSearchParams();
   const urlAmount = searchParams.get('amount') || '';
   const amountInputId = useId();
@@ -121,7 +122,7 @@ export function AffordCheckScreen() {
           </label>
           <div className="relative inline-flex items-center justify-center">
             <span className="text-3xl font-bold text-slate-400 dark:text-slate-600 font-mono mr-1 select-none">
-              $
+              {currencySymbol}
             </span>
             <input
               id={amountInputId}

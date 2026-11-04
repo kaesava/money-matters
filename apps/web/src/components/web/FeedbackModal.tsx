@@ -9,8 +9,11 @@ import {
   FormFieldError,
   FormErrorBanner,
   GenericSelectField,
+  useToast,
 } from '@money-matters/ui/web';
 import { t } from '@money-matters/i18n';
+
+import { trpc } from '@/lib/trpc';
 
 interface FeedbackModalProps {
   isOpen: boolean;
@@ -19,6 +22,9 @@ interface FeedbackModalProps {
 }
 
 export function FeedbackModal({ isOpen, onClose, userEmail = '' }: FeedbackModalProps) {
+  const toast = useToast();
+  const submitFeedbackMutation = trpc.submitFeedback.useMutation();
+
   const [title, setTitle] = useState('');
   const [category, setCategory] = useState<string>('ui_ux');
   const [severity, setSeverity] = useState<string>('LOW');
@@ -44,7 +50,7 @@ export function FeedbackModal({ isOpen, onClose, userEmail = '' }: FeedbackModal
     onClose();
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     let hasError = false;
 
@@ -59,25 +65,22 @@ export function FeedbackModal({ isOpen, onClose, userEmail = '' }: FeedbackModal
     if (hasError) return;
 
     try {
-      const diagnostics = [
-        `Category: ${category}`,
-        `Severity: ${severity}`,
-        `User Email: ${email.trim() || 'N/A'}`,
-        `Route: ${typeof window !== 'undefined' ? window.location.pathname : 'N/A'}`,
-        `User Agent: ${typeof navigator !== 'undefined' ? navigator.userAgent : 'N/A'}`,
-        `Screen: ${typeof window !== 'undefined' ? `${window.innerWidth}x${window.innerHeight}` : 'N/A'}`,
-        '',
-        'Description:',
-        description.trim(),
-      ];
-      const subject = encodeURIComponent(`[Feedback] ${title.trim()}`);
-      const body = encodeURIComponent(diagnostics.join('\n'));
-      const mailtoUrl = `mailto:info@moneymatters.kaesava.au?subject=${subject}&body=${body}`;
+      await submitFeedbackMutation.mutateAsync({
+        title: title.trim(),
+        description: description.trim(),
+        category,
+        severity,
+        email: email.trim() || undefined,
+        route: typeof window !== 'undefined' ? window.location.pathname : undefined,
+        userAgent: typeof navigator !== 'undefined' ? navigator.userAgent : undefined,
+        screen: typeof window !== 'undefined' ? `${window.innerWidth}x${window.innerHeight}` : undefined,
+      });
 
-      window.location.href = mailtoUrl;
+      toast.success(t('feedback.submitSuccess'));
       handleClose();
-    } catch {
-      setGeneralError(t('feedback.openEmailFailed'));
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : t('feedback.openEmailFailed');
+      setGeneralError(msg);
     }
   };
 

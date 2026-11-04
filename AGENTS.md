@@ -151,6 +151,43 @@ All tables MUST include:
   - While writing or modifying any component, NEVER introduce temporary hardcoded string literals (`>Save<`, `title="Save"`, `placeholder="Search..."`, `error="Required"`), fallback strings (`t('x') || 'y'`, `defaultValue: '...'`), or inline hex color codes (`#2563EB`, `#64748B`, etc.).
   - MUST resolve user-facing copy to canonical `t(...)` keys and colors to `DESIGN_TOKENS.colors` immediately at point of authoring. Deferring localization or tokenization to a retrospective cleanup pass is strictly forbidden.
   - When creating or editing modals or screens, confirm dialogs, loading states, discard checks (`isDirty`), and defensive limits MUST be implemented upfront.
+- **Payday Allocation Document Draft Model**:
+  - The "Lock/Unlock" state machine, button labels, and terminology are STRICTLY FORBIDDEN.
+  - Payday allocation MUST adhere to the standard document draft lifecycle: Suggested Plan (`Auto-Calculated`) $\rightarrow$ Custom Draft on any edit $\rightarrow$ "Save Draft" (stores override without ledger mutation) $\rightarrow$ "Confirm & Apply" (executes ledger).
+  - A "Reset to Recommended" text link MUST always be provided when custom draft overrides exist.
+- **Canonical Product Taxonomy & Nomenclature (Zero "Pools" / "Buckets")**:
+  - Strict hierarchical metaphor: **Envelope** = top-level container (`Everyday`, `Bills`, `Goals and Savings`). **Category** = specific budgeted items inside an envelope.
+  - The words "Pool" and "Bucket" are STRICTLY BANNED from all user-facing copy, labels, tooltips, and component titles across web and mobile.
+  - Standardize on: "Allocate Payday" (never "Run Split"); "Match Balance" (never "Reconcile" or "Account Alignment"); "Safety Cushion (Keep Unallocated)" (never "Unbudgeted Buffer").
+- **Desktop Shell & Clutter-Free Layout**:
+  - Floating Action Buttons (FABs) on desktop web layouts are STRICTLY BANNED. Desktop quick actions MUST be anchored in `DashboardActionStrip` and triggered via the `N` keyboard shortcut.
+  - Duplicate entry points on the same viewport are STRICTLY BANNED (e.g. header action button + inline card within 200px of each other).
+  - Keep `+ Quick Action` strictly focused on financial money movements (`Record Expense`, `Record Income`, `Move Money`). Never mix AI assistant triggers (`Ask Penny`) into money action dropdowns.
+- **Universal Form Modal Auto-Focus & Discard Guardrails**:
+  - On every modal mount, the first editable text or amount input MUST receive `autoFocus={true}`.
+  - If form state is clean (`!isDirty`), pressing `Escape` or clicking the backdrop MUST immediately dismiss without confirmation prompts. If dirty (`isDirty`), it MUST trigger `<ConfirmDialog />` (web) or `<MobileConfirmDialog />` / `showMobileConfirm` (mobile).
+- **Universal Keyboard Shortcuts & Visible Hint Badges**:
+  - All global keyboard shortcuts (`N` for Quick Action, `⌘K` for Ask Penny, `/` for search, `?` for shortcuts modal, `Esc` for dismiss) MUST be accompanied by subtle UI hint badges (`[N]`, `⌘K`, `[/]`).
+  - `SearchInput` MUST always tag `data-search-input="true"` and display a quiet `[/]` badge when input is empty.
+- **Universal Input Dimension Standard (`h-10`)**:
+  - All standard form inputs and selectors (`AmountField`, `Input`, `DatePickerField`, `GenericSelectField`, `SearchInput`) MUST share standard `h-10 px-3.5 py-2` dimensions to guarantee zero grid misalignment in multi-column forms.
+- **Universal InfoTooltip Hygiene**:
+  - Placing `(i)` info tooltip circles next to self-explanatory words ("Dashboard", "Envelopes", "Current Balance", "Save Changes") is STRICTLY PROHIBITED.
+  - Reserve `InfoTooltip` exclusively for proprietary financial mechanisms (Safe to Spend calculations, Safety Cushion, Waterfall Deficit repair).
+- **Universal Medium Date Presentation**:
+  - All dates in tables, rows, badges, and headers MUST be formatted in medium presentation format (`12 Apr 2026`) formatted through the user's localized presentation timezone (`fmtDateMedium(date)`).
+- **Universal Action-Oriented Empty States & Filter Hygiene**:
+  - Empty states MUST NOT be dead ends ("No records found"). They MUST provide positive guidance and direct action buttons (`[+ Add Recurring Bill]`, `[Clear Filters]`).
+  - Unified Filter Bars: Search on the left, Primary selector in the middle, Segmented filter chips with active counts on the right, and an explicit `[Clear All]` trigger whenever any filter is active.
+- **Universal Currency Symbol & Regional Leakage Parity**:
+  - Hardcoded `$` symbols in text, placeholders, prefixes, or span elements are STRICTLY BANNED.
+  - All currency symbols, prefixes, and minor units MUST be derived dynamically from `useCurrencyLocale()` / `useLocale().currencySymbol` / `formatMobileCurrency`.
+- **Zero Bill-Shock Event Generation**:
+  - Recurring bills MUST default `generateEvents: true` silently to guarantee Step 1 waterfall feasibility.
+  - Advanced overrides MUST be tucked into a collapsed "Advanced Options" accordion so normal users cannot accidentally disable bill ring-fencing.
+- **In-App Feedback Delivery Protocol**:
+  - Feedback and bug reports MUST be dispatched via backend API (`trpc.submitFeedback` via Resend) to `info@moneymatters.kaesava.au`. Relying solely on client-side `mailto:` links (which fail silently for webmail users) is STRICTLY FORBIDDEN.
+
 
 
 

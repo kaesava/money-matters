@@ -21,6 +21,8 @@ import { authClient } from '../lib/auth';
 import { getMobileVersionInfo } from '../lib/version';
 import { FeedbackDiagnosticsBox } from './dashboard/FeedbackDiagnosticsBox';
 
+import { trpc } from '../lib/trpc';
+
 interface FeedbackFormModalProps {
   visible: boolean;
   onClose: () => void;
@@ -29,6 +31,7 @@ interface FeedbackFormModalProps {
 export function FeedbackFormModal({ visible, onClose }: FeedbackFormModalProps) {
   const { data: session } = authClient.useSession();
   const versionInfo = getMobileVersionInfo();
+  const submitFeedbackMutation = trpc.submitFeedback.useMutation();
 
   const [title, setTitle] = useState('');
   const [category, setCategory] = useState<string>('ui_ux');
@@ -77,22 +80,17 @@ export function FeedbackFormModal({ visible, onClose }: FeedbackFormModalProps) 
     setSubmitting(true);
 
     try {
-      const subject = encodeURIComponent(`[Feedback] ${title.trim()}`);
-      const bodyLines = [
-        `Category: ${category}`,
-        `Severity: ${frustration}`,
-        `Email: ${email.trim() || 'N/A'}`,
-        `App Version: ${versionInfo?.formattedVersion || 'Money Matters Mobile'}`,
-        '',
-        'Description:',
-        description.trim(),
-      ];
-      const body = encodeURIComponent(bodyLines.join('\n'));
-      const mailtoUrl = `mailto:info@moneymatters.kaesava.au?subject=${subject}&body=${body}`;
+      await submitFeedbackMutation.mutateAsync({
+        title: title.trim(),
+        description: description.trim(),
+        category,
+        severity: frustration,
+        email: email.trim() || undefined,
+        appVersion: versionInfo?.formattedVersion || 'Money Matters Mobile',
+      });
 
-      await Linking.openURL(mailtoUrl);
       handleClose();
-    } catch (err) {
+    } catch (err: unknown) {
       setGeneralError(err instanceof Error ? err.message : t('feedback.openEmailFailed'));
     } finally {
       setSubmitting(false);

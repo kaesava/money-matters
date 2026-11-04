@@ -14,7 +14,6 @@ import { AffordCheckModal } from "../../components/web/AffordCheckModal";
 import { ReconciliationModal, PoolItem } from "../../components/ReconciliationModal";
 import { DashboardActionStrip } from "./components/DashboardActionStrip";
 import { BalanceMatchNudgeBanner } from "./components/BalanceMatchNudgeBanner";
-import { AffordCheckInlineCard } from "./components/AffordCheckInlineCard";
 import { useDashboardData } from "./hooks/useDashboardData";
 import { useLocale } from "../../providers/LocaleProvider";
 import posthog from "../../lib/posthog-client";
@@ -384,14 +383,6 @@ export default function DashboardPage() {
           />
         </div>
       </div>
-
-      {/* Inline Quick Afford Check Card */}
-      <AffordCheckInlineCard
-        onCheck={(amt) => {
-          setAffordInitialAmount(amt);
-          setIsAffordModalOpen(true);
-        }}
-      />
 
       {/* Row 2: Cashflow Stream (Two-Column Split: Upcoming Expenses & Upcoming Income) */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">

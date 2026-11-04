@@ -1,7 +1,7 @@
 "use client";
 
-import React, { useState } from "react";
-import { ResizableTh, PaginationBar, SkeletonTable } from "@money-matters/ui/web";
+import React from "react";
+import { PaginationBar, SkeletonTable } from "@money-matters/ui/web";
 import { t } from "@money-matters/i18n";
 import { useLocale } from "../../../../providers/LocaleProvider";
 import { PoolTableRow } from "../types";
@@ -46,33 +46,6 @@ export function PoolsTable({
   isProjectionMode = false,
 }: PoolsTableProps) {
   const { fmtDate } = useLocale();
-  const [widths, setWidths] = useState({
-    name: 320,
-    balance: 180,
-    target: 180,
-    actions: 100,
-  });
-
-  const onMouseDown = (col: keyof typeof widths, e: React.MouseEvent) => {
-    const startX = e.clientX;
-    const startWidth = widths[col];
-
-    const onMouseMove = (moveEvent: MouseEvent) => {
-      const delta = moveEvent.clientX - startX;
-      setWidths((prev) => ({
-        ...prev,
-        [col]: Math.max(80, startWidth + delta),
-      }));
-    };
-
-    const onMouseUp = () => {
-      document.removeEventListener("mousemove", onMouseMove);
-      document.removeEventListener("mouseup", onMouseUp);
-    };
-
-    document.addEventListener("mousemove", onMouseMove);
-    document.addEventListener("mouseup", onMouseUp);
-  };
 
   if (isLoading) {
     return (
@@ -89,9 +62,7 @@ export function PoolsTable({
           <thead>
             <tr className="border-b border-zinc-200 bg-zinc-50/70 text-[11px] font-bold text-zinc-500 uppercase tracking-wider select-none">
               {/* Pools & Categories */}
-              <ResizableTh
-                width={widths.name}
-                onResizeMouseDown={(e) => onMouseDown("name", e)}
+              <th
                 className="py-3.5 px-4 cursor-pointer hover:text-zinc-800 transition-colors text-left"
                 onClick={() => toggleSort("name")}
               >
@@ -99,12 +70,10 @@ export function PoolsTable({
                   <span>{t("categories.title")}</span>
                   {sortField === "name" && <span>{sortDir === "asc" ? "▲" : "▼"}</span>}
                 </div>
-              </ResizableTh>
+              </th>
 
               {/* Current Balance */}
-              <ResizableTh
-                width={widths.balance}
-                onResizeMouseDown={(e) => onMouseDown("balance", e)}
+              <th
                 className="py-3.5 px-4 cursor-pointer hover:text-zinc-800 transition-colors text-right"
                 onClick={() => toggleSort("currentBalance")}
               >
@@ -112,12 +81,10 @@ export function PoolsTable({
                   <span>{t("tables.currentBalance")}</span>
                   {sortField === "currentBalance" && <span>{sortDir === "asc" ? "▲" : "▼"}</span>}
                 </div>
-              </ResizableTh>
+              </th>
 
               {/* Target */}
-              <ResizableTh
-                width={widths.target}
-                onResizeMouseDown={(e) => onMouseDown("target", e)}
+              <th
                 className="py-3.5 px-4 cursor-pointer hover:text-zinc-800 transition-colors text-right"
                 onClick={() => toggleSort("targetAmount")}
               >
@@ -125,16 +92,12 @@ export function PoolsTable({
                   <span>{t("tables.target")}</span>
                   {sortField === "targetAmount" && <span>{sortDir === "asc" ? "▲" : "▼"}</span>}
                 </div>
-              </ResizableTh>
+              </th>
 
               {/* Actions */}
-              <ResizableTh
-                width={widths.actions}
-                onResizeMouseDown={(e) => onMouseDown("actions", e)}
-                className="py-3.5 px-4 text-center"
-              >
+              <th className="py-3.5 px-4 text-center">
                 <span>{t("tables.actions")}</span>
-              </ResizableTh>
+              </th>
             </tr>
           </thead>
           <tbody className="divide-y divide-zinc-100 text-xs">
