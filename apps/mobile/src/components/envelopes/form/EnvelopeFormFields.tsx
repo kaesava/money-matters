@@ -6,51 +6,38 @@ import {
   ChipSelect,
   FormLabel,
   AmountInput,
-  DatePickerField,
-  MobileCheckbox,
-  MobileGoalModeToggle,
   MobileBillModeToggle,
 } from '@money-matters/ui/mobile';
 import { t } from '@money-matters/i18n';
 import { EnvelopeRecurrenceFields } from './EnvelopeRecurrenceFields';
+import { EnvelopeEventsToggleSection } from './EnvelopeEventsToggleSection';
+import { EnvelopeSurplusTargetField } from './EnvelopeSurplusTargetField';
+import { EnvelopeGoalFields } from './EnvelopeGoalFields';
 
 export interface EnvelopeFormFieldsProps {
-  name: string;
-  setName: (v: string) => void;
-  nameError: string;
-  setNameError: (v: string) => void;
-  type: 'GOAL' | 'REGULAR' | 'EVERYDAY';
-  setType: (v: 'GOAL' | 'REGULAR' | 'EVERYDAY') => void;
-  safetyBufferFloor: string;
-  setSafetyBufferFloor: (v: string) => void;
-  targetAmount: string;
-  setTargetAmount: (v: string) => void;
-  targetDate: string;
-  setTargetDate: (v: string) => void;
-  goalMode?: 'TARGET_DATE' | 'ONGOING';
-  setGoalMode?: (v: 'TARGET_DATE' | 'ONGOING') => void;
-  billMode?: 'SCHEDULED_BILL' | 'FLEXIBLE_BILL';
-  setBillMode?: (v: 'SCHEDULED_BILL' | 'FLEXIBLE_BILL') => void;
-  frequency?: 'WEEKLY' | 'FORTNIGHTLY' | 'MONTHLY' | 'ANNUALLY';
-  setFrequency?: (v: 'WEEKLY' | 'FORTNIGHTLY' | 'MONTHLY' | 'ANNUALLY') => void;
-  interval?: number;
-  setInterval?: (v: number) => void;
-  goalStartDate?: string;
-  setGoalStartDate?: (v: string) => void;
-  endDate?: string;
-  setEndDate?: (v: string) => void;
+  name: string; setName: (v: string) => void;
+  nameError: string; setNameError: (v: string) => void;
+  type: 'GOAL' | 'REGULAR' | 'EVERYDAY'; setType: (v: 'GOAL' | 'REGULAR' | 'EVERYDAY') => void;
+  safetyBufferFloor: string; setSafetyBufferFloor: (v: string) => void;
+  targetAmount: string; setTargetAmount: (v: string) => void;
+  targetDate: string; setTargetDate: (v: string) => void;
+  goalMode?: 'TARGET_DATE' | 'ONGOING'; setGoalMode?: (v: 'TARGET_DATE' | 'ONGOING') => void;
+  billMode?: 'SCHEDULED_BILL' | 'FLEXIBLE_BILL'; setBillMode?: (v: 'SCHEDULED_BILL' | 'FLEXIBLE_BILL') => void;
+  frequency?: 'WEEKLY' | 'FORTNIGHTLY' | 'MONTHLY' | 'ANNUALLY'; setFrequency?: (v: 'WEEKLY' | 'FORTNIGHTLY' | 'MONTHLY' | 'ANNUALLY') => void;
+  interval?: number; setInterval?: (v: number) => void;
+  goalStartDate?: string; setGoalStartDate?: (v: string) => void;
+  endDate?: string; setEndDate?: (v: string) => void;
   calculatedMonthly?: string;
-  bankAccountId: string;
-  setBankAccountId: (v: string) => void;
+  bankAccountId: string; setBankAccountId: (v: string) => void;
   bankDisabled?: boolean;
-  isSurplusTarget: boolean;
-  setIsSurplusTarget: (v: boolean) => void;
+  isSurplusTarget: boolean; setIsSurplusTarget: (v: boolean) => void;
   isEdit: boolean;
   isSurplusDisabled: boolean;
   hideTypeOptions?: boolean;
   hideBillModeToggle?: boolean;
-  generateEvents?: boolean;
-  setGenerateEvents?: (v: boolean) => void;
+  generateEvents?: boolean; setGenerateEvents?: (v: boolean) => void;
+  initialGenerateEvents?: boolean;
+  hasExistingScheduledEvents?: boolean;
   typeOptions: Array<{ key: string; label: string }>;
   bankOptions: Array<{ key: string; label: string }>;
 }
@@ -94,6 +81,8 @@ export const EnvelopeFormFields: React.FC<EnvelopeFormFieldsProps> = ({
   hideBillModeToggle = false,
   generateEvents = true,
   setGenerateEvents,
+  initialGenerateEvents = true,
+  hasExistingScheduledEvents = false,
   typeOptions,
   bankOptions,
 }) => {
@@ -178,13 +167,12 @@ export const EnvelopeFormFields: React.FC<EnvelopeFormFieldsProps> = ({
           )}
 
           {billMode === 'SCHEDULED_BILL' && setGenerateEvents && (
-            <View style={styles.surplusRow}>
-              <MobileCheckbox
-                label={t('categories.generateEventsLabel')}
-                checked={generateEvents}
-                onChange={setGenerateEvents}
-              />
-            </View>
+            <EnvelopeEventsToggleSection
+              generateEvents={generateEvents}
+              setGenerateEvents={setGenerateEvents}
+              initialGenerateEvents={initialGenerateEvents}
+              hasExistingScheduledEvents={hasExistingScheduledEvents}
+            />
           )}
         </View>
       )}
@@ -199,59 +187,29 @@ export const EnvelopeFormFields: React.FC<EnvelopeFormFieldsProps> = ({
       )}
 
       {type === 'GOAL' && (
-        <>
-          {setGoalMode && (
-            <MobileGoalModeToggle value={goalMode} onChange={setGoalMode} />
-          )}
-
-          {goalMode === 'TARGET_DATE' ? (
-            <View style={styles.goalInputsCol}>
-              <AmountInput
-                label={t('categories.targetAmountLabel')}
-                required
-                value={targetAmount}
-                onChangeText={setTargetAmount}
-                placeholder="10000.00"
-              />
-              <DatePickerField
-                label={t('categories.targetCompletionDate')}
-                required
-                value={targetDate}
-                onChange={setTargetDate}
-              />
-            </View>
-          ) : (
-            <EnvelopeRecurrenceFields
-              amountLabel={t('goalModes.monthlyContribution')}
-              amount={targetAmount}
-              setAmount={setTargetAmount}
-              placeholder="250.00"
-              frequency={frequency}
-              setFrequency={setFrequency}
-              interval={interval}
-              setInterval={setInterval}
-              startDate={goalStartDate}
-              setStartDate={setGoalStartDate}
-              calculatedMonthly={calculatedMonthly}
-            />
-          )}
-        </>
+        <EnvelopeGoalFields
+          goalMode={goalMode}
+          setGoalMode={setGoalMode}
+          targetAmount={targetAmount}
+          setTargetAmount={setTargetAmount}
+          targetDate={targetDate}
+          setTargetDate={setTargetDate}
+          frequency={frequency}
+          setFrequency={setFrequency}
+          interval={interval}
+          setInterval={setInterval}
+          goalStartDate={goalStartDate}
+          setGoalStartDate={setGoalStartDate}
+          calculatedMonthly={calculatedMonthly}
+        />
       )}
 
       {type !== 'EVERYDAY' && (
-        <View style={styles.surplusRow}>
-          <MobileCheckbox
-            checked={isSurplusTarget}
-            onChange={setIsSurplusTarget}
-            disabled={isSurplusDisabled}
-            label={t('categories.sweepSurplus')}
-          />
-          {isSurplusDisabled && (
-            <Text style={styles.surplusDisabledText}>
-              {t('categories.shortfallTargetDisabledWarning')}
-            </Text>
-          )}
-        </View>
+        <EnvelopeSurplusTargetField
+          isSurplusTarget={isSurplusTarget}
+          setIsSurplusTarget={setIsSurplusTarget}
+          isSurplusDisabled={isSurplusDisabled}
+        />
       )}
     </View>
   );
@@ -276,18 +234,6 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: DESIGN_TOKENS.colors.warningDark,
     lineHeight: 16,
-  },
-  surplusRow: {
-    paddingTop: 4,
-    gap: 4,
-  },
-  surplusDisabledText: {
-    fontSize: 11,
-    color: DESIGN_TOKENS.colors.subtleText,
-    paddingLeft: 30,
-  },
-  goalInputsCol: {
-    gap: 12,
   },
   billSection: {
     gap: 12,

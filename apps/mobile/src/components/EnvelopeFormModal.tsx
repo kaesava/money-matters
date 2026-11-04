@@ -302,6 +302,12 @@ export function EnvelopeFormModal({
     generateEvents,
   ]);
 
+  const initialGenerateEvents = useMemo(() => {
+    if (!isEdit || !categoryToEdit) return true;
+    const isInitialScheduled = (categoryToEdit.envelopeType || categoryToEdit.poolType || categoryToEdit.type || 'REGULAR') === 'SCHEDULED_BILL';
+    return categoryToEdit.hasScheduledEvents ?? isInitialScheduled;
+  }, [isEdit, categoryToEdit]);
+
   const isSurplusDisabled = Boolean(isEdit && categoryToEdit?.isSurplusTarget);
 
   const validateForm = (): boolean => {
@@ -540,6 +546,8 @@ export function EnvelopeFormModal({
         hideBillModeToggle={initialMode === 'BILL_SCHEDULE'}
         generateEvents={generateEvents}
         setGenerateEvents={setGenerateEvents}
+        initialGenerateEvents={initialGenerateEvents}
+        hasExistingScheduledEvents={Boolean(isEdit && categoryToEdit?.hasScheduledEvents)}
         typeOptions={typeOptions}
         bankOptions={bankOptions}
       />

@@ -247,6 +247,12 @@ export function EnvelopeFormModal({
     generateEvents,
   ]);
 
+  const initialGenerateEvents = useMemo(() => {
+    if (!isEdit || !categoryToEdit) return true;
+    const isInitialScheduled = (categoryToEdit.envelopeType || categoryToEdit.poolType || categoryToEdit.type || "REGULAR") === "SCHEDULED_BILL";
+    return categoryToEdit.hasScheduledEvents ?? isInitialScheduled;
+  }, [isEdit, categoryToEdit]);
+
   const confirmArchive = async () => {
     if (!categoryToEdit?.id) return;
     try {
@@ -477,6 +483,8 @@ export function EnvelopeFormModal({
           isSurplusDisabled={Boolean(isEdit && categoryToEdit?.isSurplusTarget)}
           generateEvents={generateEvents}
           setGenerateEvents={setGenerateEvents}
+          initialGenerateEvents={initialGenerateEvents}
+          hasExistingScheduledEvents={Boolean(isEdit && categoryToEdit?.hasScheduledEvents)}
         />
 
         <div className="flex justify-between items-center pt-4 border-t border-zinc-200">

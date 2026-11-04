@@ -9,8 +9,23 @@
 * All user-facing literals (this includes screen/modal names, headers, titles, sub-titles, descrtiptions, filter labels, button labels, drop-down text, pagination labels, tab names, placeholder text, error messages, warning messages, information, info tooltips, etc.) must be consistent within and across the web app and mobile app UIs and importantly, must re-uses en.ts keys for like-for-like functionality across web and mobile app. Re-use keys as much as possible, rationalise keys where possible, and always cull un-used keys.
 * Ensure parity between mobile and web - UI & functionality. So, when you write address a new/change/fix for the Web app, also ensure that the mobile app is in parity and address it there too. When you write address a new/change/fix for the Mobile app, also ensure that the web app is in parity and address it there too. Do this even if not explicitly asked, unless I explicitly state the app (Mobile: or Web:). Re-use code as much as possible while keeping native UI experiences.
 
-## General
-* Currency fields are taller than other fields and this looks misplaced - ensure they are consistent with other text fields in height
+## Envelopes
+* "Target" column should show "monthly" etc. based on actual envelope frequency - not converted to monthly, below amount (except for Target Goals where it should show "by" and then date - instead of showing in Progress column, show in Target column)
+* Progress column - remove target dates
+* Progress column - critically re-think what this is meant to show. I like % for target goals, but maybe we can show in Current Balance field next to amount. I'm trying to see if it's a useful field. For Flexible bills and scheduled bills, we effectively need to ensure we sufficiently cover it. Think carefully about how to represent this - coverage %? coverage date? Nothing? Re-think this field.
+
+## Envelope Detail drawer
+* For Car Servicing (see seed), expecting $750 every 3 months, but Target amount says $750/mo (though the frequency is correctly showing "Quarterly"). However, if I change it to every 5 months, the RECURRENCE says "MONTHLY" the target amount only shows the amount and the RECURRENCE is correctly captured. Change to target date. Also, when I changed one of the ongoign goals from monthly to every two months, it shows "$5,000.00/mo · Target: $2,500.00" as target amount. Audit and fix both fields across all types of envelopes.
+
+## /setup?mode=rerun
+
+* Step 1: Income shows weekly even though I set to every 5 weeks. Also, I'm unable to change this frequency to a more granular "every 4 weeks" - it only allows me to pick weekly, etc. Ensure screen is clean, and still works for /setup (i.e., first time setup) as intended.
+* Step 2: It  zeroed out an amount for an ongoing goal
+* Review Budget Summary: careful user doesn't delete special envelopes (like last shared everyday envelope, default sweep envelope, etc.) - same rules as from the envelopes screen.
+* Review Budget Summary: Deleting should archive (as though user clicked Archive in Edit Envelope) - same rules/constraints must apply, including confirming that the user wants to archive the envelope. Carefully manage future unconfirmed events (one-off or scheduled), bursting, etc.
+* Review Budget Summary: Even though a Scheduled Bill is $5,500 annually, it shows it as $5,500.00/mo. Also, it does not capture more nuanced "Every 3 months" - and misleadingly shows "/mo". I'm thinking, for /setup?mode=rerun, should we show the amounts and frequency as read-only (leverage how you will show them in the Enevelope Detail Drawer) allowing the user the edit, but instead of using a hyperlink to launch the edit modal, show an edit button against each. This applies to Everyday Pools too. For Goals, leave as read-only as user can go to previous step to edit.
+
+
 
 
 ## Ask Penny

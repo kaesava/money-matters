@@ -98,12 +98,19 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     }
   }, []);
   
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
-    if (typeof window !== "undefined") {
-      return localStorage.getItem("sidebar_collapsed") === "true";
+  const [mounted, setMounted] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+    try {
+      if (localStorage.getItem("sidebar_collapsed") === "true") {
+        setSidebarCollapsed(true);
+      }
+    } catch {
+      // Ignore storage access error
     }
-    return false;
-  });
+  }, []);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [quickExpenseOpen, setQuickExpenseOpen] = useState(false);
   const [quickExpenseData, setQuickExpenseData] = useState<QuickActionInitialData | undefined>(undefined);
@@ -219,13 +226,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     }
   }, [isPending, session, router, isExchanging]);
 
-  const isAuthenticating = typeof window !== "undefined" && new URLSearchParams(window.location.search).has("neon_auth_session_verifier");
+  const isAuthenticating = mounted && new URLSearchParams(window.location.search).has("neon_auth_session_verifier");
 
-  if (!isPending && !session?.user && !isAuthenticating && !isExchanging) {
-    return null;
-  }
-
-  if (isPending || isAuthenticating || isExchanging) {
+  if (!mounted || isPending || isAuthenticating || isExchanging) {
     return (
       <div
         className="flex items-center justify-center min-h-screen"
@@ -234,6 +237,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         <Spinner size="lg" label={t("dashboard.loading")} direction="col" />
       </div>
     );
+  }
+
+  if (!session?.user) {
+    return null;
   }
 
   const initials = session?.user?.name

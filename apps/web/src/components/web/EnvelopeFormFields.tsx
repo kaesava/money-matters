@@ -5,12 +5,13 @@ import {
   GenericSelectField,
   DatePickerField,
   AmountField,
-  InfoTooltip,
   GoalModeToggle,
   BillModeToggle,
 } from '@money-matters/ui/web';
 import { t } from '@money-matters/i18n';
 import { EnvelopeRecurrenceFields } from './EnvelopeRecurrenceFields';
+import { EnvelopeEventsToggleSection } from './EnvelopeEventsToggleSection';
+import { EnvelopeSurplusTargetField } from './EnvelopeSurplusTargetField';
 
 export interface EnvelopeFormFieldsProps {
   name: string;
@@ -45,6 +46,8 @@ export interface EnvelopeFormFieldsProps {
   isSurplusDisabled: boolean;
   generateEvents?: boolean;
   setGenerateEvents?: (val: boolean) => void;
+  initialGenerateEvents?: boolean;
+  hasExistingScheduledEvents?: boolean;
   initialMode?: 'ALL' | 'BILL_SCHEDULE';
 }
 
@@ -83,6 +86,8 @@ export function EnvelopeFormFields({
   isSurplusDisabled,
   generateEvents = true,
   setGenerateEvents,
+  initialGenerateEvents = true,
+  hasExistingScheduledEvents = false,
   initialMode = 'ALL',
 }: CategoryFormFieldsProps) {
   return (
@@ -173,20 +178,12 @@ export function EnvelopeFormFields({
           )}
 
           {billMode === 'SCHEDULED_BILL' && setGenerateEvents && (
-            <div className="pt-1">
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={generateEvents}
-                  onChange={(e) => setGenerateEvents(e.target.checked)}
-                  className="w-4 h-4 rounded text-[#2563eb] focus:ring-[#2563eb]"
-                />
-                <span className="font-bold text-xs text-zinc-800 dark:text-zinc-200 flex items-center gap-1.5">
-                  <span>{t('categories.generateEventsLabel')}</span>
-                  <InfoTooltip content={t('categories.tooltips.generateEvents')} align="left" />
-                </span>
-              </label>
-            </div>
+            <EnvelopeEventsToggleSection
+              generateEvents={generateEvents}
+              setGenerateEvents={setGenerateEvents}
+              initialGenerateEvents={initialGenerateEvents}
+              hasExistingScheduledEvents={hasExistingScheduledEvents}
+            />
           )}
         </div>
       )}
@@ -239,21 +236,11 @@ export function EnvelopeFormFields({
       )}
 
       {type !== 'EVERYDAY' && (
-        <div className="pt-2">
-          <label className="flex items-center gap-2 cursor-pointer">
-            <input
-              type="checkbox"
-              checked={isSurplusTarget}
-              disabled={isSurplusDisabled}
-              onChange={(e) => setIsSurplusTarget(e.target.checked)}
-              className="w-4 h-4 rounded text-[#2563eb] focus:ring-[#2563eb] disabled:opacity-50"
-            />
-            <span className="font-bold text-zinc-800 flex items-center gap-1.5">
-              <span>{t('categories.sweepSurplus')}</span>
-              <InfoTooltip content={t('categories.shortfallTargetTooltip')} align="left" />
-            </span>
-          </label>
-        </div>
+        <EnvelopeSurplusTargetField
+          isSurplusTarget={isSurplusTarget}
+          setIsSurplusTarget={setIsSurplusTarget}
+          isSurplusDisabled={isSurplusDisabled}
+        />
       )}
     </>
   );
