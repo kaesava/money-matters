@@ -57,6 +57,15 @@ export const Button: React.FC<ButtonProps> = ({
   if (size === 'sm') sizeStyle = styles.sizeSm;
   else if (size === 'lg') sizeStyle = styles.sizeLg;
 
+  const isTextNode =
+    typeof children === 'string' ||
+    typeof children === 'number' ||
+    (Array.isArray(children) &&
+      children.length > 0 &&
+      children.every(
+        (c) => typeof c === 'string' || typeof c === 'number' || c === null || c === undefined
+      ));
+
   return (
     <TouchableOpacity
       style={[
@@ -72,7 +81,7 @@ export const Button: React.FC<ButtonProps> = ({
     >
       {loading ? (
         <ActivityIndicator color={spinnerColor} size="small" />
-      ) : typeof children === 'string' || typeof children === 'number' ? (
+      ) : isTextNode ? (
         <Text style={[styles.baseText, txtStyle, textStyle]}>
           {children}
         </Text>

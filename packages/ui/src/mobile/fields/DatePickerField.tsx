@@ -14,6 +14,7 @@ export interface DatePickerFieldProps {
   required?: boolean;
   error?: string;
   disabled?: boolean;
+  compact?: boolean;
   minDate?: string;
   maxDate?: string;
   locale?: string;
@@ -28,7 +29,7 @@ function toIso(d: Date): string {
   return `${d.getFullYear()}-${padZero(d.getMonth() + 1)}-${padZero(d.getDate())}`;
 }
 
-function formatDisplayDate(isoDate?: string, locale: string = 'en-AU', timeZone: string = 'Australia/Sydney'): string {
+function formatDisplayDate(isoDate?: string, locale: string = 'en-AU', timeZone: string = 'Australia/Sydney', compact: boolean = false): string {
   if (!isoDate) return 'Select date';
   const parts = isoDate.split('-');
   if (parts.length === 3) {
@@ -37,6 +38,13 @@ function formatDisplayDate(isoDate?: string, locale: string = 'en-AU', timeZone:
     const d = parseInt(parts[2], 10);
     if (!isNaN(y) && !isNaN(m) && !isNaN(d)) {
       const dateObj = new Date(y, m, d);
+      if (compact) {
+        return dateObj.toLocaleDateString(locale === 'auto' ? 'en-AU' : locale, {
+          day: 'numeric',
+          month: 'short',
+          year: 'numeric',
+        });
+      }
       return dateObj.toLocaleDateString(locale === 'auto' ? 'en-AU' : locale, {
         weekday: 'short',
         day: 'numeric',
@@ -55,6 +63,7 @@ export function DatePickerField({
   required = false,
   error,
   disabled = false,
+  compact = false,
   minDate,
   maxDate,
   locale: propLocale,
@@ -74,26 +83,29 @@ export function DatePickerField({
         disabled={disabled}
         style={[
           styles.fieldCard,
+          compact ? styles.fieldCardCompact : null,
           error ? styles.fieldCardError : null,
           disabled ? styles.fieldCardDisabled : null,
         ]}
         activeOpacity={0.7}
       >
-        <View style={styles.iconBox}>
-          <Feather name="calendar" size={18} color="#2563eb" />
+        <View style={[styles.iconBox, compact ? styles.iconBoxCompact : null]}>
+          <Feather name="calendar" size={compact ? 14 : 18} color="#2563eb" />
         </View>
 
         <Text
+          numberOfLines={1}
           style={[
             styles.dateText,
+            compact ? styles.dateTextCompact : null,
             !value ? styles.datePlaceholder : null,
             disabled ? styles.textDisabled : null,
           ]}
         >
-          {formatDisplayDate(value, effectiveLocale, effectiveTimeZone)}
+          {formatDisplayDate(value, effectiveLocale, effectiveTimeZone, compact)}
         </Text>
 
-        <Feather name="chevron-down" size={18} color="#94A3B8" />
+        <Feather name="chevron-down" size={compact ? 14 : 18} color="#94A3B8" />
       </TouchableOpacity>
 
       <FormFieldError error={error} />
@@ -125,6 +137,11 @@ const styles = StyleSheet.create({
     borderColor: '#E2E8F0',
     borderRadius: 12,
   },
+  fieldCardCompact: {
+    height: 42,
+    paddingHorizontal: 8,
+    borderRadius: 8,
+  },
   fieldCardError: {
     borderColor: '#EF4444',
   },
@@ -141,11 +158,21 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     marginRight: 10,
   },
+  iconBoxCompact: {
+    width: 22,
+    height: 22,
+    borderRadius: 6,
+    marginRight: 6,
+  },
   dateText: {
     flex: 1,
     fontSize: 14,
     fontWeight: '600',
     color: '#1E293B',
+  },
+  dateTextCompact: {
+    fontSize: 11,
+    fontWeight: '500',
   },
   datePlaceholder: {
     color: '#94A3B8',

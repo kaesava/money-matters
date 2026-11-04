@@ -11,6 +11,8 @@ import { Feather } from '@expo/vector-icons';
 import { t } from '@money-matters/i18n';
 import { DESIGN_TOKENS } from '../tokens';
 
+import { MobileProductTourSpotlight, TargetLayoutRect } from './MobileProductTourSpotlight';
+
 export interface MobileTourStepConfig {
   step: number;
   totalSteps: number;
@@ -22,6 +24,7 @@ export interface MobileTourStepConfig {
 export interface MobileProductTourSheetProps {
   visible: boolean;
   stepConfig: MobileTourStepConfig;
+  targetRect?: TargetLayoutRect | null;
   onNext: () => void;
   onBack: () => void;
   onSkip: () => void;
@@ -31,6 +34,7 @@ export interface MobileProductTourSheetProps {
 export function MobileProductTourSheet({
   visible,
   stepConfig,
+  targetRect = null,
   onNext,
   onBack,
   onSkip,
@@ -41,9 +45,9 @@ export function MobileProductTourSheet({
   if (!visible) return null;
 
   return (
-    <Modal visible={visible} animationType="slide" transparent onRequestClose={onSkip}>
+    <Modal visible={visible} animationType="fade" transparent onRequestClose={onSkip}>
       <View style={styles.overlay}>
-        <Pressable style={styles.backdrop} onPress={onSkip} />
+        <MobileProductTourSpotlight targetRect={targetRect} onDismiss={onSkip} />
         <View style={styles.content}>
           <View style={styles.dragIndicator} />
 

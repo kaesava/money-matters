@@ -86,11 +86,15 @@ export default function SetupCategoriesScreen() {
       <View style={styles.summaryGrid}>
         <View style={styles.summaryCard}>
           <Text style={styles.summaryCardLabel}>{t('setup.reviewSummary.monthlyNetIncome')}</Text>
-          <Text style={styles.summaryCardVal}>{formatMobileCurrency(estimation.totalMonthlyIncomeAud)}</Text>
+          <Text style={styles.summaryCardVal} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.75}>
+            {formatMobileCurrency(estimation.totalMonthlyIncomeAud)}
+          </Text>
         </View>
         <View style={styles.summaryCard}>
           <Text style={styles.summaryCardLabel}>{t('setup.reviewSummary.totalAllocated')}</Text>
-          <Text style={styles.summaryCardVal}>{formatMobileCurrency(totalAllocatedMonthly)}</Text>
+          <Text style={styles.summaryCardVal} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.75}>
+            {formatMobileCurrency(totalAllocatedMonthly)}
+          </Text>
         </View>
         <View style={[styles.summaryCard, netSurplus >= 0 ? styles.surplusBg : styles.deficitBg]}>
           <Text style={styles.summaryCardLabel}>
@@ -98,7 +102,9 @@ export default function SetupCategoriesScreen() {
               ? t('setup.reviewSummary.estimatedMonthlyExtra')
               : t('setup.reviewSummary.estimatedMonthlyShortfall')}
           </Text>
-          <Text style={styles.summaryCardVal}>{formatMobileCurrency(Math.abs(netSurplus))}</Text>
+          <Text style={styles.summaryCardVal} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.75}>
+            {formatMobileCurrency(Math.abs(netSurplus))}
+          </Text>
         </View>
       </View>
 

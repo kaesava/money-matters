@@ -90,6 +90,8 @@ export function SetupCategoryRow({
             <View style={styles.amountWrap}>
               <AmountInput
                 value={displayVal ? String(displayVal) : ''}
+                containerStyle={styles.compactAmountWrap}
+                style={styles.compactAmountInput}
                 onChangeText={(txt) => {
                   const num = parseFloat(txt) || 0;
                   onUpdateAmount(convertToMonthly(num, freq));
@@ -155,7 +157,13 @@ const styles = StyleSheet.create({
     color: '#475569',
   },
   inputCol: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  amountWrap: { width: 90 },
+  amountWrap: { width: 116 },
+  compactAmountWrap: { marginBottom: 0 },
+  compactAmountInput: {
+    height: 38,
+    paddingVertical: 0,
+    fontSize: 13,
+  },
   freqBadge: {
     backgroundColor: DESIGN_TOKENS.colors.surfaceVariant,
     paddingHorizontal: 6,

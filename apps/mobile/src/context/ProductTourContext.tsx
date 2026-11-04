@@ -8,13 +8,16 @@ import { t } from '@money-matters/i18n';
 import {
   MobileProductTourSheet,
   MobileTourStepConfig,
+  TargetLayoutRect,
 } from '@money-matters/ui/mobile';
 
 export interface MobileTourContextValue {
   isTourActive: boolean;
   currentStep: number;
+  activeTargetRect: TargetLayoutRect | null;
   startTour: () => void;
   skipTour: () => void;
+  registerTourTarget: (id: string, rect: TargetLayoutRect | null) => void;
 }
 
 const ProductTourContext = createContext<MobileTourContextValue | null>(null);
@@ -97,7 +100,12 @@ export function MobileProductTourProvider({ children }: { children: ReactNode })
 
   const [isTourActive, setIsTourActive] = useState(false);
   const [currentStep, setCurrentStep] = useState(1);
+  const [targetRects, setTargetRects] = useState<Record<string, TargetLayoutRect | null>>({});
   const hasDismissedRef = useRef(false);
+
+  const registerTourTarget = useCallback((id: string, rect: TargetLayoutRect | null) => {
+    setTargetRects((prev) => ({ ...prev, [id]: rect }));
+  }, []);
 
   // Check if tour should prompt on first home visit
   useEffect(() => {
@@ -218,6 +226,7 @@ export function MobileProductTourProvider({ children }: { children: ReactNode })
   }, [currentStep, router]);
 
   const activeStepDef = MOBILE_TOUR_STEPS[currentStep - 1];
+  const activeTargetRect = activeStepDef ? targetRects[activeStepDef.id] ?? null : null;
   const stepConfig: MobileTourStepConfig | null = activeStepDef
     ? {
         step: currentStep,
@@ -233,8 +242,10 @@ export function MobileProductTourProvider({ children }: { children: ReactNode })
       value={{
         isTourActive,
         currentStep,
+        activeTargetRect,
         startTour,
         skipTour,
+        registerTourTarget,
       }}
     >
       {children}
@@ -243,6 +254,7 @@ export function MobileProductTourProvider({ children }: { children: ReactNode })
         <MobileProductTourSheet
           visible={isTourActive}
           stepConfig={stepConfig}
+          targetRect={activeTargetRect}
           onNext={handleNext}
           onBack={handleBack}
           onSkip={skipTour}

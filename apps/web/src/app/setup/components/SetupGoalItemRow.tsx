@@ -34,13 +34,6 @@ export function SetupGoalItemRow({
   return (
     <div className="p-3 bg-white rounded-xl border border-zinc-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xs">
       <div className="flex items-center gap-2.5">
-        <span
-          className={`text-[10px] font-black uppercase px-2 py-0.5 rounded-full ${
-            isOngoing ? "bg-blue-100 text-blue-700" : "bg-amber-100 text-amber-800"
-          }`}
-        >
-          {isOngoing ? t("setup.goals.recurringBadge") : t("setup.goals.targetDateBadge")}
-        </span>
         <div>
           <input
             type="text"

@@ -3,7 +3,7 @@ import { View, Text, TouchableOpacity, ScrollView, TextInput, StyleSheet } from 
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { t } from '@money-matters/i18n';
-import { DESIGN_TOKENS, AmountInput, MobileGoalModeToggle, useMobileToast } from '@money-matters/ui/mobile';
+import { DESIGN_TOKENS, AmountInput, MobileGoalModeToggle, useMobileToast, MobileDatePickerField } from '@money-matters/ui/mobile';
 import { useSetupWizard } from '../../context/SetupWizardContext';
 import { SetupGoalCard } from '../../components/setup/SetupGoalCard';
 import { getMobileLocaleConfig } from '../../lib/format';
@@ -34,6 +34,8 @@ export default function SetupGoalsScreen() {
 
   const [customName, setCustomName] = useState('');
   const [customTarget, setCustomTarget] = useState(isAud ? '5000' : '0');
+  const [customDate, setCustomDate] = useState('');
+  const [customFrequency, setCustomFrequency] = useState<'WEEKLY' | 'FORTNIGHTLY' | 'MONTHLY' | 'ANNUALLY'>('MONTHLY');
   const [customType, setCustomType] = useState<'TARGET_DATE' | 'ONGOING'>('TARGET_DATE');
 
   const tz = getMobileLocaleConfig().timezone;
@@ -71,6 +73,13 @@ export default function SetupGoalsScreen() {
     const defaultCustomAmt = isAud ? (customType === 'ONGOING' ? 250 : 1000) : 0;
     const amountNum = parseFloat(customTarget) || defaultCustomAmt;
     if (customType === 'ONGOING') {
+      const monthly = customFrequency === 'WEEKLY'
+        ? Math.round((amountNum * 52) / 12)
+        : customFrequency === 'FORTNIGHTLY'
+        ? Math.round((amountNum * 26) / 12)
+        : customFrequency === 'ANNUALLY'
+        ? Math.round(amountNum / 12)
+        : Math.round(amountNum);
       setGoals((prev) => [
         ...prev,
         {
@@ -80,15 +89,18 @@ export default function SetupGoalsScreen() {
           enteredAmount: amountNum,
           dueDate: null,
           goalMode: 'ONGOING',
-          monthlyAmount: amountNum,
-          budgetFrequency: 'MONTHLY',
+          monthlyAmount: monthly,
+          budgetFrequency: customFrequency,
           icon: 'target',
         },
       ]);
     } else {
-      const d = new Date();
-      d.setMonth(d.getMonth() + 12);
-      const dueDate = new Intl.DateTimeFormat('en-CA', { timeZone: tz }).format(d);
+      let dueDate = customDate;
+      if (!dueDate) {
+        const d = new Date();
+        d.setMonth(d.getMonth() + 12);
+        dueDate = new Intl.DateTimeFormat('en-CA', { timeZone: tz }).format(d);
+      }
       setGoals((prev) => [
         ...prev,
         {
@@ -103,6 +115,7 @@ export default function SetupGoalsScreen() {
       ]);
     }
     setCustomName('');
+    setCustomDate('');
     setCustomTarget(customType === 'ONGOING' ? '250' : '5000');
   };
 
@@ -160,9 +173,32 @@ export default function SetupGoalsScreen() {
           <MobileGoalModeToggle value={customType} onChange={setCustomType} />
         </View>
         {customType === 'ONGOING' && (
-          <Text style={styles.recurringMonthlyNote}>
-            {t('setup.goals.recurringMonthlyNote')}
-          </Text>
+          <View style={styles.freqSelectSection}>
+            <Text style={styles.freqSectionLabel}>{t('categories.recurrence')}</Text>
+            <View style={styles.freqChipsRow}>
+              {(['WEEKLY', 'FORTNIGHTLY', 'MONTHLY', 'ANNUALLY'] as const).map((f) => (
+                <TouchableOpacity
+                  key={f}
+                  onPress={() => setCustomFrequency(f)}
+                  style={[styles.freqChip, customFrequency === f && styles.freqChipActive]}
+                >
+                  <Text style={[styles.freqChipText, customFrequency === f && styles.freqChipTextActive]}>
+                    {f === 'WEEKLY' ? '/wk' : f === 'FORTNIGHTLY' ? '/fn' : f === 'ANNUALLY' ? '/yr' : '/mo'}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
+        )}
+        {customType === 'TARGET_DATE' && (
+          <View style={styles.datePickerWrap}>
+            <Text style={styles.fieldLabel}>{t('categories.targetDateLabel')}</Text>
+            <MobileDatePickerField
+              compact
+              value={customDate}
+              onChange={setCustomDate}
+            />
+          </View>
         )}
         <View style={styles.customTargetRow}>
           <View style={styles.flexOne}>
@@ -256,6 +292,50 @@ const styles = StyleSheet.create({
   },
   toggleWrap: {
     marginBottom: 8,
+  },
+  freqSelectSection: {
+    marginBottom: 10,
+  },
+  freqSectionLabel: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: DESIGN_TOKENS.colors.textMuted,
+    marginBottom: 4,
+  },
+  freqChipsRow: {
+    flexDirection: 'row',
+    gap: 6,
+  },
+  freqChip: {
+    flex: 1,
+    paddingVertical: 8,
+    borderRadius: 8,
+    backgroundColor: DESIGN_TOKENS.colors.slate[100],
+    borderWidth: 1,
+    borderColor: DESIGN_TOKENS.colors.slate[200],
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  freqChipActive: {
+    backgroundColor: '#EFF6FF',
+    borderColor: '#93C5FD',
+  },
+  freqChipText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: DESIGN_TOKENS.colors.slate[600],
+  },
+  freqChipTextActive: {
+    color: '#1D4ED8',
+  },
+  datePickerWrap: {
+    marginBottom: 8,
+  },
+  fieldLabel: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: DESIGN_TOKENS.colors.textMuted,
+    marginBottom: 4,
   },
   recurringMonthlyNote: {
     fontSize: 11,

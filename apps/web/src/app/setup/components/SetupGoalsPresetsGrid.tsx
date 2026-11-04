@@ -96,26 +96,18 @@ export function SetupGoalsPresetsGrid({
               }`}
             >
               <div className="flex items-center justify-between">
-                <span
-                  className={`text-[10px] font-black uppercase px-2 py-0.5 rounded-full ${
-                    isOngoing
-                      ? "bg-blue-100 text-blue-700"
-                      : "bg-amber-100 text-amber-800"
-                  }`}
-                >
-                  {isOngoing
-                    ? t("setup.goals.recurringBadge")
-                    : t("setup.goals.targetDateBadge")}
+                <span className="text-xs font-bold text-[#1B2B4B] line-clamp-1">
+                  {displayLabel}
                 </span>
                 <span
-                  className={`w-5 h-5 rounded-full flex items-center justify-center text-xs font-black ${
+                  className={`w-5 h-5 rounded-full flex items-center justify-center text-xs font-black shrink-0 ml-2 ${
                     active ? "bg-[#2563eb] text-white" : "bg-slate-100 text-slate-400"
                   }`}
                 >
                   {active ? "✓" : "+"}
                 </span>
               </div>
-              <div className="mt-2.5">
+              <div className="mt-1">
                 <div className="text-xs font-bold text-[#1B2B4B] line-clamp-1">
                   {displayLabel}
                 </div>

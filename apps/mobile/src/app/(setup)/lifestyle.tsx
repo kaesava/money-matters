@@ -3,10 +3,9 @@ import { View, Text, TouchableOpacity, ScrollView, StyleSheet } from 'react-nati
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { t } from '@money-matters/i18n';
-import { DESIGN_TOKENS, InfoTooltip, AmountInput } from '@money-matters/ui/mobile';
+import { DESIGN_TOKENS, InfoTooltip, AmountInput, MobileDiscretionarySliders } from '@money-matters/ui/mobile';
 import { useSetupWizard } from '../../context/SetupWizardContext';
 import { HousingType } from '@money-matters/types';
-import { formatMobileCurrency } from '../../lib/format';
 import { LifestyleVehicleSubCard } from '../../components/setup/LifestyleVehicleSubCard';
 import { LifestyleChildSubCard } from '../../components/setup/LifestyleChildSubCard';
 import { SetupProgressBar } from '../../components/setup/SetupProgressBar';
@@ -26,7 +25,7 @@ export default function SetupLifestyleScreen() {
     housingType, setHousingType, hasCars, setHasCars, vehicles, setVehicles,
     hasKids, setHasKids, children, setChildren, hasPrivateHealth, setHasPrivateHealth,
     hasDebt, setHasDebt, debtMonthlyRepayment, setDebtMonthlyRepayment, hasPets, setHasPets,
-    weeklyGroceries, weeklyDining, weeklyPersonal,
+    weeklyGroceries, setWeeklyGroceries, weeklyDining, setWeeklyDining, weeklyPersonal, setWeeklyPersonal,
     totalRegularMonthly, totalEverydayMonthly,
   } = useSetupWizard();
 
@@ -167,21 +166,15 @@ export default function SetupLifestyleScreen() {
         )}
       </View>
 
-      <View style={styles.sectionCard}>
-        <Text style={styles.sectionTitle}>{t('setup.lifestyle.spendingTitle')}</Text>
-        <View style={styles.budgetRow}>
-          <Text style={styles.budgetLabel}>{t('setup.lifestyle.groceries')}</Text>
-          <Text style={styles.budgetValue}>{formatMobileCurrency(weeklyGroceries)}{t('setup.lifestyle.perWeek')}</Text>
-        </View>
-        <View style={styles.budgetRow}>
-          <Text style={styles.budgetLabel}>{t('setup.lifestyle.dining')}</Text>
-          <Text style={styles.budgetValue}>{formatMobileCurrency(weeklyDining)}{t('setup.lifestyle.perWeek')}</Text>
-        </View>
-        <View style={styles.budgetRow}>
-          <Text style={styles.budgetLabel}>{t('setup.lifestyle.personalBuffer')}</Text>
-          <Text style={styles.budgetValue}>{formatMobileCurrency(weeklyPersonal)}{t('setup.lifestyle.perWeek')}</Text>
-        </View>
-      </View>
+      <MobileDiscretionarySliders
+        weeklyGroceries={weeklyGroceries}
+        setWeeklyGroceries={setWeeklyGroceries}
+        weeklyDining={weeklyDining}
+        setWeeklyDining={setWeeklyDining}
+        weeklyPersonal={weeklyPersonal}
+        setWeeklyPersonal={setWeeklyPersonal}
+        isZeroBased={country !== 'AU'}
+      />
 
       <View style={styles.actionRow}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>

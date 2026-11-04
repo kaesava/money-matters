@@ -39,7 +39,7 @@ export function MobilePaydaySandboxModal({
       onClose={onClose}
       title={t('setup.sandbox.title')}
     >
-      <ScrollView contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
+      <View style={styles.container}>
         <Text style={styles.subtitle}>
           {t('setup.sandbox.subtitle')}
         </Text>
@@ -59,11 +59,10 @@ export function MobilePaydaySandboxModal({
           {!isSimulated && (
             <MobileButton
               variant="primary"
+              label={`✨ ${t('setup.sandbox.runSimulateCta')}`}
               onPress={() => setIsSimulated(true)}
               disabled={parsedPaycheck <= 0}
-            >
-              ✨ {t('setup.sandbox.runSimulateCta')}
-            </MobileButton>
+            />
           )}
         </View>
 
@@ -94,14 +93,13 @@ export function MobilePaydaySandboxModal({
 
             <MobileButton
               variant="secondary"
+              label={t('setup.sandbox.returnToReview')}
               onPress={onClose}
               style={styles.finishBtn}
-            >
-              {t('setup.sandbox.returnToReview')}
-            </MobileButton>
+            />
           </View>
         )}
-      </ScrollView>
+      </View>
     </MobileModalDialog>
   );
 }

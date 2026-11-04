@@ -88,11 +88,6 @@ export function SetupGoalsPresetsGrid({
               onPress={() => onTogglePreset(preset)}
               style={[styles.presetCard, active && styles.presetCardActive]}
             >
-              <View style={styles.badgeRow}>
-                <Text style={[styles.badgeText, isOngoing ? styles.badgeOngoing : styles.badgeTarget]}>
-                  {isOngoing ? t('setup.goals.recurringBadge') : t('setup.goals.targetDateBadge')}
-                </Text>
-              </View>
               <Text style={styles.presetName} numberOfLines={1}>{displayLabel}</Text>
               <Text style={styles.presetMeta}>
                 {isOngoing ? `${formatMobileCurrency(targetAmt)}/mo` : `Target: ${formatMobileCurrency(targetAmt)}`}

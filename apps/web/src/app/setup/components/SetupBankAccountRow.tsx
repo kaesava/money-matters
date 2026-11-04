@@ -134,7 +134,14 @@ export function SetupBankAccountRow({
         <AmountField
           label={t("settings.bankAccountForm.balanceLabel")}
           value={String(acc.lastKnownBalance || "0.00")}
-          onChange={(val) => onFieldChange(acc, "lastKnownBalance", val)}
+          onChange={(val) => {
+            onFieldChange(acc, "lastKnownBalance", val);
+            const newBal = parseFloat(val) || 0;
+            const currentBuf = parseFloat(String(acc.unbudgetedBuffer || "0")) || 0;
+            if (currentBuf > newBal) {
+              onFieldChange(acc, "unbudgetedBuffer", String(newBal));
+            }
+          }}
           allowNegative={false}
         />
 
@@ -147,7 +154,14 @@ export function SetupBankAccountRow({
           </div>
           <AmountField
             value={String(acc.unbudgetedBuffer || "0.00")}
-            onChange={(val) => onFieldChange(acc, "unbudgetedBuffer", val)}
+            onChange={(val) => {
+              const numVal = parseFloat(val) || 0;
+              if (numVal > actualBalance) {
+                onFieldChange(acc, "unbudgetedBuffer", String(actualBalance));
+              } else {
+                onFieldChange(acc, "unbudgetedBuffer", val);
+              }
+            }}
             allowNegative={false}
           />
         </div>

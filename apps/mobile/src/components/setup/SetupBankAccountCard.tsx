@@ -120,7 +120,14 @@ export function SetupBankAccountCard({
           <Text style={styles.fieldLabel}>{t('settings.bankAccountForm.balanceLabel')}</Text>
           <AmountInput
             value={String(acc.lastKnownBalance || '0.00')}
-            onChangeText={(val) => onFieldChange(acc, 'lastKnownBalance', val)}
+            onChangeText={(val) => {
+              onFieldChange(acc, 'lastKnownBalance', val);
+              const newBal = parseFloat(val) || 0;
+              const currentBuf = parseFloat(String(acc.unbudgetedBuffer || '0')) || 0;
+              if (currentBuf > newBal) {
+                onFieldChange(acc, 'unbudgetedBuffer', String(newBal));
+              }
+            }}
           />
         </View>
         <View style={styles.flexOne}>
@@ -130,7 +137,14 @@ export function SetupBankAccountCard({
           </View>
           <AmountInput
             value={String(acc.unbudgetedBuffer || '0.00')}
-            onChangeText={(val) => onFieldChange(acc, 'unbudgetedBuffer', val)}
+            onChangeText={(val) => {
+              const numVal = parseFloat(val) || 0;
+              if (numVal > actualBalance) {
+                onFieldChange(acc, 'unbudgetedBuffer', String(actualBalance));
+              } else {
+                onFieldChange(acc, 'unbudgetedBuffer', val);
+              }
+            }}
           />
         </View>
       </View>

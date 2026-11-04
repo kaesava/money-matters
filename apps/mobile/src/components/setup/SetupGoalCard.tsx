@@ -1,9 +1,9 @@
 import React from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet } from 'react-native';
+import { Feather } from '@expo/vector-icons';
 import { UserGoalItem } from '@money-matters/types';
 import { DESIGN_TOKENS, AmountInput, MobileDatePickerField } from '@money-matters/ui/mobile';
 import { t } from '@money-matters/i18n';
-import { formatMobileCurrency } from '../../lib/format';
 
 interface SetupGoalCardProps {
   goal: UserGoalItem;
@@ -29,6 +29,26 @@ function getFrequencyUnitLabel(freq?: string | null): string {
   return '/mo';
 }
 
+function renderGoalIcon(iconName?: string | null) {
+  const icon = iconName || 'target';
+  switch (icon) {
+    case 'shield':
+      return <Feather name="shield" size={18} color={DESIGN_TOKENS.colors.accent} />;
+    case 'plane':
+      return <Feather name="send" size={18} color={DESIGN_TOKENS.colors.accent} />;
+    case 'car':
+      return <Feather name="truck" size={18} color={DESIGN_TOKENS.colors.accent} />;
+    case 'laptop':
+      return <Feather name="monitor" size={18} color={DESIGN_TOKENS.colors.accent} />;
+    case 'book':
+      return <Feather name="book-open" size={18} color={DESIGN_TOKENS.colors.accent} />;
+    case 'trending-up':
+      return <Feather name="trending-up" size={18} color={DESIGN_TOKENS.colors.accent} />;
+    default:
+      return <Feather name="target" size={18} color={DESIGN_TOKENS.colors.accent} />;
+  }
+}
+
 export function SetupGoalCard({
   goal,
   onUpdate,
@@ -38,7 +58,6 @@ export function SetupGoalCard({
   const months = isOngoing ? 1 : getMonthsDiff(goal.dueDate || '');
   const rawAmt = goal.enteredAmount !== undefined && goal.enteredAmount !== null ? goal.enteredAmount : (goal.monthlyAmount || 0);
   const freq = goal.budgetFrequency || 'MONTHLY';
-  const unitLabel = getFrequencyUnitLabel(freq);
 
   const handleFrequencyChange = (newFreq: 'WEEKLY' | 'FORTNIGHTLY' | 'MONTHLY' | 'ANNUALLY') => {
     onUpdate(goal.id, 'budgetFrequency', newFreq);
@@ -57,25 +76,20 @@ export function SetupGoalCard({
     <View style={styles.card}>
       <View style={styles.header}>
         <View style={styles.titleRow}>
-          <Text style={styles.icon}>{goal.icon || '🎯'}</Text>
-          <View style={styles.titleTextWrap}>
-            <TextInput
-              style={styles.nameInput}
-              value={goal.name}
-              onChangeText={(txt) => onUpdate(goal.id, 'name', txt)}
-            />
-            {isOngoing && (
-              <Text style={styles.ongoingBadgeText}>
-                {t('goalModes.ongoing')}
-              </Text>
-            )}
-          </View>
+          <View style={styles.iconBox}>{renderGoalIcon(goal.icon)}</View>
+          <TextInput
+            style={styles.nameInput}
+            value={goal.name}
+            onChangeText={(txt) => onUpdate(goal.id, 'name', txt)}
+          />
         </View>
-        <View style={styles.actionsWrap}>
-          <TouchableOpacity onPress={() => onRemove(goal.id)} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
-            <Text style={styles.removeBtn}>✕</Text>
-          </TouchableOpacity>
-        </View>
+        <TouchableOpacity
+          onPress={() => onRemove(goal.id)}
+          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          style={styles.removeBtnTouch}
+        >
+          <Feather name="x" size={16} color={DESIGN_TOKENS.colors.critical} />
+        </TouchableOpacity>
       </View>
 
       <View style={styles.inputsRow}>
@@ -91,6 +105,8 @@ export function SetupGoalCard({
                   : goal.monthlyAmount ? String(goal.monthlyAmount) : ''
                 : goal.targetAmount ? String(goal.targetAmount) : ''
             }
+            containerStyle={styles.amountInputContainer}
+            style={styles.amountInput}
             onChangeText={(val) => {
               const num = parseFloat(val) || 0;
               if (isOngoing) {
@@ -111,10 +127,12 @@ export function SetupGoalCard({
             }}
           />
         </View>
+
         {!isOngoing ? (
           <View style={styles.dateCol}>
             <Text style={styles.fieldLabel}>{t('categories.targetDateLabel')}</Text>
             <MobileDatePickerField
+              compact
               value={goal.dueDate || ''}
               onChange={(d) => onUpdate(goal.id, 'dueDate', d)}
             />
@@ -137,11 +155,6 @@ export function SetupGoalCard({
             </View>
           </View>
         )}
-        <View style={styles.guideBadge}>
-          <Text style={styles.guideText}>
-            {isOngoing ? `${formatMobileCurrency(rawAmt)}${unitLabel}` : `${formatMobileCurrency(Math.round((goal.targetAmount || 0) / months))}/mo`}
-          </Text>
-        </View>
       </View>
     </View>
   );
@@ -156,30 +169,80 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: DESIGN_TOKENS.colors.slate[200],
   },
-  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 },
-  titleRow: { flexDirection: 'row', alignItems: 'center', gap: 8, flex: 1 },
-  titleTextWrap: { flex: 1 },
-  icon: { fontSize: 18 },
-  nameInput: { fontSize: 14, fontWeight: '700', color: DESIGN_TOKENS.colors.primary, flex: 1 },
-  actionsWrap: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  inlineSaveBtn: {
-    padding: 4,
-    borderRadius: 6,
-    backgroundColor: '#ECFDF5',
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 10,
   },
-  removeBtn: { fontSize: 14, fontWeight: '700', color: DESIGN_TOKENS.colors.critical, paddingHorizontal: 4 },
-  inputsRow: { flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between', gap: 12 },
-  amountCol: { flex: 1 },
-  dateCol: { flex: 1 },
-  freqCol: { flex: 1.2 },
-  freqChipsRow: { flexDirection: 'row', gap: 4, flexWrap: 'wrap' },
-  freqChip: {
-    paddingHorizontal: 6,
-    paddingVertical: 4,
+  titleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    flex: 1,
+    marginRight: 8,
+  },
+  iconBox: {
+    width: 28,
+    height: 28,
     borderRadius: 6,
+    backgroundColor: '#EFF6FF',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  nameInput: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: DESIGN_TOKENS.colors.primary,
+    flex: 1,
+  },
+  removeBtnTouch: {
+    padding: 4,
+  },
+  inputsRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 10,
+  },
+  amountCol: {
+    flex: 1,
+  },
+  dateCol: {
+    flex: 1,
+  },
+  freqCol: {
+    flex: 1.1,
+  },
+  fieldLabel: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: DESIGN_TOKENS.colors.textMuted,
+    marginBottom: 4,
+    height: 16,
+  },
+  amountInputContainer: {
+    marginBottom: 0,
+  },
+  amountInput: {
+    height: 42,
+    paddingVertical: 0,
+    fontSize: 13,
+  },
+  freqChipsRow: {
+    flexDirection: 'row',
+    gap: 4,
+    height: 42,
+    alignItems: 'center',
+  },
+  freqChip: {
+    flex: 1,
+    height: 38,
+    borderRadius: 8,
     backgroundColor: DESIGN_TOKENS.colors.slate[100],
     borderWidth: 1,
     borderColor: DESIGN_TOKENS.colors.slate[200],
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   freqChipActive: {
     backgroundColor: '#EFF6FF',
@@ -192,21 +255,5 @@ const styles = StyleSheet.create({
   },
   freqChipTextActive: {
     color: '#1D4ED8',
-  },
-  fieldLabel: { fontSize: 11, fontWeight: '600', color: DESIGN_TOKENS.colors.textMuted, marginBottom: 4 },
-  guideBadge: {
-    backgroundColor: '#F0FDF4',
-    paddingHorizontal: 8,
-    paddingVertical: 6,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#BBF7D0',
-  },
-  guideText: { fontSize: 11, fontWeight: '700', color: '#15803D' },
-  ongoingBadgeText: {
-    fontSize: 10,
-    fontWeight: '700',
-    color: DESIGN_TOKENS.colors.accent,
-    marginTop: 2,
   },
 });
