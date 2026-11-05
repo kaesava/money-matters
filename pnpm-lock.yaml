@@ -75,6 +75,9 @@ importers:
       '@money-matters/capability-budgeting':
         specifier: workspace:*
         version: link:../../packages/capabilities/budgeting
+      '@money-matters/capability-bug-reports':
+        specifier: workspace:*
+        version: link:../../packages/capabilities/bug-reports
       '@money-matters/capability-notifications':
         specifier: workspace:*
         version: link:../../packages/capabilities/notifications
