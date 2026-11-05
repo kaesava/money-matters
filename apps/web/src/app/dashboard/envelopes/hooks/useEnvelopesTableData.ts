@@ -32,6 +32,7 @@ interface UseEnvelopesTableDataParams {
     goalMode?: string | null;
     isSurplusTarget?: boolean | null;
     hasScheduledEvents?: boolean | null;
+    generateEvents?: boolean | null;
   }>;
   rawExpenseEvents?: Array<{
     id: string;
@@ -66,8 +67,8 @@ export function useEnvelopesTableData({
   const [searchQuery, setSearchQuery] = useState(paramSearch);
   const [typeFilter, setTypeFilter] = useState<PoolTypeFilter>(paramType);
   const [privacyFilter, setPrivacyFilter] = useState<"ALL" | "SHARED" | "PRIVATE">("ALL");
-  const [projectionMonths] = useState(0);
-  const [showProjectionMatrix] = useState(false);
+  const [projectionMonths, setProjectionMonths] = useState(0);
+  const [showProjectionMatrix, setShowProjectionMatrix] = useState(false);
 
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
@@ -124,11 +125,14 @@ export function useEnvelopesTableData({
       const isBill = p.envelopeType === "SCHEDULED_BILL" || p.envelopeType === "FLEXIBLE_BILL";
       const isEveryday = p.envelopeType === "EVERYDAY";
 
-      const targetAmountNum = p.targetAmount
-        ? parseFloat(p.targetAmount)
-        : p.monthlyAmount
-        ? parseFloat(p.monthlyAmount)
-        : null;
+      const targetAmountNum =
+        p.envelopeType === "SCHEDULED_BILL"
+          ? (p.enteredAmount ? parseFloat(p.enteredAmount) : p.targetAmount ? parseFloat(p.targetAmount) : p.monthlyAmount ? parseFloat(p.monthlyAmount) : null)
+          : p.envelopeType === "ONGOING_GOAL"
+          ? (p.enteredAmount ? parseFloat(p.enteredAmount) : p.monthlyAmount ? parseFloat(p.monthlyAmount) : p.targetAmount ? parseFloat(p.targetAmount) : null)
+          : p.envelopeType === "TARGET_GOAL"
+          ? (p.targetAmount ? parseFloat(p.targetAmount) : null)
+          : (p.targetAmount ? parseFloat(p.targetAmount) : p.monthlyAmount ? parseFloat(p.monthlyAmount) : p.enteredAmount ? parseFloat(p.enteredAmount) : null);
 
       let currentBal = p.currentBalance || 0;
       if (showProjectionMatrix && projectionMonths > 0.05 && activeProjectionColId && poolBalances?.[p.id]) {
@@ -188,6 +192,7 @@ export function useEnvelopesTableData({
         goalMode: p.goalMode as "TARGET_DATE" | "ONGOING" | undefined,
         isSurplusTarget: p.isSurplusTarget,
         hasScheduledEvents: p.hasScheduledEvents,
+        generateEvents: p.generateEvents ?? true,
       };
 
       return {
@@ -313,7 +318,9 @@ export function useEnvelopesTableData({
     privacyFilter,
     setPrivacyFilter,
     projectionMonths,
+    setProjectionMonths,
     showProjectionMatrix,
+    setShowProjectionMatrix,
     page,
     setPage,
     pageSize,

@@ -40,6 +40,7 @@ export interface EnvelopeFormFieldsProps {
   hasExistingScheduledEvents?: boolean;
   typeOptions: Array<{ key: string; label: string }>;
   bankOptions: Array<{ key: string; label: string }>;
+  isTargetDateInPast?: boolean;
 }
 
 export type CategoryFormFieldsProps = EnvelopeFormFieldsProps;
@@ -85,6 +86,7 @@ export const EnvelopeFormFields: React.FC<EnvelopeFormFieldsProps> = ({
   hasExistingScheduledEvents = false,
   typeOptions,
   bankOptions,
+  isTargetDateInPast = false,
 }) => {
   return (
     <View style={styles.content}>
@@ -194,12 +196,15 @@ export const EnvelopeFormFields: React.FC<EnvelopeFormFieldsProps> = ({
           setTargetAmount={setTargetAmount}
           targetDate={targetDate}
           setTargetDate={setTargetDate}
+          isTargetDateInPast={isTargetDateInPast}
           frequency={frequency}
           setFrequency={setFrequency}
           interval={interval}
           setInterval={setInterval}
           goalStartDate={goalStartDate}
           setGoalStartDate={setGoalStartDate}
+          endDate={endDate}
+          setEndDate={setEndDate}
           calculatedMonthly={calculatedMonthly}
         />
       )}

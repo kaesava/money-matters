@@ -16,12 +16,14 @@ interface PoolSummaryCardProps {
   };
   bankAccountName?: string | null;
   onEdit: () => void;
+  onDrawDown?: () => void;
 }
 
 export function PoolSummaryCard({
   pool,
   bankAccountName,
   onEdit,
+  onDrawDown,
 }: PoolSummaryCardProps) {
   const badgeText = pool.envelopeType === 'SCHEDULED_BILL'
     ? t('categories.scheduledBillBadge')
@@ -90,6 +92,12 @@ export function PoolSummaryCard({
       </View>
 
       <View style={styles.actionRow}>
+        {onDrawDown && (
+          <TouchableOpacity onPress={onDrawDown} style={styles.drawDownBtn}>
+            <Feather name="arrow-down-circle" size={15} color={DESIGN_TOKENS.colors.successDark} />
+            <Text style={styles.drawDownBtnText}>{t('categories.actions.drawDown')}</Text>
+          </TouchableOpacity>
+        )}
         <TouchableOpacity onPress={onEdit} style={styles.primaryActionBtn}>
           <Feather name="edit-2" size={15} color="#FFFFFF" />
           <Text style={styles.primaryActionBtnText}>{t('categories.editPool')}</Text>
@@ -161,4 +169,17 @@ const styles = StyleSheet.create({
     elevation: 2,
   },
   primaryActionBtnText: { fontSize: 13, fontWeight: '700', color: DESIGN_TOKENS.colors.onAccent },
+  drawDownBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    backgroundColor: DESIGN_TOKENS.colors.successLight,
+    borderWidth: 1,
+    borderColor: '#A7F3D0',
+    borderRadius: 12,
+    paddingVertical: 10,
+  },
+  drawDownBtnText: { fontSize: 13, fontWeight: '700', color: DESIGN_TOKENS.colors.successDark },
 });

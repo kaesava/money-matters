@@ -1,8 +1,9 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import Link from "next/link";
-import { useSearchParams, useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
+import { MoreVertical, ArrowDownCircle, ArrowRightLeft, TrendingUp, X, Sparkles } from "lucide-react";
 import { useToast, ConfirmDialog, RecordFilterBadge } from "@money-matters/ui/web";
 import { t } from "@money-matters/i18n";
 
@@ -32,24 +33,24 @@ function PoolsPageContent() {
   const archivedQuery = trpc.listArchivedItems.useQuery();
   const expenseEventsQuery = trpc.listExpenseEvents.useQuery();
   const transactionsQuery = trpc.listTransactions.useQuery({ limit: 1000 });
-  const projectionQuery = trpc.getProjectedPoolBalances.useQuery(undefined, { enabled: false });
+  const [overflowMenuOpen, setOverflowMenuOpen] = useState(false);
+  const [isQuickDrawerOpen, setIsQuickDrawerOpen] = useState(false);
+  const [quickDrawerTab, setQuickDrawerTab] = useState<"DEBIT" | "CREDIT" | "TRANSFER">("TRANSFER");
+  const [quickDrawerInitialData, setQuickDrawerInitialData] = useState<{
+    type?: "DEBIT" | "CREDIT" | "TRANSFER";
+    name?: string;
+    categoryId?: string;
+  } | undefined>(undefined);
+
+  const [isPoolModalOpen, setIsPoolModalOpen] = useState(false);
+  const [poolToEdit, setPoolToEdit] = useState<EnvelopeSummaryItem | null>(null);
+  const [selectedPoolForDrawer, setSelectedPoolForDrawer] = useState<PoolTableRow | null>(null);
+  const [poolToArchive, setPoolToArchive] = useState<EnvelopeSummaryItem | null>(null);
 
   const hasArchivedCategories =
     archivedQuery.data?.some(
       (i) => i.itemType === "POOL" || i.itemType === "CATEGORY" || i.itemType === "ENVELOPE"
     ) ?? false;
-
-  const [isPoolModalOpen, setIsPoolModalOpen] = useState(false);
-  const [poolToEdit, setPoolToEdit] = useState<EnvelopeSummaryItem | null>(null);
-  const [isMoveMoneyOpen, setIsMoveMoneyOpen] = useState(false);
-  const [selectedPoolForDrawer, setSelectedPoolForDrawer] = useState<PoolTableRow | null>(null);
-  const [poolToArchive, setPoolToArchive] = useState<EnvelopeSummaryItem | null>(null);
-
-  const archivePoolMut = trpc.archivePool.useMutation({
-    onSuccess: () => {
-      utils.listPools.invalidate();
-    },
-  });
 
   const {
     searchQuery,
@@ -59,7 +60,9 @@ function PoolsPageContent() {
     privacyFilter,
     setPrivacyFilter,
     projectionMonths,
+    setProjectionMonths,
     showProjectionMatrix,
+    setShowProjectionMatrix,
     page,
     setPage,
     pageSize,
@@ -76,8 +79,12 @@ function PoolsPageContent() {
     rawPools: poolsQuery.data,
     rawExpenseEvents: expenseEventsQuery.data,
     rawTransactions: transactionsQuery.data,
-    projectionColumns: projectionQuery.data?.columns,
-    poolBalances: projectionQuery.data?.poolBalances,
+    projectionColumns: trpc.getProjectedPoolBalances.useQuery(undefined, {
+      enabled: true,
+    }).data?.columns,
+    poolBalances: trpc.getProjectedPoolBalances.useQuery(undefined, {
+      enabled: true,
+    }).data?.poolBalances,
     userTimezone,
     paramSearch,
     paramType,
@@ -97,6 +104,34 @@ function PoolsPageContent() {
     if (val === null || val === undefined) return "—";
     return fmt(val);
   };
+
+  const archivePoolMut = trpc.archivePool.useMutation({
+    onSuccess: () => {
+      utils.listPools.invalidate();
+    },
+  });
+
+  const handleDrawDown = (pool: { id: string }) => {
+    setSelectedPoolForDrawer(null);
+    setQuickDrawerTab("DEBIT");
+    setQuickDrawerInitialData({ type: "DEBIT", name: "Draw down", categoryId: pool.id });
+    setIsQuickDrawerOpen(true);
+  };
+
+  const dropdownRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setOverflowMenuOpen(false);
+      }
+    }
+    if (overflowMenuOpen) {
+      document.addEventListener("mousedown", handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [overflowMenuOpen]);
 
   const confirmArchivePool = async () => {
     if (!poolToArchive) return;
@@ -122,13 +157,64 @@ function PoolsPageContent() {
         </div>
 
         <div className="flex items-center gap-3">
-          <button
-            type="button"
-            onClick={() => setIsMoveMoneyOpen(true)}
-            className="px-4 py-2.5 rounded-xl font-bold text-xs bg-blue-50 text-[#2563eb] hover:bg-blue-100 border border-blue-200 transition-all flex items-center gap-2 shadow-2xs cursor-pointer"
-          >
-            <span>{t("categories.actions.moveMoney")}</span>
-          </button>
+          <div className="relative" ref={dropdownRef}>
+            <button
+              type="button"
+              onClick={() => setOverflowMenuOpen(!overflowMenuOpen)}
+              className="p-2.5 rounded-xl font-bold text-xs bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-zinc-700 dark:text-zinc-200 transition-all border border-zinc-200 dark:border-zinc-700 flex items-center justify-center cursor-pointer"
+              aria-label="Actions"
+            >
+              <MoreVertical className="w-4 h-4" />
+            </button>
+
+            {overflowMenuOpen && (
+              <div className="absolute right-0 mt-2 w-56 rounded-xl bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 shadow-xl py-1.5 z-50">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setOverflowMenuOpen(false);
+                    setQuickDrawerInitialData(undefined);
+                    setQuickDrawerTab("DEBIT");
+                    setIsQuickDrawerOpen(true);
+                  }}
+                  className="w-full px-3.5 py-2 text-left text-xs font-semibold text-zinc-700 dark:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800 flex items-center gap-2.5 transition-colors cursor-pointer"
+                >
+                  <ArrowDownCircle className="w-4 h-4 text-emerald-600" />
+                  <span>{t("categories.actions.quickExpense")}</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setOverflowMenuOpen(false);
+                    setQuickDrawerInitialData(undefined);
+                    setQuickDrawerTab("TRANSFER");
+                    setIsQuickDrawerOpen(true);
+                  }}
+                  className="w-full px-3.5 py-2 text-left text-xs font-semibold text-zinc-700 dark:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800 flex items-center gap-2.5 transition-colors cursor-pointer"
+                >
+                  <ArrowRightLeft className="w-4 h-4 text-[#2563eb]" />
+                  <span>{t("categories.actions.moveMoney")}</span>
+                </button>
+                <div className="h-px bg-zinc-100 dark:bg-zinc-800 my-1" />
+                <button
+                  type="button"
+                  onClick={() => {
+                    setOverflowMenuOpen(false);
+                    setShowProjectionMatrix(!showProjectionMatrix);
+                  }}
+                  className="w-full px-3.5 py-2 text-left text-xs font-semibold text-zinc-700 dark:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800 flex items-center gap-2.5 transition-colors cursor-pointer"
+                >
+                  <TrendingUp className="w-4 h-4 text-purple-600" />
+                  <span>
+                    {showProjectionMatrix
+                      ? t("categories.actions.exitProjection")
+                      : t("categories.actions.futureProjection")}
+                  </span>
+                </button>
+              </div>
+            )}
+          </div>
+
           <button
             type="button"
             onClick={() => {
@@ -141,6 +227,54 @@ function PoolsPageContent() {
           </button>
         </div>
       </div>
+
+      {showProjectionMatrix && (
+        <div className="bg-gradient-to-r from-blue-50/80 to-indigo-50/80 dark:from-blue-950/30 dark:to-indigo-950/30 border border-blue-200/80 dark:border-blue-900/60 rounded-2xl p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <div className="space-y-1">
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-black text-[#2563eb] uppercase tracking-wider">
+                {t("categories.projectionModeTitle")}
+              </span>
+              <span className="text-[11px] font-bold text-zinc-500 bg-white/80 dark:bg-zinc-800/80 px-2 py-0.5 rounded-md border border-zinc-200/60 dark:border-zinc-700/60">
+                {projectionMonths === 0
+                  ? t("common.today")
+                  : t("categories.projectedBalances", { months: projectionMonths })}
+              </span>
+            </div>
+            <p className="text-xs text-zinc-600 dark:text-zinc-400">
+              {t("categories.projectionModeReadOnlyNotice")}
+            </p>
+          </div>
+
+          <div className="flex items-center gap-2 flex-wrap">
+            {[0, 1, 2, 3, 6, 9, 12].map((m) => (
+              <button
+                key={m}
+                type="button"
+                onClick={() => setProjectionMonths(m)}
+                className={`px-3 py-1.5 text-xs font-bold rounded-xl transition-all border cursor-pointer ${
+                  projectionMonths === m
+                    ? "bg-[#2563eb] text-white border-[#2563eb] shadow-xs"
+                    : "bg-white dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 border-zinc-200 dark:border-zinc-700 hover:border-blue-300"
+                }`}
+              >
+                {m === 0 ? t("common.today") : `+${m}M`}
+              </button>
+            ))}
+            <button
+              type="button"
+              onClick={() => {
+                setShowProjectionMatrix(false);
+                setProjectionMonths(0);
+              }}
+              className="p-1.5 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 rounded-lg hover:bg-black/5 transition-colors cursor-pointer ml-1"
+              title={t("categories.actions.exitProjection")}
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+      )}
 
       <EnvelopesFilterBar
         searchQuery={searchQuery}
@@ -211,6 +345,7 @@ function PoolsPageContent() {
             setPoolToEdit(pool);
             setIsPoolModalOpen(true);
           }}
+          onDrawDown={handleDrawDown}
           onOpenCategoryDrawer={(pool) => {
             setSelectedPoolForDrawer(pool);
           }}
@@ -251,13 +386,15 @@ function PoolsPageContent() {
         </div>
       )}
 
-      {isMoveMoneyOpen && (
+      {isQuickDrawerOpen && (
         <QuickActionDrawer
           onClose={() => {
-            setIsMoveMoneyOpen(false);
+            setIsQuickDrawerOpen(false);
+            setQuickDrawerInitialData(undefined);
             utils.listPools.invalidate();
           }}
-          initialTab="TRANSFER"
+          initialTab={quickDrawerTab}
+          initialData={quickDrawerInitialData}
         />
       )}
 
@@ -265,9 +402,12 @@ function PoolsPageContent() {
         isOpen={isPoolModalOpen}
         onClose={() => setIsPoolModalOpen(false)}
         envelopeToEdit={poolToEdit}
-        onSuccess={() => {
-          utils.listPools.invalidate();
-          utils.listExpenseEvents.invalidate();
+        onSuccess={async () => {
+          await Promise.all([
+            utils.listPools.refetch(),
+            utils.listExpenseEvents.refetch(),
+            utils.getProjectedPoolBalances.refetch(),
+          ]);
         }}
       />
 
@@ -276,6 +416,7 @@ function PoolsPageContent() {
         categoryName={selectedPoolForDrawer?.name || ""}
         categoryId={selectedPoolForDrawer?.id}
         onClose={() => setSelectedPoolForDrawer(null)}
+        onDrawDown={handleDrawDown}
         onEditPool={(pool) => {
           setPoolToEdit(pool);
           setIsPoolModalOpen(true);

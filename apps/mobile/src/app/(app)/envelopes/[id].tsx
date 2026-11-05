@@ -6,6 +6,7 @@ import { t } from '@money-matters/i18n';
 import { trpc } from '../../../lib/trpc';
 import { authClient } from '../../../lib/auth';
 import { EnvelopeFormModal } from '../../../components/EnvelopeFormModal';
+import { QuickExpenseModal, QuickActionInitialData } from '../../../components/QuickExpenseModal';
 import { MarkPaidModal, MarkPaidEvent } from '../../../components/MarkPaidModal';
 import { PoolSummaryCard } from '../../../components/envelopes/PoolSummaryCard';
 import { PoolUpcomingSection } from '../../../components/envelopes/PoolUpcomingSection';
@@ -17,6 +18,8 @@ export default function PoolDetailScreen() {
   const { data: session } = authClient.useSession();
 
   const [poolModalVisible, setPoolModalVisible] = useState(false);
+  const [quickExpenseVisible, setQuickExpenseVisible] = useState(false);
+  const [quickExpenseData, setQuickExpenseData] = useState<QuickActionInitialData | undefined>(undefined);
   const [markPaidEvent, setMarkPaidEvent] = useState<MarkPaidEvent | null>(null);
   const [upcomingExpanded, setUpcomingExpanded] = useState(true);
   const [historyExpanded, setHistoryExpanded] = useState(true);
@@ -65,6 +68,10 @@ export default function PoolDetailScreen() {
           pool={pool}
           bankAccountName={bankAccount?.name}
           onEdit={() => setPoolModalVisible(true)}
+          onDrawDown={() => {
+            setQuickExpenseData({ type: 'DEBIT', name: 'Draw down', categoryId: pool.id });
+            setQuickExpenseVisible(true);
+          }}
         />
 
         <PoolUpcomingSection
@@ -90,6 +97,20 @@ export default function PoolDetailScreen() {
           onToggleExpand={() => setHistoryExpanded((v) => !v)}
         />
       </ScrollView>
+
+      <QuickExpenseModal
+        visible={quickExpenseVisible}
+        initialType="DEBIT"
+        initialData={quickExpenseData}
+        onClose={() => {
+          setQuickExpenseVisible(false);
+          setQuickExpenseData(undefined);
+        }}
+        onSuccess={() => {
+          poolsQuery.refetch();
+          txLedgerQuery.refetch();
+        }}
+      />
 
       <EnvelopeFormModal
         visible={poolModalVisible}

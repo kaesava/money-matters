@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState, useMemo } from "react";
 import Link from "next/link";
+import { ArrowDownCircle } from "lucide-react";
 import { t } from "@money-matters/i18n";
 import { trpc } from "../../../../lib/trpc";
 import { Tabs, formatRecurrenceLabel, formatRecurrenceSuffix } from "@money-matters/ui/web";
@@ -26,6 +27,7 @@ export interface EnvelopeDetailDrawerProps {
   events?: CategoryScheduledEvent[];
   onMarkPaid?: (eventId: string, amount: string, date: string) => void;
   onEditPool?: (pool: CategorySummaryItem) => void;
+  onDrawDown?: (pool: { id: string }) => void;
 }
 
 export type SlideOverCategoryDrawerProps = EnvelopeDetailDrawerProps;
@@ -38,6 +40,7 @@ export function EnvelopeDetailDrawer({
   events,
   onMarkPaid,
   onEditPool,
+  onDrawDown,
 }: EnvelopeDetailDrawerProps) {
   const { fmt, fmtDate, fmtTx } = useLocale();
   const [activeTab, setActiveTab] = useState<"expenses" | "activity">("expenses");
@@ -142,7 +145,15 @@ export function EnvelopeDetailDrawer({
                   </span>
                   {targetPool && (
                     <span className="text-[10px] font-extrabold uppercase px-2 py-0.5 rounded bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 border border-zinc-200 dark:border-zinc-700">
-                      {targetPool.envelopeType}
+                      {targetPool.envelopeType === "SCHEDULED_BILL"
+                        ? t("categories.scheduledBillBadge")
+                        : targetPool.envelopeType === "FLEXIBLE_BILL"
+                        ? t("categories.flexibleBillBadge")
+                        : targetPool.envelopeType === "TARGET_GOAL"
+                        ? t("categories.targetDateGoalBadge")
+                        : targetPool.envelopeType === "ONGOING_GOAL"
+                        ? t("categories.ongoingGoalBadge")
+                        : t("categories.everydayBadge")}
                     </span>
                   )}
                   {onEditPool && targetPool && (
@@ -188,99 +199,91 @@ export function EnvelopeDetailDrawer({
 
             {/* High-Level Read-Only Pool Details Cards — 2 Rows Grid */}
             <div className="grid grid-cols-2 gap-3 p-3.5 bg-zinc-50 dark:bg-zinc-800/50 rounded-xl border border-zinc-200 dark:border-zinc-700/60">
-              {/* Row 1, Col 1: Current Balance */}
+              {/* Row 1, Col 1: Current Balance + Subtle Draw Down */}
               <div>
                 <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block">
                   {t("categoryDrawer.currentBalance")}
                 </span>
-                <span className="text-sm font-black font-mono text-[#1B2B4B] dark:text-white">
-                  {fmt(currentBal)}
-                </span>
+                <div className="flex items-center gap-2 flex-wrap mt-0.5">
+                  <span className="text-xl font-black font-mono text-[#1B2B4B] dark:text-white">
+                    {fmt(currentBal)}
+                  </span>
+                  {onDrawDown && targetPool && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        onClose();
+                        onDrawDown(targetPool);
+                      }}
+                      className="inline-flex items-center gap-1 px-2 py-0.5 text-[11px] font-bold text-emerald-700 bg-emerald-50 dark:bg-emerald-950/40 hover:bg-emerald-100 border border-emerald-200 dark:border-emerald-800 rounded-lg transition-colors cursor-pointer"
+                    >
+                      <ArrowDownCircle className="w-3 h-3 text-emerald-600" />
+                      <span>{t("categories.actions.drawDown")}</span>
+                    </button>
+                  )}
+                </div>
               </div>
 
-              {/* Row 1, Col 2: Target / Contribution Amount */}
-              <div>
-                <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block">
-                  {targetPool?.envelopeType === "ONGOING_GOAL"
-                    ? t("categoryDrawer.targetAmount")
-                    : t("categoryDrawer.targetAmount")}
-                </span>
-                <span className="text-sm font-black font-mono text-zinc-700 dark:text-zinc-300">
-                  {(() => {
-                    if (targetPool?.envelopeType === "ONGOING_GOAL") {
-                      const entered = targetPool.enteredAmount ? parseFloat(String(targetPool.enteredAmount)) : null;
-                      const monthlyEquivalent = targetPool.monthlyAmount ? parseFloat(String(targetPool.monthlyAmount)) : null;
-                      const freq = targetPool.budgetFrequency || "MONTHLY";
-                      const suffix = formatRecurrenceSuffix(targetPool.rrule, freq);
-                      const contributionAmt = entered ?? (monthlyEquivalent && monthlyEquivalent > 0 ? monthlyEquivalent : null);
-
-                      if (contributionAmt) {
-                        const estText = monthlyEquivalent && (freq !== "MONTHLY" || targetPool.rrule) ? ` (Est: ${fmt(monthlyEquivalent)}/mo)` : "";
-                        return `${fmt(contributionAmt)}${suffix}${estText}`;
-                      }
-                      return "—";
-                    }
-                    if (targetPool?.envelopeType === "TARGET_GOAL") {
-                      const monthlyEquivalent = targetPool.monthlyAmount ? parseFloat(String(targetPool.monthlyAmount)) : null;
-                      if (targetAmt && monthlyEquivalent) {
-                        return `${fmt(targetAmt)} (Est: ${fmt(monthlyEquivalent)}/mo)`;
-                      }
-                      return targetAmt ? fmt(targetAmt) : "—";
-                    }
-                    if (targetPool?.envelopeType === "SCHEDULED_BILL") {
-                      const entered = targetPool.enteredAmount ? parseFloat(String(targetPool.enteredAmount)) : null;
-                      const monthlyEquivalent = targetPool.monthlyAmount ? parseFloat(String(targetPool.monthlyAmount)) : null;
-                      const freq = targetPool.budgetFrequency || "MONTHLY";
-                      const suffix = formatRecurrenceSuffix(targetPool.rrule, freq);
-                      const amtToShow = entered ?? targetAmt;
-                      if (!amtToShow) return "—";
-                      if (monthlyEquivalent && (freq !== "MONTHLY" || targetPool.rrule)) {
-                        return `${fmt(amtToShow)}${suffix} (Est: ${fmt(monthlyEquivalent)}/mo)`;
-                      }
-                      return `${fmt(amtToShow)}${suffix}`;
-                    }
-                    return targetAmt ? `${fmt(targetAmt)} ${t("categoryDrawer.perMonth")}` : "—";
-                  })()}
-                </span>
-              </div>
-
-              {/* Row 2, Col 1: Pool Type / Target Date */}
-              <div>
-                <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block">
-                  {targetPool?.envelopeType === "ONGOING_GOAL" || targetPool?.envelopeType === "SCHEDULED_BILL"
-                    ? t("categoryDrawer.recurrence")
-                    : isGoalPool
-                    ? t("categoryDrawer.targetDate")
-                    : t("categoryDrawer.poolType")}
-                </span>
-                <span className="text-sm font-black font-mono text-zinc-700 dark:text-zinc-300">
-                  {targetPool?.envelopeType === "ONGOING_GOAL" || targetPool?.envelopeType === "SCHEDULED_BILL"
-                    ? formatRecurrenceLabel(targetPool.rrule, targetPool.budgetFrequency)
-                    : isGoalPool
-                    ? targetPool?.endDate
-                      ? fmtDate(targetPool.endDate)
-                      : "—"
-                    : targetPool?.envelopeType ?? "—"}
-                </span>
-              </div>
-
-              {/* Row 2, Col 2: Linked Bank Account */}
+              {/* Row 1, Col 2: Linked Bank Account */}
               <div>
                 <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block">
                   {t("categoryDrawer.linkedBankAccount")}
                 </span>
-                {targetPool?.bankAccountName ? (
-                  <Link
-                    href={targetPool.bankAccountId ? `/dashboard/settings?tab=bank-accounts&id=${targetPool.bankAccountId}` : `/dashboard/settings?tab=bank-accounts`}
-                    onClick={onClose}
-                    className="text-sm font-bold text-[#2563eb] hover:underline inline-flex items-center gap-1 truncate max-w-full"
-                  >
-                    <span className="truncate">{targetPool.bankAccountName}</span>
-                    <span className="text-xs">↗</span>
-                  </Link>
-                ) : (
-                  <span className="text-sm font-medium text-zinc-400">—</span>
-                )}
+                <div className="mt-1">
+                  {targetPool?.bankAccountName ? (
+                    <Link
+                      href={targetPool.bankAccountId ? `/dashboard/settings?tab=bank-accounts&id=${targetPool.bankAccountId}` : `/dashboard/settings?tab=bank-accounts`}
+                      onClick={onClose}
+                      className="text-sm font-bold text-[#2563eb] hover:underline inline-flex items-center gap-1 truncate max-w-full"
+                    >
+                      <span className="truncate">{targetPool.bankAccountName}</span>
+                      <span className="text-xs">↗</span>
+                    </Link>
+                  ) : (
+                    <span className="text-sm font-medium text-zinc-400">—</span>
+                  )}
+                </div>
+              </div>
+
+              {/* Row 2, Col 1: Target / Contribution Amount (Clean Numeric Amount) */}
+              <div>
+                <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block">
+                  {t("categoryDrawer.targetAmount")}
+                </span>
+                <span className="text-sm font-black font-mono text-zinc-700 dark:text-zinc-300">
+                  {(() => {
+                    if (targetPool?.envelopeType === "SCHEDULED_BILL" || targetPool?.envelopeType === "ONGOING_GOAL") {
+                      const entered = targetPool.enteredAmount ? parseFloat(String(targetPool.enteredAmount)) : null;
+                      const monthlyEquivalent = targetPool.monthlyAmount ? parseFloat(String(targetPool.monthlyAmount)) : null;
+                      const amt = entered ?? monthlyEquivalent ?? targetAmt;
+                      return amt ? fmt(amt) : "—";
+                    }
+                    if (targetPool?.envelopeType === "TARGET_GOAL" || targetPool?.envelopeType === "FLEXIBLE_BILL") {
+                      return targetAmt ? fmt(targetAmt) : "—";
+                    }
+                    return targetAmt ? fmt(targetAmt) : "—";
+                  })()}
+                </span>
+              </div>
+
+              {/* Row 2, Col 2: Recurrence / Target Date */}
+              <div>
+                <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block">
+                  {targetPool?.envelopeType === "TARGET_GOAL"
+                    ? t("categoryDrawer.targetDate")
+                    : t("categoryDrawer.recurrence")}
+                </span>
+                <span className="text-sm font-black font-mono text-zinc-700 dark:text-zinc-300">
+                  {targetPool?.envelopeType === "TARGET_GOAL"
+                    ? targetPool?.endDate
+                      ? fmtDate(targetPool.endDate)
+                      : "—"
+                    : targetPool?.envelopeType === "FLEXIBLE_BILL"
+                    ? t("categories.frequencyMonthly")
+                    : targetPool?.envelopeType === "SCHEDULED_BILL" || targetPool?.envelopeType === "ONGOING_GOAL"
+                    ? formatRecurrenceLabel(targetPool.rrule, targetPool.budgetFrequency)
+                    : "—"}
+                </span>
               </div>
             </div>
 

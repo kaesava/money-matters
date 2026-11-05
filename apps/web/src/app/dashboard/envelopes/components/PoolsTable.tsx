@@ -19,6 +19,7 @@ export interface PoolsTableProps {
   onPageChange: (newPage: number) => void;
   onPageSizeChange: (newSize: number) => void;
   onEditPool: (pool: PoolTableRow["rawPool"]) => void;
+  onDrawDown?: (pool: PoolTableRow["rawPool"]) => void;
   onOpenCategoryDrawer?: (pool: PoolTableRow) => void;
   onAddPool?: (poolType?: "EVERYDAY" | "REGULAR" | "GOAL") => void;
   fmtMoney: (val: number | null | undefined) => string;
@@ -40,6 +41,7 @@ export function PoolsTable({
   onPageChange,
   onPageSizeChange,
   onEditPool,
+  onDrawDown,
   onOpenCategoryDrawer,
   fmtMoney,
   isLoading = false,
@@ -121,6 +123,7 @@ export function PoolsTable({
                   isProjectionMode={isProjectionMode}
                   onOpenCategoryDrawer={onOpenCategoryDrawer}
                   onEditPool={onEditPool}
+                  onDrawDown={onDrawDown}
                   fmtMoney={fmtMoney}
                   fmtDate={fmtDate}
                 />

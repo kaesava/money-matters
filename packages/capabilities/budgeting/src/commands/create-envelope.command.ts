@@ -55,6 +55,10 @@ export async function createEnvelopeCommand(
       : input.startDate || null;
     const endDate = input.endDate || null;
 
+    if (startDate && endDate && endDate < startDate) {
+      throw new Error("End date cannot be earlier than start date.");
+    }
+
     const [envelope] = await tx
       .insert(envelopes)
       .values({

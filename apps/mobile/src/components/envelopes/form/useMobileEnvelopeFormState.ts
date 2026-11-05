@@ -120,10 +120,14 @@ export function useMobileEnvelopeFormState({
     if (type === "GOAL") {
       if (!targetAmount || parseFloat(targetAmount) <= 0) return false;
       if (goalMode === "TARGET_DATE" && !targetDate) return false;
+      if (goalMode === "ONGOING" && goalStartDate && targetDate && targetDate < goalStartDate) return false;
     }
     if (type === "REGULAR") {
       if (!targetAmount || parseFloat(targetAmount) <= 0) return false;
-      if (billMode === "SCHEDULED_BILL" && !goalStartDate) return false;
+      if (billMode === "SCHEDULED_BILL") {
+        if (!goalStartDate) return false;
+        if (targetDate && targetDate < goalStartDate) return false;
+      }
     }
     return true;
   }, [name, isEdit, bankAccountId, type, billMode, targetAmount, goalMode, targetDate, goalStartDate]);
@@ -165,20 +169,42 @@ export function useMobileEnvelopeFormState({
     const initialStartDate = rawStartDate ? formatIsoDate(rawStartDate) : "";
     const initialGenerate = categoryToEdit.hasScheduledEvents ?? (initialBillMode === "SCHEDULED_BILL");
 
-    return (
-      name.trim() !== initialName ||
-      safetyBufferFloor.trim() !== initialFloor ||
-      targetAmount.trim() !== initialTarget ||
-      targetDate !== initialDate ||
-      goalMode !== initialGoalMode ||
-      billMode !== initialBillMode ||
-      frequency !== initialFreq ||
-      interval !== initialInterval ||
-      goalStartDate !== initialStartDate ||
-      isSurplusTarget !== initialSurplus ||
-      ((billMode === "SCHEDULED_BILL" || initialBillMode === "SCHEDULED_BILL") &&
-        generateEvents !== initialGenerate)
-    );
+    if (name.trim() !== initialName) return true;
+    if (isSurplusTarget !== initialSurplus) return true;
+
+    if (type === "EVERYDAY") {
+      return safetyBufferFloor.trim() !== initialFloor;
+    }
+
+    if (type === "REGULAR") {
+      if (billMode !== initialBillMode) return true;
+      if (targetAmount.trim() !== initialTarget) return true;
+      if (billMode === "SCHEDULED_BILL") {
+        if (frequency !== initialFreq) return true;
+        if (interval !== initialInterval) return true;
+        if (goalStartDate !== initialStartDate) return true;
+        if (targetDate !== initialDate) return true;
+        if (generateEvents !== initialGenerate) return true;
+      }
+      return false;
+    }
+
+    if (type === "GOAL") {
+      if (goalMode !== initialGoalMode) return true;
+      if (targetAmount.trim() !== initialTarget) return true;
+      if (goalMode === "TARGET_DATE") {
+        return targetDate !== initialDate;
+      }
+      if (goalMode === "ONGOING") {
+        if (frequency !== initialFreq) return true;
+        if (interval !== initialInterval) return true;
+        if (goalStartDate !== initialStartDate) return true;
+        if (targetDate !== initialDate) return true;
+      }
+      return false;
+    }
+
+    return false;
   }, [
     isEdit,
     categoryToEdit,
@@ -197,6 +223,11 @@ export function useMobileEnvelopeFormState({
     defaultType,
     generateEvents,
   ]);
+
+  const todayStr = useMemo(() => new Intl.DateTimeFormat("en-CA").format(new Date()), []);
+  const isTargetDateInPast = useMemo(() => {
+    return Boolean(type === "GOAL" && goalMode === "TARGET_DATE" && targetDate && targetDate < todayStr);
+  }, [type, goalMode, targetDate, todayStr]);
 
   const initialGenerateEvents = useMemo(() => {
     if (!isEdit || !categoryToEdit) return true;
@@ -268,7 +299,7 @@ export function useMobileEnvelopeFormState({
         ? calculatedMonthly
         : undefined,
       enteredAmount: enteredAmountVal,
-      endDate: isTargetGoal ? targetDate || undefined : isScheduledBill ? targetDate || undefined : undefined,
+      endDate: (isTargetGoal || isScheduledBill || isOngoingGoal) ? (targetDate || undefined) : undefined,
       budgetFrequency: isScheduledBill || isOngoingGoal ? frequency : isFlexibleBill ? ("MONTHLY" as const) : undefined,
       startDate: isScheduledBill || isOngoingGoal ? goalStartDate || undefined : undefined,
       rrule: isScheduledBill || isOngoingGoal ? rruleString || undefined : undefined,
@@ -292,6 +323,7 @@ export function useMobileEnvelopeFormState({
     setTargetAmount,
     targetDate,
     setTargetDate,
+    isTargetDateInPast,
     goalMode,
     setGoalMode,
     billMode,

@@ -76,6 +76,7 @@ export function EnvelopeFormModal({
     setTargetAmount,
     targetDate,
     setTargetDate,
+    isTargetDateInPast,
     goalMode,
     setGoalMode,
     frequency,
@@ -182,7 +183,7 @@ export function EnvelopeFormModal({
 
   if (!isOpen) return null;
 
-  const isAccountSelectionDisabled = isEdit || type === "REGULAR" || type === "EVERYDAY";
+  const isAccountSelectionDisabled = isEdit || type === "EVERYDAY";
 
   return (
     <ModalDialog
@@ -214,6 +215,7 @@ export function EnvelopeFormModal({
           bankAccountId={bankAccountId}
           setBankAccountId={setBankAccountId}
           bankAccountDisabled={isAccountSelectionDisabled}
+          isTargetDateInPast={isTargetDateInPast}
           bankAccountOptions={[
             ...(!isEdit && !isAccountSelectionDisabled ? [{ value: "", label: t("categories.selectBankAccount") }] : []),
             ...bankAccounts.map((acc) => ({
@@ -307,7 +309,13 @@ export function EnvelopeFormModal({
         onClose={() => setShowRuleChangeConfirm(false)}
         onConfirm={executeSubmit}
         title={t("modals.updateSchedule.confirmTitleExpense")}
-        description={t("modals.updateSchedule.confirmDescRuleChange", { startDate: goalStartDate || "" })}
+        description={
+          type === "GOAL"
+            ? t("categories.confirmDescConvertToGoal")
+            : billMode === "FLEXIBLE_BILL"
+            ? t("categories.confirmDescConvertToFlexible")
+            : t("modals.updateSchedule.confirmDescRuleChange", { startDate: goalStartDate || "" })
+        }
         confirmLabel={t("modals.updateSchedule.confirmCta")}
         variant="warning"
         isLoading={submitting}

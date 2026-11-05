@@ -187,20 +187,42 @@ export function useEnvelopeFormModalState({
     const initialSurplus = categoryToEdit.isSurplusTarget ?? false;
     const initialGenerate = categoryToEdit.hasScheduledEvents ?? (initialBillMode === "SCHEDULED_BILL");
 
-    return (
-      name.trim() !== initialName ||
-      billMode !== initialBillMode ||
-      goalMode !== initialGoalMode ||
-      safetyBufferFloor.trim() !== initialFloor ||
-      targetAmount.trim() !== initialTarget ||
-      targetDate !== initialDate ||
-      frequency !== initialFreq ||
-      interval !== initialInterval ||
-      goalStartDate !== initialStartDate ||
-      isSurplusTarget !== initialSurplus ||
-      ((billMode === "SCHEDULED_BILL" || initialBillMode === "SCHEDULED_BILL") &&
-        generateEvents !== initialGenerate)
-    );
+    if (name.trim() !== initialName) return true;
+    if (isSurplusTarget !== initialSurplus) return true;
+
+    if (type === "EVERYDAY") {
+      return safetyBufferFloor.trim() !== initialFloor;
+    }
+
+    if (type === "REGULAR") {
+      if (billMode !== initialBillMode) return true;
+      if (targetAmount.trim() !== initialTarget) return true;
+      if (billMode === "SCHEDULED_BILL") {
+        if (frequency !== initialFreq) return true;
+        if (interval !== initialInterval) return true;
+        if (goalStartDate !== initialStartDate) return true;
+        if (targetDate !== initialDate) return true;
+        if (generateEvents !== initialGenerate) return true;
+      }
+      return false;
+    }
+
+    if (type === "GOAL") {
+      if (goalMode !== initialGoalMode) return true;
+      if (targetAmount.trim() !== initialTarget) return true;
+      if (goalMode === "TARGET_DATE") {
+        return targetDate !== initialDate;
+      }
+      if (goalMode === "ONGOING") {
+        if (frequency !== initialFreq) return true;
+        if (interval !== initialInterval) return true;
+        if (goalStartDate !== initialStartDate) return true;
+        if (targetDate !== initialDate) return true;
+      }
+      return false;
+    }
+
+    return false;
   }, [
     isEdit,
     categoryToEdit,
@@ -219,6 +241,11 @@ export function useEnvelopeFormModalState({
     generateEvents,
   ]);
 
+  const todayStr = useMemo(() => new Intl.DateTimeFormat("en-CA").format(new Date()), []);
+  const isTargetDateInPast = useMemo(() => {
+    return Boolean(type === "GOAL" && goalMode === "TARGET_DATE" && targetDate && targetDate < todayStr);
+  }, [type, goalMode, targetDate, todayStr]);
+
   const initialGenerateEvents = useMemo(() => {
     if (!isEdit || !categoryToEdit) return true;
     const isInitialScheduled =
@@ -233,10 +260,18 @@ export function useEnvelopeFormModalState({
     if (type === "GOAL") {
       if (!targetAmount || parseFloat(targetAmount) <= 0) return t("categories.goalAmountRequired");
       if (goalMode === "TARGET_DATE" && !targetDate) return t("categories.goalDateRequired");
+      if (goalMode === "ONGOING" && goalStartDate && targetDate && targetDate < goalStartDate) {
+        return t("categories.endDateBeforeStartDate");
+      }
     }
     if (type === "REGULAR") {
       if (!targetAmount || parseFloat(targetAmount) <= 0) return t("categories.billAmountRequired");
-      if (billMode === "SCHEDULED_BILL" && !goalStartDate) return t("categories.billStartDateRequired");
+      if (billMode === "SCHEDULED_BILL") {
+        if (!goalStartDate) return t("categories.billStartDateRequired");
+        if (targetDate && targetDate < goalStartDate) {
+          return t("categories.endDateBeforeStartDate");
+        }
+      }
     }
     return null;
   };
@@ -302,7 +337,7 @@ export function useEnvelopeFormModalState({
         ? calculatedMonthly
         : undefined,
       enteredAmount: enteredAmountVal,
-      endDate: isTargetGoal ? targetDate || undefined : isScheduledBill ? targetDate || undefined : undefined,
+      endDate: (isTargetGoal || isScheduledBill || isOngoingGoal) ? (targetDate || undefined) : undefined,
       budgetFrequency: isScheduledBill || isOngoingGoal ? frequency : isFlexibleBill ? ("MONTHLY" as const) : undefined,
       startDate: isScheduledBill || isOngoingGoal ? goalStartDate || undefined : undefined,
       rrule: isScheduledBill || isOngoingGoal ? rruleString || undefined : undefined,
@@ -328,6 +363,7 @@ export function useEnvelopeFormModalState({
     setTargetAmount,
     targetDate,
     setTargetDate,
+    isTargetDateInPast,
     goalMode,
     setGoalMode,
     frequency,

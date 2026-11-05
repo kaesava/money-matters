@@ -25,6 +25,7 @@ export interface EnvelopeSummaryItem {
   userId?: string | null;
   progressPercentage?: number;
   hasScheduledEvents?: boolean | null;
+  generateEvents?: boolean | null;
 }
 
 export type CategorySummaryItem = EnvelopeSummaryItem;

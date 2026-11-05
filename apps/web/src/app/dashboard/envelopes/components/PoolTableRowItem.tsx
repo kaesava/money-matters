@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import { InfoTooltip, formatRecurrenceLabel } from "@money-matters/ui/web";
 import { t } from "@money-matters/i18n";
-import { MoreVertical, Edit2, History, Receipt } from "lucide-react";
+import { MoreVertical, Edit2, History, Receipt, ArrowDownCircle } from "lucide-react";
 import { PoolTableRow } from "../types";
 
 export interface PoolTableRowItemProps {
@@ -10,6 +10,7 @@ export interface PoolTableRowItemProps {
   isProjectionMode?: boolean;
   onOpenCategoryDrawer?: (pool: PoolTableRow) => void;
   onEditPool: (pool: PoolTableRow["rawPool"]) => void;
+  onDrawDown?: (pool: PoolTableRow["rawPool"]) => void;
   fmtMoney: (val: number | null | undefined) => string;
   fmtDate: (val: string | Date | null | undefined) => string;
 }
@@ -19,6 +20,7 @@ export function PoolTableRowItem({
   isProjectionMode = false,
   onOpenCategoryDrawer,
   onEditPool,
+  onDrawDown,
   fmtMoney,
   fmtDate,
 }: PoolTableRowItemProps) {
@@ -212,6 +214,20 @@ export function PoolTableRowItem({
 
           {menuOpen && (
             <div className="absolute right-0 mt-1 w-44 bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-xl shadow-lg py-1.5 z-50 text-left animate-in fade-in zoom-in-95 duration-100">
+              {onDrawDown && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMenuOpen(false);
+                    onDrawDown(pool.rawPool);
+                  }}
+                  className="w-full px-3 py-2 text-xs font-semibold text-slate-700 dark:text-zinc-200 hover:bg-blue-50 dark:hover:bg-zinc-800 hover:text-[#2563eb] flex items-center gap-2 cursor-pointer transition-colors"
+                >
+                  <ArrowDownCircle className="w-3.5 h-3.5 text-slate-400" />
+                  <span>{t("categories.actions.drawDown")}</span>
+                </button>
+              )}
+
               <button
                 type="button"
                 onClick={() => {

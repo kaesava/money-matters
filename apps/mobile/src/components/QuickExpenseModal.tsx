@@ -142,6 +142,7 @@ export function QuickExpenseModal({
               presets={state.expensePresets}
               onSelectPreset={state.handleSelectPreset}
               isSubmitting={state.isSubmitting}
+              isDrawDown={initialData?.name === 'Draw down'}
               onSubmit={handleExpenseSubmit}
               onCancel={resetAndClose}
             />

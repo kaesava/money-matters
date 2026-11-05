@@ -33,6 +33,7 @@ export default function PoolsScreen() {
   const [poolModalVisible, setPoolModalVisible] = useState(false);
   const [defaultPoolType, setDefaultPoolType] = useState<'EVERYDAY' | 'REGULAR' | 'GOAL'>('REGULAR');
   const [moveMoneyVisible, setMoveMoneyVisible] = useState(false);
+  const [quickExpenseInitialType, setQuickExpenseInitialType] = useState<'DEBIT' | 'CREDIT' | 'TRANSFER'>('TRANSFER');
   const [overflowMenuVisible, setOverflowMenuVisible] = useState(false);
   const [filterSheetVisible, setFilterSheetVisible] = useState(false);
   const [collapsedTypes, setCollapsedTypes] = useState<Record<string, boolean>>({});
@@ -170,7 +171,14 @@ export default function PoolsScreen() {
       <PoolOverflowMenuModal
         visible={overflowMenuVisible}
         onClose={() => setOverflowMenuVisible(false)}
-        onMoveMoney={() => setMoveMoneyVisible(true)}
+        onQuickExpense={() => {
+          setQuickExpenseInitialType('DEBIT');
+          setMoveMoneyVisible(true);
+        }}
+        onMoveMoney={() => {
+          setQuickExpenseInitialType('TRANSFER');
+          setMoveMoneyVisible(true);
+        }}
       />
 
       <EnvelopesFilterSheet
@@ -196,7 +204,7 @@ export default function PoolsScreen() {
       />
       <QuickExpenseModal
         visible={moveMoneyVisible}
-        initialType="TRANSFER"
+        initialType={quickExpenseInitialType}
         onClose={() => setMoveMoneyVisible(false)}
         onSuccess={() => poolsQuery.refetch()}
       />

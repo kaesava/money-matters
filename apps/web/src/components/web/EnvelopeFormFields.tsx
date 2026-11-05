@@ -49,6 +49,7 @@ export interface EnvelopeFormFieldsProps {
   initialGenerateEvents?: boolean;
   hasExistingScheduledEvents?: boolean;
   initialMode?: 'ALL' | 'BILL_SCHEDULE';
+  isTargetDateInPast?: boolean;
 }
 
 export type CategoryFormFieldsProps = EnvelopeFormFieldsProps;
@@ -89,6 +90,7 @@ export function EnvelopeFormFields({
   initialGenerateEvents = true,
   hasExistingScheduledEvents = false,
   initialMode = 'ALL',
+  isTargetDateInPast = false,
 }: CategoryFormFieldsProps) {
   return (
     <>
@@ -202,20 +204,27 @@ export function EnvelopeFormFields({
           <GoalModeToggle value={goalMode} onChange={setGoalMode} />
 
           {goalMode === 'TARGET_DATE' ? (
-            <div className="grid grid-cols-2 gap-3 items-start">
-              <AmountField
-                label={t('categories.targetAmountLabel')}
-                required
-                value={targetAmount}
-                onChange={setTargetAmount}
-                placeholder="10000.00"
-              />
-              <DatePickerField
-                label={t('categories.targetCompletionDate')}
-                required
-                value={targetDate}
-                onChange={setTargetDate}
-              />
+            <div className="space-y-2">
+              <div className="grid grid-cols-2 gap-3 items-start">
+                <AmountField
+                  label={t('categories.targetAmountLabel')}
+                  required
+                  value={targetAmount}
+                  onChange={setTargetAmount}
+                  placeholder="10000.00"
+                />
+                <DatePickerField
+                  label={t('categories.targetCompletionDate')}
+                  required
+                  value={targetDate}
+                  onChange={setTargetDate}
+                />
+              </div>
+              {isTargetDateInPast && (
+                <div className="p-2.5 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 rounded-xl text-amber-800 dark:text-amber-200 text-xs">
+                  {t('categories.targetDateInPastWarning')}
+                </div>
+              )}
             </div>
           ) : (
             <EnvelopeRecurrenceFields
@@ -229,6 +238,8 @@ export function EnvelopeFormFields({
               setInterval={setInterval}
               startDate={goalStartDate}
               setStartDate={setGoalStartDate}
+              endDate={targetDate}
+              setEndDate={setTargetDate}
               calculatedMonthly={calculatedMonthly}
             />
           )}

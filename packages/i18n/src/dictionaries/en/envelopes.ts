@@ -30,7 +30,7 @@ export const envelopes = {
     "selectPoolOrCategory": "Select a Envelope or Category",
     "selectPool": "Select a Envelope",
     "typeRegular": "Bill",
-    "typeGoal": "Savings Goal",
+    "typeGoal": "Goal",
     "typeEveryday": "Everyday",
     "targetAmountLabel": "Target amount",
     "targetDateLabel": "Target date",
@@ -43,6 +43,11 @@ export const envelopes = {
     "goalDateRequired": "Completion date is required for Goal envelopes.",
     "billAmountRequired": "Bill amount is required and must be greater than 0.",
     "billStartDateRequired": "First bill payment date is required.",
+    "targetDateInPastWarning": "This target completion date is in the past. You can still save it, but this goal may show as behind schedule.",
+    "endDateBeforeStartDate": "End date cannot be earlier than start date.",
+    "confirmDescConvertToFlexible": "Converting this to a Flexible Bill will remove all pending scheduled expense events. You will draw down funds as needed instead.",
+    "confirmDescConvertToGoal": "Converting this to a Goal will remove all pending scheduled bill events.",
+    "confirmDescGenerateEvents": "Upcoming scheduled expense events will be generated starting from {startDate}.",
     "saveFailed": "Couldn't save. Give it another go.",
     "immutabilityWarning": "Once set, envelope types and bank accounts are locked to keep your history clean. If you need to, please archive this envelope and create a new one.",
     "shortfallTargetTooltip": "This envelope acts as a safety net. If you don't have enough money in your Everyday envelope to cover an expense, it will automatically pull the shortfall from here. Any leftover money at the end of your pay cycle will also sweep into here.",
@@ -89,7 +94,11 @@ export const envelopes = {
     "linkedAccount": "Linked to {name}",
     "recalibrateBudget": "Recalibrate Household Budget",
     "actions": {
-      "moveMoney": "Transfer between Envelopes"
+      "drawDown": "Draw down",
+      "moveMoney": "Transfer between Envelopes",
+      "quickExpense": "Quick Expense",
+      "futureProjection": "Future Projection",
+      "exitProjection": "Exit Projection Mode"
     },
     "surplusBadgeText": "Surplus",
     "mainPool": "Main envelope",

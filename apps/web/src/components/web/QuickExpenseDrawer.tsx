@@ -57,6 +57,8 @@ export function QuickActionDrawer({ onClose, initialTab = "DEBIT", initialData }
     handleConfirmShortfallPaid,
   } = useQuickActionState(onClose, initialTab, initialData);
 
+  const isDrawDown = initialData?.name === "Draw down";
+
   const activePresets = isTransfer
     ? quickTransferPresets
     : isIncome
@@ -192,7 +194,7 @@ export function QuickActionDrawer({ onClose, initialTab = "DEBIT", initialData }
                     </FormLabel>
                     <input
                       type="text"
-                      autoFocus={true}
+                      autoFocus={!isDrawDown}
                       required
                       placeholder={isIncome ? t("drawers.quickExpense.freelancePlaceholder") : t("drawers.quickExpense.woolworthsPlaceholder")}
                       value={name}
@@ -252,6 +254,7 @@ export function QuickActionDrawer({ onClose, initialTab = "DEBIT", initialData }
                 <AmountField
                   label={t("drawers.quickExpense.amountAud")}
                   required
+                  autoFocus={isDrawDown}
                   value={amount}
                   onChange={setAmount}
                 />

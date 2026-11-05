@@ -89,7 +89,7 @@ export async function updateEnvelopeCommand(
     } else if (isOngoingGoal) {
       rrule = input.rrule ?? (input.budgetFrequency ? deriveRruleFromFrequency(budgetFrequency) : existing.rrule);
       startDate = input.startDate !== undefined ? input.startDate : existing.startDate;
-      endDate = null;
+      endDate = input.endDate !== undefined ? input.endDate : existing.endDate;
     } else if (isTargetGoal) {
       rrule = null;
       startDate = null;
@@ -99,6 +99,10 @@ export async function updateEnvelopeCommand(
       rrule = null;
       startDate = null;
       endDate = null;
+    }
+
+    if (startDate && endDate && endDate < startDate) {
+      throw new Error("End date cannot be earlier than start date.");
     }
 
     const effectiveGenerateEvents = input.generateEvents !== undefined ? input.generateEvents : existing.generateEvents;

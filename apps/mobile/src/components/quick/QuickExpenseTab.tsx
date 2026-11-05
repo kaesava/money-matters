@@ -37,6 +37,7 @@ export interface QuickExpenseTabProps {
   presets: { recent: QuickPresetItem[]; frequent: QuickPresetItem[] };
   onSelectPreset: (preset: QuickPresetItem) => void;
   isSubmitting: boolean;
+  isDrawDown?: boolean;
   onSubmit: (skipBalanceCheck?: boolean) => void;
   onCancel: () => void;
 }
@@ -58,6 +59,7 @@ export function QuickExpenseTab({
   presets,
   onSelectPreset,
   isSubmitting,
+  isDrawDown = false,
   onSubmit,
   onCancel,
 }: QuickExpenseTabProps) {
@@ -137,7 +139,7 @@ export function QuickExpenseTab({
         }}
         placeholder={t('drawers.quickExpense.woolworthsPlaceholder')}
         error={nameError}
-        autoFocus
+        autoFocus={!isDrawDown}
       />
 
       {/* 2. Pool / Category Second */}
@@ -165,6 +167,7 @@ export function QuickExpenseTab({
         <AmountInput
           label={t('drawers.quickExpense.amountAud')}
           required
+          autoFocus={isDrawDown}
           value={amount}
           onChangeText={(val) => {
             setAmount(val);

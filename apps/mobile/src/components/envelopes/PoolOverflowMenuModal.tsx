@@ -9,12 +9,14 @@ interface PoolOverflowMenuModalProps {
   visible: boolean;
   onClose: () => void;
   onMoveMoney: () => void;
+  onQuickExpense?: () => void;
 }
 
 export function PoolOverflowMenuModal({
   visible,
   onClose,
   onMoveMoney,
+  onQuickExpense,
 }: PoolOverflowMenuModalProps) {
   const router = useRouter();
 
@@ -31,6 +33,22 @@ export function PoolOverflowMenuModal({
         onPress={onClose}
       >
         <View style={styles.menuContainer}>
+          {onQuickExpense && (
+            <>
+              <TouchableOpacity
+                style={styles.menuItem}
+                onPress={() => {
+                  onClose();
+                  onQuickExpense();
+                }}
+              >
+                <Feather name="arrow-down-circle" size={16} color={DESIGN_TOKENS.colors.success} />
+                <Text style={styles.menuItemText}>{t('categories.actions.quickExpense')}</Text>
+              </TouchableOpacity>
+              <View style={styles.menuItemDivider} />
+            </>
+          )}
+
           <TouchableOpacity
             style={styles.menuItem}
             onPress={() => {

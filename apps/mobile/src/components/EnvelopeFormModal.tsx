@@ -100,6 +100,7 @@ export function EnvelopeFormModal({
     setTargetAmount,
     targetDate,
     setTargetDate,
+    isTargetDateInPast,
     goalMode,
     setGoalMode,
     billMode,
@@ -272,7 +273,7 @@ export function EnvelopeFormModal({
     label: `${acc.name} ${acc.isPrivate ? t("categories.privateBadge") : t("categories.householdBadge")}`,
   }));
 
-  const isBankDisabled = isEdit || type === "REGULAR" || type === "EVERYDAY";
+  const isBankDisabled = isEdit || type === "EVERYDAY";
 
   return (
     <MobileModalDialog
@@ -333,6 +334,7 @@ export function EnvelopeFormModal({
         bankAccountId={bankAccountId}
         setBankAccountId={setBankAccountId}
         bankDisabled={isBankDisabled}
+        isTargetDateInPast={isTargetDateInPast}
         isSurplusTarget={isSurplusTarget}
         setIsSurplusTarget={setIsSurplusTarget}
         isEdit={isEdit}
