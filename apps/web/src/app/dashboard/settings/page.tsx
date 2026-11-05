@@ -3,7 +3,7 @@
 import React, { useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { t } from "@money-matters/i18n";
-import { InfoTooltip, Tabs, ConfirmDialog, useToast } from "@money-matters/ui/web";
+import { Tabs, ConfirmDialog, useToast } from "@money-matters/ui/web";
 import { authClient } from "../../../lib/auth";
 import posthog from "../../../lib/posthog-client";
 import { trpc } from "../../../lib/trpc";
@@ -117,10 +117,6 @@ function SettingsPageContent() {
           <h1 className="text-2xl font-extrabold text-[#1B2B4B]">
             {t("settings.title")}
           </h1>
-          <InfoTooltip
-            title={t("tooltips.settings.title")}
-            content={t("tooltips.settings.content")}
-          />
         </div>
         <button
           type="button"

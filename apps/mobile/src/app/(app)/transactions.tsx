@@ -145,10 +145,6 @@ export default function TransactionsScreen() {
     <AppScreenWrapper
       title={t('transactions.title')}
       scrollable={false}
-      infoTooltip={{
-        title: t('tooltips.transactions.title'),
-        content: t('tooltips.transactions.content'),
-      }}
     >
       <View style={styles.container}>
         <SegmentedTabs<HistoryTab>

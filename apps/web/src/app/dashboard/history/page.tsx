@@ -4,7 +4,7 @@ import React, { useState, useMemo, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { trpc } from "../../../lib/trpc";
 import { t } from "@money-matters/i18n";
-import { InfoTooltip, Tabs, Spinner } from "@money-matters/ui/web";
+import { Tabs, Spinner } from "@money-matters/ui/web";
 import { TransactionsTab } from "./components/TransactionsTab";
 import { PaydayAllocationsTab } from "./components/PaydayAllocationsTab";
 
@@ -42,10 +42,6 @@ function TransactionsPageContent() {
           <h1 className="text-2xl font-extrabold text-[#1B2B4B]">
             {t("transactions.title")}
           </h1>
-          <InfoTooltip
-            title={t("tooltips.transactions.title")}
-            content={t("tooltips.transactions.content")}
-          />
         </div>
       </div>
 

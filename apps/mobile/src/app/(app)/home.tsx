@@ -154,10 +154,6 @@ export default function HomeScreen() {
   return (
     <AppScreenWrapper
       title={t('dashboard.title')}
-      infoTooltip={{
-        title: t('tooltips.dashboard.title'),
-        content: t('tooltips.dashboard.content'),
-      }}
       onOpenAsk={() => setAskSheetVisible(true)}
       scrollable={false}
     >

@@ -4,8 +4,7 @@ import React, { useState, useMemo, Suspense } from "react";
 import Link from "next/link";
 import { useSearchParams, useRouter } from "next/navigation";
 import { trpc } from "../../../lib/trpc";
-import { t } from "@money-matters/i18n";
-import { Spinner, SearchInput, Tabs } from "@money-matters/ui/web";
+import { Spinner, SearchInput, Tabs, InfoTooltip } from "@money-matters/ui/web";
 import { IncomeFormModal, IncomeSourceToEdit } from "../../../components/web/IncomeFormModal";
 import { QuickExpenseDrawer } from "../../../components/web/QuickExpenseDrawer";
 import { EnvelopeFormModal } from "../../../components/web/EnvelopeFormModal";
@@ -95,14 +94,14 @@ function IncomeAndBillsContent() {
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
+        <div className="flex items-center gap-2">
           <h1 className="text-2xl font-black text-[#1B2B4B] dark:text-white tracking-tight">{t("incomeBillsTabs.incomeSchedulesAndBillsTitle")}</h1>
-          <p className="text-xs text-zinc-500 font-semibold mt-1">{t("incomeBillsTabs.incomeSchedulesAndBillsSubtitle")}</p>
+          <InfoTooltip content={t("incomeBillsTabs.incomeSchedulesAndBillsSubtitle")} />
         </div>
         <div className="flex items-center gap-2">
           <Link
             href="/dashboard/income-split"
-            className="px-4 py-2.5 rounded-xl font-bold text-xs bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-100 border border-emerald-200 dark:border-emerald-800 transition-all flex items-center gap-2 shadow-2xs"
+            className="px-4 py-2.5 rounded-xl font-bold text-xs bg-blue-50 dark:bg-blue-950/60 text-[#2563eb] dark:text-blue-300 hover:bg-blue-100 border border-blue-200 dark:border-blue-800 transition-all flex items-center gap-2 shadow-2xs"
           >
             <span>📅</span>
             <span>{t("incomeBillsTabs.twelveMonthIncomeSplit")}</span>
@@ -110,10 +109,10 @@ function IncomeAndBillsContent() {
           <button
             type="button"
             onClick={() => setQuickActionTab("TRANSFER")}
-            className="px-4 py-2.5 rounded-xl font-bold text-xs bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-100 border border-indigo-200 dark:border-indigo-800 transition-all flex items-center gap-2 shadow-2xs cursor-pointer"
+            className="px-4 py-2.5 rounded-xl font-bold text-xs bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-100 border border-slate-200 dark:border-slate-700 transition-all flex items-center gap-2 shadow-2xs cursor-pointer"
           >
             <span>🔄</span>
-            <span>{t("dashboard.transferBetweenPools")}</span>
+            <span>{t("categories.actions.moveMoney")}</span>
           </button>
         </div>
       </div>

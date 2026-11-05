@@ -19,7 +19,7 @@ type PoolType = "everyday" | "bills" | "goals" | "surplus";
 
 const POOL_OPTIONS: { id: PoolType; label: string; icon: string }[] = [
   { id: "everyday", label: "Everyday Living", icon: "🛒" },
-  { id: "bills", label: "Bills Pool", icon: "🛡️" },
+  { id: "bills", label: "Bills Envelope", icon: "🛡️" },
   { id: "goals", label: "Committed Goals", icon: "📈" },
   { id: "surplus", label: "Surplus & Offset", icon: "💎" },
 ];
@@ -120,6 +120,7 @@ export function PoolTransferModal({
               <span className="text-slate-400 font-mono text-sm">{currencySymbol}</span>
               <input
                 type="number"
+                autoFocus={true}
                 min={5}
                 max={500}
                 value={amount}

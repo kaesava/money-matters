@@ -11,4 +11,6 @@ coverage/
 .env.local
 .env.development
 .env.production
+.dev.vars*
+.wrangler/
 .aider*

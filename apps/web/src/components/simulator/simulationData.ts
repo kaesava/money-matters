@@ -47,7 +47,7 @@ function computeBillsSnapshot(day: number): PoolSnapshot {
   }
   return {
     id: "bills",
-    name: "Bills Pool",
+    name: "Bills Envelope",
     stepNumber: "STEP 1",
     current: rent + power,
     target: 1000,
@@ -118,15 +118,15 @@ function applyTransfers(
 function resolveCommentary(day: number, dailyBurn: number, transfers: PoolTransfer[]): string {
   const activeTransfer = transfers.find((t) => t.day === day);
   if (activeTransfer) {
-    return `Manual Transfer: Shifted $${activeTransfer.amount} from ${activeTransfer.fromPoolId} to ${activeTransfer.toPoolId}. Balances recalibrated.`;
+    return `Manual Transfer: Shifted ${activeTransfer.amount} from ${activeTransfer.fromPoolId} to ${activeTransfer.toPoolId}. Balances recalibrated.`;
   }
   if (day === 0) return "Payday 1 arrives: Income allocated upfront into Bills, Goals, Everyday, and Surplus.";
-  if (day === 3) return "Day 3: Rent ($800) paid from ring-fenced Bills Pool. Everyday allowance stays 100% untouched.";
-  if (day === 7) return "Day 7: Weekend grocery haul ($60) deducted from Everyday pool. Zero impact on bills.";
+  if (day === 3) return "Day 3: Rent (800) paid from ring-fenced Bills Envelope. Everyday allowance stays 100% untouched.";
+  if (day === 7) return "Day 7: Weekend grocery haul (60) deducted from Everyday envelope. Zero impact on bills.";
   if (day === 14) return "Payday 2 lands: Everyday allowance refreshed, power pre-funded, and Car Reserve reaches 100%!";
-  if (day === 18) return "Day 18: Quarterly Electricity ($320) paid smoothly from pre-saved bills pool. Zero bill shock.";
+  if (day === 18) return "Day 18: Quarterly Electricity (320) paid smoothly from pre-saved bills envelope. Zero bill shock.";
   if (day === 28) return "Day 28: Month complete! All bills paid on time, goals funded, surplus growing offset.";
-  return `Day ${day}: Daily living burn (-$${dailyBurn}) drawn from Everyday allowance. Bills pool remains 100% safe.`;
+  return `Day ${day}: Daily living burn (-${dailyBurn}) drawn from Everyday allowance. Bills envelope remains 100% safe.`;
 }
 
 export function computeSimulationState(

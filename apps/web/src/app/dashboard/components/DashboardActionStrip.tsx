@@ -3,7 +3,6 @@
 import React, { useRef, useState, useEffect } from 'react';
 import { Plus, ChevronDown, ArrowUpRight, ArrowDownLeft, ArrowLeftRight, Sparkles } from 'lucide-react';
 import { t } from '@money-matters/i18n';
-import { InfoTooltip } from '@money-matters/ui/web';
 
 export interface DashboardActionStripProps {
   readonly onOpenQuickExpense: () => void;
@@ -51,10 +50,6 @@ export const DashboardActionStrip: React.FC<DashboardActionStripProps> = ({
           <h1 className="font-heading text-2xl sm:text-3xl font-black text-[#1B2B4B] dark:text-zinc-50 tracking-tight">
             {t('nav.dashboard')}
           </h1>
-          <InfoTooltip
-            title={t('tooltips.dashboard.title')}
-            content={t('tooltips.dashboard.content')}
-          />
         </div>
         <p className="text-xs font-medium text-slate-500 dark:text-zinc-400">
           {t('app.tagline')}

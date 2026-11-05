@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { useSearchParams, useRouter } from "next/navigation";
-import { InfoTooltip, useToast, ConfirmDialog, RecordFilterBadge } from "@money-matters/ui/web";
+import { useToast, ConfirmDialog, RecordFilterBadge } from "@money-matters/ui/web";
 import { t } from "@money-matters/i18n";
 
 import { trpc } from "../../../lib/trpc";
@@ -118,10 +118,6 @@ function PoolsPageContent() {
         <div>
           <div className="flex items-center gap-2">
             <h1 className="text-2xl font-black text-[#1B2B4B] tracking-tight">{t("categories.title")}</h1>
-            <InfoTooltip
-              title={t("tooltips.categories.title")}
-              content={t("tooltips.categories.content")}
-            />
           </div>
         </div>
 

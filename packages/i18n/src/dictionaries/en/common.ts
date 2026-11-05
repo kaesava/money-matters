@@ -174,41 +174,21 @@ export const common = {
     "earlyAccessRegistered": "Thank you! We've registered your email and will notify you as soon as Money Matters goes live."
   },
   "tooltips": {
-    "dashboard": {
-      "title": "About Your Dashboard",
-      "content": "Your command centre for financial peace. Money Matters ring-fences fixed bills and savings goals upfront so you can spend your Everyday balance with complete peace of mind."
-    },
-    "categories": {
-      "title": "About Your Virtual Envelopes",
-      "content": "Manage your spending envelopes and savings goals. The 5-Step Payday Plan automatically fills your Bills envelope and savings upfront on payday."
-    },
     "incomeBills": {
       "content": "Setup income and ongoing expenses. On payday, upcoming expenses are protected by planning your income into the right Envelopes so you never get caught out by surprise due dates."
-    },
-    "transactions": {
-      "title": "About History & Payday Plans",
-      "content": "A complete record of all your household income, expenses and envelope transfers as well as your payday plans."
     },
     "bankAccounts": {
       "title": "About Bank Accounts",
       "content": "Linking your envelopes (Everyday, Bills, Savings) to your actual bank accounts ensures your payday plan matches your real-world bank balances for effortless 1-tap reconciliation."
     },
-    "settings": {
-      "title": "About Settings",
-      "content": "Manage your household profile, preferences, and account configuration."
-    },
     "archived": {
       "title": "About Archived Items",
       "content": "View and restore archived spending envelopes, bill schedules, income schedules, or bank accounts. Restoring an item reactivates its upcoming schedule, while historical transactions remain permanently preserved."
-    },
-    "notifications": {
-      "title": "About Notifications",
-      "content": "Configure email alerts and automated reminders for upcoming bills and payday plans."
     }
   },
   "validation": {
     "invalidEmail": "Invalid email address format",
-    "postcodeDigits": "Australian postcodes must be exactly 4 digits."
+    "postcodeDigits": "Postal code must be exactly 4 digits."
   },
   "notFound": {
     "title": "G'day! Page not found 404",

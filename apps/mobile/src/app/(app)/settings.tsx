@@ -109,10 +109,6 @@ export default function SettingsScreen() {
             router.back();
           }
         }}
-        infoTooltip={{
-          title: t('tooltips.settings.title'),
-          content: t('tooltips.settings.content'),
-        }}
       >
         <ScrollView
           contentContainerStyle={styles.scrollContent}

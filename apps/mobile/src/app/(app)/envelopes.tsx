@@ -84,7 +84,6 @@ export default function PoolsScreen() {
     <AppScreenWrapper
       title={t('categories.title')}
       scrollable={false}
-      infoTooltip={{ title: t('tooltips.categories.title'), content: t('tooltips.categories.content') }}
     >
       <ScrollView
         contentContainerStyle={styles.scrollContent}

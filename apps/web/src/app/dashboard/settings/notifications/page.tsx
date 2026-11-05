@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { t } from "@money-matters/i18n";
-import { InfoTooltip, useToast, Button } from "@money-matters/ui/web";
+import { useToast, Button } from "@money-matters/ui/web";
 import { trpc } from "../../../../lib/trpc";
 
 export default function NotificationSettingsPage() {
@@ -111,10 +111,6 @@ export default function NotificationSettingsPage() {
         </button>
         <div className="flex items-center gap-2">
           <h1 className="text-2xl font-black text-[#1B2B4B]">{t("notifications.settings.title")}</h1>
-          <InfoTooltip
-            title={t("tooltips.notifications.title")}
-            content={t("tooltips.notifications.content")}
-          />
         </div>
       </div>
 

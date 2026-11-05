@@ -107,10 +107,6 @@ export default function MobileNotificationSettingsScreen() {
       user={session?.user}
       showBack
       onBackPress={() => router.back()}
-      infoTooltip={{
-        title: t("tooltips.notifications.title"),
-        content: t("tooltips.notifications.content"),
-      }}
     >
       <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 100, gap: 14 }}>
         {topics.map((topic) => (
