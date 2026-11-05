@@ -108,7 +108,7 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Build Web OpenNext Bundle
-        run: pnpm --filter @money-matters/web build
+        run: pnpm --filter @money-matters/web cf-build
 
       - name: Deploy Web to Cloudflare Workers
         uses: cloudflare/wrangler-action@v3

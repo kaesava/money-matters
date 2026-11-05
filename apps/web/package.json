@@ -33,7 +33,7 @@
     "react-dom": "19.1.0"
   },
   "devDependencies": {
-    "@opennextjs/cloudflare": "^1.20.2",
+    "@opennextjs/cloudflare": "^1.20.16",
     "@playwright/test": "^1.50.0",
     "@tailwindcss/postcss": "^4.0.0",
     "@types/node": "^20.14.9",
