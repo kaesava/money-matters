@@ -1,6 +1,5 @@
 "use client";
 
-import { useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { useToast } from "@money-matters/ui/web";
 import { t } from "@money-matters/i18n";
@@ -62,7 +61,7 @@ export function useIncomeSplitActions({
   sweepPool,
   sweepPoolRemainder,
   isDeficit,
-  isReadOnly,
+  isReadOnly: _isReadOnly,
   isFutureDate,
   isSavedPlan,
   setIsSavedPlan,

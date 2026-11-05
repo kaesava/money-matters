@@ -3,19 +3,7 @@ set -e
 
 # Detect if any package.json is staged
 STAGED_PKG_JSON=$(git diff --cached --name-only | grep -E '(^|/)package\.json$' || true)
-STAGED_LOCK=$(git diff --cached --name-only | grep '^pnpm-lock\.yaml$' || true)
 
-if [ -n "$STAGED_PKG_JSON" ] && [ -z "$STAGED_LOCK" ]; then
-  echo ""
-  echo "================================================================================"
-  echo "❌ Git pre-commit guard: Staged package.json changes without pnpm-lock.yaml!"
-  echo "   Modified package.json files:"
-  echo "$STAGED_PKG_JSON" | sed 's/^/     - /'
-  echo ""
-  echo "   To prevent breaking Cloudflare and CI deployments, run:"
-  echo "     pnpm install"
-  echo "     git add pnpm-lock.yaml"
-  echo "================================================================================"
-  echo ""
-  exit 1
+if [ -n "$STAGED_PKG_JSON" ]; then
+  node scripts/check-lockfile-sync.mjs
 fi

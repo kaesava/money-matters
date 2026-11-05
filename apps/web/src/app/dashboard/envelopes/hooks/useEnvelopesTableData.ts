@@ -137,7 +137,7 @@ export function useEnvelopesTableData({
 
     return rawPools.map((p) => {
       const isGoal = p.envelopeType === "TARGET_GOAL" || p.envelopeType === "ONGOING_GOAL";
-      const isBill = p.envelopeType === "SCHEDULED_BILL" || p.envelopeType === "FLEXIBLE_BILL";
+      const _isBill = p.envelopeType === "SCHEDULED_BILL" || p.envelopeType === "FLEXIBLE_BILL";
       const isEveryday = p.envelopeType === "EVERYDAY";
 
       const targetAmountNum =
@@ -298,8 +298,6 @@ export function useEnvelopesTableData({
     projectionMonths,
     activeProjectionColId,
     poolBalances,
-    rawExpenseEvents,
-    rawTransactions,
   ]);
 
   const matchedPool = poolIdParam ? tableRows.find((r) => r.id === poolIdParam) : null;

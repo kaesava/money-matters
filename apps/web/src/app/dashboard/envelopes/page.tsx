@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { MoreVertical, ArrowDownCircle, ArrowUpCircle, ArrowRightLeft, TrendingUp, X, Sparkles } from "lucide-react";
+import { MoreVertical, ArrowDownCircle, ArrowUpCircle, ArrowRightLeft, TrendingUp, X } from "lucide-react";
 import { useToast, ConfirmDialog, RecordFilterBadge } from "@money-matters/ui/web";
 import { t } from "@money-matters/i18n";
 

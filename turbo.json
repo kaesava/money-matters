@@ -9,11 +9,11 @@
     },
     "lint": {
       "inputs": ["src/**", "test/**", "e2e/**", "*.js", "*.mjs", "*.ts", "package.json", "eslint.config.*"],
-      "outputs": []
+      "outputs": [".eslintcache"]
     },
     "typecheck": {
       "inputs": ["src/**", "test/**", "e2e/**", "package.json", "tsconfig.json"],
-      "outputs": [".tsbuildinfo"]
+      "outputs": [".tsbuildinfo", "tsconfig.tsbuildinfo"]
     },
     "test": {
       "inputs": ["src/**", "test/**", "package.json", "tsconfig.json", "vitest.config.*"],

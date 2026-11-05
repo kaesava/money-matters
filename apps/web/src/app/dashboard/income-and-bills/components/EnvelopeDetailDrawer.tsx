@@ -5,7 +5,7 @@ import Link from "next/link";
 import { ArrowDownCircle } from "lucide-react";
 import { t } from "@money-matters/i18n";
 import { trpc } from "../../../../lib/trpc";
-import { Tabs, formatRecurrenceLabel, formatRecurrenceSuffix } from "@money-matters/ui/web";
+import { Tabs, formatRecurrenceLabel } from "@money-matters/ui/web";
 import { useLocale } from "../../../../providers/LocaleProvider";
 import { CategorySummaryItem } from "../../envelopes/types";
 import { DrawerUpcomingExpensesTable } from "./drawer/DrawerUpcomingExpensesTable";
@@ -118,7 +118,7 @@ export function EnvelopeDetailDrawer({
   if (!isOpen) return null;
 
   const currentBal = targetPool ? parseFloat(String(targetPool.currentBalance || "0")) : 0;
-  const isGoalPool = targetPool?.envelopeType === "TARGET_GOAL" || targetPool?.envelopeType === "ONGOING_GOAL";
+  const _isGoalPool = targetPool?.envelopeType === "TARGET_GOAL" || targetPool?.envelopeType === "ONGOING_GOAL";
 
   const resolvedTabs = [
     { id: "expenses" as const, label: `${t("categoryDrawer.tabs.upcomingExpenses")} (${effectiveEvents.length})` },
