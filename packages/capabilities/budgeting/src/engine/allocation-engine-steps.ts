@@ -137,11 +137,15 @@ export function runStep5ProRataBills(
 
     let forwardPaceCents = 0;
     const bucketFuture = futureExpenses.filter((e) => (e.envelopeId || e.poolId) === b.id);
+    const curBal = Math.max(0, ctx.runningBalances.get(b.id) ?? toCents(b.currentBalance));
+
     for (const exp of bucketFuture) {
       const diffMs = new Date(exp.dueDate).getTime() - paycheckDate.getTime();
       const diffDays = Math.max(1, diffMs / (1000 * 60 * 60 * 24));
       const paychecks = Math.max(1, Math.floor(diffDays / ctx.regularCycleDays));
-      const pace = Math.round(toCents(exp.amount) / paychecks);
+      const expCents = toCents(exp.amount);
+      const remainingGapCents = Math.max(0, expCents - curBal);
+      const pace = Math.round(remainingGapCents / paychecks);
       if (pace > forwardPaceCents) forwardPaceCents = pace;
     }
 
@@ -178,18 +182,21 @@ export function runStep6Goals(
   });
 
   for (const b of sorted) {
-    const targetCents = toCents(b.targetAmount ?? 0);
+    const rawTarget = b.targetAmount ?? b.monthlyAmount ?? b.enteredAmount ?? 0;
+    const targetCents = toCents(rawTarget);
     const curBal = Math.max(0, ctx.runningBalances.get(b.id) ?? toCents(b.currentBalance));
     const gap = Math.max(0, targetCents - curBal);
 
     if (b.type === "ONGOING_GOAL" || b.goalMode === "ONGOING") {
-      const needed = Math.round(targetCents * ctx.cycleFactor);
+      const ongoingMonthly = b.monthlyAmount ?? b.enteredAmount ?? b.targetAmount ?? 0;
+      const ongoingCents = toCents(ongoingMonthly);
+      const needed = Math.round(ongoingCents * ctx.cycleFactor);
       if (needed > 0) {
         const alloc = allocate(
           ctx,
           b,
           needed,
-          `Ongoing goal contribution (${sym}${toDollars(targetCents).toFixed(2)}/mo): ${sym}${toDollars(Math.min(ctx.remainingCents, needed)).toFixed(2)} allocated.`
+          `Ongoing goal contribution (${sym}${toDollars(ongoingCents).toFixed(2)}/mo): ${sym}${toDollars(Math.min(ctx.remainingCents, needed)).toFixed(2)} allocated.`
         );
         if (alloc === 0) {
           ctx.linesMap.get(b.id)?.reasonings.push(`Ongoing goal contribution: ${sym}0 allocated (insufficient income).`);
@@ -233,8 +240,8 @@ export function runStep7SurplusSweep(ctx: StepContext, buckets: EngineBucket[]):
 
   const eligibleSurplus =
     buckets.find((b) => b.isSurplusTarget && ctx.isBucketEligible(b)) ||
-    buckets.find((b) => !b.isPrivate && (b.type === "TARGET_GOAL" || b.type === "ONGOING_GOAL" || b.type === "GOAL") && ctx.isBucketEligible(b)) ||
     buckets.find((b) => !b.isPrivate && b.type === "EVERYDAY" && ctx.isBucketEligible(b)) ||
+    buckets.find((b) => !b.isPrivate && (b.type === "TARGET_GOAL" || b.type === "ONGOING_GOAL" || b.type === "GOAL") && ctx.isBucketEligible(b)) ||
     buckets.find((b) => ctx.isBucketEligible(b));
 
   if (eligibleSurplus) {

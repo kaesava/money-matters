@@ -132,8 +132,9 @@ export const dashboard = {
       "nextPayday": "Your next scheduled payday is on {date} with an expected {amount} to allocate.",
       "nextPaydayNotScheduled": "No upcoming income event is scheduled yet. Add an income schedule to preview your next payday.",
       "billsDue": "You have {count} bill(s) due within the next {days} days.",
-      "billPaid": "✓ {bill} ({amount}) is covered and marked as paid.",
-      "billUnpaid": "⚠ {bill} ({amount}) is currently unpaid.",
+      "billPaid": "✓ {bill} ({amount}) has been paid and confirmed.",
+      "billCovered": "✓ {bill} ({amount}) is fully funded in your envelope and ready for its due date.",
+      "billUnpaid": "⚠ {bill} ({amount}) currently has a shortfall or is unfunded.",
       "billStatusNotFound": "Couldn't find an envelope or bill named '{bill}'."
     },
     "clarify": {

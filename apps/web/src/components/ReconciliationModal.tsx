@@ -130,9 +130,8 @@ export const ReconciliationModal: React.FC<ReconciliationModalProps> = ({
       return;
     }
     const valNum = parseFloat(inputVal) || 0;
-    // Enforce drawdown cap for shortfalls on non-EVERYDAY pools
-    const targetPool = visiblePools.find((p) => p.id === poolId);
-    if (!isSurplus && targetPool?.poolType !== "EVERYDAY" && valNum > maxAvailable) {
+    // Enforce drawdown cap for shortfalls across all envelopes to preserve non-negative invariant
+    if (!isSurplus && valNum > maxAvailable) {
       setAdjustments((prev) => ({
         ...prev,
         [poolId]: maxAvailable.toFixed(2),

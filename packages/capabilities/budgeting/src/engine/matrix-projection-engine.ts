@@ -96,7 +96,7 @@ export function computeMatrixProjection(input: MatrixProjectionInput): MatrixPro
   }
 
   const tz = input.timezone || "UTC";
-  const loc = input.locale && input.locale !== "auto" ? input.locale : "en-AU";
+  const loc = input.locale && input.locale !== "auto" ? input.locale : undefined;
 
   for (const step of projectionResult.steps) {
     const evt = step.incomeEvent;

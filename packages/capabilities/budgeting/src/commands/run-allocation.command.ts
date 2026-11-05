@@ -1,4 +1,4 @@
-import { envelopes, allocationPlans, allocationPlanLines, transactionLedger, incomeEvents, incomeSources, expenseEvents, getEnvelopeBalancesMap, tenants, DbOrTx } from "@money-matters/db";
+import { envelopes, allocationPlans, allocationPlanLines, transactionLedger, incomeEvents, incomeSources, expenseEvents, bankAccounts, getEnvelopeBalancesMap, tenants, DbOrTx } from "@money-matters/db";
 import { eq, and, sql } from "drizzle-orm";
 import { runAllocationEngine, EngineBucket } from "../engine/allocation-engine.js";
 import { getTenantDateString } from "@money-matters/core";
@@ -47,16 +47,18 @@ export async function runAllocationCommand(
   // 2. Compute balances using DB-side aggregate SUM(CASE WHEN...)
   const balancesMap = await getEnvelopeBalancesMap(tenantId, appId, dbClient);
 
-  // 3. Fetch income event joined with income source to resolve dates & recurrence frequency
+  // 3. Fetch income event joined with income source and bank account to resolve dates, recurrence, and owner user ID
   const [eventWithSource] = await dbClient
     .select({
       id: incomeEvents.id,
       expectedDate: incomeEvents.expectedDate,
       rrule: incomeSources.rrule,
       incomeType: incomeSources.incomeType,
+      userId: bankAccounts.userId,
     })
     .from(incomeEvents)
     .leftJoin(incomeSources, eq(incomeEvents.incomeSourceId, incomeSources.id))
+    .leftJoin(bankAccounts, eq(incomeSources.receivingAccountId, bankAccounts.id))
     .where(eq(incomeEvents.id, incomeEventId));
 
   const [tenantRecord] = await dbClient
@@ -64,7 +66,7 @@ export async function runAllocationCommand(
     .from(tenants)
     .where(eq(tenants.id, tenantId))
     .limit(1);
-  const tenantTz = tenantRecord?.timezone || "Australia/Sydney";
+  const tenantTz = tenantRecord?.timezone || "UTC";
   const getLocalDateString = (d: Date = new Date()) => getTenantDateString(d, { timezone: tenantTz });
 
   let freqDays = 14;
@@ -109,6 +111,7 @@ export async function runAllocationCommand(
   const engineOutput = runAllocationEngine({
     incomeAmount,
     incomeType: eventWithSource?.incomeType || "SALARIED",
+    incomeUserId: eventWithSource?.userId ?? undefined,
     runwayDays: runwayDays ?? 30,
     buckets: engineBuckets,
     paycheckDate: eventWithSource ? new Date(eventWithSource.expectedDate + "T00:00:00Z") : new Date(),

@@ -134,57 +134,19 @@ export function usePaycheckStudioMutations({
 
       setIsSavedPlan(true);
       if (onSaveSuccess) onSaveSuccess();
+      const freshData = await utils.previewPayday.fetch({ incomeEventId: id! }, { staleTime: 0 });
+      if (freshData && onApplyFreshData) onApplyFreshData(freshData as PaycheckStudioPreviewData);
       toast.success(t('matrix.lockSplitSuccess'));
       await Promise.all([
         utils.listIncomeEvents.invalidate(),
         utils.listAllAllocationPlans.invalidate(),
+        utils.getMatrixProjectionData.invalidate(),
         utils.previewPayday.invalidate({ incomeEventId: id! }),
       ]);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : t('paydayDrawer.saveSplitFailed'));
     } finally {
       setSubmitting(false);
-    }
-  };
-
-  const executeAutoSave = async () => {
-    if (!previewQuery.data || isReadOnly) return;
-    const pData = previewQuery.data;
-    const isEventDirty =
-      sourceName !== (pData.incomeEventName || t('paydayDrawer.incomeDepositDefault')) ||
-      actualAmount !== String(pData.actualAmount ?? pData.expectedAmount) ||
-      selectedDate !== formatIsoDate(pData.expectedDate);
-
-    const isAllocationsDirty =
-      Object.entries(linesMap).some(([pId, val]) => initialLinesMap[pId] !== val) ||
-      Object.entries(reasoningMap).some(([pId, val]) => initialReasoningMap[pId] !== val);
-
-    if (!isEventDirty && !isAllocationsDirty) return;
-
-    try {
-      if (isEventDirty) {
-        await overrideEventMut.mutateAsync({
-          eventId: id!,
-          eventType: 'INCOME',
-          name: sourceName,
-          actualAmount: parseFloat(actualAmount).toFixed(2),
-          actualDate: selectedDate,
-          expectedAmount: parseFloat(actualAmount).toFixed(2),
-          expectedDate: selectedDate,
-        });
-      }
-
-      if (isAllocationsDirty && !isDeficit) {
-        const payload = buildAllocationsPayload(linesMap, reasoningMap, sweepPool, sweepPoolRemainder, lines);
-        await saveBulkAllocationsMut.mutateAsync({
-          incomeEventId: id!,
-          totalIncomeAmount: numericActual.toFixed(2),
-          lines: payload,
-        });
-        if (!isSavedPlan) toast.success(t('matrix.lockSplitSuccess'));
-      }
-    } catch {
-      // Best effort auto-save
     }
   };
 
@@ -242,6 +204,5 @@ export function usePaycheckStudioMutations({
     handleDeleteIncome,
     handleSaveSplit,
     handleConfirmSplit,
-    executeAutoSave,
   };
 }

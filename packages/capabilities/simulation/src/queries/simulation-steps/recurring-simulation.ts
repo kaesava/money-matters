@@ -69,8 +69,13 @@ export function simulateRecurringCommitment(
   for (let k = 0; k < count; k++) {
     let d: Date;
     if (frequency === "MONTHLY") {
-      d = new Date(today);
-      d.setMonth(d.getMonth() + k);
+      const targetYear = today.getFullYear();
+      const targetMonth = today.getMonth() + k;
+      const originalDay = today.getDate();
+      // Use day 1 to safely advance month, then clamp to last day of target month
+      d = new Date(Date.UTC(targetYear, targetMonth, 1));
+      const daysInTargetMonth = new Date(Date.UTC(d.getFullYear(), d.getMonth() + 1, 0)).getDate();
+      d.setUTCDate(Math.min(originalDay, daysInTargetMonth));
     } else if (frequency === "ANNUALLY") {
       d = new Date(today);
       d.setFullYear(d.getFullYear() + k);

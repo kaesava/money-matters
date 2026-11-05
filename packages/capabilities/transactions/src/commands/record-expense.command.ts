@@ -1,8 +1,9 @@
 import { transactionLedger, envelopes, DbOrTx } from "@money-matters/db";
-import { eq, and } from "drizzle-orm";
+import { eq, and, sql } from "drizzle-orm";
 import { z } from "zod";
 import { RecordExpenseCommand } from "@money-matters/types";
 import { randomUUID } from "crypto";
+import { toCents } from "@money-matters/core";
 
 export async function recordExpenseCommand(
   input: z.infer<typeof RecordExpenseCommand>,
@@ -20,7 +21,8 @@ export async function recordExpenseCommand(
         and(
           eq(envelopes.id, input.envelopeId),
           eq(envelopes.tenantId, tenantId),
-          eq(envelopes.appId, appId)
+          eq(envelopes.appId, appId),
+          sql`${envelopes.archivedAt} IS NULL`
         )
       );
 
@@ -45,23 +47,26 @@ export async function recordExpenseCommand(
           and(
             eq(transactionLedger.envelopeId, input.envelopeId),
             eq(transactionLedger.tenantId, tenantId),
-            eq(transactionLedger.appId, appId)
+            eq(transactionLedger.appId, appId),
+            sql`${transactionLedger.archivedAt} IS NULL`
           )
         );
 
-      let currentBalance = 0;
+      let currentBalanceCents = 0;
       for (const t of existingTxs) {
-        const val = parseFloat(t.amount);
+        const valCents = toCents(t.amount);
         if (t.flowType === "CREDIT") {
-          currentBalance += val;
+          currentBalanceCents += valCents;
         } else {
-          currentBalance -= val;
+          currentBalanceCents -= valCents;
         }
       }
 
-      if (numAmount > currentBalance) {
+      const requestedCents = toCents(input.amount);
+      if (requestedCents > currentBalanceCents) {
+        const availDollars = (currentBalanceCents / 100).toFixed(2);
         throw new Error(
-          `Insufficient envelope balance. Available: $${currentBalance.toFixed(2)}, requested: $${numAmount.toFixed(2)}`
+          `Insufficient envelope balance. Available: ${availDollars}, requested: ${numAmount.toFixed(2)}`
         );
       }
     }

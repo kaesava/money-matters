@@ -73,7 +73,6 @@ export function IncomeSplitScreen({
     handleLineAmountChange,
     handleLineReasoningChange,
     attemptExit,
-    handleSaveAndExit,
     handleDiscardAndExit,
     handleDiscardEdits,
     handleRecalculateTrigger,
@@ -210,7 +209,6 @@ export function IncomeSplitScreen({
         submitting={submitting}
         onCloseExitDialog={() => setShowExitDialog(false)}
         onDiscardAndExit={handleDiscardAndExit}
-        onSaveAndExit={handleSaveAndExit}
         showDeleteConfirm={showDeleteConfirm}
         onCloseDeleteConfirm={() => setShowDeleteConfirm(false)}
         onConfirmDeleteIncome={handleDeleteIncome}

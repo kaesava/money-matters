@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { StyleSheet, ScrollView, RefreshControl } from 'react-native';
 import { useRouter, useLocalSearchParams, type Href } from 'expo-router';
 import { DESIGN_TOKENS } from '@money-matters/ui/mobile';
@@ -12,6 +12,8 @@ import { PaychecksModalManager } from '../../components/paychecks/PaychecksModal
 import { BurstEventItem } from '../../components/paychecks/MobileBurstModal';
 import { PaychecksSchedulesBanner } from '../../components/paychecks/overview/PaychecksSchedulesBanner';
 import { usePaychecksModalController } from '../../components/paychecks/hooks/usePaychecksModalController';
+import { PoolOverflowMenuModal } from '../../components/envelopes/PoolOverflowMenuModal';
+import { QuickExpenseModal } from '../../components/QuickExpenseModal';
 
 export default function IncomeAndBillsScreen() {
   const router = useRouter();
@@ -30,6 +32,9 @@ export default function IncomeAndBillsScreen() {
     : undefined;
 
   const modals = usePaychecksModalController();
+  const [overflowMenuVisible, setOverflowMenuVisible] = useState(false);
+  const [quickExpenseModalVisible, setQuickExpenseModalVisible] = useState(false);
+  const [quickExpenseInitialType, setQuickExpenseInitialType] = useState<'DEBIT' | 'CREDIT' | 'TRANSFER'>('TRANSFER');
 
   const {
     refreshing,
@@ -130,6 +135,7 @@ export default function IncomeAndBillsScreen() {
           pools={pools}
           incomeSources={incomeSources}
           savedIncomeEventIds={savedIncomeEventIds}
+          onOpenOverflowMenu={() => setOverflowMenuVisible(true)}
           initialKind={initialKind}
           initialPoolId={searchParams.poolId}
           initialCategoryId={searchParams.categoryId}
@@ -227,6 +233,31 @@ export default function IncomeAndBillsScreen() {
         }}
         onRefresh={onRefresh}
         refetchAll={refetchAll}
+      />
+
+      <PoolOverflowMenuModal
+        visible={overflowMenuVisible}
+        onClose={() => setOverflowMenuVisible(false)}
+        showExtraActions={false}
+        onQuickExpense={() => {
+          setQuickExpenseInitialType('DEBIT');
+          setQuickExpenseModalVisible(true);
+        }}
+        onQuickIncome={() => {
+          setQuickExpenseInitialType('CREDIT');
+          setQuickExpenseModalVisible(true);
+        }}
+        onMoveMoney={() => {
+          setQuickExpenseInitialType('TRANSFER');
+          setQuickExpenseModalVisible(true);
+        }}
+      />
+
+      <QuickExpenseModal
+        visible={quickExpenseModalVisible}
+        initialType={quickExpenseInitialType}
+        onClose={() => setQuickExpenseModalVisible(false)}
+        onSuccess={() => refetchAll()}
       />
     </AppScreenWrapper>
   );

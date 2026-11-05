@@ -142,7 +142,15 @@ export function usePaycheckStudio(id: string | undefined, returnTo?: string) {
   const handleResetAllEdits = () => {
     setLinesMap({ ...initialLinesMap });
     setReasoningMap({ ...initialReasoningMap });
-    setActualAmount(initialAmount);
+    if (previewQuery.data) {
+      setSourceName(previewQuery.data.incomeEventName || t('paydayDrawer.incomeDepositDefault'));
+      const amtStr = String(previewQuery.data.actualAmount ?? previewQuery.data.expectedAmount);
+      setActualAmount(amtStr);
+      setInitialAmount(amtStr);
+      setSelectedDate(formatIsoDate(previewQuery.data.expectedDate));
+    } else {
+      setActualAmount(initialAmount);
+    }
     toast.success(t('paydayDrawer.discardEditsSuccess'));
   };
 
@@ -157,6 +165,7 @@ export function usePaycheckStudio(id: string | undefined, returnTo?: string) {
       const effectiveMap = { ...linesMap };
       if (sweepPool) effectiveMap[sweepPool.id] = sweepPoolRemainder.toFixed(2);
       setInitialLinesMap({ ...effectiveMap });
+      setLinesMap({ ...effectiveMap });
       setInitialReasoningMap({ ...reasoningMap });
     },
   });
@@ -169,19 +178,6 @@ export function usePaycheckStudio(id: string | undefined, returnTo?: string) {
     if (returnTo) router.push(returnTo as Href);
     else router.back();
   }, [isDirty, isReadOnly, returnTo, router]);
-
-  const handleSaveAndExit = async () => {
-    if (isDeficit) return;
-    try {
-      setSubmitting(true);
-      await mutations.executeAutoSave();
-      if (returnTo) router.push(returnTo as Href);
-      else router.back();
-    } finally {
-      setSubmitting(false);
-      setShowExitDialog(false);
-    }
-  };
 
   const handleDiscardAndExit = () => {
     setShowExitDialog(false);
@@ -246,6 +242,6 @@ export function usePaycheckStudio(id: string | undefined, returnTo?: string) {
     handleLineAmountChange, handleLineReasoningChange,
     showTransferModal, setShowTransferModal,
     showExitDialog, setShowExitDialog,
-    handleSaveAndExit, handleDiscardAndExit,
+    handleDiscardAndExit,
   };
 }

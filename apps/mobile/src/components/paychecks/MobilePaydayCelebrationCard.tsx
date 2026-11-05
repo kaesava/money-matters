@@ -44,9 +44,11 @@ export function MobilePaydayCelebrationCard({
 }: MobilePaydayCelebrationCardProps) {
   const badgeText = isConfirmed
     ? t('paydayDrawer.confirmedBadge')
+    : isDirty
+    ? t('paydayDrawer.customSplitsBadge')
     : isLocked
-    ? isDirty ? t('paydayDrawer.lockedUnsavedBadge') : t('paydayDrawer.lockedBadge')
-    : isDirty ? t('paydayDrawer.customSplitsBadge') : t('paydayDrawer.autoBadge');
+    ? t('paydayDrawer.savedBadge')
+    : t('paydayDrawer.autoBadge');
 
   return (
     <View style={styles.card}>

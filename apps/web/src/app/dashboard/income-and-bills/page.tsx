@@ -1,10 +1,11 @@
 "use client";
 
-import React, { useState, useMemo, Suspense } from "react";
+import React, { useState, useMemo, useRef, useEffect, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { trpc } from "../../../lib/trpc";
 import { t } from "@money-matters/i18n";
 import { Spinner, SearchInput, Tabs, InfoTooltip } from "@money-matters/ui/web";
+import { MoreVertical, ArrowDownCircle, ArrowUpCircle, ArrowRightLeft } from "lucide-react";
 import { IncomeFormModal, IncomeSourceToEdit } from "../../../components/web/IncomeFormModal";
 import { QuickExpenseDrawer } from "../../../components/web/QuickExpenseDrawer";
 import { EnvelopeFormModal } from "../../../components/web/EnvelopeFormModal";
@@ -46,6 +47,22 @@ function IncomeAndBillsContent() {
 
   const [setupSearchQuery, setSetupSearchQuery] = useState("");
   const [setupScopeFilter, setSetupScopeFilter] = useState<"ALL" | "SHARED" | "PRIVATE">("ALL");
+  const [overflowMenuOpen, setOverflowMenuOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setOverflowMenuOpen(false);
+      }
+    }
+    if (overflowMenuOpen) {
+      document.addEventListener("mousedown", handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [overflowMenuOpen]);
 
   React.useEffect(() => {
     if (rawTab) {
@@ -162,14 +179,54 @@ function IncomeAndBillsContent() {
           <InfoTooltip content={t("incomeBillsTabs.incomeSchedulesAndBillsSubtitle")} />
         </div>
         <div className="flex items-center gap-2">
-          <button
-            type="button"
-            onClick={() => setQuickActionTab("TRANSFER")}
-            className="px-4 py-2.5 rounded-xl font-bold text-xs bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-100 border border-slate-200 dark:border-slate-700 transition-all flex items-center gap-2 shadow-2xs cursor-pointer"
-          >
-            <span>🔄</span>
-            <span>{t("categories.actions.moveMoney")}</span>
-          </button>
+          <div className="relative" ref={dropdownRef}>
+            <button
+              type="button"
+              onClick={() => setOverflowMenuOpen(!overflowMenuOpen)}
+              className="p-2.5 rounded-xl font-bold text-xs bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-zinc-700 dark:text-zinc-200 transition-all border border-zinc-200 dark:border-zinc-700 flex items-center justify-center cursor-pointer shadow-2xs"
+              aria-label="Actions"
+            >
+              <MoreVertical className="w-4 h-4" />
+            </button>
+
+            {overflowMenuOpen && (
+              <div className="absolute right-0 mt-2 w-56 rounded-xl bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 shadow-xl py-1.5 z-50">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setOverflowMenuOpen(false);
+                    setQuickActionTab("DEBIT");
+                  }}
+                  className="w-full px-3.5 py-2 text-left text-xs font-semibold text-zinc-700 dark:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800 flex items-center gap-2.5 transition-colors cursor-pointer"
+                >
+                  <ArrowDownCircle className="w-4 h-4 text-emerald-600" />
+                  <span>{t("categories.actions.quickExpense")}</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setOverflowMenuOpen(false);
+                    setQuickActionTab("CREDIT");
+                  }}
+                  className="w-full px-3.5 py-2 text-left text-xs font-semibold text-zinc-700 dark:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800 flex items-center gap-2.5 transition-colors cursor-pointer"
+                >
+                  <ArrowUpCircle className="w-4 h-4 text-[#2563eb]" />
+                  <span>{t("categories.actions.quickIncome")}</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setOverflowMenuOpen(false);
+                    setQuickActionTab("TRANSFER");
+                  }}
+                  className="w-full px-3.5 py-2 text-left text-xs font-semibold text-zinc-700 dark:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800 flex items-center gap-2.5 transition-colors cursor-pointer"
+                >
+                  <ArrowRightLeft className="w-4 h-4 text-[#2563eb]" />
+                  <span>{t("categories.actions.moveMoney")}</span>
+                </button>
+              </div>
+            )}
+          </div>
         </div>
       </div>
 

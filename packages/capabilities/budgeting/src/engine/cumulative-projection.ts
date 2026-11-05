@@ -126,7 +126,7 @@ export function runCumulativeProjection(input: CumulativeProjectionInput): Cumul
     const isConfirmed = evt.status === "CONFIRMED";
     const hasAnyCellOverride = input.categories.some((cat) => typeof cellOverrides[`${evt.id}_${cat.id}`] === "number");
 
-    if ((eventSavedPlan && eventSavedPlan.length > 0) || (isConfirmed && hasAnyCellOverride)) {
+    if ((eventSavedPlan && eventSavedPlan.length > 0) || hasAnyCellOverride) {
       for (const cat of input.categories) {
         const savedLine = eventSavedPlan?.find((l) => l.poolId === cat.id);
         const overrideKey = `${evt.id}_${cat.id}`;
@@ -208,26 +208,9 @@ export function runCumulativeProjection(input: CumulativeProjectionInput): Cumul
       }
     }
 
-    let totalTrimmedExcess = 0;
-    for (const cat of input.categories) {
-      if (isBillsBucket(cat)) {
-        const monthlyTarget = cat.monthlyAmount ?? cat.targetAmount ?? 0;
-        const cap = monthlyTarget * 1.5;
-        const curBal = runningBalances.get(cat.id) ?? 0;
-        if (monthlyTarget > 0 && curBal > cap) {
-          totalTrimmedExcess += Number((curBal - cap).toFixed(2));
-          runningBalances.set(cat.id, Number(cap.toFixed(2)));
-        }
-      }
-    }
+    // Note: Do not artificially cap bills at 1.5x monthly target. Sinking fund envelopes
+    // accumulate naturally to meet quarterly/annual/future bill schedules without being prematurely swept.
 
-    if (totalTrimmedExcess > 0) {
-      const surplusBucket = input.categories.find((c) => c.isSurplusTarget) || input.categories.find(isGoalBucket);
-      if (surplusBucket) {
-        const curSurplus = runningBalances.get(surplusBucket.id) ?? 0;
-        runningBalances.set(surplusBucket.id, Number((curSurplus + totalTrimmedExcess).toFixed(2)));
-      }
-    }
 
     const balancesAfterExpenses = new Map<string, number>();
     const minProjectedBalances = new Map<string, number>();

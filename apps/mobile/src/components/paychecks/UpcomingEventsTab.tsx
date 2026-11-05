@@ -36,6 +36,7 @@ interface UpcomingEventsTabProps {
   initialPoolId?: string | null;
   initialCategoryId?: string | null;
   savedIncomeEventIds?: Set<string>;
+  onOpenOverflowMenu?: () => void;
 }
 
 export function UpcomingEventsTab({
@@ -57,6 +58,7 @@ export function UpcomingEventsTab({
   initialPoolId,
   initialCategoryId,
   savedIncomeEventIds,
+  onOpenOverflowMenu,
 }: UpcomingEventsTabProps) {
   const [upcomingSearchQuery, setUpcomingSearchQuery] = useState('');
   const [upcomingStatusFilter, setUpcomingStatusFilter] = useState<'ALL' | 'OVERDUE'>('ALL');
@@ -130,6 +132,11 @@ export function UpcomingEventsTab({
             {activeUpcomingFilterCount > 0 ? ` (${activeUpcomingFilterCount})` : ''}
           </Text>
         </TouchableOpacity>
+        {onOpenOverflowMenu && (
+          <TouchableOpacity onPress={onOpenOverflowMenu} style={styles.overflowBtn}>
+            <Feather name="more-horizontal" size={18} color={DESIGN_TOKENS.colors.slate[500]} />
+          </TouchableOpacity>
+        )}
       </View>
 
       <PaycheckEventSection
@@ -253,6 +260,16 @@ const styles = StyleSheet.create({
   },
   filterBtnTextActive: {
     color: DESIGN_TOKENS.colors.accent,
+  },
+  overflowBtn: {
+    width: 44,
+    height: 44,
+    borderRadius: 12,
+    backgroundColor: DESIGN_TOKENS.colors.surface,
+    borderWidth: 1.5,
+    borderColor: DESIGN_TOKENS.colors.slate[200],
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   paginationWrap: {
     marginTop: 8,

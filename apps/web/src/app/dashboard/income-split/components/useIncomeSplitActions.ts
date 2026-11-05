@@ -39,6 +39,9 @@ export interface UseIncomeSplitActionsParams {
   returnTo: string;
   previewData?: PaydayPreviewData | null;
   applyPreviewData: (data: PaydayPreviewData) => void;
+  setSourceName: (val: string) => void;
+  setActualAmount: (val: string) => void;
+  setSelectedDate: (val: string) => void;
 }
 
 export function useIncomeSplitActions({
@@ -73,6 +76,9 @@ export function useIncomeSplitActions({
   returnTo,
   previewData,
   applyPreviewData,
+  setSourceName,
+  setActualAmount,
+  setSelectedDate,
 }: UseIncomeSplitActionsParams) {
   const router = useRouter();
   const toast = useToast();
@@ -84,106 +90,6 @@ export function useIncomeSplitActions({
   const resetAllocationPlanMut = trpc.resetAllocationPlan.useMutation();
   const deleteIncomeMut = trpc.deleteIncomeEvent.useMutation();
 
-  const executeAutoSave = useCallback(async () => {
-    if (!previewData || isReadOnly) return;
-    const isEventDirty =
-      sourceName !== (previewData.incomeEventName || "Paycheck") ||
-      actualAmount !== String(previewData.actualAmount ?? previewData.expectedAmount) ||
-      selectedDate !== previewData.expectedDate;
-
-    let isAllocationsDirty = false;
-    for (const [pId, val] of Object.entries(linesMap)) {
-      if (initialLinesMap[pId] !== val) {
-        isAllocationsDirty = true;
-        break;
-      }
-    }
-    if (!isAllocationsDirty) {
-      for (const [pId, val] of Object.entries(reasoningMap)) {
-        if (initialReasoningMap[pId] !== val) {
-          isAllocationsDirty = true;
-          break;
-        }
-      }
-    }
-
-    if (!isEventDirty && !isAllocationsDirty) return;
-
-    try {
-      if (isEventDirty) {
-        await overrideEventMut.mutateAsync({
-          eventId: incomeEventId,
-          eventType: "INCOME",
-          name: sourceName,
-          actualAmount: parseFloat(actualAmount).toFixed(2),
-          actualDate: selectedDate,
-          expectedAmount: parseFloat(actualAmount).toFixed(2),
-          expectedDate: selectedDate,
-        });
-      }
-
-      if (isAllocationsDirty && !isDeficit) {
-        const effectiveMap = { ...linesMap };
-        if (sweepPool) effectiveMap[sweepPool.id] = sweepPoolRemainder.toFixed(2);
-        const payload = Object.entries(effectiveMap).map(([pId, val]) => {
-          const amt = parseFloat(val) || 0;
-          return {
-            poolId: pId,
-            proposedAmount: amt.toFixed(2),
-            reasoning:
-              amt <= 0
-                ? undefined
-                : reasoningMap[pId] ?? (lines.find((l) => l.bucketId === pId)?.reasoning || undefined),
-          };
-        });
-
-        await saveBulkAllocationsMut.mutateAsync({
-          incomeEventId,
-          totalIncomeAmount: numericActual.toFixed(2),
-          lines: payload,
-        });
-
-        if (!isSavedPlan) {
-          toast.success(t("matrix.lockSplitSuccess"));
-        }
-      }
-    } catch {
-      // Auto-save best effort
-    }
-  }, [
-    previewData,
-    isReadOnly,
-    sourceName,
-    actualAmount,
-    selectedDate,
-    linesMap,
-    initialLinesMap,
-    reasoningMap,
-    initialReasoningMap,
-    overrideEventMut,
-    incomeEventId,
-    isDeficit,
-    sweepPool,
-    sweepPoolRemainder,
-    lines,
-    saveBulkAllocationsMut,
-    numericActual,
-    isSavedPlan,
-    toast,
-  ]);
-
-  const handleSaveAndExit = async () => {
-    if (isDeficit) return;
-    try {
-      setSubmitting(true);
-      await executeAutoSave();
-      router.push(returnTo);
-    } finally {
-      setSubmitting(false);
-      setShowExitDialog(false);
-    }
-  };
-
   const handleDiscardAndExit = () => {
     setShowExitDialog(false);
     router.push(returnTo);
@@ -192,6 +98,11 @@ export function useIncomeSplitActions({
   const handleDiscardEdits = () => {
     setLinesMap({ ...initialLinesMap });
     setReasoningMap({ ...initialReasoningMap });
+    if (previewData) {
+      setSourceName(previewData.incomeEventName || "Paycheck");
+      setActualAmount(String(previewData.actualAmount ?? previewData.expectedAmount));
+      setSelectedDate(previewData.expectedDate || "");
+    }
     toast.success(t("paydayDrawer.discardEditsSuccess"));
   };
 
@@ -287,12 +198,18 @@ export function useIncomeSplitActions({
 
       setIsSavedPlan(true);
       setInitialLinesMap({ ...effectiveMap });
+      setLinesMap({ ...effectiveMap });
       setInitialReasoningMap({ ...reasoningMap });
       toast.success(t("matrix.lockSplitSuccess"));
+
+      const freshData = await utils.previewPayday.fetch({ incomeEventId }, { staleTime: 0 });
+      if (freshData) {
+        applyPreviewData(freshData);
+      }
+
       await Promise.all([
         utils.listIncomeEvents.invalidate(),
         utils.listAllAllocationPlans.invalidate(),
-        utils.previewPayday.invalidate({ incomeEventId }),
         utils.getMatrixProjectionData.invalidate(),
       ]);
     } catch (err: unknown) {
@@ -350,7 +267,6 @@ export function useIncomeSplitActions({
   };
 
   return {
-    handleSaveAndExit,
     handleDiscardAndExit,
     handleDiscardEdits,
     handleRecalculateSavedConfirmed,

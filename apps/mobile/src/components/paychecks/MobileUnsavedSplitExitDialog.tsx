@@ -11,7 +11,6 @@ export interface MobileUnsavedSplitExitDialogProps {
   submitting?: boolean;
   onClose: () => void;
   onDiscardAndExit: () => void;
-  onSaveAndExit?: () => void;
 }
 
 export function MobileUnsavedSplitExitDialog({
@@ -21,7 +20,6 @@ export function MobileUnsavedSplitExitDialog({
   submitting = false,
   onClose,
   onDiscardAndExit,
-  onSaveAndExit,
 }: MobileUnsavedSplitExitDialogProps) {
   if (!visible) return null;
 
@@ -49,51 +47,20 @@ export function MobileUnsavedSplitExitDialog({
           </View>
 
           <View style={styles.buttonStack}>
-            {isDeficit ? (
-              <>
-                <TouchableOpacity
-                  activeOpacity={0.8}
-                  onPress={onClose}
-                  style={styles.primaryBtn}
-                >
-                  <Text style={styles.primaryBtnText}>{t('paydayDrawer.keepEditing')}</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  activeOpacity={0.8}
-                  onPress={onDiscardAndExit}
-                  style={styles.dangerBtn}
-                >
-                  <Text style={styles.dangerBtnText}>{t('paydayDrawer.discardAndExit')}</Text>
-                </TouchableOpacity>
-              </>
-            ) : (
-              <>
-                <TouchableOpacity
-                  activeOpacity={0.8}
-                  onPress={onSaveAndExit}
-                  disabled={submitting}
-                  style={[styles.primaryBtn, submitting && styles.disabledBtn]}
-                >
-                  <Text style={styles.primaryBtnText}>{t('paydayDrawer.saveAndExit')}</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  activeOpacity={0.8}
-                  onPress={onDiscardAndExit}
-                  disabled={submitting}
-                  style={[styles.dangerBtn, submitting && styles.disabledBtn]}
-                >
-                  <Text style={styles.dangerBtnText}>{t('paydayDrawer.discardAndExit')}</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  activeOpacity={0.8}
-                  onPress={onClose}
-                  disabled={submitting}
-                  style={styles.ghostBtn}
-                >
-                  <Text style={styles.ghostBtnText}>{t('paydayDrawer.keepEditing')}</Text>
-                </TouchableOpacity>
-              </>
-            )}
+            <TouchableOpacity
+              activeOpacity={0.8}
+              onPress={onClose}
+              style={styles.primaryBtn}
+            >
+              <Text style={styles.primaryBtnText}>{t('paydayDrawer.keepEditing')}</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              activeOpacity={0.8}
+              onPress={onDiscardAndExit}
+              style={styles.dangerBtn}
+            >
+              <Text style={styles.dangerBtnText}>{t('paydayDrawer.discardAndExit')}</Text>
+            </TouchableOpacity>
           </View>
         </View>
       </View>

@@ -10,6 +10,8 @@ interface PoolOverflowMenuModalProps {
   onClose: () => void;
   onMoveMoney: () => void;
   onQuickExpense?: () => void;
+  onQuickIncome?: () => void;
+  showExtraActions?: boolean;
 }
 
 export function PoolOverflowMenuModal({
@@ -17,6 +19,8 @@ export function PoolOverflowMenuModal({
   onClose,
   onMoveMoney,
   onQuickExpense,
+  onQuickIncome,
+  showExtraActions = true,
 }: PoolOverflowMenuModalProps) {
   const router = useRouter();
 
@@ -49,6 +53,22 @@ export function PoolOverflowMenuModal({
             </>
           )}
 
+          {onQuickIncome && (
+            <>
+              <TouchableOpacity
+                style={styles.menuItem}
+                onPress={() => {
+                  onClose();
+                  onQuickIncome();
+                }}
+              >
+                <Feather name="arrow-up-circle" size={16} color={DESIGN_TOKENS.colors.sereneBlue} />
+                <Text style={styles.menuItemText}>{t('categories.actions.quickIncome')}</Text>
+              </TouchableOpacity>
+              <View style={styles.menuItemDivider} />
+            </>
+          )}
+
           <TouchableOpacity
             style={styles.menuItem}
             onPress={() => {
@@ -60,31 +80,35 @@ export function PoolOverflowMenuModal({
             <Text style={styles.menuItemText}>{t('dashboard.moveMoney')}</Text>
           </TouchableOpacity>
 
-          <View style={styles.menuItemDivider} />
+          {showExtraActions && (
+            <>
+              <View style={styles.menuItemDivider} />
 
-          <TouchableOpacity
-            style={styles.menuItem}
-            onPress={() => {
-              onClose();
-              router.push('/(app)/envelopes/projection' as Href);
-            }}
-          >
-            <Feather name="trending-up" size={16} color={DESIGN_TOKENS.colors.slate[600]} />
-            <Text style={styles.menuItemText}>{t('categories.projectionModeTitle')}</Text>
-          </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.menuItem}
+                onPress={() => {
+                  onClose();
+                  router.push('/(app)/envelopes/projection' as Href);
+                }}
+              >
+                <Feather name="trending-up" size={16} color={DESIGN_TOKENS.colors.slate[600]} />
+                <Text style={styles.menuItemText}>{t('categories.projectionModeTitle')}</Text>
+              </TouchableOpacity>
 
-          <View style={styles.menuItemDivider} />
+              <View style={styles.menuItemDivider} />
 
-          <TouchableOpacity
-            style={styles.menuItem}
-            onPress={() => {
-              onClose();
-              router.push({ pathname: '/(setup)/income', params: { mode: 'rerun' } } as Href);
-            }}
-          >
-            <Feather name="settings" size={16} color={DESIGN_TOKENS.colors.slate[600]} />
-            <Text style={styles.menuItemText}>{t('categories.recalibrateBudget')}</Text>
-          </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.menuItem}
+                onPress={() => {
+                  onClose();
+                  router.push({ pathname: '/(setup)/income', params: { mode: 'rerun' } } as Href);
+                }}
+              >
+                <Feather name="settings" size={16} color={DESIGN_TOKENS.colors.slate[600]} />
+                <Text style={styles.menuItemText}>{t('categories.recalibrateBudget')}</Text>
+              </TouchableOpacity>
+            </>
+          )}
         </View>
       </TouchableOpacity>
     </Modal>

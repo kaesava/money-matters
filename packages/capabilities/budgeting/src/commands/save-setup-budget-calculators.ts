@@ -15,7 +15,7 @@ export interface EnvelopeScheduleCandidate {
 export function computeBillScheduleAnchorDate(
   budgetFrequency: "WEEKLY" | "FORTNIGHTLY" | "MONTHLY" | "ANNUALLY",
   refDate: Date = new Date(),
-  timeZone: string = "Australia/Sydney"
+  timeZone: string = "UTC"
 ): string {
   if (budgetFrequency === "WEEKLY") {
     const target = new Date(refDate.getTime() + 7 * 24 * 60 * 60 * 1000);
@@ -27,7 +27,7 @@ export function computeBillScheduleAnchorDate(
   }
 
   // Monthly / Annually: 1st of next month in dynamic timezone
-  const parts = new Intl.DateTimeFormat("en-AU", {
+  const parts = new Intl.DateTimeFormat("en-CA", {
     timeZone,
     year: "numeric",
     month: "numeric",

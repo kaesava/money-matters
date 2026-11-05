@@ -132,10 +132,15 @@ export function createAssistantIntentHandler(db: DbOrTx, appId: string): IntentH
         };
       }
 
-      const isPaid = matched.coverageStatus === "COVERED";
+      // If coverageStatus is COVERED, check if there are pending events or if confirmed
+      const templateKey =
+        matched.coverageStatus === "COVERED"
+          ? "assistant.answers.billCovered"
+          : "assistant.answers.billUnpaid";
+
       return {
         type: "answer",
-        templateKey: isPaid ? "assistant.answers.billPaid" : "assistant.answers.billUnpaid",
+        templateKey,
         templateValues: {
           bill: matched.envelopeName,
           amount: matched.nextDueAmount ? parseFloat(matched.nextDueAmount) : 0,

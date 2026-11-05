@@ -8,7 +8,8 @@ export interface PaydayMetricsGridProps {
   everydayAllocated: number;
   billsAllocated: number;
   goalsAllocated: number;
-  safeToSpend: number;
+  safeToSpend?: number;
+  surplusAmount?: number;
   isDeficit: boolean;
   formatCurrency: (amount: number) => string;
 }
@@ -17,10 +18,12 @@ export function PaydayMetricsGrid({
   everydayAllocated,
   billsAllocated,
   goalsAllocated,
-  safeToSpend,
+  safeToSpend = 0,
+  surplusAmount,
   isDeficit,
   formatCurrency,
 }: PaydayMetricsGridProps) {
+  const displaySurplus = surplusAmount !== undefined ? surplusAmount : safeToSpend;
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5 pt-1 border-t border-white/10">
       <div className="p-4 rounded-xl bg-white/5 border border-white/10 flex items-center gap-3.5">
@@ -86,7 +89,7 @@ export function PaydayMetricsGrid({
           <span className={`font-mono text-base sm:text-lg font-black tabular-nums ${
             isDeficit ? "text-rose-300" : "text-white"
           }`}>
-            {formatCurrency(safeToSpend)}
+            {formatCurrency(displaySurplus)}
           </span>
         </div>
       </div>

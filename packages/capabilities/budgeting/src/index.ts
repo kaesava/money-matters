@@ -16,7 +16,6 @@ export * from "./engine/burst-engine.js";
 export * from "./commands/override-event.command.js";
 export * from "./commands/bulk-delete-events.command.js";
 export * from "./commands/delete-upcoming-event.command.js";
-export * from "./engine/due-date-guardrail.js";
 export * from "./queries/preview-payday.query.js";
 export * from "./queries/get-projected-pool-balances.query.js";
 export * from "./commands/maintain-rolling-window.command.js";

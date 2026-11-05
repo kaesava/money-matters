@@ -1,4 +1,4 @@
-import { envelopes, expenseEvents, DbOrTx } from "@money-matters/db";
+import { envelopes, expenseEvents, bankAccounts, DbOrTx } from "@money-matters/db";
 import { eq, and, sql } from "drizzle-orm";
 import { z } from "zod";
 import { UpdateEnvelopeCommand } from "@money-matters/types";
@@ -35,9 +35,27 @@ export async function updateEnvelopeCommand(
     }
 
     const effectiveIsPrivate = input.isPrivate !== undefined ? Boolean(input.isPrivate) : Boolean(existing.isPrivate);
+    const effectiveBankAccountId = input.bankAccountId !== undefined ? input.bankAccountId : existing.bankAccountId;
 
     if (input.isSurplusTarget === true && effectiveIsPrivate) {
       throw new Error("A private envelope cannot be designated as the household Surplus Sweep Target.");
+    }
+
+    if (input.isSurplusTarget === true && effectiveBankAccountId) {
+      const [acc] = await tx
+        .select({ isPrivate: bankAccounts.isPrivate })
+        .from(bankAccounts)
+        .where(
+          and(
+            eq(bankAccounts.id, effectiveBankAccountId),
+            eq(bankAccounts.tenantId, tenantId),
+            eq(bankAccounts.appId, appId)
+          )
+        )
+        .limit(1);
+      if (acc?.isPrivate) {
+        throw new Error("Surplus Sweep Target envelope cannot be linked to a private bank account.");
+      }
     }
 
     if (input.isSurplusTarget === false && existing.isSurplusTarget) {

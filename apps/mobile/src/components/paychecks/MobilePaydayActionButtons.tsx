@@ -37,97 +37,53 @@ export function MobilePaydayActionButtons({
 
   return (
     <View style={styles.actionContainer}>
-      {isDirty ? (
-        <>
-          <View style={styles.dualRow}>
-            {isLocked ? (
-              <>
-                <TouchableOpacity
-                  activeOpacity={0.85}
-                  onPress={onSaveChanges}
-                  disabled={isDeficit || submitting}
-                  style={[styles.primaryActionBtn, (isDeficit || submitting) && styles.disabledBtn]}
-                >
-                  <Feather name="lock" size={14} color="#FFFFFF" />
-                  <Text style={styles.btnText}>{t('paydayDrawer.saveChanges')}</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  activeOpacity={0.85}
-                  onPress={onDiscardEdits}
-                  disabled={submitting}
-                  style={[styles.secondaryActionBtn, submitting && styles.disabledBtn]}
-                >
-                  <Feather name="rotate-ccw" size={14} color="#FFFFFF" />
-                  <Text style={styles.btnText}>{t('paydayDrawer.discardEdits')}</Text>
-                </TouchableOpacity>
-              </>
-            ) : (
-              <>
-                <TouchableOpacity
-                  activeOpacity={0.85}
-                  onPress={onLockSplit}
-                  disabled={isDeficit || submitting}
-                  style={[styles.primaryActionBtn, (isDeficit || submitting) && styles.disabledBtn]}
-                >
-                  <Feather name="lock" size={14} color="#FFFFFF" />
-                  <Text style={styles.btnText}>{t('paydayDrawer.lockSplit')}</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  activeOpacity={0.85}
-                  onPress={onRecalculate}
-                  disabled={submitting}
-                  style={[styles.secondaryActionBtn, submitting && styles.disabledBtn]}
-                >
-                  <Feather name="rotate-ccw" size={14} color="#FFFFFF" />
-                  <Text style={styles.btnText}>{t('paydayDrawer.recalculate')}</Text>
-                </TouchableOpacity>
-              </>
-            )}
-          </View>
+      {/* If Dirty: Save Draft and Discard Edits */}
+      {isDirty && (
+        <View style={styles.dualRow}>
           <TouchableOpacity
             activeOpacity={0.85}
-            onPress={onConfirm}
-            disabled={isDeficit || submitting || isFutureDate}
-            style={[styles.confirmBtnFull, (isDeficit || submitting || isFutureDate) && styles.disabledBtn]}
+            onPress={onSaveChanges || onLockSplit}
+            disabled={isDeficit || submitting}
+            style={[styles.primaryActionBtn, (isDeficit || submitting) && styles.disabledBtn]}
           >
-            <Feather name="check-circle" size={15} color="#FFFFFF" />
-            <Text style={styles.confirmBtnText}>{t('paydayDrawer.confirmIncomeSplit')}</Text>
+            <Feather name="lock" size={14} color="#FFFFFF" />
+            <Text style={styles.btnText}>{t('paydayDrawer.saveIncomeSplit')}</Text>
           </TouchableOpacity>
-        </>
-      ) : (
-        <View style={styles.actionButtonsRow}>
-          {isLocked ? (
-            <TouchableOpacity
-              activeOpacity={0.85}
-              onPress={onUnlockAndRecalculate}
-              disabled={submitting}
-              style={[styles.secondaryActionBtn, submitting && styles.disabledBtn]}
-            >
-              <Feather name="rotate-ccw" size={14} color="#FFFFFF" />
-              <Text style={styles.btnText}>{t('paydayDrawer.unlockAndRecalculate')}</Text>
-            </TouchableOpacity>
-          ) : (
-            <TouchableOpacity
-              activeOpacity={0.85}
-              onPress={onLockSplit}
-              disabled={isDeficit || submitting}
-              style={[styles.secondaryActionBtn, (isDeficit || submitting) && styles.disabledBtn]}
-            >
-              <Feather name="lock" size={14} color="#FFFFFF" />
-              <Text style={styles.btnText}>{t('paydayDrawer.lockSplit')}</Text>
-            </TouchableOpacity>
-          )}
           <TouchableOpacity
             activeOpacity={0.85}
-            onPress={onConfirm}
-            disabled={isDeficit || submitting || isFutureDate}
-            style={[styles.confirmBtn, (isDeficit || submitting || isFutureDate) && styles.disabledBtn]}
+            onPress={onDiscardEdits}
+            disabled={submitting}
+            style={[styles.secondaryActionBtn, submitting && styles.disabledBtn]}
           >
-            <Feather name="check-circle" size={15} color="#FFFFFF" />
-            <Text style={styles.confirmBtnText}>{t('paydayDrawer.confirmIncomeSplit')}</Text>
+            <Feather name="rotate-ccw" size={14} color="#FFFFFF" />
+            <Text style={styles.btnText}>{t('paydayDrawer.discardEdits')}</Text>
           </TouchableOpacity>
         </View>
       )}
+
+      {/* Reset to Recommended: button shown when isLocked or isDirty */}
+      {(isLocked || isDirty) && (
+        <TouchableOpacity
+          activeOpacity={0.85}
+          onPress={onUnlockAndRecalculate || onRecalculate}
+          disabled={submitting}
+          style={[styles.secondaryActionBtnFull, submitting && styles.disabledBtn]}
+        >
+          <Feather name="rotate-ccw" size={14} color="#FFFFFF" />
+          <Text style={styles.btnText}>{t('paydayDrawer.resetToRecommended')}</Text>
+        </TouchableOpacity>
+      )}
+
+      {/* Confirm & Apply (primary button) */}
+      <TouchableOpacity
+        activeOpacity={0.85}
+        onPress={onConfirm}
+        disabled={isDeficit || submitting || isFutureDate}
+        style={[styles.confirmBtnFull, (isDeficit || submitting || isFutureDate) && styles.disabledBtn]}
+      >
+        <Feather name="check-circle" size={15} color="#FFFFFF" />
+        <Text style={styles.confirmBtnText}>{t('paydayDrawer.confirmIncomeSplit')}</Text>
+      </TouchableOpacity>
     </View>
   );
 }
@@ -158,6 +114,17 @@ const styles = StyleSheet.create({
   },
   secondaryActionBtn: {
     flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    backgroundColor: 'rgba(255, 255, 255, 0.12)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.25)',
+    paddingVertical: 12,
+    borderRadius: 14,
+  },
+  secondaryActionBtnFull: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',

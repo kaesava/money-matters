@@ -118,3 +118,18 @@ export function formatDateTime(
     ...options,
   }).format(d);
 }
+
+/**
+ * Converts a dollar amount (number or string) to integer cents.
+ */
+export function toCents(amount: number | string): number {
+  const num = typeof amount === "string" ? parseFloat(amount) : amount;
+  return isNaN(num) ? 0 : Math.round(num * 100);
+}
+
+/**
+ * Converts integer cents to a 2-decimal dollar number.
+ */
+export function toDollars(cents: number): number {
+  return Number((cents / 100).toFixed(2));
+}

@@ -85,7 +85,8 @@ export const paydayMatrixProcedures = {
           .where(
             and(
               eq(allocationPlans.incomeEventId, input.incomeEventId),
-              eq(allocationPlans.status, "PENDING")
+              eq(allocationPlans.status, "PENDING"),
+              sql`${allocationPlans.archivedAt} IS NULL`
             )
           )
           .limit(1);
@@ -157,7 +158,8 @@ export const paydayMatrixProcedures = {
           .where(
             and(
               eq(allocationPlans.incomeEventId, input.incomeEventId),
-              eq(allocationPlans.status, "PENDING")
+              eq(allocationPlans.status, "PENDING"),
+              sql`${allocationPlans.archivedAt} IS NULL`
             )
           )
           .limit(1);

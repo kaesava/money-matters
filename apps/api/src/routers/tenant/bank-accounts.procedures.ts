@@ -128,7 +128,12 @@ export const bankAccountsProcedures = {
       return await ctx.db.transaction(async (tx) => {
         await tx
           .update(bankAccounts)
-          .set({ lastKnownBalance: input.actualBalance, updatedAt: new Date(), updatedBy: ctx.userId! })
+          .set({
+            lastKnownBalance: input.actualBalance,
+            lastBalanceMatchedAt: new Date(),
+            updatedAt: new Date(),
+            updatedBy: ctx.userId!,
+          })
           .where(eq(bankAccounts.id, accountId));
 
         const txValues = [];

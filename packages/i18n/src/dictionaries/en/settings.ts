@@ -249,6 +249,7 @@ export const settings = {
       "inviteSubject": "Household Invitation",
       "inviteBody": "You have been invited to join a household budget on Money Matters. Joining grants shared visibility over your everyday envelopes, bill schedules, and savings goals.",
       "acceptInviteCta": "Accept Household Invitation",
+      "joinHouseholdCta": "Join Household",
       "deletionSubject": "Account Deletion Processed",
       "deletionBody": "Your account deletion request has been processed. All personal credentials and associated household records have been permanently erased from our primary databases per privacy governance guidelines."
     },

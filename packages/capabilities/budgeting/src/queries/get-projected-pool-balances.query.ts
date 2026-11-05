@@ -6,6 +6,8 @@ import {
   allocationPlans,
   allocationPlanLines,
   expenseEvents,
+  getEnvelopeBalancesMap,
+  tenants,
   DbOrTx,
 } from "@money-matters/db";
 import { eq, and, sql } from "drizzle-orm";
@@ -30,46 +32,27 @@ export async function getProjectedPoolBalancesQuery(
   userId: string,
   dbClient: DbOrTx
 ): Promise<ProjectedPoolBalancesOutput> {
-  // 1. Fetch envelopes and ledger transactions
-  const dbEnvelopes = await dbClient
-    .select()
-    .from(envelopes)
-    .where(
-      and(
-        eq(envelopes.tenantId, tenantId),
-        eq(envelopes.appId, appId),
-        sql`${envelopes.archivedAt} IS NULL`
-      )
-    );
+  // 1. Fetch envelopes, balances map, and tenant timezone concurrently
+  const [dbEnvelopes, envBalancesMap, tenantRecord] = await Promise.all([
+    dbClient
+      .select()
+      .from(envelopes)
+      .where(
+        and(
+          eq(envelopes.tenantId, tenantId),
+          eq(envelopes.appId, appId),
+          sql`${envelopes.archivedAt} IS NULL`
+        )
+      ),
+    getEnvelopeBalancesMap(tenantId, appId, dbClient),
+    dbClient
+      .select({ timezone: tenants.timezone })
+      .from(tenants)
+      .where(eq(tenants.id, tenantId))
+      .limit(1),
+  ]);
 
-  const txs = await dbClient
-    .select({
-      envelopeId: transactionLedger.envelopeId,
-      amount: transactionLedger.amount,
-      flowType: transactionLedger.flowType,
-    })
-    .from(transactionLedger)
-    .where(
-      and(
-        eq(transactionLedger.tenantId, tenantId),
-        eq(transactionLedger.appId, appId),
-        sql`${transactionLedger.archivedAt} IS NULL`
-      )
-    );
-
-  const envBalancesMap: Record<string, number> = {};
-  for (const env of dbEnvelopes) {
-    envBalancesMap[env.id] = 0;
-  }
-  for (const tx of txs) {
-    if (!tx.envelopeId) continue;
-    const val = parseFloat(tx.amount);
-    if (tx.flowType === "CREDIT") {
-      envBalancesMap[tx.envelopeId] = (envBalancesMap[tx.envelopeId] || 0) + val;
-    } else {
-      envBalancesMap[tx.envelopeId] = (envBalancesMap[tx.envelopeId] || 0) - val;
-    }
-  }
+  const tenantTimezone = tenantRecord[0]?.timezone || "UTC";
 
   const { mapEnvelopeToEngineBucket } = await import("../engine/envelope-engine-mapper.js");
   const engineBuckets: EngineBucket[] = dbEnvelopes.map((env) =>
@@ -166,6 +149,7 @@ export async function getProjectedPoolBalancesQuery(
     expenseEvents: matrixExpenseEvents,
     cellOverrides,
     monthsAhead: 12,
+    timezone: tenantTimezone,
   });
 
   const poolBalances: Record<string, Record<string, number>> = {};

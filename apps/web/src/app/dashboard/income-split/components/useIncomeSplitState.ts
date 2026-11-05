@@ -193,7 +193,6 @@ export function useIncomeSplitState({
   };
 
   const {
-    handleSaveAndExit,
     handleDiscardAndExit,
     handleDiscardEdits,
     handleRecalculateSavedConfirmed,
@@ -232,6 +231,9 @@ export function useIncomeSplitState({
     returnTo,
     previewData: previewQuery.data,
     applyPreviewData,
+    setSourceName,
+    setActualAmount,
+    setSelectedDate,
   });
 
   const attemptExit = useCallback(() => {
@@ -350,7 +352,6 @@ export function useIncomeSplitState({
     handleLineAmountChange,
     handleLineReasoningChange,
     attemptExit,
-    handleSaveAndExit,
     handleDiscardAndExit,
     handleDiscardEdits,
     handleRecalculateTrigger,

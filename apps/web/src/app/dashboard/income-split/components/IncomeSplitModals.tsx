@@ -41,7 +41,6 @@ export interface IncomeSplitModalsProps {
   submitting: boolean;
   onCloseExitDialog: () => void;
   onDiscardAndExit: () => void;
-  onSaveAndExit: () => void;
   showDeleteConfirm: boolean;
   onCloseDeleteConfirm: () => void;
   onConfirmDeleteIncome: () => void;
@@ -76,7 +75,6 @@ export function IncomeSplitModals({
   submitting,
   onCloseExitDialog,
   onDiscardAndExit,
-  onSaveAndExit,
   showDeleteConfirm,
   onCloseDeleteConfirm,
   onConfirmDeleteIncome,
@@ -148,7 +146,6 @@ export function IncomeSplitModals({
         submitting={submitting}
         onClose={onCloseExitDialog}
         onDiscardAndExit={onDiscardAndExit}
-        onSaveAndExit={onSaveAndExit}
       />
 
       <ConfirmDialog

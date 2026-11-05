@@ -117,6 +117,7 @@ export function MobileMatrixPlanTab({ onOpenCategoryModal }: MobileMatrixPlanTab
             totalIncomeAmount: totalIncome.toFixed(2),
           });
           await utils.listAllAllocationPlans.invalidate();
+          await utils.getMatrixProjectionData.invalidate();
           toast.success(t('matrix.saveSplitSuccess'));
         } catch (err: unknown) {
           toast.error((err as Error).message || t('paydayDrawer.saveSplitFailed'));

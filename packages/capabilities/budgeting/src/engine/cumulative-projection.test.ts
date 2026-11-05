@@ -110,7 +110,7 @@ describe("cumulative-projection engine", () => {
     expect(step1.allocations.get("pool-bills")?.isOverride).toBe(true);
   });
 
-  it("should apply pro-rata burn to EVERYDAY pools and 1.5x cap to REGULAR pools", () => {
+  it("should apply pro-rata burn to EVERYDAY pools without artificially capping sinking bills pools", () => {
     const result = runCumulativeProjection({
       categories: [
         {
@@ -124,7 +124,7 @@ describe("cumulative-projection engine", () => {
           id: "pool-bills",
           name: "Rent & Housing Bills",
           type: "REGULAR",
-          monthlyAmount: 1000, // 1.5x cap = $1500
+          monthlyAmount: 1000,
           currentBalance: 1400,
         },
         {
@@ -146,13 +146,9 @@ describe("cumulative-projection engine", () => {
     const everydayAfterExp = step1.balancesAfterExpenses.get("pool-everyday");
     expect(everydayAfterExp).toBeLessThan(500 + 280);
 
-    // Bills: balance after alloc will exceed $1500, so it gets capped at $1500
+    // Bills: balance after alloc accumulates naturally without being artificially trimmed to 1.5x
     const billsAfterExp = step1.balancesAfterExpenses.get("pool-bills");
-    expect(billsAfterExp).toBe(1500);
-
-    // Surplus: receives the trimmed excess from bills pool capping ($361.54) plus residual allocation
-    const surplusAfterExp = step1.balancesAfterExpenses.get("pool-surplus");
-    expect(surplusAfterExp).toBeGreaterThan(0);
+    expect(billsAfterExp).toBeGreaterThan(1500);
   });
 
   it("should preserve and accurately project confirmed income events with their cellOverrides", () => {
@@ -174,5 +170,26 @@ describe("cumulative-projection engine", () => {
     expect(confirmedStep.allocations.get("pool-bills")?.proposedAmount).toBe(1500);
     expect(confirmedStep.allocations.get("pool-bills")?.reasoning).toBe("Confirmed allocation plan");
     expect(confirmedStep.allocations.get("pool-everyday")?.proposedAmount).toBe(1000);
+  });
+
+  it("should preserve and accurately project pending income events with custom saved cellOverrides", () => {
+    const result = runCumulativeProjection({
+      categories: mockCategories,
+      incomeEvents: [
+        { id: "evt-pending-1", expectedDate: "2026-09-01", expectedAmount: 2500, status: "PENDING" },
+      ],
+      cellOverrides: {
+        "evt-pending-1_pool-bills": 1400,
+        "evt-pending-1_pool-everyday": 1100,
+      },
+    });
+
+    expect(result.steps.length).toBe(1);
+    const draftStep = result.steps[0];
+    expect(draftStep.incomeEvent.id).toBe("evt-pending-1");
+    expect(draftStep.allocations.get("pool-bills")?.proposedAmount).toBe(1400);
+    expect(draftStep.allocations.get("pool-bills")?.reasoning).toBe("Custom saved allocation plan");
+    expect(draftStep.allocations.get("pool-bills")?.isOverride).toBe(true);
+    expect(draftStep.allocations.get("pool-everyday")?.proposedAmount).toBe(1100);
   });
 });

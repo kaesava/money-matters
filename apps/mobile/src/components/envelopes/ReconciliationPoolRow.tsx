@@ -36,7 +36,7 @@ export function ReconciliationPoolRow({
       return;
     }
     const num = parseFloat(text) || 0;
-    if (!isSurplus && !isEveryday && num > maxAvailable) {
+    if (!isSurplus && num > maxAvailable) {
       onChange(maxAvailable.toFixed(2));
       return;
     }

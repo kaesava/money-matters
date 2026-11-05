@@ -45,17 +45,13 @@ export function PaydayCelebrationCard({
   onDiscardEdits,
   formatCurrency,
 }: PaydayCelebrationCardProps) {
-  const badgeTooltip = isConfirmed
-    ? t("paydayDrawer.confirmedBadgeTooltip")
-    : isLocked
-    ? t("paydayDrawer.lockedBadgeTooltip")
-    : t("paydayDrawer.autoBadgeTooltip");
-
   const badgeText = isConfirmed
     ? t("paydayDrawer.confirmedBadge")
+    : isDirty
+    ? t("paydayDrawer.customSplitsBadge")
     : isLocked
-    ? isDirty ? t("paydayDrawer.lockedUnsavedBadge") : t("paydayDrawer.lockedBadge")
-    : isDirty ? t("paydayDrawer.customSplitsBadge") : t("paydayDrawer.autoBadge");
+    ? t("paydayDrawer.savedBadge")
+    : t("paydayDrawer.autoBadge");
 
   const badgeStyle = isConfirmed
     ? "bg-emerald-500/20 border-emerald-400/30 text-emerald-200"
@@ -80,7 +76,6 @@ export function PaydayCelebrationCard({
               <Sparkles className="w-3.5 h-3.5 text-blue-300" />
             )}
             <span>{badgeText}</span>
-            <InfoTooltip content={badgeTooltip} />
           </div>
           <h2 className="text-xl sm:text-2xl font-black tracking-tight text-white pt-1">
             {t("paydayDrawer.celebrationTitle")}
@@ -92,88 +87,44 @@ export function PaydayCelebrationCard({
 
         {!isConfirmed && (
           <div className="shrink-0 flex items-center gap-2.5 flex-wrap">
-            {/* If Draft & Clean */}
-            {isLocked && !isDirty && (
-              <div className="flex items-center gap-2">
+            {/* If Dirty: show Save Draft and Discard Edits */}
+            {isDirty && (
+              <>
+                <Button
+                  type="button"
+                  variant="primary"
+                  onClick={onSaveChanges || onLockSplit}
+                  disabled={isDeficit || submitting}
+                  style={{ backgroundColor: "#2563eb", color: "#ffffff" }}
+                  className="px-4 py-2.5 hover:bg-blue-600 disabled:opacity-50 text-white font-bold text-xs rounded-xl cursor-pointer flex items-center gap-1.5 shadow-xs"
+                >
+                  <span>{t("paydayDrawer.saveIncomeSplit")}</span>
+                </Button>
+
                 <button
                   type="button"
-                  onClick={onUnlockAndRecalculate}
+                  onClick={onDiscardEdits}
                   disabled={submitting}
-                  className="text-xs font-semibold text-blue-200 hover:text-white underline cursor-pointer transition-colors"
+                  className="text-xs font-semibold text-blue-200 hover:text-white underline cursor-pointer transition-colors px-2 py-2"
                 >
-                  {t("paydayDrawer.resetToRecommended")}
+                  {t("paydayDrawer.discardEdits")}
                 </button>
-              </div>
-            )}
-
-            {/* If Draft & Dirty */}
-            {isLocked && isDirty && (
-              <>
-                <div className="flex items-center gap-1">
-                  <Button
-                    type="button"
-                    variant="primary"
-                    onClick={onSaveChanges}
-                    disabled={isDeficit || submitting}
-                    style={{ backgroundColor: "#2563eb", color: "#ffffff" }}
-                    className="px-4 py-2.5 hover:bg-blue-600 disabled:opacity-50 text-white font-bold text-xs rounded-xl cursor-pointer flex items-center gap-1.5 shadow-xs"
-                  >
-                    <span>{t("paydayDrawer.saveChanges")}</span>
-                  </Button>
-                </div>
-
-                <div className="flex items-center gap-2">
-                  <button
-                    type="button"
-                    onClick={onDiscardEdits}
-                    disabled={submitting}
-                    className="text-xs font-semibold text-blue-200 hover:text-white underline cursor-pointer transition-colors"
-                  >
-                    {t("paydayDrawer.discardEdits")}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={onUnlockAndRecalculate}
-                    disabled={submitting}
-                    className="text-xs font-semibold text-blue-200 hover:text-white underline cursor-pointer transition-colors"
-                  >
-                    {t("paydayDrawer.resetToRecommended")}
-                  </button>
-                </div>
               </>
             )}
 
-            {/* If Unlocked & Clean: Nothing needed, auto-calculated */}
-
-            {/* If Unlocked & Dirty */}
-            {!isLocked && isDirty && (
-              <>
-                <div className="flex items-center gap-1">
-                  <Button
-                    type="button"
-                    variant="primary"
-                    onClick={onLockSplit}
-                    disabled={isDeficit || submitting}
-                    style={{ backgroundColor: "#2563eb", color: "#ffffff" }}
-                    className="px-4 py-2.5 hover:bg-blue-600 disabled:opacity-50 text-white font-bold text-xs rounded-xl cursor-pointer flex items-center gap-1.5 shadow-xs"
-                  >
-                    <span>{t("paydayDrawer.saveIncomeSplit")}</span>
-                  </Button>
-                </div>
-
-                <div className="flex items-center gap-2">
-                  <button
-                    type="button"
-                    onClick={onRecalculate}
-                    disabled={submitting}
-                    className="text-xs font-semibold text-blue-200 hover:text-white underline cursor-pointer transition-colors"
-                  >
-                    {t("paydayDrawer.resetToRecommended")}
-                  </button>
-                </div>
-              </>
+            {/* Reset to Recommended: button less conspicuous than Confirm & Apply */}
+            {(isLocked || isDirty) && (
+              <button
+                type="button"
+                onClick={onUnlockAndRecalculate || onRecalculate}
+                disabled={submitting}
+                className="bg-white/10 hover:bg-white/20 active:bg-white/25 text-white font-bold text-xs rounded-xl px-4 py-2.5 border border-white/20 shadow-xs cursor-pointer transition-all disabled:opacity-50"
+              >
+                {t("paydayDrawer.resetToRecommended")}
+              </button>
             )}
 
+            {/* Confirm & Apply (primary action) */}
             <div className="flex items-center gap-1">
               <Button
                 type="button"

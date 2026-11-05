@@ -7,7 +7,8 @@ interface MobilePaydayMetricsGridProps {
   everydayAllocated: number;
   billsAllocated: number;
   goalsAllocated: number;
-  safeToSpend: number;
+  safeToSpend?: number;
+  surplusAmount?: number;
   isDeficit: boolean;
 }
 
@@ -15,9 +16,11 @@ export function MobilePaydayMetricsGrid({
   everydayAllocated,
   billsAllocated,
   goalsAllocated,
-  safeToSpend,
+  safeToSpend = 0,
+  surplusAmount,
   isDeficit,
 }: MobilePaydayMetricsGridProps) {
+  const displaySurplus = surplusAmount !== undefined ? surplusAmount : safeToSpend;
   return (
     <View style={styles.metricsGrid}>
       <View style={styles.metricItem}>
@@ -37,7 +40,7 @@ export function MobilePaydayMetricsGrid({
           {isDeficit ? t('paydayDrawer.metricDeficit') : t('paydayDrawer.metricSurplus')}
         </Text>
         <Text style={isDeficit ? styles.metricDeficitHighlightValue : styles.metricHighlightValue}>
-          {formatMobileCurrency(safeToSpend)}
+          {formatMobileCurrency(displaySurplus)}
         </Text>
       </View>
     </View>

@@ -54,11 +54,23 @@ export default function PoolProjectionScreen() {
     if (selectedHorizon > 0 && projectedBalancesQuery.data) {
       const cols = projectedBalancesQuery.data.columns;
       if (cols && cols.length > 0) {
-        const colIndex = Math.min(selectedHorizon - 1, cols.length - 1);
-        const col = cols[colIndex];
-        if (col) {
+        const sortedCols = [...cols].sort((a, b) => a.date.localeCompare(b.date));
+        const targetDate = new Date();
+        targetDate.setDate(targetDate.getDate() + Math.round(selectedHorizon * 30.4375));
+        const targetDateISO = targetDate.toISOString().slice(0, 10);
+
+        let matchingCol = sortedCols[0];
+        for (const col of sortedCols) {
+          if (col.date <= targetDateISO) {
+            matchingCol = col;
+          } else {
+            break;
+          }
+        }
+
+        if (matchingCol) {
           const pb = (projectedBalancesQuery.data as unknown as { envelopeBalances?: Record<string, Record<string, number>>; poolBalances?: Record<string, Record<string, number>> });
-          const bal = (pb.envelopeBalances || pb.poolBalances)?.[poolId]?.[col.id];
+          const bal = (pb.envelopeBalances || pb.poolBalances)?.[poolId]?.[matchingCol.id];
           if (typeof bal === 'number') return bal;
         }
       }

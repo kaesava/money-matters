@@ -26,8 +26,8 @@ export async function getHomeSummaryQuery(
   userId: string,
   dbClient: DbOrTx
 ): Promise<HomeSummaryDto> {
-  // 1. Resolve user's timezone from userPreferences, falling back to Australia/Sydney
-  let userTimezone = "Australia/Sydney";
+  // 1. Resolve user's timezone from userPreferences, falling back to tenant's timezone, then UTC
+  let userTimezone = "UTC";
   const [pref] = await dbClient
     .select({ timezone: userPreferences.timezone })
     .from(userPreferences)
@@ -36,6 +36,15 @@ export async function getHomeSummaryQuery(
 
   if (pref?.timezone) {
     userTimezone = pref.timezone;
+  } else {
+    const [tRow] = await dbClient
+      .select({ timezone: tenants.timezone })
+      .from(tenants)
+      .where(eq(tenants.id, tenantId))
+      .limit(1);
+    if (tRow?.timezone) {
+      userTimezone = tRow.timezone;
+    }
   }
 
   const todayDate = todayInZone(userTimezone);
@@ -255,16 +264,30 @@ export async function getHomeSummaryQuery(
     )
     .orderBy(asc(transferEvents.expectedDate));
 
-  // Compute bills due within 14 days or next payday to get shortfall
+  // Compute bills due within horizon (until next payday or 14 days) per envelope
   const horizonDate = nextPayday?.expectedDate ?? todayInZone(userTimezone, new Date(Date.now() + 14 * 86400000));
   const billsDueInHorizon = dbExpenses.filter(
     (e) => e.expectedDate >= todayDate && e.expectedDate <= horizonDate
   );
-  const totalBillsDueInHorizon = billsDueInHorizon.reduce(
-    (sum, e) => sum + parseFloat(e.expectedAmount),
-    0
-  );
-  const billsShortfall = Math.max(0, totalBillsDueInHorizon - billsBalance);
+
+  // Group bills by envelope to check individual coverage
+  const billsDueByEnvelope = new Map<string, number>();
+  for (const b of billsDueInHorizon) {
+    if (b.envelopeId) {
+      const cur = billsDueByEnvelope.get(b.envelopeId) ?? 0;
+      billsDueByEnvelope.set(b.envelopeId, cur + parseFloat(b.expectedAmount));
+    }
+  }
+
+  // Bill shortfall is the sum of unmet dues across dedicated bill envelopes
+  let billsShortfall = 0;
+  for (const [envId, due] of billsDueByEnvelope.entries()) {
+    const envBal = balancesMap[envId] || 0;
+    if (due > envBal) {
+      billsShortfall += (due - envBal);
+    }
+  }
+  billsShortfall = Math.round(billsShortfall * 100) / 100;
 
   const expenseItems: HomeSummaryAttentionItem[] = dbExpenses.map((e) => {
     const env = visibleEnvelopes.find((p) => p.id === e.envelopeId);

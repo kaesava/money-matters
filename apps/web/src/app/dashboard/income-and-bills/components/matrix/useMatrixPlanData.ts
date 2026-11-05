@@ -216,6 +216,7 @@ export function useMatrixPlanData({
       await Promise.all([
         utils.listAllAllocationPlans.invalidate(),
         utils.getMatrixProjectionData.invalidate(),
+        utils.previewPayday.invalidate({ incomeEventId: colId }),
       ]);
       toast.success(t("matrix.saveSplitSuccess"));
     } catch (err: unknown) {

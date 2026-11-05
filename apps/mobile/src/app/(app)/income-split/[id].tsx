@@ -42,7 +42,7 @@ export default function IncomeSplitStudioScreen() {
     handleLineAmountChange, handleLineReasoningChange,
     showTransferModal, setShowTransferModal,
     showExitDialog, setShowExitDialog,
-    handleSaveAndExit, handleDiscardAndExit,
+    handleDiscardAndExit,
   } = usePaycheckStudio(id, returnTo);
 
   const activePoolObj = pools.find((p) => p.id === selectedPoolForSheet);
@@ -162,7 +162,6 @@ export default function IncomeSplitStudioScreen() {
           submitting={submitting}
           onClose={() => setShowExitDialog(false)}
           onDiscardAndExit={handleDiscardAndExit}
-          onSaveAndExit={handleSaveAndExit}
         />
 
         {selectedPoolForSheet && activePoolObj && (

@@ -13,7 +13,6 @@ export interface UnsavedSplitExitDialogProps {
   submitting?: boolean;
   onClose: () => void;
   onDiscardAndExit: () => void;
-  onSaveAndExit?: () => void;
 }
 
 export function UnsavedSplitExitDialog({
@@ -23,7 +22,6 @@ export function UnsavedSplitExitDialog({
   submitting = false,
   onClose,
   onDiscardAndExit,
-  onSaveAndExit,
 }: UnsavedSplitExitDialogProps) {
   const [mounted, setMounted] = useState(false);
   const titleId = useId();
@@ -73,34 +71,12 @@ export function UnsavedSplitExitDialog({
         </div>
 
         <div className="flex flex-col gap-2 mt-2">
-          {isDeficit ? (
-            <>
-              <Button type="button" variant="primary" onClick={onClose} className="w-full">
-                {t("paydayDrawer.keepEditing")}
-              </Button>
-              <Button type="button" variant="danger" onClick={onDiscardAndExit} className="w-full">
-                {t("paydayDrawer.discardAndExit")}
-              </Button>
-            </>
-          ) : (
-            <>
-              <Button
-                type="button"
-                variant="primary"
-                onClick={onSaveAndExit}
-                loading={submitting}
-                className="w-full"
-              >
-                {t("paydayDrawer.saveAndExit")}
-              </Button>
-              <Button type="button" variant="danger" onClick={onDiscardAndExit} className="w-full">
-                {t("paydayDrawer.discardAndExit")}
-              </Button>
-              <Button type="button" variant="ghost" onClick={onClose} className="w-full">
-                {t("paydayDrawer.keepEditing")}
-              </Button>
-            </>
-          )}
+          <Button type="button" variant="primary" onClick={onClose} className="w-full">
+            {t("paydayDrawer.keepEditing")}
+          </Button>
+          <Button type="button" variant="danger" onClick={onDiscardAndExit} className="w-full">
+            {t("paydayDrawer.discardAndExit")}
+          </Button>
         </div>
       </div>
     </div>,

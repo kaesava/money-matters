@@ -14,14 +14,14 @@ export async function listBillCoverageQuery(
     .from(tenants)
     .where(eq(tenants.id, tenantId))
     .limit(1);
-  const tenantTz = tenantRecord?.timezone || "Australia/Sydney";
+  const tenantTz = tenantRecord?.timezone || "UTC";
   const todayStr = getTenantDateString(new Date(), { timezone: tenantTz });
 
-  // 1. Fetch SCHEDULED_BILL envelopes with privacy filtering
+  // 1. Fetch SCHEDULED_BILL and FLEXIBLE_BILL envelopes with privacy filtering
   const envFilters = [
     eq(envelopes.tenantId, tenantId),
     eq(envelopes.appId, appId),
-    eq(envelopes.envelopeType, "SCHEDULED_BILL"),
+    sql`${envelopes.envelopeType} IN ('SCHEDULED_BILL', 'FLEXIBLE_BILL')`,
     sql`${envelopes.archivedAt} IS NULL`,
   ];
 
@@ -55,20 +55,21 @@ export async function listBillCoverageQuery(
           eq(incomeEvents.tenantId, tenantId),
           eq(incomeEvents.appId, appId),
           eq(incomeEvents.status, "PENDING"),
+          sql`${incomeEvents.expectedDate} >= ${todayStr}`,
           sql`${incomeEvents.archivedAt} IS NULL`
         )
       )
-      .orderBy(desc(incomeEvents.expectedDate)),
+      .orderBy(asc(incomeEvents.expectedDate)),
   ]);
 
-  // 2. Compute overall Bills Balance across scheduled bill envelopes
+  // 2. Compute overall Bills Balance across bill envelopes
   let billsPoolBalance = 0;
   for (const envId of envIds) {
     billsPoolBalance += balancesMap[envId] || 0;
   }
 
   // 3. Determine next payday date
-  const nextPaycheck = upcomingPaychecks[upcomingPaychecks.length - 1];
+  const nextPaycheck = upcomingPaychecks[0];
   const defaultNextPayday = getTenantDateString(new Date(Date.now() + 14 * 24 * 60 * 60 * 1000), { timezone: tenantTz });
   const nextPaydayDateStr = nextPaycheck ? nextPaycheck.expectedDate : defaultNextPayday;
 
