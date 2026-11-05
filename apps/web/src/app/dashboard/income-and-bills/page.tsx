@@ -4,6 +4,7 @@ import React, { useState, useMemo, Suspense } from "react";
 import Link from "next/link";
 import { useSearchParams, useRouter } from "next/navigation";
 import { trpc } from "../../../lib/trpc";
+import { t } from "@money-matters/i18n";
 import { Spinner, SearchInput, Tabs, InfoTooltip } from "@money-matters/ui/web";
 import { IncomeFormModal, IncomeSourceToEdit } from "../../../components/web/IncomeFormModal";
 import { QuickExpenseDrawer } from "../../../components/web/QuickExpenseDrawer";
