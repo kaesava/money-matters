@@ -108,5 +108,37 @@ export async function submitFeedbackCommand(
     html,
   });
 
+  const senderEmail = input.email || ctx.userEmail;
+  if (senderEmail) {
+    const confirmationSubject = `Feedback Received: ${input.title}`;
+    const confirmationHtml = `
+      <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background-color: #F7F8FA; padding: 24px; color: #1B2B4B;">
+        <div style="max-width: 600px; margin: 0 auto; background: #ffffff; border-radius: 8px; border: 1px solid #e2e8f0; overflow: hidden;">
+          <div style="background-color: #2563eb; padding: 16px 20px; color: #ffffff;">
+            <h2 style="margin: 0; font-size: 18px; font-weight: 600;">We received your feedback</h2>
+          </div>
+          <div style="padding: 20px;">
+            <p style="margin-top: 0; font-size: 14px; line-height: 1.6;">Thank you for helping us improve Money Matters. Our team has received your report:</p>
+            <div style="background-color: #F7F8FA; padding: 12px; border-radius: 6px; font-size: 13px; line-height: 1.6; border: 1px solid #e2e8f0; margin-bottom: 16px;">
+              <strong>${escapeHtml(input.title)}</strong><br />
+              <span style="color: #64748b;">${escapeHtml(input.description)}</span>
+            </div>
+            <p style="font-size: 13px; color: #64748b; line-height: 1.6;">If further information is needed, we will follow up with you directly.</p>
+          </div>
+          <div style="padding: 12px 20px; background-color: #F7F8FA; border-top: 1px solid #e2e8f0; font-size: 11px; color: #64748b;">
+            Money Matters • Serene Finance Platform
+          </div>
+        </div>
+      </div>
+    `;
+
+    await sendEmail({
+      to: senderEmail,
+      subject: confirmationSubject,
+      text: `We received your feedback: ${input.title}\n\n${input.description}\n\nThank you for helping us improve Money Matters.`,
+      html: confirmationHtml,
+    }).catch((err) => logger.warn("[BugReports] Failed to send sender confirmation receipt:", { err }));
+  }
+
   return { success: result.success, messageId: result.id };
 }

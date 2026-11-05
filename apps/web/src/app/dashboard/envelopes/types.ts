@@ -61,6 +61,7 @@ export interface PoolTableRow {
   categories?: CategoryItem[];
   progressText: string;
   progressPercentage?: number | null;
+  balanceStatus?: "INACTIVE" | "COVERED" | "PARTIAL" | "SHORTFALL" | "ON_TRACK";
   rawPool: CategorySummaryItem;
   hasHistory?: boolean;
   hasUpcomingExpenses?: boolean;

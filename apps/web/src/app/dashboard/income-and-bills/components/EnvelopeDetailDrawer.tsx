@@ -208,7 +208,7 @@ export function EnvelopeDetailDrawer({
                   <span className="text-xl font-black font-mono text-[#1B2B4B] dark:text-white">
                     {fmt(currentBal)}
                   </span>
-                  {onDrawDown && targetPool && (
+                  {onDrawDown && targetPool && targetPool.envelopeType !== "EVERYDAY" && (
                     <button
                       type="button"
                       onClick={() => {
@@ -232,7 +232,7 @@ export function EnvelopeDetailDrawer({
                 <div className="mt-1">
                   {targetPool?.bankAccountName ? (
                     <Link
-                      href={targetPool.bankAccountId ? `/dashboard/settings?tab=bank-accounts&id=${targetPool.bankAccountId}` : `/dashboard/settings?tab=bank-accounts`}
+                      href={targetPool.bankAccountId ? `/dashboard/bank-accounts?id=${targetPool.bankAccountId}` : `/dashboard/bank-accounts`}
                       onClick={onClose}
                       className="text-sm font-bold text-[#2563eb] hover:underline inline-flex items-center gap-1 truncate max-w-full"
                     >

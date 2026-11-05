@@ -155,12 +155,18 @@ export function deleteMyAccountHandler(db: DbOrTx) {
     );
 
     for (const partner of partnerMemberships) {
-      if (partner.inviteEmail) {
+      let partnerEmail = partner.inviteEmail;
+      if (!partnerEmail && partner.userId) {
+        const [u] = await db.select({ email: users.email }).from(users).where(eq(users.id, partner.userId)).limit(1);
+        partnerEmail = u?.email || null;
+      }
+
+      if (partnerEmail) {
         await sendNotificationEmail(
-          partner.inviteEmail,
-          "Household Budget Deleted by Owner",
-          `Your Money Matters household budget has been deleted by the owner (${email}). All shared data has been permanently erased.`
-        );
+          partnerEmail,
+          t("privacy.deletionNotificationSubject"),
+          t("privacy.deletionNotificationBody", { ownerEmail: email })
+        ).catch((err) => logger.warn("Failed to send partner deletion notification email:", { err }));
       }
     }
 

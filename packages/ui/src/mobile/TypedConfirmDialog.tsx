@@ -39,13 +39,13 @@ export function TypedConfirmDialog({
   };
 
   const handleConfirm = () => {
-    if (typed.trim() === confirmPhrase.trim()) {
+    if (typed.trim().toLowerCase() === confirmPhrase.trim().toLowerCase()) {
       setTyped('');
       onConfirm();
     }
   };
 
-  const isMatch = typed.trim() === confirmPhrase.trim();
+  const isMatch = typed.trim().toLowerCase() === confirmPhrase.trim().toLowerCase();
 
   return (
     <MobileModalDialog
@@ -77,7 +77,7 @@ export function TypedConfirmDialog({
             value={typed}
             onChangeText={setTyped}
             placeholder={confirmPhrase}
-            autoCapitalize="characters"
+            autoCapitalize="none"
           />
         </View>
       </View>

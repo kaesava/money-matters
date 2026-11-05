@@ -2,7 +2,8 @@ import { tenantProcedure, authenticatedProcedure, ownerProcedure, privateOwnerPr
 import { tenants, tenantUsers, users, bankAccounts, envelopes, tenantUserPreferences } from "@money-matters/db";
 import { and, eq, sql, inArray } from "drizzle-orm";
 import { inngest } from '../../inngest/client.js';
-import { logAuditEvent } from '@money-matters/core';
+import { logAuditEvent, sendEmail } from '@money-matters/core';
+import { t } from '@money-matters/i18n';
 import { 
   invitePartnerHandler,
   acceptInviteHandler,
@@ -87,6 +88,25 @@ export const householdProcedures = {
           senderUserId: ctx.userId!,
         },
       }).catch(() => {});
+
+      const inviteUrl = `https://moneymatters.kaesava.au/invite/${result.inviteToken}`;
+      const inviteHtml = `
+        <div style="font-family: sans-serif; background-color: #0b132b; color: #ffffff; padding: 40px; border-radius: 16px;">
+          <h2 style="color: #ffffff;">${t('notifications.inngest.inviteSubject')}</h2>
+          <p style="font-size: 16px; line-height: 1.6;">${t('notifications.inngest.inviteBody')}</p>
+          <div style="margin-top: 30px;">
+            <a href="${inviteUrl}" style="background-color: #2563eb; color: #ffffff; padding: 14px 28px; text-decoration: none; border-radius: 10px; font-weight: 600; display: inline-block;">${t('notifications.inngest.joinHouseholdCta')}</a>
+          </div>
+        </div>
+      `;
+
+      sendEmail({
+        to: input.email,
+        subject: t('notifications.inngest.inviteSubject'),
+        html: inviteHtml,
+      }).catch((err) => {
+        console.error('Direct partner invite email send failed:', err);
+      });
 
       logAuditEvent('partner_invited', ctx.tenantId!, ctx.userId!, { inviteEmail: input.email });
 

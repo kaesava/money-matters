@@ -26,6 +26,7 @@
     "@money-matters/config": "workspace:*",
     "@money-matters/core": "workspace:*",
     "@money-matters/db": "workspace:*",
+    "@money-matters/i18n": "workspace:*",
     "@money-matters/types": "workspace:*",
     "@neondatabase/serverless": "^0.9.0",
     "@sentry/node": "^10.69.0",

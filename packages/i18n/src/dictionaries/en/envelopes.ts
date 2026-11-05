@@ -92,11 +92,12 @@ export const envelopes = {
     "poolNotFound": "Envelope not found or archived.",
     "targetByDate": "by {date}",
     "linkedAccount": "Linked to {name}",
-    "recalibrateBudget": "Recalibrate Household Budget",
+    "recalibrateBudget": "Update Household Budget",
     "actions": {
       "drawDown": "Draw down",
       "moveMoney": "Transfer between Envelopes",
       "quickExpense": "Quick Expense",
+      "quickIncome": "Quick Income",
       "futureProjection": "Future Projection",
       "exitProjection": "Exit Projection Mode"
     },
@@ -123,6 +124,8 @@ export const envelopes = {
     "statusPartial": "Partial",
     "statusShortfall": "Shortfall",
     "statusActive": "Active",
+    "statusInactive": "Inactive",
+    "statusOnTrack": "On Track",
     "recurrenceInterval": "Recurrence Interval",
     "cannotDeleteSpecialEnvelope": "This envelope is protected (Surplus Target or primary Everyday envelope) and cannot be deleted.",
     "confirmArchiveTitle": "Archive Envelope",

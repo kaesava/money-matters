@@ -50,8 +50,6 @@ export function MarkPaidShortfallSection({
         <Feather name="alert-triangle" size={16} color={DESIGN_TOKENS.colors.warningDark} style={{ marginTop: 2 }} />
         <Text style={styles.shortfallBannerText}>
           {t('incomeBillsTabs.insufficientModalMessage', {
-            billName: eventName || 'Expense',
-            envelopeType: formattedPoolType,
             envelopeName: formattedPoolName,
             amount: formatMobileCurrency(shortfallAmount),
           })}
@@ -59,22 +57,28 @@ export function MarkPaidShortfallSection({
         {shortfallValidation.isValid ? (
           <View style={styles.coveredNote}>
             <Text style={styles.coveredNoteText}>
-              ✓ {t('incomeBillsTabs.shortfallCoveredNote', {
-                envelopeName: surplusPoolName || 'Emergency Reserve',
+              {t('incomeBillsTabs.shortfallCovered', {
                 amount: formatMobileCurrency(shortfallAmount),
               })}
             </Text>
           </View>
-        ) : surplusPoolName ? (
+        ) : shortfallValidation.isOverAllocated ? (
           <View style={styles.partialSurplusWarning}>
             <Text style={styles.partialSurplusWarningText}>
-              ⚠️ {t('incomeBillsTabs.partialSurplusCoveredWarning', {
-                amount: formatMobileCurrency(surplusCoverableAmount),
-                envelopeName: surplusPoolName,
+              ⚠️ {t('incomeBillsTabs.shortfallOverAllocated', {
+                amount: formatMobileCurrency(shortfallValidation.difference),
               })}
             </Text>
           </View>
-        ) : null}
+        ) : (
+          <View style={styles.partialSurplusWarning}>
+            <Text style={styles.partialSurplusWarningText}>
+              ⚠️ {t('incomeBillsTabs.shortfallRemaining', {
+                amount: formatMobileCurrency(shortfallValidation.difference),
+              })}
+            </Text>
+          </View>
+        )}
       </View>
 
       <View style={styles.fundingHeaderRow}>

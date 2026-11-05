@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useState, useMemo, Suspense } from "react";
-import Link from "next/link";
 import { useSearchParams, useRouter } from "next/navigation";
 import { trpc } from "../../../lib/trpc";
 import { t } from "@money-matters/i18n";
@@ -12,14 +11,19 @@ import { EnvelopeFormModal } from "../../../components/web/EnvelopeFormModal";
 import { IncomeSchedulesCard } from "./components/IncomeSchedulesCard";
 import { BillSchedulesCard } from "./components/BillSchedulesCard";
 import { TimelineTabWrapper } from "./components/TimelineTabWrapper";
+import { MatrixPlanTab } from "./components/MatrixPlanTab";
+
+const VALID_TABS = ["EVENTS", "MATRIX", "STREAMS"] as const;
+type PlanTab = typeof VALID_TABS[number];
 
 function IncomeAndBillsContent() {
   const searchParams = useSearchParams();
   const rawTab = searchParams.get("tab");
-  const tabParam = rawTab === "MATRIX" ? "EVENTS" : (rawTab || "EVENTS");
+  const normalizedTab = rawTab ? (rawTab.toUpperCase() as PlanTab) : "EVENTS";
+  const initialTab = VALID_TABS.includes(normalizedTab) ? normalizedTab : "EVENTS";
 
   const router = useRouter();
-  const [activeTab, setActiveTab] = useState(tabParam);
+  const [activeTab, setActiveTab] = useState<PlanTab>(initialTab);
   const [quickActionTab, setQuickActionTab] = useState<"DEBIT" | "CREDIT" | "TRANSFER" | null>(null);
   const [isIncomeModalOpen, setIsIncomeModalOpen] = useState(false);
   const [incomeToEdit, setIncomeToEdit] = useState<IncomeSourceToEdit | undefined>(undefined);
@@ -44,12 +48,19 @@ function IncomeAndBillsContent() {
   const [setupScopeFilter, setSetupScopeFilter] = useState<"ALL" | "SHARED" | "PRIVATE">("ALL");
 
   React.useEffect(() => {
-    if (rawTab === "MATRIX") {
-      router.replace("/dashboard/income-split");
-      return;
+    if (rawTab) {
+      const upper = rawTab.toUpperCase() as PlanTab;
+      if (VALID_TABS.includes(upper) && upper !== activeTab) {
+        setActiveTab(upper);
+      }
     }
-    if (tabParam) setActiveTab(tabParam);
-  }, [rawTab, tabParam, router]);
+  }, [rawTab, activeTab]);
+
+  const handleTabChange = (tabId: string) => {
+    const valid = VALID_TABS.includes(tabId as PlanTab) ? (tabId as PlanTab) : "EVENTS";
+    setActiveTab(valid);
+    router.push(`/dashboard/income-and-bills?tab=${valid.toLowerCase()}`, { scroll: false });
+  };
 
   const utils = trpc.useUtils();
   const poolsQuery = trpc.listPools.useQuery();
@@ -88,6 +99,57 @@ function IncomeAndBillsContent() {
     return set;
   }, [allPlansQuery.data]);
 
+  const matrixIncomeEvents = useMemo(() => {
+    return incomeEvents
+      .filter((e) => e && Boolean(e.expectedDate) && String(e.expectedDate).length >= 10)
+      .map((e) => {
+        const receivingAccountId = (e as unknown as { receivingAccountId?: string }).receivingAccountId;
+        const acct = bankAccounts.find((b) => b.id === receivingAccountId);
+        return {
+          id: e.id,
+          expectedDate: e.expectedDate,
+          expectedAmount: parseFloat(e.expectedAmount || "0"),
+          actualAmount: e.actualAmount ? parseFloat(e.actualAmount) : null,
+          status: (e.status as "PENDING" | "CONFIRMED") || "PENDING",
+          sourceName: (e as unknown as { name?: string; sourceName?: string }).name || e.sourceName || "Paycheck",
+          isPrivate: acct?.isPrivate || false,
+        };
+      });
+  }, [incomeEvents, bankAccounts]);
+
+  const matrixExpenseEvents = useMemo(() => {
+    return expenseEvents
+      .filter((e) => e && Boolean(e.expectedDate) && String(e.expectedDate).length >= 10)
+      .map((e) => ({
+        categoryId: e.envelopeId || "",
+        amount: parseFloat(e.expectedAmount || "0"),
+        dueDate: e.expectedDate,
+        status: (e.status as "PENDING" | "CONFIRMED") || "PENDING",
+      }));
+  }, [expenseEvents]);
+
+  const matrixCategories = useMemo(() => {
+    return pools.map((p) => {
+      const isGoal = p.envelopeType === "TARGET_GOAL" || p.envelopeType === "ONGOING_GOAL";
+      const isEveryday = p.envelopeType === "EVERYDAY";
+      const typeStr = isEveryday ? "EVERYDAY" : isGoal ? "GOAL" : "REGULAR";
+      const monthlyAmt = p.monthlyAmount ? parseFloat(p.monthlyAmount) : p.targetAmount ? parseFloat(p.targetAmount) : null;
+
+      return {
+        id: p.id,
+        name: p.name,
+        type: typeStr as "REGULAR" | "GOAL" | "EVERYDAY",
+        currentBalance: parseFloat(String(p.currentBalance || "0")),
+        monthlyAmount: monthlyAmt,
+        targetAmount: p.targetAmount ? parseFloat(p.targetAmount) : null,
+        isCommitted: p.isCommitted ?? undefined,
+        isSurplusTarget: p.isSurplusTarget ?? undefined,
+        isPrivate: p.isPrivate ?? undefined,
+        endDate: p.endDate || null,
+      };
+    });
+  }, [pools]);
+
   if (isLoading) {
     return <div className="flex h-96 items-center justify-center"><Spinner /></div>;
   }
@@ -100,13 +162,6 @@ function IncomeAndBillsContent() {
           <InfoTooltip content={t("incomeBillsTabs.incomeSchedulesAndBillsSubtitle")} />
         </div>
         <div className="flex items-center gap-2">
-          <Link
-            href="/dashboard/income-split"
-            className="px-4 py-2.5 rounded-xl font-bold text-xs bg-blue-50 dark:bg-blue-950/60 text-[#2563eb] dark:text-blue-300 hover:bg-blue-100 border border-blue-200 dark:border-blue-800 transition-all flex items-center gap-2 shadow-2xs"
-          >
-            <span>📅</span>
-            <span>{t("incomeBillsTabs.twelveMonthIncomeSplit")}</span>
-          </Link>
           <button
             type="button"
             onClick={() => setQuickActionTab("TRANSFER")}
@@ -121,10 +176,11 @@ function IncomeAndBillsContent() {
       <Tabs
         tabs={[
           { id: "EVENTS", label: t("transactions.tabs.pendingList") },
+          { id: "MATRIX", label: t("incomeBillsTabs.twelveMonthTab") },
           { id: "STREAMS", label: t("incomeBillsTabs.schedules") },
         ]}
         activeTab={activeTab}
-        onChange={setActiveTab}
+        onChange={handleTabChange}
       />
 
       {activeTab === "STREAMS" && (
@@ -234,6 +290,15 @@ function IncomeAndBillsContent() {
             onOpenTransferDrawer={() => setQuickActionTab("TRANSFER")}
           />
         </div>
+      )}
+
+      {activeTab === "MATRIX" && (
+        <MatrixPlanTab
+          currentUserId={pools[0]?.userId || "default-user"}
+          categories={matrixCategories}
+          incomeEvents={matrixIncomeEvents}
+          expenseEvents={matrixExpenseEvents}
+        />
       )}
 
       {isIncomeModalOpen && (

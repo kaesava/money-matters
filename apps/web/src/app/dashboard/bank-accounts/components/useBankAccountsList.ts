@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { trpc } from "../../../../lib/trpc";
 import { useSubscriptionStatus } from "../../../../hooks/useSubscriptionStatus";
-import type { BankAccountItem, BankName, CategoryType } from "../../bank-accounts/components/BankAccountTable";
+import type { BankAccountItem, BankName, CategoryType } from "./BankAccountTable";
 import type { AccountType } from "@money-matters/types";
 
 export function useBankAccountsList() {
@@ -108,6 +108,15 @@ export function useBankAccountsList() {
       updatedAt: (acc.updatedAt as string) ?? undefined,
       expectedBalance,
       hasDifference,
+      differenceAmount: diff,
+      linkedPoolsCount: linkedPools.length,
+      linkedPools: linkedPools.map((p) => ({
+        id: p.id,
+        name: p.name,
+        poolType: p.envelopeType,
+        currentBalance: p.currentBalance || 0,
+        isSurplusTarget: p.isSurplusTarget ?? false,
+      })),
     };
   });
 

@@ -92,7 +92,7 @@ export function PoolSummaryCard({
       </View>
 
       <View style={styles.actionRow}>
-        {onDrawDown && (
+        {onDrawDown && pool.envelopeType !== 'EVERYDAY' && (
           <TouchableOpacity onPress={onDrawDown} style={styles.drawDownBtn}>
             <Feather name="arrow-down-circle" size={15} color={DESIGN_TOKENS.colors.successDark} />
             <Text style={styles.drawDownBtnText}>{t('categories.actions.drawDown')}</Text>

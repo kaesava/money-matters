@@ -7,6 +7,7 @@ import { t } from "@money-matters/i18n";
 export interface InvoiceItem {
   id: string;
   paidAt?: string | Date | null;
+  createdAt?: string | Date | null;
   amountPaid: string;
   currency: string;
   status: string;
@@ -61,44 +62,65 @@ export function SubscriptionInvoicesTable({
               </tr>
             </thead>
             <tbody className="divide-y divide-zinc-50 dark:divide-zinc-800">
-              {paginatedInvoices.map((inv) => (
-                <tr
-                  key={inv.id}
-                  className="text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50/50 dark:hover:bg-zinc-800/50 transition-colors"
-                >
-                  <td className="py-2.5 font-medium text-center">
-                    {inv.paidAt ? fmtDateMedium(inv.paidAt) : "—"}
-                  </td>
-                  <td className="py-2.5 text-right font-mono tabular-nums font-bold">
-                    {formatCurrency(parseFloat(inv.amountPaid), locale, inv.currency)}
-                  </td>
-                  <td className="py-2.5 text-center">
-                    <span
-                      className={`px-2 py-0.5 rounded-md text-[10px] font-extrabold uppercase ${
-                        inv.status === "paid"
-                          ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300"
-                          : "bg-rose-50 text-rose-700 dark:bg-rose-950/40 dark:text-rose-300"
-                      }`}
-                    >
-                      {inv.status}
-                    </span>
-                  </td>
-                  <td className="py-2.5 text-center">
-                    {inv.invoicePdfUrl || inv.hostedInvoiceUrl ? (
-                      <a
-                        href={inv.invoicePdfUrl || inv.hostedInvoiceUrl || "#"}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-[#2563eb] hover:underline font-bold text-xs"
+              {paginatedInvoices.map((inv) => {
+                const isPaid = inv.status === "paid";
+                const isOpen = inv.status === "open";
+                const displayDate = inv.paidAt
+                  ? fmtDateMedium(inv.paidAt)
+                  : inv.createdAt
+                  ? fmtDateMedium(inv.createdAt)
+                  : "—";
+                const statusBadgeLabel = isPaid
+                  ? t("subscription.statusPaid")
+                  : isOpen
+                  ? t("subscription.statusOpen")
+                  : inv.status;
+                const linkHref = isPaid
+                  ? inv.invoicePdfUrl || inv.hostedInvoiceUrl
+                  : inv.hostedInvoiceUrl || inv.invoicePdfUrl;
+                const linkText = isPaid
+                  ? t("subscription.downloadReceipt")
+                  : t("subscription.payInvoice");
+
+                return (
+                  <tr
+                    key={inv.id}
+                    className="text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50/50 dark:hover:bg-zinc-800/50 transition-colors"
+                  >
+                    <td className="py-2.5 font-medium text-center">{displayDate}</td>
+                    <td className="py-2.5 text-right font-mono tabular-nums font-bold">
+                      {formatCurrency(parseFloat(inv.amountPaid), locale, inv.currency)}
+                    </td>
+                    <td className="py-2.5 text-center">
+                      <span
+                        className={`px-2 py-0.5 rounded-md text-[10px] font-extrabold uppercase ${
+                          isPaid
+                            ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300"
+                            : isOpen
+                            ? "bg-amber-50 text-amber-700 dark:bg-amber-950/40 dark:text-amber-300"
+                            : "bg-rose-50 text-rose-700 dark:bg-rose-950/40 dark:text-rose-300"
+                        }`}
                       >
-                        {t("subscription.downloadReceipt")}
-                      </a>
-                    ) : (
-                      <span className="text-zinc-400">—</span>
-                    )}
-                  </td>
-                </tr>
-              ))}
+                        {statusBadgeLabel}
+                      </span>
+                    </td>
+                    <td className="py-2.5 text-center">
+                      {linkHref ? (
+                        <a
+                          href={linkHref}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-[#2563eb] hover:underline font-bold text-xs"
+                        >
+                          {linkText}
+                        </a>
+                      ) : (
+                        <span className="text-zinc-400">—</span>
+                      )}
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>

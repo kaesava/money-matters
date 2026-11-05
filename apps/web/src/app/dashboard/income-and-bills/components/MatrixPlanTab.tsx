@@ -62,8 +62,49 @@ export function MatrixPlanTab({
     propsExpenseEvents,
   });
 
+  const [showGuidanceBanner, setShowGuidanceBanner] = React.useState(false);
+
+  React.useEffect(() => {
+    try {
+      const dismissed = localStorage.getItem("mm_matrix_guidance_dismissed");
+      if (dismissed !== "true") {
+        setShowGuidanceBanner(true);
+      }
+    } catch {
+      setShowGuidanceBanner(true);
+    }
+  }, []);
+
+  const handleDismissGuidance = () => {
+    setShowGuidanceBanner(false);
+    try {
+      localStorage.setItem("mm_matrix_guidance_dismissed", "true");
+    } catch {}
+  };
+
   return (
     <div className="flex flex-col gap-6">
+      {showGuidanceBanner && (
+        <div className="p-4 rounded-2xl bg-blue-50/80 dark:bg-blue-950/40 border border-blue-200/80 dark:border-blue-900/60 shadow-xs flex items-start gap-3.5">
+          <div className="w-8 h-8 rounded-xl bg-blue-500/10 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0 mt-0.5">
+            <span className="text-base">💡</span>
+          </div>
+          <div className="space-y-1 min-w-0 flex-1">
+            <p className="text-xs text-slate-700 dark:text-zinc-300 leading-relaxed font-medium">
+              {t("incomeBillsTabs.twelveMonthPlanGuidanceBanner")}
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={handleDismissGuidance}
+            className="text-slate-400 hover:text-slate-600 dark:text-zinc-400 dark:hover:text-zinc-200 p-1 cursor-pointer"
+            aria-label={t("common.close")}
+          >
+            ✕
+          </button>
+        </div>
+      )}
+
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div className="flex items-center gap-2">
           <h2 className="text-lg font-bold text-[#1B2B4B] dark:text-white flex items-center gap-2">

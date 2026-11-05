@@ -133,35 +133,6 @@ export function PoolTableRowItem({
                 </span>
               );
             }
-            if (pool.envelopeType === "ONGOING_GOAL") {
-              return (
-                <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-extrabold uppercase font-mono bg-teal-50 text-teal-700 border border-teal-200">
-                  {t("categories.statusActive")}
-                </span>
-              );
-            }
-            if (pool.envelopeType === "SCHEDULED_BILL" || pool.envelopeType === "FLEXIBLE_BILL") {
-              const isCovered = pool.progressText === t("categories.fullyFunded") || pool.progressText.includes("100%");
-              const isPartial = pool.progressText === t("categories.onTrack");
-              const label = isCovered
-                ? t("categories.statusCovered")
-                : isPartial
-                ? t("categories.statusPartial")
-                : t("categories.statusShortfall");
-              return (
-                <span
-                  className={`inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-extrabold uppercase font-mono ${
-                    isCovered
-                      ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
-                      : isPartial
-                      ? "bg-amber-50 text-amber-700 border border-amber-200"
-                      : "bg-rose-50 text-rose-700 border border-rose-200"
-                  }`}
-                >
-                  {label}
-                </span>
-              );
-            }
             if (pool.envelopeType === "EVERYDAY") {
               const isOk = pool.currentBalance >= 0;
               return (
@@ -173,6 +144,33 @@ export function PoolTableRowItem({
                   }`}
                 >
                   {isOk ? t("categories.readyToSpend") : t("categories.needsAttention")}
+                </span>
+              );
+            }
+            if (pool.balanceStatus) {
+              const label =
+                pool.balanceStatus === "INACTIVE"
+                  ? t("categories.statusInactive")
+                  : pool.balanceStatus === "COVERED"
+                  ? t("categories.statusCovered")
+                  : pool.balanceStatus === "ON_TRACK"
+                  ? t("categories.statusOnTrack")
+                  : pool.balanceStatus === "PARTIAL"
+                  ? t("categories.statusPartial")
+                  : t("categories.statusShortfall");
+              const style =
+                pool.balanceStatus === "INACTIVE"
+                  ? "bg-zinc-100 text-zinc-600 border border-zinc-200"
+                  : pool.balanceStatus === "COVERED"
+                  ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
+                  : pool.balanceStatus === "ON_TRACK"
+                  ? "bg-blue-50 text-blue-700 border border-blue-200"
+                  : pool.balanceStatus === "PARTIAL"
+                  ? "bg-amber-50 text-amber-700 border border-amber-200"
+                  : "bg-rose-50 text-rose-700 border border-rose-200";
+              return (
+                <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-extrabold uppercase font-mono ${style}`}>
+                  {label}
                 </span>
               );
             }
@@ -201,32 +199,35 @@ export function PoolTableRowItem({
 
       {/* Actions: Clean 3-dots Menu */}
       <td className="py-2.5 px-4 text-center">
-        <div className="relative inline-block" ref={menuRef}>
-          <button
-            type="button"
-            onClick={() => setMenuOpen((prev) => !prev)}
-            className="p-1 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-zinc-800 rounded-lg transition-colors cursor-pointer"
-            aria-label={t("common.manage")}
-            title={t("common.manage")}
-          >
-            <MoreVertical className="w-4 h-4" />
-          </button>
+        {isProjectionMode ? (
+          <span className="text-zinc-300 dark:text-zinc-600 text-xs select-none">—</span>
+        ) : (
+          <div className="relative inline-block" ref={menuRef}>
+            <button
+              type="button"
+              onClick={() => setMenuOpen((prev) => !prev)}
+              className="p-1 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-zinc-800 rounded-lg transition-colors cursor-pointer"
+              aria-label={t("common.manage")}
+              title={t("common.manage")}
+            >
+              <MoreVertical className="w-4 h-4" />
+            </button>
 
-          {menuOpen && (
-            <div className="absolute right-0 mt-1 w-44 bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-xl shadow-lg py-1.5 z-50 text-left animate-in fade-in zoom-in-95 duration-100">
-              {onDrawDown && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    setMenuOpen(false);
-                    onDrawDown(pool.rawPool);
-                  }}
-                  className="w-full px-3 py-2 text-xs font-semibold text-slate-700 dark:text-zinc-200 hover:bg-blue-50 dark:hover:bg-zinc-800 hover:text-[#2563eb] flex items-center gap-2 cursor-pointer transition-colors"
-                >
-                  <ArrowDownCircle className="w-3.5 h-3.5 text-slate-400" />
-                  <span>{t("categories.actions.drawDown")}</span>
-                </button>
-              )}
+            {menuOpen && (
+              <div className="absolute right-0 mt-1 w-44 bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-xl shadow-lg py-1.5 z-50 text-left animate-in fade-in zoom-in-95 duration-100">
+                {onDrawDown && pool.envelopeType !== "EVERYDAY" && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setMenuOpen(false);
+                      onDrawDown(pool.rawPool);
+                    }}
+                    className="w-full px-3 py-2 text-xs font-semibold text-slate-700 dark:text-zinc-200 hover:bg-blue-50 dark:hover:bg-zinc-800 hover:text-[#2563eb] flex items-center gap-2 cursor-pointer transition-colors"
+                  >
+                    <ArrowDownCircle className="w-3.5 h-3.5 text-slate-400" />
+                    <span>{t("categories.actions.drawDown")}</span>
+                  </button>
+                )}
 
               <button
                 type="button"
@@ -264,6 +265,7 @@ export function PoolTableRowItem({
             </div>
           )}
         </div>
+        )}
       </td>
     </tr>
   );

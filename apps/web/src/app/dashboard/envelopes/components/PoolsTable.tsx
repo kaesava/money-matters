@@ -58,8 +58,8 @@ export function PoolsTable({
   }
 
   return (
-    <div className="bg-white rounded-2xl border border-zinc-200/80 shadow-xs overflow-hidden">
-      <div className="overflow-x-auto">
+    <div className="bg-white rounded-2xl border border-zinc-200/80 shadow-xs overflow-hidden min-h-[220px]">
+      <div className="overflow-x-auto min-h-[220px]">
         <table className="w-full text-left border-collapse min-w-[900px]">
           <thead>
             <tr className="border-b border-zinc-200 bg-zinc-50/70 text-[11px] font-bold text-zinc-500 uppercase tracking-wider select-none">

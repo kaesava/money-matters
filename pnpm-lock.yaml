@@ -99,6 +99,9 @@ importers:
       '@money-matters/db':
         specifier: workspace:*
         version: link:../../packages/db
+      '@money-matters/i18n':
+        specifier: workspace:*
+        version: link:../../packages/i18n
       '@money-matters/types':
         specifier: workspace:*
         version: link:../../packages/types

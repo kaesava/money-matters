@@ -1,7 +1,7 @@
 "use client";
 
 import { Suspense } from "react";
-import { BankAccountsSection } from "../settings/components/BankAccountsSection";
+import { BankAccountsSection } from "./components/BankAccountsSection";
 import { Spinner } from "@money-matters/ui/web";
 
 export default function BankAccountsDashboardPage() {

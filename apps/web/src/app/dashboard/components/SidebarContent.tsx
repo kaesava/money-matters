@@ -7,6 +7,7 @@ import { t } from "@money-matters/i18n";
 import { Logo } from "@money-matters/ui/web";
 import { SidebarTrialNavItem } from "../../../components/TrialStatusBadge";
 import { TenantSwitcher } from "../../../components/TenantSwitcher";
+import { useProductTour, TOUR_STEPS } from "../../../providers/ProductTourContext";
 
 export interface NavItem {
   key: string;
@@ -43,6 +44,11 @@ export function SidebarContent({
   onOpenAsk,
 }: SidebarContentProps) {
   const effectiveAvatar = avatarUrl || sessionUser?.image || null;
+  const tour = useProductTour();
+  const currentTourStep =
+    tour.isTourActive && tour.currentStep >= 0 && tour.currentStep < TOUR_STEPS.length
+      ? TOUR_STEPS[tour.currentStep]
+      : null;
 
   return (
     <div className="flex flex-col h-full">
@@ -80,8 +86,13 @@ export function SidebarContent({
               item.href === "/dashboard"
                 ? pathname === "/dashboard"
                 : item.href === "/dashboard/settings"
-                ? pathname === "/dashboard/settings" || (pathname.startsWith("/dashboard/settings/") && !pathname.startsWith("/dashboard/settings/bank-accounts"))
+                ? pathname === "/dashboard/settings" || pathname.startsWith("/dashboard/settings/")
                 : pathname.startsWith(item.href);
+
+            const isTourTarget = Boolean(
+              currentTourStep &&
+              (currentTourStep.route.startsWith(item.href) && (item.href !== "/dashboard" || currentTourStep.route === "/dashboard"))
+            );
 
             return (
               <Link
@@ -92,7 +103,7 @@ export function SidebarContent({
                   isActive
                     ? "text-white shadow-lg shadow-black/10"
                     : "text-[#9EACC7] hover:text-white hover:bg-white/5"
-                }`}
+                } ${isTourTarget ? "ring-2 ring-blue-400 ring-offset-2 ring-offset-[#1B2B4B]" : ""}`}
                 style={{
                   backgroundColor: isActive ? "#2563eb" : "transparent",
                 }}

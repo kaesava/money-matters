@@ -40,13 +40,13 @@ export function TypedConfirmDialog({
   };
 
   const handleConfirm = async () => {
-    if (typed.trim() === confirmPhrase.trim()) {
+    if (typed.trim().toLowerCase() === confirmPhrase.trim().toLowerCase()) {
       await onConfirm();
       setTyped('');
     }
   };
 
-  const isMatch = typed.trim() === confirmPhrase.trim();
+  const isMatch = typed.trim().toLowerCase() === confirmPhrase.trim().toLowerCase();
 
   return (
     <ModalDialog
@@ -60,7 +60,7 @@ export function TypedConfirmDialog({
         {children ? <div className="space-y-2">{children}</div> : null}
 
         <div className="space-y-1.5">
-          <label className="text-[10px] font-extrabold text-slate-500 uppercase tracking-wider block">
+          <label className="text-[10px] font-extrabold text-slate-500 tracking-wider block">
             {confirmLabel}
           </label>
           <input

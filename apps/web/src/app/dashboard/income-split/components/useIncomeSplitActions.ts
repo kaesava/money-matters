@@ -237,7 +237,11 @@ export function useIncomeSplitActions({
       setSubmitting(true);
       await deleteIncomeMut.mutateAsync({ eventId: incomeEventId });
       toast.success(t("paydayDrawer.incomeDeleted"));
-      await utils.listIncomeEvents.invalidate();
+      await Promise.all([
+        utils.listIncomeEvents.invalidate(),
+        utils.listAllAllocationPlans.invalidate(),
+        utils.getMatrixProjectionData.invalidate(),
+      ]);
       router.push(returnTo);
     } catch (err: unknown) {
       toast.error(err instanceof Error ? err.message : t("paydayDrawer.deleteFailed"));
@@ -289,6 +293,7 @@ export function useIncomeSplitActions({
         utils.listIncomeEvents.invalidate(),
         utils.listAllAllocationPlans.invalidate(),
         utils.previewPayday.invalidate({ incomeEventId }),
+        utils.getMatrixProjectionData.invalidate(),
       ]);
     } catch (err: unknown) {
       toast.error(err instanceof Error ? err.message : t("paydayDrawer.saveSplitFailed"));

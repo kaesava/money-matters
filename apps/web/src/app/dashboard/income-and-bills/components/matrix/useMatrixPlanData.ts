@@ -213,7 +213,10 @@ export function useMatrixPlanData({
         incomeEventId: colId,
         totalIncomeAmount: col ? col.totalIncome.toFixed(2) : "0.00",
       });
-      await utils.listAllAllocationPlans.invalidate();
+      await Promise.all([
+        utils.listAllAllocationPlans.invalidate(),
+        utils.getMatrixProjectionData.invalidate(),
+      ]);
       toast.success(t("matrix.saveSplitSuccess"));
     } catch (err: unknown) {
       toast.error((err as Error).message || "Failed to save Income Split.");
@@ -227,8 +230,11 @@ export function useMatrixPlanData({
     try {
       await deleteIncomeMut.mutateAsync({ eventId: incomeToDelete });
       toast.success(t("toasts.deleted"));
-      await utils.listIncomeEvents.invalidate();
-      await utils.listAllAllocationPlans.invalidate();
+      await Promise.all([
+        utils.listIncomeEvents.invalidate(),
+        utils.listAllAllocationPlans.invalidate(),
+        utils.getMatrixProjectionData.invalidate(),
+      ]);
     } catch (_err) {
       toast.error(t("common.errorTryAgain"));
     } finally {

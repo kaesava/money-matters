@@ -154,7 +154,7 @@ export function IncomeSchedulesCard({
                     </td>
                     <td className="py-2.5 px-3 text-left text-zinc-600 dark:text-zinc-300 font-semibold text-[11px]">
                       {inc.receivingAccountId ? (
-                        <Link href={`/dashboard/settings?tab=bank-accounts&id=${inc.receivingAccountId}`} className="font-bold text-[#2563eb] hover:underline inline-flex items-center gap-0.5">
+                        <Link href={`/dashboard/bank-accounts?id=${inc.receivingAccountId}`} className="font-bold text-[#2563eb] hover:underline inline-flex items-center gap-0.5">
                           <span>{inc.accountName}</span>
                           <span className="text-[10px] text-blue-400">↗</span>
                         </Link>

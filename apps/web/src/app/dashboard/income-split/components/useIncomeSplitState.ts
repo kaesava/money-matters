@@ -153,13 +153,20 @@ export function useIncomeSplitState({
     if (!previewQuery.data) return false;
     const pData = previewQuery.data;
     if (sourceName !== (pData.incomeEventName || "Paycheck")) return true;
-    if (actualAmount !== String(pData.actualAmount ?? pData.expectedAmount)) return true;
-    if (selectedDate !== pData.expectedDate) return true;
+
+    const expectedNum = Number(pData.actualAmount ?? pData.expectedAmount ?? 0);
+    const actualNum = parseFloat(actualAmount) || 0;
+    if (Math.abs(actualNum - expectedNum) > 0.009) return true;
+
+    if (selectedDate !== (pData.expectedDate || "")) return true;
+
     for (const [pId, val] of Object.entries(linesMap)) {
-      if (initialLinesMap[pId] !== val) return true;
+      const initVal = parseFloat(initialLinesMap[pId] || "0");
+      const currentVal = parseFloat(val || "0");
+      if (Math.abs(currentVal - initVal) > 0.009) return true;
     }
     for (const [pId, val] of Object.entries(reasoningMap)) {
-      if (initialReasoningMap[pId] !== val) return true;
+      if ((initialReasoningMap[pId] || "") !== (val || "")) return true;
     }
     return false;
   }, [previewQuery.data, sourceName, actualAmount, selectedDate, linesMap, initialLinesMap, reasoningMap, initialReasoningMap]);

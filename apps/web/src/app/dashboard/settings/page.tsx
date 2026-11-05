@@ -16,7 +16,6 @@ import { SubscriptionSection } from "./components/SubscriptionSection";
 import { PartnerInviteSection } from "./components/PartnerInviteSection";
 import { HouseholdDetailsSection } from "./components/HouseholdDetailsSection";
 import { HouseholdDangerZoneSection } from "./components/HouseholdDangerZoneSection";
-import { BankAccountsSection } from "./components/BankAccountsSection";
 import { ArchivedSection } from "./components/ArchivedSection";
 import { PrivacySection } from "./components/PrivacySection";
 import { useProductTour } from "../../../providers/ProductTourContext";
@@ -104,7 +103,6 @@ function SettingsPageContent() {
   const tabsList = [
     { id: "profile", label: t("settings.tabs.profile") },
     { id: "household", label: t("settings.tabs.household") },
-    { id: "bank-accounts", label: t("settings.tabs.bankAccounts") },
     { id: "archived", label: t("settings.tabs.archived") },
     { id: "account-data", label: t("settings.tabs.accountData") },
   ];
@@ -151,10 +149,6 @@ function SettingsPageContent() {
         />
         <PartnerInviteSection />
         <HouseholdDangerZoneSection />
-      </div>
-
-      <div className={activeTab === "bank-accounts" ? "space-y-6" : "hidden"}>
-        <BankAccountsSection />
       </div>
 
       <div className={activeTab === "archived" ? "space-y-6" : "hidden"}>

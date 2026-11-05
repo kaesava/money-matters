@@ -3,9 +3,9 @@ import { test, expect } from "@playwright/test";
 test.describe("Screen-by-Screen Features & Settings E2E Suite", () => {
   // 5. BANK ACCOUNTS & PRIVACY TOGGLE (`/dashboard/settings?tab=bank-accounts`)
   // ---------------------------------------------------------------------------
-  test.describe('5. Bank Accounts Screen (`/dashboard/settings?tab=bank-accounts`)', () => {
+  test.describe('5. Bank Accounts Screen (`/dashboard/bank-accounts`)', () => {
     test('5.1 Account List Table & BankAccountFormModal Field-by-Field Audit', async ({ page }) => {
-      await page.goto('/dashboard/settings?tab=bank-accounts');
+      await page.goto('/dashboard/bank-accounts');
 
       const addAccountBtn = page.locator('button:has-text("Add Bank Account"), button:has-text("Add Account")').first();
       if (await addAccountBtn.isVisible()) {
@@ -129,13 +129,12 @@ test.describe("Screen-by-Screen Features & Settings E2E Suite", () => {
       }
     });
 
-    test('8.2 Bank Accounts Table & Alignment Audit (`/dashboard/settings?tab=bank-accounts`)', async ({ page }) => {
+    test('8.2 Bank Accounts Table & Alignment Audit (`/dashboard/bank-accounts`)', async ({ page }) => {
       await page.goto('/dashboard/bank-accounts');
       if (page.url().includes('/sign-in')) {
         await expect(page).toHaveURL(/\/sign-in/);
         return;
       }
-      await page.waitForURL('**/dashboard/settings?tab=bank-accounts*');
       const pageHeading = page.locator('h2:has-text("Bank Accounts")').first();
       if (await pageHeading.isVisible()) {
         await expect(pageHeading).toBeVisible();
@@ -257,7 +256,7 @@ test.describe("Screen-by-Screen Features & Settings E2E Suite", () => {
   // ---------------------------------------------------------------------------
   test.describe('12. Specialized Interactive Modals & Workflows Audit', () => {
     test('12.1 1-Click Bank Account Balance Alignment Modal Audit (`ReconciliationModal`)', async ({ page }) => {
-      await page.goto('/dashboard/settings?tab=bank-accounts');
+      await page.goto('/dashboard/bank-accounts');
 
       // Look for alignment trigger buttons (Align Surplus / Align Shortfall / Reconcile)
       const alignBtn = page.locator('button:has-text("Align Surplus"), button:has-text("Align Shortfall"), button:has-text("Align")').first();

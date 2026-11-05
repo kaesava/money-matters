@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { MoreVertical, ArrowDownCircle, ArrowRightLeft, TrendingUp, X, Sparkles } from "lucide-react";
+import { MoreVertical, ArrowDownCircle, ArrowUpCircle, ArrowRightLeft, TrendingUp, X, Sparkles } from "lucide-react";
 import { useToast, ConfirmDialog, RecordFilterBadge } from "@money-matters/ui/web";
 import { t } from "@money-matters/i18n";
 
@@ -32,6 +32,7 @@ function PoolsPageContent() {
   const poolsQuery = trpc.listPools.useQuery();
   const archivedQuery = trpc.listArchivedItems.useQuery();
   const expenseEventsQuery = trpc.listExpenseEvents.useQuery();
+  const incomeEventsQuery = trpc.listIncomeEvents.useQuery();
   const transactionsQuery = trpc.listTransactions.useQuery({ limit: 1000 });
   const [overflowMenuOpen, setOverflowMenuOpen] = useState(false);
   const [isQuickDrawerOpen, setIsQuickDrawerOpen] = useState(false);
@@ -78,6 +79,7 @@ function PoolsPageContent() {
   } = useEnvelopesTableData({
     rawPools: poolsQuery.data,
     rawExpenseEvents: expenseEventsQuery.data,
+    rawIncomeEvents: incomeEventsQuery.data,
     rawTransactions: transactionsQuery.data,
     projectionColumns: trpc.getProjectedPoolBalances.useQuery(undefined, {
       enabled: true,
@@ -157,6 +159,17 @@ function PoolsPageContent() {
         </div>
 
         <div className="flex items-center gap-3">
+          <button
+            type="button"
+            onClick={() => {
+              setPoolToEdit(null);
+              setIsPoolModalOpen(true);
+            }}
+            className="px-4 py-2.5 rounded-xl font-bold text-xs text-white bg-[#2563eb] hover:bg-blue-700 transition-all shadow-md flex items-center gap-2 cursor-pointer"
+          >
+            <span>{t("categories.addPool")}</span>
+          </button>
+
           <div className="relative" ref={dropdownRef}>
             <button
               type="button"
@@ -181,6 +194,19 @@ function PoolsPageContent() {
                 >
                   <ArrowDownCircle className="w-4 h-4 text-emerald-600" />
                   <span>{t("categories.actions.quickExpense")}</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setOverflowMenuOpen(false);
+                    setQuickDrawerInitialData(undefined);
+                    setQuickDrawerTab("CREDIT");
+                    setIsQuickDrawerOpen(true);
+                  }}
+                  className="w-full px-3.5 py-2 text-left text-xs font-semibold text-zinc-700 dark:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800 flex items-center gap-2.5 transition-colors cursor-pointer"
+                >
+                  <ArrowUpCircle className="w-4 h-4 text-[#2563eb]" />
+                  <span>{t("categories.actions.quickIncome")}</span>
                 </button>
                 <button
                   type="button"
@@ -214,17 +240,6 @@ function PoolsPageContent() {
               </div>
             )}
           </div>
-
-          <button
-            type="button"
-            onClick={() => {
-              setPoolToEdit(null);
-              setIsPoolModalOpen(true);
-            }}
-            className="px-4 py-2.5 rounded-xl font-bold text-xs text-white bg-[#2563eb] hover:bg-blue-700 transition-all shadow-md flex items-center gap-2 cursor-pointer"
-          >
-            <span>{t("categories.addPool")}</span>
-          </button>
         </div>
       </div>
 
@@ -320,8 +335,8 @@ function PoolsPageContent() {
 
       <div className="relative">
         {showProjectionMatrix && projectionMonths > 0.05 && (
-          <div className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center overflow-hidden select-none">
-            <span className="transform -rotate-12 text-7xl md:text-9xl font-black text-slate-900/[0.06] dark:text-white/[0.06] tracking-widest whitespace-nowrap uppercase">
+          <div className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center overflow-hidden select-none px-6">
+            <span className="transform -rotate-12 text-5xl md:text-7xl lg:text-8xl font-black text-slate-900/[0.06] dark:text-white/[0.06] tracking-wider whitespace-nowrap uppercase">
               {t("categories.projectionModeWatermark")}
             </span>
           </div>
@@ -340,6 +355,7 @@ function PoolsPageContent() {
             setPageSize(s);
             setPage(1);
           }}
+          isProjectionMode={showProjectionMatrix}
           onEditPool={(pool) => {
             if (showProjectionMatrix) return;
             setPoolToEdit(pool);
@@ -371,7 +387,6 @@ function PoolsPageContent() {
           isLoading={poolsQuery.isLoading}
           searchQuery={searchQuery}
           typeFilter={typeFilter}
-          isProjectionMode={showProjectionMatrix}
         />
       </div>
 

@@ -86,16 +86,32 @@ export async function verifyCheckoutSessionCommand(
         stripeSubscriptionId: subscriptionId || null,
         amountPaid: ((invoiceObj.amount_paid || 0) / 100).toFixed(2),
         currency: (invoiceObj.currency || "aud").toUpperCase(),
-        status: invoiceObj.status || "paid",
+        status: invoiceObj.status || "open",
         paidAt: invoiceObj.status_transitions?.paid_at
           ? new Date(invoiceObj.status_transitions.paid_at * 1000)
-          : new Date(),
+          : invoiceObj.status === "paid"
+          ? new Date()
+          : null,
         periodStart: invoiceObj.period_start ? new Date(invoiceObj.period_start * 1000) : null,
         periodEnd: invoiceObj.period_end ? new Date(invoiceObj.period_end * 1000) : null,
         invoicePdfUrl: invoiceObj.invoice_pdf || null,
         hostedInvoiceUrl: invoiceObj.hosted_invoice_url || null,
       })
-      .onConflictDoNothing();
+      .onConflictDoUpdate({
+        target: billingInvoices.stripeInvoiceId,
+        set: {
+          status: invoiceObj.status || "open",
+          amountPaid: ((invoiceObj.amount_paid || 0) / 100).toFixed(2),
+          paidAt: invoiceObj.status_transitions?.paid_at
+            ? new Date(invoiceObj.status_transitions.paid_at * 1000)
+            : invoiceObj.status === "paid"
+            ? new Date()
+            : null,
+          invoicePdfUrl: invoiceObj.invoice_pdf || null,
+          hostedInvoiceUrl: invoiceObj.hosted_invoice_url || null,
+          updatedAt: new Date(),
+        },
+      });
   }
 
   return { verified: true, subscriptionStatus: "SUBSCRIBED" };

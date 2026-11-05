@@ -68,10 +68,14 @@ export default function PoolDetailScreen() {
           pool={pool}
           bankAccountName={bankAccount?.name}
           onEdit={() => setPoolModalVisible(true)}
-          onDrawDown={() => {
-            setQuickExpenseData({ type: 'DEBIT', name: 'Draw down', categoryId: pool.id });
-            setQuickExpenseVisible(true);
-          }}
+          onDrawDown={
+            pool.envelopeType === 'EVERYDAY'
+              ? undefined
+              : () => {
+                  setQuickExpenseData({ type: 'DEBIT', name: 'Draw down', categoryId: pool.id });
+                  setQuickExpenseVisible(true);
+                }
+          }
         />
 
         <PoolUpcomingSection

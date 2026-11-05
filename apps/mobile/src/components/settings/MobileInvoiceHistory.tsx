@@ -11,6 +11,7 @@ interface InvoiceItem {
   currency: string;
   status: string;
   paidAt?: string | Date | null;
+  createdAt?: string | Date | null;
   invoicePdfUrl?: string | null;
   hostedInvoiceUrl?: string | null;
 }
@@ -53,27 +54,50 @@ export function MobileInvoiceHistory({ invoices, isLoading }: MobileInvoiceHisto
       ) : (
         <View style={styles.invoicesList}>
           {paginatedInvoices.map((inv) => {
-            const receiptUrl = inv.invoicePdfUrl || inv.hostedInvoiceUrl;
             const isPaid = inv.status.toLowerCase() === 'paid';
+            const isOpen = inv.status.toLowerCase() === 'open';
+            const displayDate = inv.paidAt
+              ? formatDate(inv.paidAt)
+              : inv.createdAt
+              ? formatDate(inv.createdAt)
+              : '—';
+            const statusBadgeLabel = isPaid
+              ? t('subscription.statusPaid')
+              : isOpen
+              ? t('subscription.statusOpen')
+              : inv.status;
+            const linkHref = isPaid
+              ? inv.invoicePdfUrl || inv.hostedInvoiceUrl
+              : inv.hostedInvoiceUrl || inv.invoicePdfUrl;
+            const linkText = isPaid
+              ? t('subscription.downloadReceipt')
+              : t('subscription.payInvoice');
+
             return (
               <View key={inv.id} style={styles.invoiceRow}>
                 <View style={styles.topMetaRow}>
-                  <Text style={styles.invoiceDate}>
-                    {inv.paidAt ? formatDate(inv.paidAt) : '—'}
-                  </Text>
+                  <Text style={styles.invoiceDate}>{displayDate}</Text>
                   <View
                     style={[
                       styles.invoiceStatusBadge,
-                      isPaid ? styles.paidBadge : styles.unpaidBadge,
+                      isPaid
+                        ? styles.paidBadge
+                        : isOpen
+                        ? styles.openBadge
+                        : styles.unpaidBadge,
                     ]}
                   >
                     <Text
                       style={[
                         styles.invoiceStatusText,
-                        isPaid ? styles.paidText : styles.unpaidText,
+                        isPaid
+                          ? styles.paidText
+                          : isOpen
+                          ? styles.openText
+                          : styles.unpaidText,
                       ]}
                     >
-                      {inv.status}
+                      {statusBadgeLabel}
                     </Text>
                   </View>
                 </View>
@@ -83,15 +107,27 @@ export function MobileInvoiceHistory({ invoices, isLoading }: MobileInvoiceHisto
                     {formatMobileCurrency(inv.amountPaid, inv.currency)}
                   </Text>
 
-                  {receiptUrl ? (
+                  {linkHref ? (
                     <TouchableOpacity
-                      onPress={() => handleOpenReceipt(receiptUrl)}
-                      style={styles.receiptBtn}
+                      onPress={() => handleOpenReceipt(linkHref)}
+                      style={[
+                        styles.receiptBtn,
+                        !isPaid && styles.payInvoiceBtn,
+                      ]}
                       activeOpacity={0.7}
                     >
-                      <Feather name="download" size={12} color={DESIGN_TOKENS.colors.accent} />
-                      <Text style={styles.receiptBtnText}>
-                        {t('subscription.downloadReceipt')} ↗
+                      <Feather
+                        name={isPaid ? 'download' : 'external-link'}
+                        size={12}
+                        color={isPaid ? DESIGN_TOKENS.colors.accent : DESIGN_TOKENS.colors.warningDark}
+                      />
+                      <Text
+                        style={[
+                          styles.receiptBtnText,
+                          !isPaid && styles.payInvoiceBtnText,
+                        ]}
+                      >
+                        {linkText} ↗
                       </Text>
                     </TouchableOpacity>
                   ) : (
@@ -176,6 +212,10 @@ const styles = StyleSheet.create({
     backgroundColor: DESIGN_TOKENS.colors.successLight,
     borderColor: DESIGN_TOKENS.colors.successBorder,
   },
+  openBadge: {
+    backgroundColor: DESIGN_TOKENS.colors.warningLight,
+    borderColor: DESIGN_TOKENS.colors.warningBorder,
+  },
   unpaidBadge: {
     backgroundColor: DESIGN_TOKENS.colors.criticalLight,
     borderColor: DESIGN_TOKENS.colors.criticalBorder,
@@ -187,6 +227,9 @@ const styles = StyleSheet.create({
   },
   paidText: {
     color: DESIGN_TOKENS.colors.successDark,
+  },
+  openText: {
+    color: DESIGN_TOKENS.colors.warningDark,
   },
   unpaidText: {
     color: DESIGN_TOKENS.colors.criticalDark,
@@ -213,10 +256,17 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: DESIGN_TOKENS.colors.accentBorder,
   },
+  payInvoiceBtn: {
+    backgroundColor: DESIGN_TOKENS.colors.warningLight,
+    borderColor: DESIGN_TOKENS.colors.warningBorder,
+  },
   receiptBtnText: {
     fontSize: 11,
     fontWeight: '800',
     color: DESIGN_TOKENS.colors.accent,
+  },
+  payInvoiceBtnText: {
+    color: DESIGN_TOKENS.colors.warningDark,
   },
   noReceiptText: {
     fontSize: 11,

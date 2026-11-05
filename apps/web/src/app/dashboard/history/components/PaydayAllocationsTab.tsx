@@ -241,8 +241,8 @@ export function PaydayAllocationsTab({
                       <Link
                         href={
                           plan.receivingAccountId
-                            ? `/dashboard/settings?tab=bank-accounts&id=${plan.receivingAccountId}`
-                            : "/dashboard/settings?tab=bank-accounts"
+                            ? `/dashboard/bank-accounts?id=${plan.receivingAccountId}`
+                            : "/dashboard/bank-accounts"
                         }
                         className="text-[#2563eb] hover:underline inline-flex items-center gap-0.5"
                       >

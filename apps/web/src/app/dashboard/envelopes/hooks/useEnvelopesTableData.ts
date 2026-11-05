@@ -38,6 +38,12 @@ interface UseEnvelopesTableDataParams {
     id: string;
     name?: string | null;
     envelopeId?: string | null;
+    expectedDate?: string | null;
+    status: string;
+  }>;
+  rawIncomeEvents?: Array<{
+    id: string;
+    expectedDate?: string | null;
     status: string;
   }>;
   rawTransactions?: Array<{
@@ -56,6 +62,7 @@ interface UseEnvelopesTableDataParams {
 export function useEnvelopesTableData({
   rawPools = [],
   rawExpenseEvents = [],
+  rawIncomeEvents = [],
   rawTransactions = [],
   projectionColumns = [],
   poolBalances,
@@ -120,6 +127,14 @@ export function useEnvelopesTableData({
       );
     };
 
+    const todayISO = new Intl.DateTimeFormat("en-CA", { timeZone: userTimezone }).format(new Date());
+
+    const pendingPaydays = (rawIncomeEvents || [])
+      .filter((e) => e.expectedDate && e.expectedDate >= todayISO && e.status !== "CONFIRMED")
+      .map((e) => e.expectedDate!)
+      .sort();
+    const nextPaydayDate = pendingPaydays[0] || null;
+
     return rawPools.map((p) => {
       const isGoal = p.envelopeType === "TARGET_GOAL" || p.envelopeType === "ONGOING_GOAL";
       const isBill = p.envelopeType === "SCHEDULED_BILL" || p.envelopeType === "FLEXIBLE_BILL";
@@ -141,26 +156,83 @@ export function useEnvelopesTableData({
 
       let progressText = "—";
       let progressPercentage: number | null = null;
+      let balanceStatus: "INACTIVE" | "COVERED" | "PARTIAL" | "SHORTFALL" | "ON_TRACK" | undefined = undefined;
 
-      if (isGoal) {
-        if (p.envelopeType === "ONGOING_GOAL" || p.goalMode === "ONGOING") {
-          progressText = p.budgetFrequency || t("categories.frequencyMonthly");
-          progressPercentage = 100;
-        } else if (targetAmountNum && targetAmountNum > 0) {
-          const pct = Math.min(100, Math.round((currentBal / targetAmountNum) * 100));
+      if (p.envelopeType === "SCHEDULED_BILL") {
+        if (p.startDate && todayISO < p.startDate) {
+          balanceStatus = "INACTIVE";
+          progressText = t("categories.statusInactive");
+        } else if (p.endDate && todayISO > p.endDate) {
+          balanceStatus = "INACTIVE";
+          progressText = t("categories.statusInactive");
+        } else {
+          const poolUpcomingExpenses = rawExpenseEvents
+            .filter((e) => (e.envelopeId === p.id || e.name?.toLowerCase() === p.name.toLowerCase()) && e.status !== "CONFIRMED" && e.expectedDate)
+            .map((e) => e.expectedDate!)
+            .filter((d) => d >= todayISO)
+            .sort();
+          const nextDueDate = poolUpcomingExpenses[0] || null;
+          const billTarget = targetAmountNum || 0;
+          const isFutureBill = nextPaydayDate && nextDueDate && nextDueDate > nextPaydayDate;
+
+          if (isFutureBill) {
+            balanceStatus = currentBal >= billTarget ? "COVERED" : "ON_TRACK";
+            progressText = currentBal >= billTarget ? t("categories.statusCovered") : t("categories.statusOnTrack");
+          } else {
+            if (billTarget <= 0 || currentBal >= billTarget) {
+              balanceStatus = "COVERED";
+              progressText = t("categories.statusCovered");
+            } else if (currentBal > 0) {
+              balanceStatus = "PARTIAL";
+              progressText = t("categories.statusPartial");
+            } else {
+              balanceStatus = "SHORTFALL";
+              progressText = t("categories.statusShortfall");
+            }
+          }
+        }
+      } else if (p.envelopeType === "FLEXIBLE_BILL") {
+        const flexTarget = p.monthlyAmount ? parseFloat(p.monthlyAmount) : (targetAmountNum || 0);
+        if (flexTarget <= 0 || currentBal >= flexTarget) {
+          balanceStatus = "COVERED";
+          progressText = t("categories.statusCovered");
+        } else if (currentBal > 0) {
+          balanceStatus = "PARTIAL";
+          progressText = t("categories.statusPartial");
+        } else {
+          balanceStatus = "SHORTFALL";
+          progressText = t("categories.statusShortfall");
+        }
+      } else if (p.envelopeType === "ONGOING_GOAL") {
+        const goalMonthly = p.monthlyAmount ? parseFloat(p.monthlyAmount) : (targetAmountNum || 0);
+        if (goalMonthly <= 0 || currentBal >= goalMonthly) {
+          balanceStatus = "COVERED";
+          progressText = t("categories.statusCovered");
+        } else if (currentBal > 0) {
+          balanceStatus = "PARTIAL";
+          progressText = t("categories.statusPartial");
+        } else {
+          balanceStatus = "SHORTFALL";
+          progressText = t("categories.statusShortfall");
+        }
+        progressPercentage = 100;
+      } else if (p.envelopeType === "TARGET_GOAL") {
+        const targetGoalAmt = targetAmountNum || 0;
+        if (p.endDate && todayISO > p.endDate && currentBal < targetGoalAmt) {
+          balanceStatus = "SHORTFALL";
+        } else if (targetGoalAmt <= 0 || currentBal >= targetGoalAmt) {
+          balanceStatus = "COVERED";
+        } else if (currentBal > 0) {
+          balanceStatus = "PARTIAL";
+        } else {
+          balanceStatus = "SHORTFALL";
+        }
+        if (targetGoalAmt > 0) {
+          const pct = Math.min(100, Math.round((currentBal / targetGoalAmt) * 100));
           progressPercentage = pct;
           progressText = `${pct}%`;
         } else {
           progressText = "100%";
-        }
-      } else if (isBill) {
-        const target = targetAmountNum || 0;
-        if (target > 0 && currentBal >= target) {
-          progressText = t("categories.fullyFunded");
-        } else if (currentBal > 0) {
-          progressText = t("categories.onTrack");
-        } else {
-          progressText = t("categories.shortfall");
         }
       } else if (isEveryday) {
         if (currentBal >= 0) {
@@ -210,6 +282,7 @@ export function useEnvelopesTableData({
         categoryCount: 0,
         progressText,
         progressPercentage,
+        balanceStatus,
         rawPool: rawSummaryItem,
         hasHistory: checkHasHistory(p.id, p.name),
         hasUpcomingExpenses: checkHasUpcoming(p.id, p.name),
@@ -217,6 +290,10 @@ export function useEnvelopesTableData({
     });
   }, [
     rawPools,
+    rawExpenseEvents,
+    rawIncomeEvents,
+    rawTransactions,
+    userTimezone,
     showProjectionMatrix,
     projectionMonths,
     activeProjectionColId,

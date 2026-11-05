@@ -57,7 +57,6 @@ export function MarkPaidModal({
   const [wasFutureDate, setWasFutureDate] = useState(false);
   const [originalDate, setOriginalDate] = useState("");
   const [transferAmounts, setTransferAmounts] = useState<Record<string, string>>({});
-  const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const todayStr = useMemo(() => {
@@ -116,17 +115,6 @@ export function MarkPaidModal({
     return validCategories.find((c) => c.isSurplusTarget) || validCategories[0];
   }, [validCategories]);
 
-  // Group valid pools by poolType
-  const groupedPools = useMemo(() => {
-    const map: Record<string, CategoryOption[]> = {};
-    for (const pool of validCategories) {
-      const typeKey = pool.poolType || "OTHER";
-      if (!map[typeKey]) map[typeKey] = [];
-      map[typeKey].push(pool);
-    }
-    return map;
-  }, [validCategories]);
-
   // Initialize transfer amounts when shortfall changes
   useEffect(() => {
     if (!isOpen || !hasShortfall) {
@@ -145,21 +133,7 @@ export function MarkPaidModal({
       }
     }
     setTransferAmounts(initialAmounts);
-
-    const surplusType = surplusCategory?.poolType || "OTHER";
-    const initialExpanded: Record<string, boolean> = {};
-    Object.keys(groupedPools).forEach((typeKey) => {
-      initialExpanded[typeKey] = typeKey === surplusType;
-    });
-    setExpandedGroups(initialExpanded);
-  }, [isOpen, hasShortfall, shortfallAmount, surplusCategory, groupedPools]);
-
-  const toggleGroup = (typeKey: string) => {
-    setExpandedGroups((prev) => ({
-      ...prev,
-      [typeKey]: !prev[typeKey],
-    }));
-  };
+  }, [isOpen, hasShortfall, shortfallAmount, surplusCategory]);
 
   const handleAmountChange = (pId: string, maxBal: number, rawVal: string) => {
     if (rawVal === "") {
@@ -183,11 +157,11 @@ export function MarkPaidModal({
     }, 0);
   }, [transferAmounts]);
 
-  const shortfallValidation = useMemo(() => {
-    return validateShortfallAllocations(shortfallAmount, transferAmounts);
-  }, [shortfallAmount, transferAmounts]);
+  const remainingShortfall = shortfallAmount - totalAllocated;
+  const isOverAllocated = remainingShortfall < -0.005;
+  const isFulfilled = Math.abs(remainingShortfall) <= 0.005;
+  const overAllocatedAmount = Math.max(0, totalAllocated - shortfallAmount);
 
-  const isFulfilled = shortfallValidation.isValid;
   const isDateValid = Boolean(dateStr && dateStr <= todayStr);
   const isAmountValid = numAmount > 0;
   const isValid = isAmountValid && isDateValid && isFulfilled;
@@ -294,14 +268,10 @@ export function MarkPaidModal({
         {hasShortfall ? (
           <MarkPaidShortfallSection
             billName={billName}
-            formattedPoolType={formattedPoolType}
             formattedPoolName={formattedPoolName}
             shortfallAmount={shortfallAmount}
             isFulfilled={isFulfilled}
-            surplusCategory={surplusCategory}
-            groupedPools={groupedPools}
-            expandedGroups={expandedGroups}
-            toggleGroup={toggleGroup}
+            fundingPools={validCategories}
             transferAmounts={transferAmounts}
             handleTransferChange={(pId, v) => handleAmountChange(pId, 999999999, v)}
             handleFillMax={(pId, maxBal) => {
@@ -314,7 +284,9 @@ export function MarkPaidModal({
             minorUnits={minorUnits}
             fmt={fmt}
             totalAllocated={totalAllocated}
-            remainingShortfall={Math.max(0, shortfallAmount - totalAllocated)}
+            remainingShortfall={remainingShortfall}
+            isOverAllocated={isOverAllocated}
+            overAllocatedAmount={overAllocatedAmount}
             onOpenTransferModal={onOpenTransferModal}
           />
         ) : (

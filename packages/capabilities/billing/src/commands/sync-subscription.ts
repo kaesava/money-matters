@@ -121,16 +121,32 @@ export async function syncSubscriptionCommand(
             stripeSubscriptionId: typeof inv.subscription === "string" ? inv.subscription : inv.subscription?.id || null,
             amountPaid: ((inv.amount_paid || 0) / 100).toFixed(2),
             currency: (inv.currency || "aud").toUpperCase(),
-            status: inv.status || "paid",
+            status: inv.status || "open",
             paidAt: inv.status_transitions?.paid_at
               ? new Date(inv.status_transitions.paid_at * 1000)
-              : new Date(),
+              : inv.status === "paid"
+              ? new Date()
+              : null,
             periodStart: inv.period_start ? new Date(inv.period_start * 1000) : null,
             periodEnd: inv.period_end ? new Date(inv.period_end * 1000) : null,
             invoicePdfUrl: inv.invoice_pdf || null,
             hostedInvoiceUrl: inv.hosted_invoice_url || null,
           })
-          .onConflictDoNothing();
+          .onConflictDoUpdate({
+            target: billingInvoices.stripeInvoiceId,
+            set: {
+              status: inv.status || "open",
+              amountPaid: ((inv.amount_paid || 0) / 100).toFixed(2),
+              paidAt: inv.status_transitions?.paid_at
+                ? new Date(inv.status_transitions.paid_at * 1000)
+                : inv.status === "paid"
+                ? new Date()
+                : null,
+              invoicePdfUrl: inv.invoice_pdf || null,
+              hostedInvoiceUrl: inv.hosted_invoice_url || null,
+              updatedAt: new Date(),
+            },
+          });
       }
     }
   } catch (err) {
