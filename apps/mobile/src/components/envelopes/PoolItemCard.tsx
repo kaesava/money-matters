@@ -3,7 +3,7 @@ import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { t } from '@money-matters/i18n';
 import { DESIGN_TOKENS, CardDrawerIndicator, formatRecurrenceSuffix } from '@money-matters/ui/mobile';
-import { formatAUD } from '../../lib/format';
+import { formatMobileCurrency } from '../../lib/format';
 import { useRouter, type Href } from 'expo-router';
 
 interface PoolItemCardProps {
@@ -98,7 +98,7 @@ export function PoolItemCard({
 
         <View style={styles.balWrap}>
           <View style={styles.balCol}>
-            <Text style={styles.balNum}>{formatAUD(pool.currentBalance ?? 0)}</Text>
+            <Text style={styles.balNum}>{formatMobileCurrency(pool.currentBalance ?? 0)}</Text>
             <Text style={styles.balSub}>
               {isGoal
                 ? pool.goalMode === 'ONGOING' || pool.envelopeType === 'ONGOING_GOAL'
@@ -107,22 +107,22 @@ export function PoolItemCard({
                       const suffix = formatRecurrenceSuffix(pool.rrule, freq);
                       const contrib = entered > 0 ? entered : monthly > 0 ? monthly : 0;
                       if (contrib > 0) {
-                        return `${formatAUD(contrib)}${suffix}`;
+                        return `${formatMobileCurrency(contrib)}${suffix}`;
                       }
-                      return target > 0 ? `${formatAUD(target)} target` : t('categories.noTarget');
+                      return target > 0 ? `${formatMobileCurrency(target)} target` : t('categories.noTarget');
                     })()
                   : target > 0
-                  ? `${pct}% of ${formatAUD(target)}`
+                  ? `${pct}% of ${formatMobileCurrency(target)}`
                   : t('categories.noTarget')
                 : pool.envelopeType === 'SCHEDULED_BILL'
                 ? (() => {
                     const freq = pool.budgetFrequency || 'MONTHLY';
                     const suffix = formatRecurrenceSuffix(pool.rrule, freq);
                     const amt = entered > 0 ? entered : monthly > 0 ? monthly : target;
-                    return amt > 0 ? `${formatAUD(amt)}${suffix}` : t('categories.mainPool');
+                    return amt > 0 ? `${formatMobileCurrency(amt)}${suffix}` : t('categories.mainPool');
                   })()
                 : (monthly > 0 ? monthly : target > 0 ? target : 0) > 0
-                ? `${formatAUD(monthly > 0 ? monthly : target)}/mo`
+                ? `${formatMobileCurrency(monthly > 0 ? monthly : target)}/mo`
                 : t('categories.mainPool')}
             </Text>
           </View>

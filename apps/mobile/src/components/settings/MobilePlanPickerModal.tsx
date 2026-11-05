@@ -3,6 +3,7 @@ import { View, Text, TouchableOpacity, StyleSheet, ScrollView } from 'react-nati
 import { Feather } from '@expo/vector-icons';
 import { MobileModalDialog, MobileButton, DESIGN_TOKENS } from '@money-matters/ui/mobile';
 import { t } from '@money-matters/i18n';
+import { getMobileCurrencySymbol, getMobileLocaleConfig } from '../../lib/format';
 
 export type PlanChoice = 'annual' | 'monthly';
 
@@ -20,6 +21,9 @@ export function MobilePlanPickerModal({
   loading,
 }: MobilePlanPickerModalProps) {
   const [billingCycle, setBillingCycle] = useState<PlanChoice>('annual');
+  const sym = getMobileCurrencySymbol();
+  const cfg = getMobileLocaleConfig();
+  const curr = cfg.currency;
 
   const handleConfirm = async () => {
     await onSelectPlan(billingCycle);
@@ -53,8 +57,8 @@ export function MobilePlanPickerModal({
             variant="primary"
             label={
               billingCycle === 'annual'
-                ? t('subscription.claimFoundingRate')
-                : t('subscription.subscribeMonthlyCta')
+                ? t('subscription.claimFoundingRate', { amount: `${sym}69` })
+                : t('subscription.subscribeMonthlyCta', { amount: `${sym}9.95` })
             }
             onPress={handleConfirm}
             loading={loading}
@@ -72,7 +76,7 @@ export function MobilePlanPickerModal({
             activeOpacity={0.8}
           >
             <Text style={[styles.toggleText, billingCycle === 'annual' && styles.toggleTextActive]}>
-              {t('subscription.annualTabFounding')}
+              {t('subscription.annualTabFounding', { amount: `${sym}69` })}
             </Text>
           </TouchableOpacity>
           <TouchableOpacity
@@ -81,7 +85,7 @@ export function MobilePlanPickerModal({
             activeOpacity={0.8}
           >
             <Text style={[styles.toggleText, billingCycle === 'monthly' && styles.toggleTextActive]}>
-              {t('subscription.monthlyTab')}
+              {t('subscription.monthlyTab', { amount: `${sym}9.95` })}
             </Text>
           </TouchableOpacity>
         </View>
@@ -100,14 +104,14 @@ export function MobilePlanPickerModal({
           <View style={styles.priceRow}>
             {billingCycle === 'annual' ? (
               <>
-                <Text style={styles.strikePrice}>$89</Text>
-                <Text style={styles.mainPrice}>$69</Text>
-                <Text style={styles.pricePeriod}>AUD / yr ($5.75/mo)</Text>
+                <Text style={styles.strikePrice}>{`${sym}89`}</Text>
+                <Text style={styles.mainPrice}>{`${sym}69`}</Text>
+                <Text style={styles.pricePeriod}>{`${curr} / yr (${sym}5.75/mo)`}</Text>
               </>
             ) : (
               <>
-                <Text style={styles.mainPrice}>$9.95</Text>
-                <Text style={styles.pricePeriod}>AUD / month</Text>
+                <Text style={styles.mainPrice}>{`${sym}9.95`}</Text>
+                <Text style={styles.pricePeriod}>{`${curr} / month`}</Text>
               </>
             )}
           </View>
@@ -115,7 +119,7 @@ export function MobilePlanPickerModal({
           {billingCycle === 'annual' && (
             <View style={styles.foundingOfferBanner}>
               <Text style={styles.foundingOfferText}>
-                🏷️ {t('subscription.foundingMemberBadge')}
+                🏷️ {t('subscription.foundingMemberBadge', { amount: `${sym}69` })}
               </Text>
             </View>
           )}

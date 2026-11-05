@@ -2,7 +2,7 @@ import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { DESIGN_TOKENS } from '@money-matters/ui/mobile';
-import { formatAUD, formatDate } from '../lib/format';
+import { formatMobileCurrency, formatDate } from '../lib/format';
 
 export interface TransactionRowProps {
   id?: string;
@@ -71,7 +71,7 @@ export function TransactionRow({
             ]}
           >
             {isDebit ? '-' : '+'}
-            {formatAUD(amount)}
+            {formatMobileCurrency(amount)}
           </Text>
         </View>
       </View>

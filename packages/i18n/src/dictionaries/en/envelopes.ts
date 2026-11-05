@@ -207,7 +207,8 @@ export const envelopes = {
       "selectBankAccountPlaceholder": "Select Bank Account...",
       "bankAccountRequired": "Bank Account selection is mandatory.",
       "amountAud": "Amount",
-      "dateLabel": "Date"
+      "dateLabel": "Date",
+      "exceedsBalanceWarning": "Exceeds envelope balance ({balance})"
     }
   },
   "modals": {
@@ -260,7 +261,7 @@ export const envelopes = {
       "sourcePool": "Source Envelope",
       "destinationPool": "Destination Envelope",
       "pastDateAdjustedNotice": "The transfer date previously scheduled for {date} has now been defaulted to today.",
-      "insufficientBalanceWarning": "Insufficient balance in {poolName}. Available: {available}, requested: {amount}.",
+      "insufficientBalanceWarning": "Insufficient balance in {envelopeName}. Available: {available}, requested: {amount}.",
       "deleteConfirmTitle": "Delete Transfer",
       "deletePrompt": "Are you sure you want to delete this scheduled transfer? This action cannot be undone.",
       "available": "{amount} available",

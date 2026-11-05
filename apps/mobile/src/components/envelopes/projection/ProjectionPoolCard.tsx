@@ -7,7 +7,7 @@ import {
   CardDrawerIndicator,
 } from '@money-matters/ui/mobile';
 import { t } from '@money-matters/i18n';
-import { formatAUD } from '../../../lib/format';
+import { formatMobileCurrency } from '../../../lib/format';
 
 interface ProjectionPoolCardProps {
   pool: {
@@ -55,11 +55,11 @@ export const ProjectionPoolCard: React.FC<ProjectionPoolCardProps> = ({
 
         <View style={styles.balWrap}>
           <View style={styles.balCol}>
-            <Text style={styles.balNum}>{formatAUD(balance)}</Text>
+            <Text style={styles.balNum}>{formatMobileCurrency(balance)}</Text>
             <Text style={styles.balSub}>
               {isGoal
                 ? target > 0
-                  ? `${pct}% of ${formatAUD(target)}`
+                  ? `${pct}% of ${formatMobileCurrency(target)}`
                   : t('categories.noTarget')
                 : t('categories.mainPool')}
             </Text>

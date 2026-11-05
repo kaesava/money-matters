@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { AmountInput, DESIGN_TOKENS } from '@money-matters/ui/mobile';
-import { formatAUD } from '../../lib/format';
+import { formatMobileCurrency } from '../../lib/format';
 import { t } from '@money-matters/i18n';
 
 export interface ReconcilePoolItem {
@@ -74,7 +74,7 @@ export function ReconciliationPoolRow({
             </Text>
           </View>
           <Text style={styles.availText}>
-            {t('bankAccounts.reconcile.tableAvailable')}: {formatAUD(pool.currentBalance)}
+            {t('bankAccounts.reconcile.tableAvailable')}: {formatMobileCurrency(pool.currentBalance)}
           </Text>
         </View>
       </View>

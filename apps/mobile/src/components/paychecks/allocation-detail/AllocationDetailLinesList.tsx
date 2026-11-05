@@ -2,7 +2,7 @@ import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { DESIGN_TOKENS } from '@money-matters/ui/mobile';
 import { t } from '@money-matters/i18n';
-import { formatAUD } from '../../../lib/format';
+import { formatMobileCurrency } from '../../../lib/format';
 import type { MobilePaydayAllocationRecord } from '../MobilePaydayAllocationDetailModal';
 
 interface AllocationDetailLinesListProps {
@@ -31,7 +31,7 @@ export const AllocationDetailLinesList: React.FC<AllocationDetailLinesListProps>
                 <Text style={styles.lineReasoning}>{line.reasoning}</Text>
               ) : null}
             </View>
-            <Text style={styles.lineAmount}>{formatAUD(amt)}</Text>
+            <Text style={styles.lineAmount}>{formatMobileCurrency(amt)}</Text>
           </View>
         );
       })}

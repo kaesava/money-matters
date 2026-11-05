@@ -31,7 +31,7 @@ export function TimelineFiltersBar({
         <SearchInput
           value={searchQuery}
           onChange={onSearchChange}
-          placeholder="Search events, pools, accounts, amount..."
+          placeholder={t("incomeBillsTabs.searchPlaceholder")}
           autoFocus={autoFocus}
         />
       </div>

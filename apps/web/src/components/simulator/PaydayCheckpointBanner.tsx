@@ -2,6 +2,7 @@
 
 import React from "react";
 import { t } from "@money-matters/i18n";
+import { useCurrencyLocale } from "@money-matters/ui/web";
 
 export interface PaydayCheckpointBannerProps {
   incomeAmount: number;
@@ -19,6 +20,7 @@ function PresetChips({
   currentAmount: number;
   onSelect: (amount: number) => void;
 }) {
+  const { currencySymbol } = useCurrencyLocale();
   return (
     <div className="flex flex-wrap items-center gap-2">
       {PRESET_AMOUNTS.map((amt) => {
@@ -34,7 +36,7 @@ function PresetChips({
                 : "bg-white text-slate-700 border border-slate-200 hover:bg-slate-50"
             }`}
           >
-            ${amt.toLocaleString()}
+            {currencySymbol}{amt.toLocaleString()}
           </button>
         );
       })}
@@ -49,6 +51,7 @@ function IncomeSliderControl({
   incomeAmount: number;
   onChange: (val: number) => void;
 }) {
+  const { currencySymbol } = useCurrencyLocale();
   return (
     <div className="space-y-2">
       <div className="flex justify-between items-center text-xs">
@@ -56,7 +59,7 @@ function IncomeSliderControl({
           {t("landing.simCheckpointAmount")}
         </span>
         <span className="font-mono font-extrabold text-[#2563eb] text-sm tabular-nums">
-          ${incomeAmount.toLocaleString()} AUD
+          {currencySymbol}{incomeAmount.toLocaleString()}
         </span>
       </div>
       <input

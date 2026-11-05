@@ -6,7 +6,7 @@ import {
   CardDrawerIndicator,
   SwipeableCard,
 } from '@money-matters/ui/mobile';
-import { formatAUD, formatDate } from '../../../lib/format';
+import { formatMobileCurrency, formatDate } from '../../../lib/format';
 import type { TimelineEventItem, PaycheckIncomeEvent, PaycheckExpenseEvent, PaycheckTransferEvent } from '../PaycheckEventSection';
 import { PaycheckEventActionButtons } from './PaycheckEventActionButtons';
 import { PaycheckEventEntityLink } from './PaycheckEventEntityLink';
@@ -111,7 +111,7 @@ export const PaycheckEventCard: React.FC<PaycheckEventCardProps> = ({
             ]}
           >
             {isIncome ? '+' : isTransfer ? '↔' : '−'}
-            {formatAUD(item.expectedAmount)}
+            {formatMobileCurrency(item.expectedAmount)}
           </Text>
         </View>
 

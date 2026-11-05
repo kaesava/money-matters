@@ -256,7 +256,7 @@ export default function DashboardPage() {
             totalBillsDue14Days={totalBillsDue14Days}
             onMoveMoney={() => setIsMoveMoneyOpen(true)}
             onAlignEverydayBalance={handleOpenEverydayReconciliation}
-            formatAUD={fmt}
+            formatCurrency={fmt}
           />
         </div>
 
@@ -274,7 +274,7 @@ export default function DashboardPage() {
               budgetFrequency: g.budgetFrequency,
               createdAt: g.createdAt,
             }))}
-            formatAUD={fmt}
+            formatCurrency={fmt}
           />
         </div>
       </div>
@@ -310,7 +310,7 @@ export default function DashboardPage() {
               await utils.listPools.invalidate();
               await utils.listTransactions.invalidate();
             }}
-            formatAUD={fmt}
+            formatCurrency={fmt}
           />
         </div>
         <div className="lg:col-span-6">
@@ -323,7 +323,7 @@ export default function DashboardPage() {
               const matched = upcomingIncomeList.find((item) => item.id === id);
               setIncomeToDelete({ id, name: matched?.name || "Income" });
             }}
-            formatAUD={fmt}
+            formatCurrency={fmt}
           />
         </div>
       </div>

@@ -3,7 +3,7 @@ import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { DESIGN_TOKENS } from '@money-matters/ui/mobile';
 import { t } from '@money-matters/i18n';
-import { formatAUD } from '../../../lib/format';
+import { formatMobileCurrency } from '../../../lib/format';
 
 interface ReconciliationValidationFooterProps {
   sumAdjustments: number;
@@ -26,12 +26,12 @@ export const ReconciliationValidationFooter: React.FC<ReconciliationValidationFo
         </Text>
         <View style={styles.validationRight}>
           <Text style={[styles.validationAmount, isSumValid ? styles.textSurplus : styles.textShortfall]}>
-            {formatAUD(sumAdjustments)} / {formatAUD(absVariance)}
+            {formatMobileCurrency(sumAdjustments)} / {formatMobileCurrency(absVariance)}
           </Text>
           <Text style={[styles.validationBadge, isSumValid ? styles.textSurplus : styles.textShortfall]}>
             {isSumValid
               ? t('bankAccounts.reconcile.matches')
-              : t('bankAccounts.reconcile.remaining', { amount: formatAUD(Math.abs(absVariance - sumAdjustments)) })}
+              : t('bankAccounts.reconcile.remaining', { amount: formatMobileCurrency(Math.abs(absVariance - sumAdjustments)) })}
           </Text>
         </View>
       </View>

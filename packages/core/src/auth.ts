@@ -47,6 +47,13 @@ export async function verifyJwt(
 ): Promise<JwtClaims | null> {
   if (!token) return null;
 
+  // A JWT is a Compact JWS consisting of three dot-separated Base64URL parts (header.payload.signature).
+  // Database session tokens (Better Auth / Neon Auth) are opaque alphanumeric strings without dots.
+  // Checking for 3 dot-separated parts avoids throwing and catching an error on every session request.
+  if (!token.includes(".") || token.split(".").length !== 3) {
+    return null;
+  }
+
   try {
     const issuer = env?.NEON_AUTH_BASE_URL || process.env["NEON_AUTH_BASE_URL"];
     if (!issuer) {

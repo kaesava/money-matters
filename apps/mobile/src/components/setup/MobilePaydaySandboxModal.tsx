@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-nati
 import { Feather } from '@expo/vector-icons';
 import { DESIGN_TOKENS, MobileModalDialog, AmountInput, MobileButton } from '@money-matters/ui/mobile';
 import { t } from '@money-matters/i18n';
-import { formatAUD } from '../../lib/format';
+import { formatMobileCurrency } from '../../lib/format';
 
 interface MobilePaydaySandboxModalProps {
   visible: boolean;
@@ -77,17 +77,17 @@ export function MobilePaydaySandboxModal({
             <View style={styles.metricRow}>
               <View style={styles.metricCard}>
                 <Text style={styles.metricLabel}>{t('paydayDrawer.ringFencedBills')}</Text>
-                <Text style={styles.metricVal}>{formatAUD(billsAllocated)}</Text>
+                <Text style={styles.metricVal}>{formatMobileCurrency(billsAllocated)}</Text>
               </View>
 
               <View style={styles.metricCard}>
                 <Text style={styles.metricLabel}>{t('paydayDrawer.fundedGoals')}</Text>
-                <Text style={styles.metricVal}>{formatAUD(goalsAllocated)}</Text>
+                <Text style={styles.metricVal}>{formatMobileCurrency(goalsAllocated)}</Text>
               </View>
 
               <View style={[styles.metricCard, styles.safeCard]}>
                 <Text style={styles.safeLabel}>{t('paydayDrawer.safeToSpend')}</Text>
-                <Text style={styles.safeVal}>{formatAUD(safeToSpend)}</Text>
+                <Text style={styles.safeVal}>{formatMobileCurrency(safeToSpend)}</Text>
               </View>
             </View>
 

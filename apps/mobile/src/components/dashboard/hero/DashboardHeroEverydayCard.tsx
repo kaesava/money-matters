@@ -2,7 +2,7 @@ import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { DESIGN_TOKENS } from '@money-matters/ui/mobile';
 import { t } from '@money-matters/i18n';
-import { formatAUD } from '../../../lib/format';
+import { formatMobileCurrency } from '../../../lib/format';
 
 interface DashboardHeroEverydayCardProps {
   readonly everydayBalance: number;
@@ -76,7 +76,7 @@ export const DashboardHeroEverydayCard: React.FC<DashboardHeroEverydayCardProps>
 
       <View style={styles.metricRow}>
         <View>
-          <Text style={styles.heroAmount}>{formatAUD(safeToSpend !== undefined ? safeToSpend : everydayBalance)}</Text>
+          <Text style={styles.heroAmount}>{formatMobileCurrency(safeToSpend !== undefined ? safeToSpend : everydayBalance)}</Text>
           <Text style={styles.safeToSpendSub}>{t('dashboard.hero.safeToSpendLabel')}</Text>
         </View>
         {onAlignBalance && (
@@ -95,10 +95,10 @@ export const DashboardHeroEverydayCard: React.FC<DashboardHeroEverydayCardProps>
       <Text style={styles.pacingSubtitle}>
         {daysUntilPayday !== undefined && daysUntilPayday <= 0
           ? t('dashboard.hero.estRemainingToday', {
-              amount: formatAUD(everydayBalance),
+              amount: formatMobileCurrency(everydayBalance),
             })
           : t('dashboard.hero.estRemaining', {
-              amount: formatAUD(everydayBalance),
+              amount: formatMobileCurrency(everydayBalance),
               days: effectiveDays,
             })
         }
@@ -109,12 +109,12 @@ export const DashboardHeroEverydayCard: React.FC<DashboardHeroEverydayCardProps>
         <View style={styles.pacingFooterMeta}>
           <Text style={styles.cycleAllowanceText}>
             {t('dashboard.hero.everydayAllowanceCycle', {
-              amount: formatAUD(everydayMonthlyBudget),
+              amount: formatMobileCurrency(everydayMonthlyBudget),
             })}
           </Text>
           {safetyBufferFloor > 0 && (
             <Text style={styles.bufferProtectedText}>
-              🛡️ {t('dashboard.hero.bufferProtected', { amount: formatAUD(safetyBufferFloor) })}
+              🛡️ {t('dashboard.hero.bufferProtected', { amount: formatMobileCurrency(safetyBufferFloor) })}
             </Text>
           )}
         </View>

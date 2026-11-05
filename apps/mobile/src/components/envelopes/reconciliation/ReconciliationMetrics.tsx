@@ -2,7 +2,7 @@ import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { DESIGN_TOKENS } from '@money-matters/ui/mobile';
 import { t } from '@money-matters/i18n';
-import { formatAUD } from '../../../lib/format';
+import { formatMobileCurrency } from '../../../lib/format';
 
 interface ReconciliationMetricsProps {
   expectedTotal: number;
@@ -24,18 +24,18 @@ export const ReconciliationMetrics: React.FC<ReconciliationMetricsProps> = ({
       <View style={styles.metricsGrid}>
         <View style={styles.metricCard}>
           <Text style={styles.metricLabel}>{t('bankAccounts.reconcile.expectedTotal')}</Text>
-          <Text style={styles.metricVal}>{formatAUD(expectedTotal)}</Text>
+          <Text style={styles.metricVal}>{formatMobileCurrency(expectedTotal)}</Text>
         </View>
 
         <View style={styles.metricCard}>
           <Text style={styles.metricLabel}>{t('bankAccounts.reconcile.availableToBudget')}</Text>
-          <Text style={styles.metricVal}>{formatAUD(availableToBudget)}</Text>
+          <Text style={styles.metricVal}>{formatMobileCurrency(availableToBudget)}</Text>
         </View>
 
         <View style={styles.metricCard}>
           <Text style={styles.metricLabel}>{t('bankAccounts.reconcile.difference')}</Text>
           <Text style={[styles.metricVal, isSurplus ? styles.textSurplus : styles.textShortfall]}>
-            {isSurplus ? `+${formatAUD(variance)}` : `-${formatAUD(absVariance)}`}
+            {isSurplus ? `+${formatMobileCurrency(variance)}` : `-${formatMobileCurrency(absVariance)}`}
           </Text>
         </View>
       </View>
@@ -43,8 +43,8 @@ export const ReconciliationMetrics: React.FC<ReconciliationMetricsProps> = ({
       <View style={[styles.noticeCard, isSurplus ? styles.noticeSurplus : styles.noticeShortfall]}>
         <Text style={[styles.noticeText, isSurplus ? styles.noticeTextSurplus : styles.noticeTextShortfall]}>
           {isSurplus
-            ? t('bankAccounts.reconcile.surplusNotice', { amount: formatAUD(absVariance) })
-            : t('bankAccounts.reconcile.shortfallNotice', { amount: formatAUD(absVariance) })}
+            ? t('bankAccounts.reconcile.surplusNotice', { amount: formatMobileCurrency(absVariance) })
+            : t('bankAccounts.reconcile.shortfallNotice', { amount: formatMobileCurrency(absVariance) })}
         </Text>
       </View>
     </View>

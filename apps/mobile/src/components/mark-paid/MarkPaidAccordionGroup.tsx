@@ -3,7 +3,7 @@ import { View, Text, TouchableOpacity, TextInput, StyleSheet } from 'react-nativ
 import { Feather } from '@expo/vector-icons';
 import { DESIGN_TOKENS } from '@money-matters/ui/mobile';
 import { t } from '@money-matters/i18n';
-import { formatAUD } from '../../lib/format';
+import { formatMobileCurrency } from '../../lib/format';
 import { FundingPoolItem } from './mark-paid-types';
 
 interface MarkPaidAccordionGroupProps {
@@ -76,7 +76,7 @@ export function MarkPaidAccordionGroup({
                     )}
                   </View>
                   <Text style={styles.poolItemBal}>
-                    {t('incomeBillsTabs.available', { amount: formatAUD(b) })}
+                    {t('incomeBillsTabs.available', { amount: formatMobileCurrency(b) })}
                   </Text>
                 </View>
 

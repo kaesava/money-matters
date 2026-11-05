@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { DESIGN_TOKENS } from '@money-matters/ui/mobile';
-import { formatAUD } from '../../lib/format';
+import { formatMobileCurrency } from '../../lib/format';
 import { t } from '@money-matters/i18n';
 
 export interface BankAccountAlignmentRowProps {
@@ -28,7 +28,7 @@ export function BankAccountAlignmentRow({
       <View style={styles.balancedRow}>
         <View style={styles.greenDot} />
         <Text style={styles.balancedText}>
-          {t('bankAccounts.balancedStatus', { amount: formatAUD(poolsTotal) })}
+          {t('bankAccounts.balancedStatus', { amount: formatMobileCurrency(poolsTotal) })}
         </Text>
       </View>
     );
@@ -39,7 +39,7 @@ export function BankAccountAlignmentRow({
   return (
     <View style={styles.diffRow}>
       <Text style={styles.expectedText}>
-        {t('bankAccounts.expectedStatus', { amount: formatAUD(poolsTotal) })}
+        {t('bankAccounts.expectedStatus', { amount: formatMobileCurrency(poolsTotal) })}
       </Text>
       <TouchableOpacity
         onPress={(e) => {
@@ -51,8 +51,8 @@ export function BankAccountAlignmentRow({
         <View style={isSurplus ? styles.dotSurplus : styles.dotShortfall} />
         <Text style={isSurplus ? styles.alignBtnTextSurplus : styles.alignBtnTextShortfall}>
           {isSurplus
-            ? t('bankAccounts.alignSurplus', { amount: formatAUD(diff) })
-            : t('bankAccounts.alignShortfall', { amount: formatAUD(Math.abs(diff)) })}
+            ? t('bankAccounts.alignSurplus', { amount: formatMobileCurrency(diff) })
+            : t('bankAccounts.alignShortfall', { amount: formatMobileCurrency(Math.abs(diff)) })}
         </Text>
       </TouchableOpacity>
     </View>

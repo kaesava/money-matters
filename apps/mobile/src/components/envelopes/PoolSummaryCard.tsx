@@ -3,7 +3,7 @@ import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { t } from '@money-matters/i18n';
 import { DESIGN_TOKENS } from '@money-matters/ui/mobile';
-import { formatAUD } from '../../lib/format';
+import { formatMobileCurrency } from '../../lib/format';
 
 interface PoolSummaryCardProps {
   pool: {
@@ -85,7 +85,7 @@ export function PoolSummaryCard({
 
         <View style={styles.balanceCol}>
           <Text style={styles.balanceLabel}>{t('categories.currentBalance')}</Text>
-          <Text style={styles.balanceAmount}>{formatAUD(pool.currentBalance ?? 0)}</Text>
+          <Text style={styles.balanceAmount}>{formatMobileCurrency(pool.currentBalance ?? 0)}</Text>
         </View>
       </View>
 

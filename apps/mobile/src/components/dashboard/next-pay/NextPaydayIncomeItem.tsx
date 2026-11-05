@@ -2,7 +2,7 @@ import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { DESIGN_TOKENS } from '@money-matters/ui/mobile';
 import { t } from '@money-matters/i18n';
-import { formatAUD, formatDate } from '../../../lib/format';
+import { formatMobileCurrency, formatDate } from '../../../lib/format';
 import type { MobileIncomeItem } from '../MobileNextPaydayCard';
 
 interface NextPaydayIncomeItemProps {
@@ -48,7 +48,7 @@ export const NextPaydayIncomeItem: React.FC<NextPaydayIncomeItemProps> = ({
         </View>
 
         <Text style={styles.incomeMeta}>
-          <Text style={styles.incomeAmount}>{formatAUD(item.amount)}</Text>
+          <Text style={styles.incomeAmount}>{formatMobileCurrency(item.amount)}</Text>
           {' · '}
           <Text style={isOverdue ? styles.overdueText : styles.daysAwayText}>
             {daysAwayText}

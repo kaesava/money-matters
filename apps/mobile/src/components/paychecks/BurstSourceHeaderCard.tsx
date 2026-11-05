@@ -3,7 +3,7 @@ import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { DESIGN_TOKENS } from '@money-matters/ui/mobile';
 import { t } from '@money-matters/i18n';
-import { formatAUD, formatDate } from '../../lib/format';
+import { formatMobileCurrency, formatDate } from '../../lib/format';
 import { BurstSourceItem } from './burst-types';
 
 interface BurstSourceHeaderCardProps {
@@ -28,7 +28,7 @@ export function BurstSourceHeaderCard({
           </Text>
         </View>
         <Text style={[styles.amountText, isIncome ? styles.incomeText : styles.expenseText]}>
-          {isIncome ? '+' : '−'}{formatAUD(parseFloat(String(source.amount)))}
+          {isIncome ? '+' : '−'}{formatMobileCurrency(parseFloat(String(source.amount)))}
         </Text>
       </View>
 

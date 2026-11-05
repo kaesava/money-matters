@@ -23,14 +23,14 @@ export { setMobileLocaleConfig, getMobileLocaleConfig };
 export type { MobileLocaleConfig };
 
 export function formatHealthStatus(status?: string | null): string {
-  if (!status) return 'On Track';
+  if (!status) return t('dashboard.upcoming.healthOnTrack');
   switch (status.toUpperCase()) {
     case 'GREEN':
-      return 'On Track';
+      return t('dashboard.upcoming.healthOnTrack');
     case 'AMBER':
-      return 'Needs Attention';
+      return t('dashboard.upcoming.healthNeedsAttention');
     case 'RED':
-      return 'Behind';
+      return t('dashboard.upcoming.healthBehind');
     default:
       return status;
   }

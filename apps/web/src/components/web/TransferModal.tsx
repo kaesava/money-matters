@@ -44,7 +44,7 @@ export interface TransferModalProps {
     destinationPoolId?: string;
   }) => Promise<void>;
   readonly onDeleteTransfer: (eventId: string) => Promise<void>;
-  readonly formatAUD?: (val: number | string) => string;
+  readonly formatCurrency?: (val: number | string) => string;
 }
 
 export function TransferModal({
@@ -55,10 +55,10 @@ export function TransferModal({
   onSaveDraft,
   onConfirmTransfer,
   onDeleteTransfer,
-  formatAUD,
+  formatCurrency,
 }: TransferModalProps) {
   const { fmt, fmtDate, currency, currencySymbol, minorUnits, timezone: contextTz, userTimezone } = useLocale();
-  const format = formatAUD ?? fmt;
+  const format = formatCurrency ?? fmt;
   const nameInputId = useId();
 
   const todayStr = useMemo(() => {
@@ -255,7 +255,7 @@ export function TransferModal({
           {isInsufficient && (
             <div className="p-3 bg-rose-50 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-800 rounded-xl text-xs text-rose-700 dark:text-rose-300">
               {t("modals.transfer.insufficientBalanceWarning", {
-                poolName: sourcePool?.name || t("modals.transfer.sourcePool"),
+                envelopeName: sourcePool?.name || t("modals.transfer.sourcePool"),
                 available: format(sourceBalance),
                 amount: format(numAmount),
               })}

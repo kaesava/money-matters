@@ -23,7 +23,7 @@ interface PaydayCelebrationCardProps {
   onLockSplit?: () => void;
   onSaveChanges?: () => void;
   onDiscardEdits?: () => void;
-  formatAUD: (amount: number) => string;
+  formatCurrency: (amount: number) => string;
 }
 
 export function PaydayCelebrationCard({
@@ -43,7 +43,7 @@ export function PaydayCelebrationCard({
   onLockSplit,
   onSaveChanges,
   onDiscardEdits,
-  formatAUD,
+  formatCurrency,
 }: PaydayCelebrationCardProps) {
   const badgeTooltip = isConfirmed
     ? t("paydayDrawer.confirmedBadgeTooltip")
@@ -201,7 +201,7 @@ export function PaydayCelebrationCard({
         goalsAllocated={goalsAllocated}
         safeToSpend={safeToSpend}
         isDeficit={isDeficit}
-        formatAUD={formatAUD}
+        formatCurrency={formatCurrency}
       />
     </div>
   );

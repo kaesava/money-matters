@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { useRouter, type Href } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
 import { CardDrawerIndicator, EntityLinkChip, DESIGN_TOKENS } from '@money-matters/ui/mobile';
-import { formatAUD, formatScheduleDetail } from '../../lib/format';
+import { formatMobileCurrency, formatScheduleDetail } from '../../lib/format';
 
 export interface IncomeSourceItem {
   id: string;
@@ -64,7 +64,7 @@ export const IncomeSourceCard: React.FC<IncomeSourceCardProps> = ({
           ) : null}
         </View>
 
-        <Text style={styles.amount}>+{formatAUD(inc.amount)}</Text>
+        <Text style={styles.amount}>+{formatMobileCurrency(inc.amount)}</Text>
       </View>
     </TouchableOpacity>
   );

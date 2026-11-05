@@ -56,7 +56,7 @@ export interface WebAttentionItemsListProps {
     transfers: ShortfallTransferItem[],
     destinationCategoryId: string
   ) => Promise<void>;
-  readonly formatAUD?: (val: number | string) => string;
+  readonly formatCurrency?: (val: number | string) => string;
 }
 
 export const AttentionItemsList: React.FC<WebAttentionItemsListProps> = ({
@@ -68,10 +68,10 @@ export const AttentionItemsList: React.FC<WebAttentionItemsListProps> = ({
   onExecuteTransfer,
   onDeleteTransfer,
   onConfirmTransferAndPay,
-  formatAUD,
+  formatCurrency,
 }) => {
   const { fmt, fmtDate: formatLocaleDate, timezone: contextTz, userTimezone } = useLocale();
-  const format = formatAUD ?? fmt;
+  const format = formatCurrency ?? fmt;
   const [selectedMarkPaidItem, setSelectedMarkPaidItem] = useState<WebAttentionItem | null>(null);
   const [selectedTransferItem, setSelectedTransferItem] = useState<WebAttentionItem | null>(null);
   const [selectedDeleteItem, setSelectedDeleteItem] = useState<WebAttentionItem | null>(null);
@@ -326,7 +326,7 @@ export const AttentionItemsList: React.FC<WebAttentionItemsListProps> = ({
             }
             setSelectedTransferItem(null);
           }}
-          formatAUD={format}
+          formatCurrency={format}
         />
       )}
 

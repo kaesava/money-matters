@@ -26,15 +26,15 @@ export interface GoalCategoryItem {
 
 export interface GoalsProgressStripProps {
   readonly goalCategories: readonly GoalCategoryItem[];
-  readonly formatAUD?: (val: number | string) => string;
+  readonly formatCurrency?: (val: number | string) => string;
 }
 
 export const GoalsProgressStrip: React.FC<GoalsProgressStripProps> = ({
   goalCategories,
-  formatAUD,
+  formatCurrency,
 }) => {
   const { fmt } = useLocale();
-  const format = formatAUD ?? fmt;
+  const format = formatCurrency ?? fmt;
   const totalGoals = goalCategories?.length ?? 0;
   const onTrackGoals = (goalCategories ?? []).filter(
     (g) => g.healthStatus === 'GREEN' || !g.healthStatus

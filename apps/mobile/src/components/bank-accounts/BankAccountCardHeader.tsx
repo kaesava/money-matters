@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { BankProviderBadge, CardDrawerIndicator, DESIGN_TOKENS } from '@money-matters/ui/mobile';
-import { formatAUD } from '../../lib/format';
+import { formatMobileCurrency } from '../../lib/format';
 import { t } from '@money-matters/i18n';
 
 export interface BankAccountCardHeaderProps {
@@ -46,9 +46,9 @@ export function BankAccountCardHeader({
 
       <View style={styles.balWrap}>
         <View style={styles.balanceCol}>
-          <Text style={styles.balanceAmount}>{formatAUD(availBal)}</Text>
+          <Text style={styles.balanceAmount}>{formatMobileCurrency(availBal)}</Text>
           <Text style={styles.actualBalance}>
-            {t('bankAccounts.actualBalanceLabel', { amount: formatAUD(actualBal) })}
+            {t('bankAccounts.actualBalanceLabel', { amount: formatMobileCurrency(actualBal) })}
           </Text>
         </View>
         <CardDrawerIndicator size={18} />

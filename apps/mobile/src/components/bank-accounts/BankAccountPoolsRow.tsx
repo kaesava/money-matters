@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { DESIGN_TOKENS } from '@money-matters/ui/mobile';
-import { formatAUD } from '../../lib/format';
+import { formatMobileCurrency } from '../../lib/format';
 import { t } from '@money-matters/i18n';
 import { LinkedPoolItem } from './LinkedPoolsModalSheet';
 
@@ -43,7 +43,7 @@ export function BankAccountPoolsRow({
                 <Text style={styles.poolPillName} numberOfLines={1}>
                   {p.name}
                 </Text>
-                <Text style={styles.poolPillBal}>{formatAUD(bal)}</Text>
+                <Text style={styles.poolPillBal}>{formatMobileCurrency(bal)}</Text>
               </TouchableOpacity>
             );
           })}

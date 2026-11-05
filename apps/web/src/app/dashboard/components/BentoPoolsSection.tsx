@@ -24,7 +24,7 @@ export interface BentoPoolsSectionProps {
 
   readonly onMoveMoney: () => void;
   readonly onAlignEverydayBalance?: () => void;
-  readonly formatAUD?: (val: number | string) => string;
+  readonly formatCurrency?: (val: number | string) => string;
 }
 
 export const BentoPoolsSection: React.FC<BentoPoolsSectionProps> = ({
@@ -43,10 +43,10 @@ export const BentoPoolsSection: React.FC<BentoPoolsSectionProps> = ({
   totalBillsDue14Days,
   onMoveMoney,
   onAlignEverydayBalance,
-  formatAUD,
+  formatCurrency,
 }) => {
   const { fmt } = useLocale();
-  const format = formatAUD ?? fmt;
+  const format = formatCurrency ?? fmt;
   const today = new Date();
   const year = today.getFullYear();
   const month = today.getMonth();

@@ -2,7 +2,7 @@ import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { DESIGN_TOKENS } from '@money-matters/ui/mobile';
-import { formatAUD, formatDate } from '../../../lib/format';
+import { formatMobileCurrency, formatDate } from '../../../lib/format';
 import { t } from '@money-matters/i18n';
 import { MobilePaydayAllocationRecord } from '../../paychecks/MobilePaydayAllocationDetailModal';
 
@@ -22,7 +22,7 @@ export function IncomeSplitHistoryRow({ item, onPress }: IncomeSplitHistoryRowPr
           <Text style={styles.planTitle}>{displayName}</Text>
           <Text style={styles.planSubtitle}>{displayAccount}</Text>
         </View>
-        <Text style={styles.planAmount}>+{formatAUD(item.totalIncomeAmount)}</Text>
+        <Text style={styles.planAmount}>+{formatMobileCurrency(item.totalIncomeAmount)}</Text>
       </View>
 
       <View style={styles.planFooter}>

@@ -55,8 +55,8 @@ export function MarkPaidShortfallSection({
         <p className="text-xs font-semibold text-amber-900 dark:text-amber-200 leading-relaxed">
           {t("incomeBillsTabs.insufficientModalMessage", {
             billName: billName || "Expense",
-            poolType: formattedPoolType,
-            poolName: formattedPoolName,
+            envelopeType: formattedPoolType,
+            envelopeName: formattedPoolName,
             amount: fmt(shortfallAmount),
           })}
         </p>
@@ -65,7 +65,7 @@ export function MarkPaidShortfallSection({
             <span>✓</span>
             <span>
               {t("incomeBillsTabs.shortfallCoveredNote", {
-                poolName: surplusCategory?.name || "Emergency Reserve",
+                envelopeName: surplusCategory?.name || "Emergency Reserve",
                 amount: fmt(shortfallAmount),
               })}
             </span>
@@ -86,7 +86,7 @@ export function MarkPaidShortfallSection({
                     )
                   )
                 ),
-                poolName: surplusCategory.name,
+                envelopeName: surplusCategory.name,
               })}
             </span>
           </div>
@@ -142,7 +142,7 @@ export function MarkPaidShortfallSection({
                         const val = transferAmounts[p.id] || "";
                         return (
                           <tr key={p.id} className="hover:bg-zinc-50/60 dark:hover:bg-zinc-800/40">
-                            <td className="py-2.5 px-4 font-semibold text-zinc-800 dark:text-zinc-200">
+                            <td className="py-2.5 px-4 text-left font-semibold text-zinc-800 dark:text-zinc-200">
                               <div className="flex items-center gap-1.5">
                                 <span>{p.name}</span>
                                 {p.isSurplusTarget && (
@@ -161,7 +161,7 @@ export function MarkPaidShortfallSection({
                                   type="button"
                                   onClick={() => handleFillMax(p.id, available)}
                                   className="text-[10px] font-bold text-[#2563eb] hover:underline px-1 py-0.5"
-                                  title="Allocate entire remaining shortfall from this pool"
+                                  title={t("incomeBillsTabs.allocateMaxTooltip")}
                                 >
                                   {t("common.max")}
                                 </button>

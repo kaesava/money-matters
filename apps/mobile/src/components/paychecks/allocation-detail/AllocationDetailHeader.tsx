@@ -2,7 +2,7 @@ import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { DESIGN_TOKENS } from '@money-matters/ui/mobile';
 import { t } from '@money-matters/i18n';
-import { formatAUD, formatDate } from '../../../lib/format';
+import { formatMobileCurrency, formatDate } from '../../../lib/format';
 import type { MobilePaydayAllocationRecord } from '../MobilePaydayAllocationDetailModal';
 
 interface AllocationDetailHeaderProps {
@@ -44,7 +44,7 @@ export const AllocationDetailHeader: React.FC<AllocationDetailHeaderProps> = ({
               {isConfirmed ? t('transactions.statusConfirmed') : t('transactions.statusDraft')}
             </Text>
           </View>
-          <Text style={styles.totalIncomeText}>{formatAUD(totalIncome)}</Text>
+          <Text style={styles.totalIncomeText}>{formatMobileCurrency(totalIncome)}</Text>
         </View>
       </View>
 

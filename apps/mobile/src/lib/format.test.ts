@@ -1,17 +1,17 @@
 import { describe, it, expect } from 'vitest';
-import { formatAUD, formatAUDCompact, formatDate, formatRelativeDate, formatScheduleDetail, formatHealthStatus } from './format';
+import { formatMobileCurrency, formatMobileCurrencyCompact, formatDate, formatRelativeDate, formatScheduleDetail, formatHealthStatus } from './format';
 
 describe('Mobile Format Utilities', () => {
   it('formats AUD amounts correctly', () => {
-    expect(formatAUD(123.45)).toBe('$123.45');
-    expect(formatAUD('50')).toBe('$50.00');
-    expect(formatAUD('invalid')).toBe('$0.00');
+    expect(formatMobileCurrency(123.45)).toBe('$123.45');
+    expect(formatMobileCurrency('50')).toBe('$50.00');
+    expect(formatMobileCurrency('invalid')).toBe('$0.00');
   });
 
   it('formats compact AUD amounts', () => {
-    expect(formatAUDCompact(500)).toBe('$500');
-    expect(formatAUDCompact(2500)).toBe('$2.5k');
-    expect(formatAUDCompact('invalid')).toBe('$0');
+    expect(formatMobileCurrencyCompact(500)).toBe('$500');
+    expect(formatMobileCurrencyCompact(2500)).toBe('$2.5k');
+    expect(formatMobileCurrencyCompact('invalid')).toBe('$0');
   });
 
   it('formats dates in en-AU format', () => {

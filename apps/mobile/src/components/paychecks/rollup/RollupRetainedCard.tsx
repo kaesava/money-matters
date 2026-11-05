@@ -2,7 +2,7 @@ import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { DESIGN_TOKENS } from '@money-matters/ui/mobile';
 import { t } from '@money-matters/i18n';
-import { formatAUD } from '../../../lib/format';
+import { formatMobileCurrency } from '../../../lib/format';
 
 interface RollupRetainedCardProps {
   readonly sourceAccountName: string;
@@ -25,14 +25,14 @@ export const RollupRetainedCard: React.FC<RollupRetainedCardProps> = ({
           </Text>
         </View>
         <Text style={styles.retainedAmountText}>
-          {formatAUD(retainedTotal)}
+          {formatMobileCurrency(retainedTotal)}
         </Text>
       </View>
 
       <Text style={styles.retainedDesc}>
         {t('cards.paydayTransfer.noTransferNeeded')}{' '}
         <Text style={styles.retainedBoldList}>
-          {retainedItems.map((r) => `${r.name} (${formatAUD(r.amount)})`).join(', ')}
+          {retainedItems.map((r) => `${r.name} (${formatMobileCurrency(r.amount)})`).join(', ')}
         </Text>
       </Text>
     </View>

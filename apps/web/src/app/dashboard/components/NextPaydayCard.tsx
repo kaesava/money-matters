@@ -24,7 +24,7 @@ export interface NextPaydayCardProps {
   readonly onPressMarkReceived?: (eventId: string) => void;
   readonly onPressAllocate?: (eventId: string) => void;
   readonly onDeleteIncome?: (eventId: string) => void;
-  readonly formatAUD?: (val: number | string) => string;
+  readonly formatCurrency?: (val: number | string) => string;
 }
 
 export const NextPaydayCard: React.FC<NextPaydayCardProps> = ({
@@ -33,10 +33,10 @@ export const NextPaydayCard: React.FC<NextPaydayCardProps> = ({
   onPressMarkReceived,
   onPressAllocate,
   onDeleteIncome,
-  formatAUD,
+  formatCurrency,
 }) => {
   const { fmt, fmtDate: formatLocaleDate } = useLocale();
-  const format = formatAUD ?? fmt;
+  const format = formatCurrency ?? fmt;
   const handleSplitClick = (id: string) => {
     if (onPressRunSplit) onPressRunSplit(id);
     else if (onPressMarkReceived) onPressMarkReceived(id);

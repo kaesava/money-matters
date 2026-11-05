@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useCallback } from "react";
 import { t } from "@money-matters/i18n";
+import { useCurrencyLocale } from "@money-matters/ui/web";
 import { computeSimulationState } from "./simulator/simulationData";
 import { SimulatorTimelineBar } from "./simulator/SimulatorTimelineBar";
 import { SimulatorEventCallout } from "./simulator/SimulatorEventCallout";
@@ -11,6 +12,7 @@ import { PoolTransferModal } from "./simulator/PoolTransferModal";
 import { PoolTransfer } from "./simulator/types";
 
 export const PaycheckSimulator: React.FC = () => {
+  const { currencySymbol } = useCurrencyLocale();
   const [day, setDay] = useState<number>(0);
   const [isPlaying, setIsPlaying] = useState<boolean>(false);
   const [incomeAmount, setIncomeAmount] = useState<number>(2500);
@@ -145,7 +147,7 @@ export const PaycheckSimulator: React.FC = () => {
               <div className="flex justify-between items-baseline">
                 <span className="text-xs text-slate-500 font-semibold">{t("landing.offsetBuffer")}</span>
                 <span className="text-[#22c55e] font-mono font-extrabold text-base tabular-nums">
-                  +${state.surplusOffset} AUD
+                  +{currencySymbol}{state.surplusOffset}
                 </span>
               </div>
               <div className="w-full bg-slate-100 h-2.5 rounded-full overflow-hidden border border-slate-200/60">
@@ -157,7 +159,7 @@ export const PaycheckSimulator: React.FC = () => {
             </div>
 
             <div className="text-[11px] font-semibold text-emerald-800 bg-emerald-50 px-3 py-2 rounded-xl border border-emerald-100">
-              {t("landing.surplusOffset")}: <span className="font-mono font-bold">${state.surplusOffset}</span>
+              {t("landing.surplusOffset")}: <span className="font-mono font-bold">{currencySymbol}{state.surplusOffset}</span>
             </div>
           </div>
         </div>

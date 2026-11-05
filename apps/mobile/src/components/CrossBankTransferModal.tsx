@@ -8,7 +8,7 @@ import {
 } from 'react-native';
 import { DESIGN_TOKENS, MobileModalDialog, MobileButton, useCurrencyLocale } from '@money-matters/ui/mobile';
 import { t } from '@money-matters/i18n';
-import { formatAUD } from '../lib/format';
+import { formatMobileCurrency } from '../lib/format';
 
 export interface CrossBankTransferModalProps {
   visible: boolean;
@@ -94,7 +94,7 @@ export function CrossBankTransferModal({
             <Text style={styles.amountLabel}>
               {t('modals.crossBankTransfer.amount')}
             </Text>
-            <Text style={styles.amountVal}>{formatAUD(amount)}</Text>
+            <Text style={styles.amountVal}>{formatMobileCurrency(amount)}</Text>
           </View>
 
           <TouchableOpacity

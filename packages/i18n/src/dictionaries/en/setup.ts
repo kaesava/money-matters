@@ -72,7 +72,7 @@ export const setup = {
     "saveError": "Couldn't save setup. Please try again.",
     "saveErrorTitle": "Setup Error",
     "sweepModalTitle": "Move Remaining Balance",
-    "sweepModalDesc": "Envelope \"{poolName}\" holds an active balance of {balance}. Where would you like to move this money before removing the envelope?",
+    "sweepModalDesc": "Envelope \"{envelopeName}\" holds an active balance of {balance}. Where would you like to move this money before removing the envelope?",
     "sweepDestinationLabel": "Destination Envelope",
     "sweepConfirmButton": "Move Balance & Remove Envelope",
     "bankAccountsStep": {

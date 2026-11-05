@@ -10,7 +10,7 @@ import {
   MobilePoolPicker,
 } from '@money-matters/ui/mobile';
 import { t } from '@money-matters/i18n';
-import { formatAUD } from '../../lib/format';
+import { formatMobileCurrency } from '../../lib/format';
 import { QuickPresetItem } from './useMobileQuickAction';
 import { QuickPresetsRow } from './QuickPresetsRow';
 
@@ -175,7 +175,7 @@ export function QuickExpenseTab({
         />
         {isOverdraft && (
           <Text style={styles.overdraftWarning}>
-            ⚠️ Exceeds pool balance ({formatAUD(poolBal)})
+            ⚠️ {t('drawers.quickExpense.exceedsBalanceWarning', { balance: formatMobileCurrency(poolBal) })}
           </Text>
         )}
       </View>

@@ -51,8 +51,8 @@ export function MarkPaidShortfallSection({
         <Text style={styles.shortfallBannerText}>
           {t('incomeBillsTabs.insufficientModalMessage', {
             billName: eventName || 'Expense',
-            poolType: formattedPoolType,
-            poolName: formattedPoolName,
+            envelopeType: formattedPoolType,
+            envelopeName: formattedPoolName,
             amount: formatMobileCurrency(shortfallAmount),
           })}
         </Text>
@@ -60,7 +60,7 @@ export function MarkPaidShortfallSection({
           <View style={styles.coveredNote}>
             <Text style={styles.coveredNoteText}>
               ✓ {t('incomeBillsTabs.shortfallCoveredNote', {
-                poolName: surplusPoolName || 'Emergency Reserve',
+                envelopeName: surplusPoolName || 'Emergency Reserve',
                 amount: formatMobileCurrency(shortfallAmount),
               })}
             </Text>
@@ -70,7 +70,7 @@ export function MarkPaidShortfallSection({
             <Text style={styles.partialSurplusWarningText}>
               ⚠️ {t('incomeBillsTabs.partialSurplusCoveredWarning', {
                 amount: formatMobileCurrency(surplusCoverableAmount),
-                poolName: surplusPoolName,
+                envelopeName: surplusPoolName,
               })}
             </Text>
           </View>

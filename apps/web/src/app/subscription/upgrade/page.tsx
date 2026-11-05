@@ -10,9 +10,11 @@ import posthog from "../../../lib/posthog-client";
 import { PublicHeader } from "../../../components/public/PublicHeader";
 import { PublicFooter } from "../../../components/public/PublicFooter";
 import { ActiveSubscriptionCard } from "./ActiveSubscriptionCard";
+import { useLocale } from "../../../providers/LocaleProvider";
 
 export default function UpgradePage() {
   const router = useRouter();
+  const { currencySymbol, currency } = useLocale();
   const { data: session, isPending: isAuthPending } = authClient.useSession();
   const [billingCycle, setBillingCycle] = useState<"annual" | "monthly">("annual");
   const [loading, setLoading] = useState(false);
@@ -109,7 +111,9 @@ export default function UpgradePage() {
                       : "text-slate-700 hover:text-slate-900"
                   }`}
                 >
-                  {isFoundingOfferActive ? t("subscription.annualTabFounding") : t("subscription.annualTabStandard")}
+                  {isFoundingOfferActive
+                    ? t("subscription.annualTabFounding", { amount: `${currencySymbol}69` })
+                    : t("subscription.annualTabStandard", { amount: `${currencySymbol}89` })}
                 </button>
                 <button
                   type="button"
@@ -120,7 +124,7 @@ export default function UpgradePage() {
                       : "text-slate-700 hover:text-slate-900"
                   }`}
                 >
-                  {t("subscription.monthlyTab")}
+                  {t("subscription.monthlyTab", { amount: `${currencySymbol}9.95` })}
                 </button>
               </div>
             </div>
@@ -148,25 +152,25 @@ export default function UpgradePage() {
                     {billingCycle === "annual" ? (
                       isFoundingOfferActive ? (
                         <div className="flex items-baseline gap-2">
-                          <span className="line-through text-slate-400 text-3xl font-bold">$89</span>
-                          <span className="text-5xl font-black text-[#1B2B4B]">$69</span>
+                          <span className="line-through text-slate-400 text-3xl font-bold">{currencySymbol}89</span>
+                          <span className="text-5xl font-black text-[#1B2B4B]">{currencySymbol}69</span>
                           <span className="text-sm font-sans text-slate-500 font-semibold ml-1">
-                            AUD / year ($5.75/mo)
+                            {currency} / year ({currencySymbol}5.75/mo)
                           </span>
                         </div>
                       ) : (
                         <div className="flex items-baseline gap-2">
-                          <span className="text-5xl font-black text-[#1B2B4B]">$89</span>
+                          <span className="text-5xl font-black text-[#1B2B4B]">{currencySymbol}89</span>
                           <span className="text-sm font-sans text-slate-500 font-semibold ml-1">
-                            AUD / year ($7.42/mo)
+                            {currency} / year ({currencySymbol}7.42/mo)
                           </span>
                         </div>
                       )
                     ) : (
                       <div className="flex items-baseline gap-2">
-                        <span className="text-5xl font-black text-[#1B2B4B]">$9.95</span>
+                        <span className="text-5xl font-black text-[#1B2B4B]">{currencySymbol}9.95</span>
                         <span className="text-sm font-sans text-slate-500 font-semibold ml-1">
-                          AUD / month
+                          {currency} / month
                         </span>
                       </div>
                     )}
@@ -175,7 +179,7 @@ export default function UpgradePage() {
                   {billingCycle === "annual" && isFoundingOfferActive && (
                     <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-4 text-xs text-emerald-900 font-bold flex items-center gap-2">
                       <span className="text-base">🏷️</span>
-                      <span>{t("subscription.foundingMemberBadge")}</span>
+                      <span>{t("subscription.foundingMemberBadge", { amount: `${currencySymbol}69` })}</span>
                     </div>
                   )}
 
@@ -223,15 +227,15 @@ export default function UpgradePage() {
                 >
                   {billingCycle === "annual"
                     ? isFoundingOfferActive
-                      ? t("subscription.claimFoundingRate")
-                      : t("subscription.subscribeAnnualCta")
-                    : t("subscription.subscribeMonthlyCta")}
+                      ? t("subscription.claimFoundingRate", { amount: `${currencySymbol}69` })
+                      : t("subscription.subscribeAnnualCta", { amount: `${currencySymbol}89` })
+                    : t("subscription.subscribeMonthlyCta", { amount: `${currencySymbol}9.95` })}
                 </Button>
 
                 <div className="mt-6 pt-4 border-t border-slate-100 flex flex-wrap items-center justify-center gap-4 text-xs font-semibold text-slate-500 text-center">
                   <span>🔒 {t("subscription.guaranteeCancel")}</span>
                   <span>•</span>
-                  <span>🇦🇺 {t("subscription.guaranteePrivacy")}</span>
+                  <span>🛡️ {t("subscription.guaranteePrivacy")}</span>
                   <span>•</span>
                   <span>⚡ {t("subscription.guaranteeInstant")}</span>
                 </div>

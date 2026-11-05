@@ -3,7 +3,7 @@ import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { DESIGN_TOKENS } from '@money-matters/ui/mobile';
 import { t } from '@money-matters/i18n';
-import { formatAUD } from '../../../lib/format';
+import { formatMobileCurrency } from '../../../lib/format';
 
 interface DashboardHeroBillsCardProps {
   readonly billsBalance: number;
@@ -34,7 +34,7 @@ export const DashboardHeroBillsCard: React.FC<DashboardHeroBillsCardProps> = ({
     >
       <View style={styles.billsTopRow}>
         <Text style={styles.sectionTag}>{t('dashboard.hero.billsPoolTitle')}</Text>
-        <Text style={styles.billsBalance}>{formatAUD(billsBalance)}</Text>
+        <Text style={styles.billsBalance}>{formatMobileCurrency(billsBalance)}</Text>
       </View>
 
       <Text style={styles.billsSubtitle}>
@@ -52,13 +52,13 @@ export const DashboardHeroBillsCard: React.FC<DashboardHeroBillsCardProps> = ({
           <View style={styles.shortfallTextWrap}>
             <Text style={styles.shortfallTitle}>
               {t('dashboard.hero.shortfallOf', {
-                amount: formatAUD(billsShortfall),
+                amount: formatMobileCurrency(billsShortfall),
               })}
             </Text>
             <Text style={styles.shortfallDetail}>
               {t('dashboard.hero.billsDueSummary', {
                 count: billsDue14DaysCount,
-                amount: formatAUD(totalBillsDue14Days),
+                amount: formatMobileCurrency(totalBillsDue14Days),
               })}
             </Text>
           </View>
@@ -85,7 +85,7 @@ export const DashboardHeroBillsCard: React.FC<DashboardHeroBillsCardProps> = ({
         <Text style={styles.billsCapLabel}>
           {t('dashboard.hero.targetMonthlyBills', { amount: '' }).replace(': ', '').trim()}
         </Text>
-        <Text style={styles.billsCapValue}>{formatAUD(billsMonthlyBudget)}</Text>
+        <Text style={styles.billsCapValue}>{formatMobileCurrency(billsMonthlyBudget)}</Text>
       </View>
     </TouchableOpacity>
   );

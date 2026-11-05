@@ -3,7 +3,7 @@ import { View, Text, TouchableOpacity, TextInput, StyleSheet } from 'react-nativ
 import { Feather } from '@expo/vector-icons';
 import { DESIGN_TOKENS } from '@money-matters/ui/mobile';
 import { t } from '@money-matters/i18n';
-import { formatAUD, formatDate, getMobileCurrencySymbol } from '../../../lib/format';
+import { formatMobileCurrency, formatDate, getMobileCurrencySymbol } from '../../../lib/format';
 import type { AllocationLineItem, PoolRecord } from '../MobileIncomeSplitPoolList';
 import { SplitPoolReasoningField } from './SplitPoolReasoningField';
 
@@ -81,7 +81,7 @@ export const SplitPoolRow: React.FC<SplitPoolRowProps> = ({
                 activeOpacity={0.7}
               >
                 <Text style={styles.leftoverChipText}>
-                  {t('paydayDrawer.leftoverCashReportedBadge', { amount: formatAUD(curBal) })}
+                  {t('paydayDrawer.leftoverCashReportedBadge', { amount: formatMobileCurrency(curBal) })}
                 </Text>
               </TouchableOpacity>
             )}
@@ -89,11 +89,11 @@ export const SplitPoolRow: React.FC<SplitPoolRowProps> = ({
 
           <View style={styles.statsMetaRow}>
             <Text style={styles.statMetaText}>
-              {t('paydayDrawer.balance')} {formatAUD(curBal)}
+              {t('paydayDrawer.balance')} {formatMobileCurrency(curBal)}
             </Text>
             {targetNum > 0 && (
               <Text style={styles.statMetaText}>
-                • {t('paydayDrawer.tableColTarget')}: {formatAUD(targetNum)}
+                • {t('paydayDrawer.tableColTarget')}: {formatMobileCurrency(targetNum)}
                 {groupType === 'REGULAR' ? t('paydayDrawer.perMonth') : ''}
                 {poolObj?.endDate ? ` (${formatDate(poolObj.endDate)})` : ''}
               </Text>

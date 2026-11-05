@@ -10,7 +10,7 @@ export interface PaydayMetricsGridProps {
   goalsAllocated: number;
   safeToSpend: number;
   isDeficit: boolean;
-  formatAUD: (amount: number) => string;
+  formatCurrency: (amount: number) => string;
 }
 
 export function PaydayMetricsGrid({
@@ -19,7 +19,7 @@ export function PaydayMetricsGrid({
   goalsAllocated,
   safeToSpend,
   isDeficit,
-  formatAUD,
+  formatCurrency,
 }: PaydayMetricsGridProps) {
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5 pt-1 border-t border-white/10">
@@ -32,7 +32,7 @@ export function PaydayMetricsGrid({
             {t("paydayDrawer.everydaySpending")}
           </span>
           <span className="font-mono text-base sm:text-lg font-black text-white tabular-nums">
-            {formatAUD(everydayAllocated)}
+            {formatCurrency(everydayAllocated)}
           </span>
         </div>
       </div>
@@ -46,7 +46,7 @@ export function PaydayMetricsGrid({
             {t("paydayDrawer.ringFencedBills")}
           </span>
           <span className="font-mono text-base sm:text-lg font-black text-white tabular-nums">
-            {formatAUD(billsAllocated)}
+            {formatCurrency(billsAllocated)}
           </span>
         </div>
       </div>
@@ -60,7 +60,7 @@ export function PaydayMetricsGrid({
             {t("paydayDrawer.fundedGoals")}
           </span>
           <span className="font-mono text-base sm:text-lg font-black text-white tabular-nums">
-            {formatAUD(goalsAllocated)}
+            {formatCurrency(goalsAllocated)}
           </span>
         </div>
       </div>
@@ -86,7 +86,7 @@ export function PaydayMetricsGrid({
           <span className={`font-mono text-base sm:text-lg font-black tabular-nums ${
             isDeficit ? "text-rose-300" : "text-white"
           }`}>
-            {formatAUD(safeToSpend)}
+            {formatCurrency(safeToSpend)}
           </span>
         </div>
       </div>

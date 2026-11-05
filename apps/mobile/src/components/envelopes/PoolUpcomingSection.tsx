@@ -3,7 +3,7 @@ import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { t } from '@money-matters/i18n';
 import { DESIGN_TOKENS } from '@money-matters/ui/mobile';
-import { formatAUD, formatDate } from '../../lib/format';
+import { formatMobileCurrency, formatDate } from '../../lib/format';
 import { useRouter, type Href } from 'expo-router';
 
 export interface PoolUpcomingExpenseItem {
@@ -78,7 +78,7 @@ export function PoolUpcomingSection({
                   </View>
 
                   <View style={styles.upcomingRightCol}>
-                    <Text style={styles.upcomingAmount}>{formatAUD(exp.expectedAmount)}</Text>
+                    <Text style={styles.upcomingAmount}>{formatMobileCurrency(exp.expectedAmount)}</Text>
                     <TouchableOpacity
                       style={styles.payBtn}
                       onPress={() =>

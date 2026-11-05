@@ -1,6 +1,7 @@
 import React from "react";
 import { t } from "@money-matters/i18n";
-import { ModalDialog, Button, formatCurrency } from "@money-matters/ui/web";
+import { ModalDialog, Button } from "@money-matters/ui/web";
+import { useLocale } from "../../../providers/LocaleProvider";
 
 interface SetupBalanceSweepModalProps {
   activeSweepPool: { id: string; name: string; balance: number } | null;
@@ -19,6 +20,7 @@ export function SetupBalanceSweepModal({
   onCancel,
   onConfirm,
 }: SetupBalanceSweepModalProps) {
+  const { fmt } = useLocale();
   if (!activeSweepPool) return null;
 
   return (
@@ -31,8 +33,8 @@ export function SetupBalanceSweepModal({
       <div className="space-y-4">
         <p className="text-xs text-slate-600 leading-relaxed">
           {t("setup.sweepModalDesc", {
-            poolName: activeSweepPool.name,
-            balance: formatCurrency(activeSweepPool.balance),
+            envelopeName: activeSweepPool.name,
+            balance: fmt(activeSweepPool.balance),
           })}
         </p>
         <div className="space-y-1.5">
@@ -40,6 +42,7 @@ export function SetupBalanceSweepModal({
             {t("setup.sweepDestinationLabel")}
           </label>
           <select
+            autoFocus={true}
             value={selectedSweepDest}
             onChange={(e) => onSelectDest(e.target.value)}
             className="w-full text-xs font-semibold px-3 py-2 border border-slate-200 rounded-xl bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-800"

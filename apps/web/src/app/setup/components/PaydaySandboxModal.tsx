@@ -33,7 +33,7 @@ export function PaydaySandboxModal({
   const goalsAllocated = Math.min(Math.max(0, parsedPaycheck - billsAllocated), estimatedGoals > 0 ? estimatedGoals : 400);
   const safeToSpend = Math.max(0, parsedPaycheck - billsAllocated - goalsAllocated);
 
-  const formatAUD = (val: number) => fmt(val);
+  const formatCurrency = (val: number) => fmt(val);
 
   return (
     <ModalDialog
@@ -85,7 +85,7 @@ export function PaydaySandboxModal({
                   <span>{t("paydayDrawer.ringFencedBills")}</span>
                 </div>
                 <div className="font-mono text-base font-black text-blue-900 dark:text-blue-100">
-                  {formatAUD(billsAllocated)}
+                  {formatCurrency(billsAllocated)}
                 </div>
               </div>
 
@@ -95,7 +95,7 @@ export function PaydaySandboxModal({
                   <span>{t("paydayDrawer.fundedGoals")}</span>
                 </div>
                 <div className="font-mono text-base font-black text-indigo-900 dark:text-indigo-100">
-                  {formatAUD(goalsAllocated)}
+                  {formatCurrency(goalsAllocated)}
                 </div>
               </div>
 
@@ -105,7 +105,7 @@ export function PaydaySandboxModal({
                   <span>{t("paydayDrawer.safeToSpend")}</span>
                 </div>
                 <div className="font-mono text-base font-black text-emerald-900 dark:text-emerald-100">
-                  {formatAUD(safeToSpend)}
+                  {formatCurrency(safeToSpend)}
                 </div>
               </div>
             </div>

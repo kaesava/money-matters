@@ -4,7 +4,7 @@ import { useRouter, type Href } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
 import { CardDrawerIndicator, EntityLinkChip, DESIGN_TOKENS } from '@money-matters/ui/mobile';
 import { t } from '@money-matters/i18n';
-import { formatAUD, formatScheduleDetail } from '../../lib/format';
+import { formatMobileCurrency, formatScheduleDetail } from '../../lib/format';
 
 export interface ExpenseSourceItem {
   id: string;
@@ -87,7 +87,7 @@ export const ExpenseBillCard: React.FC<ExpenseBillCardProps> = ({
           ) : null}
         </View>
 
-        <Text style={styles.amount}>−{formatAUD(exp.amount)}</Text>
+        <Text style={styles.amount}>−{formatMobileCurrency(exp.amount)}</Text>
       </View>
     </TouchableOpacity>
   );

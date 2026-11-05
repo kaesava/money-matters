@@ -1,7 +1,10 @@
-import { describe, it, expect } from 'vitest';
-import { extractCorrelationId, extractAuthToken } from './edge-context.js';
+import { describe, it, expect, beforeEach } from 'vitest';
+import { extractCorrelationId, extractAuthToken, clearEdgeContextCache } from './edge-context.js';
 
 describe('Edge Context Unit Tests', () => {
+  beforeEach(() => {
+    clearEdgeContextCache();
+  });
   describe('extractCorrelationId', () => {
     it('returns x-correlation-id header when present on request and sets it on resHeaders', () => {
       const headers = new Headers();

@@ -2,6 +2,7 @@
 
 import React from "react";
 import { t } from "@money-matters/i18n";
+import { useCurrencyLocale } from "@money-matters/ui/web";
 import { PoolSnapshot } from "./types";
 
 interface SimulatorPoolCardProps {
@@ -10,6 +11,7 @@ interface SimulatorPoolCardProps {
 }
 
 export const SimulatorPoolCard: React.FC<SimulatorPoolCardProps> = ({ pool, onOpenTransfer }) => {
+  const { currencySymbol } = useCurrencyLocale();
   const percent = Math.min(100, Math.round((pool.current / pool.target) * 100));
   const isFull = percent >= 100;
 
@@ -49,7 +51,7 @@ export const SimulatorPoolCard: React.FC<SimulatorPoolCardProps> = ({ pool, onOp
               isFull ? "text-[#22c55e]" : "text-[#2563eb]"
             }`}
           >
-            ${pool.current} / ${pool.target}
+            {currencySymbol}{pool.current} / {currencySymbol}{pool.target}
           </span>
         </div>
       </div>
@@ -84,7 +86,7 @@ export const SimulatorPoolCard: React.FC<SimulatorPoolCardProps> = ({ pool, onOp
                   )}
                 </span>
                 <span className="font-mono font-medium text-slate-600">
-                  ${sub.current} / ${sub.target}
+                  {currencySymbol}{sub.current} / {currencySymbol}{sub.target}
                 </span>
               </div>
               <div className="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden">

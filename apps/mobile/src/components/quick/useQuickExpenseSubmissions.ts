@@ -1,7 +1,7 @@
 import { useRouter, type Href } from 'expo-router';
 import { useMobileToast, showMobileConfirm } from '@money-matters/ui/mobile';
 import { t } from '@money-matters/i18n';
-import { formatAUD } from '../../lib/format';
+import { formatMobileCurrency } from '../../lib/format';
 import { useMobileQuickAction } from './useMobileQuickAction';
 
 type QuickActionState = ReturnType<typeof useMobileQuickAction>;

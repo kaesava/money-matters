@@ -2,7 +2,7 @@ import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { DESIGN_TOKENS } from '@money-matters/ui/mobile';
 import { t } from '@money-matters/i18n';
-import { formatAUD, formatDate } from '../../../lib/format';
+import { formatMobileCurrency, formatDate } from '../../../lib/format';
 import type { AttentionItem } from '../../AttentionItemsList';
 
 interface AttentionTransferItemProps {
@@ -47,7 +47,7 @@ export const AttentionTransferItem: React.FC<AttentionTransferItemProps> = ({
         </View>
 
         <Text style={styles.itemMeta}>
-          <Text style={styles.amountText}>{formatAUD(item.expectedAmount)}</Text>
+          <Text style={styles.amountText}>{formatMobileCurrency(item.expectedAmount)}</Text>
           {' · '}
           <Text style={showOverdue ? styles.overdueDateText : styles.normalDateText}>
             {daysAwayText}

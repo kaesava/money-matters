@@ -2,7 +2,7 @@ import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { MobileModalDialog, MobileButton, DESIGN_TOKENS } from '@money-matters/ui/mobile';
 import { t } from '@money-matters/i18n';
-import { formatAUD, formatDate } from '../../lib/format';
+import { formatMobileCurrency, formatDate } from '../../lib/format';
 
 export interface TransactionDetailRecord {
   id: string;
@@ -38,7 +38,7 @@ export function TransactionDetailSheet({
   if (!transaction) return null;
 
   const isDebit = transaction.rawFlowType === 'DEBIT' || transaction.flowType === 'DEBIT';
-  const amountStr = `${isDebit ? '-' : '+'}${formatAUD(transaction.amount)}`;
+  const amountStr = `${isDebit ? '-' : '+'}${formatMobileCurrency(transaction.amount)}`;
   const displayPool = transaction.poolName || transaction.categoryName || 'Everyday Pool';
 
   return (

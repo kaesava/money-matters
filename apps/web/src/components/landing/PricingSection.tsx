@@ -5,6 +5,7 @@ import Link from "next/link";
 import { t } from "@money-matters/i18n";
 import { authClient } from "../../lib/auth";
 import { useSubscriptionStatus } from "../../hooks/useSubscriptionStatus";
+import { useLocale } from "../../providers/LocaleProvider";
 
 export interface PricingSectionProps {
   onAuthClick: (tab: "signIn" | "signUp") => void;
@@ -48,6 +49,7 @@ function PricingRibbon() {
 function PricingCta({ onAuthClick }: PricingSectionProps) {
   const { data: session } = authClient.useSession();
   const { status } = useSubscriptionStatus();
+  const { currencySymbol } = useLocale();
 
   if (!session?.user) {
     return (
@@ -88,12 +90,14 @@ function PricingCta({ onAuthClick }: PricingSectionProps) {
       href="/subscription/upgrade"
       className="w-full mt-6 bg-[#2563eb] hover:bg-blue-700 text-white font-black py-4 rounded-2xl shadow-md hover:shadow-lg text-sm transition-all active:scale-98 cursor-pointer text-center block"
     >
-      {t("landing.pricingCtaTrial")}
+      {t("landing.pricingCtaTrial", { currencySymbol })}
     </Link>
   );
 }
 
 export function PricingSection({ onAuthClick }: PricingSectionProps) {
+  const { currencySymbol } = useLocale();
+
   return (
     <section id="pricing" className="bg-slate-100/70 border-t border-slate-200/80 py-20 scroll-mt-14" aria-label="Pricing">
       <div className="max-w-5xl mx-auto px-6 flex flex-col items-center gap-10">
@@ -122,15 +126,15 @@ export function PricingSection({ onAuthClick }: PricingSectionProps) {
 
               <div className="flex items-baseline gap-2 font-mono">
                 <span className="text-4xl sm:text-5xl font-black text-[#1B2B4B]">
-                  {t("landing.pricingHouseholdPrice")}
+                  {t("landing.pricingHouseholdPrice", { currencySymbol })}
                 </span>
                 <span className="text-xs font-sans text-slate-500 font-semibold">
-                  {t("landing.pricingHouseholdSub")}
+                  {t("landing.pricingHouseholdSub", { currencySymbol })}
                 </span>
               </div>
 
               <div className="bg-blue-50/80 border border-blue-200 rounded-2xl p-3.5 text-xs text-blue-950 font-bold">
-                {t("landing.pricingFoundingBadge")}
+                {t("landing.pricingFoundingBadge", { currencySymbol })}
               </div>
 
               <ul className="flex flex-col gap-3 text-xs sm:text-sm text-slate-700 font-semibold mt-1">

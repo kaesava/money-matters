@@ -13,7 +13,7 @@ import {
   showMobileConfirm,
 } from '@money-matters/ui/mobile';
 import { t } from '@money-matters/i18n';
-import { formatAUD, formatIsoDate } from '../../lib/format';
+import { formatMobileCurrency, formatIsoDate } from '../../lib/format';
 import { BurstSourceItem, BurstEventItem, parseFrequencyLabel } from './burst-types';
 import { BurstSourceHeaderCard } from './BurstSourceHeaderCard';
 import { BurstEventCard } from './BurstEventCard';
@@ -129,7 +129,7 @@ export function MobileBurstModal({
       visible={visible}
       onClose={onClose}
       title={source.name}
-      subtitle={`${freqLabel} • ${isIncome ? '+' : '−'}${formatAUD(parseFloat(String(source.amount)))}`}
+      subtitle={`${freqLabel} • ${isIncome ? '+' : '−'}${formatMobileCurrency(parseFloat(String(source.amount)))}`}
     >
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.container}>
         <BurstSourceHeaderCard

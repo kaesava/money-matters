@@ -2,7 +2,7 @@ import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { DESIGN_TOKENS } from '@money-matters/ui/mobile';
-import { formatAUD } from '../../../lib/format';
+import { formatMobileCurrency } from '../../../lib/format';
 
 interface SplitPoolGroupHeaderProps {
   label: string;
@@ -31,7 +31,7 @@ export const SplitPoolGroupHeader: React.FC<SplitPoolGroupHeaderProps> = ({
         />
         <Text style={styles.groupLabel}>{label}</Text>
       </View>
-      <Text style={styles.groupSum}>{formatAUD(totalSum)}</Text>
+      <Text style={styles.groupSum}>{formatMobileCurrency(totalSum)}</Text>
     </TouchableOpacity>
   );
 };

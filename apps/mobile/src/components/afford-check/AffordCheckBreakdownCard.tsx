@@ -3,7 +3,7 @@ import { View, Text, StyleSheet } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { DESIGN_TOKENS } from '@money-matters/ui/mobile';
 import { t } from '@money-matters/i18n';
-import { formatAUD } from '../../lib/format';
+import { formatMobileCurrency } from '../../lib/format';
 
 interface AffordCheckBreakdownData {
   verdict: string;
@@ -34,21 +34,21 @@ export function AffordCheckBreakdownCard({ data }: AffordCheckBreakdownCardProps
         {data.availableCash !== undefined && (
           <View style={styles.breakdownRow}>
             <Text style={styles.breakdownLabel}>{t('canIAfford.availableCash')}</Text>
-            <Text style={styles.breakdownVal}>{formatAUD(data.availableCash)}</Text>
+            <Text style={styles.breakdownVal}>{formatMobileCurrency(data.availableCash)}</Text>
           </View>
         )}
 
         {data.everydayRemaining !== undefined && (
           <View style={styles.breakdownRow}>
             <Text style={styles.breakdownLabel}>{t('canIAfford.everydayRemaining')}</Text>
-            <Text style={styles.breakdownVal}>{formatAUD(data.everydayRemaining)}</Text>
+            <Text style={styles.breakdownVal}>{formatMobileCurrency(data.everydayRemaining)}</Text>
           </View>
         )}
 
         {data.safeCushion !== undefined && (
           <View style={styles.breakdownRow}>
             <Text style={styles.breakdownLabel}>{t('canIAfford.safeBuffer')}</Text>
-            <Text style={styles.breakdownVal}>{formatAUD(data.safeCushion)}</Text>
+            <Text style={styles.breakdownVal}>{formatMobileCurrency(data.safeCushion)}</Text>
           </View>
         )}
 
@@ -56,7 +56,7 @@ export function AffordCheckBreakdownCard({ data }: AffordCheckBreakdownCardProps
           <View style={styles.breakdownRow}>
             <Text style={styles.breakdownLabel}>{t('canIAfford.ringFencedBills')}</Text>
             <Text style={styles.breakdownVal}>
-              {formatAUD(data.upcomingBillsBeforePayday)}
+              {formatMobileCurrency(data.upcomingBillsBeforePayday)}
             </Text>
           </View>
         )}
@@ -65,7 +65,7 @@ export function AffordCheckBreakdownCard({ data }: AffordCheckBreakdownCardProps
           <View style={styles.breakdownRow}>
             <Text style={styles.breakdownLabel}>{t('canIAfford.shortfallToday')}</Text>
             <Text style={styles.breakdownValNegative}>
-              -{formatAUD(data.shortfallToday)}
+              -{formatMobileCurrency(data.shortfallToday)}
             </Text>
           </View>
         )}
@@ -74,7 +74,7 @@ export function AffordCheckBreakdownCard({ data }: AffordCheckBreakdownCardProps
           <View style={styles.breakdownRow}>
             <Text style={styles.breakdownLabel}>{t('canIAfford.estimatedShortfall')}</Text>
             <Text style={styles.breakdownValNegative}>
-              -{formatAUD(data.shortfall)}
+              -{formatMobileCurrency(data.shortfall)}
             </Text>
           </View>
         )}
@@ -101,7 +101,7 @@ export function AffordCheckBreakdownCard({ data }: AffordCheckBreakdownCardProps
             <Text style={styles.goalDelayTitle}>{t('canIAfford.goalAlternativeAvailableTitle')}</Text>
             <Text style={styles.goalDelayText}>
               {t('canIAfford.goalAlternativeAvailableText', {
-                amount: formatAUD(data.goalAlternative.shortfallCovered),
+                amount: formatMobileCurrency(data.goalAlternative.shortfallCovered),
                 goalName: data.goalAlternative.goalName,
                 delayDays: data.goalAlternative.delayDays,
               })}

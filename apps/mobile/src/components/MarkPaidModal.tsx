@@ -177,7 +177,7 @@ export function MarkPaidModal({
             <Feather name="check-circle" size={16} color={DESIGN_TOKENS.colors.successDark} style={{ marginTop: 1 }} />
             <Text style={styles.sufficientText}>
               {t('incomeBillsTabs.sufficientBalanceNotice', {
-                poolName: formattedPoolName,
+                envelopeName: formattedPoolName,
                 balance: formatMobileCurrency(poolBal),
               })}
             </Text>

@@ -2,7 +2,7 @@ import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { DESIGN_TOKENS, useCurrencyLocale } from '@money-matters/ui/mobile';
 import { t } from '@money-matters/i18n';
-import { formatAUD } from '../../../lib/format';
+import { formatMobileCurrency } from '../../../lib/format';
 
 interface DestinationTransferGroup {
   destAccountId: string;
@@ -41,7 +41,7 @@ export const RollupTransferItem: React.FC<RollupTransferItemProps> = ({
         </View>
 
         <View style={styles.amountActionCol}>
-          <Text style={styles.amountNum}>{formatAUD(tx.totalAmount)}</Text>
+          <Text style={styles.amountNum}>{formatMobileCurrency(tx.totalAmount)}</Text>
           <TouchableOpacity
             onPress={() => onCopyAmount(tx.destAccountId, tx.totalAmount)}
             style={[styles.copyPill, isCopied && styles.copiedPill]}
@@ -60,7 +60,7 @@ export const RollupTransferItem: React.FC<RollupTransferItemProps> = ({
         <Text style={styles.coversPoolsBold}>
           {t('cards.paydayTransfer.coversPools', { count: tx.pools.length })}
         </Text>
-        {tx.pools.map((p) => `${p.name} (${formatAUD(p.amount)})`).join(', ')}
+        {tx.pools.map((p) => `${p.name} (${formatMobileCurrency(p.amount)})`).join(', ')}
       </Text>
     </View>
   );

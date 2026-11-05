@@ -128,7 +128,7 @@ export const dashboard = {
     "answers": {
       "goalProjection": "Based on your current plan, you are projected to reach {goal} ({target}) on {date}.",
       "noGoalFound": "We couldn't find a goal named '{goal}'. Check your Goals envelopes in Budgeting.",
-      "poolBalance": "Your {pool} envelope currently has {balance} available.",
+      "poolBalance": "Your {envelopeName} envelope currently has {balance} available.",
       "nextPayday": "Your next scheduled payday is on {date} with an expected {amount} to allocate.",
       "nextPaydayNotScheduled": "No upcoming income event is scheduled yet. Add an income schedule to preview your next payday.",
       "billsDue": "You have {count} bill(s) due within the next {days} days.",

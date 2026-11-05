@@ -321,7 +321,7 @@ export function MarkPaidModal({
           <div className="p-3 bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-900 rounded-xl">
             <p className="text-xs font-medium text-emerald-800 dark:text-emerald-300">
               {t("incomeBillsTabs.sufficientBalanceNotice", {
-                poolName: formattedPoolName,
+                envelopeName: formattedPoolName,
                 balance: fmt(targetBalance),
               })}
             </p>

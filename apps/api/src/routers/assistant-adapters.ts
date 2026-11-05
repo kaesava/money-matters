@@ -66,7 +66,7 @@ export function createAssistantIntentHandler(db: DbOrTx, appId: string): IntentH
         type: "answer",
         templateKey: "assistant.answers.poolBalance",
         templateValues: {
-          pool: poolName,
+          envelopeName: poolName,
           balance,
         },
       };

@@ -3,7 +3,7 @@ import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { useRouter, type Href } from 'expo-router';
 import { DESIGN_TOKENS } from '@money-matters/ui/mobile';
 import { t } from '@money-matters/i18n';
-import { formatAUD } from '../../../lib/format';
+import { formatMobileCurrency } from '../../../lib/format';
 import type { GoalItem } from '../GoalsProgressStrip';
 import { calculateGoalPacing } from './goal-pacing';
 
@@ -51,7 +51,7 @@ export const GoalProgressStripCard: React.FC<GoalProgressStripCardProps> = ({
       </View>
 
       <Text style={styles.savedLabel}>{t('dashboard.goals.savedLabel')}</Text>
-      <Text style={styles.goalBalance}>{formatAUD(bal)}</Text>
+      <Text style={styles.goalBalance}>{formatMobileCurrency(bal)}</Text>
 
       {target > 0 ? (
         <View style={styles.progressSection}>
@@ -77,7 +77,7 @@ export const GoalProgressStripCard: React.FC<GoalProgressStripCardProps> = ({
               {t('dashboard.goals.funded', { percent: fundedPct })}
             </Text>
             <Text style={styles.targetAmount}>
-              {t('dashboard.goals.targetAmount', { amount: formatAUD(target) })}
+              {t('dashboard.goals.targetAmount', { amount: formatMobileCurrency(target) })}
             </Text>
           </View>
 

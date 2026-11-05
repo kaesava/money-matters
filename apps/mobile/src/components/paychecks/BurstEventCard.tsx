@@ -3,7 +3,7 @@ import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { DESIGN_TOKENS } from '@money-matters/ui/mobile';
 import { t } from '@money-matters/i18n';
-import { formatAUD, formatDate } from '../../lib/format';
+import { formatMobileCurrency, formatDate } from '../../lib/format';
 import { BurstEventItem } from './burst-types';
 import { BurstEventEditForm } from './BurstEventEditForm';
 
@@ -62,7 +62,7 @@ export function BurstEventCard({
 
         {!isEditing && (
           <Text style={[styles.eventAmountText, isIncome ? styles.incomeText : styles.expenseText]}>
-            {isIncome ? '+' : '−'}{formatAUD(amtVal)}
+            {isIncome ? '+' : '−'}{formatMobileCurrency(amtVal)}
           </Text>
         )}
       </View>

@@ -3,7 +3,7 @@ import { View, Text, TouchableOpacity, ScrollView, StyleSheet } from 'react-nati
 import { Feather } from '@expo/vector-icons';
 import { useRouter, type Href } from 'expo-router';
 import { DESIGN_TOKENS, MobileModalDialog } from '@money-matters/ui/mobile';
-import { formatAUD } from '../../lib/format';
+import { formatMobileCurrency } from '../../lib/format';
 import { t } from '@money-matters/i18n';
 
 export interface LinkedPoolItem {
@@ -78,7 +78,7 @@ export function LinkedPoolsModalSheet({
                 </View>
 
                 <View style={styles.poolRight}>
-                  <Text style={styles.poolBal}>{formatAUD(bal)}</Text>
+                  <Text style={styles.poolBal}>{formatMobileCurrency(bal)}</Text>
                   <Feather
                     name="chevron-right"
                     size={16}

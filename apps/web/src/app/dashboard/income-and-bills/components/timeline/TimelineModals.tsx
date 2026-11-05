@@ -192,7 +192,7 @@ export function TimelineModals({
             }
             onCloseTransfer();
           }}
-          formatAUD={fmt}
+          formatCurrency={fmt}
         />
       )}
 

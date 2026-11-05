@@ -129,7 +129,7 @@ export function IncomeSplitScreen({
         onLockSplit={!isReadOnly ? handleSaveSplit : undefined}
         onSaveChanges={!isReadOnly ? handleSaveSplit : undefined}
         onDiscardEdits={!isReadOnly ? handleDiscardEdits : undefined}
-        formatAUD={(amount) => fmt(amount)}
+        formatCurrency={(amount) => fmt(amount)}
       />
 
       <div className="flex-1 w-full space-y-4">

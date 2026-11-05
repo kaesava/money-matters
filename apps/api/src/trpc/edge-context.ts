@@ -50,6 +50,25 @@ export function extractAuthToken(req: Request): string {
   return token;
 }
 
+interface CachedSessionClaims {
+  claims: ResolvedClaims;
+  cachedAt: number;
+}
+
+interface CachedTenantMembership {
+  membership: { tenantId: string | null; role: string | null; appId: string };
+  cachedAt: number;
+}
+
+const sessionClaimsMemoryCache = new Map<string, CachedSessionClaims>();
+const tenantMembershipMemoryCache = new Map<string, CachedTenantMembership>();
+const EDGE_CACHE_TTL_MS = 30_000; // 30 seconds
+
+export function clearEdgeContextCache(): void {
+  sessionClaimsMemoryCache.clear();
+  tenantMembershipMemoryCache.clear();
+}
+
 /**
  * Fallback: Resolves session claims directly from the database with a 2-second timeout.
  */
@@ -59,6 +78,12 @@ export async function resolveClaimsFromDatabase(
   correlationId: string
 ): Promise<ResolvedClaims | null> {
   const cleanToken = token.split('.')[0];
+  const now = Date.now();
+  const cached = sessionClaimsMemoryCache.get(cleanToken);
+  if (cached && now - cached.cachedAt < EDGE_CACHE_TTL_MS) {
+    return cached.claims;
+  }
+
   try {
     const timeoutPromise = new Promise<never>((_, reject) => {
       setTimeout(() => reject(new Error('DB session lookup timed out after 2000ms')), 2000);
@@ -80,11 +105,16 @@ export async function resolveClaimsFromDatabase(
     const dbSession = rows?.[0];
 
     if (dbSession) {
-      return {
+      const claims: ResolvedClaims = {
         userId: dbSession.userId,
         email: dbSession.email,
         displayName: dbSession.name,
       };
+      if (sessionClaimsMemoryCache.size > 500) {
+        sessionClaimsMemoryCache.clear();
+      }
+      sessionClaimsMemoryCache.set(cleanToken, { claims, cachedAt: now });
+      return claims;
     }
 
     logger.warn('DB session SQL query returned 0 rows', { correlationId, tokenSnippet: token.substring(0, 10) });
@@ -171,6 +201,13 @@ export async function resolveTenantMembership(
   requestedTenantId: string | null,
   correlationId: string
 ): Promise<{ tenantId: string | null; role: string | null; appId: string }> {
+  const cacheKey = `${claims.userId}:${requestedTenantId ?? ''}`;
+  const now = Date.now();
+  const cached = tenantMembershipMemoryCache.get(cacheKey);
+  if (cached && now - cached.cachedAt < EDGE_CACHE_TTL_MS) {
+    return cached.membership;
+  }
+
   await upsertUserFromJwt(claims.userId, claims.email, claims.displayName, requestDb);
 
   const userMemberships = await requestDb
@@ -199,23 +236,27 @@ export async function resolveTenantMembership(
     : undefined;
 
   const membership = matchedMembership ?? userMemberships[0];
+  let resolved: { tenantId: string | null; role: string | null; appId: string };
+
   if (membership?.tenantId) {
-    return {
+    resolved = {
       tenantId: membership.tenantId,
       role: membership.role ?? null,
       appId: membership.appId ?? MONEY_MATTERS_APP_ID,
     };
+  } else {
+    resolved = {
+      tenantId: null,
+      role: null,
+      appId: MONEY_MATTERS_APP_ID,
+    };
   }
 
-  // Do NOT auto-provision a tenant here. Implicit creation races against the explicit
-  // createTenant mutation called from the sign-up OTP success flow, silently overriding
-  // the user's selected country/currency/timezone with GeoIP or AU defaults.
-  // New users have tenantId=null until createTenant is explicitly called.
-  return {
-    tenantId: null,
-    role: null,
-    appId: MONEY_MATTERS_APP_ID,
-  };
+  if (tenantMembershipMemoryCache.size > 500) {
+    tenantMembershipMemoryCache.clear();
+  }
+  tenantMembershipMemoryCache.set(cacheKey, { membership: resolved, cachedAt: now });
+  return resolved;
 }
 
 /**

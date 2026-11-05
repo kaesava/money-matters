@@ -2,7 +2,7 @@ import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { DESIGN_TOKENS } from '@money-matters/ui/mobile';
 import { t } from '@money-matters/i18n';
-import { formatAUD, formatDate } from '../../../lib/format';
+import { formatMobileCurrency, formatDate } from '../../../lib/format';
 import type { AttentionItem } from '../../AttentionItemsList';
 
 interface AttentionExpenseItemProps {
@@ -52,7 +52,7 @@ export const AttentionExpenseItem: React.FC<AttentionExpenseItemProps> = ({
         </View>
 
         <Text style={styles.itemMeta}>
-          <Text style={styles.amountText}>{formatAUD(item.expectedAmount)}</Text>
+          <Text style={styles.amountText}>{formatMobileCurrency(item.expectedAmount)}</Text>
           {' · '}
           <Text style={showOverdue ? styles.overdueDateText : styles.normalDateText}>
             {daysAwayText}
@@ -66,7 +66,7 @@ export const AttentionExpenseItem: React.FC<AttentionExpenseItemProps> = ({
             {typeof item.categoryBalance === 'number' && (
               <Text style={styles.categoryBalText}>
                 {' '}{t('dashboard.upcomingExpensesTransfers.availableSuffix', {
-                  amount: formatAUD(item.categoryBalance),
+                  amount: formatMobileCurrency(item.categoryBalance),
                 })}
               </Text>
             )}
@@ -81,7 +81,7 @@ export const AttentionExpenseItem: React.FC<AttentionExpenseItemProps> = ({
                 onPress={() => onTopUpShortfall?.(item)}
               >
                 {t('dashboard.attention.categoryShort', {
-                  amount: formatAUD(shortfall),
+                  amount: formatMobileCurrency(shortfall),
                 })}
               </Text>
             )}

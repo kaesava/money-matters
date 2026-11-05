@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { t } from '@money-matters/i18n';
-import { formatAUD } from '../../lib/format';
+import { formatMobileCurrency } from '../../lib/format';
 
 interface MobilePaydayMetricsGridProps {
   everydayAllocated: number;
@@ -22,22 +22,22 @@ export function MobilePaydayMetricsGrid({
     <View style={styles.metricsGrid}>
       <View style={styles.metricItem}>
         <Text style={styles.metricLabel}>{t('paydayDrawer.everydaySpending')}</Text>
-        <Text style={styles.metricValue}>{formatAUD(everydayAllocated)}</Text>
+        <Text style={styles.metricValue}>{formatMobileCurrency(everydayAllocated)}</Text>
       </View>
       <View style={styles.metricItem}>
         <Text style={styles.metricLabel}>{t('paydayDrawer.ringFencedBills')}</Text>
-        <Text style={styles.metricValue}>{formatAUD(billsAllocated)}</Text>
+        <Text style={styles.metricValue}>{formatMobileCurrency(billsAllocated)}</Text>
       </View>
       <View style={styles.metricItem}>
         <Text style={styles.metricLabel}>{t('paydayDrawer.fundedGoals')}</Text>
-        <Text style={styles.metricValue}>{formatAUD(goalsAllocated)}</Text>
+        <Text style={styles.metricValue}>{formatMobileCurrency(goalsAllocated)}</Text>
       </View>
       <View style={[styles.metricItem, isDeficit ? styles.metricDeficitHighlight : styles.metricHighlight]}>
         <Text style={isDeficit ? styles.metricDeficitHighlightLabel : styles.metricHighlightLabel}>
           {isDeficit ? t('paydayDrawer.metricDeficit') : t('paydayDrawer.metricSurplus')}
         </Text>
         <Text style={isDeficit ? styles.metricDeficitHighlightValue : styles.metricHighlightValue}>
-          {formatAUD(safeToSpend)}
+          {formatMobileCurrency(safeToSpend)}
         </Text>
       </View>
     </View>
