@@ -50,6 +50,7 @@ Money Matters is a forward-looking allocation budget app designed for Australian
 - **Table Filter Param Resilience & Fallback**: When navigating to Bank Accounts, Pools, or History with an invalid or archived filter ID in query params, the UI preserves the full table of records, displays a `Filter: Item unavailable` pill between the search bar and table, and renders an inline amber advisory notice.
 - **History Tab 2 (Split History) Layout**: Streamlined table featuring `INCOME SPLIT DATE`, `INCOME DATE`, `Income` (hyperlink opening the `SlideOverAllocationDrawer`), `Bank Account` (hyperlink with `↗`), and `Total Amount`, with 100% header alignment and drawer metadata card header.
 - **Settings Data Privacy & Complete Export**: Merged full-width card on `/dashboard/settings` providing direct navigation to `/privacy` and 1-click Zipped CSV backup download. Terminological parity enforces "Household Plan" and "Upgrade to Household Plan".
+- **Global Omnisearch & Unified Command Palette (`⌘K` / `Ctrl+K`)**: Unified discovery cockpit accessible globally via `⌘K` or `/` (desktop) and mobile header search (`MobileCommandPaletteSheet`). Delivers hybrid instant search: Tier 1 (0ms in-memory fuzzy matching across Bank Accounts, Envelopes, and Upcoming Timeline Events) and Tier 2 (debounced backend search over historical `transaction_ledger` records). Unifies entity lookup with Ask Penny AI assistance into a single keyboard-navigable interface with Serene Finance tokens and 100% externalized i18n copy.
 
 ---
 

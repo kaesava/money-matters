@@ -8,7 +8,7 @@ import { QuickExpenseDrawer } from "../../components/web/QuickExpenseDrawer";
 
 import { TrialBanner } from "../../components/TrialBanner";
 import { useSubscriptionStatus } from "../../hooks/useSubscriptionStatus";
-import { Spinner, AskPennyPalette } from "@money-matters/ui/web";
+import { Spinner, CommandPaletteModal } from "@money-matters/ui/web";
 import { useNetworkStatus } from "../../providers/AppProviders";
 import type { QuickActionInitialData } from "@money-matters/types";
 import { trpc } from "../../lib/trpc";
@@ -43,6 +43,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   });
   const userProfileQuery = trpc.getUserProfile.useQuery(undefined, { enabled: !!session?.user });
   const envelopesQuery = trpc.listPools.useQuery(undefined, { enabled: !!session?.user && hasTenant });
+  const bankAccountsQuery = trpc.listBankAccountsWithExpected.useQuery(undefined, { enabled: !!session?.user && hasTenant, staleTime: 30_000 });
+  const incomeEventsQuery = trpc.listIncomeEvents.useQuery(undefined, { enabled: !!session?.user && hasTenant, staleTime: 30_000 });
+  const expenseEventsQuery = trpc.listExpenseEvents.useQuery(undefined, { enabled: !!session?.user && hasTenant, staleTime: 30_000 });
   const tenantsQuery = trpc.listUserTenants.useQuery(undefined, { enabled: !!session?.user });
   const { status: subStatus, isLoading: isSubLoading } = useSubscriptionStatus();
 
@@ -130,6 +133,59 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   });
 
   const versionInfo = getWebVersionInfo();
+
+  const searchAccounts = React.useMemo(() => {
+    return (bankAccountsQuery.data ?? []).map((acc) => ({
+      id: acc.id,
+      name: acc.name,
+      type: acc.accountType,
+      currentBalance: parseFloat(acc.expectedBalance),
+    }));
+  }, [bankAccountsQuery.data]);
+
+  const searchEnvelopes = React.useMemo(() => {
+    return (envelopesQuery.data ?? []).map((env) => ({
+      id: env.id,
+      name: env.name,
+      type: env.envelopeType,
+      currentBalance: env.currentBalance,
+    }));
+  }, [envelopesQuery.data]);
+
+  const searchEvents = React.useMemo(() => {
+    const incomes = (incomeEventsQuery.data ?? []).map((ev) => ({
+      id: ev.id,
+      name: ev.name,
+      amount: parseFloat(ev.expectedAmount),
+      dueDate: ev.expectedDate,
+      type: "INCOME" as const,
+    }));
+    const expenses = (expenseEventsQuery.data ?? []).map((ev) => ({
+      id: ev.id,
+      name: ev.name,
+      amount: parseFloat(ev.expectedAmount),
+      dueDate: ev.expectedDate,
+      type: "EXPENSE" as const,
+    }));
+    return [...incomes, ...expenses];
+  }, [incomeEventsQuery.data, expenseEventsQuery.data]);
+
+  const handleSearchTransactions = useCallback(
+    async (q: string) => {
+      const res = await utils.searchTransactions.fetch({ query: q, limit: 10 });
+      return res.map((tx) => ({
+        id: tx.id,
+        recordedAt: tx.recordedAt,
+        amount: parseFloat(tx.amount),
+        note: tx.note,
+        flowType: tx.flowType,
+        envelopeName: tx.envelopeName,
+        envelopeId: tx.envelopeId,
+        bankAccountId: tx.bankAccountId,
+      }));
+    },
+    [utils]
+  );
 
   // Anti-spam cooldown timer
   useEffect(() => {
@@ -353,11 +409,15 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             onClose={() => setShowShortcutsModal(false)}
           />
 
-          <AskPennyPalette
+          <CommandPaletteModal
             isOpen={askPennyOpen}
             onClose={() => setAskPennyOpen(false)}
+            accounts={searchAccounts}
+            envelopes={searchEnvelopes}
+            upcomingEvents={searchEvents}
+            onSearchTransactions={handleSearchTransactions}
             remainingCalls={usageQuery.data?.limit && usageQuery.data ? Math.max(0, usageQuery.data.limit - usageQuery.data.used) : undefined}
-            onAsk={async (q) => {
+            onAskPenny={async (q) => {
               const res = await askMutation.mutateAsync({ query: q });
               usageQuery.refetch();
               return res;
@@ -365,6 +425,21 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             onNavigatePrefill={(prefill) =>
               handlePennyPrefillNavigation(prefill, router, setQuickExpenseData, setQuickExpenseOpen)
             }
+            onSelectAccount={() => {
+              router.push("/dashboard/bank-accounts");
+            }}
+            onSelectEnvelope={(env) => {
+              router.push(`/dashboard/envelopes?poolId=${env.id}`);
+            }}
+            onSelectEvent={() => {
+              router.push("/dashboard/income-and-bills?tab=timeline");
+            }}
+            onSelectTransaction={() => {
+              router.push("/dashboard/history");
+            }}
+            onViewAllTransactions={(q) => {
+              router.push(`/dashboard/history?search=${encodeURIComponent(q)}`);
+            }}
           />
 
         </div>

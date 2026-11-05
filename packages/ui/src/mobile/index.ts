@@ -154,4 +154,6 @@ export type { MobileSpendingOverviewLabels } from './charts/MobileSpendingOvervi
 
 export { MobileAiUsageCard } from './MobileAiUsageCard';
 export { MobileAskSheet } from './MobileAskSheet';
+export { MobileCommandPaletteSheet } from './MobileCommandPaletteSheet';
+export type { MobileCommandPaletteSheetProps } from './MobileCommandPaletteSheet';
 export * from './notifications/index';

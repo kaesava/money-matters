@@ -11,6 +11,7 @@ import { feedback } from './feedback';
 import { setup } from './setup';
 import { landing } from './landing';
 import { tour } from './tour';
+import { commandPalette } from './commandPalette';
 
 export const en = {
   ...common,
@@ -26,6 +27,7 @@ export const en = {
   ...setup,
   ...landing,
   ...tour,
+  ...commandPalette,
 } as const;
 
 export type TranslationDictionary = typeof en;

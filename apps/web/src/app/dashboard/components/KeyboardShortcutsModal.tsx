@@ -23,7 +23,7 @@ export function KeyboardShortcutsModal({ isOpen, onClose }: KeyboardShortcutsMod
     >
       <div className="space-y-4 pt-2">
         <div className="flex justify-between items-center">
-          <span className="text-sm font-semibold text-zinc-700">{t("keyboardShortcuts.askPenny")}</span>
+          <span className="text-sm font-semibold text-zinc-700">{t("commandPalette.triggerSubtitle")}</span>
           <kbd className="px-2 py-1 bg-zinc-100 border border-zinc-200 rounded text-xs font-mono font-bold text-zinc-600">⌘K / Ctrl+K</kbd>
         </div>
         <div className="flex justify-between items-center">

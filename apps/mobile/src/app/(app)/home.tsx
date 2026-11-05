@@ -2,7 +2,7 @@ import React from 'react';
 import { ScrollView, RefreshControl, StyleSheet, View } from 'react-native';
 import { useRouter, useLocalSearchParams, type Href } from 'expo-router';
 import { usePostHog } from 'posthog-react-native';
-import { DESIGN_TOKENS, MobileAskSheet } from '@money-matters/ui/mobile';
+import { DESIGN_TOKENS, MobileCommandPaletteSheet } from '@money-matters/ui/mobile';
 import { trpc } from '../../lib/trpc';
 import { t } from '@money-matters/i18n';
 import { AppScreenWrapper } from '../../components/AppScreenWrapper';
@@ -51,6 +51,8 @@ export default function HomeScreen() {
     billsDue14DaysCount,
     totalBillsDue14Days,
     upcomingIncomeList,
+    incomeEvents,
+    expenseEvents,
     attentionItems,
     goalsList,
     everydayPool,
@@ -61,6 +63,61 @@ export default function HomeScreen() {
     deleteIncomeMutation,
     refetchAll,
   } = useHomeData(token);
+
+  const utils = trpc.useUtils();
+
+  const searchAccounts = React.useMemo(() => {
+    return bankAccounts.map((acc) => ({
+      id: acc.id,
+      name: acc.name,
+      type: acc.accountType,
+      currentBalance: parseFloat(acc.lastKnownBalance || '0'),
+    }));
+  }, [bankAccounts]);
+
+  const searchEnvelopes = React.useMemo(() => {
+    return pools.map((env) => ({
+      id: env.id,
+      name: env.name,
+      type: env.envelopeType,
+      currentBalance: env.currentBalance,
+    }));
+  }, [pools]);
+
+  const searchEvents = React.useMemo(() => {
+    const incomes = incomeEvents.map((ev) => ({
+      id: ev.id,
+      name: ev.name,
+      amount: parseFloat(ev.expectedAmount),
+      dueDate: ev.expectedDate,
+      type: 'INCOME' as const,
+    }));
+    const expenses = expenseEvents.map((ev) => ({
+      id: ev.id,
+      name: ev.name,
+      amount: parseFloat(ev.expectedAmount),
+      dueDate: ev.expectedDate,
+      type: 'EXPENSE' as const,
+    }));
+    return [...incomes, ...expenses];
+  }, [incomeEvents, expenseEvents]);
+
+  const handleSearchTransactions = React.useCallback(
+    async (q: string) => {
+      const res = await utils.searchTransactions.fetch({ query: q, limit: 10 });
+      return res.map((tx) => ({
+        id: tx.id,
+        recordedAt: tx.recordedAt,
+        amount: parseFloat(tx.amount),
+        note: tx.note,
+        flowType: tx.flowType,
+        envelopeName: tx.envelopeName,
+        envelopeId: tx.envelopeId,
+        bankAccountId: tx.bankAccountId,
+      }));
+    },
+    [utils]
+  );
 
   const {
     quickModalVisible,
@@ -224,21 +281,40 @@ export default function HomeScreen() {
         }}
       />
 
-      {/* Ask Money Matters AI Sheet */}
-      <MobileAskSheet
+      {/* Global Command Palette & Search Sheet */}
+      <MobileCommandPaletteSheet
         isOpen={askSheetVisible}
         onClose={() => setAskSheetVisible(false)}
+        accounts={searchAccounts}
+        envelopes={searchEnvelopes}
+        upcomingEvents={searchEvents}
+        onSearchTransactions={handleSearchTransactions}
         remainingCalls={
           usageQuery.data?.limit && usageQuery.data
             ? Math.max(0, usageQuery.data.limit - usageQuery.data.used)
             : undefined
         }
-        onAsk={async (query: string) => {
+        onAskPenny={async (query: string) => {
           const res = await askMutation.mutateAsync({ query });
           usageQuery.refetch();
           return res;
         }}
         onNavigatePrefill={handleAssistantPrefill}
+        onSelectAccount={() => {
+          router.push('/(app)/settings/bank-accounts' as Href);
+        }}
+        onSelectEnvelope={(env) => {
+          router.push(`/(app)/envelopes/${env.id}` as Href);
+        }}
+        onSelectEvent={() => {
+          router.push('/(app)/income-and-bills' as Href);
+        }}
+        onSelectTransaction={() => {
+          router.push('/(app)/transactions' as Href);
+        }}
+        onViewAllTransactions={(q) => {
+          router.push(`/(app)/transactions?search=${encodeURIComponent(q)}` as Href);
+        }}
       />
     </AppScreenWrapper>
   );

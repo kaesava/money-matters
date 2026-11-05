@@ -237,6 +237,8 @@ export function useHomeData(token?: string) {
     behindCount,
     onTrackCount,
     upcomingIncomeList,
+    incomeEvents: incomeEventsQuery.data ?? [],
+    expenseEvents: expenseEventsQuery.data ?? [],
     attentionItems,
     goalsList,
     everydayPool,
