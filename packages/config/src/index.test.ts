@@ -75,6 +75,30 @@ describe('Config Package Utilities', () => {
       expect(config.NODE_ENV).toBe('production');
       expect(config.DATABASE_URL).toBe('postgres://user:pass@localhost:5432/proddb');
     });
+
+    it('validates RESEND_FROM_EMAIL for both standard and RFC 5322 display name formats', () => {
+      const plain = validateEnv({
+        RESEND_FROM_EMAIL: 'info@moneymatters.kaesava.au',
+      });
+      expect(plain.RESEND_FROM_EMAIL).toBe('info@moneymatters.kaesava.au');
+
+      const rfc5322 = validateEnv(
+        {
+          RESEND_FROM_EMAIL: 'Money Matters <info@moneymatters.kaesava.au>',
+        },
+        true
+      );
+      expect(rfc5322.RESEND_FROM_EMAIL).toBe('Money Matters <info@moneymatters.kaesava.au>');
+
+      expect(() => {
+        validateEnv(
+          {
+            RESEND_FROM_EMAIL: 'invalid-email-address',
+          },
+          true
+        );
+      }).toThrow('System Environment Failure');
+    });
   });
 
 

@@ -75,10 +75,23 @@ export default {
     env: WorkerEnv,
     ctx: { waitUntil: (promise: Promise<unknown>) => void }
   ): Promise<Response> {
-    const isDev = env.ENVIRONMENT === 'development' || process.env.NODE_ENV === 'development';
+    const url = new URL(request.url);
+    const isLocalHost =
+      url.hostname === 'localhost' ||
+      url.hostname === '127.0.0.1' ||
+      url.hostname === '0.0.0.0' ||
+      url.hostname.startsWith('192.168.') ||
+      url.hostname.startsWith('100.');
+    const isDev =
+      env.ENVIRONMENT === 'development' ||
+      process.env.NODE_ENV === 'development' ||
+      isLocalHost;
 
     if (!isWorkerEnvInitialized && env && typeof env === 'object') {
       Object.assign(process.env, env);
+      if (isDev) {
+        process.env.ENVIRONMENT = 'development';
+      }
       try {
         validateEnv(env as unknown as Record<string, unknown>);
         isWorkerEnvInitialized = true;
@@ -97,8 +110,6 @@ export default {
     };
 
     try {
-      const url = new URL(request.url);
-
       if (request.method === 'OPTIONS') {
         return new Response(null, {
           status: 204,

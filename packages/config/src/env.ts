@@ -17,7 +17,13 @@ export const baseEnvSchema = z
     APP_MONEY_MATTERS_ID: z.string().uuid().default("01908bde-34bb-7b19-a178-574211bc93aa"),
     // Email and Storage capabilities
     RESEND_API_KEY: z.string().min(1).optional(),
-    RESEND_FROM_EMAIL: z.string().email().optional(),
+    RESEND_FROM_EMAIL: z
+      .string()
+      .refine(
+        (val) => /^(?:[^<@]+<)?[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}>?$/.test(val.trim()),
+        { message: "Must be a valid email or 'Name <email@domain.com>'" }
+      )
+      .optional(),
     STORAGE_ENDPOINT: z.string().url().optional(),
     STORAGE_ACCESS_KEY_ID: z.string().min(1).optional(),
     STORAGE_SECRET_ACCESS_KEY: z.string().min(1).optional(),

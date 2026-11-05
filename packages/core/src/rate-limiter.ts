@@ -22,6 +22,15 @@ function inProcessCheck(clientKey: string, limit: number, windowSeconds: number)
   return { allowed: true, remaining: limit - localStore[clientKey].length };
 }
 
+function isValidUpstashConfig(url?: string, token?: string): boolean {
+  if (!url || !token) return false;
+  const trimmedToken = token.trim();
+  if (trimmedToken === "" || trimmedToken === "NA" || trimmedToken === "replace-me") {
+    return false;
+  }
+  return true;
+}
+
 /**
  * Executes a sliding-window rate limit check using Upstash Redis REST pipeline.
  * Protects edge calls with a 1,500ms AbortController timeout.
@@ -35,7 +44,7 @@ export async function checkRateLimit(
   const restUrl = env?.UPSTASH_REDIS_REST_URL || process.env["UPSTASH_REDIS_REST_URL"];
   const restToken = env?.UPSTASH_REDIS_REST_TOKEN || process.env["UPSTASH_REDIS_REST_TOKEN"];
 
-  if (restUrl && restToken) {
+  if (isValidUpstashConfig(restUrl, restToken)) {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 1500);
 
@@ -69,11 +78,12 @@ export async function checkRateLimit(
         };
       }
     } catch {
-      // In production, if Redis fails on an unauthenticated or sensitive key, fail closed
+      // In production, only sensitive auth brute-force endpoints fail closed on Redis outage.
+      // General API routes fall back to the in-process sliding-window cache so a Redis network/DNS outage does not take down the platform.
       const isProduction =
         process.env.ENVIRONMENT === "production" ||
         process.env.NODE_ENV === "production";
-      if (isProduction && (identifier.startsWith("ip:") || identifier.startsWith("auth:"))) {
+      if (isProduction && identifier.startsWith("reset-password:")) {
         return { allowed: false, remaining: 0 };
       }
     } finally {
@@ -81,7 +91,7 @@ export async function checkRateLimit(
     }
   }
 
-  // Fallback in-process check for dev/test
+  // Fallback in-process check for dev/test or when Redis is unreachable
   return inProcessCheck(identifier, limit, windowSeconds);
 }
 
@@ -97,7 +107,7 @@ export async function checkAiTenantRateLimit(
   const restUrl = env?.UPSTASH_REDIS_REST_URL || process.env["UPSTASH_REDIS_REST_URL"];
   const restToken = env?.UPSTASH_REDIS_REST_TOKEN || process.env["UPSTASH_REDIS_REST_TOKEN"];
 
-  if (restUrl && restToken) {
+  if (isValidUpstashConfig(restUrl, restToken)) {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 1500);
 
