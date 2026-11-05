@@ -50,7 +50,7 @@ export function DrawerActivityHistoryTable({
             <thead>
               <tr className="bg-zinc-50 dark:bg-zinc-800/80 border-b border-zinc-200 dark:border-zinc-800 text-zinc-500 font-bold">
                 <th className="p-3 text-center">{t("categoryDrawer.date")}</th>
-                <th className="p-3">{t("categoryDrawer.description")}</th>
+                <th className="p-3 text-left">{t("categoryDrawer.description")}</th>
                 <th className="p-3 text-center">{t("categoryDrawer.type")}</th>
                 <th className="p-3 text-right">{t("categoryDrawer.amount")}</th>
               </tr>
@@ -71,7 +71,7 @@ export function DrawerActivityHistoryTable({
                     <td className="p-3 font-mono text-zinc-500 text-[11px] text-center">
                       {tx.recordedAt ? fmtDate(tx.recordedAt) : "—"}
                     </td>
-                    <td className="p-3 font-semibold text-zinc-900 dark:text-zinc-100 max-w-[180px] truncate">
+                    <td className="p-3 text-left font-semibold text-zinc-900 dark:text-zinc-100 max-w-[180px] truncate">
                       {noteText}
                     </td>
                     <td className="p-3 text-center">
@@ -79,7 +79,7 @@ export function DrawerActivityHistoryTable({
                         className={`text-[9px] font-extrabold uppercase px-1.5 py-0.5 rounded ${
                           isDebit
                             ? "bg-rose-50 text-rose-700"
-                            : "bg-emerald-50 text-emerald-700"
+                            : "bg-green-50 text-green-700"
                         }`}
                       >
                         {tx.flowType}
@@ -87,7 +87,7 @@ export function DrawerActivityHistoryTable({
                     </td>
                     <td
                       className={`p-3 text-right font-mono font-bold ${
-                        isDebit ? "text-rose-600" : "text-emerald-600"
+                        isDebit ? "text-rose-600" : "text-green-600"
                       }`}
                     >
                       {fmtTx(tx.amount || "0", isDebit ? "DEBIT" : "CREDIT")}

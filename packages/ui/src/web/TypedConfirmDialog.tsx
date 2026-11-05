@@ -65,6 +65,7 @@ export function TypedConfirmDialog({
           </label>
           <input
             type="text"
+            autoFocus={true}
             value={typed}
             onChange={(e) => setTyped(e.target.value)}
             placeholder={confirmPhrase}

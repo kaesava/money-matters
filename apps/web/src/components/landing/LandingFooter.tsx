@@ -6,6 +6,7 @@ import { t } from "@money-matters/i18n";
 
 import { authClient } from "../../lib/auth";
 import { useSubscriptionStatus } from "../../hooks/useSubscriptionStatus";
+import { useLocale } from "../../providers/LocaleProvider";
 
 export interface LandingFooterProps {
   onAuthClick: (tab: "signIn" | "signUp") => void;
@@ -14,6 +15,7 @@ export interface LandingFooterProps {
 function ConversionBanner({ onAuthClick }: LandingFooterProps) {
   const { data: session } = authClient.useSession();
   const { status } = useSubscriptionStatus();
+  const { currencySymbol } = useLocale();
 
   let title = t("landing.conversionTitle");
   let desc = t("landing.conversionDesc");
@@ -52,7 +54,7 @@ function ConversionBanner({ onAuthClick }: LandingFooterProps) {
       );
     } else {
       title = t("landing.footerConversionTrial");
-      desc = t("landing.footerConversionTrialDesc");
+      desc = t("landing.footerConversionTrialDesc", { currencySymbol });
       ctaContent = (
         <Link
           href="/dashboard"

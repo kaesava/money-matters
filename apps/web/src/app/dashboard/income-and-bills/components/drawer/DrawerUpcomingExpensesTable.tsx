@@ -3,6 +3,7 @@
 import React from "react";
 import Link from "next/link";
 import { t } from "@money-matters/i18n";
+import { useLocale } from "../../../../../providers/LocaleProvider";
 import type { CategoryScheduledEvent } from "../EnvelopeDetailDrawer";
 
 export interface DrawerUpcomingExpensesTableProps {
@@ -20,6 +21,7 @@ export function DrawerUpcomingExpensesTable({
   onMarkPaid,
   fmt,
 }: DrawerUpcomingExpensesTableProps) {
+  const { fmtDateMedium } = useLocale();
   return (
     <div className="space-y-4">
       <div className="flex justify-end">
@@ -42,7 +44,7 @@ export function DrawerUpcomingExpensesTable({
           <table className="w-full border-collapse text-left text-xs">
             <thead>
               <tr className="bg-zinc-50 dark:bg-zinc-800/80 border-b border-zinc-200 dark:border-zinc-800 text-zinc-500 font-bold">
-                <th className="p-3">{t("categoryDrawer.expenseName")}</th>
+                <th className="p-3 text-left">{t("categoryDrawer.expenseName")}</th>
                 <th className="p-3 text-center">{t("categoryDrawer.dueDate")}</th>
                 <th className="p-3 text-right">{t("categoryDrawer.amount")}</th>
                 <th className="p-3 text-center">{t("categoryDrawer.status")}</th>
@@ -51,18 +53,18 @@ export function DrawerUpcomingExpensesTable({
             <tbody className="divide-y divide-zinc-100 dark:divide-zinc-800">
               {upcomingExpensesList.map((evt) => (
                 <tr key={evt.id} className="hover:bg-zinc-50/50 dark:hover:bg-zinc-800/40 transition-colors">
-                  <td className="p-3 font-semibold text-zinc-900 dark:text-zinc-100">
+                  <td className="p-3 text-left font-semibold text-zinc-900 dark:text-zinc-100">
                     {evt.name}
                   </td>
                   <td className="p-3 text-center font-mono text-zinc-500">
-                    {evt.dueDate}
+                    {fmtDateMedium(evt.dueDate)}
                   </td>
                   <td className="p-3 text-right font-mono font-bold text-[#1B2B4B] dark:text-white">
                     {fmt(evt.amount || "0")}
                   </td>
                   <td className="p-3 text-center">
                     {evt.isPaid ? (
-                      <span className="text-[10px] font-extrabold text-emerald-600 bg-emerald-50 dark:bg-emerald-950/60 px-2 py-0.5 rounded-md inline-block">
+                      <span className="text-[10px] font-extrabold text-[#22c55e] bg-green-50 dark:bg-green-950/60 px-2 py-0.5 rounded-md inline-block">
                         {t("categoryDrawer.confirmed")}
                       </span>
                     ) : onMarkPaid ? (

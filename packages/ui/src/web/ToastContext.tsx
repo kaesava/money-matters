@@ -25,6 +25,8 @@ export interface ToastContextValue {
 
 const ToastContext = createContext<ToastContextValue | null>(null);
 
+let webToastCounter = 0;
+
 export function ToastProvider({ children }: { children: React.ReactNode }) {
   const [toasts, setToasts] = useState<ToastItem[]>([]);
   const idPrefix = useId();
@@ -39,7 +41,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
 
   const showToast = useCallback(
     ({ type, message, title, duration = 3500 }: { type: ToastType; message: string; title?: string; duration?: number }) => {
-      const id = `${idPrefix}-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`;
+      const id = `${idPrefix}-${Date.now()}-${++webToastCounter}`;
       const newToast: ToastItem = { id, type, message, title, duration };
       
       setToasts((prev) => [...prev, newToast]);

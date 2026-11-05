@@ -23,6 +23,8 @@ export interface MobileToastContextValue {
 
 const MobileToastContext = createContext<MobileToastContextValue | null>(null);
 
+let mobileToastCounter = 0;
+
 export function MobileToastProvider({ children }: { children: React.ReactNode }) {
   const [toasts, setToasts] = useState<MobileToastItem[]>([]);
   const idPrefix = useId();
@@ -37,7 +39,7 @@ export function MobileToastProvider({ children }: { children: React.ReactNode })
 
   const showToast = useCallback(
     ({ type, message, title, duration = 3000 }: { type: MobileToastType; message: string; title?: string; duration?: number }) => {
-      const id = `${idPrefix}-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`;
+      const id = `${idPrefix}-${Date.now()}-${++mobileToastCounter}`;
       const newToast: MobileToastItem = { id, type, message, title, duration };
 
       setToasts((prev) => [...prev, newToast]);

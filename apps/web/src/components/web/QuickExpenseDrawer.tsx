@@ -139,6 +139,7 @@ export function QuickActionDrawer({ onClose, initialTab = "DEBIT", initialData }
                     </FormLabel>
                     <input
                       type="text"
+                      autoFocus={true}
                       required
                       placeholder={t("drawers.quickExpense.transferNamePlaceholder")}
                       value={name}
@@ -191,6 +192,7 @@ export function QuickActionDrawer({ onClose, initialTab = "DEBIT", initialData }
                     </FormLabel>
                     <input
                       type="text"
+                      autoFocus={true}
                       required
                       placeholder={isIncome ? t("drawers.quickExpense.freelancePlaceholder") : t("drawers.quickExpense.woolworthsPlaceholder")}
                       value={name}

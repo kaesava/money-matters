@@ -116,7 +116,7 @@ export function BankAccountTable({
 
                 return (
                   <tr key={acc.id} className="hover:bg-zinc-50/80 transition-colors group">
-                    <td className="py-4 px-4 font-bold text-[#1B2B4B]">
+                    <td className="py-4 px-4 font-bold text-[#1B2B4B] text-left">
                       <div className="flex flex-col gap-1 items-start">
                         <div className="flex items-center gap-2">
                           <button
@@ -150,8 +150,8 @@ export function BankAccountTable({
 
                           if (!acc.hasDifference) {
                             return (
-                              <span className="text-[10px] text-emerald-600 font-medium flex items-center gap-1 mt-0.5">
-                                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                              <span className="text-[10px] text-green-600 font-medium flex items-center gap-1 mt-0.5">
+                                <span className="w-1.5 h-1.5 rounded-full bg-green-500"></span>
                                 <span>{t("bankAccounts.balancedStatus", { amount: fmtMoney(poolsTotal) })}</span>
                               </span>
                             );
@@ -176,13 +176,13 @@ export function BankAccountTable({
                                 }}
                                 className={`text-[10px] font-bold px-2 py-0.5 rounded-md flex items-center gap-1 transition-all cursor-pointer border ${
                                   isSurplus
-                                    ? "text-emerald-700 hover:text-emerald-800 bg-emerald-50 hover:bg-emerald-100 border-emerald-200"
+                                    ? "text-green-700 hover:text-green-800 bg-green-50 hover:bg-green-100 border-green-200"
                                     : "text-amber-700 hover:text-amber-800 bg-amber-50 hover:bg-amber-100 border-amber-200"
                                 }`}
                               >
                                 <span
                                   className={`w-1.5 h-1.5 rounded-full ${
-                                    isSurplus ? "bg-emerald-500" : "bg-amber-500 animate-pulse"
+                                    isSurplus ? "bg-green-500" : "bg-amber-500 animate-pulse"
                                   }`}
                                 ></span>
                                 <span>{labelStr}</span>

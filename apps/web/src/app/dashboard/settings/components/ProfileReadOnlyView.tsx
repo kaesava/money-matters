@@ -136,7 +136,7 @@ export function ProfileReadOnlyView({
             />
           </div>
           <span className="text-xs font-semibold text-[#1B2B4B]">
-            {showIcons ? "✓ Visible" : "✕ Hidden"}
+            {showIcons ? t("settings.profile.iconsVisible") : t("settings.profile.iconsHidden")}
           </span>
         </div>
       </div>

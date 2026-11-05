@@ -152,6 +152,7 @@ export function AvatarCropModal({
           <span className="text-xs font-bold text-slate-500">🔍 -</span>
           <input
             type="range"
+            autoFocus={true}
             min="0.2"
             max="4"
             step="0.01"

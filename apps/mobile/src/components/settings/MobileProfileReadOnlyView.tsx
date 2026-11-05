@@ -108,7 +108,7 @@ export function MobileProfileReadOnlyView({
           <ReadOnlyField label={t('settings.items.timezone')} value={timezone} />
           <ReadOnlyField
             label={t('settings.items.showIcons')}
-            value={showIcons ? '✓ Visible' : '✕ Hidden'}
+            value={showIcons ? t('settings.profile.iconsVisible') : t('settings.profile.iconsHidden')}
           />
         </View>
 
@@ -116,8 +116,8 @@ export function MobileProfileReadOnlyView({
         {biometricsAvailable && (
           <View style={styles.biometricsContainer}>
             <SwitchRow
-              label={`${biometricLabel} App Lock`}
-              hint="Auto-locks after 2 minutes of background inactivity to protect your stealth privacy."
+              label={t('settings.profile.biometricLockTitle', { label: biometricLabel })}
+              hint={t('settings.profile.biometricLockHint')}
               value={biometricsEnabled}
               onValueChange={onToggleBiometrics}
             />

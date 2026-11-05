@@ -150,7 +150,7 @@ export function BurstModal({
                           <span className="text-base shrink-0">{statusIcon}</span>
                           <div className="min-w-0">
                             {isEditing ? (
-                              <input type="date" value={editDate} onChange={(e) => setEditDate(e.target.value)} className="px-2 py-1 text-xs border border-zinc-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                              <input autoFocus={true} type="date" value={editDate} onChange={(e) => setEditDate(e.target.value)} className="px-2 py-1 text-xs border border-zinc-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
                             ) : (
                               <p className="text-xs font-bold text-[#1B2B4B]">
                                 {formatLocaleDate(evt.expectedDate)}
