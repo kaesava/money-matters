@@ -234,6 +234,7 @@ export function TransferModal({
               id={nameInputId}
               type="text"
               required
+              autoFocus={true}
               value={name}
               onChange={(e) => setName(e.target.value)}
               className="ui-input w-full"

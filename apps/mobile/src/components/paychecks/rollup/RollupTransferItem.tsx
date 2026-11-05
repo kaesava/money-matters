@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
-import { DESIGN_TOKENS } from '@money-matters/ui/mobile';
+import { DESIGN_TOKENS, useCurrencyLocale } from '@money-matters/ui/mobile';
 import { t } from '@money-matters/i18n';
 import { formatAUD } from '../../../lib/format';
 
@@ -24,6 +24,7 @@ export const RollupTransferItem: React.FC<RollupTransferItemProps> = ({
   isCopied,
   onCopyAmount,
 }) => {
+  const { currencySymbol } = useCurrencyLocale();
   return (
     <View style={styles.transferItem}>
       <View style={styles.transferTop}>
@@ -49,7 +50,7 @@ export const RollupTransferItem: React.FC<RollupTransferItemProps> = ({
             <Text style={[styles.copyText, isCopied && styles.copiedText]}>
               {isCopied
                 ? t('cards.paydayTransfer.copiedCheck')
-                : t('cards.paydayTransfer.copyAmount', { symbol: '$' })}
+                : t('cards.paydayTransfer.copyAmount', { symbol: currencySymbol })}
             </Text>
           </TouchableOpacity>
         </View>

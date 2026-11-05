@@ -27,13 +27,28 @@ async function resolveApiBase(): Promise<string> {
     return "https://api.moneymatters.kaesava.au";
   }
 
-  // In local development, probe active Fastify API server on localhost ports
+  // In local development, probe active API server on localhost ports
   const now = Date.now();
   if (cachedActiveBase && now - lastProbeTime < 10000) {
     return cachedActiveBase;
   }
 
-  const candidatePorts = [3001, 3002, 3003, 3004];
+  const customUrl = process.env.API_URL || process.env.NEXT_PUBLIC_API_URL;
+  if (customUrl && !customUrl.includes("moneymatters.kaesava.au")) {
+    const cleanUrl = customUrl.trim().replace(/\/+$/, "").replace(/\/trpc$/, "");
+    try {
+      const res = await fetch(`${cleanUrl}/health`, { signal: AbortSignal.timeout(500) });
+      if (res.ok) {
+        cachedActiveBase = cleanUrl;
+        lastProbeTime = now;
+        return cachedActiveBase;
+      }
+    } catch {
+      // Continue to candidate ports
+    }
+  }
+
+  const candidatePorts = [3001, 8787, 3002, 3003, 3004];
   for (const port of candidatePorts) {
     try {
       const res = await fetch(`http://localhost:${port}/health`, { signal: AbortSignal.timeout(500) });
@@ -55,7 +70,14 @@ function isValidOrigin(req: NextRequest): boolean {
     "https://moneymatters.kaesava.au",
     "https://api.moneymatters.kaesava.au",
     ...(process.env.NODE_ENV !== "production"
-      ? ["http://localhost:3000", "http://127.0.0.1:3000", "http://localhost:3001"]
+      ? [
+          "http://localhost:3000",
+          "http://127.0.0.1:3000",
+          "http://localhost:3001",
+          "http://127.0.0.1:3001",
+          "http://localhost:8787",
+          "http://127.0.0.1:8787",
+        ]
       : []),
   ];
 

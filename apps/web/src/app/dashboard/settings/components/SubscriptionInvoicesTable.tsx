@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { Spinner, PaginationBar } from "@money-matters/ui/web";
+import { Spinner, PaginationBar, useCurrencyLocale, formatCurrency } from "@money-matters/ui/web";
 import { t } from "@money-matters/i18n";
 
 export interface InvoiceItem {
@@ -25,6 +25,7 @@ export function SubscriptionInvoicesTable({
   isLoading,
   fmtDateMedium,
 }: SubscriptionInvoicesTableProps) {
+  const { locale } = useCurrencyLocale();
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(5);
 
@@ -53,7 +54,7 @@ export function SubscriptionInvoicesTable({
           <table className="w-full text-left text-xs">
             <thead>
               <tr className="border-b border-zinc-100 dark:border-zinc-800 text-zinc-400 font-bold uppercase tracking-wider">
-                <th className="pb-2 text-left">{t("subscription.invoiceDate")}</th>
+                <th className="pb-2 text-center">{t("subscription.invoiceDate")}</th>
                 <th className="pb-2 text-right">{t("subscription.invoiceAmount")}</th>
                 <th className="pb-2 text-center">{t("subscription.invoiceStatus")}</th>
                 <th className="pb-2 text-center">{t("subscription.invoiceReceipt")}</th>
@@ -65,11 +66,11 @@ export function SubscriptionInvoicesTable({
                   key={inv.id}
                   className="text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50/50 dark:hover:bg-zinc-800/50 transition-colors"
                 >
-                  <td className="py-2.5 font-medium text-left">
+                  <td className="py-2.5 font-medium text-center">
                     {inv.paidAt ? fmtDateMedium(inv.paidAt) : "—"}
                   </td>
                   <td className="py-2.5 text-right font-mono tabular-nums font-bold">
-                    ${inv.amountPaid} {inv.currency}
+                    {formatCurrency(parseFloat(inv.amountPaid), locale, inv.currency)}
                   </td>
                   <td className="py-2.5 text-center">
                     <span

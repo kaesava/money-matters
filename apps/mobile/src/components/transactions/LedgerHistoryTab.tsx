@@ -14,6 +14,7 @@ import { TransactionRow } from '../TransactionRow';
 import { TransactionDetailSheet, TransactionDetailRecord } from './TransactionDetailSheet';
 import { LedgerFilterControls } from './ledger/LedgerFilterControls';
 import { useLedgerFilterSections } from './hooks/useLedgerFilterSections';
+import { formatMobileCurrency } from '../../lib/format';
 
 export interface LedgerTxItem {
   id: string;
@@ -128,7 +129,7 @@ export function LedgerHistoryTab({
         isLoading={isAnalyticsLoading}
         timeframe={timeframe}
         onTimeframeChange={onTimeframeChange}
-        formatCurrency={(amt) => `$${amt.toFixed(2)}`}
+        formatCurrency={formatMobileCurrency}
       />
 
       <LedgerFilterControls

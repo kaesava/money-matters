@@ -262,13 +262,14 @@ export function MarkPaidModal({
           <AmountField
             label={t("common.amount")}
             required
+            autoFocus={true}
             value={amountStr}
             onChange={setAmountStr}
             allowNegative={false}
             currency={currency}
             currencySymbol={currencySymbol}
             minorUnits={minorUnits}
-            error={!isAmountValid && Boolean(amountStr) ? `Amount must be greater than ${currencySymbol}0` : undefined}
+            error={!isAmountValid && Boolean(amountStr) ? t("incomeBillsTabs.amountGreaterThanZero") : undefined}
           />
           <DatePickerField
             label={t("common.date")}

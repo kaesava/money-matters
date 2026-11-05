@@ -8,6 +8,7 @@ import {
   MobileSearchSelectOption,
   DESIGN_TOKENS,
 } from '@money-matters/ui/mobile';
+import { formatMobileCurrency } from '../../lib/format';
 
 interface SetupBalanceSweepModalProps {
   visible: boolean;
@@ -47,7 +48,7 @@ export function SetupBalanceSweepModal({
         <Text style={styles.desc}>
           {t('setup.sweepModalDesc', {
             poolName: activePool.name,
-            balance: `$${activePool.balance.toFixed(2)}`,
+            balance: formatMobileCurrency(activePool.balance),
           })}
         </Text>
 

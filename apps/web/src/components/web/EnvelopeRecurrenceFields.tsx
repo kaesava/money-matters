@@ -1,5 +1,4 @@
-import React from 'react';
-import { AmountField, GenericSelectField, DatePickerField, FormLabel } from '@money-matters/ui/web';
+import { AmountField, GenericSelectField, DatePickerField, FormLabel, useCurrencyLocale } from '@money-matters/ui/web';
 import { t } from '@money-matters/i18n';
 
 export interface EnvelopeRecurrenceFieldsProps {
@@ -33,6 +32,7 @@ export function EnvelopeRecurrenceFields({
   setEndDate,
   calculatedMonthly,
 }: EnvelopeRecurrenceFieldsProps) {
+  const { currencySymbol } = useCurrencyLocale();
   const frequencyOptions = [
     { value: 'WEEKLY', label: t('categories.frequencyWeekly') },
     { value: 'FORTNIGHTLY', label: t('categories.frequencyFortnightly') },
@@ -119,7 +119,7 @@ export function EnvelopeRecurrenceFields({
       {showMonthlyEquiv && (
         <div className="p-2.5 bg-blue-50/70 border border-blue-200 rounded-xl text-[11px] font-semibold text-blue-900 flex items-center justify-between font-mono">
           <span>{t('categories.monthlyEquivalent')}</span>
-          <span className="font-bold text-[#2563eb]">${calculatedMonthly} / mo</span>
+          <span className="font-bold text-[#2563eb]">{currencySymbol}{calculatedMonthly} {t('categories.perMonth')}</span>
         </div>
       )}
     </div>

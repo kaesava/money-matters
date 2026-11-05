@@ -2,6 +2,7 @@ import React from 'react';
 import { View, Text, TouchableOpacity, ActivityIndicator, StyleSheet } from 'react-native';
 import { DESIGN_TOKENS } from '@money-matters/ui/mobile';
 import { t } from '@money-matters/i18n';
+import { formatDate } from '../../../lib/format';
 
 export type RestorableItemType =
   | 'CATEGORY'
@@ -37,14 +38,7 @@ export function ArchivedItemRow({
     return t(typeKey);
   };
 
-  const formattedDate = item.archivedAt
-    ? new Intl.DateTimeFormat('en-AU', {
-        day: '2-digit',
-        month: 'short',
-        year: 'numeric',
-        timeZone: 'Australia/Sydney',
-      }).format(new Date(item.archivedAt))
-    : '';
+  const formattedDate = item.archivedAt ? formatDate(item.archivedAt) : '';
 
   return (
     <View style={styles.itemCard}>

@@ -114,7 +114,7 @@ export function updateBankAccountHandler(db: DbOrTx) {
     const effectiveBuffer = Number(input.unbudgetedBuffer ?? existing.unbudgetedBuffer ?? "0");
 
     if (effectiveBuffer > effectiveBalance) {
-      throw new Error("Unbudgeted buffer cannot exceed the current balance.");
+      throw new Error("Safety cushion cannot exceed the current balance.");
     }
 
     if (input.isPrivate !== undefined && input.isPrivate !== existing.isPrivate) {

@@ -17,6 +17,7 @@ import {
 } from '../paychecks/MobilePaydayAllocationDetailModal';
 import { IncomeSplitHistoryRow } from './splits/IncomeSplitHistoryRow';
 import { IncomeSplitsHeaderControls } from './IncomeSplitsHeaderControls';
+import { formatMobileCurrency } from '../../lib/format';
 
 interface IncomeSplitsTabProps {
   plans: MobilePaydayAllocationRecord[];
@@ -104,7 +105,7 @@ export function IncomeSplitsTab({
         isLoading={isAnalyticsLoading}
         timeframe={timeframe}
         onTimeframeChange={onTimeframeChange}
-        formatCurrency={(amt) => `$${amt.toFixed(2)}`}
+        formatCurrency={formatMobileCurrency}
         labels={incomeSplitLabels}
         showPayeesWhenFiltered={false}
       />

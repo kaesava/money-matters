@@ -5,9 +5,9 @@
   "main": "src/worker.ts",
   "type": "module",
   "scripts": {
-    "dev": "wrangler dev",
+    "dev": "wrangler dev --port 3001",
     "build": "wrangler build",
-    "preview": "wrangler build && wrangler dev",
+    "preview": "wrangler build && wrangler dev --port 3001",
     "cf-deploy": "wrangler build && wrangler deploy",
     "lint": "eslint \"**/*.ts\" --cache",
     "typecheck": "tsc --noEmit",

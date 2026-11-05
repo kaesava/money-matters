@@ -12,6 +12,8 @@ import { Feather } from '@expo/vector-icons';
 import { t } from '@money-matters/i18n';
 import { FilterPill } from './FilterPill';
 import { styles } from './picker/MobileBankPickerStyles';
+import { useCurrencyLocale } from '../hooks/CurrencyLocaleContext';
+import { formatCurrency } from '../lib/format';
 
 export interface MobileBankOption {
   id: string;
@@ -52,6 +54,7 @@ export const MobileBankPicker: React.FC<MobileBankPickerProps> = ({
 }) => {
   const [modalVisible, setModalVisible] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const { locale, currency } = useCurrencyLocale();
 
   const resolvedAllLabel = allOptionLabel || t('transactions.allBanks');
   const selectedBank = banks.find((b) => b.id === selectedBankId || b.name === selectedBankId);
@@ -206,7 +209,7 @@ export const MobileBankPicker: React.FC<MobileBankPickerProps> = ({
                 const rawBal = item.availableBalance ?? item.currentBalance;
                 const balNum = typeof rawBal === 'number' ? rawBal : rawBal ? parseFloat(String(rawBal)) : null;
                 const balText = balNum !== null && !isNaN(balNum)
-                  ? `$${balNum.toLocaleString('en-AU', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+                  ? formatCurrency(balNum, locale, currency)
                   : null;
 
                 return (

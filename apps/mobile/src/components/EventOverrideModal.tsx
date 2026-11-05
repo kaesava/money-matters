@@ -133,6 +133,7 @@ export function EventOverrideModal({ visible, eventToEdit, onClose, onSuccess, o
       <AmountInput
         label={t('common.amount')}
         required
+        autoFocus={true}
         value={expectedAmount}
         onChangeText={(val) => {
           setExpectedAmount(val);

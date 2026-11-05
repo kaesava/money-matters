@@ -147,13 +147,12 @@ export function BankAccountTable({
                           }
 
                           const poolsTotal = linkedList.reduce((sum, p) => sum + (p.currentBalance || 0), 0);
-                          const expectedStr = `Expected ${fmtMoney(poolsTotal)}.`;
 
                           if (!acc.hasDifference) {
                             return (
                               <span className="text-[10px] text-emerald-600 font-medium flex items-center gap-1 mt-0.5">
                                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-                                <span>{expectedStr} Balanced</span>
+                                <span>{t("bankAccounts.balancedStatus", { amount: fmtMoney(poolsTotal) })}</span>
                               </span>
                             );
                           }
@@ -161,13 +160,13 @@ export function BankAccountTable({
                           const diff = acc.differenceAmount || 0;
                           const isSurplus = diff > 0;
                           const labelStr = isSurplus
-                            ? `Align Surplus of ${fmtMoney(diff)}`
-                            : `Align Shortfall of ${fmtMoney(Math.abs(diff))}`;
+                            ? t("bankAccounts.alignSurplus", { amount: fmtMoney(diff) })
+                            : t("bankAccounts.alignShortfall", { amount: fmtMoney(Math.abs(diff)) });
 
                           return (
                             <div className="flex items-center gap-1.5 flex-wrap mt-0.5">
                               <span className="text-[10px] text-zinc-500 font-medium">
-                                {expectedStr}
+                                {t("bankAccounts.expectedStatus", { amount: fmtMoney(poolsTotal) })}
                               </span>
                               <button
                                 type="button"
@@ -199,7 +198,7 @@ export function BankAccountTable({
                           {fmtMoney(availBal)}
                         </span>
                         <span className="text-[10px] text-zinc-400 font-medium">
-                          Actual Balance: {fmtMoney(actualBal)}
+                          {t("bankAccounts.actualBalanceLabel", { amount: fmtMoney(actualBal) })}
                         </span>
                       </div>
                     </td>
@@ -226,7 +225,7 @@ export function BankAccountTable({
                                   onClick={() => openLinkedPoolsModal ? openLinkedPoolsModal(acc) : setSelectedAccForPools(acc)}
                                   className="text-[11px] font-bold text-slate-600 hover:text-[#2563eb] bg-slate-100 hover:bg-blue-50 border border-slate-200 px-1.5 py-0.5 rounded-md cursor-pointer transition-colors"
                                 >
-                                  +{(acc.linkedPoolsCount ?? 0) - 2} more
+                                  {t("bankAccounts.morePoolsCount", { count: (acc.linkedPoolsCount ?? 0) - 2 })}
                                 </button>
                               )}
                             </div>

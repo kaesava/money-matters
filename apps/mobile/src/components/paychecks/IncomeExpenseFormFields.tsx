@@ -10,6 +10,7 @@ import {
   RecurrenceBuilder,
   useRecurrenceBuilder,
   FormErrorBanner,
+  useCurrencyLocale,
 } from '@money-matters/ui/mobile';
 import { t } from '@money-matters/i18n';
 
@@ -63,6 +64,7 @@ export function IncomeExpenseFormFields({
   onReceivingAccountIdChange,
   onPoolSelect,
 }: IncomeExpenseFormFieldsProps) {
+  const { currencySymbol } = useCurrencyLocale();
   return (
     <View style={styles.content}>
       {generalError ? <FormErrorBanner message={generalError} /> : null}
@@ -82,7 +84,7 @@ export function IncomeExpenseFormFields({
       />
 
       <AmountInput
-        label={t('modals.incomeExpenseForm.expectedAmount', { symbol: '$' })}
+        label={t('modals.incomeExpenseForm.expectedAmount', { symbol: currencySymbol })}
         required
         value={amount}
         onChangeText={onAmountChange}

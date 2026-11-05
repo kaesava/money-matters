@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet } from 'react-native';
 import { Feather } from '@expo/vector-icons';
-import { DESIGN_TOKENS } from '@money-matters/ui/mobile';
+import { DESIGN_TOKENS, useCurrencyLocale } from '@money-matters/ui/mobile';
 import { t } from '@money-matters/i18n';
 
 interface MobileAffordCheckCardProps {
@@ -9,6 +9,7 @@ interface MobileAffordCheckCardProps {
 }
 
 export const MobileAffordCheckCard: React.FC<MobileAffordCheckCardProps> = ({ onCheck }) => {
+  const { currencySymbol } = useCurrencyLocale();
   const [amount, setAmount] = useState('');
 
   const handlePress = () => {
@@ -34,7 +35,7 @@ export const MobileAffordCheckCard: React.FC<MobileAffordCheckCardProps> = ({ on
 
       <View style={styles.actionRow}>
         <View style={styles.inputContainer}>
-          <Text style={styles.currencyPrefix}>$</Text>
+          <Text style={styles.currencyPrefix}>{currencySymbol}</Text>
           <TextInput
             style={styles.input}
             value={amount}

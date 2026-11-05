@@ -6,7 +6,7 @@ import {
   StyleSheet,
   Share,
 } from 'react-native';
-import { DESIGN_TOKENS, MobileModalDialog, MobileButton } from '@money-matters/ui/mobile';
+import { DESIGN_TOKENS, MobileModalDialog, MobileButton, useCurrencyLocale } from '@money-matters/ui/mobile';
 import { t } from '@money-matters/i18n';
 import { formatAUD } from '../lib/format';
 
@@ -32,6 +32,7 @@ export function CrossBankTransferModal({
   accountNumber,
 }: CrossBankTransferModalProps) {
   const [copied, setCopied] = useState(false);
+  const { currencySymbol } = useCurrencyLocale();
   const D = DESIGN_TOKENS;
 
   const handleCopyAmount = async () => {
@@ -103,7 +104,7 @@ export function CrossBankTransferModal({
             <Text style={styles.copyBtnText}>
               {copied
                 ? t('modals.crossBankTransfer.copiedCheck')
-                : t('modals.crossBankTransfer.copyAmount', { symbol: '$' })}
+                : t('modals.crossBankTransfer.copyAmount', { symbol: currencySymbol })}
             </Text>
           </TouchableOpacity>
         </View>

@@ -30,7 +30,7 @@ export const transactions = {
       "incomeDirect": "Direct Income",
       "transferOut": "Transfer Out",
       "transferIn": "Transfer In",
-      "accountAlignment": "Account Alignment",
+      "accountAlignment": "Balance Match",
       "balanceAdjustment": "Balance Adjustment",
       "openingBalance": "Opening Balance"
     },

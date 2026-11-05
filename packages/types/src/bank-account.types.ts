@@ -71,7 +71,7 @@ export const BankAccountFormSchema = z
       return buf <= bal;
     },
     {
-      message: "Unbudgeted buffer cannot exceed current balance",
+      message: "Safety cushion cannot exceed current balance",
       path: ["unbudgetedBuffer"],
     }
   );

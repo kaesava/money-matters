@@ -56,6 +56,8 @@ const BANNED_PATTERNS = [
   { pattern: /\(\$\s*USD\)/i, reason: "Hardcoded '($ USD)' in i18n label. Money Matters is 100% globally parameterized; use dynamic currency." },
   { pattern: /\bAUD\s*\/\s*(mo|yr|week|month|year)\b/i, reason: "Hardcoded 'AUD' in frequency pricing. Use dynamic currency format." },
   { pattern: />\s*\$0/i, reason: "Hardcoded '$0' in comparison label. Use zero currency format or dynamic currency." },
+  { pattern: /(?<!\{)\bPools?\b(?!\})/i, reason: "Use 'Envelope(s)' instead of 'Pool(s)'." },
+  { pattern: /(?<!\{)\bBuckets?\b(?!\})/i, reason: "Use 'Envelope(s)' instead of 'Bucket(s)'." },
 ];
 
 const terminologyErrors = [];

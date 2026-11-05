@@ -19,7 +19,7 @@ export interface UnsavedSplitExitDialogProps {
 export function UnsavedSplitExitDialog({
   isOpen,
   isDeficit,
-  deficitAmount = "$0.00",
+  deficitAmount = "",
   submitting = false,
   onClose,
   onDiscardAndExit,

@@ -113,7 +113,7 @@ export const dashboard = {
   "assistant": {
     "trigger": "Ask Penny",
     "triggerTitle": "Ask Penny",
-    "placeholder": "Ask about your goals, bills, payday, or pools...",
+    "placeholder": "Ask about your goals, bills, payday, or envelopes...",
     "subtitle": "Your intelligent Money Matters companion. Suggested questions are always free.",
     "remainingUsage": "{remaining} of {limit} AI questions left this month (resets {resetsOn})",
     "suggestedTitle": "Suggested Questions",

@@ -1,6 +1,8 @@
 import React from 'react';
 import { t } from '@money-matters/i18n';
 import { Badge, BadgeProps } from './Badge';
+import { useCurrencyLocale } from '../hooks/CurrencyLocaleContext';
+import { formatCurrency } from '../lib/format';
 
 export interface MobileBillCoverageBadgeProps {
   status: 'COVERED' | 'SHORT_BY' | 'NO_SCHEDULE';
@@ -13,6 +15,8 @@ export function MobileBillCoverageBadge({
   shortfallAmount,
   style,
 }: MobileBillCoverageBadgeProps) {
+  const { locale, currency } = useCurrencyLocale();
+
   if (status === 'COVERED') {
     return (
       <Badge variant="success" style={style}>
@@ -22,7 +26,7 @@ export function MobileBillCoverageBadge({
   }
 
   if (status === 'SHORT_BY') {
-    const formatted = shortfallAmount != null ? `$${shortfallAmount}` : '$0.00';
+    const formatted = formatCurrency(shortfallAmount ?? 0, locale, currency);
     return (
       <Badge variant="danger" style={style}>
         {t('billCoverage.shortBy', { amount: formatted })}

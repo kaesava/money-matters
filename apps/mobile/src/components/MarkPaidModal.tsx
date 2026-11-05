@@ -116,9 +116,10 @@ export function MarkPaidModal({
             <AmountInput
               label={t('common.amount')}
               required
+              autoFocus={true}
               value={actualAmount}
               onChangeText={setActualAmount}
-              error={!isAmountValid && Boolean(actualAmount) ? 'Amount must be greater than 0' : undefined}
+              error={!isAmountValid && Boolean(actualAmount) ? t('incomeBillsTabs.amountGreaterThanZero') : undefined}
             />
           </View>
           <View style={styles.flex1}>
@@ -127,7 +128,7 @@ export function MarkPaidModal({
               required
               value={actualDate}
               onChange={setActualDate}
-              error={!isDateValid ? 'Date cannot be in future' : undefined}
+              error={!isDateValid ? t('incomeBillsTabs.dateCannotBeInFuture') : undefined}
             />
           </View>
         </View>

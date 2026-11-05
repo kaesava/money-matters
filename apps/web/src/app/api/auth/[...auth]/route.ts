@@ -18,7 +18,14 @@ function isValidOrigin(req: NextRequest): boolean {
     "https://moneymatters.kaesava.au",
     "https://api.moneymatters.kaesava.au",
     ...(process.env.NODE_ENV !== "production"
-      ? ["http://localhost:3000", "http://127.0.0.1:3000", "http://localhost:3001"]
+      ? [
+          "http://localhost:3000",
+          "http://127.0.0.1:3000",
+          "http://localhost:3001",
+          "http://127.0.0.1:3001",
+          "http://localhost:8787",
+          "http://127.0.0.1:8787",
+        ]
       : []),
   ];
 

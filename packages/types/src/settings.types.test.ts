@@ -106,7 +106,7 @@ describe("Settings Types & Schemas", () => {
           unbudgetedBuffer: "200.00",
           isPrivate: false,
         })
-      ).toThrow("Unbudgeted buffer cannot exceed current balance");
+      ).toThrow("Safety cushion cannot exceed current balance");
     });
 
     it("rejects negative balances", () => {

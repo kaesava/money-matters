@@ -197,6 +197,7 @@ export default function AppLayout() {
           options={{ href: null }}
         />
         <Tabs.Screen name="settings/bank-accounts" options={{ href: null }} />
+        <Tabs.Screen name="settings/subscription" options={{ href: null }} />
         <Tabs.Screen name="settings/notifications" options={{ href: null }} />
         <Tabs.Screen name="settings/archived" options={{ href: null }} />
         <Tabs.Screen name="settings/history" options={{ href: null }} />

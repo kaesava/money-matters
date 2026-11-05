@@ -6,6 +6,7 @@ import {
   AmountInput,
   ChipSelect,
   DatePickerField,
+  useCurrencyLocale,
 } from '@money-matters/ui/mobile';
 import { t } from '@money-matters/i18n';
 
@@ -40,6 +41,7 @@ export const EnvelopeRecurrenceFields: React.FC<EnvelopeRecurrenceFieldsProps> =
   setEndDate,
   calculatedMonthly,
 }) => {
+  const { currencySymbol } = useCurrencyLocale();
   const showMonthlyEquiv =
     Boolean(amount && parseFloat(amount) > 0 && (frequency !== 'MONTHLY' || interval > 1));
 
@@ -121,7 +123,7 @@ export const EnvelopeRecurrenceFields: React.FC<EnvelopeRecurrenceFieldsProps> =
       {showMonthlyEquiv && (
         <View style={styles.equivBanner}>
           <Text style={styles.equivLabel}>{t('categories.monthlyEquivalent')}</Text>
-          <Text style={styles.equivVal}>${calculatedMonthly} / mo</Text>
+          <Text style={styles.equivVal}>{currencySymbol}{calculatedMonthly} {t('categories.perMonth')}</Text>
         </View>
       )}
     </View>

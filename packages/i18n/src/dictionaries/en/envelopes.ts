@@ -71,6 +71,7 @@ export const envelopes = {
     "frequencyFortnightly": "Fortnightly",
     "frequencyMonthly": "Monthly",
     "frequencyAnnually": "Annually",
+    "perMonth": "/ mo",
     "monthlyEquivalent": "Monthly Equivalent:",
     "goalPastDateWarning": "⚠️ This date is in the past — your goal may be overdue.",
     "addPool": "Add Envelope",

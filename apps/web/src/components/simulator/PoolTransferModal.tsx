@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { t } from "@money-matters/i18n";
+import { useCurrencyLocale } from "@money-matters/ui/web";
 
 export interface PoolTransferModalProps {
   isOpen: boolean;
@@ -31,6 +32,7 @@ export function PoolTransferModal({
   onTransfer,
   initialFromPool = "everyday",
 }: PoolTransferModalProps) {
+  const { currencySymbol } = useCurrencyLocale();
   const [fromPool, setFromPool] = useState<PoolType>(initialFromPool);
   const [toPool, setToPool] = useState<PoolType>("goals");
   const [amount, setAmount] = useState<number>(50);
@@ -115,7 +117,7 @@ export function PoolTransferModal({
           <div className="space-y-2">
             <label className="block text-slate-500">{t("landing.simTransferAmount")}</label>
             <div className="flex items-center gap-2">
-              <span className="text-slate-400 font-mono text-sm">$</span>
+              <span className="text-slate-400 font-mono text-sm">{currencySymbol}</span>
               <input
                 type="number"
                 min={5}
@@ -135,7 +137,7 @@ export function PoolTransferModal({
                     amount === amt ? "bg-[#2563eb] text-white" : "bg-slate-100 text-slate-700"
                   }`}
                 >
-                  ${amt}
+                  {currencySymbol}{amt}
                 </button>
               ))}
             </div>

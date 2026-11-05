@@ -4,6 +4,7 @@ import React, { useState } from "react";
 import { trpc } from "../../../../lib/trpc";
 import { t } from "@money-matters/i18n";
 import { PaginationBar, Spinner, InfoTooltip, SearchInput, SkeletonTable, ConfirmDialog, useToast } from "@money-matters/ui/web";
+import { useLocale } from "../../../../providers/LocaleProvider";
 
 type ArchivedItemType = "POOL" | "CATEGORY" | "INCOME_SOURCE" | "BANK_ACCOUNT";
 
@@ -17,6 +18,7 @@ interface ArchivedItem {
 
 export function ArchivedSection() {
   const toast = useToast();
+  const { fmtDateMedium } = useLocale();
   const [search, setSearch] = useState("");
   const [filterType, setFilterType] = useState<"ALL" | ArchivedItemType>("ALL");
 
@@ -153,12 +155,7 @@ export function ArchivedSection() {
                 {item.archivedAt && (
                   <span className="text-xs text-slate-500 font-medium">
                     {t("settings.archived.archivedOn", {
-                      date: new Intl.DateTimeFormat("en-AU", {
-                        day: "2-digit",
-                        month: "short",
-                        year: "numeric",
-                        timeZone: "Australia/Sydney",
-                      }).format(new Date(item.archivedAt)),
+                      date: fmtDateMedium(item.archivedAt),
                     })}
                   </span>
                 )}

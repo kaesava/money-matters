@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { useCurrencyLocale } from '../../hooks/CurrencyLocaleContext';
 
 export interface AmountCentInputProps {
   label: string;
@@ -10,6 +11,7 @@ export interface AmountCentInputProps {
   className?: string;
   placeholder?: string;
   allowNegative?: boolean;
+  currencySymbol?: string;
 }
 
 export function AmountCentInput({
@@ -20,7 +22,10 @@ export function AmountCentInput({
   className = '',
   placeholder = '0.00',
   allowNegative = false,
+  currencySymbol,
 }: AmountCentInputProps) {
+  const { currencySymbol: defaultSymbol } = useCurrencyLocale();
+  const symbol = currencySymbol || defaultSymbol;
   // Store local string representation to allow decimals/typing
   const [displayValue, setDisplayValue] = useState<string>('');
 
@@ -65,7 +70,7 @@ export function AmountCentInput({
         {label} {required && <span className="text-rose-500">*</span>}
       </label>
       <div className="relative">
-        <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 text-sm font-medium select-none pointer-events-none">$</span>
+        <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 text-sm font-medium select-none pointer-events-none">{symbol}</span>
         <input
           type="text"
           inputMode="decimal"

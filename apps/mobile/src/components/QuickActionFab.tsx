@@ -5,6 +5,7 @@ import { DESIGN_TOKENS } from '@money-matters/ui/mobile';
 import { QuickExpenseModal } from './QuickExpenseModal';
 
 import { triggerHaptic } from '../lib/haptics';
+import { t } from '@money-matters/i18n';
 
 export interface QuickActionFabProps {
   visible?: boolean;
@@ -32,7 +33,7 @@ export function QuickActionFab({ visible = true, onCustomPress }: QuickActionFab
           activeOpacity={0.85}
           onPress={handlePress}
           style={styles.fab}
-          accessibilityLabel="Quick Action"
+          accessibilityLabel={t('dashboard.quickAction')}
           accessibilityRole="button"
         >
           <Feather name="plus" size={26} color="#FFFFFF" />
