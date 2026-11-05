@@ -9,3 +9,4 @@ export * from "./types.js";
 
 export * from "./schema/index.js";
 export * from "./get-envelope-balances.js";
+export * from "./testing/mock-db.js";

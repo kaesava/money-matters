@@ -2,10 +2,16 @@ import { useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { trpc } from "../../../lib/trpc";
 import posthog from "../../../lib/posthog-client";
-import { QuickPresetItem, QuickActionInitialData, computeRecentAndFrequentPresets, isPaydayOrAdjustment } from "@money-matters/types";
+import { QuickPresetItem, QuickActionInitialData } from "@money-matters/types";
 import { useToast } from "@money-matters/ui/web";
 import { t } from "@money-matters/i18n";
 import { useLocale } from "../../../providers/LocaleProvider";
+import { useQuickPresets } from "./useQuickPresets";
+import { useQuickInitialMatching } from "./useQuickInitialMatching";
+
+interface ConfirmModalState { isOpen: boolean; title: string; description: string; onConfirm: () => void; }
+interface CrossBankPrompt { sourceAccountName: string; destAccountName: string; amount: number; payId?: string | null; bsb?: string | null; accountNumber?: string | null; }
+interface ShortfallData { billName: string; amount: number; date: string; poolId: string; poolName: string; poolType: string; currentBalance: number; }
 
 export function useQuickActionState(
   onClose: () => void,
@@ -33,29 +39,9 @@ export function useQuickActionState(
   const [date, setDate] = useState(initialData?.date || todayStr);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
-  const [confirmState, setConfirmState] = useState<{
-    isOpen: boolean;
-    title: string;
-    description: string;
-    onConfirm: () => void;
-  } | null>(null);
-  const [crossBankPrompt, setCrossBankPrompt] = useState<{
-    sourceAccountName: string;
-    destAccountName: string;
-    amount: number;
-    payId?: string | null;
-    bsb?: string | null;
-    accountNumber?: string | null;
-  } | null>(null);
-  const [shortfallModalData, setShortfallModalData] = useState<{
-    billName: string;
-    amount: number;
-    date: string;
-    poolId: string;
-    poolName: string;
-    poolType: string;
-    currentBalance: number;
-  } | null>(null);
+  const [confirmState, setConfirmState] = useState<ConfirmModalState | null>(null);
+  const [crossBankPrompt, setCrossBankPrompt] = useState<CrossBankPrompt | null>(null);
+  const [shortfallModalData, setShortfallModalData] = useState<ShortfallData | null>(null);
 
   const utils = trpc.useUtils();
 
@@ -90,39 +76,16 @@ export function useQuickActionState(
   const txList = useMemo(() => rawTxList ?? [], [rawTxList]);
 
   // Auto-match envelope and transfer pools from initialData
-  useMemo(() => {
-    if (!initialData || categories.length === 0) return;
-
-    if (initialData.envelopeName && !categoryId) {
-      const search = initialData.envelopeName.toLowerCase().trim();
-      const matched = categories.find(
-        (c) => c.name.toLowerCase().includes(search) || search.includes(c.name.toLowerCase())
-      );
-      if (matched) {
-        setCategoryId(matched.id);
-      }
-    }
-
-    if (initialData.sourcePoolName && !sourceCategoryId) {
-      const search = initialData.sourcePoolName.toLowerCase().trim();
-      const matched = categories.find(
-        (c) => c.name.toLowerCase().includes(search) || search.includes(c.name.toLowerCase())
-      );
-      if (matched) {
-        setSourceCategoryId(matched.id);
-      }
-    }
-
-    if (initialData.destinationPoolName && !destinationCategoryId) {
-      const search = initialData.destinationPoolName.toLowerCase().trim();
-      const matched = categories.find(
-        (c) => c.name.toLowerCase().includes(search) || search.includes(c.name.toLowerCase())
-      );
-      if (matched) {
-        setDestinationCategoryId(matched.id);
-      }
-    }
-  }, [initialData, categories, categoryId, sourceCategoryId, destinationCategoryId]);
+  useQuickInitialMatching(
+    initialData,
+    categories,
+    categoryId,
+    setCategoryId,
+    sourceCategoryId,
+    setSourceCategoryId,
+    destinationCategoryId,
+    setDestinationCategoryId
+  );
 
   function handleTabChange(newType: "DEBIT" | "CREDIT" | "TRANSFER") {
     setType(newType);
@@ -138,89 +101,7 @@ export function useQuickActionState(
     setSuccess(false);
   }
 
-  const quickExpensePresets = useMemo(() => {
-    const validTxs = txList.filter(
-      (tx) => tx.flowType === "DEBIT" && !tx.transferGroupId && tx.note && !isPaydayOrAdjustment(tx.note)
-    );
-    return computeRecentAndFrequentPresets(
-      validTxs,
-      (tx) => tx.note?.trim().toLowerCase() || null,
-      (tx) => ({
-        name: tx.note!.trim(),
-        amount: tx.amount ? parseFloat(tx.amount).toFixed(2) : undefined,
-        categoryId: tx.envelopeId || undefined,
-      }),
-      (tx) => (tx.recordedAt ? new Date(tx.recordedAt).getTime() : Date.now())
-    );
-  }, [txList]);
-
-  const quickIncomePresets = useMemo(() => {
-    const validTxs = txList.filter(
-      (tx) => tx.flowType === "CREDIT" && !tx.transferGroupId && tx.note && !isPaydayOrAdjustment(tx.note)
-    );
-    return computeRecentAndFrequentPresets(
-      validTxs,
-      (tx) => tx.note?.trim().toLowerCase() || null,
-      (tx) => ({
-        name: tx.note!.trim(),
-        amount: tx.amount ? parseFloat(tx.amount).toFixed(2) : undefined,
-        receivingAccountId: tx.bankAccountId || undefined,
-      }),
-      (tx) => (tx.recordedAt ? new Date(tx.recordedAt).getTime() : Date.now())
-    );
-  }, [txList]);
-
-  const quickTransferPresets = useMemo(() => {
-    const transferMap = new Map<
-      string,
-      { note: string; amount: string; sourceCatId?: string; destCatId?: string; timestamp: number }
-    >();
-
-    const catNameMap = new Map(categories.map((c) => [c.id, c.name]));
-
-    for (const tx of txList) {
-      const groupKey = tx.transferGroupId || (tx.note?.startsWith("Transferred") ? tx.note : null);
-      if (groupKey && !isPaydayOrAdjustment(tx.note)) {
-        const existing = transferMap.get(groupKey) || {
-          note: tx.note || "Transfer",
-          amount: tx.amount ? parseFloat(tx.amount).toFixed(2) : "0.00",
-          timestamp: tx.recordedAt ? new Date(tx.recordedAt).getTime() : Date.now(),
-        };
-        if (tx.flowType === "DEBIT") {
-          existing.sourceCatId = tx.envelopeId || undefined;
-        } else if (tx.flowType === "CREDIT") {
-          existing.destCatId = tx.envelopeId || undefined;
-        }
-        transferMap.set(groupKey, existing);
-      }
-    }
-
-    const transferItems = Array.from(transferMap.values()).map((transfer) => {
-      const srcName = transfer.sourceCatId ? catNameMap.get(transfer.sourceCatId) : null;
-      const dstName = transfer.destCatId ? catNameMap.get(transfer.destCatId) : null;
-
-      let displayName = transfer.note.trim();
-      if (srcName && dstName && (displayName === "Transfer" || displayName.startsWith("Transferred"))) {
-        displayName = `${srcName} ➔ ${dstName}`;
-      }
-      return {
-        ...transfer,
-        displayName,
-      };
-    }).filter((t) => !isPaydayOrAdjustment(t.displayName));
-
-    return computeRecentAndFrequentPresets(
-      transferItems,
-      (t) => t.displayName.toLowerCase(),
-      (t) => ({
-        name: t.displayName,
-        amount: t.amount,
-        sourceCategoryId: t.sourceCatId,
-        destinationCategoryId: t.destCatId,
-      }),
-      (t) => t.timestamp
-    );
-  }, [txList, categories]);
+  const { quickExpensePresets, quickIncomePresets, quickTransferPresets } = useQuickPresets(txList, categories);
 
   const recordExpenseMutation = trpc.recordExpense.useMutation({
     onSuccess: () => handleDone(),
@@ -433,6 +314,37 @@ export function useQuickActionState(
     createOneOffExpenseMut.isPending ||
     createIncomeSourceMut.isPending;
 
+  async function handleConfirmShortfallPaid({
+    amount: finalAmt,
+    date: finalDate,
+    transfers = [],
+  }: {
+    amount: number;
+    date: string;
+    transfers?: Array<{ poolId: string; amount: string }>;
+  }) {
+    if (!shortfallModalData) return;
+    for (const tItem of transfers) {
+      if (parseFloat(tItem.amount || "0") > 0) {
+        await moveMoneyMutation.mutateAsync({
+          sourceEnvelopeId: tItem.poolId,
+          destinationEnvelopeId: shortfallModalData.poolId,
+          amount: tItem.amount,
+          note: `Cover shortfall for ${shortfallModalData.billName}`,
+        });
+      }
+    }
+    await recordExpenseMutation.mutateAsync({
+      envelopeId: shortfallModalData.poolId,
+      amount: finalAmt.toFixed(2),
+      note: shortfallModalData.billName,
+      date: finalDate,
+      transactionType: "EXPENSE",
+    });
+    setShortfallModalData(null);
+    handleDone();
+  }
+
   return {
     type,
     name,
@@ -470,36 +382,7 @@ export function useQuickActionState(
     setCrossBankPrompt,
     shortfallModalData,
     setShortfallModalData,
-    handleConfirmShortfallPaid: async ({
-      amount: finalAmt,
-      date: finalDate,
-      transfers = [],
-    }: {
-      amount: number;
-      date: string;
-      transfers?: Array<{ poolId: string; amount: string }>;
-    }) => {
-      if (!shortfallModalData) return;
-      for (const tItem of transfers) {
-        if (parseFloat(tItem.amount || "0") > 0) {
-          await moveMoneyMutation.mutateAsync({
-            sourceEnvelopeId: tItem.poolId,
-            destinationEnvelopeId: shortfallModalData.poolId,
-            amount: tItem.amount,
-            note: `Cover shortfall for ${shortfallModalData.billName}`,
-          });
-        }
-      }
-      await recordExpenseMutation.mutateAsync({
-        envelopeId: shortfallModalData.poolId,
-        amount: finalAmt.toFixed(2),
-        note: shortfallModalData.billName,
-        date: finalDate,
-        transactionType: "EXPENSE",
-      });
-      setShortfallModalData(null);
-      handleDone();
-    },
+    handleConfirmShortfallPaid,
     handleTabChange,
     handleSelectPreset,
     handleSubmit,

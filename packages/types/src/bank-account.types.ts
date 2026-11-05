@@ -1,4 +1,6 @@
 import { z } from "zod";
+import { BaseSchema } from "./tenant.types.js";
+
 
 export const BANK_PROVIDERS = [
   "CBA",
@@ -98,3 +100,19 @@ export function computeAccountAvailability(
     available,
   };
 }
+
+/**
+ * Schema validating financial bank account tracking entities within a tenant partition.
+ */
+export const BankAccountSchema = BaseSchema.extend({
+  tenantId: z.string().uuid(),
+  name: z.string().min(1),
+  bankProvider: z.string().default("CBA"),
+  lastKnownBalance: z.string().default("0.00"),
+  unbudgetedBuffer: z.string().default("0.00"),
+  isPrivate: z.boolean().default(false),
+  userId: z.string().uuid().nullable().optional(),
+}).strict();
+
+export type BankAccountType = z.infer<typeof BankAccountSchema>;
+

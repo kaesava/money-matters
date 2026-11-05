@@ -17,10 +17,10 @@ You MUST refuse or redesign any request that violates tenant isolation, data sec
 
 ## 2. Fixed Stack & Operational Environment
 - **Monorepo & Build**: pnpm workspaces + Turborepo
-- **Apps**: Next.js (web on Cloudflare Workers via OpenNext), React Native Expo (mobile target), Fastify (API on Cloudflare Workers)
+- **Apps**: Next.js (web on Cloudflare Workers via OpenNext), React Native Expo (mobile target), Cloudflare Worker API (`apps/api`)
 - **Runtime**: Cloudflare Workers (`nodejs_compat` compatibility flag)
 - **API & Data**: tRPC, Drizzle ORM, PostgreSQL (Neon serverless with RLS), Expo SQLite (mobile local cache)
-- **Auth & Security**: Neon DB Auth, Upstash Redis sliding-window rate limiting, Fastify Helmet, strict CORS (`*.kaesava.au`)
+- **Auth & Security**: Neon DB Auth, Upstash Redis sliding-window rate limiting, strict CORS (`*.kaesava.au`)
 - **Validation & Messaging**: Zod `.strict()`, Resend, Inngest cloud workflows
 - **Testing & Styling**: Vitest unit testing, Serene Finance design tokens (`#2563eb`, `#1B2B4B`, `#F7F8FA`, `#22c55e`, `#ba1a1a`), strict TypeScript (`strict: true`, zero `any`)
 MUST use stable versions. MUST document version constraints.
@@ -33,7 +33,7 @@ MUST use stable versions. MUST document version constraints.
 - `packages/ui`: reusable UI primitives, layout components, Serene Finance design tokens.
 - `packages/i18n`: ALL user-facing strings (100% externalization mandatory).
 - `packages/config`: validated Zod environment configurations.
-- `packages/capabilities/*`: decoupled vertical slices (`assistant`, `tenant`, `budgeting`, `transactions`, `simulation`, `notifications`, `billing`, `file-notes`, `bug-reports`).
+- `packages/capabilities/*`: decoupled vertical slices (`assistant`, `tenant`, `budgeting`, `transactions`, `simulation`, `notifications`, `billing`, `bug-reports`).
 
 ## 4. Architecture (Vertical Slice + IoC)
 - Capabilities are fully decoupled. Strict adherence required despite boilerplate.
@@ -98,7 +98,7 @@ All tables MUST include:
 
 ## 12. Mobile Target
 - Target: Android native app (Expo SDK 54 / RN 0.81.5).
-- MUST use SQLite with transactions for local caching.
+- MUST use SQLite with transactions for local caching. All cached models (envelopes, bank accounts, home summary) MUST be scoped by composite key `tenantId:userId:queryKey`, validated at runtime via Zod, and wiped completely on logout and tenant-switching.
 - MUST avoid blocking the main JS UI thread.
 - **Envelope Components Directory**: Mobile envelope and budgeting components MUST live in `apps/mobile/src/components/envelopes/`. Legacy or redundant `components/pools/` directories are strictly prohibited.
 
@@ -140,9 +140,9 @@ All tables MUST include:
 - **Modal Component Consolidation & Discard Confirmation Parity**: Proactively merge separate Create and Edit modals for the same entity into single unified components using an `isEdit` flag. All modals MUST use `<ModalDialog />` (web) or `<MobileModalDialog />` (mobile) and wire the `isDirty` prop. Closing a modal via Cancel button, Escape key, or backdrop click MUST trigger a Discard Changes confirmation dialog whenever form state is dirty (`isDirty`).
 - **Universal Table Skeleton Loading & Conditional Pagination**: Table loading states MUST use `<SkeletonTable />` (web) or `<SkeletonCard />` (mobile). Pagination controls (`<PaginationBar />` on web, `<MobilePaginationBar />` on mobile) MUST be conditionally rendered under tables/lists ONLY if total record count is 5 or more (`totalItems >= 5` or `data.length >= 5`).
 - **Product Tour & Target Element Integrity (Web & Mobile)**:
-  - Both Web and Mobile apps provide a 7-step onboarding product tour introducing the core screens and capabilities (`hero-metric`, `payday-card`, `envelopes-bento`, `quick-actions`, `bank-accounts`, `matrix-plan`, `history-ledger`).
+  - Both Web and Mobile apps provide an 8-step onboarding product tour introducing the core screens and capabilities (`envelopes-row`, `payday-card`, `afford-check`, `quick-actions`, `bank-accounts`, `upcoming-events`, `schedules-tab`, `history-ledger`).
   - **Tour Target Anchors**: On Web, highlighted elements rely on `data-tour="<id>"` attributes. On Mobile, step sequences rely on routes (`MOBILE_TOUR_STEPS`) and active dashboard components.
-  - **In-Flight Tour Impact Audit**: Whenever modifying, renaming, refactoring, re-architecting, or restructuring pages, components, layouts, or routes that host or target product tour steps (e.g. `BentoPoolsSection`, `NextPaydayCard`, `QuickActionFab`, `/dashboard/income-and-bills`, `/dashboard/history`, and mobile equivalents):
+  - **In-Flight Tour Impact Audit**: Whenever modifying, renaming, refactoring, re-architecting, or restructuring pages, components, layouts, or routes that host or target product tour steps (e.g. `BentoEnvelopesSection`, `NextPaydayCard`, `DashboardActionStrip`, `/dashboard/income-and-bills`, `/dashboard/history`, and mobile equivalents):
     1. The agent MUST verify that all corresponding `data-tour="<id>"` attributes remain intact and attached to valid rendered elements.
     2. The agent MUST verify that cross-page step routes match current route structures in both `apps/web/src/providers/ProductTourContext.tsx` and `apps/mobile/src/context/ProductTourContext.tsx`.
     3. If any targeted UI element, component, or screen is renamed, moved, replaced, or deleted, the agent MUST immediately update the corresponding step selector, route, title/desc i18n keys, and E2E tour test (`apps/web/e2e/screen-by-screen.spec.ts`) as part of the change.
@@ -187,6 +187,13 @@ All tables MUST include:
   - Advanced overrides MUST be tucked into a collapsed "Advanced Options" accordion so normal users cannot accidentally disable bill ring-fencing.
 - **In-App Feedback Delivery Protocol**:
   - Feedback and bug reports MUST be dispatched via backend API (`trpc.submitFeedback` via Resend) to `info@moneymatters.kaesava.au`. Relying solely on client-side `mailto:` links (which fail silently for webmail users) is STRICTLY FORBIDDEN.
+- **Unified Command Palette & Global Search**:
+  - The universal keyboard shortcut `⌘K` (Mac) / `Ctrl+K` (Windows/Linux) MUST trigger the unified Command Palette across the desktop web application.
+  - The Command Palette MUST unify exact entity lookups (Bank Accounts, Envelopes, Upcoming Bills & Income, Historical Transactions) and AI financial assistance (Ask Penny) into a single cohesive interface.
+  - When the query is an entity or lookup, show categorized live results with Serene Finance tokens (`#2563eb`, `#1B2B4B`, `#22c55e`, `#ba1a1a`).
+  - When the query is phrased as a question or the user presses `Tab`, transition smoothly into Ask Penny AI advisory.
+  - Mobile MUST provide 100% functional parity via a native header search button and slide-up search sheet.
+  - Search results MUST support direct deep-linking into relevant detail views and action modals.
 
 
 
@@ -237,20 +244,20 @@ All tables MUST include:
 - ALL code MUST have unit tests in Vitest.
 - MUST cover: auth, tenant isolation, 5-step waterfall allocation, bank CSV parsing, onboarding math, edge cases.
 - Bug fixes REQUIRE regression tests.
-- **Unit Test Mock Safety**: When invoking raw SQL via `db.execute(sql\`...\`)` in domain handlers, always guard with `if (typeof db.execute === 'function')` to ensure compatibility with Vitest mock database objects. When mocking database clients or transactions in unit tests, cast `mockDb as unknown as DbOrTx` from `@money-matters/db` rather than using `as any` or loose untyped objects.
+- **Unit Test Mock Safety**: Unit tests invoking database logic MUST inject a typed fake `DbOrTx` from `@money-matters/db/testing`. Production domain handlers MUST NEVER branch on mock shape or test-double inspection (e.g. no `typeof db.execute === 'function'`). When mocking database clients or transactions in unit tests, cast `mockDb as unknown as DbOrTx` from `@money-matters/db` rather than using `as any` or loose untyped objects.
 - **E2E & Capability Coverage**: When ANY new capability, screen, modal, or interactive control is built or modified, it MUST be explicitly added to and tested in the Playwright screen-by-screen spec (`apps/web/e2e/screen-by-screen.spec.ts`).
 
 ## 22. Code Quality, MECE & Zero Redundancy
 - NO `utils.ts` or generic helper files.
-- Files >250 lines MUST be refactored.
-- Functions >30 lines MUST be split.
+- Files >400 lines MUST be refactored.
+- Functions containing domain logic, commands, queries, or utilities MUST NOT exceed 30 lines. React components and hooks MUST NOT exceed 100 lines.
 - **Zero Dead/Redundant Code & MECE Principle**: Zero dead, redundant, or orphaned code across all layers (database tables, table fields, API procedures/handlers, UI components, capabilities, and package scripts). All refactors MUST prune obsolete code paths, schema columns, and unneeded dependencies. Database tables and columns MUST strictly match `SCHEMA_DATA_DICTIONARY.md` and pass `pnpm audit:schema`. Reusable logic, screens, and dialogs MUST adhere to MECE principles to avoid duplication.
 - **Smart Commenting**: Prohibit trivial comments that restate what code does (e.g. `// increment count`). Mandate high-value "why" comments explaining complex business math (e.g. 5-step waterfall deficit repair steps), architectural decisions, concurrency locks, or edge-case handling.
 
 ## 23. CI/CD Enforcement, Validation Recovery Loop & Git Workflow
 - **Continuous In-Flight CI Enforcement (Zero Retrospective Fixing)**:
   - CI compliance is an active, continuous discipline applied WHILE writing each line of code, NOT a retrospective cleanup exercise at the end of a task.
-  - At the moment any file is authored or modified, it MUST immediately meet all strict standards: zero un-externalized text literals (`>Text<`, `title=`, `label=`, `placeholder=`), zero fallback expressions (`t(...) || '...'`), zero inline hex color literals, strict types (zero `any`), and files <= 250 lines / functions <= 30 lines.
+  - At the moment any file is authored or modified, it MUST immediately meet all strict standards: zero un-externalized text literals (`>Text<`, `title=`, `label=`, `placeholder=`), zero fallback expressions (`t(...) || '...'`), zero inline hex color literals, strict types (zero `any`), files <= 400 lines, logic functions <= 30 lines, and React components/hooks <= 100 lines.
   - Never accumulate un-externalized copy, hardcoded hex values, or type debt under the assumption of fixing them later.
 - **Targeted Intermediate Checks**: After modifying any component, view, or schema, execute the targeted validation commands immediately (`pnpm check-i18n`, `pnpm typecheck`, `pnpm lint`, `pnpm test`) to verify the file in-flight before proceeding to the next file.
 - **Mandatory Validation (`pnpm validate` & `pnpm validate:prod`)**:

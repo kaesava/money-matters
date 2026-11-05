@@ -1,0 +1,269 @@
+export const common = {
+  "common": {
+    "amount": "Amount",
+    "date": "Date Paid",
+    "type": "Type",
+    "name": "Name",
+    "target": "Target",
+    "balance": "Balance",
+    "all": "All",
+    "expense": "Expense",
+    "income": "Income",
+    "expenses": "Expenses",
+    "transfers": "Transfers",
+    "created": "Created",
+    "shared": "Shared",
+    "private": "Private",
+    "today": "Today",
+    "yesterday": "Yesterday",
+    "saveSuccess": "Changes saved successfully.",
+    "status": "Status",
+    "save": "Save",
+    "cancel": "Cancel",
+    "confirm": "Confirm",
+    "next": "Next",
+    "back": "Back",
+    "done": "Done",
+    "dismiss": "Dismiss",
+    "reset": "Reset",
+    "manage": "Manage",
+    "success": "Success",
+    "edit": "Edit",
+    "delete": "Delete",
+    "archive": "Archive",
+    "loading": "Loading...",
+    "error": "Something went wrong. Give it another go.",
+    "errorTryAgain": "Something went wrong. Please try again.",
+    "retry": "Try again",
+    "emptySubtitle": "Add something to get started.",
+    "saveChanges": "Save changes",
+    "update": "Update",
+    "create": "Create",
+    "close": "Close",
+    "gotIt": "Got it",
+    "add": "Add",
+    "remove": "Remove",
+    "discard": "Discard",
+    "markSpent": "Mark Spent",
+    "paid": "Paid",
+    "count": "Count",
+    "technicalDetails": "Technical details",
+    "redirectingToDev": "Redirecting to development server...",
+    "completingAuth": "Completing authentication...",
+    "tryAgain": "Try Again",
+    "advancedOptions": "Advanced Options",
+    "searchPlaceholder": "Search...",
+    "tapToSelect": "Tap to select...",
+    "noMatchingOptions": "No matching options found",
+    "confirmDelete": "You sure? This can't be undone.",
+    "confirmDeleteDescription": "Are you sure you want to delete this item? This action cannot be undone.",
+    "source": "Source",
+    "destination": "Destination",
+    "refresh": "Refresh",
+    "user": "User",
+    "search": "Search",
+    "description": "Description",
+    "itemsPerPage": "Show:",
+    "showingRange": "Showing {start}–{end} of {total}",
+    "previous": "Previous",
+    "pageOf": "Page {page} of {totalPages}",
+    "nextPage": "Next",
+    "clear": "Clear",
+    "filter": "Filter",
+    "selectPool": "Select Envelope...",
+    "allPools": "All Envelopes",
+    "noPoolsAvailable": "No envelopes available",
+    "searchPoolOrCategory": "Search envelope...",
+    "noPoolsFoundMatching": "No envelopes found matching \"{query}\"",
+    "collapseCategories": "Collapse envelopes",
+    "expandCategories": "Expand envelopes",
+    "runSplit": "Plan Payday",
+    "deleteIncomeTitle": "Delete Income",
+    "deleteIncomePrompt": "Are you sure you want to delete this income schedule?",
+    "deleteExpenseTitle": "Delete Expense",
+    "deleteExpensePrompt": "Are you sure you want to delete \"{name}\"?",
+    "max": "Max",
+    "showMore": "Show More →",
+    "overdue": "Overdue",
+    "transfer": "Transfer",
+    "saveOnly": "Save Only",
+    "splitIncome": "Split Income",
+    "proceed": "Proceed",
+    "dueSoon": "Due Soon"
+  },
+  "nav": {
+    "dashboard": "Money Matters",
+    "home": "Home",
+    "blog": "Blog",
+    "bankAccounts": "Bank Accounts",
+    "categories": "Envelopes",
+    "incomeExpenses": "Plan",
+    "settings": "Settings",
+    "transactions": "History",
+    "history": "History"
+  },
+  "actions": {
+    "markPaid": "Mark Paid"
+  },
+  "badges": {
+    "bill": "BILL",
+    "income": "INCOME",
+    "noUpcomingBills": "No upcoming bills scheduled."
+  },
+  "tables": {
+    "name": "Name",
+    "amount": "Amount",
+    "date": "Date",
+    "bankAccount": "Bank Account",
+    "currentBalance": "Current Balance",
+    "target": "Target",
+    "actions": "Actions",
+    "details": "Details",
+    "history": "History",
+    "expenses": "Expenses",
+    "available": "Available",
+    "transferAmount": "Transfer",
+    "envelopeOrBankAccount": "Envelope / Bank Account",
+    "scheduleName": "SCHEDULE NAME",
+    "bankAccountUpper": "BANK ACCOUNT",
+    "amountUpper": "AMOUNT",
+    "assignedEnvelope": "ASSIGNED ENVELOPE",
+    "incomeSplitDateUpper": "PAYDAY PLAN DATE",
+    "incomeDateUpper": "INCOME DATE",
+    "totalAmount": "Total Amount",
+    "totalAllocated": "Total Allocated",
+    "remainingShortfall": "Remaining Shortfall"
+  },
+  "forms": {
+    "scheduleType": "Schedule Type",
+    "recurrenceSchedule": "Recurrence Schedule",
+    "recurring": "Ongoing",
+    "oneOff": "One-off",
+    "frequency": "Frequency",
+    "every": "Every",
+    "weekly": "Weekly",
+    "fortnightly": "Fortnightly",
+    "monthly": "Monthly",
+    "annually": "Annually (Yearly)",
+    "yearly": "Yearly",
+    "weeks": "Weeks",
+    "fortnights": "Fortnights",
+    "months": "Months",
+    "years": "Years",
+    "firstDate": "First Date",
+    "firstPaymentDueDate": "First Payment / Due Date",
+    "eventDate": "Event Date",
+    "endDate": "End Date",
+    "endDateOptional": "End Date",
+    "oneOffNotice": "One-off items do not create a ongoing schedule and will appear directly in your Upcoming Timeline."
+  },
+  "toasts": {
+    "setupSaved": "Setup completed successfully! Welcome to your dashboard.",
+    "saved": "Saved successfully",
+    "created": "Created successfully",
+    "archived": "Archived successfully",
+    "deleted": "Deleted successfully",
+    "error": "Something went wrong. Please try again.",
+    "copied": "Copied to clipboard",
+    "exportSuccess": "Data exported successfully",
+    "transferSaved": "Transfer saved",
+    "transferCompleted": "Transfer completed",
+    "transferDeleted": "Transfer deleted",
+    "expenseMarkedPaid": "Expense marked as spent.",
+    "expenseDeleted": "Expense deleted.",
+    "earlyAccessRegistered": "Thank you! We've registered your email and will notify you as soon as Money Matters goes live."
+  },
+  "tooltips": {
+    "dashboard": {
+      "title": "About Your Dashboard",
+      "content": "Your command centre for financial peace. Money Matters ring-fences fixed bills and savings goals upfront so you can spend your Everyday balance with complete peace of mind."
+    },
+    "categories": {
+      "title": "About Your Virtual Envelopes",
+      "content": "Manage your spending envelopes and savings goals. The 5-Step Payday Plan automatically fills your Bills envelope and savings upfront on payday."
+    },
+    "incomeBills": {
+      "content": "Setup income and ongoing expenses. On payday, upcoming expenses are protected by planning your income into the right Envelopes so you never get caught out by surprise due dates."
+    },
+    "transactions": {
+      "title": "About History & Payday Plans",
+      "content": "A complete record of all your household income, expenses and envelope transfers as well as your payday plans."
+    },
+    "bankAccounts": {
+      "title": "About Bank Accounts",
+      "content": "Linking your envelopes (Everyday, Bills, Savings) to your actual bank accounts ensures your payday plan matches your real-world bank balances for effortless 1-tap reconciliation."
+    },
+    "settings": {
+      "title": "About Settings",
+      "content": "Manage your household profile, preferences, and account configuration."
+    },
+    "archived": {
+      "title": "About Archived Items",
+      "content": "View and restore archived spending envelopes, bill schedules, income schedules, or bank accounts. Restoring an item reactivates its upcoming schedule, while historical transactions remain permanently preserved."
+    },
+    "notifications": {
+      "title": "About Notifications",
+      "content": "Configure email alerts and automated reminders for upcoming bills and payday plans."
+    }
+  },
+  "validation": {
+    "invalidEmail": "Invalid email address format",
+    "postcodeDigits": "Australian postcodes must be exactly 4 digits."
+  },
+  "notFound": {
+    "title": "G'day! Page not found 404",
+    "message": "Looks like you took a wrong turn.",
+    "backToDashboard": "Back to Dashboard",
+    "backToHome": "Back to Home",
+    "signIn": "Sign In",
+    "goBack": "Go Back",
+    "inAppTitle": "We couldn't find that page",
+    "inAppSubtitle": "The URL may have been mistyped, moved, or is no longer available.",
+    "quickLinksTitle": "Quick Navigation",
+    "quickLinkOverview": "Dashboard Overview",
+    "quickLinkIncomeBills": "Income & Bills Split",
+    "quickLinkEnvelopes": "Virtual Envelopes",
+    "quickLinkHistory": "Transaction History",
+    "mobileTitle": "Page Not Found",
+    "mobileSubtitle": "This screen doesn't exist or the link was broken.",
+    "mobileReturnHome": "Return to Home"
+  },
+  "networkError": {
+    "title": "Connection Interrupted",
+    "badge": "Server / Database Unreachable",
+    "defaultMessage": "We're having trouble reaching Money Matters servers. Your data is safe. Please check your internet connection.",
+    "retryBtn": "Retry Connection",
+    "retryBtnShort": "Retry",
+    "dismissBtn": "Dismiss banner"
+  },
+  "keyboardShortcuts": {
+    "title": "Keyboard Shortcuts",
+    "askPenny": "Ask Penny",
+    "quickExpense": "Quick Expense",
+    "search": "Search",
+    "close": "Close",
+    "shortcuts": "Shortcuts"
+  },
+  "errors": {
+    "somethingWentWrongTitle": "Something Went Wrong",
+    "somethingWentWrongBody": "An unexpected application error occurred. Our team has been notified automatically."
+  },
+  "legal": {
+    "privacyPolicy": "Privacy Policy",
+    "termsOfService": "Terms of Use"
+  },
+  "location": {
+    "selectState": "Select State...",
+    "invalidPostcode": "Postcode must be exactly 4 digits"
+  },
+  "app": {
+    "title": "Money Matters",
+    "tagline": "Real progress on long-term goals. Guilt-free spending. Zero bill shock. No daily tracking."
+  },
+  "searchSelect": {
+    "selectPlaceholder": "Select option...",
+    "searchPlaceholder": "Search...",
+    "clearSelection": "Clear Selection",
+    "noResults": "No options found"
+  }
+} as const;

@@ -48,31 +48,28 @@ export async function archiveEnvelopeCommand(
       throw new Error("The primary Surplus Sweep Target cannot be archived without designating another public envelope as the sweep target.");
     }
 
-    if (typeof dbClient.update === "function") {
-      await dbClient
-        .update(envelopes)
-        .set({ isSurplusTarget: false })
-        .where(
-          and(
-            eq(envelopes.id, envelopeId),
-            eq(envelopes.tenantId, tenantId),
-            eq(envelopes.appId, appId)
-          )
-        );
-    }
+    await dbClient
+      .update(envelopes)
+      .set({ isSurplusTarget: false })
+      .where(
+        and(
+          eq(envelopes.id, envelopeId),
+          eq(envelopes.tenantId, tenantId),
+          eq(envelopes.appId, appId)
+        )
+      );
   }
 
   // Soft-archive all pending (unconfirmed) expense events (both scheduled and one-off)
   // Confirmed history and bank accounts are never modified or archived.
-  if (typeof dbClient.update === "function") {
-    await dbClient
-      .update(expenseEvents)
-      .set({
-        archivedAt: new Date(),
-        archivedBy: userId,
-        updatedAt: new Date(),
-        updatedBy: userId,
-      })
+  await dbClient
+    .update(expenseEvents)
+    .set({
+      archivedAt: new Date(),
+      archivedBy: userId,
+      updatedAt: new Date(),
+      updatedBy: userId,
+    })
       .where(
         and(
           eq(expenseEvents.envelopeId, envelopeId),
@@ -82,7 +79,6 @@ export async function archiveEnvelopeCommand(
           sql`${expenseEvents.archivedAt} IS NULL`
         )
       );
-  }
 
   const [archived] = await dbClient
     .update(envelopes)

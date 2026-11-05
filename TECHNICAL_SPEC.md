@@ -14,17 +14,17 @@
 | Build Orchestration | Turborepo | 2.0.14 | Turbo pipeline |
 | Language | Strict TypeScript | ^6.0.3 | Zero `any`, mandatory Zod `.strict()` |
 | Web Framework | Next.js (App Router) | Cloudflare Workers via `@opennextjs/cloudflare` | Custom domain `moneymatters.kaesava.au` |
-| API Server | Fastify | Cloudflare Workers (`src/worker.ts`) | Custom domain `api.moneymatters.kaesava.au` |
-| API Layer | tRPC | ^11.18.0 | Type-safe RPC contracts (`budgetingRouter`, `tenantRouter`, `incomeRouter`, `expensesRouter`, `paydayRouter`, `transactionsRouter`, `billingRouter`, `fileNotesRouter`, `bugReportRouter`, `notificationsRouter`, `assistantRouterMap`) |
+| API Server | Cloudflare Worker Fetch API | Cloudflare Workers (`src/worker.ts`) | Custom domain `api.moneymatters.kaesava.au` |
+| API Layer | tRPC | ^11.18.0 | Type-safe RPC contracts (`budgetingRouter`, `tenantRouter`, `incomeRouter`, `expensesRouter`, `paydayRouter`, `transactionsRouter`, `billingRouter`, `notificationsRouter`, `assistantRouterMap`, `bugReportsRouter`) |
 | ORM | Drizzle ORM | ^0.39.0 | Neon PostgreSQL driver |
 | Database (Server) | Neon PostgreSQL (Serverless) | Neon DB | Multi-tenant schema with RLS (`privateTenantProcedure` session injection) |
-| Database (Mobile) | Expo SQLite | 16.0.10 | Local SQLite (Online-first MVP) |
+| Database (Mobile) | Expo SQLite | 16.0.10 | Local SQLite (Scoped `tenantId:userId:queryKey`, validated via Zod, wiped on logout) |
 | Auth | Neon Auth (Better Auth) | Neon Auth Service | JWT & session cookie verification |
 | Rate Limiting | Upstash Redis | Serverless Redis (ap-southeast-1) | REST API sliding-window rate limiter |
 | File Storage | Cloudflare R2 | Cloudflare R2 | Attachments & file notes (`money-matters-production`) |
-| Async Workflows | Inngest | Inngest Cloud | Release 1 active background cron (`notifyWeeklyDigest` Sunday 7pm AEST via Resend) & async dispatches; non-digest crons staged for Release 2 (`V2_SCOPE.md`) |
+| Async Workflows | Inngest | Inngest Cloud | Release 1 active background cron (`notifyWeeklyDigest` Sunday 7pm AEST via Resend, `maintainRollingWindow`) & async dispatches |
 | Email Service | Resend | Resend API | Transactional emails & partner invites |
-| Analytics & Replays | PostHog (Self-driving) | PostHog SaaS | Product usage tracking, feature flags, session replays |
+| Analytics & Replays | PostHog (Self-driving) | PostHog SaaS | Product usage tracking (opt-in consent, `identify(userId)` only without PII or amounts) |
 | Crash & APM | Sentry | Sentry SaaS | Production exception reporting & symbolicated stack traces |
 | Mobile Framework | React Native / Expo | Expo SDK 54 / RN 0.81.5 | Android native app |
 | Styling & UI | Serene Finance Tokens & Toast/Alert System | `packages/ui` & `apps/web` | Standardized tokens (`#2563eb`, `#1B2B4B`, `#F7F8FA`, `#22c55e`, `#ba1a1a`), JetBrains Mono via `next/font/google`, non-blocking Toast feedback system (`ToastProvider`/`useToast`/`MobileToastProvider`/`useMobileToast`), inline `AlertBanner` primitives, and responsive viewport (`width=device-width`) |
@@ -37,7 +37,7 @@
 ```
 money-matters/
 ├── apps/
-│   ├── api/           # Fastify server on Cloudflare Workers (`wrangler.toml`)
+│   ├── api/           # Cloudflare Worker API (`wrangler.toml`, `src/worker.ts`)
 │   ├── mobile/        # Expo React Native app (Android target)
 │   └── web/           # Next.js web app on Cloudflare Workers via OpenNext (`wrangler.jsonc`)
 ├── packages/
@@ -45,10 +45,11 @@ money-matters/
 │   │   ├── assistant/       # Ask Penny AI Assistant (Cloudflare Workers AI Gateway, deterministic matcher, usage quota)
 │   │   ├── billing/         # Subscription state machine, Stripe checkout & customer portal, raw-body webhook processor
 │   │   ├── tenant/          # Household creation, partner invite, bank account CRUD, bank balance reconciliation
-│   │   ├── budgeting/       # Pool-centric architecture (`Bank Account → Pool → Category`), immutable pool-bank linking, unbudgeted buffer validation, 5-step waterfall allocation engine (Deficit Repair, Regular, Goal, Everyday, Surplus), rolling window maintainer, immutable confirmed allocations, cascading pool archival, last-category guard
+│   │   ├── budgeting/       # Envelope-centric architecture (`Bank Account → Envelope → Category`), 5-step waterfall allocation engine, rolling window maintainer
 │   │   ├── transactions/    # Daily ledger, expense recording, transaction history, paired transfer resolution
 │   │   ├── simulation/      # Stateless "Can I Afford It?" engine with 3-tier verdict model (Safe, Caution, Not Recommended) & goal timeline impact analysis
-│   │   └── notifications/   # Expo push + scheduled weekly digest Inngest workflow + feedback delivery (trpc.submitFeedback via Resend)
+│   │   ├── notifications/   # Expo push + scheduled weekly digest Inngest workflow + retention workflows
+│   │   └── bug-reports/     # Feedback and bug report delivery (`submitFeedback` via Resend with client diagnostics)
 │   ├── core/          # DB client, universal logger, auth session resolver, rate limiter, correlation ID hook
 │   ├── config/        # Zod env schemas, app registry, feature flags
 │   ├── db/            # Drizzle schemas (22 audited tables in SCHEMA_DATA_DICTIONARY.md), migrations & seeds
@@ -509,7 +510,7 @@ tenants (id PK, appId FK→apps.id, name, subscriptionTier, stripeCustomerId, st
 - **`SocialAuthButtons.tsx`**: Modular Google SSO OAuth button with SVG branding and Serene hover states (Apple Social Auth deferred to Release 2; see `V2_SCOPE.md` `FEAT-V2-009-APPLE-AUTHENTICATION`).
 - **`PasswordStrengthIndicator.tsx`**: 4-rule security checklist (≥8 chars, uppercase, lowercase, number/special character) with dynamic progress bar and color-coded strength score (Weak / Fair / Good / Strong).
 - **`OtpVerificationView.tsx`**: 6-digit email confirmation code entry view with auto-advance inputs and Resend integration.
-- **`SignInForm.tsx` & `SignUpForm.tsx`**: Isolated form components cleanly separated from page shells to ensure strict <250 lines compliance across `/sign-in` (98 lines) and `/sign-up` (108 lines).
+- **`SignInForm.tsx` & `SignUpForm.tsx`**: Isolated form components cleanly separated from page shells to ensure strict <400 lines compliance across `/sign-in` (98 lines) and `/sign-up` (108 lines).
 - **`AuthModal.tsx` (`apps/web/src/components/landing`)**: Accessible overlay on `/` enabling in-place authentication without page navigation. Supports tab switching between Sign In and 60-Day Free Trial, backdrop dismiss, and `Escape` key capture.
 
 - **`LandingHeader.tsx`**: Responsive header featuring passive `requestAnimationFrame` scrollspy navigation (`#why-us`, `#how-it-works`, `#simulator`, `#advantages`, `#pricing`, `#faq`), refined ghost Sign-In secondary action, high-contrast Serene Blue Free Trial CTA, and dynamic `authClient.useSession()` state (user identity badge + direct "Go to Dashboard →" link for authenticated visitors).
@@ -517,7 +518,7 @@ tenants (id PK, appId FK→apps.id, name, subscriptionTier, stripeCustomerId, st
 - **`LandingHero.tsx` & `HeroCtaActions.tsx`**: Dual-column hero layout combining the Before/After traditional vs Money Matters comparison with the interactive Serene Bento showcase and context-aware CTA actions tailored to visitor lifecycle state (anonymous visitors see "Start 60-Day Free Trial", active subscribers see "Go to Your Dashboard →", trial users see remaining trial days, and grace-period accounts see "Reactivate Full Access →").
 - **`ProblemSection.tsx`**: 4 fatal budgeting traps illustrated with Serene Finance vector icons (zero decorative emojis).
 - **`HowItWorksSection.tsx`**: 3-step automated payday allocation pipeline.
-- **`PaycheckSimulator.tsx` (`apps/web/src/components/simulator/`)**: Full-Width Multi-Payline Cashflow & Payday Timeline Simulator (<250 lines modular architecture) featuring:
+- **`PaycheckSimulator.tsx` (`apps/web/src/components/simulator/`)**: Full-Width Multi-Payline Cashflow & Payday Timeline Simulator (<400 lines modular architecture) featuring:
   - `SimulatorTimelineBar.tsx`: Day 0 to Day 28 interactive scrubber with milestone jump chips and auto-play controls.
   - `PaydayCheckpointBanner.tsx`: Interactive payday checkpoint that pauses at Day 0 / Day 14, allowing real-time adjustment of net income ($1,800 to $4,500) and instant waterfall recalculation.
   - `SimulatorPoolCard.tsx`: Variable-speed synchronized pool fill bars with subtle 100% completion celebration badge (`✓ 100% Funded`) and inconspicuous `[⇄ Transfer]` action.

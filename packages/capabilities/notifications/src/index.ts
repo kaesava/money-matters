@@ -1,4 +1,4 @@
-import { eq, and, isNull } from "drizzle-orm";
+import { eq, and, isNull, inArray } from "drizzle-orm";
 import { DbOrTx, deviceTokens } from "@money-matters/db";
 
 export function registerDeviceTokenHandler(db: DbOrTx) {
@@ -82,16 +82,15 @@ export function removeDeviceTokenHandler(db: DbOrTx) {
     }
 
     const now = new Date();
-    for (const t of activeTokens) {
-      await db
-        .update(deviceTokens)
-        .set({
-          archivedAt: now,
-          updatedAt: now,
-          updatedBy: userId,
-        })
-        .where(eq(deviceTokens.id, t.id));
-    }
+    const tokenIds = activeTokens.map((t) => t.id);
+    await db
+      .update(deviceTokens)
+      .set({
+        archivedAt: now,
+        updatedAt: now,
+        updatedBy: userId,
+      })
+      .where(inArray(deviceTokens.id, tokenIds));
 
     return { success: true, message: "Token removed" };
   };
@@ -99,4 +98,6 @@ export function removeDeviceTokenHandler(db: DbOrTx) {
 
 export * from "./inngest.js";
 export * from "./scheduled-notifications.js";
+export * from "./retention-workflows.js";
+
 

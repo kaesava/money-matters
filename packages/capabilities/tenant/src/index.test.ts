@@ -199,4 +199,34 @@ describe('Capability Tenant Handlers', () => {
 
     await expect(handler({ inviteToken: 'valid-token' }, userId, 'attacker@example.com')).rejects.toThrow(/Invitation email .* does not match/);
   });
+
+  it('deleteMyAccountHandler purges household records and sends notification', async () => {
+    const { deleteMyAccountHandler } = await import('./index.js');
+    const deleteWhereMock = vi.fn().mockResolvedValue([]);
+    const deleteMock = vi.fn().mockReturnValue({ where: deleteWhereMock });
+    const selectWhereResult: any = Promise.resolve([{ role: 'OWNER', stripeSubscriptionId: null, stripeCustomerId: null }]);
+    selectWhereResult.limit = vi.fn().mockResolvedValue([{ role: 'OWNER', stripeSubscriptionId: null, stripeCustomerId: null }]);
+    const selectMock = vi.fn().mockReturnValue({
+      from: vi.fn().mockReturnValue({
+        where: vi.fn().mockReturnValue(selectWhereResult),
+      }),
+    });
+
+    const txMock: any = {
+      select: selectMock,
+      delete: deleteMock,
+      execute: vi.fn().mockResolvedValue([]),
+    };
+
+    const mockDb: any = {
+      select: selectMock,
+      transaction: vi.fn().mockImplementation((cb: any) => cb(txMock)),
+    };
+
+    const handler = deleteMyAccountHandler(mockDb);
+    const result = await handler(tenantId, userId, 'owner@example.com', appId);
+
+    expect(result.success).toBe(true);
+    expect(deleteMock).toHaveBeenCalled();
+  });
 });

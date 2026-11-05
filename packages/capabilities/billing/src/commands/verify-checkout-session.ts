@@ -9,35 +9,14 @@ import { validateEnv } from "@money-matters/config";
 import { z } from "zod";
 import { activateSubscriptionCommand } from "./activate-subscription.js";
 
+const sessionIdSchema = z.string().regex(/^cs_(test|live)_[A-Za-z0-9]+$/);
+
 export async function verifyCheckoutSessionCommand(
   db: DbOrTx,
   tenantId: string,
   sessionId: string
 ): Promise<{ verified: boolean; subscriptionStatus: "SUBSCRIBED" | "TRIAL_ACTIVE" }> {
-  // Handle dev/mock session ID (DEV/TEST ONLY)
-  if (
-    process.env.NODE_ENV !== "production" &&
-    (sessionId === "mock_checkout_session_success" || sessionId.startsWith("mock_"))
-  ) {
-    const now = new Date();
-    const oneYearLater = new Date(now.getTime() + 365 * 24 * 60 * 60 * 1000);
-    await db
-      .update(tenants)
-      .set({
-        subscriptionStatus: "SUBSCRIBED",
-        premiumEnabled: true,
-        subscribedAt: now,
-        subscriptionEndsAt: oneYearLater,
-        nextBillingAt: oneYearLater,
-        planType: "annual",
-        cancelAtPeriodEnd: false,
-        trialConvertedAt: now,
-        updatedAt: now,
-      })
-      .where(eq(tenants.id, tenantId));
-
-    return { verified: true, subscriptionStatus: "SUBSCRIBED" };
-  }
+  const cleanSessionId = sessionIdSchema.parse(sessionId);
 
   const env = validateEnv();
   const stripeSecretKey = env.STRIPE_SECRET_KEY || process.env.STRIPE_SECRET_KEY;
@@ -47,16 +26,16 @@ export async function verifyCheckoutSessionCommand(
 
   const stripe = new Stripe(stripeSecretKey);
 
-  const session = await stripe.checkout.sessions.retrieve(sessionId, {
+  const session = await stripe.checkout.sessions.retrieve(cleanSessionId, {
     expand: ["subscription", "invoice"],
   });
 
   const sessionTenantId = session.client_reference_id || session.metadata?.tenantId;
-  if (sessionTenantId && sessionTenantId !== tenantId) {
+  if (!sessionTenantId || sessionTenantId !== tenantId) {
     throw new Error("Stripe checkout session does not belong to this household.");
   }
 
-  const isComplete = session.status === "complete" || session.payment_status === "paid";
+  const isComplete = session.status === "complete";
   if (!isComplete) {
     return { verified: false, subscriptionStatus: "TRIAL_ACTIVE" };
   }

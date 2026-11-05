@@ -9,18 +9,11 @@ export async function listBillCoverageQuery(
   dbClient: DbOrTx,
   userId?: string
 ): Promise<BillCoverageResult> {
-  let tenantRecord: { timezone: string | null } | null = null;
-  if (typeof (dbClient as any).select === "function") {
-    try {
-      const q = dbClient.select({ timezone: tenants.timezone }).from(tenants).where(eq(tenants.id, tenantId));
-      if (typeof (q as any).limit === "function") {
-        const rows = await (q as any).limit(1);
-        tenantRecord = rows[0] || null;
-      }
-    } catch {
-      // Mock db safe fallback
-    }
-  }
+  const [tenantRecord] = await dbClient
+    .select({ timezone: tenants.timezone })
+    .from(tenants)
+    .where(eq(tenants.id, tenantId))
+    .limit(1);
   const tenantTz = tenantRecord?.timezone || "Australia/Sydney";
   const todayStr = getTenantDateString(new Date(), { timezone: tenantTz });
 

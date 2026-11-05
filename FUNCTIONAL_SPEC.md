@@ -583,7 +583,7 @@ The "Can I Afford It?" feature is a stateless, pure-simulation forward cashflow 
 - **Unified Public Primitives (`@money-matters/web/components/public`)**:
   - `<PublicHeader />`: Clean top navigation with logo, brand title, and context-aware action buttons (*← Back to Home*, *← Back to Dashboard*, or *Sign In*).
   - `<PublicFooter />`: Unified footer with dynamic copyright, official tagline, Serene Finance badge, and legal links (`/terms`, `/privacy`).
-- **Dedicated Pre-Login Routes (<250 lines rule compliant)**:
+- **Dedicated Pre-Login Routes (<400 lines rule compliant)**:
   - `/sign-in` & `/sign-up`: Modular auth flows powered by `<SocialAuthButtons />`, `<PasswordStrengthIndicator />`, and `<OtpVerificationView />`.
   - `/forgot-password`: Self-service 6-digit OTP password recovery with 100% externalized i18n copy.
   - `/terms` & `/privacy`: Public legal documentation with Australian legal standing (ASIC/AFSL general advice exemption under Corporations Act 2001, Australian Consumer Law statutory guarantees, consumer data privacy, SaaS subscription terms, NSW jurisdiction) and CDR compliant account privacy information.

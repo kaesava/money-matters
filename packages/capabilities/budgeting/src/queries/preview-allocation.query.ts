@@ -14,13 +14,11 @@ export async function previewAllocationQuery(
   runwayDays?: number
 ) {
   // 0. Fetch Tenant for currency and timezone
-  const [tenantRecord] = typeof dbClient.select === "function"
-    ? await dbClient
-        .select({ timezone: tenants.timezone, currency: tenants.currency })
-        .from(tenants)
-        .where(eq(tenants.id, tenantId))
-        .limit(1)
-    : [{ timezone: "Australia/Sydney", currency: "AUD" }];
+  const [tenantRecord] = await dbClient
+    .select({ timezone: tenants.timezone, currency: tenants.currency })
+    .from(tenants)
+    .where(eq(tenants.id, tenantId))
+    .limit(1);
 
   const tenantTz = tenantRecord?.timezone || "Australia/Sydney";
   const currencyCode = tenantRecord?.currency || "AUD";

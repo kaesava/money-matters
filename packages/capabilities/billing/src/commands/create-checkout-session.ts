@@ -7,14 +7,38 @@ import { eq } from "drizzle-orm";
 import { tenants, type DbOrTx } from "@money-matters/db";
 import { validateEnv } from "@money-matters/config";
 
+function isWhitelistedUrl(target: string): boolean {
+  if (!target) return false;
+  if (target.startsWith("moneymatters://")) return true;
+  try {
+    const parsed = new URL(target);
+    const host = parsed.hostname;
+    return (
+      host === "kaesava.au" ||
+      host.endsWith(".kaesava.au") ||
+      host === "localhost" ||
+      host === "127.0.0.1"
+    );
+  } catch {
+    return false;
+  }
+}
+
 export async function createCheckoutSessionCommand(
   db: DbOrTx,
   tenantId: string,
   userEmail: string,
   input: { priceId?: string; planType?: "monthly" | "annual" | "founding"; successUrl: string; cancelUrl: string }
 ): Promise<{ url: string }> {
+  if (!isWhitelistedUrl(input.successUrl) || !isWhitelistedUrl(input.cancelUrl)) {
+    throw new Error("Invalid redirect URL: target domain is not authorized.");
+  }
+
   const env = validateEnv();
   const stripeSecretKey = env.STRIPE_SECRET_KEY || process.env.STRIPE_SECRET_KEY;
+  if (!stripeSecretKey) {
+    throw new Error("Stripe secret key is not configured.");
+  }
 
   // Resolve target price ID from input or environment variables
   let targetPriceId = input.priceId;
@@ -28,59 +52,16 @@ export async function createCheckoutSessionCommand(
   }
 
   // Fallback to general price env if not resolved yet
-  if (!targetPriceId || targetPriceId.startsWith("price_mock_")) {
+  if (!targetPriceId) {
     targetPriceId =
       env.STRIPE_PRICE_ANNUAL ||
       process.env.STRIPE_PRICE_ANNUAL ||
       env.STRIPE_PRICE_MONTHLY ||
-      process.env.STRIPE_PRICE_MONTHLY ||
-      targetPriceId;
+      process.env.STRIPE_PRICE_MONTHLY;
   }
 
-  // Development / Mock Checkout Fallback if Stripe key is missing or dummy mock price ID is passed (DEV/TEST ONLY)
-  const isMockMode =
-    process.env.NODE_ENV !== "production" &&
-    (!stripeSecretKey ||
-      stripeSecretKey.includes("replace_me") ||
-      stripeSecretKey.includes("sk_test_mock") ||
-      !targetPriceId ||
-      targetPriceId.startsWith("price_mock_"));
-
-  if (isMockMode) {
-    // In dev / mock mode, grant subscription status directly or return mock success URL
-    const [tenant] = await db
-      .select({ id: tenants.id })
-      .from(tenants)
-      .where(eq(tenants.id, tenantId))
-      .limit(1);
-
-    if (tenant) {
-      const now = new Date();
-      const oneYearLater = new Date(now.getTime() + 365 * 24 * 60 * 60 * 1000);
-      await db
-        .update(tenants)
-        .set({
-          subscriptionStatus: "SUBSCRIBED",
-          premiumEnabled: true,
-          subscribedAt: now,
-          subscriptionEndsAt: oneYearLater,
-          cancelAtPeriodEnd: false,
-          planType: input.planType || "annual",
-          nextBillingAt: oneYearLater,
-          trialConvertedAt: now,
-          updatedAt: now,
-        })
-        .where(eq(tenants.id, tenantId));
-    }
-
-    const mockSuccessUrl = new URL(input.successUrl);
-    mockSuccessUrl.searchParams.set("session_id", "mock_checkout_session_success");
-    mockSuccessUrl.searchParams.set("mock", "true");
-    return { url: mockSuccessUrl.toString() };
-  }
-
-  if (!stripeSecretKey) {
-    throw new Error("Stripe secret key is not configured.");
+  if (!targetPriceId) {
+    throw new Error("No valid Stripe Price ID configured for checkout.");
   }
 
   const stripe = new Stripe(stripeSecretKey);

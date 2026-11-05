@@ -7,7 +7,7 @@ describe('i18n Localization Engine', () => {
     expect(t('common.previous')).toBe('Previous');
     expect(t('common.nextPage')).toBe('Next');
     expect(t('common.pageOf', { page: 1, totalPages: 5 })).toBe('Page 1 of 5');
-    expect(t('nav.paychecks')).toBe('Plan');
+    expect(t('nav.incomeExpenses')).toBe('Plan');
     expect(t('app.title')).toBe('Money Matters');
   });
 
@@ -15,8 +15,8 @@ describe('i18n Localization Engine', () => {
     const result = t('setup.stepOf', { step: 2, total: 4 });
     expect(result).toBe('Step 2 of 4');
 
-    const alert = t('shortfall.alertBody', { category: 'Dining Out', amount: '$45.00' });
-    expect(alert).toBe('Dining Out is short by $45.00.');
+    const range = t('common.showingRange', { start: 1, end: 10, total: 25 });
+    expect(range).toBe('Showing 1–10 of 25');
   });
 
   it('uses defaultValue fallback when key does not exist', () => {

@@ -4,7 +4,7 @@ import { updateEnvelopeCommand } from "./update-envelope.command.js";
 import { overrideEventCommand } from "./override-event.command.js";
 import { maintainRollingWindowCommand } from "./maintain-rolling-window.command.js";
 import { restoreItemCommand } from "./restore-item.command.js";
-import { envelopes, expenseEvents } from "@money-matters/db";
+import { envelopes, expenseEvents, tenants } from "@money-matters/db";
 import type { DbOrTx } from "@money-matters/db";
 
 describe("Envelope Lifecycle & Event Sync", () => {
@@ -249,12 +249,21 @@ describe("Envelope Lifecycle & Event Sync", () => {
     let insertedEvents = false;
     const mockDb = {
       select: vi.fn().mockReturnValue({
-        from: vi.fn().mockReturnValue({
-          leftJoin: vi.fn().mockReturnValue({
-            where: vi.fn().mockResolvedValue([
-              { isPrivate: false, bankAccountUserId: null, generateEvents: false },
-            ]),
-          }),
+        from: vi.fn().mockImplementation((table: any) => {
+          if (table === tenants) {
+            return {
+              where: vi.fn().mockReturnValue({
+                limit: vi.fn().mockResolvedValue([{ timezone: "Australia/Sydney" }]),
+              }),
+            };
+          }
+          return {
+            leftJoin: vi.fn().mockReturnValue({
+              where: vi.fn().mockResolvedValue([
+                { isPrivate: false, bankAccountUserId: null, generateEvents: false },
+              ]),
+            }),
+          };
         }),
       }),
       update: vi.fn().mockReturnValue({

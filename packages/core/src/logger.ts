@@ -22,6 +22,8 @@ const PII_KEYS = new Set([
   "avatar_url",
   "note",
   "expopushtoken",
+  "to",
+  "recipient",
 ]);
 
 /**

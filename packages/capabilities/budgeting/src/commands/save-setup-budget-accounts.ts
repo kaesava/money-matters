@@ -44,48 +44,44 @@ export async function processSetupBankAccounts(
     const bankProviderVal = accInput.bankProvider || matchedExisting?.bankProvider || "Other";
 
     if (matchedExisting) {
-      if (typeof tx.update === "function") {
-        await tx
-          .update(bankAccounts)
-          .set({
-            name: accInput.name,
-            bankProvider: bankProviderVal,
-            accountType: accInput.accountType || matchedExisting.accountType,
-            lastKnownBalance: accInput.lastKnownBalance || matchedExisting.lastKnownBalance,
-            unbudgetedBuffer: accInput.unbudgetedBuffer || matchedExisting.unbudgetedBuffer,
-            isPrivate: accInput.isPrivate ?? matchedExisting.isPrivate,
-            updatedAt: now,
-            updatedBy: userId,
-          })
-          .where(eq(bankAccounts.id, matchedExisting.id));
-      }
+      await tx
+        .update(bankAccounts)
+        .set({
+          name: accInput.name,
+          bankProvider: bankProviderVal,
+          accountType: accInput.accountType || matchedExisting.accountType,
+          lastKnownBalance: accInput.lastKnownBalance || matchedExisting.lastKnownBalance,
+          unbudgetedBuffer: accInput.unbudgetedBuffer || matchedExisting.unbudgetedBuffer,
+          isPrivate: accInput.isPrivate ?? matchedExisting.isPrivate,
+          updatedAt: now,
+          updatedBy: userId,
+        })
+        .where(eq(bankAccounts.id, matchedExisting.id));
       if (accInput.id) accountIdMap.set(accInput.id, matchedExisting.id);
       accountIdMap.set(`idx-${i}`, matchedExisting.id);
     } else {
       const newAccountId = randomUUID();
-      if (typeof tx.insert === "function") {
-        await tx.insert(bankAccounts).values({
-          id: newAccountId,
-          tenantId,
-          appId,
-          name: accInput.name,
-          bankProvider: bankProviderVal,
-          accountType: accInput.accountType || "EVERYDAY",
-          lastKnownBalance: accInput.lastKnownBalance || "0.00",
-          unbudgetedBuffer: accInput.unbudgetedBuffer || "0.00",
-          isPrivate: accInput.isPrivate ?? false,
-          createdAt: now,
-          createdBy: userId,
-          updatedAt: now,
-          updatedBy: userId,
-        });
-      }
+      await tx.insert(bankAccounts).values({
+        id: newAccountId,
+        tenantId,
+        appId,
+        name: accInput.name,
+        bankProvider: bankProviderVal,
+        accountType: accInput.accountType || "EVERYDAY",
+        lastKnownBalance: accInput.lastKnownBalance || "0.00",
+        unbudgetedBuffer: accInput.unbudgetedBuffer || "0.00",
+        isPrivate: accInput.isPrivate ?? false,
+        createdAt: now,
+        createdBy: userId,
+        updatedAt: now,
+        updatedBy: userId,
+      });
       if (accInput.id) accountIdMap.set(accInput.id, newAccountId);
       accountIdMap.set(`idx-${i}`, newAccountId);
     }
   }
 
-  if (archivedAccountIds.length > 0 && typeof tx.update === "function") {
+  if (archivedAccountIds.length > 0) {
     await tx
       .update(bankAccounts)
       .set({

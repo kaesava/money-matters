@@ -27,7 +27,13 @@ export function getLanguage(): SupportedLanguage {
   return currentLanguage;
 }
 
-export type TranslationKey = string;
+type NestedKeyOf<ObjectType extends object> = {
+  [Key in keyof ObjectType & (string | number)]: ObjectType[Key] extends object
+    ? `${Key}.${NestedKeyOf<ObjectType[Key]>}`
+    : `${Key}`;
+}[keyof ObjectType & (string | number)];
+
+export type TranslationKey = NestedKeyOf<typeof en> | (string & {});
 
 /**
  * Translates a dot-notated key string into localized text.

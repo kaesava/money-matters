@@ -1,28 +1,33 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import * as SecureStore from 'expo-secure-store';
-import { trpc, setActiveSessionToken } from '../../lib/trpc';
+import { trpc, setActiveSessionToken, getActiveTenantId } from '../../lib/trpc';
 import { authClient } from '../../lib/auth';
 import { formatIsoDate } from '../../lib/format';
 import { triggerHaptic } from '../../lib/haptics';
 import { t } from '@money-matters/i18n';
 import { getCachedQueryData, setCachedQueryData } from '../../lib/sqlite-cache';
+import type { HomeSummaryDto, EnvelopeListItemDto } from '@money-matters/types';
 import { MobileIncomeItem } from './MobileNextPaydayCard';
 import { AttentionItem } from '../AttentionItemsList';
 
 export function useHomeData(token?: string) {
   const utils = trpc.useUtils();
   const { data: session } = authClient.useSession();
-  const [cachedHomeSummary, setCachedHomeSummary] = useState<any>(null);
-  const [cachedPools, setCachedPools] = useState<any[] | null>(null);
+  const activeTenantId = getActiveTenantId();
+  const userId = session?.user?.id;
+
+  const [cachedHomeSummary, setCachedHomeSummary] = useState<HomeSummaryDto | null>(null);
+  const [cachedPools, setCachedPools] = useState<EnvelopeListItemDto[] | null>(null);
 
   useEffect(() => {
-    getCachedQueryData<any>('home_summary').then((val) => {
+    if (!activeTenantId || !userId) return;
+    getCachedQueryData<HomeSummaryDto>(activeTenantId, userId, 'home_summary').then((val) => {
       if (val) setCachedHomeSummary(val);
     });
-    getCachedQueryData<any[]>('home_pools').then((val) => {
+    getCachedQueryData<EnvelopeListItemDto[]>(activeTenantId, userId, 'home_envelopes').then((val) => {
       if (val) setCachedPools(val);
     });
-  }, []);
+  }, [activeTenantId, userId]);
 
   useEffect(() => {
     if (token) {
@@ -42,16 +47,16 @@ export function useHomeData(token?: string) {
   const poolsQuery = trpc.listPools.useQuery(undefined, { enabled: !!session?.user });
 
   useEffect(() => {
-    if (homeSummaryQuery.data) {
-      setCachedQueryData('home_summary', homeSummaryQuery.data);
+    if (homeSummaryQuery.data && activeTenantId && userId) {
+      setCachedQueryData(activeTenantId, userId, 'home_summary', homeSummaryQuery.data);
     }
-  }, [homeSummaryQuery.data]);
+  }, [homeSummaryQuery.data, activeTenantId, userId]);
 
   useEffect(() => {
-    if (poolsQuery.data) {
-      setCachedQueryData('home_pools', poolsQuery.data);
+    if (poolsQuery.data && activeTenantId && userId) {
+      setCachedQueryData(activeTenantId, userId, 'home_envelopes', poolsQuery.data);
     }
-  }, [poolsQuery.data]);
+  }, [poolsQuery.data, activeTenantId, userId]);
   const bankAccountsQuery = trpc.listBankAccounts.useQuery(undefined, { enabled: !!session?.user });
   const incomeEventsQuery = trpc.listIncomeEvents.useQuery(undefined, { enabled: !!session?.user });
   const expenseEventsQuery = trpc.listExpenseEvents.useQuery(undefined, { enabled: !!session?.user });

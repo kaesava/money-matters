@@ -302,6 +302,13 @@
       "when": 1784188494251,
       "tag": "0043_add_envelope_generate_events",
       "breakpoints": true
+    },
+    {
+      "idx": 43,
+      "version": "7",
+      "when": 1784198494251,
+      "tag": "0044_rls_role_and_force_security",
+      "breakpoints": true
     }
   ]
 }

@@ -17,12 +17,7 @@ export async function updateEnvelopeCommand(
   userId: string,
   dbClient: DbOrTx
 ) {
-  const runInTx =
-    typeof dbClient.transaction === "function"
-      ? (cb: (tx: DbOrTx) => Promise<typeof envelopes.$inferSelect>) => dbClient.transaction(cb)
-      : (cb: (tx: DbOrTx) => Promise<typeof envelopes.$inferSelect>) => cb(dbClient);
-
-  return await runInTx(async (tx) => {
+  return await dbClient.transaction(async (tx) => {
     // 1. Fetch current envelope
     const [existing] = await tx
       .select()
@@ -144,27 +139,20 @@ export async function updateEnvelopeCommand(
 
     const nameChanged = input.name !== undefined && input.name.trim() !== existing.name.trim();
 
-    let hasExistingScheduledEvents = false;
-    if (typeof tx.select === "function") {
-      try {
-        const [pendingScheduled] = await tx
-          .select({ count: sql<number>`count(*)`.mapWith(Number) })
-          .from(expenseEvents)
-          .where(
-            and(
-              eq(expenseEvents.envelopeId, envelopeId),
-              eq(expenseEvents.isScheduled, true),
-              eq(expenseEvents.status, "PENDING"),
-              eq(expenseEvents.tenantId, tenantId),
-              eq(expenseEvents.appId, appId),
-              sql`${expenseEvents.archivedAt} IS NULL`
-            )
-          );
-        hasExistingScheduledEvents = (pendingScheduled?.count ?? 0) > 0;
-      } catch {
-        // Fallback for mock DBs
-      }
-    }
+    const [pendingScheduled] = await tx
+      .select({ count: sql<number>`count(*)`.mapWith(Number) })
+      .from(expenseEvents)
+      .where(
+        and(
+          eq(expenseEvents.envelopeId, envelopeId),
+          eq(expenseEvents.isScheduled, true),
+          eq(expenseEvents.status, "PENDING"),
+          eq(expenseEvents.tenantId, tenantId),
+          eq(expenseEvents.appId, appId),
+          sql`${expenseEvents.archivedAt} IS NULL`
+        )
+      );
+    const hasExistingScheduledEvents = (pendingScheduled?.count ?? 0) > 0;
 
     if (!isNowScheduled) {
       // 1. Envelope is no longer a scheduled bill (e.g. converted to FLEXIBLE_BILL or GOAL):
@@ -200,17 +188,16 @@ export async function updateEnvelopeCommand(
         }
       } else if (amountChanged || nameChanged) {
         // In-place update of all unconfirmed pending events
-        if (typeof tx.update === "function") {
-          const updatePayload: Record<string, unknown> = {
-            updatedBy: userId,
-            updatedAt: new Date(),
-          };
-          if (nameChanged) updatePayload.name = updated.name;
-          if (amountChanged) updatePayload.expectedAmount = newAmountVal;
+        const updatePayload: Record<string, unknown> = {
+          updatedBy: userId,
+          updatedAt: new Date(),
+        };
+        if (nameChanged) updatePayload.name = updated.name;
+        if (amountChanged) updatePayload.expectedAmount = newAmountVal;
 
-          await tx
-            .update(expenseEvents)
-            .set(updatePayload)
+        await tx
+          .update(expenseEvents)
+          .set(updatePayload)
             .where(
               and(
                 eq(expenseEvents.envelopeId, envelopeId),
@@ -219,7 +206,6 @@ export async function updateEnvelopeCommand(
                 eq(expenseEvents.appId, appId)
               )
             );
-        }
       }
     }
 

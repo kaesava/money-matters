@@ -65,21 +65,19 @@ export async function processSetupIncomes(
         (incInput.name !== undefined && incInput.name !== matchedIncome.name) ||
         (incInput.amount !== undefined && incInput.amount !== matchedIncome.amount);
 
-      if (typeof tx.update === "function") {
-        await tx
-          .update(incomeSources)
-          .set({
-            name: incInput.name,
-            incomeType: incInput.incomeType || matchedIncome.incomeType,
-            amount: incInput.amount,
-            receivingAccountId: resolvedRecvAccount || matchedIncome.receivingAccountId,
-            rrule,
-            startDate,
-            updatedAt: now,
-            updatedBy: userId,
-          })
-          .where(eq(incomeSources.id, matchedIncome.id));
-      }
+      await tx
+        .update(incomeSources)
+        .set({
+          name: incInput.name,
+          incomeType: incInput.incomeType || matchedIncome.incomeType,
+          amount: incInput.amount,
+          receivingAccountId: resolvedRecvAccount || matchedIncome.receivingAccountId,
+          rrule,
+          startDate,
+          updatedAt: now,
+          updatedBy: userId,
+        })
+        .where(eq(incomeSources.id, matchedIncome.id));
 
       await synchronizeUpdatedIncomeEvents(tx, matchedIncome.id, scheduleChanged, nameOrAmountChanged, {
         name: incInput.name,
@@ -93,23 +91,21 @@ export async function processSetupIncomes(
       });
     } else {
       const newIncomeId = randomUUID();
-      if (typeof tx.insert === "function") {
-        await tx.insert(incomeSources).values({
-          id: newIncomeId,
-          tenantId,
-          appId,
-          name: incInput.name,
-          incomeType: incInput.incomeType || "SALARIED",
-          amount: incInput.amount,
-          receivingAccountId: resolvedRecvAccount || null,
-          rrule,
-          startDate,
-          createdAt: now,
-          createdBy: userId,
-          updatedAt: now,
-          updatedBy: userId,
-        });
-      }
+      await tx.insert(incomeSources).values({
+        id: newIncomeId,
+        tenantId,
+        appId,
+        name: incInput.name,
+        incomeType: incInput.incomeType || "SALARIED",
+        amount: incInput.amount,
+        receivingAccountId: resolvedRecvAccount || null,
+        rrule,
+        startDate,
+        createdAt: now,
+        createdBy: userId,
+        updatedAt: now,
+        updatedBy: userId,
+      });
 
       newIncomeCandidates.push({
         incomeSourceId: newIncomeId,
@@ -121,7 +117,7 @@ export async function processSetupIncomes(
     }
   }
 
-  if (archivedIncomeIds.length > 0 && typeof tx.update === "function") {
+  if (archivedIncomeIds.length > 0) {
     await tx
       .update(incomeSources)
       .set({ archivedAt: now, archivedBy: userId, updatedAt: now, updatedBy: userId })

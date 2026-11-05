@@ -27,29 +27,16 @@ export function saveSetupBudgetHandler(dbClient: DbOrTx) {
     tenantId: string
   ): Promise<SaveSetupBudgetResult> => {
     const input = SaveSetupBudgetCommand.parse(rawInput);
-    const runInTx =
-      typeof dbClient.transaction === "function"
-        ? (cb: (tx: DbOrTx) => Promise<SaveSetupBudgetResult>) => dbClient.transaction(cb)
-        : (cb: (tx: DbOrTx) => Promise<SaveSetupBudgetResult>) => cb(dbClient);
 
-    return await runInTx(async (tx) => {
+    return await dbClient.transaction(async (tx) => {
       const now = new Date();
 
-      let tenantTimezone = "Australia/Sydney";
-      if (typeof tx.select === "function") {
-        try {
-          const tenantRows = await tx
-            .select({ timezone: tenants.timezone })
-            .from(tenants)
-            .where(eq(tenants.id, tenantId))
-            .limit(1);
-          if (tenantRows[0]?.timezone) {
-            tenantTimezone = tenantRows[0].timezone;
-          }
-        } catch {
-          // Safe mock fallback
-        }
-      }
+      const [tenantRow] = await tx
+        .select({ timezone: tenants.timezone })
+        .from(tenants)
+        .where(eq(tenants.id, tenantId))
+        .limit(1);
+      const tenantTimezone = tenantRow?.timezone || "Australia/Sydney";
 
       // 1. Process Bank Accounts
       const { accountIdMap, primaryBankAccountId } = await processSetupBankAccounts(
@@ -103,17 +90,15 @@ export function saveSetupBudgetHandler(dbClient: DbOrTx) {
       );
 
       // 5. Update Tenant Setup Status
-      if (typeof (tx as any).update === "function") {
-        await tx
-          .update(tenants)
-          .set({
-            setupCompletedAt: now,
-            setupStatus: "COMPLETED",
-            updatedAt: now,
-            updatedBy: userId,
-          })
-          .where(eq(tenants.id, tenantId));
-      }
+      await tx
+        .update(tenants)
+        .set({
+          setupCompletedAt: now,
+          setupStatus: "COMPLETED",
+          updatedAt: now,
+          updatedBy: userId,
+        })
+        .where(eq(tenants.id, tenantId));
 
       return {
         success: true,

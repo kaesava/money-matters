@@ -9,7 +9,6 @@ export async function archivePendingIncomeEvents(
   now: Date
 ): Promise<void> {
   if (archivedIncomeIds.length === 0) return;
-  if (typeof tx.update !== "function") return;
   await tx
     .update(incomeEvents)
     .set({ archivedAt: now, updatedBy: userId, updatedAt: now })
@@ -29,7 +28,6 @@ export async function archivePendingExpenseEvents(
   now: Date
 ): Promise<void> {
   if (archivedEnvelopeIds.length === 0) return;
-  if (typeof tx.update !== "function") return;
   await tx
     .update(expenseEvents)
     .set({ archivedAt: now, updatedBy: userId, updatedAt: now })
@@ -49,7 +47,6 @@ export async function synchronizeUpdatedIncomeEvents(
   nameOrAmountChanged: boolean,
   params: { name: string; amount: string; rrule: string; startDate: string; tenantId: string; appId: string; userId: string; now: Date }
 ): Promise<void> {
-  if (typeof tx.update !== "function") return;
   if (scheduleChanged) {
     await tx
       .update(incomeEvents)
@@ -57,7 +54,7 @@ export async function synchronizeUpdatedIncomeEvents(
       .where(and(eq(incomeEvents.incomeSourceId, sourceId), eq(incomeEvents.status, "PENDING"), sql`${incomeEvents.archivedAt} IS NULL`));
 
     const dates = generateBurstDates(params.rrule, params.startDate, null, 12);
-    if (dates.length > 0 && typeof tx.insert === "function") {
+    if (dates.length > 0) {
       await tx.insert(incomeEvents).values(
         dates.map((d) => {
           const dateStr = new Intl.DateTimeFormat("en-CA", { timeZone: "Australia/Sydney" }).format(d);
@@ -105,7 +102,6 @@ export async function synchronizeUpdatedEnvelopeEvents(
     now: Date;
   }
 ): Promise<void> {
-  if (typeof tx.update !== "function") return;
   const tz = params.timeZone || "Australia/Sydney";
   const shouldBurst = params.isScheduledBill !== false;
 
@@ -115,7 +111,7 @@ export async function synchronizeUpdatedEnvelopeEvents(
       .set({ archivedAt: params.now, updatedBy: params.userId, updatedAt: params.now })
       .where(and(eq(expenseEvents.envelopeId, envelopeId), eq(expenseEvents.isScheduled, true), eq(expenseEvents.status, "PENDING"), sql`${expenseEvents.archivedAt} IS NULL`));
 
-    if (shouldBurst && parseFloat(params.amount) > 0 && typeof tx.insert === "function") {
+    if (shouldBurst && parseFloat(params.amount) > 0) {
       const dates = generateBurstDates(params.rrule, params.startDate, null, 12);
       if (dates.length > 0) {
         await tx.insert(expenseEvents).values(

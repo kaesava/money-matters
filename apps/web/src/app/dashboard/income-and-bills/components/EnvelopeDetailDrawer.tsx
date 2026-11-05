@@ -7,6 +7,8 @@ import { trpc } from "../../../../lib/trpc";
 import { Tabs, formatRecurrenceLabel, formatRecurrenceSuffix } from "@money-matters/ui/web";
 import { useLocale } from "../../../../providers/LocaleProvider";
 import { CategorySummaryItem } from "../../envelopes/types";
+import { DrawerUpcomingExpensesTable } from "./drawer/DrawerUpcomingExpensesTable";
+import { DrawerActivityHistoryTable } from "./drawer/DrawerActivityHistoryTable";
 
 export interface CategoryScheduledEvent {
   id: string;
@@ -292,137 +294,24 @@ export function EnvelopeDetailDrawer({
 
           {/* Drawer Body — Tab Content */}
           <div className="flex-1 overflow-y-auto p-6">
-            {/* Tab 1: Upcoming Expenses Table */}
             {activeTab === "expenses" && (
-              <div className="space-y-4">
-                <div className="flex justify-end">
-                  <Link
-                    href={`/dashboard/income-and-bills?tab=EVENTS&type=EXPENSE&poolId=${targetPool?.id || ""}`}
-                    onClick={onClose}
-                    className="text-xs font-bold text-[#2563eb] hover:underline transition-colors inline-flex items-center gap-1"
-                  >
-                    <span>{t("categoryDrawer.seeAllUpcomingExpenses")}</span>
-                    <span>→</span>
-                  </Link>
-                </div>
-
-                {upcomingExpensesList.length === 0 ? (
-                  <div className="text-center py-12 text-zinc-400 text-xs font-medium">
-                    {t("categoryDrawer.noExpenses")}
-                  </div>
-                ) : (
-                  <div className="w-full overflow-hidden border border-zinc-200 dark:border-zinc-800 rounded-xl bg-white dark:bg-zinc-900 shadow-2xs">
-                    <table className="w-full border-collapse text-left text-xs">
-                      <thead>
-                        <tr className="bg-zinc-50 dark:bg-zinc-800/80 border-b border-zinc-200 dark:border-zinc-800 text-zinc-500 font-bold">
-                          <th className="p-3">{t("categoryDrawer.expenseName")}</th>
-                          <th className="p-3 text-center">{t("categoryDrawer.dueDate")}</th>
-                          <th className="p-3 text-right">{t("categoryDrawer.amount")}</th>
-                          <th className="p-3 text-center">{t("categoryDrawer.status")}</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-zinc-100 dark:divide-zinc-800">
-                        {upcomingExpensesList.map((evt) => (
-                          <tr key={evt.id} className="hover:bg-zinc-50/50 dark:hover:bg-zinc-800/40 transition-colors">
-                            <td className="p-3 font-semibold text-zinc-900 dark:text-zinc-100">
-                              {evt.name}
-                            </td>
-                            <td className="p-3 text-center font-mono text-zinc-500">
-                              {evt.dueDate}
-                            </td>
-                            <td className="p-3 text-right font-mono font-bold text-[#1B2B4B] dark:text-white">
-                              {fmt(evt.amount || "0")}
-                            </td>
-                            <td className="p-3 text-center">
-                              {evt.isPaid ? (
-                                <span className="text-[10px] font-extrabold text-emerald-600 bg-emerald-50 dark:bg-emerald-950/60 px-2 py-0.5 rounded-md inline-block">
-                                  {t("categoryDrawer.confirmed")}
-                                </span>
-                              ) : onMarkPaid ? (
-                                <button
-                                  type="button"
-                                  onClick={() => onMarkPaid(evt.id, evt.amount, evt.dueDate)}
-                                  className="px-2.5 py-1 bg-blue-50 dark:bg-blue-950 hover:bg-blue-100 text-[#2563eb] text-[11px] font-bold rounded-lg transition-colors cursor-pointer"
-                                >
-                                  {t("categoryDrawer.markPaid")}
-                                </button>
-                              ) : (
-                                <span className="text-[10px] font-bold text-amber-600 bg-amber-50 dark:bg-amber-950/60 px-2 py-0.5 rounded-md inline-block">
-                                  {t("categoryDrawer.pending")}
-                                </span>
-                              )}
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                )}
-              </div>
+              <DrawerUpcomingExpensesTable
+                poolId={targetPool?.id}
+                upcomingExpensesList={upcomingExpensesList}
+                onClose={onClose}
+                onMarkPaid={onMarkPaid}
+                fmt={fmt}
+              />
             )}
 
-            {/* Tab 2: History Table */}
             {activeTab === "activity" && (
-              <div className="space-y-4">
-                <div className="flex justify-end">
-                  <Link
-                    href={`/dashboard/history?poolId=${targetPool?.id || ""}`}
-                    onClick={onClose}
-                    className="text-xs font-bold text-[#2563eb] hover:underline transition-colors inline-flex items-center gap-1"
-                  >
-                    <span>{t("categoryDrawer.seeFullHistory")}</span>
-                    <span>→</span>
-                  </Link>
-                </div>
-
-                {historyTransactionsList.length === 0 ? (
-                  <div className="text-center py-12 text-zinc-400 text-xs font-medium">
-                    {t("categoryDrawer.noTransactions")}
-                  </div>
-                ) : (
-                  <div className="w-full overflow-hidden border border-zinc-200 dark:border-zinc-800 rounded-xl bg-white dark:bg-zinc-900 shadow-2xs">
-                    <table className="w-full border-collapse text-left text-xs">
-                      <thead>
-                        <tr className="bg-zinc-50 dark:bg-zinc-800/80 border-b border-zinc-200 dark:border-zinc-800 text-zinc-500 font-bold">
-                          <th className="p-3 text-center">{t("categoryDrawer.date")}</th>
-                          <th className="p-3">{t("categoryDrawer.description")}</th>
-                          <th className="p-3 text-center">{t("categoryDrawer.type")}</th>
-                          <th className="p-3 text-right">{t("categoryDrawer.amount")}</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-zinc-100 dark:divide-zinc-800">
-                        {historyTransactionsList.map((tx) => {
-                          const noteText = tx.note || (tx as unknown as { envelopeName?: string }).envelopeName || t("categoryDrawer.transactionFallback");
-                          const isDebit = tx.flowType === "DEBIT";
-
-                          return (
-                            <tr key={tx.id} className="hover:bg-zinc-50/50 dark:hover:bg-zinc-800/40 transition-colors">
-                              <td className="p-3 font-mono text-zinc-500 text-[11px] text-center">
-                                {tx.recordedAt ? fmtDate(tx.recordedAt) : "—"}
-                              </td>
-                              <td className="p-3 font-semibold text-zinc-900 dark:text-zinc-100 max-w-[180px] truncate">
-                                {noteText}
-                              </td>
-                              <td className="p-3 text-center">
-                                <span className={`text-[9px] font-extrabold uppercase px-1.5 py-0.5 rounded ${
-                                  isDebit ? "bg-rose-50 text-rose-700" : "bg-emerald-50 text-emerald-700"
-                                }`}>
-                                  {tx.flowType}
-                                </span>
-                              </td>
-                              <td className={`p-3 text-right font-mono font-bold ${
-                                isDebit ? "text-rose-600" : "text-emerald-600"
-                              }`}>
-                                {fmtTx(tx.amount || "0", tx.flowType)}
-                              </td>
-                            </tr>
-                          );
-                        })}
-                      </tbody>
-                    </table>
-                  </div>
-                )}
-              </div>
+              <DrawerActivityHistoryTable
+                poolId={targetPool?.id}
+                historyTransactionsList={historyTransactionsList}
+                onClose={onClose}
+                fmtDate={fmtDate}
+                fmtTx={fmtTx}
+              />
             )}
           </div>
         </div>

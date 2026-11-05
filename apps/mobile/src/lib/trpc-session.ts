@@ -1,10 +1,14 @@
 import * as SecureStore from 'expo-secure-store';
+import { clearQueryCache } from './sqlite-cache';
 
 let activeSessionToken: string | null = null;
 let activeTenantId: string | null = null;
 
 export function setActiveSessionToken(token: string | null) {
   activeSessionToken = token;
+  if (!token) {
+    clearQueryCache().catch(() => {});
+  }
 }
 
 export function getActiveSessionToken(): string | null {
@@ -12,11 +16,13 @@ export function getActiveSessionToken(): string | null {
 }
 
 export function setActiveTenantId(tenantId: string | null) {
+  const previousTenantId = activeTenantId;
   activeTenantId = tenantId;
   if (tenantId) {
     SecureStore.setItemAsync('money_matters_active_tenant_id', tenantId).catch(() => {});
   } else {
     SecureStore.deleteItemAsync('money_matters_active_tenant_id').catch(() => {});
+    clearQueryCache(previousTenantId || undefined).catch(() => {});
   }
 }
 
@@ -31,6 +37,7 @@ export async function switchActiveTenant(
     invalidate?: () => Promise<unknown> | void;
   }
 ) {
+  await clearQueryCache().catch(() => {});
   setActiveTenantId(tenantId);
   if (queryClientOrUtils) {
     try {

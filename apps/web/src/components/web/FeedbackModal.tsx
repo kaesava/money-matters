@@ -14,6 +14,7 @@ import {
 import { t } from '@money-matters/i18n';
 
 import { trpc } from '@/lib/trpc';
+import { getWebVersionInfo } from '@/lib/version';
 
 interface FeedbackModalProps {
   isOpen: boolean;
@@ -71,6 +72,7 @@ export function FeedbackModal({ isOpen, onClose, userEmail = '' }: FeedbackModal
         category,
         severity,
         email: email.trim() || undefined,
+        appVersion: getWebVersionInfo().formattedVersion,
         route: typeof window !== 'undefined' ? window.location.pathname : undefined,
         userAgent: typeof navigator !== 'undefined' ? navigator.userAgent : undefined,
         screen: typeof window !== 'undefined' ? `${window.innerWidth}x${window.innerHeight}` : undefined,

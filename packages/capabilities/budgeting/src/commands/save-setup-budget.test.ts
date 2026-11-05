@@ -33,16 +33,22 @@ describe("saveSetupBudgetHandler", () => {
 
     const mockDb: any = {
       select: vi.fn().mockImplementation(() => ({
-        from: vi.fn().mockImplementation((table: any) => ({
-          where: vi.fn().mockImplementation(() => {
-            if (table === bankAccounts) return Promise.resolve(existingData?.accounts || []);
-            if (table === envelopes) return Promise.resolve(existingData?.envelopes || []);
-            if (table === incomeSources) return Promise.resolve(existingData?.incomes || []);
-            if (table === expenseEvents) return Promise.resolve(existingData?.expenseSources || []);
-            return Promise.resolve(existingData?.prefs || []);
-          }),
-          limit: vi.fn().mockImplementation(() => Promise.resolve(existingData?.prefs || [])),
-        })),
+        from: vi.fn().mockImplementation((table: any) => {
+          const getData = () => {
+            if (table === bankAccounts) return existingData?.accounts || [];
+            if (table === envelopes) return existingData?.envelopes || [];
+            if (table === incomeSources) return existingData?.incomes || [];
+            if (table === expenseEvents) return existingData?.expenseSources || [];
+            if (table === tenants) return [{ timezone: "Australia/Sydney" }];
+            return existingData?.prefs || [];
+          };
+          const queryResult: any = Promise.resolve(getData());
+          queryResult.limit = vi.fn().mockImplementation(() => Promise.resolve(getData()));
+          return {
+            where: vi.fn().mockReturnValue(queryResult),
+            limit: vi.fn().mockImplementation(() => Promise.resolve(getData())),
+          };
+        }),
       })),
       insert: vi.fn().mockImplementation((table: any) => ({
         values: vi.fn().mockImplementation((vals: any) => {

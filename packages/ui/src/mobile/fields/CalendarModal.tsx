@@ -4,12 +4,10 @@ import {
   View,
   Text,
   TouchableOpacity,
-  StyleSheet,
   Pressable,
 } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { t } from '@money-matters/i18n';
-import { DESIGN_TOKENS } from '../../tokens';
 
 interface CalendarModalProps {
   visible: boolean;
@@ -21,43 +19,14 @@ interface CalendarModalProps {
   maxDate?: string;
 }
 
-const WEEKDAYS = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
-const MONTH_NAMES = [
-  'January',
-  'February',
-  'March',
-  'April',
-  'May',
-  'June',
-  'July',
-  'August',
-  'September',
-  'October',
-  'November',
-  'December',
-];
-
-function padZero(num: number): string {
-  return num < 10 ? `0${num}` : `${num}`;
-}
-
-function parseIso(isoStr?: string): Date {
-  if (!isoStr) return new Date();
-  const parts = isoStr.split('-');
-  if (parts.length === 3) {
-    const y = parseInt(parts[0], 10);
-    const m = parseInt(parts[1], 10) - 1;
-    const d = parseInt(parts[2], 10);
-    if (!isNaN(y) && !isNaN(m) && !isNaN(d)) {
-      return new Date(y, m, d);
-    }
-  }
-  return new Date();
-}
-
-function toIso(d: Date): string {
-  return `${d.getFullYear()}-${padZero(d.getMonth() + 1)}-${padZero(d.getDate())}`;
-}
+import {
+  WEEKDAYS,
+  MONTH_NAMES,
+  padZero,
+  parseIso,
+  toIso,
+} from './CalendarModalHelpers';
+import { styles } from './CalendarModalStyles';
 
 export function CalendarModal({
   visible,
@@ -288,146 +257,3 @@ export function CalendarModal({
   );
 }
 
-const styles = StyleSheet.create({
-  overlay: {
-    flex: 1,
-    backgroundColor: 'rgba(15, 23, 42, 0.45)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 20,
-  },
-  card: {
-    width: '100%',
-    maxWidth: 340,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 20,
-    padding: 20,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.15,
-    shadowRadius: 20,
-    elevation: 10,
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  title: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#1E293B',
-  },
-  subtitle: {
-    fontSize: 12,
-    color: '#2563eb',
-    fontWeight: '600',
-    marginTop: 2,
-  },
-  closeBtn: {
-    padding: 6,
-    borderRadius: 8,
-    backgroundColor: '#F1F5F9',
-  },
-  navRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 8,
-    marginBottom: 14,
-  },
-  navArrow: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: '#F1F5F9',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  monthYearText: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: '#1E293B',
-  },
-  weekdayRow: {
-    flexDirection: 'row',
-    marginBottom: 8,
-  },
-  weekdayText: {
-    flex: 1,
-    textAlign: 'center',
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#94A3B8',
-  },
-  grid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-  },
-  dayCell: {
-    width: `${100 / 7}%`,
-    height: 38,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderRadius: 19,
-    marginVertical: 2,
-  },
-  dayCellSelected: {
-    backgroundColor: '#2563eb',
-  },
-  dayCellToday: {
-    borderWidth: 1.5,
-    borderColor: '#93C5FD',
-  },
-  dayText: {
-    fontSize: 13,
-    fontWeight: '500',
-    color: '#1E293B',
-  },
-  dayTextMuted: {
-    color: '#CBD5E1',
-  },
-  dayTextSelected: {
-    color: '#FFFFFF',
-    fontWeight: '700',
-  },
-  dayTextToday: {
-    color: '#2563eb',
-    fontWeight: '700',
-  },
-  footer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginTop: 16,
-    paddingTop: 14,
-    borderTopWidth: 1,
-    borderTopColor: '#F1F5F9',
-  },
-  todayButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    borderRadius: 10,
-    backgroundColor: '#EFF6FF',
-  },
-  todayButtonText: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: '#2563eb',
-  },
-  doneButton: {
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-    borderRadius: 10,
-    backgroundColor: '#2563eb',
-  },
-  doneButtonText: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: '#FFFFFF',
-  },
-});

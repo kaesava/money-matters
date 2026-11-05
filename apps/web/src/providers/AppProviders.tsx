@@ -6,6 +6,7 @@ import { authClient } from "../lib/auth";
 import posthog from "../lib/posthog-client";
 import { ToastProvider, ToastContainer, NetworkErrorBanner } from "@money-matters/ui/web";
 import { LocaleProvider } from "./LocaleProvider";
+import { AnalyticsConsentBanner } from "../components/web/AnalyticsConsentBanner";
 
 interface NetworkStatusContextType {
   isGlobalError: boolean;
@@ -71,10 +72,7 @@ function SessionSyncTracker({ children }: { children: React.ReactNode }) {
       posthog.reset();
     }
 
-    posthog.identify(distinctId, {
-      ...(typeof user?.email === "string" ? { email: user.email } : {}),
-      ...(typeof user?.name === "string" ? { name: user.name } : {}),
-    });
+    posthog.identify(distinctId);
     identifiedDistinctId.current = distinctId;
   }, [isPending, session]);
 
@@ -146,6 +144,7 @@ export function AppProviders({ children }: AppProvidersProps) {
                 />
                 {children}
                 <ToastContainer />
+                <AnalyticsConsentBanner />
               </LocaleProvider>
             </SessionSyncTracker>
           </ToastProvider>

@@ -107,20 +107,13 @@ describe('billing capability', () => {
     expect(updatedTo).toBe('TRIAL_ACTIVE');
   });
 
-  it('verifies mock checkout session synchronously', async () => {
+  it('rejects invalid or mock checkout session ID format', async () => {
     const { verifyCheckoutSessionCommand } = await import('./index');
-    const updateSetWhere = async () => [];
-    const mockDb = {
-      update: () => ({
-        set: () => ({
-          where: updateSetWhere,
-        }),
-      }),
-    } as any;
+    const mockDb = {} as unknown as Parameters<typeof verifyCheckoutSessionCommand>[0];
 
-    const res = await verifyCheckoutSessionCommand(mockDb, 'tenant-123', 'mock_checkout_session_success');
-    expect(res.verified).toBe(true);
-    expect(res.subscriptionStatus).toBe('SUBSCRIBED');
+    await expect(
+      verifyCheckoutSessionCommand(mockDb, 'tenant-123', 'mock_checkout_session_success')
+    ).rejects.toThrow();
   });
 
   it('queries list of invoices for a tenant', async () => {
@@ -150,7 +143,7 @@ describe('billing capability', () => {
           }),
         }),
       }),
-    } as any;
+    } as unknown as Parameters<typeof listInvoicesQuery>[0];
 
     const invoices = await listInvoicesQuery(mockDb, '22222222-2222-4222-8222-222222222222');
     expect(invoices.length).toBe(1);
@@ -158,63 +151,30 @@ describe('billing capability', () => {
     expect(invoices[0].stripeInvoiceId).toBe('in_123');
   });
 
-  it('creates checkout session in mock mode for founding planType and records planType', async () => {
-    let capturedPlanType: string | undefined;
-    const mockDb = {
-      select: () => ({
-        from: () => ({
-          where: () => ({
-            limit: async () => [{ id: 'tenant-123' }],
-          }),
-        }),
-      }),
-      update: () => ({
-        set: (vals: any) => {
-          capturedPlanType = vals.planType;
-          return {
-            where: async () => [],
-          };
-        },
-      }),
-    } as any;
+  it('rejects createCheckoutSession with unwhitelisted target URL', async () => {
+    const { createCheckoutSessionCommand } = await import('./index');
+    const mockDb = {} as unknown as Parameters<typeof createCheckoutSessionCommand>[0];
 
-    const res = await createCheckoutSessionCommand(mockDb, 'tenant-123', 'user@example.com', {
-      planType: 'founding',
-      successUrl: 'https://kaesava.au/success',
-      cancelUrl: 'https://kaesava.au/cancel',
-    });
-
-    expect(res.url).toContain('session_id=mock_checkout_session_success');
-    expect(capturedPlanType).toBe('founding');
+    await expect(
+      createCheckoutSessionCommand(mockDb, 'tenant-123', 'user@example.com', {
+        planType: 'founding',
+        successUrl: 'https://attacker.com/success',
+        cancelUrl: 'https://kaesava.au/cancel',
+      })
+    ).rejects.toThrow('Invalid redirect URL: target domain is not authorized.');
   });
 
-  it('creates checkout session in mock mode for annual planType', async () => {
-    let capturedPlanType: string | undefined;
-    const mockDb = {
-      select: () => ({
-        from: () => ({
-          where: () => ({
-            limit: async () => [{ id: 'tenant-123' }],
-          }),
-        }),
-      }),
-      update: () => ({
-        set: (vals: any) => {
-          capturedPlanType = vals.planType;
-          return {
-            where: async () => [],
-          };
-        },
-      }),
-    } as any;
+  it('requires Stripe secret key for checkout session creation', async () => {
+    const { createCheckoutSessionCommand } = await import('./index');
+    const mockDb = {} as unknown as Parameters<typeof createCheckoutSessionCommand>[0];
 
-    const res = await createCheckoutSessionCommand(mockDb, 'tenant-123', 'user@example.com', {
-      planType: 'annual',
-      successUrl: 'https://kaesava.au/success',
-      cancelUrl: 'https://kaesava.au/cancel',
-    });
-
-    expect(res.url).toContain('session_id=mock_checkout_session_success');
-    expect(capturedPlanType).toBe('annual');
+    await expect(
+      createCheckoutSessionCommand(mockDb, 'tenant-123', 'user@example.com', {
+        planType: 'annual',
+        successUrl: 'https://kaesava.au/success',
+        cancelUrl: 'https://kaesava.au/cancel',
+      })
+    ).rejects.toThrow('Stripe secret key is not configured.');
   });
 });
+

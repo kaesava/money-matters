@@ -9,9 +9,8 @@
  * - Enforces 80% Everyday spending allowance floor and goal delay tracking for recurring mode
  * - Provides clear Start Advice when ongoing recurring commitments fit the budget but Day-1 cash is tight
  *
- * Architecture note: This capability imports engine utilities from @money-matters/capability-budgeting.
- * This is the single sanctioned cross-capability import in the monorepo — justified because simulation
- * is a stateless pure-computation layer with zero DB writes.
+ * Architecture note: Fully decoupled pure-computation layer with zero DB writes,
+ * relying solely on @money-matters/types, @money-matters/core, and @money-matters/db.
  */
 import {
   envelopes,
@@ -26,13 +25,12 @@ import {
 import { eq, and, sql } from "drizzle-orm";
 import type {
   CanAffordVerdictType,
-  OneOffGoalAlternative,
   ProjectionEngineFn,
   ProjectionEngineBucket,
-  ProjectionIncomeEvent,
-  ProjectionExpenseEvent,
 } from "@money-matters/types";
 import { getTenantDateString } from "@money-matters/core";
+import { simulateRecurringCommitment } from "./simulation-steps/recurring-simulation.js";
+import { simulateOneOffPurchase } from "./simulation-steps/one-off-simulation.js";
 
 /** Convert an amount from any frequency to its monthly-equivalent. */
 export function toMonthlyAmount(
@@ -100,6 +98,7 @@ export async function canAffordSimulationQuery(
           userId: envelopes.userId,
         })
         .from(envelopes)
+        .leftJoin(bankAccounts, eq(bankAccounts.id, envelopes.bankAccountId))
         .where(
           and(
             eq(envelopes.tenantId, tenantId),
@@ -108,39 +107,39 @@ export async function canAffordSimulationQuery(
           )
         ),
 
-      // Pre-aggregated envelope balances map
+      // Compute balances using DB-side aggregate
       getEnvelopeBalancesMap(tenantId, appId, dbClient),
 
-      // All PENDING income events sorted ascending by date
+      // Pending and confirmed income events joined with recurrence rule from income_sources
       dbClient
         .select({
           id: incomeEvents.id,
+          sourceName: sql<string>`COALESCE(${incomeEvents.name}, ${incomeSources.name}, 'Income')`,
           expectedDate: incomeEvents.expectedDate,
           expectedAmount: incomeEvents.expectedAmount,
           actualAmount: incomeEvents.actualAmount,
           status: incomeEvents.status,
-          sourceName: sql<string>`COALESCE(NULLIF(${incomeEvents.name}, ''), ${incomeSources.name}, 'Paycheck')`,
           rrule: incomeSources.rrule,
         })
         .from(incomeEvents)
-        .leftJoin(incomeSources, eq(incomeEvents.incomeSourceId, incomeSources.id))
+        .leftJoin(incomeSources, eq(incomeSources.id, incomeEvents.incomeSourceId))
         .where(
           and(
             eq(incomeEvents.tenantId, tenantId),
             eq(incomeEvents.appId, appId),
-            eq(incomeEvents.status, "PENDING"),
-            sql`${incomeEvents.archivedAt} IS NULL`
+            sql`${incomeEvents.archivedAt} IS NULL`,
+            sql`${incomeEvents.status} IN ('PENDING', 'CONFIRMED')`
           )
         ),
 
-      // All PENDING expense events
+      // Pending expense events (bills)
       dbClient
         .select({
           id: expenseEvents.id,
-          envelopeId: expenseEvents.envelopeId,
           name: expenseEvents.name,
           expectedDate: expenseEvents.expectedDate,
           expectedAmount: expenseEvents.expectedAmount,
+          envelopeId: expenseEvents.envelopeId,
           status: expenseEvents.status,
         })
         .from(expenseEvents)
@@ -148,56 +147,59 @@ export async function canAffordSimulationQuery(
           and(
             eq(expenseEvents.tenantId, tenantId),
             eq(expenseEvents.appId, appId),
-            eq(expenseEvents.status, "PENDING"),
-            sql`${expenseEvents.archivedAt} IS NULL`
+            sql`${expenseEvents.archivedAt} IS NULL`,
+            eq(expenseEvents.status, "PENDING")
           )
         ),
     ]);
 
-  const timezone = tenantRecord[0]?.timezone || "Australia/Sydney";
-  const today = new Date();
-  const todayStr = getTenantDateString(today, { timezone });
+  const timezone = tenantRecord[0]?.timezone ?? "UTC";
+  const todayStr = getTenantDateString(new Date(), { timezone });
+  const today = new Date(todayStr + "T00:00:00Z");
 
-  // ── 2. FILTER ENVELOPES BY PRIVACY ─────────────────────────────────────────
-  const visibleEnvelopes = dbEnvelopes.filter((e) =>
-    e.isPrivate ? (includePersonal && e.userId === userId) : true
-  );
+  // ── 2. FILTER VISIBLE ENVELOPES ───────────────────────────────────────
+  const visibleEnvelopes = dbEnvelopes.filter((env) => {
+    if (!env.isPrivate) return true;
+    if (includePersonal) return env.userId === userId;
+    return false;
+  });
+
   const everydayEnvelopes = visibleEnvelopes.filter((e) => e.envelopeType === "EVERYDAY");
-  const billEnvelopes = visibleEnvelopes.filter((e) => e.envelopeType === "SCHEDULED_BILL" || e.envelopeType === "FLEXIBLE_BILL");
-  const goalEnvelopes = visibleEnvelopes.filter((e) => e.envelopeType === "TARGET_GOAL" || e.envelopeType === "ONGOING_GOAL");
-
-  // ── 3. COMPUTE BALANCES ────────────────────────────────────────────────
-  const everydayBalance = everydayEnvelopes.reduce(
-    (sum, e) => sum + (envelopeBalancesMap[e.id] ?? 0),
-    0
+  const billsEnvelopes = visibleEnvelopes.filter(
+    (e) => e.envelopeType === "SCHEDULED_BILL" || e.envelopeType === "FLEXIBLE_BILL"
+  );
+  const goalEnvelopes = visibleEnvelopes.filter(
+    (e) => e.envelopeType === "TARGET_GOAL" || e.envelopeType === "ONGOING_GOAL"
   );
 
-  // ── 4. DETERMINE NEXT PAYDAY ──────────────────────────────────────────
+
+  // ── 3. COMPUTE CURRENT CASH AVAILABLE IN EVERYDAY ─────────────────────
+  let everydayBalance = 0;
+  for (const env of everydayEnvelopes) {
+    const bal = envelopeBalancesMap[env.id] ?? 0;
+    everydayBalance += bal;
+  }
+
+  // ── 4. RESOLVE NEXT PAYCHECK & TIMELINE WINDOW ─────────────────────────
   const sortedIncomes = [...pendingIncomesRaw].sort(
-    (a, b) =>
-      new Date(a.expectedDate + "T00:00:00").getTime() -
-      new Date(b.expectedDate + "T00:00:00").getTime()
+    (a, b) => new Date(a.expectedDate).getTime() - new Date(b.expectedDate).getTime()
   );
-  const nextPaycheck = sortedIncomes[0] ?? null;
+
+  const nextPaycheck = sortedIncomes.find((i) => i.expectedDate >= todayStr) ?? sortedIncomes[0];
   const nextPaycheckDateStr =
     nextPaycheck?.expectedDate ??
     getTenantDateString(new Date(today.getTime() + 14 * 24 * 60 * 60 * 1000), { timezone });
 
+  const nextPaycheckTime = new Date(nextPaycheckDateStr + "T00:00:00Z").getTime();
   const daysUntilPayday = Math.max(
     1,
-    Math.round(
-      (new Date(nextPaycheckDateStr + "T00:00:00Z").getTime() -
-        new Date(todayStr + "T00:00:00Z").getTime()) /
-        (1000 * 60 * 60 * 24)
-    )
+    Math.round((nextPaycheckTime - today.getTime()) / (1000 * 60 * 60 * 24))
   );
 
-  // ── 5. UPCOMING BILLS BEFORE NEXT PAYDAY & UNFUNDED SHORTFALL ─────────
-  const billEnvIds = new Set(billEnvelopes.map((e) => e.id));
+  // ── 5. RING-FENCE UPCOMING BILLS BEFORE PAYDAY ─────────────────────────
+  const billEnvIds = new Set<string>(billsEnvelopes.map((e) => e.id));
   const billsDueBeforePayday = pendingExpensesRaw.filter(
-    (e) =>
-      e.expectedDate >= todayStr &&
-      e.expectedDate <= nextPaycheckDateStr
+    (e) => e.expectedDate >= todayStr && e.expectedDate <= nextPaycheckDateStr
   );
 
   const envBillsSumMap = new Map<string, number>();
@@ -263,437 +265,50 @@ export async function canAffordSimulationQuery(
 
   // ── 8. RECURRING MODE ─────────────────────────────────────────────────
   if (mode === "RECURRING") {
-    const monthlyAmount = toMonthlyAmount(amount, frequency);
-    const isDay1CashTight = amount > effectiveSpendable;
-    const startAdvice = isDay1CashTight
-      ? `Start this on or after your next payday (${nextPaycheckDateStr}), as today's remaining cash is needed for current expenses.`
-      : undefined;
-
-    // --- 12-Month Projection Setup ---
-    const phantomBucket: ProjectionEngineBucket = {
-      id: `__phantom_recurring__`,
-      name: input.itemName ?? "New Recurring Commitment",
-      type: "REGULAR",
-      isCommitted: false,
-      isSurplusTarget: false,
-      monthlyAmount,
-      targetAmount: null,
-      targetDate: null,
-      currentBalance: 0,
-      isPrivate: false,
-    };
-
-    const baseExpenses: ProjectionExpenseEvent[] = pendingExpensesRaw.map((e) => ({
-      poolId: e.envelopeId,
-      dueDate: e.expectedDate,
-      amount: parseFloat(e.expectedAmount),
-      status: e.status as "PENDING" | "CONFIRMED",
-    }));
-
-    // Inject calendar-matched phantom expense events over 12-month horizon
-    const phantomExpenses: ProjectionExpenseEvent[] = [];
-    let count = 12;
-    if (frequency === "WEEKLY") count = 52;
-    else if (frequency === "FORTNIGHTLY") count = 26;
-    else if (frequency === "MONTHLY") count = 12;
-    else if (frequency === "ANNUALLY") count = 1;
-
-    for (let k = 0; k < count; k++) {
-      let d: Date;
-      if (frequency === "MONTHLY") {
-        d = new Date(today);
-        d.setMonth(d.getMonth() + k);
-      } else if (frequency === "ANNUALLY") {
-        d = new Date(today);
-        d.setFullYear(d.getFullYear() + k);
-      } else if (frequency === "WEEKLY") {
-        d = new Date(today.getTime() + k * 7 * 24 * 60 * 60 * 1000);
-      } else {
-        // FORTNIGHTLY
-        d = new Date(today.getTime() + k * 14 * 24 * 60 * 60 * 1000);
-      }
-
-      phantomExpenses.push({
-        poolId: phantomBucket.id,
-        amount,
-        dueDate: getTenantDateString(d, { timezone }),
-        status: "PENDING",
-      });
-    }
-
-    const cumIncomes: ProjectionIncomeEvent[] = sortedIncomes.map((e) => ({
-      id: e.id,
-      sourceName: e.sourceName,
-      expectedDate: e.expectedDate,
-      expectedAmount: parseFloat(e.expectedAmount),
-      actualAmount: e.actualAmount ? parseFloat(e.actualAmount) : null,
-      status: e.status as "PENDING" | "CONFIRMED" | "DRAFT" | "REVIEWED",
-      rrule: e.rrule,
-    }));
-
-    // Projection WITHOUT phantom — baseline goal final balances
-    const projectionWithout = deps.projectionEngine({
-      categories: engineBuckets,
-      incomeEvents: cumIncomes,
-      expenseEvents: baseExpenses,
-    });
-
-    // Projection WITH phantom bucket & injected expenses
-    const projectionWith = deps.projectionEngine({
-      categories: [...engineBuckets, phantomBucket],
-      incomeEvents: cumIncomes,
-      expenseEvents: [...baseExpenses, ...phantomExpenses],
-    });
-
-    // --- CHECK 1: PHANTOM BUCKET DEFICIT (Bills shortfall) ---
-    const phantomFinalBal = projectionWith.finalBalances.get(phantomBucket.id) ?? 0;
-    if (phantomFinalBal < -1) {
-      const totalDeficit = Math.abs(phantomFinalBal);
-      return {
-        verdict: "HARD_NO",
-        shortfall: totalDeficit.toFixed(2),
-        horizonMonths: 12,
-        rationaleSteps: [
-          `Over a 12-month budget forecast, your projected income is insufficient to cover this ${frequency.toLowerCase()} commitment of $${amount.toFixed(2)} ($${monthlyAmount.toFixed(2)}/mo).`,
-          `Forecasted shortfall: -$${totalDeficit.toFixed(2)}.`,
-          `Your bills are non-negotiable and cannot be compromised.`,
-        ],
-      };
-    }
-
-    // --- CHECK 2: EVERYDAY 80% MINIMUM ALLOWANCE PRESERVATION ---
-    const everydayEnvelopeIds = new Set<string>(everydayEnvelopes.map((p) => p.id));
-    let minEverydayBalance = Infinity;
-
-    for (const step of projectionWith.steps) {
-      let everydayAtStep = 0;
-      for (const envId of everydayEnvelopeIds) {
-        everydayAtStep += step.balancesAfterExpenses.get(envId) ?? 0;
-      }
-      if (everydayAtStep < minEverydayBalance) {
-        minEverydayBalance = everydayAtStep;
-      }
-    }
-
-    // Sum total everyday allocations across projection steps
-    let totalEverydayAllocated = 0;
-    for (const step of projectionWith.steps) {
-      for (const envId of everydayEnvelopeIds) {
-        totalEverydayAllocated += step.allocations.get(envId)?.proposedAmount ?? 0;
-      }
-    }
-
-    const expected12MonthEveryday = everydayMonthlyAllowance * 12;
-    const minRequiredEveryday = expected12MonthEveryday * 0.8;
-
-    if (minEverydayBalance < 0 || (expected12MonthEveryday > 0 && totalEverydayAllocated < minRequiredEveryday)) {
-      const deficit = Math.max(0, minRequiredEveryday - totalEverydayAllocated);
-      return {
-        verdict: "HARD_NO",
-        shortfall: deficit > 0 ? deficit.toFixed(2) : Math.abs(minEverydayBalance).toFixed(2),
-        horizonMonths: 12,
-        rationaleSteps: [
-          `Over a 12-month budget forecast, this ${frequency.toLowerCase()} commitment of $${amount.toFixed(2)} ($${monthlyAmount.toFixed(2)}/mo) would cut into your essential everyday spending below 80% of what is planned.`,
-          `Everyday spending essentials must remain protected.`,
-        ],
-      };
-    }
-
-    // --- CHECK 3: GOAL DELAYS ("What Gives") ---
-    const goalDelays: Array<{
-      goalId: string;
-      goalName: string;
-      isCommitted: boolean;
-      originalTargetDate: string | null;
-      newTargetDate: string | null;
-      delayDays: number;
-    }> = [];
-
-    for (const pool of goalEnvelopes) {
-      if (!pool.targetAmount) continue;
-
-      const originalFinalBalance = projectionWithout.finalBalances.get(pool.id) ?? 0;
-      const newFinalBalance = projectionWith.finalBalances.get(pool.id) ?? 0;
-      const balanceDrop = originalFinalBalance - newFinalBalance;
-      if (balanceDrop <= 0.01) continue; // No meaningful impact
-
-      // Estimate delay days from balance drop vs. daily contribution rate
-      const poolMonthlyContrib =
-        pool.goalMode === "ONGOING"
-          ? parseFloat(pool.targetAmount)
-          : (pool.monthlyAmount ? parseFloat(pool.monthlyAmount) : parseFloat(pool.targetAmount) / 12);
-      const dailyContrib = poolMonthlyContrib > 0 ? poolMonthlyContrib / 30 : 1;
-      const delayDays = Math.max(1, Math.round(balanceDrop / dailyContrib));
-
-      let newDateStr: string | null = null;
-      if (pool.endDate) {
-        const originalDate = new Date(pool.endDate + "T00:00:00Z");
-        const newDate = new Date(originalDate.getTime() + delayDays * 24 * 60 * 60 * 1000);
-        newDateStr = new Intl.DateTimeFormat("en-CA", { timeZone: timezone }).format(newDate);
-      }
-
-      goalDelays.push({
-        goalId: pool.id,
-        goalName: pool.name,
-        isCommitted: pool.isCommitted ?? false,
-        originalTargetDate: pool.endDate,
-        newTargetDate: newDateStr,
-        delayDays,
-      });
-    }
-
-    if (goalDelays.length > 0) {
-      return {
-        verdict: "GOAL_DELAYED",
-        isAffordable: true,
-        goalDelays,
-        recurringMonthlyImpact: monthlyAmount.toFixed(2),
-        startAdvice,
-        rationaleSteps: [
-          `New ${frequency.toLowerCase()} commitment of $${amount.toFixed(2)} ($${monthlyAmount.toFixed(2)}/mo) added to your ongoing budget.`,
-          `All upcoming bills and essential everyday spending remain 100% protected.`,
-          `${goalDelays.length} savings goal(s) will absorb this by adjusting target dates:`,
-          ...goalDelays.map(
-            (g) =>
-              `"${g.goalName}" (${g.isCommitted ? "committed target" : "flexible goal"}): pushed back by ~${g.delayDays} days.`
-          ),
-          ...(startAdvice ? [startAdvice] : []),
-        ],
-      };
-    }
-
-    // Recurring affordable with zero goal delays
-    const remaining = effectiveSpendable - amount;
-    return {
-      verdict: "SAFE_YES",
-      availableCash: everydayBalance.toFixed(2),
-      effectiveSpendable: effectiveSpendable.toFixed(2),
-      everydayRemaining: remaining.toFixed(2),
+    return simulateRecurringCommitment({
+      amount,
+      frequency,
+      itemName: input.itemName,
+      effectiveSpendable,
+      everydayBalance,
       safeCushion,
       daysUntilPayday,
-      nextPaydayDate: nextPaycheckDateStr,
-      upcomingBillsBeforePayday: totalBillsBeforePayday.toFixed(2),
-      startAdvice,
-      rationaleSteps: [
-        `Recurring ${frequency.toLowerCase()} commitment of $${amount.toFixed(2)} ($${monthlyAmount.toFixed(2)}/mo).`,
-        `Your budget forecast shows all bills, savings targets, and everyday spending remain fully funded.`,
-        ...(startAdvice ? [startAdvice] : []),
-      ],
-    };
+      nextPaycheckDateStr,
+      totalBillsBeforePayday,
+      visibleEnvelopes,
+      goalEnvelopes,
+      everydayEnvelopes,
+      engineBuckets,
+      envelopeBalancesMap,
+      pendingExpensesRaw,
+      sortedIncomes,
+      projectionEngine: deps.projectionEngine,
+      today,
+      timezone,
+    });
   }
 
-  // ── 9. ONE-OFF: BILLS RISK CHECK ──────────────────────────────────────
-  if (amount <= everydayBalance && amount > effectiveSpendable) {
-    const billsDueItems = billsDueBeforePayday.map((e) => ({
-      name: e.name,
-      amount: parseFloat(e.expectedAmount).toFixed(2),
-      dueDate: e.expectedDate,
-    }));
-
-    return {
-      verdict: "BILLS_RISK",
-      availableCash: everydayBalance.toFixed(2),
-      upcomingBillsBeforePayday: totalBillsBeforePayday.toFixed(2),
-      effectiveAfterBills: effectiveSpendable.toFixed(2),
-      billsDueItems,
-      rationaleSteps: [
-        `Everyday balance: $${everydayBalance.toFixed(2)}`,
-        `Upcoming bills before payday: $${totalBillsBeforePayday.toFixed(2)} (${billsDueItems.map((b) => b.name).join(", ")})`,
-        `Net safe-to-spend today after unfunded bills: $${effectiveSpendable.toFixed(2)} — insufficient for $${amount.toFixed(2)}`,
-        `Bills are non-negotiable and cannot be spent.`,
-      ],
-    };
-  }
-
-  // ── 10. ONE-OFF: IMMEDIATE AFFORDABILITY CHECK ───────────────────────
-  if (amount <= effectiveSpendable) {
-    const remaining = effectiveSpendable - amount;
-    const everydayRemaining = remaining.toFixed(2);
-
-    if (remaining >= safeCushionVal) {
-      return {
-        verdict: "SAFE_YES",
-        availableCash: everydayBalance.toFixed(2),
-        effectiveSpendable: effectiveSpendable.toFixed(2),
-        everydayRemaining,
-        safeCushion,
-        daysUntilPayday,
-        nextPaydayDate: nextPaycheckDateStr,
-        upcomingBillsBeforePayday: totalBillsBeforePayday.toFixed(2),
-        rationaleSteps: [
-          `Everyday balance: $${everydayBalance.toFixed(2)}${includePersonal ? " (includes Personal Pools)" : ""}`,
-          `Upcoming bills before payday: $${totalBillsBeforePayday.toFixed(2)} (100% protected)`,
-          `After purchase: $${everydayRemaining} remaining until payday on ${nextPaycheckDateStr}.`,
-          `Comfortably above your recommended safe cushion of $${safeCushion}.`,
-        ],
-      };
-    } else {
-      const cushionShortfall = (safeCushionVal - remaining).toFixed(2);
-      return {
-        verdict: "PACING_TIGHT",
-        availableCash: everydayBalance.toFixed(2),
-        effectiveSpendable: effectiveSpendable.toFixed(2),
-        everydayRemaining,
-        safeCushion,
-        cushionShortfall,
-        daysUntilPayday,
-        nextPaydayDate: nextPaycheckDateStr,
-        upcomingBillsBeforePayday: totalBillsBeforePayday.toFixed(2),
-        rationaleSteps: [
-          `Everyday balance: $${everydayBalance.toFixed(2)}`,
-          `Upcoming bills before payday: $${totalBillsBeforePayday.toFixed(2)} (100% protected)`,
-          `After purchase: $${everydayRemaining} remaining for ${daysUntilPayday} days until payday on ${nextPaycheckDateStr}.`,
-          `This leaves you $${cushionShortfall} below your recommended safe cushion ($${safeCushion}).`,
-        ],
-      };
-    }
-  }
-
-  // ── 11. ONE-OFF: SHORTFALL TODAY — CHECK SAVINGS GOALS & FUTURE PAYDAYS ─
-  const shortfall = amount - effectiveSpendable;
-
-  // Check flexible Savings Goals to see if one can cover the shortfall
-  const flexibleGoals = goalEnvelopes.filter((p) => !p.isCommitted && (envelopeBalancesMap[p.id] ?? 0) > 0);
-  flexibleGoals.sort((a, b) => (envelopeBalancesMap[b.id] ?? 0) - (envelopeBalancesMap[a.id] ?? 0));
-  const candidateGoal = flexibleGoals[0] ?? null;
-
-  let goalAlternative: OneOffGoalAlternative | undefined = undefined;
-  if (candidateGoal) {
-    const goalBal = envelopeBalancesMap[candidateGoal.id] ?? 0;
-    if (goalBal >= shortfall) {
-      const poolMonthlyContrib =
-        candidateGoal.goalMode === "ONGOING"
-          ? parseFloat(candidateGoal.targetAmount || "0")
-          : (candidateGoal.monthlyAmount ? parseFloat(candidateGoal.monthlyAmount) : (candidateGoal.targetAmount ? parseFloat(candidateGoal.targetAmount) / 12 : 0));
-      const dailyContrib = poolMonthlyContrib > 0 ? poolMonthlyContrib / 30 : 1;
-      const delayDays = Math.max(1, Math.round(shortfall / dailyContrib));
-
-      let newTargetDate: string | null = null;
-      if (candidateGoal.endDate) {
-        const origDate = new Date(candidateGoal.endDate + "T00:00:00Z");
-        const nDate = new Date(origDate.getTime() + delayDays * 24 * 60 * 60 * 1000);
-        newTargetDate = new Intl.DateTimeFormat("en-CA", { timeZone: timezone }).format(nDate);
-      }
-
-      goalAlternative = {
-        goalId: candidateGoal.id,
-        goalName: candidateGoal.name,
-        availableGoalBalance: goalBal.toFixed(2),
-        shortfallCovered: shortfall.toFixed(2),
-        delayDays,
-        newTargetDate,
-      };
-    }
-  }
-
-  // Run cumulative projection to find earliest paycycle where Everyday cash accumulates enough
-  const cumExpenses: ProjectionExpenseEvent[] = pendingExpensesRaw.map((e) => ({
-    poolId: e.envelopeId,
-    dueDate: e.expectedDate,
-    amount: parseFloat(e.expectedAmount),
-    status: e.status as "PENDING" | "CONFIRMED",
-  }));
-
-  const cumIncomes: ProjectionIncomeEvent[] = sortedIncomes.map((e) => ({
-    id: e.id,
-    sourceName: e.sourceName,
-    expectedDate: e.expectedDate,
-    expectedAmount: parseFloat(e.expectedAmount),
-    actualAmount: e.actualAmount ? parseFloat(e.actualAmount) : null,
-    status: e.status as "PENDING" | "CONFIRMED" | "DRAFT" | "REVIEWED",
-    rrule: e.rrule,
-  }));
-
-  const projection = deps.projectionEngine({
-    categories: engineBuckets,
-    incomeEvents: cumIncomes,
-    expenseEvents: cumExpenses,
+  // ── 9. ONE-OFF MODE ───────────────────────────────────────────────────
+  return simulateOneOffPurchase({
+    amount,
+    includePersonal,
+    effectiveSpendable,
+    everydayBalance,
+    safeCushion,
+    safeCushionVal,
+    daysUntilPayday,
+    nextPaycheckDateStr,
+    totalBillsBeforePayday,
+    billsDueBeforePayday,
+    goalEnvelopes,
+    everydayEnvelopes,
+    visibleEnvelopes,
+    engineBuckets,
+    envelopeBalancesMap,
+    pendingExpensesRaw,
+    sortedIncomes,
+    dailyAllowance,
+    projectionEngine: deps.projectionEngine,
+    timezone,
   });
-
-  const everydayEnvelopeIds = new Set<string>(everydayEnvelopes.map((p) => p.id));
-  const surplusEnvelope = visibleEnvelopes.find((p) => p.isSurplusTarget);
-  const ordinals = ["st", "nd", "rd"];
-
-  for (let i = 0; i < projection.steps.length; i++) {
-    const step = projection.steps[i];
-
-    let daysInStep = 14;
-    if (i < projection.steps.length - 1) {
-      const tCurr = new Date(step.date + "T00:00:00").getTime();
-      const tNext = new Date(projection.steps[i + 1].date + "T00:00:00").getTime();
-      daysInStep = Math.max(1, Math.round((tNext - tCurr) / (1000 * 60 * 60 * 24)));
-    }
-    const stepCushion = dailyAllowance > 0 ? dailyAllowance * 0.25 * daysInStep : 15 * daysInStep;
-
-    const paycyclesAway = i + 1;
-    const ordinal = ordinals[i] ?? "th";
-
-    // TIER 1: Check fresh discretionary capacity injected on this payday
-    let freshEveryday = 0;
-    for (const envId of everydayEnvelopeIds) {
-      freshEveryday += step.allocations.get(envId)?.proposedAmount ?? 0;
-    }
-    const freshSurplus = surplusEnvelope ? (step.allocations.get(surplusEnvelope.id)?.proposedAmount ?? 0) : 0;
-    const freshDiscretionary = freshEveryday + freshSurplus;
-
-    if (freshDiscretionary - amount >= stepCushion) {
-      const rationaleSteps = [
-        `Current safe-to-spend Everyday cash: $${effectiveSpendable.toFixed(2)} (shortfall: -$${shortfall.toFixed(2)}).`,
-        `By your ${paycyclesAway === 1 ? "next" : `${paycyclesAway}${ordinal}`} paycycle (${step.date}), your incoming paycheck provides enough safe discretionary cash ($${freshDiscretionary.toFixed(2)}) to cover this purchase while keeping all bills and living essentials 100% protected.`,
-      ];
-
-      if (goalAlternative) {
-        rationaleSteps.push(
-          `Alternatively, cover the $${shortfall.toFixed(2)} gap today using your "${goalAlternative.goalName}" goal (pushes target date back by ~${goalAlternative.delayDays} days).`
-        );
-      }
-
-      return {
-        verdict: "WAIT_FOR_PAYCYCLE",
-        canAffordAt: step.date,
-        paycyclesAway,
-        projectedEverydayAtThatDate: freshDiscretionary.toFixed(2),
-        shortfallToday: shortfall.toFixed(2),
-        goalAlternative,
-        rationaleSteps,
-      };
-    }
-
-    // TIER 2: Check accumulated Surplus savings
-    const accumulatedSurplus = surplusEnvelope ? (step.balancesAfterExpenses.get(surplusEnvelope.id) ?? 0) : 0;
-    if (accumulatedSurplus >= amount) {
-      const rationaleSteps = [
-        `Current safe-to-spend Everyday cash: $${effectiveSpendable.toFixed(2)} (shortfall: -$${shortfall.toFixed(2)}).`,
-        `By your ${paycyclesAway === 1 ? "next" : `${paycyclesAway}${ordinal}`} paycycle (${step.date}), your accumulated savings in "${surplusEnvelope?.name}" will reach $${accumulatedSurplus.toFixed(2)}, allowing you to safely purchase this without touching everyday living or risking bills.`,
-      ];
-
-      if (goalAlternative) {
-        rationaleSteps.push(
-          `Alternatively, cover the $${shortfall.toFixed(2)} gap today using your "${goalAlternative.goalName}" goal (pushes target date back by ~${goalAlternative.delayDays} days).`
-        );
-      }
-
-      return {
-        verdict: "WAIT_FOR_PAYCYCLE",
-        canAffordAt: step.date,
-        paycyclesAway,
-        projectedEverydayAtThatDate: accumulatedSurplus.toFixed(2),
-        shortfallToday: shortfall.toFixed(2),
-        goalAlternative,
-        rationaleSteps,
-      };
-    }
-  }
-
-  // ── 12. HARD_NO: 12-month horizon exhausted ───────────────────────────
-  return {
-    verdict: "HARD_NO",
-    shortfall: shortfall.toFixed(2),
-    horizonMonths: 12,
-    rationaleSteps: [
-      `Current safe-to-spend Everyday cash: $${effectiveSpendable.toFixed(2)} (shortfall: -$${shortfall.toFixed(2)}).`,
-      `Across your 12-month budget forecast, projected income does not accumulate enough Everyday surplus to cover $${amount.toFixed(2)}.`,
-      `Consider setting this up as a dedicated savings goal.`,
-    ],
-  };
 }

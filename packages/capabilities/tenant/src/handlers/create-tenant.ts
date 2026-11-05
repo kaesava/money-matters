@@ -38,50 +38,37 @@ export function createTenantHandler(db: DbOrTx) {
       .onConflictDoNothing();
 
     // 1. Guard against owning more than one active household
-    const tenantUserQuery = db
+    const [existingOwnedTenant] = await db
       .select({ id: tenantUsers.tenantId })
-      .from(tenantUsers);
+      .from(tenantUsers)
+      .innerJoin(tenants, eq(tenantUsers.tenantId, tenants.id))
+      .where(
+        and(
+          eq(tenantUsers.userId, userId),
+          eq(tenantUsers.role, "OWNER"),
+          eq(tenants.appId, appId),
+          isNull(tenantUsers.archivedAt),
+          isNull(tenants.archivedAt)
+        )
+      )
+      .limit(1);
 
-    const existingOwnedTenant = typeof (tenantUserQuery as any).innerJoin === "function"
-      ? await (tenantUserQuery as any)
-          .innerJoin(tenants, eq(tenantUsers.tenantId, tenants.id))
-          .where(
-            and(
-              eq(tenantUsers.userId, userId),
-              eq(tenantUsers.role, "OWNER"),
-              eq(tenants.appId, appId),
-              isNull(tenantUsers.archivedAt),
-              isNull(tenants.archivedAt)
-            )
-          )
-          .limit(1)
-      : typeof (tenantUserQuery as any).where === "function"
-        ? await (tenantUserQuery as any).where(
-            and(
-              eq(tenantUsers.userId, userId),
-              eq(tenantUsers.role, "OWNER"),
-              isNull(tenantUsers.archivedAt)
-            )
-          )
-        : [];
-
-    if (existingOwnedTenant && existingOwnedTenant.length > 0) {
+    if (existingOwnedTenant) {
       throw new Error("You already have an active household. An account can only own one active household at a time.");
     }
 
     // 2. Check if user or email already used their 60-day trial across the platform
     const normalizedEmail = userEmail?.trim().toLowerCase();
-    const userQuery = db
-      .select({ hasUsedTrial: users.hasUsedTrial })
-      .from(users);
-
-    const matchedUsers = normalizedEmail && typeof (userQuery as any).where === "function"
-      ? await (userQuery as any).where(
-          or(eq(users.id, userId), sql`lower(${users.email}) = ${normalizedEmail}`)
-        )
-      : typeof (userQuery as any).where === "function"
-        ? await (userQuery as any).where(eq(users.id, userId)).limit(1)
-        : [];
+    const matchedUsers = normalizedEmail
+      ? await db
+          .select({ hasUsedTrial: users.hasUsedTrial })
+          .from(users)
+          .where(or(eq(users.id, userId), sql`lower(${users.email}) = ${normalizedEmail}`))
+      : await db
+          .select({ hasUsedTrial: users.hasUsedTrial })
+          .from(users)
+          .where(eq(users.id, userId))
+          .limit(1);
 
     const hasUsedTrial = matchedUsers.some((u: { hasUsedTrial?: boolean }) => Boolean(u.hasUsedTrial));
     const subscriptionStatus = hasUsedTrial ? "TRIAL_EXPIRED" : "TRIAL_ACTIVE";
@@ -110,16 +97,14 @@ export function createTenantHandler(db: DbOrTx) {
       });
 
     // Mark that the user has consumed their initial trial allocation
-    if (typeof (db as any).update === "function") {
-      await db
-        .update(users)
-        .set({ hasUsedTrial: true, updatedAt: now })
-        .where(
-          normalizedEmail
-            ? or(eq(users.id, userId), sql`lower(${users.email}) = ${normalizedEmail}`)
-            : eq(users.id, userId)
-        );
-    }
+    await db
+      .update(users)
+      .set({ hasUsedTrial: true, updatedAt: now })
+      .where(
+        normalizedEmail
+          ? or(eq(users.id, userId), sql`lower(${users.email}) = ${normalizedEmail}`)
+          : eq(users.id, userId)
+      );
 
     // 4. Add the owner record to tenant_users
     await db
@@ -136,22 +121,22 @@ export function createTenantHandler(db: DbOrTx) {
     // 5. Initialize or synchronize userPreferences with country defaults
     const phoneCountryCode = countryDefaults.phoneCountryCode || "+61";
 
-    const [existingPref] = typeof (db as any).select === "function"
-      ? await db.select().from(userPreferences).where(eq(userPreferences.userId, userId)).limit(1)
-      : [null];
+    const [existingPref] = await db
+      .select()
+      .from(userPreferences)
+      .where(eq(userPreferences.userId, userId))
+      .limit(1);
 
     if (existingPref) {
-      if (typeof (db as any).update === "function") {
-        await db
-          .update(userPreferences)
-          .set({
-            timezone,
-            phoneCountryCode: existingPref.phoneCountryCode || phoneCountryCode,
-            updatedAt: now,
-            updatedBy: userId,
-          })
-          .where(eq(userPreferences.id, existingPref.id));
-      }
+      await db
+        .update(userPreferences)
+        .set({
+          timezone,
+          phoneCountryCode: existingPref.phoneCountryCode || phoneCountryCode,
+          updatedAt: now,
+          updatedBy: userId,
+        })
+        .where(eq(userPreferences.id, existingPref.id));
     } else {
       await db
         .insert(userPreferences)

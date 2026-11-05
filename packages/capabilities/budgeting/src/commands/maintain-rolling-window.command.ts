@@ -16,13 +16,11 @@ export async function maintainRollingWindowCommand({
 }) {
   let newEventsCount = 0;
 
-  const [tenantRecord] = typeof (db as any).select === "function"
-    ? await db
-        .select({ timezone: tenants.timezone })
-        .from(tenants)
-        .where(eq(tenants.id, tenantId))
-        .limit(1)
-    : [null];
+  const [tenantRecord] = await db
+    .select({ timezone: tenants.timezone })
+    .from(tenants)
+    .where(eq(tenants.id, tenantId))
+    .limit(1);
   const tenantTz = tenantRecord?.timezone || "Australia/Sydney";
   const getLocalDateString = (d: Date = new Date()) => getTenantDateString(d, { timezone: tenantTz });
   const todayStr = getLocalDateString();

@@ -1,23 +1,18 @@
 const fs = require('fs');
 const path = require('path');
 
-// 1. Read and parse en.ts
-function parseDict(fileName, exportName) {
-  const dictPath = path.join(__dirname, 'dictionaries', fileName);
-  let content = fs.readFileSync(dictPath, 'utf8');
-  content = content
-    .replace(/^import\s+.*;/gm, '')
-    .replace(/type\s+DeepStringRecord<.*?>\s*=\s*{[\s\S]*?};/g, '')
-    .replace(`export const ${exportName}: DeepStringRecord<typeof en> =`, `const ${exportName} =`)
-    .replace(`export const ${exportName} =`, `const ${exportName} =`)
-    .replace(/\s+as\s+const\s*;?/g, ';');
-  content += `\nmodule.exports = { ${exportName} };`;
+const ts = require('typescript');
 
-  const m = { exports: {} };
-  const fn = new Function('module', 'exports', content);
-  fn(m, m.exports);
-  return m.exports[exportName];
-}
+require.extensions['.ts'] = function(module, filename) {
+  const content = fs.readFileSync(filename, 'utf8');
+  const compiled = ts.transpileModule(content, {
+    compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 }
+  }).outputText;
+  module._compile(compiled, filename);
+};
+
+// 1. Read and parse en dictionary
+const { en } = require('./dictionaries/en.ts');
 
 function getKeys(obj, prefix = '') {
   let keys = [];
@@ -32,7 +27,6 @@ function getKeys(obj, prefix = '') {
   return keys;
 }
 
-const en = parseDict('en.ts', 'en');
 const enKeys = getKeys(en);
 const enKeySet = new Set(enKeys);
 

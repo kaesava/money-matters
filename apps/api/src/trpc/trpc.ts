@@ -1,5 +1,5 @@
 import { initTRPC, TRPCError } from '@trpc/server';
-import { Context } from './context.js';
+import type { EdgeContext as Context } from './edge-context.js';
 
 import { db } from '@money-matters/db';
 import { sql } from 'drizzle-orm';

@@ -3,12 +3,14 @@ import { posthog } from '../lib/posthog.js';
 import {
   recordExpenseCommand,
   listTransactionsQuery,
+  searchTransactionsQuery,
   listEnvelopeTransactionsQuery,
   getSpendingAnalyticsQuery,
 } from "@money-matters/capability-transactions";
 import {
   RecordExpenseCommand,
   ListTransactionsQuery,
+  SearchTransactionsQuery,
   ListEnvelopeTransactionsQuery,
   GetSpendingAnalyticsQuery,
 } from "@money-matters/types";
@@ -28,7 +30,6 @@ export const transactionsRouter = {
             tenant_id: ctx.tenantId,
             envelope_id: input.envelopeId,
             source: input.source,
-            amount: input.amount,
           },
         });
         await posthog.flush();
@@ -44,6 +45,20 @@ export const transactionsRouter = {
         ctx.appId!,
         input.limit,
         input.offset,
+        ctx.db,
+        input.envelopeId,
+        input.bankAccountId
+      );
+    }),
+
+  searchTransactions: privateTenantProcedure
+    .input(SearchTransactionsQuery)
+    .query(async ({ input, ctx }) => {
+      return await searchTransactionsQuery(
+        ctx.tenantId!,
+        ctx.appId!,
+        input.query,
+        input.limit,
         ctx.db,
         input.envelopeId,
         input.bankAccountId

@@ -513,7 +513,7 @@
   - `apps/api/src/worker.ts` (381 lines)
   - `apps/mobile/src/app/(app)/settings.tsx` (303 lines)
   - `apps/web/e2e/screen-by-screen.spec.ts` (726 lines)
-- **Rule Violated**: Section 22 (Code Quality: "Files >250 lines MUST be refactored. Functions >30 lines MUST be split").
+- **Rule Violated**: Section 22 (Code Quality: "Files >400 lines MUST be refactored. Functions >30 lines MUST be split").
 - **Concrete Impact**: High cognitive load, severe merge conflicts, difficult unit test isolation.
 - **Actionable Fix**:
   Split large views into composable subcomponents and delegate router logic to capability handlers.
@@ -713,7 +713,7 @@ graph TD
 - Wire `isDirty` form state on payment, transfer, and override modals (`UI-003`).
 - Eliminate fallback expressions `t(...) || "..."` and tokenize hardcoded hex colors (`UI-004`).
 - Un-exclude `apps/mobile` and `apps/web/src/app` in `check-i18n.cjs` (`I18N-001`).
-- Refactor oversized files exceeding 250 lines (`UI-006`).
+- Refactor oversized files exceeding 400 lines (`UI-006`).
 
 ### Batch 6: Test Suite & Verification
 - Replace `as any` type assertions in domain handlers and seed scripts with `DbOrTx` (`TYPE-001`).

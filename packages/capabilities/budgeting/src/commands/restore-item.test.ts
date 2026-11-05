@@ -9,14 +9,27 @@ describe("restoreItemCommand", () => {
   const otherUserId = "00000000-0000-0000-0000-000000000004";
 
   it("denies restoring a private bank account owned by another user", async () => {
+    const chainable = (data: unknown) => {
+      const p = Promise.resolve(data);
+      const chain: any = {
+        limit: vi.fn().mockReturnValue(p),
+        then: (cb: any) => p.then(cb),
+        catch: (cb: any) => p.catch(cb),
+      };
+      return chain;
+    };
+
     const mockDb = {
-      select: vi.fn().mockReturnValue({
-        from: vi.fn().mockReturnValue({
-          where: vi.fn().mockResolvedValue([
-            { id: "acc-1", isPrivate: true, userId: otherUserId },
-          ]),
-        }),
-      }),
+      select: vi.fn().mockImplementation((fields?: any) => ({
+        from: vi.fn().mockImplementation((table: any) => ({
+          where: vi.fn().mockImplementation(() => {
+            if (fields?.timezone) {
+              return chainable([{ timezone: "Australia/Sydney" }]);
+            }
+            return chainable([{ id: "acc-1", isPrivate: true, userId: otherUserId }]);
+          }),
+        })),
+      })),
     } as unknown as DbOrTx;
 
     await expect(
@@ -26,16 +39,32 @@ describe("restoreItemCommand", () => {
 
   it("restores an envelope successfully", async () => {
     const updatedTables: unknown[] = [];
+    const chainable = (data: unknown) => {
+      const p = Promise.resolve(data);
+      const chain: any = {
+        limit: vi.fn().mockReturnValue(p),
+        then: (cb: any) => p.then(cb),
+        catch: (cb: any) => p.catch(cb),
+      };
+      return chain;
+    };
+
     const mockDb = {
-      select: vi.fn().mockReturnValue({
-        from: vi.fn().mockReturnValue({
+      select: vi.fn().mockImplementation((fields?: any) => ({
+        from: vi.fn().mockImplementation((table: any) => ({
           leftJoin: vi.fn().mockReturnValue({
-            where: vi.fn().mockResolvedValue([
+            where: vi.fn().mockReturnValue(chainable([
               { isPrivate: false, bankAccountUserId: null },
-            ]),
+            ])),
           }),
-        }),
-      }),
+          where: vi.fn().mockImplementation(() => {
+            if (fields?.timezone) {
+              return chainable([{ timezone: "Australia/Sydney" }]);
+            }
+            return chainable([{ isPrivate: false, bankAccountUserId: null }]);
+          }),
+        })),
+      })),
       update: vi.fn().mockImplementation((table: unknown) => {
         updatedTables.push(table);
         return {

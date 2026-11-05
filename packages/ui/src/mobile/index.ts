@@ -92,6 +92,9 @@ export { FilterPill } from './FilterPill';
 export type { FilterPillProps } from './FilterPill';
 export { MobilePoolPicker } from './MobilePoolPicker';
 export type { MobilePoolPickerProps, MobilePoolOption } from './MobilePoolPicker';
+export { MobileEnvelopePicker } from './MobileEnvelopePicker';
+export type { MobileEnvelopePickerProps, MobileEnvelopeOption } from './MobileEnvelopePicker';
+
 export { MobileBankPicker } from './MobileBankPicker';
 export type { MobileBankPickerProps, MobileBankOption } from './MobileBankPicker';
 export { CardDrawerIndicator } from './CardDrawerIndicator';

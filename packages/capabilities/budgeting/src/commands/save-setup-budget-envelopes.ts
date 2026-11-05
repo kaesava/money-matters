@@ -80,18 +80,16 @@ export async function processSetupEnvelopes(
   });
 
   // Clear isSurplusTarget from any existing envelopes in DB that are not the designated surplus envelope
-  if (typeof tx.update === "function") {
-    await tx
-      .update(envelopes)
-      .set({ isSurplusTarget: false })
-      .where(
-        and(
-          eq(envelopes.tenantId, tenantId),
-          eq(envelopes.appId, appId),
-          eq(envelopes.isSurplusTarget, true)
-        )
-      );
-  }
+  await tx
+    .update(envelopes)
+    .set({ isSurplusTarget: false })
+    .where(
+      and(
+        eq(envelopes.tenantId, tenantId),
+        eq(envelopes.appId, appId),
+        eq(envelopes.isSurplusTarget, true)
+      )
+    );
 
   const envelopeBalancesMap = await getEnvelopeBalancesMap(tenantId, appId, tx);
   let sweptEnvelopesCount = 0;
@@ -117,58 +115,54 @@ export async function processSetupEnvelopes(
       const transferGroupId = randomUUID();
       const transferNote = `Balance sweep upon archiving envelope "${envToArchive.name}"`;
 
-      if (typeof tx.insert === "function") {
-        await tx.insert(transactionLedger).values([
-          {
-            id: randomUUID(),
-            tenantId,
-            appId,
-            envelopeId: envId,
-            bankAccountId: envToArchive.bankAccountId,
-            amount: sweepAmountStr,
-            flowType: "DEBIT",
-            transactionType: "TRANSFER_OUT",
-            idempotencyKey: `sweep-out-${envId}-${randomUUID()}`,
-            note: transferNote,
-            source: "MANUAL",
-            transferGroupId,
-            recordedAt: now,
-            createdAt: now,
-            createdBy: userId,
-            updatedAt: now,
-            updatedBy: userId,
-          },
-          {
-            id: randomUUID(),
-            tenantId,
-            appId,
-            envelopeId: destEnvId,
-            bankAccountId: envToArchive.bankAccountId,
-            amount: sweepAmountStr,
-            flowType: "CREDIT",
-            transactionType: "TRANSFER_IN",
-            idempotencyKey: `sweep-in-${destEnvId}-${randomUUID()}`,
-            note: transferNote,
-            source: "MANUAL",
-            transferGroupId,
-            recordedAt: now,
-            createdAt: now,
-            createdBy: userId,
-            updatedAt: now,
-            updatedBy: userId,
-          },
-        ]);
-      }
+      await tx.insert(transactionLedger).values([
+        {
+          id: randomUUID(),
+          tenantId,
+          appId,
+          envelopeId: envId,
+          bankAccountId: envToArchive.bankAccountId,
+          amount: sweepAmountStr,
+          flowType: "DEBIT",
+          transactionType: "TRANSFER_OUT",
+          idempotencyKey: `sweep-out-${envId}-${randomUUID()}`,
+          note: transferNote,
+          source: "MANUAL",
+          transferGroupId,
+          recordedAt: now,
+          createdAt: now,
+          createdBy: userId,
+          updatedAt: now,
+          updatedBy: userId,
+        },
+        {
+          id: randomUUID(),
+          tenantId,
+          appId,
+          envelopeId: destEnvId,
+          bankAccountId: envToArchive.bankAccountId,
+          amount: sweepAmountStr,
+          flowType: "CREDIT",
+          transactionType: "TRANSFER_IN",
+          idempotencyKey: `sweep-in-${destEnvId}-${randomUUID()}`,
+          note: transferNote,
+          source: "MANUAL",
+          transferGroupId,
+          recordedAt: now,
+          createdAt: now,
+          createdBy: userId,
+          updatedAt: now,
+          updatedBy: userId,
+        },
+      ]);
       sweptEnvelopesCount++;
       sweptTotalAmount += currentBalance;
     }
 
-    if (typeof tx.update === "function") {
-      await tx
-        .update(envelopes)
-        .set({ archivedAt: now, archivedBy: userId, updatedAt: now, updatedBy: userId })
-        .where(eq(envelopes.id, envId));
-    }
+    await tx
+      .update(envelopes)
+      .set({ archivedAt: now, archivedBy: userId, updatedAt: now, updatedBy: userId })
+      .where(eq(envelopes.id, envId));
   }
 
   await archivePendingExpenseEvents(tx, archivedEnvelopeIds, userId, now);
@@ -215,33 +209,31 @@ export async function processSetupEnvelopes(
         (envInput.enteredAmount !== undefined && envInput.enteredAmount !== matchedExisting.enteredAmount) ||
         (envInput.monthlyAmount !== undefined && envInput.monthlyAmount !== matchedExisting.monthlyAmount);
 
-      if (typeof tx.update === "function") {
-        await tx
-          .update(envelopes)
-          .set({
-            name: envInput.name,
-            envelopeType: envInput.envelopeType,
-            goalMode: envInput.goalMode ?? matchedExisting.goalMode,
-            targetAmount: envInput.targetAmount,
-            monthlyAmount: envInput.monthlyAmount || matchedExisting.monthlyAmount,
-            enteredAmount: envInput.enteredAmount !== undefined ? envInput.enteredAmount : matchedExisting.enteredAmount,
-            budgetFrequency: envInput.budgetFrequency || matchedExisting.budgetFrequency || "MONTHLY",
-            startDate,
-            endDate: envInput.endDate !== undefined ? envInput.endDate : matchedExisting.endDate,
-            rrule,
-            safetyBufferFloor: envInput.safetyBufferFloor || matchedExisting.safetyBufferFloor || "0.00",
-            isSurplusTarget: envInput.isSurplusTarget ?? matchedExisting.isSurplusTarget,
-            isCommitted: envInput.isCommitted ?? matchedExisting.isCommitted,
-            isEssential: envInput.isEssential ?? matchedExisting.isEssential,
-            isPrivate: envInput.isPrivate ?? matchedExisting.isPrivate,
-            generateEvents: envInput.generateEvents !== undefined ? envInput.generateEvents : (matchedExisting.generateEvents ?? true),
-            bankAccountId: resolvedBankAccountId || matchedExisting.bankAccountId,
-            orderIndex: envInput.orderIndex ?? matchedExisting.orderIndex,
-            updatedAt: now,
-            updatedBy: userId,
-          })
-          .where(eq(envelopes.id, matchedExisting.id));
-      }
+      await tx
+        .update(envelopes)
+        .set({
+          name: envInput.name,
+          envelopeType: envInput.envelopeType,
+          goalMode: envInput.goalMode ?? matchedExisting.goalMode,
+          targetAmount: envInput.targetAmount,
+          monthlyAmount: envInput.monthlyAmount || matchedExisting.monthlyAmount,
+          enteredAmount: envInput.enteredAmount !== undefined ? envInput.enteredAmount : matchedExisting.enteredAmount,
+          budgetFrequency: envInput.budgetFrequency || matchedExisting.budgetFrequency || "MONTHLY",
+          startDate,
+          endDate: envInput.endDate !== undefined ? envInput.endDate : matchedExisting.endDate,
+          rrule,
+          safetyBufferFloor: envInput.safetyBufferFloor || matchedExisting.safetyBufferFloor || "0.00",
+          isSurplusTarget: envInput.isSurplusTarget ?? matchedExisting.isSurplusTarget,
+          isCommitted: envInput.isCommitted ?? matchedExisting.isCommitted,
+          isEssential: envInput.isEssential ?? matchedExisting.isEssential,
+          isPrivate: envInput.isPrivate ?? matchedExisting.isPrivate,
+          generateEvents: envInput.generateEvents !== undefined ? envInput.generateEvents : (matchedExisting.generateEvents ?? true),
+          bankAccountId: resolvedBankAccountId || matchedExisting.bankAccountId,
+          orderIndex: envInput.orderIndex ?? matchedExisting.orderIndex,
+          updatedAt: now,
+          updatedBy: userId,
+        })
+        .where(eq(envelopes.id, matchedExisting.id));
 
       const effectiveFreq = (envInput.budgetFrequency || matchedExisting.budgetFrequency || "MONTHLY") as "MONTHLY" | "WEEKLY" | "FORTNIGHTLY" | "ANNUALLY";
       const isScheduledBill = envInput.envelopeType === "SCHEDULED_BILL" && envInput.generateEvents !== false;
@@ -262,8 +254,7 @@ export async function processSetupEnvelopes(
       envelopeIdMap.set(`name-${envInput.name}`, matchedExisting.id);
     } else {
       const newEnvId = randomUUID();
-      if (typeof tx.insert === "function") {
-        await tx.insert(envelopes).values({
+      await tx.insert(envelopes).values({
           id: newEnvId,
           tenantId,
           appId,
@@ -290,7 +281,6 @@ export async function processSetupEnvelopes(
           updatedAt: now,
           updatedBy: userId,
         });
-      }
 
       if (envInput.id) envelopeIdMap.set(envInput.id, newEnvId);
       envelopeIdMap.set(`name-${envInput.name}`, newEnvId);

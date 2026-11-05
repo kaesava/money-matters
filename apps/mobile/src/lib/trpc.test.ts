@@ -7,6 +7,12 @@ vi.mock('react-native', () => ({
   },
 }));
 
+vi.mock('./sqlite-cache', () => ({
+  clearQueryCache: vi.fn().mockResolvedValue(undefined),
+  setCachedQueryData: vi.fn().mockResolvedValue(undefined),
+  getCachedQueryData: vi.fn().mockResolvedValue(null),
+}));
+
 vi.mock('expo-secure-store', () => ({
   getItemAsync: vi.fn(),
   setItemAsync: vi.fn().mockResolvedValue(undefined),

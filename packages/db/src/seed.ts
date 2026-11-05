@@ -3,26 +3,15 @@ import { drizzle } from "drizzle-orm/neon-http";
 import {
   tenants,
   tenantUsers,
-  bankAccounts,
-  envelopes,
-  incomeSources,
-  incomeEvents,
-  allocationPlans,
-  allocationPlanLines,
-  transactionLedger,
-  expenseEvents,
-  transferEvents,
   userPreferences,
   tenantUserPreferences,
-  users,
   apps,
-  deviceTokens,
   earlyAccessSubscribers,
-  processedWebhooks,
-  billingInvoices,
 } from "@money-matters/db";
 import { sql } from "drizzle-orm";
 import dotenv from "dotenv";
+import { ensureNeonAuthUser, cleanupTables } from "./seeds/neon-auth-setup.js";
+import { seedSampleHousehold } from "./seeds/sample-household.js";
 
 if (!process.env.DATABASE_URL) {
   dotenv.config({ path: "../../.env.development" });
@@ -40,172 +29,75 @@ export async function seedDatabase(connectionString: string, envLabel: string) {
   const isProd = envLabel === "production" || connectionString.includes("ep-spring-snow");
   const appId = "01908bde-34bb-7b19-a178-574211bc93aa";
 
-  const authUrl = process.env.NEXT_PUBLIC_NEON_AUTH_URL || (isProd ? "https://ep-spring-snow-a70f61xz.neonauth.ap-southeast-2.aws.neon.tech/neondb/auth" : "https://ep-icy-resonance-a7s94hg4.neonauth.ap-southeast-2.aws.neon.tech/neondb/auth");
+  const authUrl =
+    process.env.NEXT_PUBLIC_NEON_AUTH_URL ||
+    (isProd
+      ? "https://ep-spring-snow-a70f61xz.neonauth.ap-southeast-2.aws.neon.tech/neondb/auth"
+      : "https://ep-icy-resonance-a7s94hg4.neonauth.ap-southeast-2.aws.neon.tech/neondb/auth");
   const originUrl = isProd ? "https://moneymatters.kaesava.au" : "http://localhost:3000";
 
-  async function ensureNeonAuthUser(_email: string, _pass: string, name: string, fallbackId: string) {
-    const email = _email.trim().toLowerCase();
-    let resolvedId = fallbackId;
-
-    try {
-      const existingRes = await db.execute<{ id: string }>(
-        sql`SELECT id FROM neon_auth.user WHERE email = ${email} LIMIT 1`
-      );
-      const rows = Array.isArray(existingRes) ? existingRes : (existingRes as any)?.rows ?? [];
-
-      if (rows.length > 0) {
-        resolvedId = rows[0].id;
-      } else {
-        const signupUrl = `${authUrl}/sign-up/email`;
-        const response = await fetch(signupUrl, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "Origin": originUrl,
-          },
-          body: JSON.stringify({
-            email,
-            password: _pass,
-            name,
-          }),
-        });
-
-        if (response.ok) {
-          const resBody = (await response.json()) as any;
-          resolvedId = resBody.user?.id || resBody.id || fallbackId;
-        } else {
-          await db.execute(sql`
-            INSERT INTO neon_auth.user (id, name, email, "emailVerified", role, "createdAt", "updatedAt")
-            VALUES (${fallbackId}, ${name}, ${email}, true, 'user', now(), now())
-            ON CONFLICT (email) DO NOTHING
-          `);
-        }
-      }
-
-      await db.execute(sql`
-        UPDATE neon_auth.user 
-        SET "emailVerified" = true, name = COALESCE(${name}, name), role = COALESCE(role, 'user'), "updatedAt" = now()
-        WHERE id = ${resolvedId}
-      `);
-
-      // Ensure credential password in neon_auth.account matches known hash if credential account exists
-      if (email === "kaesava@gmail.com") {
-        const raehanAccRes = await db.execute<{ password: string }>(
-          sql`SELECT password FROM neon_auth.account WHERE "providerId" = 'credential' AND password IS NOT NULL LIMIT 1`
-        );
-        const raehanRows = Array.isArray(raehanAccRes) ? raehanAccRes : (raehanAccRes as any)?.rows ?? [];
-        if (raehanRows.length > 0 && raehanRows[0].password) {
-          await db.execute(sql`
-            UPDATE neon_auth.account 
-            SET password = ${raehanRows[0].password}
-            WHERE "userId" = ${resolvedId} AND "providerId" = 'credential'
-          `);
-        }
-      }
-
-      console.log(`Pre-verified ${email} (emailVerified = true) in neon_auth.user (ID: ${resolvedId}).`);
-    } catch (e) {
-      console.log(`neon_auth setup for ${email}:`, e instanceof Error ? e.message : e);
-    }
-
-    return resolvedId;
-  }
-
-  // 1. Primary User: kaesava@gmail.com
+  // 1. Primary Users
   const tenantId = "d3b07384-d113-4ec4-a5a4-000000000001";
   const kaesavaPassword = process.env.SEED_ADMIN_PASSWORD || (isProd ? crypto.randomUUID() : "Password123!");
-  const userId = await ensureNeonAuthUser("kaesava@gmail.com", kaesavaPassword, "Kaesava", "d3b07384-d113-4ec4-a5a4-000000000001");
+  const userId = await ensureNeonAuthUser(db, authUrl, originUrl, "kaesava@gmail.com", kaesavaPassword, "Kaesava", "d3b07384-d113-4ec4-a5a4-000000000001");
 
-  // 2. Partner User: snehaparkhi@gmail.com
   const snehaEmail = "snehaparkhi@gmail.com";
   const snehaPassword = process.env.SEED_PARTNER_PASSWORD || (isProd ? crypto.randomUUID() : "Password123!");
-  const snehaUserId = await ensureNeonAuthUser(snehaEmail, snehaPassword, "Sneha", "d3b07384-d113-4ec4-a5a4-000000000004");
+  const snehaUserId = await ensureNeonAuthUser(db, authUrl, originUrl, snehaEmail, snehaPassword, "Sneha", "d3b07384-d113-4ec4-a5a4-000000000004");
 
-  // 3. Secondary Multi-Tenant User: raehankaesava@gmail.com
   const raehanEmail = "raehankaesava@gmail.com";
   const raehanPassword = process.env.SEED_MEMBER_PASSWORD || (isProd ? crypto.randomUUID() : "Password123!");
   const raehanTenantId = "d3b07384-d113-4ec4-a5a4-000000000003";
-  const raehanUserId = await ensureNeonAuthUser(raehanEmail, raehanPassword, "Raehan Kaesava", "d3b07384-d113-4ec4-a5a4-000000000003");
+  const raehanUserId = await ensureNeonAuthUser(db, authUrl, originUrl, raehanEmail, raehanPassword, "Raehan Kaesava", "d3b07384-d113-4ec4-a5a4-000000000003");
 
-  // 4. Play Store Tester User: tester-play@kaesava.au
   const testerEmail = "tester-play@kaesava.au";
   const testerPassword = process.env.SEED_TESTER_PASSWORD || (isProd ? crypto.randomUUID() : "Password123!");
   const testerTenantId = "d3b07384-d113-4ec4-a5a4-000000000002";
-  const testerUserId = await ensureNeonAuthUser(testerEmail, testerPassword, "Play Store Tester", "d3b07384-d113-4ec4-a5a4-000000000002");
+  const testerUserId = await ensureNeonAuthUser(db, authUrl, originUrl, testerEmail, testerPassword, "Play Store Tester", "d3b07384-d113-4ec4-a5a4-000000000002");
 
-  // Clean all application and auth tables across neon_auth and public schemas (clean slate - non-production only)
-  if (!isProd && process.env.NODE_ENV !== "production") {
-    try {
-      await db.execute(sql`DELETE FROM neon_auth.session`);
-      await db.execute(sql`DELETE FROM neon_auth.verification`);
-      await db.execute(sql`DELETE FROM neon_auth.account WHERE "userId" NOT IN (${userId}, ${snehaUserId}, ${raehanUserId}, ${testerUserId})`);
-      await db.execute(sql`DELETE FROM neon_auth.user WHERE id NOT IN (${userId}, ${snehaUserId}, ${raehanUserId}, ${testerUserId})`);
-    } catch (err) {
-      console.log("neon_auth schema clean slate notice:", err instanceof Error ? err.message : err);
-    }
-  } else {
-    console.log("Skipping destructive neon_auth table truncation in production environment.");
-  }
+  await cleanupTables(db, isProd, [userId, snehaUserId, raehanUserId, testerUserId]);
 
-  try {
-    await db.execute(sql`DELETE FROM public.sessions`);
-    await db.execute(sql`DELETE FROM public.verifications`);
-  } catch (_e) {
-    // Ignored: legacy sessions/verifications tables may not exist in all DB environments
-  }
+  const now = new Date("2026-09-13T09:00:00Z");
 
-  await db.delete(deviceTokens);
-  await db.delete(transactionLedger);
-  await db.delete(allocationPlanLines);
-  await db.delete(allocationPlans);
-  await db.delete(expenseEvents);
-  await db.delete(transferEvents);
-  await db.delete(incomeEvents);
-  await db.delete(incomeSources);
-  await db.execute(sql`DELETE FROM public.category_schedules`).catch(() => {});
-  await db.delete(envelopes);
-  await db.delete(userPreferences);
-  await db.delete(tenantUserPreferences);
-  await db.delete(bankAccounts);
-  await db.delete(tenantUsers);
-  await db.delete(billingInvoices).catch(() => {});
-  await db.delete(tenants);
-  await db.delete(earlyAccessSubscribers).catch(() => {});
-  await db.delete(processedWebhooks).catch(() => {});
-  await db.delete(users);
-  await db.delete(apps);
+  // Ensure App Exists
+  await db
+    .insert(apps)
+    .values({
+      id: appId,
+      name: "Money Matters",
+      slug: "money-matters",
+    })
+    .onConflictDoUpdate({
+      target: apps.id,
+      set: { name: "Money Matters", slug: "money-matters", updatedAt: now },
+    });
 
-  console.log("🧹 Cleaned database tables across neon_auth and public schemas (clean slate).");
+  // Ensure Early Access Subscriber
+  await db
+    .insert(earlyAccessSubscribers)
+    .values({
+      appId,
+      email: "kaesava@gmail.com",
+      lastSubscribedAt: now,
+    })
+    .onConflictDoNothing();
 
-  // 0. App & User Records
-  await db.insert(users).values([
-    { id: userId, email: "kaesava@gmail.com", displayName: "Kaesava", hasUsedTrial: true },
-    { id: snehaUserId, email: snehaEmail, displayName: "Sneha", hasUsedTrial: true },
-    { id: raehanUserId, email: raehanEmail, displayName: "Raehan Kaesava", hasUsedTrial: true },
-    { id: testerUserId, email: testerEmail, displayName: "Play Store Tester", hasUsedTrial: true },
-  ]);
 
-  await db.insert(apps).values({
-    id: appId,
-    name: "Money Matters",
-    slug: "money-matters",
-  });
-
-  // 1. Tenants
-  const now = new Date();
+  // Create Tenants
   const [household] = await db
     .insert(tenants)
     .values({
       id: tenantId,
-      name: "Kaesava Household",
+      name: "Kaesava & Sneha Household",
       country: "AU",
-      timezone: "Australia/Sydney",
-      state: "NSW",
-      postcode: "2000",
+      currency: "AUD",
+      timezone: "Australia/Melbourne",
       premiumEnabled: true,
-      subscriptionStatus: "TRIAL_ACTIVE",
-      trialStartedAt: now,
-      trialEndsAt: new Date(now.getTime() + 60 * 24 * 60 * 60 * 1000),
+      subscriptionStatus: "SUBSCRIBED",
+      trialStartedAt: new Date(now.getTime() - 60 * 24 * 60 * 60 * 1000),
+      trialEndsAt: new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000),
+      subscribedAt: new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000),
+      subscriptionEndsAt: new Date(now.getTime() + 335 * 24 * 60 * 60 * 1000),
       cancelAtPeriodEnd: false,
       appId,
       setupCompletedAt: now,
@@ -219,15 +111,14 @@ export async function seedDatabase(connectionString: string, envLabel: string) {
     .insert(tenants)
     .values({
       id: raehanTenantId,
-      name: "Raehan Household",
+      name: "Raehan Independent Tenant",
       country: "AU",
-      timezone: "Australia/Sydney",
-      state: "VIC",
-      postcode: "3000",
+      currency: "AUD",
+      timezone: "Australia/Melbourne",
       premiumEnabled: true,
       subscriptionStatus: "TRIAL_ACTIVE",
       trialStartedAt: now,
-      trialEndsAt: new Date(now.getTime() + 60 * 24 * 60 * 60 * 1000),
+      trialEndsAt: new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000),
       cancelAtPeriodEnd: false,
       appId,
       setupCompletedAt: now,
@@ -241,11 +132,10 @@ export async function seedDatabase(connectionString: string, envLabel: string) {
     .insert(tenants)
     .values({
       id: testerTenantId,
-      name: "Play Store Tester Household",
+      name: "Play Store Review Tenant",
       country: "AU",
+      currency: "AUD",
       timezone: "Australia/Sydney",
-      state: "QLD",
-      postcode: "4000",
       premiumEnabled: true,
       subscriptionStatus: "TRIAL_ACTIVE",
       trialStartedAt: now,
@@ -259,7 +149,7 @@ export async function seedDatabase(connectionString: string, envLabel: string) {
     })
     .returning();
 
-  // 2. Tenant Users
+  // Tenant Users
   await db.insert(tenantUsers).values([
     { tenantId: household.id, userId, role: "OWNER" as const, inviteStatus: "ACCEPTED" as const, createdBy: userId, updatedBy: userId },
     { tenantId: household.id, userId: snehaUserId, inviteEmail: snehaEmail, role: "MEMBER" as const, inviteStatus: "ACCEPTED" as const, invitedAt: new Date(now.getTime() - 10 * 24 * 60 * 60 * 1000), createdBy: userId, updatedBy: userId },
@@ -304,600 +194,16 @@ export async function seedDatabase(connectionString: string, envLabel: string) {
     { userId: testerUserId, tenantId: testerTenantId, appId, appPreferences: { [appId]: defaultAppPrefs }, createdBy: testerUserId, updatedBy: testerUserId },
   ]);
 
-  // 4. Bank Accounts (Shared Joint Accounts & Private Accounts)
-  const [everydayAccount] = await db
-    .insert(bankAccounts)
-    .values({ name: "Everyday Account", bankProvider: "CBA", accountType: "EVERYDAY", lastKnownBalance: "2641.54", unbudgetedBuffer: "0.00", lastBalanceMatchedAt: now, isPrivate: false, tenantId, appId, createdBy: userId, updatedBy: userId })
-    .returning();
-
-  const [misaAccount] = await db
-    .insert(bankAccounts)
-    .values({ name: "MISA (Offset) Account", bankProvider: "CBA", accountType: "LOAN_OFFSET", lastKnownBalance: "167581.35", unbudgetedBuffer: "0.00", lastBalanceMatchedAt: now, isPrivate: false, tenantId, appId, createdBy: userId, updatedBy: userId })
-    .returning();
-
-  const [personalSaverAccount] = await db
-    .insert(bankAccounts)
-    .values({ name: "Kaesava Personal Saver", bankProvider: "Macquarie", accountType: "SAVINGS", lastKnownBalance: "500.00", unbudgetedBuffer: "0.00", lastBalanceMatchedAt: now, isPrivate: true, userId, tenantId, appId, createdBy: userId, updatedBy: userId })
-    .returning();
-
-  // 5. Envelopes Definition (Flat Architecture: EVERYDAY, SCHEDULED_BILL, FLEXIBLE_BILL, TARGET_GOAL, ONGOING_GOAL)
-  const envelopeDefinitions = [
-    // 1. Joint Everyday Envelope
-    { key: "everyday", name: "Joint Everyday Pool", envelopeType: "EVERYDAY" as const, bankAccountId: everydayAccount.id, monthlyAmount: "2641.54", safetyBufferFloor: "100.00", isCommitted: false, isSurplusTarget: false, isPrivate: false },
-    // 2. Household Bills (Flexible Bills Pool container)
-    { key: "bills", name: "Household Bills Pool", envelopeType: "FLEXIBLE_BILL" as const, bankAccountId: misaAccount.id, monthlyAmount: "1099.00", enteredAmount: "507.23", budgetFrequency: "FORTNIGHTLY", isEssential: true, isCommitted: true, isSurplusTarget: false, isPrivate: false },
-    // 3. Private Discretionary Envelope
-    { key: "kaesava_vault", name: "Kaesava Personal Vault", envelopeType: "TARGET_GOAL" as const, goalMode: "TARGET_DATE" as const, bankAccountId: personalSaverAccount.id, isCommitted: false, targetAmount: "2000.00", endDate: "2027-06-30", isSurplusTarget: false, isPrivate: true, userId },
-    // 4. Granular Goal Envelopes (Linked to MISA Offset)
-    { key: "emergency", name: "Emergency Reserve", envelopeType: "TARGET_GOAL" as const, goalMode: "TARGET_DATE" as const, bankAccountId: misaAccount.id, isCommitted: true, targetAmount: "20000.00", endDate: "2027-06-30", isSurplusTarget: false, isPrivate: false },
-    { key: "raehan_prev", name: "Raehan Future Fund (Prev FY)", envelopeType: "TARGET_GOAL" as const, goalMode: "TARGET_DATE" as const, bankAccountId: misaAccount.id, isCommitted: true, targetAmount: "61029.48", endDate: "2027-06-30", isSurplusTarget: false, isPrivate: false },
-    { key: "raehan_gifts", name: "Raehan's Gifts", envelopeType: "TARGET_GOAL" as const, goalMode: "TARGET_DATE" as const, bankAccountId: misaAccount.id, isCommitted: true, targetAmount: "25760.79", endDate: "2027-06-30", isSurplusTarget: false, isPrivate: false },
-    { key: "raehan_inyear", name: "Raehan FY27 In-Year Savings", envelopeType: "TARGET_GOAL" as const, goalMode: "TARGET_DATE" as const, bankAccountId: misaAccount.id, isCommitted: true, targetAmount: "13000.00", endDate: "2027-06-30", isSurplusTarget: false, isPrivate: false },
-    { key: "council_rates", name: "Council Rates", envelopeType: "SCHEDULED_BILL" as const, bankAccountId: misaAccount.id, isCommitted: true, targetAmount: "2700.00", enteredAmount: "675.00", monthlyAmount: "225.00", budgetFrequency: "QUARTERLY", startDate: "2026-09-30", endDate: "2027-06-30", rrule: "FREQ=MONTHLY;INTERVAL=3", isSurplusTarget: false, isPrivate: false },
-    { key: "home_insurance", name: "Home/Contents Insurance", envelopeType: "SCHEDULED_BILL" as const, bankAccountId: misaAccount.id, isCommitted: true, targetAmount: "2000.00", enteredAmount: "2000.00", monthlyAmount: "166.67", budgetFrequency: "YEARLY", startDate: "2026-11-15", endDate: "2027-06-30", rrule: "FREQ=YEARLY", isSurplusTarget: false, isPrivate: false },
-    { key: "car_rego", name: "Car Registration / Insurance / RACV", envelopeType: "SCHEDULED_BILL" as const, bankAccountId: misaAccount.id, isCommitted: true, targetAmount: "5500.00", enteredAmount: "5500.00", monthlyAmount: "458.33", budgetFrequency: "YEARLY", startDate: "2026-12-01", endDate: "2027-06-30", rrule: "FREQ=YEARLY", isSurplusTarget: false, isPrivate: false },
-    { key: "car_servicing", name: "Car Servicing", envelopeType: "SCHEDULED_BILL" as const, bankAccountId: misaAccount.id, isCommitted: true, targetAmount: "3000.00", enteredAmount: "750.00", monthlyAmount: "250.00", budgetFrequency: "QUARTERLY", startDate: "2026-08-27", endDate: "2027-06-30", rrule: "FREQ=MONTHLY;INTERVAL=3", isSurplusTarget: false, isPrivate: false },
-    { key: "car_repairs", name: "Car Ad-hoc Repair & Fines", envelopeType: "FLEXIBLE_BILL" as const, bankAccountId: misaAccount.id, isCommitted: true, targetAmount: "4000.00", endDate: "2027-06-30", isSurplusTarget: false, isPrivate: false },
-    { key: "medicines", name: "Medicines, GP & Psychology", envelopeType: "FLEXIBLE_BILL" as const, bankAccountId: misaAccount.id, isCommitted: true, targetAmount: "14460.00", endDate: "2027-06-30", isSurplusTarget: false, isPrivate: false },
-    { key: "clothes", name: "Clothes & Shoes", envelopeType: "FLEXIBLE_BILL" as const, bankAccountId: misaAccount.id, isCommitted: true, targetAmount: "2400.00", endDate: "2027-06-30", isSurplusTarget: false, isPrivate: false },
-    { key: "costco", name: "Costco Bulk Runs", envelopeType: "FLEXIBLE_BILL" as const, bankAccountId: misaAccount.id, isCommitted: true, targetAmount: "1200.00", endDate: "2027-06-30", isSurplusTarget: false, isPrivate: false },
-    { key: "charu_melb", name: "Family — Charu Aunty Melbourne", envelopeType: "TARGET_GOAL" as const, goalMode: "TARGET_DATE" as const, bankAccountId: misaAccount.id, isCommitted: true, targetAmount: "1200.00", endDate: "2027-06-30", isSurplusTarget: false, isPrivate: false },
-    { key: "charu_emerg", name: "Charu Aunty Medical Emergency", envelopeType: "TARGET_GOAL" as const, goalMode: "TARGET_DATE" as const, bankAccountId: misaAccount.id, isCommitted: true, targetAmount: "1200.00", endDate: "2027-06-30", isSurplusTarget: false, isPrivate: false },
-    { key: "charu_travel", name: "International Travel — Charu Aunty Flight", envelopeType: "TARGET_GOAL" as const, goalMode: "TARGET_DATE" as const, bankAccountId: misaAccount.id, isCommitted: true, targetAmount: "2000.00", endDate: "2026-11-05", isSurplusTarget: false, isPrivate: false },
-    { key: "seasonal_holidays", name: "Seasonal, School Holidays & Zoo Visits", envelopeType: "TARGET_GOAL" as const, goalMode: "TARGET_DATE" as const, bankAccountId: misaAccount.id, isCommitted: true, targetAmount: "9000.00", endDate: "2027-06-30", isSurplusTarget: false, isPrivate: false },
-    { key: "int_holiday", name: "International Holiday FY27", envelopeType: "TARGET_GOAL" as const, goalMode: "TARGET_DATE" as const, bankAccountId: misaAccount.id, isCommitted: true, targetAmount: "35000.00", endDate: "2026-11-01", isSurplusTarget: false, isPrivate: false },
-    { key: "japaneasy", name: "Japaneasy Classes", envelopeType: "TARGET_GOAL" as const, goalMode: "TARGET_DATE" as const, bankAccountId: misaAccount.id, isCommitted: true, targetAmount: "500.00", endDate: "2027-06-30", isSurplusTarget: false, isPrivate: false },
-    { key: "rae_birthday", name: "Rae Birthday", envelopeType: "TARGET_GOAL" as const, goalMode: "TARGET_DATE" as const, bankAccountId: misaAccount.id, isCommitted: true, targetAmount: "1250.00", endDate: "2026-10-22", isSurplusTarget: false, isPrivate: false },
-    { key: "classes", name: "Classes & Activities", envelopeType: "SCHEDULED_BILL" as const, bankAccountId: misaAccount.id, isCommitted: true, targetAmount: "16250.00", enteredAmount: "1250.00", monthlyAmount: "1250.00", budgetFrequency: "MONTHLY", startDate: "2026-07-15", endDate: "2027-06-30", rrule: "FREQ=MONTHLY", isSurplusTarget: false, isPrivate: false },
-    { key: "school_fees", name: "School Fees", envelopeType: "SCHEDULED_BILL" as const, bankAccountId: misaAccount.id, isCommitted: true, targetAmount: "30000.00", enteredAmount: "3750.00", monthlyAmount: "2500.00", budgetFrequency: "QUARTERLY", startDate: "2026-10-01", endDate: "2027-06-30", rrule: "FREQ=MONTHLY;INTERVAL=3", isSurplusTarget: false, isPrivate: false },
-    { key: "pet_emerg", name: "Pet Emergency Self-Insurance", envelopeType: "TARGET_GOAL" as const, goalMode: "TARGET_DATE" as const, bankAccountId: misaAccount.id, isCommitted: true, targetAmount: "1000.00", endDate: "2027-06-30", isSurplusTarget: false, isPrivate: false },
-    { key: "pet_insurance", name: "Pet Insurance, Rego, Vet & Boarding", envelopeType: "SCHEDULED_BILL" as const, bankAccountId: misaAccount.id, isCommitted: true, targetAmount: "7500.00", enteredAmount: "625.00", monthlyAmount: "625.00", budgetFrequency: "MONTHLY", startDate: "2026-08-01", endDate: "2027-06-30", rrule: "FREQ=MONTHLY", isSurplusTarget: false, isPrivate: false },
-    { key: "inv_property", name: "Investment Property Gap", envelopeType: "SCHEDULED_BILL" as const, bankAccountId: misaAccount.id, isCommitted: true, targetAmount: "2717.16", enteredAmount: "226.43", monthlyAmount: "226.43", budgetFrequency: "MONTHLY", startDate: "2026-07-01", endDate: "2027-06-30", rrule: "FREQ=MONTHLY", isSurplusTarget: false, isPrivate: false },
-    { key: "unexpected", name: "Unexpected Expenses & Major Repairs", envelopeType: "TARGET_GOAL" as const, goalMode: "TARGET_DATE" as const, bankAccountId: misaAccount.id, isCommitted: true, targetAmount: "5000.00", endDate: "2027-06-30", isSurplusTarget: false, isPrivate: false },
-    { key: "tax_obligation", name: "Tax Obligation (incl PAYG)", envelopeType: "SCHEDULED_BILL" as const, bankAccountId: misaAccount.id, isCommitted: true, targetAmount: "18500.00", enteredAmount: "4625.00", monthlyAmount: "1541.67", budgetFrequency: "QUARTERLY", startDate: "2026-08-01", endDate: "2027-06-30", rrule: "FREQ=MONTHLY;INTERVAL=3", isSurplusTarget: false, isPrivate: false },
-    { key: "next_yr_holiday", name: "Save for Next Year's Holiday", envelopeType: "ONGOING_GOAL" as const, goalMode: "ONGOING" as const, bankAccountId: misaAccount.id, isCommitted: false, targetAmount: "33747.55", enteredAmount: "500.00", monthlyAmount: "500.00", budgetFrequency: "MONTHLY", rrule: "FREQ=MONTHLY", endDate: "2027-06-30", isSurplusTarget: false, isPrivate: false },
-    { key: "business_idea", name: "Business Idea Fund", envelopeType: "ONGOING_GOAL" as const, goalMode: "ONGOING" as const, bankAccountId: misaAccount.id, isCommitted: false, targetAmount: "5000.00", enteredAmount: "200.00", monthlyAmount: "200.00", budgetFrequency: "MONTHLY", rrule: "FREQ=MONTHLY", endDate: "2027-06-30", isSurplusTarget: false, isPrivate: false },
-    { key: "surplus_offset", name: "Surplus & Offset Reserve", envelopeType: "ONGOING_GOAL" as const, goalMode: "ONGOING" as const, bankAccountId: misaAccount.id, isCommitted: false, targetAmount: "50000.00", enteredAmount: "1000.00", monthlyAmount: "1000.00", budgetFrequency: "MONTHLY", rrule: "FREQ=MONTHLY", endDate: "2027-06-30", isSurplusTarget: true, isPrivate: false },
-  ];
-
-  const insertedEnvelopes = await db.insert(envelopes).values(
-    envelopeDefinitions.map((p) => ({
-      name: p.name,
-      envelopeType: p.envelopeType,
-      goalMode: (p as any).goalMode ?? (p.envelopeType.endsWith("GOAL") ? "TARGET_DATE" : undefined),
-      bankAccountId: p.bankAccountId,
-      safetyBufferFloor: (p as any).safetyBufferFloor ?? "0.00",
-      monthlyAmount: (p as any).monthlyAmount,
-      enteredAmount: (p as any).enteredAmount,
-      budgetFrequency: (p as any).budgetFrequency ?? "MONTHLY",
-      startDate: (p as any).startDate ?? undefined,
-      endDate: (p as any).endDate ?? undefined,
-      rrule: (p as any).rrule ?? undefined,
-      targetAmount: (p as any).targetAmount,
-      isCommitted: p.isCommitted,
-      isSurplusTarget: p.isSurplusTarget,
-      isPrivate: p.isPrivate,
-      generateEvents: (p as any).generateEvents ?? true,
-      userId: (p as any).userId ?? null,
-      tenantId,
-      appId,
-      createdBy: userId,
-      updatedBy: userId,
-    }))
-  ).returning();
-
-  const envelopeMap = new Map<string, typeof insertedEnvelopes[0]>();
-  for (let i = 0; i < envelopeDefinitions.length; i++) {
-    envelopeMap.set(envelopeDefinitions[i].key, insertedEnvelopes[i]);
-  }
-
-  // 7. Income Sources
-  const [keshSalary] = await db
-    .insert(incomeSources)
-    .values({ name: "Kesh - Salary (Fortnightly)", amount: "6205.08", receivingAccountId: everydayAccount.id, rrule: "FREQ=WEEKLY;INTERVAL=2", startDate: "2026-07-02", tenantId, appId, createdBy: userId, updatedBy: userId })
-    .returning();
-
-  const [snehaSalary] = await db
-    .insert(incomeSources)
-    .values({ name: "Sneha - Salary (Fortnightly)", amount: "3024.47", receivingAccountId: everydayAccount.id, rrule: "FREQ=WEEKLY;INTERVAL=2", startDate: "2026-07-02", tenantId, appId, createdBy: snehaUserId, updatedBy: snehaUserId })
-    .returning();
-
-  // 8. Payday Dates & 26-Fortnight Schedule
-  const paydays = [
-    { date: "2026-07-02", kesh: "6205.08", sneha: "3024.47", total: "9229.55", isPast: true },
-    { date: "2026-07-16", kesh: "6217.08", sneha: "3036.47", total: "9253.55", isPast: true },
-    { date: "2026-07-30", kesh: "6217.07", sneha: "3081.75", total: "9298.82", isPast: true },
-    { date: "2026-08-13", kesh: "6205.08", sneha: "3024.47", total: "9229.55", isPast: true },
-    { date: "2026-08-27", kesh: "6205.08", sneha: "3024.47", total: "9229.55", isPast: true },
-    { date: "2026-09-10", kesh: "6205.08", sneha: "3024.47", total: "9229.55", isPast: true },
-    { date: "2026-09-24", kesh: "6205.08", sneha: "3024.47", total: "9229.55", isPast: false },
-    { date: "2026-10-08", kesh: "6205.08", sneha: "3024.47", total: "9229.55", isPast: false },
-    { date: "2026-10-22", kesh: "6205.08", sneha: "3024.47", total: "9229.55", isPast: false },
-    { date: "2026-11-05", kesh: "6205.08", sneha: "3024.47", total: "9229.55", isPast: false },
-    { date: "2026-11-19", kesh: "6205.08", sneha: "3024.47", total: "9229.55", isPast: false },
-    { date: "2026-12-03", kesh: "6205.08", sneha: "3024.47", total: "9229.55", isPast: false },
-    { date: "2026-12-17", kesh: "6205.08", sneha: "3024.47", total: "9229.55", isPast: false },
-    { date: "2026-12-31", kesh: "6205.08", sneha: "3024.47", total: "9229.55", isPast: false },
-    { date: "2027-01-14", kesh: "6205.08", sneha: "3024.47", total: "9229.55", isPast: false },
-    { date: "2027-01-28", kesh: "6205.08", sneha: "3024.47", total: "9229.55", isPast: false },
-    { date: "2027-02-11", kesh: "6205.08", sneha: "3024.47", total: "9229.55", isPast: false },
-    { date: "2027-02-25", kesh: "6205.08", sneha: "3024.47", total: "9229.55", isPast: false },
-    { date: "2027-03-11", kesh: "6205.08", sneha: "3024.47", total: "9229.55", isPast: false },
-    { date: "2027-03-25", kesh: "6205.08", sneha: "3024.47", total: "9229.55", isPast: false },
-    { date: "2027-04-08", kesh: "6205.08", sneha: "3024.47", total: "9229.55", isPast: false },
-    { date: "2027-04-22", kesh: "6205.08", sneha: "3024.47", total: "9229.55", isPast: false },
-    { date: "2027-05-06", kesh: "6205.08", sneha: "3024.47", total: "9229.55", isPast: false },
-    { date: "2027-05-20", kesh: "6205.08", sneha: "3024.47", total: "9229.55", isPast: false },
-    { date: "2027-06-03", kesh: "6205.08", sneha: "3024.47", total: "9229.55", isPast: false },
-    { date: "2027-06-17", kesh: "6205.08", sneha: "3024.47", total: "9229.55", isPast: false },
-  ];
-
-  // Insert Income Events in bulk
-  const incomeEventsToInsert = paydays.flatMap((p) => [
-    {
-      incomeSourceId: keshSalary.id,
-      name: "Kesh - Salary",
-      expectedDate: p.date,
-      actualDate: p.isPast ? p.date : null,
-      expectedAmount: p.kesh,
-      actualAmount: p.isPast ? p.kesh : null,
-      status: (p.isPast ? "CONFIRMED" : "PENDING") as "CONFIRMED" | "PENDING",
-      tenantId,
-      appId,
-      createdBy: userId,
-      updatedBy: userId,
-    },
-    {
-      incomeSourceId: snehaSalary.id,
-      name: "Sneha - Salary",
-      expectedDate: p.date,
-      actualDate: p.isPast ? p.date : null,
-      expectedAmount: p.sneha,
-      actualAmount: p.isPast ? p.sneha : null,
-      status: (p.isPast ? "CONFIRMED" : "PENDING") as "CONFIRMED" | "PENDING",
-      tenantId,
-      appId,
-      createdBy: snehaUserId,
-      updatedBy: snehaUserId,
-    },
-  ]);
-
-  const insertedIncomeEvents = await db.insert(incomeEvents).values(incomeEventsToInsert).returning();
-
-  // 9. Historical Allocation Plans for Paydays 1 to 6
-  const pastSplitsData: { date: string; splits: Record<string, number> }[] = [
-    {
-      date: "2026-07-02",
-      splits: {
-        everyday: 2641.54,
-        bills: 507.23,
-        clothes: 50.00,
-        int_holiday: 5000.00,
-        school_fees: 500.00,
-        tax_obligation: 1000.00,
-      },
-    },
-    {
-      date: "2026-07-16",
-      splits: {
-        everyday: 2641.54,
-        bills: 507.23,
-        medicines: 500.00,
-        int_holiday: 2500.00,
-        classes: 500.00,
-        school_fees: 1000.00,
-        tax_obligation: 2000.00,
-      },
-    },
-    {
-      date: "2026-07-30",
-      splits: {
-        everyday: 2641.54,
-        bills: 507.23,
-        council_rates: 225.00,
-        clothes: 400.00,
-        costco: 300.00,
-        int_holiday: 2000.00,
-        classes: 1000.00,
-        school_fees: 818.00,
-        tax_obligation: 1500.00,
-      },
-    },
-    {
-      date: "2026-08-13",
-      splits: {
-        everyday: 2641.54,
-        bills: 507.23,
-        council_rates: 450.00,
-        medicines: 500.00,
-        charu_melb: 300.00,
-        seasonal_holidays: 1500.00,
-        int_holiday: 4000.00,
-        school_fees: 818.00,
-        pet_insurance: 250.00,
-        tax_obligation: 500.00,
-        emergency: -469.22,
-      },
-    },
-    {
-      date: "2026-08-27",
-      splits: {
-        everyday: 2641.54,
-        bills: 507.23,
-        car_servicing: 750.00,
-        car_repairs: 300.00,
-        clothes: 300.00,
-        int_holiday: 3250.00,
-        rae_birthday: 250.00,
-        classes: 250.00,
-        tax_obligation: 1000.00,
-        emergency: -494.22,
-      },
-    },
-    {
-      date: "2026-09-10",
-      splits: {
-        everyday: 2641.54,
-        bills: 507.23,
-        car_servicing: 750.00,
-        medicines: 500.00,
-        clothes: 500.00,
-        int_holiday: 1000.00,
-        classes: 1250.00,
-        school_fees: 1500.00,
-        tax_obligation: 500.00,
-        emergency: -419.22,
-      },
-    },
-  ];
-
-  for (const past of pastSplitsData) {
-    const keshEv = insertedIncomeEvents.find((e) => e.expectedDate === past.date && e.name === "Kesh - Salary")!;
-    const paydayInfo = paydays.find((p) => p.date === past.date)!;
-
-    const [plan] = await db
-      .insert(allocationPlans)
-      .values({
-        incomeEventId: keshEv.id,
-        totalIncomeAmount: paydayInfo.total,
-        status: "CONFIRMED" as const,
-        confirmedAt: new Date(past.date + "T09:00:00Z"),
-        tenantId,
-        appId,
-        createdBy: userId,
-        updatedBy: userId,
-      })
-      .returning();
-
-    const planLinesToInsert = Object.entries(past.splits).map(([key, amt]) => {
-      const targetEnvelope = envelopeMap.get(key)!;
-      return {
-        planId: plan.id,
-        envelopeId: targetEnvelope.id,
-        proposedAmount: amt.toFixed(2),
-        confirmedAmount: amt.toFixed(2),
-        reasoning: `Confirmed FY27 paycheck allocation split for ${targetEnvelope.name}`,
-        tenantId,
-        appId,
-        createdBy: userId,
-        updatedBy: userId,
-      };
-    });
-
-    await db.insert(allocationPlanLines).values(planLinesToInsert);
-
-    const snehaEv = insertedIncomeEvents.find((e) => e.expectedDate === past.date && e.name === "Sneha - Salary");
-    if (snehaEv) {
-      await db.insert(allocationPlans).values({
-        incomeEventId: snehaEv.id,
-        totalIncomeAmount: paydayInfo.sneha,
-        status: "CONFIRMED" as const,
-        confirmedAt: new Date(past.date + "T09:00:00Z"),
-        tenantId,
-        appId,
-        createdBy: snehaUserId,
-        updatedBy: snehaUserId,
-      });
-    }
-  }
-
-  // 10. Transaction Ledger — Exact Reconstructed Historical Replay (01-Jul-2026 to 13-Sep-2026)
-  // Part A: 01-Jul-2026 Mathematically Reconstructed Starting Balances ($138,852.35 MISA + $2,641.54 Everyday)
-  const openingBalances: { key: string; amount: string; note: string }[] = [
-    { key: "everyday", amount: "2641.54", note: "Opening Balance — Joint Everyday Account" },
-    { key: "council_rates", amount: "8.75", note: "Opening Balance — Council Rates Reserve" },
-    { key: "car_rego", amount: "209.46", note: "Opening Balance — Car Rego & Insurance Reserve" },
-    { key: "car_servicing", amount: "750.00", note: "Opening Balance — Car Servicing Reserve" },
-    { key: "car_repairs", amount: "400.00", note: "Opening Balance — Car Ad-hoc Repairs Reserve" },
-    { key: "costco", amount: "300.00", note: "Opening Balance — Costco Bulk Runs Reserve" },
-    { key: "charu_melb", amount: "500.00", note: "Opening Balance — Charu Aunty Melbourne Reserve" },
-    { key: "charu_emerg", amount: "375.97", note: "Opening Balance — Charu Aunty Medical Emergency Reserve" },
-    { key: "int_holiday", amount: "902.16", note: "Opening Balance — International Holiday FY27 Reserve" },
-    { key: "pet_emerg", amount: "1000.00", note: "Opening Balance — Pet Emergency Self-Insurance Reserve" },
-    { key: "pet_insurance", amount: "560.73", note: "Opening Balance — Pet Insurance & Vet Visits Reserve" },
-    { key: "inv_property", amount: "2717.16", note: "Opening Balance — Investment Property Gap Reserve" },
-    { key: "unexpected", amount: "1000.00", note: "Opening Balance — Unexpected Expenses & Repairs Reserve" },
-    { key: "next_yr_holiday", amount: "20000.00", note: "Opening Balance — Save for Next Year's Holiday" },
-    { key: "raehan_prev", amount: "61029.48", note: "Opening Balance — Raehan Savings (Up to End of Prev FY)" },
-    { key: "raehan_gifts", amount: "25760.79", note: "Opening Balance — Raehan Gifts (Ring-Fenced Reserve)" },
-    { key: "business_idea", amount: "5000.00", note: "Opening Balance — Business Idea Fund" },
-    { key: "emergency", amount: "18337.85", note: "Opening Balance — Emergency Reserve" },
-    { key: "kaesava_vault", amount: "500.00", note: "Opening Balance — Kaesava Personal Vault" },
-  ];
-
-  const openingLedgerRows = openingBalances.map((ob) => {
-    const targetEnvelope = envelopeMap.get(ob.key)!;
-    const targetAccount = ob.key === "everyday" ? everydayAccount.id : ob.key === "kaesava_vault" ? personalSaverAccount.id : misaAccount.id;
-    return {
-      envelopeId: targetEnvelope.id,
-      bankAccountId: targetAccount,
-      flowType: "CREDIT" as const,
-      transactionType: "OPENING_BALANCE" as const,
-      amount: ob.amount,
-      idempotencyKey: `opening-balance-${ob.key}-2026-07-01`,
-      note: ob.note,
-      source: "MANUAL" as const,
-      recordedAt: new Date("2026-07-01T09:00:00Z"),
-      tenantId,
-      appId,
-      createdBy: userId,
-      updatedBy: userId,
-    };
+  // Seed sample household financial data (bank accounts, envelopes, paydays, transactions)
+  await seedSampleHousehold(db, {
+    tenantId,
+    appId,
+    userId,
+    snehaUserId,
+    now,
   });
-
-  // Part B: 6 Confirmed Payday Splits into Transaction Ledger
-  const paydayLedgerRows = pastSplitsData.flatMap((past) => {
-    return Object.entries(past.splits).map(([key, amt]) => {
-      const targetEnvelope = envelopeMap.get(key)!;
-      const targetAccount = key === "everyday" ? everydayAccount.id : misaAccount.id;
-      const isPositive = amt >= 0;
-      const absAmount = Math.abs(amt).toFixed(2);
-      return {
-        envelopeId: targetEnvelope.id,
-        bankAccountId: targetAccount,
-        flowType: (isPositive ? "CREDIT" : "DEBIT") as "CREDIT" | "DEBIT",
-        transactionType: (isPositive ? "INCOME_SPLIT" : "EXPENSE") as "INCOME_SPLIT" | "EXPENSE",
-        amount: absAmount,
-        idempotencyKey: `payday-split-${key}-${past.date}`,
-        note: isPositive ? `Payday Allocation — ${targetEnvelope.name}` : `Temporary Cashflow Cushion Drawdown — ${targetEnvelope.name}`,
-        source: "AUTO" as const,
-        recordedAt: new Date(`${past.date}T09:05:00Z`),
-        tenantId,
-        appId,
-        createdBy: userId,
-        updatedBy: userId,
-      };
-    });
-  });
-
-  // Part C: Historical Actual Expenses Paid Out in July & August ($12,642.72 MISA Debits + Routine Everyday Living)
-  const historicalDebits = [
-    { key: "bills", amount: "2106.92", date: "2026-07-20", note: "Household Utilities, Health Insurance & CareFlight (Jul-Aug)" },
-    { key: "tax_obligation", amount: "4500.00", date: "2026-08-01", note: "ATO PAYG & Tax Obligation Payment" },
-    { key: "school_fees", amount: "2136.00", date: "2026-07-10", note: "Term 3 School Tuition Fees Paid" },
-    { key: "classes", amount: "2149.80", date: "2026-08-15", note: "Kids Extracurricular Activities & Classes Paid" },
-    { key: "medicines", amount: "1000.00", date: "2026-08-05", note: "GP, Specialist, Psychology & Pharmacy Expenses Paid" },
-    { key: "clothes", amount: "450.00", date: "2026-08-10", note: "Winter Clothes & School Shoes Purchase" },
-    { key: "costco", amount: "300.00", date: "2026-08-12", note: "Costco Bulk Household Supplies Run" },
-    // Routine Everyday living expenses (routine household transactions across the 6 fortnights matching allowances)
-    { key: "everyday", amount: "2641.54", date: "2026-07-10", note: "Everyday Living & Groceries (Payday 1 Cycle)" },
-    { key: "everyday", amount: "2641.54", date: "2026-07-24", note: "Everyday Living & Groceries (Payday 2 Cycle)" },
-    { key: "everyday", amount: "2641.54", date: "2026-08-07", note: "Everyday Living & Groceries (Payday 3 Cycle)" },
-    { key: "everyday", amount: "2641.54", date: "2026-08-21", note: "Everyday Living & Groceries (Payday 4 Cycle)" },
-    { key: "everyday", amount: "2641.54", date: "2026-09-04", note: "Everyday Living & Groceries (Payday 5 Cycle)" },
-    { key: "everyday", amount: "2641.54", date: "2026-09-12", note: "Everyday Living & Groceries (Payday 6 Cycle)" },
-  ];
-
-  const historicalDebitRows = historicalDebits.map((hd, idx) => {
-    const targetEnvelope = envelopeMap.get(hd.key)!;
-    const targetAccount = hd.key === "everyday" ? everydayAccount.id : misaAccount.id;
-    return {
-      envelopeId: targetEnvelope.id,
-      bankAccountId: targetAccount,
-      flowType: "DEBIT" as const,
-      transactionType: "EXPENSE" as const,
-      amount: hd.amount,
-      idempotencyKey: `historical-debit-${hd.key}-${idx}-${hd.date}`,
-      note: hd.note,
-      source: "MANUAL" as const,
-      recordedAt: new Date(`${hd.date}T10:00:00Z`),
-      tenantId,
-      appId,
-      createdBy: userId,
-      updatedBy: userId,
-    };
-  });
-
-  // Bulk Insert all transaction ledger rows
-  await db.insert(transactionLedger).values([
-    ...openingLedgerRows,
-    ...paydayLedgerRows,
-    ...historicalDebitRows,
-  ]);
-
-  // 11. Scheduled Bill Events & Upcoming Events for the Next 90 Days
-  const ratesEnvelope = envelopeMap.get("council_rates")!;
-  const schoolEnvelope = envelopeMap.get("school_fees")!;
-  const billsEnvelope = envelopeMap.get("bills")!;
-
-  await db.insert(expenseEvents).values([
-    {
-      envelopeId: ratesEnvelope.id,
-      name: "Council Rates Q1 Instalment",
-      expectedDate: "2026-09-30",
-      expectedAmount: "675.00",
-      isScheduled: true,
-      status: "PENDING" as const,
-      tenantId,
-      appId,
-      createdBy: userId,
-      updatedBy: userId,
-    },
-    {
-      envelopeId: schoolEnvelope.id,
-      name: "School Fees Q4 Instalment",
-      expectedDate: "2026-10-01",
-      expectedAmount: "3750.00",
-      isScheduled: true,
-      status: "PENDING" as const,
-      tenantId,
-      appId,
-      createdBy: userId,
-      updatedBy: userId,
-    },
-    // Ad-hoc One-off Expense Event 1: Overdue Bill
-    {
-      envelopeId: billsEnvelope.id,
-      name: "Dental Checkup & Cleaning",
-      expectedDate: "2026-09-20",
-      actualDate: null,
-      expectedAmount: "280.00",
-      actualAmount: null,
-      isScheduled: false,
-      note: "Annual checkup and dental x-rays (overdue)",
-      status: "PENDING" as const,
-      tenantId,
-      appId,
-      createdBy: userId,
-      updatedBy: userId,
-    },
-    // Ad-hoc One-off Expense Event 2: Imminent Pending Bill
-    {
-      envelopeId: ratesEnvelope.id,
-      name: "Supplementary Water Rates Adjustment",
-      expectedDate: "2026-10-15",
-      actualDate: null,
-      expectedAmount: "145.50",
-      actualAmount: null,
-      isScheduled: false,
-      note: "Yarra Valley Water supplementary drainage charge",
-      status: "PENDING" as const,
-      tenantId,
-      appId,
-      createdBy: userId,
-      updatedBy: userId,
-    },
-    // Ad-hoc One-off Expense Event 3: Confirmed Goal Drawdown
-    {
-      envelopeId: envelopeMap.get("charu_travel")!.id,
-      name: "Charu Aunty Flight Booking",
-      expectedDate: "2026-09-15",
-      actualDate: "2026-09-15",
-      expectedAmount: "1450.00",
-      actualAmount: "1450.00",
-      isScheduled: false,
-      note: "Singapore Airlines Melbourne to New Delhi return flight",
-      status: "CONFIRMED" as const,
-      tenantId,
-      appId,
-      createdBy: userId,
-      updatedBy: userId,
-    },
-  ]);
-
-  // 12. Ad-hoc One-off Income Events
-  await db.insert(incomeEvents).values([
-    {
-      incomeSourceId: null,
-      name: "ATO Tax Refund FY26",
-      expectedDate: "2026-10-18",
-      expectedAmount: "1850.00",
-      status: "PENDING" as const,
-      note: "Annual individual tax assessment notice refund",
-      tenantId,
-      appId,
-      createdBy: userId,
-      updatedBy: userId,
-    },
-  ]);
-
-  // 13. Transfer Events (Inter-envelope transfers)
-  await db.insert(transferEvents).values([
-    {
-      sourceEnvelopeId: envelopeMap.get("emergency")!.id,
-      destinationEnvelopeId: envelopeMap.get("surplus_offset")!.id,
-      name: "Scheduled Surplus Sweep",
-      expectedDate: "2026-09-24",
-      expectedAmount: "500.00",
-      status: "PENDING" as const,
-      tenantId,
-      appId,
-      createdBy: userId,
-      updatedBy: userId,
-    },
-    {
-      sourceEnvelopeId: envelopeMap.get("emergency")!.id,
-      destinationEnvelopeId: envelopeMap.get("unexpected")!.id,
-      name: "Ad-hoc Reserve Cushioning Transfer",
-      expectedDate: "2026-09-18",
-      expectedAmount: "250.00",
-      actualAmount: "250.00",
-      status: "CONFIRMED" as const,
-      tenantId,
-      appId,
-      createdBy: userId,
-      updatedBy: userId,
-    },
-  ]);
-
-  // 14. Advanced Ledger Entries (TRANSFER_IN, TRANSFER_OUT, ACCOUNT_ALIGNMENT)
-  const transferGroupId = "d3b07384-d113-4ec4-a5a4-000000000088";
-  await db.insert(transactionLedger).values([
-    // Paired inter-envelope transfer
-    {
-      envelopeId: envelopeMap.get("emergency")!.id,
-      bankAccountId: misaAccount.id,
-      flowType: "DEBIT" as const,
-      transactionType: "TRANSFER_OUT" as const,
-      amount: "250.00",
-      transferGroupId,
-      idempotencyKey: "transfer-out-emergency-unexpected-2026-09-18",
-      note: "Inter-envelope transfer to Unexpected Expenses Reserve",
-      source: "MANUAL" as const,
-      recordedAt: new Date("2026-09-18T11:00:00Z"),
-      tenantId,
-      appId,
-      createdBy: userId,
-      updatedBy: userId,
-    },
-    {
-      envelopeId: envelopeMap.get("unexpected")!.id,
-      bankAccountId: misaAccount.id,
-      flowType: "CREDIT" as const,
-      transactionType: "TRANSFER_IN" as const,
-      amount: "250.00",
-      transferGroupId,
-      idempotencyKey: "transfer-in-emergency-unexpected-2026-09-18",
-      note: "Inter-envelope transfer from Emergency Reserve",
-      source: "MANUAL" as const,
-      recordedAt: new Date("2026-09-18T11:00:00Z"),
-      tenantId,
-      appId,
-      createdBy: userId,
-      updatedBy: userId,
-    },
-    // Account alignment audit record (e.g. interest or offset bonus alignment)
-    {
-      envelopeId: envelopeMap.get("emergency")!.id,
-      bankAccountId: misaAccount.id,
-      flowType: "CREDIT" as const,
-      transactionType: "ACCOUNT_ALIGNMENT" as const,
-      amount: "0.00",
-      idempotencyKey: "account-alignment-misa-2026-09-19",
-      note: "Bank account reconciliation balance verified against CBA MISA feed",
-      source: "AUTO" as const,
-      recordedAt: new Date("2026-09-19T12:00:00Z"),
-      tenantId,
-      appId,
-      createdBy: userId,
-      updatedBy: userId,
-    },
-  ]);
 
   console.log(`🎉 Seed data successfully populated for [${envLabel}] across all tables!`);
-  console.log(`   - MISA Offset Account accurately reconciled to $167,581.35 across all 30 envelopes.`);
-  console.log(`   - Joint Everyday Envelope initialized with $2,641.54 allowance on Everyday Account.`);
-  console.log(`   - 26 Fortnight FY27 plan scheduled with Sneha and Kesh pre-verified.`);
 }
 
 async function seed() {

@@ -4,17 +4,17 @@ import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 import { trpc } from "../../lib/trpc";
 import { t } from "@money-matters/i18n";
-import { useToast, ConfirmDialog } from "@money-matters/ui/web";
+import { useToast } from "@money-matters/ui/web";
 import { BentoPoolsSection } from "./components/BentoPoolsSection";
 import { GoalsProgressStrip } from "./components/GoalsProgressStrip";
-import { NextPaydayCard, WebIncomeItem } from "./components/NextPaydayCard";
+import { NextPaydayCard } from "./components/NextPaydayCard";
 import { AttentionItemsList, WebAttentionItem } from "./components/AttentionItemsList";
-import { QuickActionDrawer } from "../../components/web/QuickExpenseDrawer";
-import { AffordCheckModal } from "../../components/web/AffordCheckModal";
-import { ReconciliationModal, PoolItem } from "../../components/ReconciliationModal";
+import { PoolItem } from "../../components/ReconciliationModal";
 import { DashboardActionStrip } from "./components/DashboardActionStrip";
 import { BalanceMatchNudgeBanner } from "./components/BalanceMatchNudgeBanner";
+import { DashboardModals } from "./components/DashboardModals";
 import { useDashboardData } from "./hooks/useDashboardData";
+import { useDashboardDerivedState } from "./hooks/useDashboardDerivedState";
 import { useLocale } from "../../providers/LocaleProvider";
 import posthog from "../../lib/posthog-client";
 
@@ -45,118 +45,50 @@ export default function DashboardPage() {
   } = useDashboardData();
 
   const [incomeToDelete, setIncomeToDelete] = useState<{ id: string; name: string } | null>(null);
-
-  const goalCategories = pools.filter((p) => p.envelopeType === "TARGET_GOAL" || p.envelopeType === "ONGOING_GOAL");
-  const homeData = homeSummaryQuery.data;
-  const everydayBalance = homeData?.everydayBalance ?? parseFloat(summaryQuery.data?.everydayRemaining || "0");
-  const safeToSpend = homeData?.safeToSpend ?? everydayBalance;
-  const dailyPace = homeData?.dailyPace;
-  const paceStatus = homeData?.paceStatus;
-  const everydayMonthlyBudget = pools
-    .filter((p) => p.envelopeType === "EVERYDAY")
-    .reduce((sum, p) => sum + parseFloat(p.monthlyAmount || p.targetAmount || "0"), 0);
-
-  const everydaySafetyBuffer = pools
-    .filter((p) => p.envelopeType === "EVERYDAY")
-    .reduce((sum, p) => sum + parseFloat(p.safetyBufferFloor || "0"), 0);
-
-  const billsBalance = homeData?.billsBalance ?? parseFloat(summaryQuery.data?.billsRemaining || "0");
-  const billsMonthlyBudget = pools
-    .filter((p) => p.envelopeType === "SCHEDULED_BILL" || p.envelopeType === "FLEXIBLE_BILL")
-    .reduce((sum, p) => sum + parseFloat(p.monthlyAmount || p.targetAmount || "0"), 0);
+  const [quickDrawerOpen, setQuickDrawerOpen] = useState(false);
+  const [quickDrawerInitialTab, setQuickDrawerInitialTab] = useState<"DEBIT" | "CREDIT" | "TRANSFER">("DEBIT");
+  const [isMoveMoneyOpen, setIsMoveMoneyOpen] = useState(false);
+  const [isAffordModalOpen, setIsAffordModalOpen] = useState(false);
+  const [affordInitialAmount, setAffordInitialAmount] = useState("");
+  const [reconcileState, setReconcileState] = useState<{
+    accountName: string;
+    accountId: string;
+    newBalance: number;
+    expectedBalance: number;
+    unbudgetedBuffer: number;
+    pools: PoolItem[];
+  } | null>(null);
 
   const bankAccounts = bankAccountsQuery.data ?? [];
+  const homeData = homeSummaryQuery.data;
 
-  const upcomingIncomeList: WebIncomeItem[] = (incomeEventsQuery.data ?? [])
-    .filter((e) => e.status === "PENDING")
-    .map((e) => {
-      const matchedAccount = bankAccounts.find((b) => b.id === e.bankAccountId);
-      const availableToBudget = matchedAccount
-        ? parseFloat(String(matchedAccount.lastKnownBalance || "0")) -
-          parseFloat(String(matchedAccount.unbudgetedBuffer || "0"))
-        : null;
-
-      return {
-        id: e.id,
-        name: e.sourceName || "Paycheck Deposit",
-        amount: parseFloat(e.expectedAmount),
-        expectedDate: e.expectedDate,
-        bankAccountId: e.bankAccountId ?? null,
-        bankAccountName: matchedAccount?.name ?? null,
-        availableToBudget,
-      };
-    });
-
-  const nextPaycheck = upcomingIncomeList[0] ?? null;
-  const daysUntilPayday = homeData?.daysToPayday ?? (nextPaycheck
-    ? Math.max(0, Math.round((new Date(nextPaycheck.expectedDate + "T00:00:00Z").getTime() - new Date(todayStr + "T00:00:00Z").getTime()) / (1000 * 60 * 60 * 24)))
-    : 14);
-
-  // Show balance match nudge if accounts exist and oldest match is null or > 14 days ago (guarded by account age)
-  const isBalanceMatchOverdue = React.useMemo(() => {
-    if (bankAccounts.length === 0) return false;
-    if (homeData?.oldestBalanceMatchAt) {
-      const lastMatchDate = new Date(homeData.oldestBalanceMatchAt).getTime();
-      return (Date.now() - lastMatchDate) > 14 * 24 * 60 * 60 * 1000;
-    }
-    if (homeData?.tenantCreatedAt) {
-      const accountAge = Date.now() - new Date(homeData.tenantCreatedAt).getTime();
-      return accountAge > 14 * 24 * 60 * 60 * 1000;
-    }
-    return false;
-  }, [bankAccounts.length, homeData?.oldestBalanceMatchAt, homeData?.tenantCreatedAt]);
-
-  const todayObj = new Date(todayStr);
-
-  const expenseAttentionItems: WebAttentionItem[] = (expenseEventsQuery.data ?? [])
-    .filter((e) => e.status === "PENDING")
-    .map((e) => {
-      const pool = pools.find((p) => p.id === e.envelopeId);
-      const catBal = pool ? parseFloat(String(pool.currentBalance)) : 0;
-      const isOverdue = new Date(e.expectedDate) < todayObj;
-
-      return {
-        id: e.id,
-        type: "EXPENSE" as const,
-        name: e.name,
-        expectedAmount: parseFloat(e.expectedAmount),
-        expectedDate: e.expectedDate,
-        categoryId: pool?.id ?? null,
-        categoryName: pool?.name ?? "Regular Bill",
-        isOverdue,
-        categoryBalance: catBal,
-      };
-    });
-
-  const transferAttentionItems: WebAttentionItem[] = (transferEventsQuery.data ?? [])
-    .filter((e) => e.status === "PENDING")
-    .map((e) => {
-      const srcPool = pools.find((p) => p.id === e.sourcePoolId);
-      const destPool = pools.find((p) => p.id === e.destinationPoolId);
-      const isOverdue = new Date(e.expectedDate) < todayObj;
-
-      return {
-        id: e.id,
-        type: "TRANSFER" as const,
-        name: e.name || `Transfer: ${srcPool?.name ?? "Source"} ➔ ${destPool?.name ?? "Destination"}`,
-        expectedAmount: parseFloat(e.expectedAmount),
-        expectedDate: e.expectedDate,
-        sourcePoolId: e.sourcePoolId,
-        sourcePoolName: srcPool?.name ?? e.sourcePoolName ?? "Source Pool",
-        destinationPoolId: e.destinationPoolId,
-        destinationPoolName: destPool?.name ?? e.destinationPoolName ?? "Destination Pool",
-        isOverdue,
-      };
-    });
-
-  const attentionItems: WebAttentionItem[] = [...expenseAttentionItems, ...transferAttentionItems]
-    .sort((a, b) => {
-      const aOverdue = a.isOverdue || a.expectedDate < todayStr;
-      const bOverdue = b.isOverdue || b.expectedDate < todayStr;
-      if (aOverdue && !bOverdue) return -1;
-      if (!aOverdue && bOverdue) return 1;
-      return new Date(a.expectedDate).getTime() - new Date(b.expectedDate).getTime();
-    });
+  const {
+    goalCategories,
+    everydayBalance,
+    safeToSpend,
+    dailyPace,
+    paceStatus,
+    everydayMonthlyBudget,
+    everydaySafetyBuffer,
+    billsBalance,
+    billsMonthlyBudget,
+    upcomingIncomeList,
+    daysUntilPayday,
+    isBalanceMatchOverdue,
+    attentionItems,
+    billsDue14Days,
+    totalBillsDue14Days,
+    billsShortfall,
+  } = useDashboardDerivedState({
+    pools,
+    bankAccounts,
+    homeData,
+    summaryData: summaryQuery.data,
+    incomeEvents: incomeEventsQuery.data,
+    expenseEvents: expenseEventsQuery.data,
+    transferEvents: transferEventsQuery.data,
+    todayStr,
+  });
 
   const handleMarkPaidItem = async (item: WebAttentionItem, amount: number, date: string) => {
     await markExpensePaidMutation.mutateAsync({
@@ -211,19 +143,6 @@ export default function DashboardPage() {
     toast.success(t("toasts.transferDeleted"));
   };
 
-  const [quickDrawerOpen, setQuickDrawerOpen] = useState(false);
-  const [quickDrawerInitialTab, setQuickDrawerInitialTab] = useState<"DEBIT" | "CREDIT" | "TRANSFER">("DEBIT");
-  const [isMoveMoneyOpen, setIsMoveMoneyOpen] = useState(false);
-  const [isAffordModalOpen, setIsAffordModalOpen] = useState(false);
-  const [affordInitialAmount, setAffordInitialAmount] = useState("");
-  const [reconcileState, setReconcileState] = useState<{
-    accountName: string;
-    accountId: string;
-    newBalance: number;
-    expectedBalance: number;
-    unbudgetedBuffer: number;
-    pools: PoolItem[];
-  } | null>(null);
   const reconcileMut = trpc.reconcileBankBalance.useMutation();
 
   const handleOpenEverydayReconciliation = () => {
@@ -292,29 +211,8 @@ export default function DashboardPage() {
     setReconcileState(null);
   };
 
-
-
-  const upcomingBillsList = (expenseEventsQuery.data ?? [])
-    .filter((e) => e.status === "PENDING")
-    .map((e) => ({
-      id: e.id,
-      name: e.name,
-      amount: parseFloat(e.expectedAmount),
-      dueDate: e.expectedDate,
-    }));
-
-  const fourteenDaysMs = 14 * 24 * 60 * 60 * 1000;
-  const billsDue14Days = upcomingBillsList.filter((b) => {
-    const due = new Date(b.dueDate).getTime();
-    return due >= new Date().getTime() - 86400000 && due <= new Date().getTime() + fourteenDaysMs;
-  });
-
-  const totalBillsDue14Days = billsDue14Days.reduce((sum, b) => sum + b.amount, 0);
-  const billsShortfall = Math.max(0, totalBillsDue14Days - billsBalance);
-
   return (
     <div className="max-w-6xl mx-auto space-y-6 pb-12 px-4 sm:px-6 animate-in fade-in duration-200">
-      {/* Top Header Action Strip */}
       <DashboardActionStrip
         onOpenQuickExpense={() => {
           setQuickDrawerInitialTab("DEBIT");
@@ -336,12 +234,10 @@ export default function DashboardPage() {
         }}
       />
 
-      {/* Balance Match Nudge Banner (Overdue > 14 days) */}
       {isBalanceMatchOverdue && (
         <BalanceMatchNudgeBanner onOpenMatch={handleOpenEverydayReconciliation} />
       )}
 
-      {/* Row 1: Hero Balances (Left) + Goals Motivation (Right) - All 3 Envelopes */}
       <div data-tour="envelopes-row" className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
         <div className="lg:col-span-7">
           <BentoPoolsSection
@@ -364,17 +260,16 @@ export default function DashboardPage() {
           />
         </div>
 
-        {/* Goals Progress: Motivation Front & Center */}
         <div className="lg:col-span-5 flex flex-col justify-between">
           <GoalsProgressStrip
             goalCategories={goalCategories.map((g) => ({
               id: g.id,
               name: g.name,
               currentBalance: String(g.currentBalance || "0"),
-              healthStatus: g.healthStatus,
+              healthStatus: g.healthStatus || undefined,
               targetAmount: g.targetAmount,
               endDate: g.endDate,
-              goalMode: g.goalMode,
+              goalMode: (g.goalMode as "TARGET_DATE" | "ONGOING") ?? undefined,
               enteredAmount: g.enteredAmount,
               budgetFrequency: g.budgetFrequency,
               createdAt: g.createdAt,
@@ -384,7 +279,6 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* Row 2: Cashflow Stream (Two-Column Split: Upcoming Expenses & Upcoming Income) */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
         <div className="lg:col-span-6">
           <AttentionItemsList
@@ -434,71 +328,37 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {quickDrawerOpen && (
-        <QuickActionDrawer
-          onClose={() => setQuickDrawerOpen(false)}
-          initialTab={quickDrawerInitialTab}
-        />
-      )}
-
-      {isMoveMoneyOpen && (
-        <QuickActionDrawer
-          onClose={() => {
-            setIsMoveMoneyOpen(false);
-            poolsQuery.refetch();
-          }}
-          initialTab="TRANSFER"
-        />
-      )}
-
-      {incomeToDelete && (
-        <ConfirmDialog
-          isOpen={!!incomeToDelete}
-          title={t("common.deleteIncomeTitle")}
-          description={t("common.deleteExpensePrompt", {
-            name: incomeToDelete.name,
-          })}
-          confirmLabel={t("common.delete")}
-          cancelLabel={t("common.cancel")}
-          variant="danger"
-          onConfirm={async () => {
-            await deleteIncomeEventMutation.mutateAsync({ eventId: incomeToDelete.id });
-            toast.success(t("toasts.deleted"));
-            setIncomeToDelete(null);
-          }}
-          onClose={() => setIncomeToDelete(null)}
-        />
-      )}
-
-      {isAffordModalOpen && (
-        <AffordCheckModal
-          isOpen={isAffordModalOpen}
-          initialAmount={affordInitialAmount}
-          onClose={() => {
-            setIsAffordModalOpen(false);
-            setAffordInitialAmount("");
-          }}
-        />
-      )}
-
-      {reconcileState && (
-        <ReconciliationModal
-          isOpen={Boolean(reconcileState)}
-          onClose={() => setReconcileState(null)}
-          accountName={reconcileState.accountName}
-          expectedBalance={reconcileState.expectedBalance}
-          newBalance={reconcileState.newBalance}
-          unbudgetedBuffer={reconcileState.unbudgetedBuffer}
-          pools={reconcileState.pools}
-          onConfirm={handleConfirmReconcile}
-          onOpenTransferModal={() => {
-            setReconcileState(null);
-            setIsMoveMoneyOpen(true);
-          }}
-        />
-      )}
+      <DashboardModals
+        quickDrawerOpen={quickDrawerOpen}
+        onCloseQuickDrawer={() => setQuickDrawerOpen(false)}
+        quickDrawerInitialTab={quickDrawerInitialTab}
+        isMoveMoneyOpen={isMoveMoneyOpen}
+        onCloseMoveMoney={() => {
+          setIsMoveMoneyOpen(false);
+          poolsQuery.refetch();
+        }}
+        incomeToDelete={incomeToDelete}
+        onConfirmDeleteIncome={async () => {
+          if (!incomeToDelete) return;
+          await deleteIncomeEventMutation.mutateAsync({ eventId: incomeToDelete.id });
+          toast.success(t("toasts.deleted"));
+          setIncomeToDelete(null);
+        }}
+        onCloseDeleteIncome={() => setIncomeToDelete(null)}
+        isAffordModalOpen={isAffordModalOpen}
+        affordInitialAmount={affordInitialAmount}
+        onCloseAffordModal={() => {
+          setIsAffordModalOpen(false);
+          setAffordInitialAmount("");
+        }}
+        reconcileState={reconcileState}
+        onCloseReconcile={() => setReconcileState(null)}
+        onConfirmReconcile={handleConfirmReconcile}
+        onOpenTransferModal={() => {
+          setReconcileState(null);
+          setIsMoveMoneyOpen(true);
+        }}
+      />
     </div>
   );
 }
-
-

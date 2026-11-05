@@ -37,7 +37,9 @@ export default [
       "@typescript-eslint/no-empty-object-type": "off",
       "no-unused-vars": "off",
       "@typescript-eslint/no-unused-vars": "off",
-      "no-undef": "off"
+      "no-undef": "off",
+      "no-redeclare": "off",
+      "@typescript-eslint/no-redeclare": "off"
     },
     settings: {
       react: {

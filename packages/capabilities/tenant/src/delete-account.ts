@@ -1,11 +1,11 @@
-import { t } from '@money-matters/i18n';
+import { t } from "@money-matters/i18n";
 import {
-  envelopes, 
-  incomeSources, 
-  incomeEvents, 
-  expenseEvents, 
-  transactionLedger, 
-  bankAccounts, 
+  envelopes,
+  incomeSources,
+  incomeEvents,
+  expenseEvents,
+  transactionLedger,
+  bankAccounts,
   userPreferences,
   tenantUserPreferences,
   allocationPlans,
@@ -14,37 +14,98 @@ import {
   tenantUsers,
   transferEvents,
   billingInvoices,
+  aiUsage,
+  earlyAccessSubscribers,
   tenants,
   users,
   DbOrTx,
 } from "@money-matters/db";
 import { eq, and, sql, inArray, ne } from "drizzle-orm";
+import { sendNotificationEmail, logger } from "@money-matters/core";
 import Stripe from "stripe";
 
-async function sendNotificationEmail(to: string, subject: string, bodyText: string) {
-  if (!to || !process.env.RESEND_API_KEY) return;
-  try {
-    await fetch('https://api.resend.com/emails', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${process.env.RESEND_API_KEY}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        from: process.env.RESEND_FROM_EMAIL || 'MoneyMatters <noreply@moneymatters.kaesava.au>',
-        to: [to],
-        subject,
-        html: `
-          <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e2e8f0; border-radius: 16px; background-color: #ffffff;">
-            <h2 style="color: #1B2B4B; margin-top: 0;">${subject}</h2>
-            <p style="color: #334155; font-size: 14px; line-height: 1.5;">${bodyText}</p>
-          </div>
-        `,
-      }),
-    });
-  } catch (err) {
-    console.error("Failed to send notification email:", err);
+async function cancelStripeResources(tenantRecord: {
+  stripeSubscriptionId: string | null;
+  stripeCustomerId: string | null;
+} | undefined) {
+  if (!process.env.STRIPE_SECRET_KEY) return;
+  const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
+
+  if (tenantRecord?.stripeSubscriptionId) {
+    try {
+      await stripe.subscriptions.cancel(tenantRecord.stripeSubscriptionId);
+    } catch (stripeErr) {
+      logger.error("Failed to cancel Stripe subscription during account deletion:", { stripeErr });
+      const isMissing =
+        stripeErr instanceof Error &&
+        (stripeErr.message.includes("No such subscription") || stripeErr.message.includes("resource_missing"));
+      if (!isMissing) {
+        throw new Error("Unable to cancel Stripe subscription. Account deletion aborted for billing safety.");
+      }
+    }
   }
+
+  if (tenantRecord?.stripeCustomerId) {
+    try {
+      await stripe.customers.del(tenantRecord.stripeCustomerId);
+    } catch (custErr) {
+      logger.warn("Failed to delete Stripe customer during account deletion:", { custErr });
+    }
+  }
+}
+
+async function purgeNeonAuthRecords(tx: DbOrTx, userId: string) {
+  try {
+    await tx.execute(sql`SAVEPOINT neon_auth_purge`);
+    await tx.execute(sql`DELETE FROM neon_auth.session WHERE "userId" = ${userId}`);
+    await tx.execute(sql`DELETE FROM neon_auth.user WHERE id = ${userId}`);
+    await tx.execute(sql`RELEASE SAVEPOINT neon_auth_purge`);
+  } catch (err) {
+    await tx.execute(sql`ROLLBACK TO SAVEPOINT neon_auth_purge`).catch(() => {});
+    logger.warn("Neon auth purge step skipped or failed:", { err });
+  }
+}
+
+async function purgeHouseholdRecords(
+  tx: DbOrTx,
+  tenantId: string,
+  userId: string,
+  email: string,
+  appId: string,
+  allUserIdsToPurgeTokens: string[]
+) {
+  if (allUserIdsToPurgeTokens.length > 0) {
+    await tx.delete(deviceTokens).where(inArray(deviceTokens.userId, allUserIdsToPurgeTokens));
+  }
+  await tx.delete(transactionLedger).where(and(eq(transactionLedger.tenantId, tenantId), eq(transactionLedger.appId, appId)));
+
+  const plans = await tx.select({ id: allocationPlans.id }).from(allocationPlans).where(and(eq(allocationPlans.tenantId, tenantId), eq(allocationPlans.appId, appId)));
+  const planIds = plans.map((p) => p.id);
+  if (planIds.length > 0) {
+    await tx.delete(allocationPlanLines).where(inArray(allocationPlanLines.planId, planIds));
+  }
+  await tx.delete(allocationPlans).where(and(eq(allocationPlans.tenantId, tenantId), eq(allocationPlans.appId, appId)));
+
+  await tx.delete(expenseEvents).where(and(eq(expenseEvents.tenantId, tenantId), eq(expenseEvents.appId, appId)));
+  await tx.delete(transferEvents).where(and(eq(transferEvents.tenantId, tenantId), eq(transferEvents.appId, appId)));
+  await tx.delete(incomeEvents).where(and(eq(incomeEvents.tenantId, tenantId), eq(incomeEvents.appId, appId)));
+  await tx.delete(incomeSources).where(and(eq(incomeSources.tenantId, tenantId), eq(incomeSources.appId, appId)));
+  await tx.delete(envelopes).where(and(eq(envelopes.tenantId, tenantId), eq(envelopes.appId, appId)));
+
+  await tx.delete(userPreferences).where(eq(userPreferences.userId, userId));
+  await tx.delete(tenantUserPreferences).where(eq(tenantUserPreferences.userId, userId));
+  await tx.delete(bankAccounts).where(and(eq(bankAccounts.tenantId, tenantId), eq(bankAccounts.appId, appId)));
+  await tx.delete(billingInvoices).where(eq(billingInvoices.tenantId, tenantId));
+  await tx.delete(aiUsage).where(eq(aiUsage.tenantId, tenantId));
+  if (email) {
+    await tx.delete(earlyAccessSubscribers).where(eq(earlyAccessSubscribers.email, email));
+  }
+
+  await tx.delete(tenantUsers).where(eq(tenantUsers.tenantId, tenantId));
+  await tx.delete(tenants).where(eq(tenants.id, tenantId));
+  await tx.delete(users).where(eq(users.id, userId));
+
+  await purgeNeonAuthRecords(tx, userId);
 }
 
 /**
@@ -62,21 +123,16 @@ export function deleteMyAccountHandler(db: DbOrTx) {
       .filter((id): id is string => Boolean(id));
     const allUserIdsToPurgeTokens: string[] = [userId, ...partnerUserIds];
 
-    // Check and cancel Stripe subscription if active before deleting database records (BILL-001)
     const [tenantRecord] = await db
-      .select({ stripeSubscriptionId: tenants.stripeSubscriptionId })
+      .select({
+        stripeSubscriptionId: tenants.stripeSubscriptionId,
+        stripeCustomerId: tenants.stripeCustomerId,
+      })
       .from(tenants)
       .where(eq(tenants.id, tenantId))
       .limit(1);
 
-    if (tenantRecord?.stripeSubscriptionId && process.env.STRIPE_SECRET_KEY) {
-      try {
-        const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
-        await stripe.subscriptions.cancel(tenantRecord.stripeSubscriptionId);
-      } catch (stripeErr) {
-        console.warn("Failed to cancel Stripe subscription during account deletion:", stripeErr);
-      }
-    }
+    await cancelStripeResources(tenantRecord);
 
     await db.transaction(async (tx) => {
       const [membership] = await tx
@@ -89,48 +145,13 @@ export function deleteMyAccountHandler(db: DbOrTx) {
         throw new Error("Only the Household Owner can delete the household tenant. Partners can leave the household.");
       }
 
-      // Hard delete all tenant records in strict topological FK-safe order (SEC-011)
-      if (allUserIdsToPurgeTokens.length > 0) {
-        await tx.delete(deviceTokens).where(inArray(deviceTokens.userId, allUserIdsToPurgeTokens));
-      }
-      await tx.delete(transactionLedger).where(and(eq(transactionLedger.tenantId, tenantId), eq(transactionLedger.appId, appId)));
-
-      const plans = await tx.select({ id: allocationPlans.id }).from(allocationPlans).where(and(eq(allocationPlans.tenantId, tenantId), eq(allocationPlans.appId, appId)));
-      const planIds = plans.map((p) => p.id);
-      if (planIds.length > 0) {
-        await tx.delete(allocationPlanLines).where(inArray(allocationPlanLines.planId, planIds));
-      }
-      await tx.delete(allocationPlans).where(and(eq(allocationPlans.tenantId, tenantId), eq(allocationPlans.appId, appId)));
-
-      await tx.delete(expenseEvents).where(and(eq(expenseEvents.tenantId, tenantId), eq(expenseEvents.appId, appId)));
-      await tx.delete(transferEvents).where(and(eq(transferEvents.tenantId, tenantId), eq(transferEvents.appId, appId)));
-
-      await tx.delete(incomeEvents).where(and(eq(incomeEvents.tenantId, tenantId), eq(incomeEvents.appId, appId)));
-      await tx.delete(incomeSources).where(and(eq(incomeSources.tenantId, tenantId), eq(incomeSources.appId, appId)));
-
-      await tx.delete(envelopes).where(and(eq(envelopes.tenantId, tenantId), eq(envelopes.appId, appId)));
-
-      await tx.delete(userPreferences).where(eq(userPreferences.userId, userId));
-      await tx.delete(tenantUserPreferences).where(eq(tenantUserPreferences.userId, userId));
-      await tx.delete(bankAccounts).where(and(eq(bankAccounts.tenantId, tenantId), eq(bankAccounts.appId, appId)));
-
-      await tx.delete(billingInvoices).where(eq(billingInvoices.tenantId, tenantId));
-      await tx.delete(tenantUsers).where(eq(tenantUsers.tenantId, tenantId));
-      await tx.delete(tenants).where(eq(tenants.id, tenantId));
-      await tx.delete(users).where(eq(users.id, userId));
-
-      try {
-        await tx.execute(sql`DELETE FROM neon_auth.session WHERE "userId" = ${userId}`);
-        await tx.execute(sql`DELETE FROM neon_auth.user WHERE id = ${userId}`);
-      } catch (err) {
-        console.warn("Neon auth purge step skipped or failed:", err);
-      }
+      await purgeHouseholdRecords(tx, tenantId, userId, email, appId, allUserIdsToPurgeTokens);
     });
 
     await sendNotificationEmail(
       email,
-      t('privacy.deletionConfirmedTitle'),
-      t('privacy.deletionConfirmedBody')
+      t("privacy.deletionConfirmedTitle"),
+      t("privacy.deletionConfirmedBody")
     );
 
     for (const partner of partnerMemberships) {
@@ -146,7 +167,6 @@ export function deleteMyAccountHandler(db: DbOrTx) {
     return { success: true };
   };
 }
-
 
 /**
  * Removes user from household tenant and purges user's private data.

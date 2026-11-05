@@ -59,13 +59,11 @@ export async function runAllocationCommand(
     .leftJoin(incomeSources, eq(incomeEvents.incomeSourceId, incomeSources.id))
     .where(eq(incomeEvents.id, incomeEventId));
 
-  const [tenantRecord] = typeof (dbClient as any).select === "function"
-    ? await dbClient
-        .select({ timezone: tenants.timezone })
-        .from(tenants)
-        .where(eq(tenants.id, tenantId))
-        .limit(1)
-    : [null];
+  const [tenantRecord] = await dbClient
+    .select({ timezone: tenants.timezone })
+    .from(tenants)
+    .where(eq(tenants.id, tenantId))
+    .limit(1);
   const tenantTz = tenantRecord?.timezone || "Australia/Sydney";
   const getLocalDateString = (d: Date = new Date()) => getTenantDateString(d, { timezone: tenantTz });
 
@@ -129,12 +127,7 @@ export async function runAllocationCommand(
     ? new Map(customLines.map((l) => [l.bucketId, { amount: parseFloat(l.amount), reasoning: l.reasoning }]))
     : null;
 
-  const runInTx =
-    typeof dbClient.transaction === "function"
-      ? (cb: (tx: DbOrTx) => Promise<unknown>) => dbClient.transaction(cb)
-      : (cb: (tx: DbOrTx) => Promise<unknown>) => cb(dbClient);
-
-  return (await runInTx(async (tx) => {
+  return (await dbClient.transaction(async (tx) => {
     const [existingPlan] = await tx
     .select({ id: allocationPlans.id, status: allocationPlans.status })
     .from(allocationPlans)

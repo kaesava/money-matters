@@ -1,104 +1,25 @@
 "use client";
 
-import React, { useState, useMemo } from "react";
-import { useRouter, usePathname } from "next/navigation";
-import { EnvelopeDetailDrawer, CategoryScheduledEvent } from "./EnvelopeDetailDrawer";
+import React from "react";
+import { EnvelopeDetailDrawer } from "./EnvelopeDetailDrawer";
 import { t } from "@money-matters/i18n";
-import { trpc } from "../../../../lib/trpc";
-import { useToast, InfoTooltip, ConfirmDialog } from "@money-matters/ui/web";
+import { InfoTooltip, ConfirmDialog } from "@money-matters/ui/web";
 import { useLocale } from "../../../../providers/LocaleProvider";
+import {
+  useMatrixPlanData,
+  CategoryData,
+  IncomeEventData,
+  ExpenseEventData,
+} from "./matrix/useMatrixPlanData";
+import { MatrixTableHeader } from "./matrix/MatrixTableHeader";
+import { MatrixCellInput } from "./matrix/MatrixCellInput";
 
 interface MatrixPlanTabProps {
   currentUserId: string;
-  categories?: Array<{
-    id: string;
-    name: string;
-    type: string;
-    currentBalance: number;
-    monthlyAmount?: number | null;
-    targetAmount?: number | null;
-    isCommitted?: boolean;
-    isSurplusTarget?: boolean;
-    isPrivate?: boolean;
-  }>;
-  incomeEvents?: Array<{
-    id: string;
-    expectedDate: string;
-    expectedAmount: number;
-    actualAmount?: number | null;
-    status: "PENDING" | "CONFIRMED";
-    sourceName: string;
-    isPrivate?: boolean;
-  }>;
-  expenseEvents?: Array<{
-    categoryId: string;
-    amount: number;
-    dueDate: string;
-    status?: "PENDING" | "CONFIRMED";
-  }>;
+  categories?: CategoryData[];
+  incomeEvents?: IncomeEventData[];
+  expenseEvents?: ExpenseEventData[];
   onMarkPaid?: (eventId: string, amount: string, date: string) => void;
-}
-
-function formatDateShort(
-  dateStr?: string,
-  fallbackLabel?: string,
-  timeZone: string = "UTC",
-  locale: string = "en"
-): string {
-  if (!dateStr) return fallbackLabel || "";
-  try {
-    let dateObj: Date;
-    if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
-      const [year, month, day] = dateStr.split("-").map(Number);
-      dateObj = new Date(Date.UTC(year, month - 1, day, 12, 0, 0));
-    } else {
-      dateObj = new Date(dateStr);
-    }
-    if (isNaN(dateObj.getTime())) return fallbackLabel || dateStr;
-    const resolvedLocale = locale === "auto" ? undefined : locale;
-    return new Intl.DateTimeFormat(resolvedLocale, {
-      day: "2-digit",
-      month: "short",
-      year: "2-digit",
-      timeZone,
-    }).format(dateObj);
-  } catch {
-    return fallbackLabel || dateStr;
-  }
-}
-
-function MatrixCellInput({
-  value,
-  isSurplusTarget,
-}: {
-  value: number;
-  isSurplusTarget?: boolean;
-}) {
-  const { fmt } = useLocale();
-  const isDeficit = Boolean(isSurplusTarget && value < 0);
-
-  if (isSurplusTarget) {
-    return (
-      <div className="flex flex-col items-center">
-        <span
-          className={`px-2 py-0.5 font-mono font-bold text-xs rounded-md border ${
-            isDeficit
-              ? "bg-red-100 text-red-800 border-red-500 font-black animate-pulse"
-              : "bg-emerald-50 text-emerald-800 border-emerald-200"
-          }`}
-          title={isDeficit ? t("matrix.deficitWarning") : t("matrix.surplusTargetTitle")}
-        >
-          {isDeficit ? `-${fmt(Math.abs(value))}` : fmt(value)}
-        </span>
-      </div>
-    );
-  }
-
-  return (
-    <div className="w-20 text-center font-mono font-bold text-xs py-0.5 text-slate-900 dark:text-white">
-      {fmt(value)}
-    </div>
-  );
 }
 
 export function MatrixPlanTab({
@@ -109,186 +30,40 @@ export function MatrixPlanTab({
   onMarkPaid,
 }: MatrixPlanTabProps) {
   const { locale, userTimezone, fmt } = useLocale();
-  const router = useRouter();
-  const pathname = usePathname();
-  const toast = useToast();
-  const utils = trpc.useUtils();
-  const deleteIncomeMut = trpc.deleteIncomeEvent.useMutation();
-  const allPlansQuery = trpc.listAllAllocationPlans.useQuery();
-  const saveAutoAllocationMut = trpc.saveAutoAllocation.useMutation();
-  const matrixQuery = trpc.getMatrixProjectionData.useQuery({ monthsAhead: 12 });
 
-  const categories = useMemo(() => {
-    if (propsCategories.length > 0) return propsCategories;
-    if (!matrixQuery.data?.pools) return [];
-    return matrixQuery.data.pools.map((p) => ({
-      id: p.id,
-      name: p.name,
-      type: p.envelopeType,
-      currentBalance: 0,
-      monthlyAmount: p.monthlyAmount ? parseFloat(p.monthlyAmount) : null,
-      targetAmount: p.targetAmount ? parseFloat(p.targetAmount) : null,
-      isCommitted: Boolean(p.isCommitted),
-      isSurplusTarget: Boolean(p.isSurplusTarget),
-      isPrivate: Boolean(p.isPrivate),
-    }));
-  }, [propsCategories, matrixQuery.data?.pools]);
-
-  const incomeEvents = useMemo(() => {
-    if (propsIncomeEvents.length > 0) return propsIncomeEvents;
-    return (matrixQuery.data?.rawIncomeEvents?.map((e) => ({
-      id: e.id,
-      expectedDate: e.expectedDate,
-      expectedAmount: parseFloat(e.expectedAmount),
-      actualAmount: e.actualAmount ? parseFloat(e.actualAmount) : null,
-      status: (e.status as "PENDING" | "CONFIRMED") || "PENDING",
-      sourceName: e.sourceName,
-      isPrivate: false,
-    })) || []);
-  }, [propsIncomeEvents, matrixQuery.data?.rawIncomeEvents]);
-
-  const expenseEvents = useMemo(() => {
-    if (propsExpenseEvents.length > 0) return propsExpenseEvents;
-    return (matrixQuery.data?.rawExpenseEvents?.map((e) => ({
-      categoryId: e.envelopeId || "",
-      amount: parseFloat(e.actualAmount || e.expectedAmount || "0"),
-      dueDate: e.expectedDate,
-      status: (e.status as "PENDING" | "CONFIRMED") || "PENDING",
-    })) || []);
-  }, [propsExpenseEvents, matrixQuery.data?.rawExpenseEvents]);
-
-  const returnTo = useMemo(() => {
-    return pathname?.startsWith("/dashboard/income-split")
-      ? "/dashboard/income-split"
-      : "/dashboard/income-and-bills";
-  }, [pathname]);
-
-  const [showFullHorizon, setShowFullHorizon] = useState(false);
-  const [scopeFilter, setScopeFilter] = useState<"ALL" | "SHARED" | "PRIVATE">("ALL");
-  const [activeCategoryForDrawer, setActiveCategoryForDrawer] = useState<{
-    id: string;
-    name: string;
-  } | null>(null);
-  const [incomeToDelete, setIncomeToDelete] = useState<string | null>(null);
-  const [savingColId, setSavingColId] = useState<string | null>(null);
-  const [colToSave, setColToSave] = useState<string | null>(null);
-  const [statusFilter, setStatusFilter] = useState<"ALL" | "PENDING" | "CONFIRMED">("PENDING");
-
-  // Per-income-event state: AUTO = no plan, SAVED = PENDING plan, CONFIRMED = confirmed plan.
-  const columnStateMap = React.useMemo(() => {
-    const stateMap: Record<string, "AUTO" | "SAVED" | "CONFIRMED"> = {};
-    if (allPlansQuery.data) {
-      for (const plan of allPlansQuery.data) {
-        if (plan.status === "CONFIRMED") {
-          stateMap[plan.incomeEventId] = "CONFIRMED";
-        } else {
-          stateMap[plan.incomeEventId] = "SAVED";
-        }
-      }
-    }
-    return stateMap;
-  }, [allPlansQuery.data]);
-
-  const serverProjection = matrixQuery.data?.projection;
-
-  // Compute multi-payday projection from server data
-  const projection = useMemo(() => {
-    if (!serverProjection) {
-      return { columns: [], groups: [] };
-    }
-    const filteredCols = serverProjection.columns.filter((c) => {
-      const colState = columnStateMap[c.id] ?? "AUTO";
-      const isConfirmed = colState === "CONFIRMED";
-      if (statusFilter === "PENDING" && isConfirmed) return false;
-      if (statusFilter === "CONFIRMED" && !isConfirmed) return false;
-      return true;
-    });
-
-    const filteredGrps = serverProjection.groups.map((grp) => ({
-      ...grp,
-      rows: grp.rows.filter((row) => {
-        if (scopeFilter === "PRIVATE") return row.isPrivate;
-        if (scopeFilter === "SHARED") return !row.isPrivate;
-        return true;
-      }),
-    }));
-
-    return {
-      columns: filteredCols,
-      groups: filteredGrps,
-    };
-  }, [serverProjection, columnStateMap, statusFilter, scopeFilter]);
-
-  // Default view: Next 5 paydays (or full horizon if expanded)
-  const visibleColumns = useMemo(() => {
-    if (showFullHorizon) return projection.columns;
-    return projection.columns.slice(0, 5);
-  }, [projection.columns, showFullHorizon]);
-
-  // State for accordion group collapses
-  const [collapsedGroups, setCollapsedGroups] = useState<Record<string, boolean>>({});
-  const toggleGroup = (groupId: string) => {
-    setCollapsedGroups((prev) => ({ ...prev, [groupId]: !prev[groupId] }));
-  };
-
-  // Filter events for the category drawer
-  const drawerEvents: CategoryScheduledEvent[] = useMemo(() => {
-    if (!activeCategoryForDrawer) return [];
-    
-    if (activeCategoryForDrawer.id === "pool_everyday") {
-      const everydayIds = new Set(categories.filter((c) => c.type === "EVERYDAY").map((c) => c.id));
-      return expenseEvents
-        .filter((e) => everydayIds.has(e.categoryId))
-        .map((e, idx) => ({
-          id: `exp_ev_${idx}_${e.dueDate}`,
-          name: categories.find((c) => c.id === e.categoryId)?.name || "Everyday Expense",
-          amount: e.amount.toFixed(2),
-          dueDate: e.dueDate,
-        }));
-    }
-
-    if (activeCategoryForDrawer.id === "pool_bills") {
-      const billsIds = new Set(categories.filter((c) => c.type === "REGULAR").map((c) => c.id));
-      return expenseEvents
-        .filter((e) => billsIds.has(e.categoryId))
-        .map((e, idx) => ({
-          id: `exp_bills_${idx}_${e.dueDate}`,
-          name: categories.find((c) => c.id === e.categoryId)?.name || "Bill Expense",
-          amount: e.amount.toFixed(2),
-          dueDate: e.dueDate,
-        }));
-    }
-
-    return expenseEvents
-      .filter((e) => e.categoryId === activeCategoryForDrawer.id)
-      .map((e, idx) => ({
-        id: `exp_${idx}_${e.dueDate}`,
-        name: activeCategoryForDrawer.name,
-        amount: e.amount.toFixed(2),
-        dueDate: e.dueDate,
-      }));
-  }, [activeCategoryForDrawer, categories, expenseEvents]);
-
-  const handleSaveAutoSplit = async (colId: string) => {
-    try {
-      setSavingColId(colId);
-      const col = projection.columns.find((c) => c.id === colId);
-      await saveAutoAllocationMut.mutateAsync({
-        incomeEventId: colId,
-        totalIncomeAmount: col ? col.totalIncome.toFixed(2) : "0.00",
-      });
-      await utils.listAllAllocationPlans.invalidate();
-      toast.success(t("matrix.saveSplitSuccess"));
-    } catch (err: unknown) {
-      toast.error((err as Error).message || "Failed to save Income Split.");
-    } finally {
-      setSavingColId(null);
-    }
-  };
+  const {
+    categories,
+    incomeEvents,
+    returnTo,
+    showFullHorizon,
+    setShowFullHorizon,
+    scopeFilter,
+    setScopeFilter,
+    statusFilter,
+    setStatusFilter,
+    columnStateMap,
+    projection,
+    visibleColumns,
+    collapsedGroups,
+    toggleGroup,
+    activeCategoryForDrawer,
+    setActiveCategoryForDrawer,
+    drawerEvents,
+    savingColId,
+    colToSave,
+    setColToSave,
+    incomeToDelete,
+    setIncomeToDelete,
+    handleSaveAutoSplit,
+    confirmDeleteIncome,
+  } = useMatrixPlanData({
+    propsCategories,
+    propsIncomeEvents,
+    propsExpenseEvents,
+  });
 
   return (
     <div className="flex flex-col gap-6">
-      {/* Controls & Expansion Header */}
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div className="flex items-center gap-2">
           <h2 className="text-lg font-bold text-[#1B2B4B] dark:text-white flex items-center gap-2">
@@ -298,38 +73,25 @@ export function MatrixPlanTab({
         </div>
 
         <div className="flex flex-wrap items-center gap-3">
-          {/* Status Filter Pills: All | Pending | Confirmed */}
           <div className="flex items-center gap-1 bg-zinc-100 dark:bg-zinc-800 p-1 rounded-xl">
             <button
               type="button"
               onClick={() => setStatusFilter("ALL")}
-              className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all ${
-                statusFilter === "ALL"
-                  ? "bg-white dark:bg-zinc-900 text-[#1B2B4B] dark:text-white shadow-xs"
-                  : "text-zinc-500 hover:text-zinc-900 dark:hover:text-white"
-              }`}
+              className={"px-3 py-1.5 text-xs font-bold rounded-lg transition-all " + (statusFilter === "ALL" ? "bg-white dark:bg-zinc-900 text-[#1B2B4B] dark:text-white shadow-xs" : "text-zinc-500 hover:text-zinc-900 dark:hover:text-white")}
             >
               {t("matrix.statusAll")}
             </button>
             <button
               type="button"
               onClick={() => setStatusFilter("PENDING")}
-              className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all ${
-                statusFilter === "PENDING"
-                  ? "bg-white dark:bg-zinc-900 text-[#1B2B4B] dark:text-white shadow-xs"
-                  : "text-zinc-500 hover:text-zinc-900 dark:hover:text-white"
-              }`}
+              className={"px-3 py-1.5 text-xs font-bold rounded-lg transition-all " + (statusFilter === "PENDING" ? "bg-white dark:bg-zinc-900 text-[#1B2B4B] dark:text-white shadow-xs" : "text-zinc-500 hover:text-zinc-900 dark:hover:text-white")}
             >
               {t("matrix.statusPending")}
             </button>
             <button
               type="button"
               onClick={() => setStatusFilter("CONFIRMED")}
-              className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all ${
-                statusFilter === "CONFIRMED"
-                  ? "bg-white dark:bg-zinc-900 text-[#1B2B4B] dark:text-white shadow-xs"
-                  : "text-zinc-500 hover:text-zinc-900 dark:hover:text-white"
-              }`}
+              className={"px-3 py-1.5 text-xs font-bold rounded-lg transition-all " + (statusFilter === "CONFIRMED" ? "bg-white dark:bg-zinc-900 text-[#1B2B4B] dark:text-white shadow-xs" : "text-zinc-500 hover:text-zinc-900 dark:hover:text-white")}
             >
               {t("matrix.statusConfirmed")}
             </button>
@@ -337,38 +99,25 @@ export function MatrixPlanTab({
 
           <div className="h-6 w-px bg-zinc-200 dark:bg-zinc-700 hidden sm:block" />
 
-          {/* Scope Filter Pills: All | Shared | Private */}
           <div className="flex items-center gap-1 bg-zinc-100 dark:bg-zinc-800 p-1 rounded-xl">
             <button
               type="button"
               onClick={() => setScopeFilter("ALL")}
-              className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all ${
-                scopeFilter === "ALL"
-                  ? "bg-white dark:bg-zinc-900 text-[#1B2B4B] dark:text-white shadow-xs"
-                  : "text-zinc-500 hover:text-zinc-900 dark:hover:text-white"
-              }`}
+              className={"px-3 py-1.5 text-xs font-bold rounded-lg transition-all " + (scopeFilter === "ALL" ? "bg-white dark:bg-zinc-900 text-[#1B2B4B] dark:text-white shadow-xs" : "text-zinc-500 hover:text-zinc-900 dark:hover:text-white")}
             >
-              All
+              {t("common.all")}
             </button>
             <button
               type="button"
               onClick={() => setScopeFilter("SHARED")}
-              className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all ${
-                scopeFilter === "SHARED"
-                  ? "bg-white dark:bg-zinc-900 text-[#1B2B4B] dark:text-white shadow-xs"
-                  : "text-zinc-500 hover:text-zinc-900 dark:hover:text-white"
-              }`}
+              className={"px-3 py-1.5 text-xs font-bold rounded-lg transition-all " + (scopeFilter === "SHARED" ? "bg-white dark:bg-zinc-900 text-[#1B2B4B] dark:text-white shadow-xs" : "text-zinc-500 hover:text-zinc-900 dark:hover:text-white")}
             >
               {t("common.shared")}
             </button>
             <button
               type="button"
               onClick={() => setScopeFilter("PRIVATE")}
-              className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all ${
-                scopeFilter === "PRIVATE"
-                  ? "bg-white dark:bg-zinc-900 text-[#1B2B4B] dark:text-white shadow-xs"
-                  : "text-zinc-500 hover:text-zinc-900 dark:hover:text-white"
-              }`}
+              className={"px-3 py-1.5 text-xs font-bold rounded-lg transition-all " + (scopeFilter === "PRIVATE" ? "bg-white dark:bg-zinc-900 text-[#1B2B4B] dark:text-white shadow-xs" : "text-zinc-500 hover:text-zinc-900 dark:hover:text-white")}
             >
               {t("common.private")}
             </button>
@@ -379,132 +128,25 @@ export function MatrixPlanTab({
             onClick={() => setShowFullHorizon(!showFullHorizon)}
             className="px-4 py-2 bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-[#1B2B4B] dark:text-white font-bold text-xs rounded-xl transition-colors shadow-xs cursor-pointer"
           >
-            {showFullHorizon
-              ? t("matrix.showNext5")
-              : t("matrix.showFull12Events")}
+            {showFullHorizon ? t("matrix.showNext5") : t("matrix.showFull12Events")}
           </button>
         </div>
       </div>
 
-      {/* Matrix Table */}
       <div className="w-full overflow-x-auto border border-zinc-200 dark:border-zinc-800 rounded-2xl bg-white dark:bg-zinc-900 shadow-sm">
         <table className="w-full border-collapse text-left text-xs">
-          <thead>
-            {/* Column Headers (Paydays) */}
-            <tr className="bg-zinc-50 dark:bg-zinc-800/80 border-b border-zinc-200 dark:border-zinc-800">
-              <th className="sticky left-0 z-20 bg-zinc-50 dark:bg-zinc-800/90 p-4 font-bold text-[#1B2B4B] dark:text-zinc-200 min-w-[260px] border-r border-zinc-200 dark:border-zinc-700">
-                {t("incomeBillsTabs.matrixTableCategoriesHeader")}
-              </th>
-              {visibleColumns.map((col) => {
-                const incomeEvt = incomeEvents.find((e) => e.id === col.id);
-                const colState = columnStateMap[col.id] ?? "AUTO";
-                const isConfirmed = colState === "CONFIRMED" || incomeEvt?.status === "CONFIRMED";
-                const isSaved = !isConfirmed && colState === "SAVED";
-
-                const dateStr = formatDateShort(
-                  incomeEvt?.expectedDate,
-                  col.dateLabel,
-                  userTimezone,
-                  locale
-                );
-
-                return (
-                  <th
-                    key={col.id}
-                    className={`p-3 text-center border-r border-zinc-200 dark:border-zinc-800 min-w-[170px] transition-colors ${
-                      isConfirmed
-                        ? "bg-emerald-50/50 dark:bg-zinc-800/90"
-                        : isSaved
-                        ? "bg-slate-100 dark:bg-zinc-800/90"
-                        : "bg-zinc-50 dark:bg-zinc-800/80"
-                    }`}
-                  >
-                    <div className="flex flex-col items-center justify-center gap-0.5">
-                      {/* Row 1: Source Name (font a little bigger, center aligned) */}
-                      <div className="text-sm font-bold text-[#1B2B4B] dark:text-white truncate max-w-[160px]">
-                        {col.sourceName}
-                      </div>
-
-                      {/* Row 2: Date (center aligned) */}
-                      <div className="text-xs text-zinc-500 font-medium">
-                        {dateStr}
-                      </div>
-
-                      {/* Row 3: Amount in slightly bigger font (center aligned) */}
-                      <div className="text-sm font-extrabold text-emerald-600 dark:text-emerald-400 font-mono mt-0.5">
-                        +{fmt(col.totalIncome)}
-                      </div>
-
-                      {/* Row 4: Action Links */}
-                      {isConfirmed ? (
-                        <div className="flex items-center justify-center gap-2 text-xs mt-1.5 font-medium">
-                          <span className="px-1.5 py-0.5 text-[10px] font-bold rounded bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300">
-                            {t("matrix.confirmedBadge")}
-                          </span>
-                          <button
-                            type="button"
-                            onClick={() => router.push(`/dashboard/income-split?id=${col.id}&returnTo=${encodeURIComponent(returnTo)}`)}
-                            className="font-bold text-[#2563eb] hover:underline cursor-pointer transition-colors"
-                            title="Review Splits"
-                          >
-                            {t("matrix.review")}
-                          </button>
-                        </div>
-                      ) : (
-                        <div className="flex items-center justify-center gap-1.5 text-xs mt-1.5 flex-wrap font-medium">
-                          {isSaved && (
-                            <span className="px-1.5 py-0.5 text-[10px] font-bold rounded bg-indigo-50 text-indigo-700 dark:bg-indigo-950 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800">
-                              🔒 {t("matrix.lockedBadge")}
-                            </span>
-                          )}
-                          <button
-                            type="button"
-                            onClick={() => router.push(`/dashboard/income-split?id=${col.id}&returnTo=${encodeURIComponent(returnTo)}`)}
-                            className="font-bold text-[#2563eb] hover:underline cursor-pointer transition-colors"
-                            title="Review and Edit Splits"
-                          >
-                            {t("matrix.review")}
-                          </button>
-
-                          <span className="text-zinc-300 dark:text-zinc-700 select-none">|</span>
-
-                          {!isSaved && (
-                            <>
-                              <button
-                                type="button"
-                                disabled={savingColId === col.id}
-                                onClick={() => setColToSave(col.id)}
-                                className="font-semibold text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200 hover:underline cursor-pointer transition-colors disabled:opacity-50"
-                                title="Lock in Splits to prevent automatic calculation."
-                              >
-                                {savingColId === col.id ? "…" : t("matrix.lock")}
-                              </button>
-                              <span className="text-zinc-300 dark:text-zinc-700 select-none">|</span>
-                            </>
-                          )}
-
-                          <button
-                            type="button"
-                            onClick={() => setIncomeToDelete(col.id)}
-                            className="font-semibold text-zinc-400 hover:text-rose-600 dark:hover:text-rose-400 cursor-pointer transition-colors"
-                            title="Delete Income record"
-                          >
-                            {t("common.delete")}
-                          </button>
-                        </div>
-                      )}
-
-                      {col.hiddenAllocationsTotal > 0 && (
-                        <div className="text-[9px] font-medium text-zinc-400 mt-1">
-                          ({fmt(col.hiddenAllocationsTotal)} private)
-                        </div>
-                      )}
-                    </div>
-                  </th>
-                );
-              })}
-            </tr>
-          </thead>
+          <MatrixTableHeader
+            visibleColumns={visibleColumns}
+            incomeEvents={incomeEvents}
+            columnStateMap={columnStateMap}
+            savingColId={savingColId}
+            userTimezone={userTimezone}
+            locale={locale}
+            returnTo={returnTo}
+            fmt={fmt}
+            onSaveAutoSplit={handleSaveAutoSplit}
+            onRequestDeleteIncome={(id) => setIncomeToDelete(id)}
+          />
 
           <tbody>
             {projection.groups.map((group) => {
@@ -512,12 +154,11 @@ export function MatrixPlanTab({
               const isCollapsed = isSurplusSection ? false : collapsedGroups[group.id];
               return (
                 <React.Fragment key={group.id}>
-                  {/* Accordion Group Header */}
                   <tr className="bg-zinc-100/70 dark:bg-zinc-800/50 border-b border-zinc-200 dark:border-zinc-800 font-bold text-[#1B2B4B] dark:text-white">
                     <td
                       colSpan={visibleColumns.length + 1}
                       onClick={() => !isSurplusSection && toggleGroup(group.id)}
-                      className={`p-3 ${isSurplusSection ? "" : "cursor-pointer hover:bg-zinc-200/50 dark:hover:bg-zinc-800"} transition-colors`}
+                      className={"p-3 " + (isSurplusSection ? "" : "cursor-pointer hover:bg-zinc-200/50 dark:hover:bg-zinc-800") + " transition-colors"}
                     >
                       <div className="flex items-center gap-2">
                         {!isSurplusSection && <span>{isCollapsed ? "▶" : "▼"}</span>}
@@ -526,18 +167,21 @@ export function MatrixPlanTab({
                     </td>
                   </tr>
 
-                  {/* Accordion Category Rows */}
                   {!isCollapsed &&
                     group.rows.map((row) => (
                       <tr
                         key={row.categoryId}
                         className="border-b border-zinc-100 dark:border-zinc-800/60 transition-colors"
                       >
-                        {/* Sticky Category Name — ONLY the pool/category name is a hyperlink */}
                         <td className="sticky left-0 z-10 bg-white dark:bg-zinc-900 p-3 border-r border-zinc-200 dark:border-zinc-800">
                           <div className="flex flex-col">
                             <span
-                              onClick={() => setActiveCategoryForDrawer({ id: row.categoryId, name: row.categoryName })}
+                              onClick={() =>
+                                setActiveCategoryForDrawer({
+                                  id: row.categoryId,
+                                  name: row.categoryName,
+                                })
+                              }
                               className="text-xs font-bold text-[#2563eb] hover:underline cursor-pointer transition-colors"
                             >
                               {row.categoryName}
@@ -545,19 +189,20 @@ export function MatrixPlanTab({
                             {(() => {
                               const cat = categories.find((c) => c.id === row.categoryId);
                               const curBal = cat ? cat.currentBalance : 0;
-                              const rawTarget = cat ? (cat.monthlyAmount ?? cat.targetAmount ?? null) : null;
+                              const rawTarget = cat
+                                ? (cat.monthlyAmount ?? cat.targetAmount ?? null)
+                                : null;
                               const targetVal = rawTarget != null ? Number(rawTarget) : null;
                               return (
                                 <div className="text-[10px] font-medium text-zinc-500 font-mono mt-0.5">
                                   {t("matrix.balanceShort")}: {fmt(curBal)}
-                                  {targetVal != null && targetVal > 0 ? ` / Target: ${fmt(targetVal)}` : ""}
+                                  {targetVal != null && targetVal > 0 ? (" / Target: " + fmt(targetVal)) : ""}
                                 </div>
                               );
                             })()}
                           </div>
                         </td>
 
-                        {/* Payday Allocation Cells (no full-row hyperlink, clean un-cluttered cells) */}
                         {visibleColumns.map((col) => {
                           const cell = row.cells[col.id] || {
                             allocated: 0,
@@ -566,15 +211,12 @@ export function MatrixPlanTab({
                             isOverride: false,
                             hasWarning: false,
                           };
-
                           const isSavedCol = (columnStateMap[col.id] ?? "AUTO") === "SAVED";
 
                           return (
                             <td
                               key={col.id}
-                              className={`p-2 border-r border-zinc-200 dark:border-zinc-800 text-center transition-colors ${
-                                isSavedCol ? "bg-slate-100/60 dark:bg-zinc-800/40" : ""
-                              }`}
+                              className={"p-2 border-r border-zinc-200 dark:border-zinc-800 text-center transition-colors " + (isSavedCol ? "bg-slate-100/60 dark:bg-zinc-800/40" : "")}
                             >
                               <div className="flex flex-col items-center">
                                 <MatrixCellInput
@@ -597,7 +239,6 @@ export function MatrixPlanTab({
         </table>
       </div>
 
-      {/* Contextual Envelope Slide-Over Drawer */}
       <EnvelopeDetailDrawer
         isOpen={!!activeCategoryForDrawer}
         onClose={() => setActiveCategoryForDrawer(null)}
@@ -607,7 +248,6 @@ export function MatrixPlanTab({
         onMarkPaid={onMarkPaid}
       />
 
-      {/* Save Split Confirmation Dialog */}
       <ConfirmDialog
         isOpen={!!colToSave}
         onClose={() => setColToSave(null)}
@@ -624,27 +264,13 @@ export function MatrixPlanTab({
         variant="primary"
       />
 
-      {/* Delete Income Confirmation Dialog */}
       <ConfirmDialog
         isOpen={!!incomeToDelete}
         onClose={() => setIncomeToDelete(null)}
-        onConfirm={async () => {
-          if (incomeToDelete) {
-            try {
-              await deleteIncomeMut.mutateAsync({ eventId: incomeToDelete });
-              toast.success(t("toasts.deleted"));
-              await utils.listIncomeEvents.invalidate();
-              await utils.listAllAllocationPlans.invalidate();
-            } catch (_err) {
-              toast.error("Failed to delete income.");
-            } finally {
-              setIncomeToDelete(null);
-            }
-          }
-        }}
-        title="Delete Income"
-        description="Are you sure you want to Delete this Income?"
-        confirmLabel="Delete"
+        onConfirm={confirmDeleteIncome}
+        title={t("common.deleteIncomeTitle")}
+        description={t("common.deleteIncomePrompt")}
+        confirmLabel={t("common.delete")}
         variant="danger"
       />
     </div>

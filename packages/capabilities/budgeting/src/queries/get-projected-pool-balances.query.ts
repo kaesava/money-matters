@@ -20,6 +20,7 @@ export interface ProjectedPoolBalancesOutput {
     totalIncome: number;
     sourceName: string;
   }>;
+  envelopeBalances: Record<string, Record<string, number>>;
   poolBalances: Record<string, Record<string, number>>;
 }
 
@@ -185,6 +186,7 @@ export async function getProjectedPoolBalancesQuery(
       totalIncome: c.totalIncome,
       sourceName: c.sourceName,
     })),
+    envelopeBalances: poolBalances,
     poolBalances,
   };
 }

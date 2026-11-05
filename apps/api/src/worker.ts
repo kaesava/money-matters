@@ -1,14 +1,21 @@
 import { fetchRequestHandler } from '@trpc/server/adapters/fetch';
-import { logger, checkRateLimit, CANONICAL_SECURITY_HEADERS } from '@money-matters/core';
-import { clearEnvCache, validateEnv } from '@money-matters/config';
+import { logger, CANONICAL_SECURITY_HEADERS } from '@money-matters/core';
+import { validateEnv } from '@money-matters/config';
 import { appRouter } from './routers/_app.js';
 import { createEdgeContext } from './trpc/edge-context.js';
 import { inngest } from './inngest/client.js';
 import { functions } from './inngest/index.js';
 import { serve } from 'inngest/cloudflare';
+import { buildCorsHeaders } from './middleware/cors.js';
+import { enforceApiRateLimit } from './middleware/rate-limit.js';
+import { handleResetPasswordRequest, isValidRedirectUrl } from './routes/password-reset.js';
+import { handleStripeWebhookRequest } from './routes/stripe-webhook.js';
+import { handleDevCallbackRequest } from './routes/dev-callback.js';
 
+export { isValidRedirectUrl };
 
 export interface WorkerEnv {
+  ENVIRONMENT?: string;
   MONEY_MATTERS_APP_ID: string;
   STORAGE_BUCKET_NAME: string;
   STORAGE_ENDPOINT: string;
@@ -27,139 +34,8 @@ export interface WorkerEnv {
   STRIPE_PRICE_MONTHLY?: string;
   STRIPE_PRICE_ANNUAL?: string;
   STRIPE_PRICE_FOUNDING_ANNUAL?: string;
-}
-
-export function isValidRedirectUrl(target: string): boolean {
-  if (!target) return false;
-  if (target.startsWith("moneymatters://")) return true;
-  try {
-    const parsed = new URL(target);
-    const host = parsed.hostname;
-    if (
-      host === "kaesava.au" ||
-      host.endsWith(".kaesava.au") ||
-      host === "localhost" ||
-      host === "127.0.0.1"
-    ) {
-      return parsed.protocol === "https:" || parsed.protocol === "http:";
-    }
-    return false;
-  } catch {
-    return false;
-  }
-}
-
-function escapeForScript(val: string): string {
-  return JSON.stringify(val || "").replace(/</g, "\\u003c").replace(/>/g, "\\u003e");
-}
-
-export function renderPasswordResetHtml(token: string, error: string, redirectTo: string): string {
-  const safeToken = escapeForScript(token);
-  const safeError = escapeForScript(error);
-  const safeRedirectTo = escapeForScript(redirectTo);
-
-  return `<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Reset Password | Money Matters</title>
-  <style>
-    body { font-family: sans-serif; background-color: #0b132b; color: #fff; display: flex; align-items: center; justify-content: center; min-height: 100vh; margin: 0; }
-    .card { background: rgba(27, 43, 75, 0.4); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 24px; padding: 40px; max-width: 420px; text-align: center; }
-    .btn { display: inline-block; width: 100%; padding: 16px; background-color: #2563eb; color: #fff; text-decoration: none; font-weight: 600; border-radius: 14px; margin-top: 20px; }
-  </style>
-</head>
-<body>
-  <div class="card">
-    <h1>Money Matters</h1>
-    <p>Your password reset link is ready. Tap below to launch the application.</p>
-    <a href="#" id="openAppBtn" class="btn">Open Money Matters App</a>
-  </div>
-  <script>
-    const token = ${safeToken};
-    const error = ${safeError};
-    const baseRedirect = ${safeRedirectTo};
-    let targetUrl = baseRedirect;
-    if (targetUrl.includes('?')) {
-      if (error) targetUrl += '&error=' + encodeURIComponent(error);
-      if (token) targetUrl += '&token=' + encodeURIComponent(token);
-    } else {
-      if (error) { targetUrl += '?error=' + encodeURIComponent(error); }
-      else if (token) { targetUrl += '?token=' + encodeURIComponent(token); }
-    }
-    document.getElementById('openAppBtn').href = targetUrl;
-    window.location.href = targetUrl;
-  </script>
-</body>
-</html>`;
-}
-
-export async function handleStripeWebhookRequest(
-  request: Request,
-  env: WorkerEnv,
-  baseHeaders: Record<string, string>
-): Promise<Response> {
-  const signature = request.headers.get('stripe-signature');
-  if (!signature || !env.STRIPE_WEBHOOK_SECRET) {
-    return new Response(JSON.stringify({ error: 'Missing stripe-signature or webhook secret' }), {
-      status: 400,
-      headers: { 'Content-Type': 'application/json', ...baseHeaders },
-    });
-  }
-
-  const rawBody = await request.text();
-  const { createDbClient } = await import('@money-matters/core');
-  const { db: defaultDb } = await import('@money-matters/db');
-  const { handleStripeWebhook } = await import('@money-matters/capability-billing');
-
-  const connectionString = env.DATABASE_URL || process.env.DATABASE_URL;
-  const dbClient = connectionString ? createDbClient(connectionString) : defaultDb;
-
-  try {
-    const result = await handleStripeWebhook(
-      rawBody,
-      signature,
-      env.STRIPE_WEBHOOK_SECRET,
-      dbClient,
-      env.STRIPE_SECRET_KEY
-    );
-
-    return new Response(JSON.stringify({ received: true, ...result }), {
-      status: 200,
-      headers: { 'Content-Type': 'application/json', ...baseHeaders },
-    });
-  } catch (err: unknown) {
-    if (err && typeof err === 'object' && 'name' in err && err.name === 'StripeSignatureError') {
-      return new Response(JSON.stringify({ error: (err as Error).message }), {
-        status: 400,
-        headers: { 'Content-Type': 'application/json', ...baseHeaders },
-      });
-    }
-    throw err;
-  }
-}
-
-export function handleResetPasswordRequest(url: URL, baseHeaders: Record<string, string>): Response {
-  const token = url.searchParams.get('token') || '';
-  const error = url.searchParams.get('error') || '';
-  const requestedRedirect = url.searchParams.get('redirect_to');
-
-  if (requestedRedirect && !isValidRedirectUrl(requestedRedirect)) {
-    return new Response(JSON.stringify({ error: 'Invalid or unwhitelisted redirect target domain' }), {
-      status: 400,
-      headers: { 'Content-Type': 'application/json', ...baseHeaders },
-    });
-  }
-
-  const redirectTo = requestedRedirect && isValidRedirectUrl(requestedRedirect)
-    ? requestedRedirect
-    : 'moneymatters://reset-password';
-
-  const html = renderPasswordResetHtml(token, error, redirectTo);
-  return new Response(html, {
-    headers: { 'Content-Type': 'text/html; charset=utf-8', ...baseHeaders },
-  });
+  UPSTASH_REDIS_REST_URL?: string;
+  UPSTASH_REDIS_REST_TOKEN?: string;
 }
 
 export async function handleTrpcRequest(
@@ -194,42 +70,27 @@ export async function handleTrpcRequest(
 let isWorkerEnvInitialized = false;
 
 export default {
-  async fetch(request: Request, env: WorkerEnv, ctx: { waitUntil: (promise: Promise<unknown>) => void }): Promise<Response> {
-    if (!isWorkerEnvInitialized && env && typeof env === "object") {
+  async fetch(
+    request: Request,
+    env: WorkerEnv,
+    ctx: { waitUntil: (promise: Promise<unknown>) => void }
+  ): Promise<Response> {
+    const isDev = env.ENVIRONMENT === 'development' || process.env.NODE_ENV === 'development';
+
+    if (!isWorkerEnvInitialized && env && typeof env === 'object') {
       Object.assign(process.env, env);
       try {
         validateEnv(env as unknown as Record<string, unknown>);
         isWorkerEnvInitialized = true;
       } catch (err) {
-        logger.error("Worker environment initialization failed", { err });
+        logger.error('Worker environment initialization failed', { err });
       }
     }
-    const correlationId = request.headers.get('x-correlation-id') || crypto.randomUUID();
 
-    const ALLOWED_ORIGINS = [
-      "https://moneymatters.kaesava.au",
-      "https://www.moneymatters.kaesava.au",
-      "https://api.moneymatters.kaesava.au",
-      "https://kaesava.au",
-      "https://www.kaesava.au",
-      ...(process.env.NODE_ENV === "development"
-        ? [
-            "http://localhost:3000",
-            "http://localhost:8787",
-            "http://127.0.0.1:8787",
-          ]
-        : []),
-    ];
+    const correlationId = request.headers.get('x-correlation-id') || crypto.randomUUID();
     const requestOrigin = request.headers.get('Origin');
-    const isAllowedOrigin = requestOrigin && ALLOWED_ORIGINS.includes(requestOrigin);
-    const corsHeaders = {
-      'Access-Control-Allow-Origin': isAllowedOrigin ? requestOrigin : ALLOWED_ORIGINS[0],
-      'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type, Authorization, trpc-accept, x-correlation-id',
-      'Access-Control-Allow-Credentials': 'true',
-      'Access-Control-Max-Age': '86400',
-    };
-    const baseHeaders = {
+    const corsHeaders = buildCorsHeaders(requestOrigin, isDev);
+    const baseHeaders: Record<string, string> = {
       ...corsHeaders,
       ...CANONICAL_SECURITY_HEADERS,
       'x-correlation-id': correlationId,
@@ -255,25 +116,9 @@ export default {
         });
       }
 
-      // Enforce rate limiting across API routes (exempting cryptographic /webhooks/stripe)
-      const isStripeWebhook = url.pathname === "/webhooks/stripe";
-      if (!isStripeWebhook) {
-        const clientIp = request.headers.get("cf-connecting-ip") || request.headers.get("x-forwarded-for") || "unknown-ip";
-        const authHeader = request.headers.get("authorization");
-        const rateLimitKey = authHeader ? `auth:${authHeader.slice(-16)}` : `ip:${clientIp}`;
-        const limit = url.pathname === "/reset-password" ? 10 : 120;
-        
-        const { allowed } = await checkRateLimit(rateLimitKey, limit, 60);
-        if (!allowed) {
-          return new Response(JSON.stringify({ error: "Too many requests. Please try again in a minute." }), {
-            status: 429,
-            headers: {
-              "Content-Type": "application/json",
-              "Retry-After": "60",
-              ...baseHeaders,
-            },
-          });
-        }
+      const rateLimitResponse = await enforceApiRateLimit(request, url, baseHeaders, env);
+      if (rateLimitResponse) {
+        return rateLimitResponse;
       }
 
       if (url.pathname.startsWith('/api/inngest')) {
@@ -287,6 +132,7 @@ export default {
           e: Record<string, string | undefined>,
           c?: { waitUntil: (promise: Promise<unknown>) => void }
         ) => Promise<Response>;
+
         const inngestRes = await inngestHandler(request, env as unknown as Record<string, string | undefined>, ctx);
         const inngestHeaders = new Headers(inngestRes.headers);
         inngestHeaders.set('x-correlation-id', correlationId);
@@ -306,59 +152,7 @@ export default {
       }
 
       if (url.pathname.startsWith('/dev-callback')) {
-        if (process.env.NODE_ENV === 'production') {
-          return new Response(JSON.stringify({ error: 'Endpoint disabled in production.' }), {
-            status: 404,
-            headers: { 'Content-Type': 'application/json', ...baseHeaders },
-          });
-        }
-
-        const rawPath = url.pathname.replace(/^\/dev-callback\/?/, '');
-
-        if (rawPath.startsWith('moneymatters/') || rawPath.startsWith('exp/')) {
-          const scheme = rawPath.startsWith('exp/') ? 'exp://' : 'moneymatters://';
-          const subPath = rawPath.replace(/^(moneymatters|exp)\//, '');
-          const requestedRedirect = url.searchParams.get('redirect_to');
-          const targetBase = requestedRedirect || `${scheme}${subPath}`;
-          const targetUrl = new URL(targetBase);
-
-          url.searchParams.forEach((val, key) => {
-            if (key !== 'redirect_to') {
-              targetUrl.searchParams.set(key, val);
-            }
-          });
-
-          return Response.redirect(targetUrl.toString(), 302);
-        }
-
-        const segments = rawPath.split('/');
-        if (segments.length >= 2) {
-          const proto = decodeURIComponent(segments[0]);
-          const hostAndPath = decodeURIComponent(segments.slice(1).join('/'));
-          const hostOnly = hostAndPath.split('/')[0].split(':')[0];
-          const isAllowedHost = hostOnly === 'localhost' || hostOnly === '127.0.0.1' || hostOnly.endsWith('.kaesava.au');
-          if (!isAllowedHost) {
-            return new Response(JSON.stringify({ error: 'Forbidden host.' }), {
-              status: 403,
-              headers: { 'Content-Type': 'application/json', ...baseHeaders },
-            });
-          }
-
-          const customTarget = url.searchParams.get('target') || '/auth-callback';
-          try {
-            const targetUrl = new URL(customTarget, `${proto}://${hostAndPath}`);
-            url.searchParams.forEach((val, key) => {
-              if (key !== 'target') {
-                targetUrl.searchParams.set(key, val);
-              }
-            });
-            return Response.redirect(targetUrl.toString(), 302);
-          } catch {
-            // Fallback
-          }
-        }
-
-        return Response.redirect('https://moneymatters.kaesava.au/dashboard', 302);
+        return handleDevCallbackRequest(url, isDev, baseHeaders);
       }
 
       if (url.pathname.startsWith('/trpc')) {
@@ -377,8 +171,7 @@ export default {
       const rawMessage = err instanceof Error ? err.message : 'Internal Server Error';
       const isInternalOrDbError =
         /violates.*constraint|foreign key|syntax error|relation.*does not exist|table ".*"|column ".*"/i.test(rawMessage);
-      const isDevelopment = (env as { ENVIRONMENT?: string }).ENVIRONMENT === 'development' || process.env.NODE_ENV === 'development';
-      const safeMessage = (!isDevelopment && isInternalOrDbError)
+      const safeMessage = (!isDev && isInternalOrDbError)
         ? 'Internal Server Error. Please contact info@moneymatters.kaesava.au with your correlation ID.'
         : rawMessage;
 
@@ -400,4 +193,3 @@ export default {
     }
   },
 };
-

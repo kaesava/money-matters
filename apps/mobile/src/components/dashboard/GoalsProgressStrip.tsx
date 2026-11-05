@@ -12,7 +12,7 @@ export interface GoalItem {
   currentBalance: number | string;
   targetAmount?: string | number | null;
   targetDate?: string | null;
-  goalMode?: 'TARGET_DATE' | 'ONGOING' | null;
+  goalMode?: 'TARGET_DATE' | 'ONGOING' | string | null;
   enteredAmount?: string | null;
   budgetFrequency?: 'WEEKLY' | 'FORTNIGHTLY' | 'MONTHLY' | 'ANNUALLY' | string | null;
   progressPercentage?: number;

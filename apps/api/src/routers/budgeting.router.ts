@@ -130,6 +130,11 @@ export const budgetingRouter = {
       return await getMonthlySummaryQuery(input.year, input.month, ctx.tenantId!, ctx.appId!, ctx.db);
     }),
 
+  getProjectedEnvelopeBalances: privateTenantProcedure
+    .query(async ({ ctx }) => {
+      return await getProjectedPoolBalancesQuery(ctx.tenantId!, ctx.appId!, ctx.userId!, ctx.db);
+    }),
+
   getProjectedPoolBalances: privateTenantProcedure
     .query(async ({ ctx }) => {
       return await getProjectedPoolBalancesQuery(ctx.tenantId!, ctx.appId!, ctx.userId!, ctx.db);

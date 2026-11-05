@@ -3,11 +3,12 @@ import {
   View,
   Text,
   TouchableOpacity,
-  StyleSheet,
   ActivityIndicator,
 } from 'react-native';
 import { useRouter, useLocalSearchParams, type Href } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
+import { styles } from './bank-accounts/MobileBankAccountsStyles';
+import { HouseholdOptimizerBanner } from './bank-accounts/HouseholdOptimizerBanner';
 import {
   DESIGN_TOKENS,
   SearchInput,
@@ -139,30 +140,7 @@ export function MobileBankAccountsSection() {
       </View>
 
       {/* Household Banking Optimizer banner */}
-      {accounts.length <= 1 && (
-        <View style={styles.optimizerBanner}>
-          <View style={styles.optimizerContent}>
-            <View style={styles.optimizerHeaderRow}>
-              <Text style={styles.optimizerIcon}>💡</Text>
-              <Text style={styles.optimizerTitle}>
-                {t('bankAccounts.optimizerBannerTitle')}
-              </Text>
-            </View>
-            <Text style={styles.optimizerDesc}>
-              {t('bankAccounts.optimizerBannerDesc')}
-            </Text>
-          </View>
-          <TouchableOpacity
-            style={styles.optimizerActionBtn}
-            onPress={() => router.push('/(setup)?mode=rerun' as Href)}
-            activeOpacity={0.8}
-          >
-            <Text style={styles.optimizerActionText}>
-              {t('bankAccounts.optimizerBannerAction')}
-            </Text>
-          </TouchableOpacity>
-        </View>
-      )}
+      {accounts.length <= 1 && <HouseholdOptimizerBanner />}
 
       {/* Search and Filter Controls */}
       <View style={styles.searchAndFilterRow}>
@@ -401,199 +379,3 @@ export function MobileBankAccountsSection() {
   );
 }
 
-const styles = StyleSheet.create({
-  tipCard: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    backgroundColor: '#EFF6FF',
-    borderRadius: DESIGN_TOKENS.radius.lg,
-    borderWidth: 1,
-    borderColor: '#BFDBFE',
-    padding: 12,
-    gap: 10,
-    marginBottom: 10,
-  },
-  tipCardTitle: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: DESIGN_TOKENS.colors.slate[900],
-  },
-  tipCardBody: {
-    fontSize: 11,
-    color: DESIGN_TOKENS.colors.slate[600],
-    lineHeight: 16,
-  },
-  container: {
-    gap: 16,
-    width: '100%',
-  },
-  topRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: 12,
-  },
-  headerTitleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  sectionHeaderTitle: {
-    fontSize: 16,
-    fontWeight: '800',
-    color: DESIGN_TOKENS.colors.primary,
-  },
-  flex1: {
-    flex: 1,
-  },
-  optimizerBanner: {
-    backgroundColor: DESIGN_TOKENS.colors.accentLight,
-    borderWidth: 1,
-    borderColor: DESIGN_TOKENS.colors.accentBorder,
-    borderRadius: 16,
-    padding: 14,
-    gap: 10,
-  },
-  optimizerContent: {
-    gap: 4,
-  },
-  optimizerHeaderRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  optimizerIcon: {
-    fontSize: 14,
-  },
-  optimizerTitle: {
-    fontSize: 13,
-    fontWeight: '800',
-    color: DESIGN_TOKENS.colors.primary,
-  },
-  optimizerDesc: {
-    fontSize: 11,
-    color: DESIGN_TOKENS.colors.slate[600],
-    lineHeight: 16,
-  },
-  optimizerActionBtn: {
-    alignSelf: 'flex-start',
-    backgroundColor: DESIGN_TOKENS.colors.sereneBlue,
-    borderRadius: 10,
-    paddingHorizontal: 12,
-    paddingVertical: 7,
-  },
-  optimizerActionText: {
-    fontSize: 11,
-    fontWeight: '800',
-    color: '#FFFFFF',
-  },
-  searchAndFilterRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-  },
-  filterBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    borderRadius: 12,
-    backgroundColor: DESIGN_TOKENS.colors.surface,
-    borderWidth: 1.5,
-    borderColor: DESIGN_TOKENS.colors.slate[200],
-  },
-  filterBtnActive: {
-    backgroundColor: DESIGN_TOKENS.colors.accentLight,
-    borderColor: DESIGN_TOKENS.colors.accentBorder,
-  },
-  filterBtnText: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: DESIGN_TOKENS.colors.textMuted,
-  },
-  filterBtnTextActive: {
-    color: DESIGN_TOKENS.colors.accent,
-  },
-  addAccountBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    backgroundColor: DESIGN_TOKENS.colors.sereneBlue,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 10,
-  },
-  addAccountText: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: DESIGN_TOKENS.colors.onAccent,
-  },
-  loader: {
-    marginVertical: 40,
-  },
-  emptyCard: {
-    backgroundColor: DESIGN_TOKENS.colors.surface,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: DESIGN_TOKENS.colors.border,
-    padding: 24,
-    alignItems: 'center',
-    gap: 8,
-    marginTop: 10,
-  },
-  emptyTitle: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: DESIGN_TOKENS.colors.primary,
-    marginTop: 8,
-  },
-  emptyDesc: {
-    fontSize: 12,
-    color: DESIGN_TOKENS.colors.textMuted,
-    textAlign: 'center',
-    lineHeight: 18,
-  },
-  accountsList: {
-    gap: 12,
-  },
-  appliedFilterBanner: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    backgroundColor: DESIGN_TOKENS.colors.accentLight,
-    borderWidth: 1,
-    borderColor: DESIGN_TOKENS.colors.accentBorder,
-    borderRadius: 10,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    marginBottom: 12,
-  },
-  appliedFilterContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    flex: 1,
-  },
-  appliedFilterText: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: DESIGN_TOKENS.colors.sereneBlue,
-  },
-  clearFilterBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    paddingVertical: 2,
-    paddingHorizontal: 6,
-    backgroundColor: DESIGN_TOKENS.colors.surface,
-    borderRadius: 6,
-    borderWidth: 1,
-    borderColor: DESIGN_TOKENS.colors.accentBorder,
-  },
-  clearFilterText: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: DESIGN_TOKENS.colors.sereneBlue,
-  },
-});

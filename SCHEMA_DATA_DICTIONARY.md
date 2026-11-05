@@ -454,3 +454,16 @@
 | `updatedAt` | timestamp | No | Last update timestamp |
 | `updatedBy` | uuid | Yes | Modifier User ID |
 | `archivedAt` | timestamp | Yes | Soft delete timestamp |
+
+---
+
+## System / Global Entities (Non-Tenant Scoped Tables)
+
+The following tables are intentionally global or user-centric and are not partitioned by `tenant_id`:
+
+1. **`apps` (`app.ts`)**: Defines platform application definitions (e.g., Money Matters application UUID `01908bde-34bb-7b19-a178-574211bc93aa`). Serves as the top-level parent entity for application tenancy and configuration.
+2. **`users` (`user.ts`)**: Global identity catalog synchronized with Neon Auth (`neon_auth.user`). Users exist independently of tenants and may belong to multiple household tenants through `tenant_users` join records.
+3. **`user_preferences` (`user_preference.ts`)**: 1:1 user settings (theme, display icons, notification email/phone) that persist across household switches.
+4. **`early_access` (`early_access.ts`)**: Public marketing waitlist for early access signups prior to account provisioning.
+5. **`processed_webhooks` (`processed_webhooks.ts`)**: Global webhook idempotency ledger tracking Stripe `event_id` keys to prevent double-processing of webhook events across all accounts.
+

@@ -84,7 +84,7 @@ export async function moveMoneyCommand(
 
     // Check if transfer with client idempotency key was already executed
     if (input.idempotencyKey) {
-      const ledgerQuery = tx
+      const [existingRow] = await tx
         .select({ id: transactionLedger.id })
         .from(transactionLedger)
         .where(
@@ -92,13 +92,10 @@ export async function moveMoneyCommand(
             eq(transactionLedger.tenantId, tenantId),
             eq(transactionLedger.idempotencyKey, debitKey)
           )
-        );
+        )
+        .limit(1);
 
-      const existingRows = typeof (ledgerQuery as any).limit === "function"
-        ? await (ledgerQuery as any).limit(1)
-        : await ledgerQuery;
-
-      if (existingRows && existingRows.length > 0 && existingRows[0]?.id) {
+      if (existingRow?.id) {
         return { success: true };
       }
     }

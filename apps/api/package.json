@@ -2,28 +2,27 @@
   "name": "@money-matters/api",
   "version": "0.1.0",
   "private": true,
-  "main": "dist/index.js",
+  "main": "src/worker.ts",
   "type": "module",
   "scripts": {
-    "dev": "npx dotenv-cli -e ../../.env.development -e .env.development -- tsx watch src/index.ts",
-    "build": "tsup",
-    "preview": "pnpm wrangler build && pnpm wrangler dev",
-    "cf-deploy": "pnpm wrangler build && pnpm wrangler deploy",
+    "dev": "wrangler dev",
+    "build": "wrangler build",
+    "preview": "wrangler build && wrangler dev",
+    "cf-deploy": "wrangler build && wrangler deploy",
     "lint": "eslint \"**/*.ts\" --cache",
     "typecheck": "tsc --noEmit",
     "test": "vitest run --passWithNoTests",
     "test:coverage": "vitest run --passWithNoTests --coverage"
   },
   "dependencies": {
-    "@fastify/cors": "^9.0.1",
-    "@fastify/helmet": "^11.1.1",
+    "@money-matters/capability-assistant": "workspace:*",
     "@money-matters/capability-billing": "workspace:*",
     "@money-matters/capability-budgeting": "workspace:*",
+    "@money-matters/capability-bug-reports": "workspace:*",
     "@money-matters/capability-notifications": "workspace:*",
-    "@money-matters/capability-tenant": "workspace:*",
     "@money-matters/capability-simulation": "workspace:*",
+    "@money-matters/capability-tenant": "workspace:*",
     "@money-matters/capability-transactions": "workspace:*",
-    "@money-matters/capability-assistant": "workspace:*",
     "@money-matters/config": "workspace:*",
     "@money-matters/core": "workspace:*",
     "@money-matters/db": "workspace:*",
@@ -33,10 +32,8 @@
     "@trpc/server": "^11.18.0",
     "better-auth": "^1.6.23",
     "drizzle-orm": "^0.39.0",
-    "fastify": "^4.26.2",
     "inngest": "^3.19.14",
     "jose": "^5.9.6",
-    "pino": "^9.0.0",
     "posthog-node": "^5.47.3",
     "uuid": "^9.0.1",
     "zod": "^3.23.8"
@@ -45,9 +42,8 @@
     "@types/node": "^20.19.43",
     "@types/uuid": "^9.0.8",
     "dotenv-cli": "^8.0.0",
-    "tsup": "^8.5.1",
-    "tsx": "4.7.1",
     "typescript": "^6.0.3",
     "wrangler": "^4.114.0"
   }
 }
+

@@ -21,6 +21,7 @@ function createMockDb(
 
         const resultPromise = Promise.resolve(data);
         const chainObj: any = {
+          limit: vi.fn().mockReturnValue(resultPromise),
           orderBy: vi.fn().mockReturnValue(resultPromise),
           then: (cb: any) => resultPromise.then(cb),
           catch: (cb: any) => resultPromise.catch(cb),
@@ -28,13 +29,14 @@ function createMockDb(
 
         return {
           leftJoin: vi.fn().mockImplementation(() => ({
-            where: vi.fn().mockReturnValue(resultPromise),
+            where: vi.fn().mockReturnValue(chainObj),
           })),
           innerJoin: vi.fn().mockImplementation(() => ({
-            where: vi.fn().mockReturnValue(resultPromise),
+            where: vi.fn().mockReturnValue(chainObj),
           })),
           where: vi.fn().mockReturnValue(chainObj),
           orderBy: vi.fn().mockReturnValue(resultPromise),
+          limit: vi.fn().mockReturnValue(resultPromise),
           then: (cb: any) => resultPromise.then(cb),
           catch: (cb: any) => resultPromise.catch(cb),
         };
@@ -42,6 +44,7 @@ function createMockDb(
     })),
   };
 }
+
 
 describe("listBillCoverageQuery", () => {
   const tenantId = "00000000-0000-0000-0000-000000000001";

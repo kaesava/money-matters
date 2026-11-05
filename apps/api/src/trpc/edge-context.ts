@@ -227,7 +227,10 @@ export async function createEdgeContext(
 ) {
   const correlationId = extractCorrelationId(req, resHeaders);
   const connectionString = env?.DATABASE_URL || process.env.DATABASE_URL;
-  const requestDb = connectionString ? createDbClient(connectionString) : db;
+  if (!connectionString) {
+    throw new Error('DATABASE_URL is not configured in environment.');
+  }
+  const requestDb = createDbClient(connectionString);
 
   const token = extractAuthToken(req);
   let claims = token ? await verifyJwt(token, env) : null;

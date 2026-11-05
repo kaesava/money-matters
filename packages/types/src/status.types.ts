@@ -1,4 +1,3 @@
-/* eslint-disable no-redeclare */
 /**
  * Status Workflow & Color Config Types
  * 

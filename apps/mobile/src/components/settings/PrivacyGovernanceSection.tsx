@@ -4,15 +4,46 @@ import * as FileSystem from 'expo-file-system/legacy';
 import * as Sharing from 'expo-sharing';
 import * as WebBrowser from 'expo-web-browser';
 import JSZip from 'jszip';
-import { useMobileToast, DESIGN_TOKENS, InfoTooltip, MobileButton } from '@money-matters/ui/mobile';
+import * as SecureStore from 'expo-secure-store';
+import { usePostHog } from 'posthog-react-native';
+import { useMobileToast, DESIGN_TOKENS, InfoTooltip, MobileButton, SwitchRow } from '@money-matters/ui/mobile';
 import { t } from '@money-matters/i18n';
 import { buildExportFileName } from '@money-matters/types';
 import { trpc } from '../../lib/trpc';
 import { formatIsoDate } from '../../lib/format';
+import { ANALYTICS_CONSENT_KEY } from '../MobileAnalyticsConsentPrompt';
 
 export function PrivacyGovernanceSection() {
   const toast = useMobileToast();
+  const posthog = usePostHog();
   const [isExporting, setIsExporting] = useState(false);
+  const [telemetryEnabled, setTelemetryEnabled] = useState(true);
+
+  React.useEffect(() => {
+    SecureStore.getItemAsync(ANALYTICS_CONSENT_KEY)
+      .then((val) => {
+        if (val === 'denied') {
+          setTelemetryEnabled(false);
+        } else {
+          setTelemetryEnabled(true);
+        }
+      })
+      .catch(() => {});
+  }, []);
+
+  const handleToggleTelemetry = async (val: boolean) => {
+    setTelemetryEnabled(val);
+    try {
+      await SecureStore.setItemAsync(ANALYTICS_CONSENT_KEY, val ? 'granted' : 'denied');
+      if (val) {
+        posthog?.optIn();
+      } else {
+        posthog?.optOut();
+      }
+    } catch {
+      // Ignore
+    }
+  };
 
   const exportQuery = trpc.exportMyData.useQuery(undefined, { enabled: false });
 
@@ -98,6 +129,16 @@ export function PrivacyGovernanceSection() {
           disabled={isExporting}
         />
       </View>
+
+      {/* Telemetry Preference Switch */}
+      <View style={styles.switchWrapper}>
+        <SwitchRow
+          label={t('privacy.analyticsConsentToggle')}
+          hint={t('privacy.analyticsConsentToggleDesc')}
+          value={telemetryEnabled}
+          onValueChange={handleToggleTelemetry}
+        />
+      </View>
     </View>
   );
 }
@@ -110,6 +151,12 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: DESIGN_TOKENS.colors.border,
     gap: 12,
+  },
+  switchWrapper: {
+    marginTop: 4,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: DESIGN_TOKENS.colors.border,
+    paddingTop: 4,
   },
   titleRow: {
     flexDirection: 'row',

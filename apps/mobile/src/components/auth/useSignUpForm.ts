@@ -138,7 +138,7 @@ export function useSignUpForm() {
       }
       if (session?.data?.user) {
         const userId = session.data.user.id;
-        posthog?.identify(userId, { email: session.data.user.email, name: session.data.user.name });
+        posthog?.identify(userId);
         try {
           await createTenant.mutateAsync({
             name: `${name.trim()}'s Household`,

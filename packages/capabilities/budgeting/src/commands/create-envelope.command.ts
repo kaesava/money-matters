@@ -15,12 +15,7 @@ export async function createEnvelopeCommand(
     throw new Error("Creation of additional Everyday envelopes is prohibited. Each household has a single shared Everyday envelope.");
   }
 
-  const runInTx =
-    typeof dbClient.transaction === "function"
-      ? (cb: (tx: DbOrTx) => Promise<typeof envelopes.$inferSelect>) => dbClient.transaction(cb)
-      : (cb: (tx: DbOrTx) => Promise<typeof envelopes.$inferSelect>) => cb(dbClient);
-
-  return await runInTx(async (tx) => {
+  return await dbClient.transaction(async (tx) => {
     // 1. Fetch bank account to check privacy status
     const [targetAccount] = await tx
       .select({ id: bankAccounts.id, isPrivate: bankAccounts.isPrivate, userId: bankAccounts.userId })

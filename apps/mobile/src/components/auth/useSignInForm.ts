@@ -88,10 +88,7 @@ export function useSignInForm() {
 
       const session = await authClient.getSession();
       if (session?.data?.user) {
-        posthog?.identify(session.data.user.id, {
-          email: session.data.user.email,
-          name: session.data.user.name,
-        });
+        posthog?.identify(session.data.user.id);
 
         try {
           const pushToken = await registerPushNotificationsAsync();
@@ -132,10 +129,7 @@ export function useSignInForm() {
         await SecureStore.setItemAsync("auth_session_token", session.data.session.token);
       }
       if (session?.data?.user) {
-        posthog?.identify(session.data.user.id, {
-          email: session.data.user.email,
-          name: session.data.user.name,
-        });
+        posthog?.identify(session.data.user.id);
         try {
           const pushToken = await registerPushNotificationsAsync();
           if (pushToken) await registerToken.mutateAsync({ token: pushToken, platform: "android" });

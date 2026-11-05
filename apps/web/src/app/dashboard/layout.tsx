@@ -1,6 +1,5 @@
 "use client";
 import React, { useState, useCallback, useEffect } from "react";
-import Image from "next/image";
 import { useRouter, usePathname } from "next/navigation";
 import { t, setLanguage } from "@money-matters/i18n";
 import { authClient } from "../../lib/auth";
@@ -14,6 +13,12 @@ import { useNetworkStatus } from "../../providers/AppProviders";
 import type { QuickActionInitialData } from "@money-matters/types";
 import { trpc } from "../../lib/trpc";
 import { SidebarContent } from "./components/SidebarContent";
+import { DashboardDesktopSidebar } from "./components/DashboardDesktopSidebar";
+import { DashboardMobileDrawer } from "./components/DashboardMobileDrawer";
+import { DashboardMobileHeader } from "./components/DashboardMobileHeader";
+import { DashboardQueryErrorFallback } from "./components/DashboardQueryErrorFallback";
+import { DashboardFooter } from "./components/DashboardFooter";
+import { handlePennyPrefillNavigation } from "./components/DashboardPennyHandler";
 import { KeyboardShortcutsModal } from "./components/KeyboardShortcutsModal";
 import { NAV_ITEMS } from "./components/navItems";
 import { getWebVersionInfo } from "../../lib/version";
@@ -252,8 +257,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       : pathname.startsWith(item.href)
   );
 
-  const sidebarWidthClass = sidebarCollapsed ? "w-20" : "w-64";
-
   const avatarUrl = userProfileQuery.data?.avatarUrl || session?.user?.image || null;
 
   const renderSidebar = () => (
@@ -276,114 +279,39 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     <ProductTourProvider>
       <div className="flex min-h-screen" style={{ backgroundColor: "var(--dash-bg)" }}>
         {/* ── Desktop Sidebar ── */}
-        <aside
-          style={{ backgroundColor: "var(--dash-navy)" }}
-          className={`hidden md:flex flex-col border-r border-white/10 shrink-0 sticky top-0 h-screen transition-all duration-300 z-30 ${sidebarWidthClass}`}
+        <DashboardDesktopSidebar
+          sidebarCollapsed={sidebarCollapsed}
+          onToggleCollapse={() => setSidebarCollapsed((c) => {
+            const next = !c;
+            localStorage.setItem("sidebar_collapsed", String(next));
+            return next;
+          })}
         >
           {renderSidebar()}
-
-            {/* Sidebar Collapse Toggle Button */}
-            <button
-              onClick={() => setSidebarCollapsed((c) => {
-                const next = !c;
-                localStorage.setItem("sidebar_collapsed", String(next));
-                return next;
-              })}
-              className="absolute -right-3 top-20 w-6 h-6 rounded-full bg-white border border-zinc-200 shadow-md flex items-center justify-center hover:bg-zinc-50 active:scale-95 transition-transform"
-              aria-label="Toggle sidebar"
-            >
-              <svg
-                className={`w-3.5 h-3.5 text-zinc-600 transition-transform duration-300 ${sidebarCollapsed ? "rotate-180" : ""}`}
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-                strokeWidth={2.5}
-              >
-                <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
-              </svg>
-            </button>
-          </aside>
+        </DashboardDesktopSidebar>
 
         {/* ── Mobile Navigation Drawer ── */}
-        {mobileMenuOpen && (
-          <div className="md:hidden fixed inset-0 z-50 flex">
-            {/* Backdrop mask shadow */}
-            <div
-              onClick={() => setMobileMenuOpen(false)}
-              className="fixed inset-0 bg-black/40 backdrop-blur-sm transition-opacity"
-            />
-            {/* Menu Panel drawer */}
-            <div
-              style={{ backgroundColor: "var(--dash-navy)" }}
-              className="relative w-72 max-w-[85vw] h-full flex flex-col z-10 shadow-2xl transition-transform animate-slide-in"
-            >
-              {renderSidebar()}
-            </div>
-          </div>
-        )}
+        <DashboardMobileDrawer
+          isOpen={mobileMenuOpen}
+          onClose={() => setMobileMenuOpen(false)}
+        >
+          {renderSidebar()}
+        </DashboardMobileDrawer>
 
         {/* ── Main Layout Wrapper ── */}
         <div className="flex-1 flex flex-col min-w-0">
           <TrialBanner />
 
           {/* Sticky top headers - Mobile only */}
-          <header
-            style={{ backgroundColor: "var(--dash-navy)" }}
-            className="md:hidden sticky top-0 z-40 h-14 flex items-center px-4 justify-between shadow-md"
-          >
-            <button
-                onClick={() => setMobileMenuOpen(true)}
-                className="p-1 text-white/80 hover:text-white transition-colors"
-                aria-label="Open navigation menu"
-              >
-                <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
-                </svg>
-              </button>
-              
-              <span className="text-sm font-extrabold text-white">
-                {activeItem ? activeItem.label() : t("app.title")}
-              </span>
-
-              <div className="flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={() => setAskPennyOpen(true)}
-                  className="p-1.5 rounded-lg text-blue-200 hover:text-white bg-blue-500/20 hover:bg-blue-500/30 border border-blue-400/30 transition-colors flex items-center justify-center cursor-pointer"
-                  title={t("assistant.triggerTitle")}
-                  aria-label={t("assistant.triggerTitle")}
-                >
-                  <svg className="w-5 h-5 text-blue-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
-                  </svg>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => router.push("/dashboard/settings")}
-                  className="cursor-pointer rounded-full overflow-hidden"
-                  title={t("settings.profile.title")}
-                  aria-label={t("settings.profile.title")}
-                >
-                  {avatarUrl ? (
-                    <Image
-                      unoptimized
-                      src={avatarUrl}
-                      alt={session?.user?.name || "User"}
-                      width={32}
-                      height={32}
-                      className="w-8 h-8 rounded-full object-cover ring-1 ring-white/20"
-                    />
-                  ) : (
-                    <div
-                      className="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-black ring-1 ring-white/20"
-                      style={{ backgroundColor: "#2563eb" }}
-                    >
-                      {initials}
-                    </div>
-                  )}
-                </button>
-              </div>
-            </header>
+          <DashboardMobileHeader
+            onOpenMobileMenu={() => setMobileMenuOpen(true)}
+            title={activeItem ? activeItem.label() : t("app.title")}
+            onOpenAskPenny={() => setAskPennyOpen(true)}
+            onNavigateToSettings={() => router.push("/dashboard/settings")}
+            avatarUrl={avatarUrl}
+            userName={session?.user?.name}
+            initials={initials}
+          />
 
           {/* Global Toolbar and Main Worksheets Viewport */}
           <div className="flex-1 flex flex-col overflow-y-auto">
@@ -394,67 +322,19 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                   <Spinner size="lg" label={t("common.loading")} direction="col" />
                 </div>
               ) : isQueryError ? (
-
-                <div className="min-h-[60vh] flex flex-col items-center justify-center p-6 text-center animate-in fade-in duration-200">
-                  <div className="max-w-md w-full bg-white dark:bg-zinc-900 border border-amber-200/80 dark:border-amber-900/60 rounded-3xl p-8 shadow-xl space-y-5">
-                    <div className="w-14 h-14 bg-amber-50 dark:bg-amber-950/50 text-amber-600 dark:text-amber-400 rounded-2xl flex items-center justify-center text-2xl mx-auto border border-amber-200/80 dark:border-amber-900/60 font-bold shadow-xs">
-                      📡
-                    </div>
-
-                    <div className="space-y-1.5">
-                      <h2 className="text-lg font-black text-[#1B2B4B] dark:text-white">
-                        {t("common.error")}
-                      </h2>
-                      <p className="text-xs text-zinc-600 dark:text-zinc-300 leading-relaxed font-medium">
-                        {t("common.errorTryAgain")}
-                      </p>
-                    </div>
-
-                    <button
-                      type="button"
-                      disabled={cooldownSeconds > 0 || isRetrying}
-                      onClick={handleRetryConnection}
-                      className="w-full py-3.5 px-6 bg-[#2563eb] hover:bg-blue-700 disabled:bg-zinc-300 dark:disabled:bg-zinc-800 text-white font-bold text-xs rounded-xl transition-all shadow-md flex items-center justify-center gap-2 cursor-pointer disabled:cursor-not-allowed"
-                    >
-                      {isRetrying ? (
-                        <Spinner size="sm" />
-                      ) : cooldownSeconds > 0 ? (
-                        <span>{t("common.retry")} ({cooldownSeconds}s)</span>
-                      ) : (
-                        <span>{t("common.retry")}</span>
-                      )}
-                    </button>
-
-                    <details className="text-left text-[10px] text-zinc-400 dark:text-zinc-500 pt-2 border-t border-zinc-100 dark:border-zinc-800">
-                      <summary className="cursor-pointer font-bold hover:text-zinc-600 dark:hover:text-zinc-300 transition-colors">
-                        {t("common.technicalDetails")}
-                      </summary>
-                      <div className="mt-2 p-2.5 bg-zinc-100 dark:bg-zinc-800 rounded-lg font-mono break-all text-[10px]">
-                        {lastErrorMessage || (envelopesQuery.error || tenantsQuery.error || userPrefQuery.error)?.message || "Network unreachable / timeout"}
-                      </div>
-                    </details>
-                  </div>
-                </div>
+                <DashboardQueryErrorFallback
+                  cooldownSeconds={cooldownSeconds}
+                  isRetrying={isRetrying}
+                  onRetry={handleRetryConnection}
+                  errorMessage={lastErrorMessage || (envelopesQuery.error || tenantsQuery.error || userPrefQuery.error)?.message}
+                />
               ) : (
                 children
               )}
             </main>
 
             {/* App-wide Dashboard Legal & Version Footer */}
-            <footer className="w-full max-w-7xl mx-auto px-4 md:px-8 py-6 border-t border-zinc-200/60 flex flex-col sm:flex-row items-center justify-between gap-3 text-[11px] text-zinc-500 font-medium">
-              <div>
-                <span>Money Matters {versionInfo.formattedVersion} ({versionInfo.channel})</span>
-              </div>
-              <div className="flex items-center gap-3">
-                <a href="/privacy" target="_blank" rel="noopener noreferrer" className="hover:text-zinc-900 transition-colors">
-                  {t("legal.privacyPolicy")}
-                </a>
-                <span>•</span>
-                <a href="/terms" target="_blank" rel="noopener noreferrer" className="hover:text-zinc-900 transition-colors">
-                  {t("legal.termsOfService")}
-                </a>
-              </div>
-            </footer>
+            <DashboardFooter versionInfo={versionInfo} />
           </div>
 
           {quickExpenseOpen && (
@@ -482,39 +362,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               usageQuery.refetch();
               return res;
             }}
-            onNavigatePrefill={(prefill) => {
-              if (prefill.target === "add-transaction" || prefill.target === "mark-paid") {
-                const amountStr = prefill.params?.amount ? String(prefill.params.amount) : "";
-                const billOrMerchant = String(prefill.params?.billName || prefill.params?.merchant || prefill.params?.entityName || "");
-                setQuickExpenseData({
-                  type: "DEBIT",
-                  name: billOrMerchant,
-                  amount: amountStr,
-                  date: prefill.params?.date ? String(prefill.params.date) : undefined,
-                  envelopeName: billOrMerchant,
-                });
-                setQuickExpenseOpen(true);
-              } else if (prefill.target === "transfer") {
-                const amountStr = prefill.params?.amount ? String(prefill.params.amount) : "";
-                setQuickExpenseData({
-                  type: "TRANSFER",
-                  amount: amountStr,
-                  sourcePoolName: prefill.params?.sourceAccount ? String(prefill.params.sourceAccount) : undefined,
-                  destinationPoolName: prefill.params?.destinationAccount ? String(prefill.params.destinationAccount) : undefined,
-                });
-                setQuickExpenseOpen(true);
-              } else if (prefill.target === "afford-check") {
-                const amountParam = prefill.params?.amount ? `?amount=${prefill.params.amount}` : "";
-                router.push(`/dashboard/afford-check${amountParam}`);
-              } else if (prefill.target === "create-bill" || prefill.target === "create-income") {
-                router.push("/dashboard/income-and-bills");
-              } else if (prefill.target === "history-filter") {
-                router.push("/dashboard/history");
-              } else if (prefill.target === "navigate") {
-                const screen = String(prefill.params?.screen || "dashboard");
-                router.push(`/dashboard/${screen}`);
-              }
-            }}
+            onNavigatePrefill={(prefill) =>
+              handlePennyPrefillNavigation(prefill, router, setQuickExpenseData, setQuickExpenseOpen)
+            }
           />
 
         </div>

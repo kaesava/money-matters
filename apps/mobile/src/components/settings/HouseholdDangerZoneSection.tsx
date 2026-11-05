@@ -68,12 +68,14 @@ export function HouseholdDangerZoneSection() {
   };
 
   const leaveWarningText = gov.leaveWarning
-    ? t(gov.leaveWarning.key, gov.leaveWarning.params)
-    : '';
+    ? t(gov.leaveWarning.key, gov.leaveWarning.params as unknown as Record<string, string | number>)
+    : "";
 
   const deleteWarningText = gov.deleteWarning
-    ? t(gov.deleteWarning.key, gov.deleteWarning.params)
-    : '';
+    ? ('params' in gov.deleteWarning
+        ? t(gov.deleteWarning.key, gov.deleteWarning.params as unknown as Record<string, string | number>)
+        : t(gov.deleteWarning.key))
+    : "";
 
   return (
     <View style={styles.card}>

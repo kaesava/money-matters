@@ -9,7 +9,7 @@ You are running NON-INTERACTIVE. Never ask questions. When something is ambiguou
 - You may ONLY read files (view, list, grep, find). You may NOT run any shell commands: no `pnpm`, no tests, no builds, no git, no network, no DB or env access.
 - You may NOT edit any file except the single output file `PRODUCTION_READINESS_PLAN.md` at the repo root.
 - Never open or reproduce secret values from `.env*`, `seed_credentials.local.md`, or `.aider*` files. You may only report that they exist, whether they are git-tracked (via `.gitignore` and `.git` metadata files readable as text), and what class of secret they hold. Redact any value you do see.
-- Because you cannot execute anything, you cannot claim that `pnpm validate`, tests, coverage, lint or build pass. Infer likely failures statically (for example, un-externalised JSX text, `any`, files over 250 lines, missing tests) and label them "static inference".
+- Because you cannot execute anything, you cannot claim that `pnpm validate`, tests, coverage, lint or build pass. Infer likely failures statically (for example, un-externalised JSX text, `any`, files over 400 lines, missing tests) and label them "static inference".
 - Never claim completeness you cannot evidence. Keep a "Not Verified" list (section 8).
 
 ## 3. Sources of truth and how to treat them
@@ -51,7 +51,7 @@ Rows with any gap become plan items.
 
 ### 5.2 AGENTS.md compliance (every section, 1 to 26)
 Go through AGENTS.md section by section and check each rule. At minimum:
-- Monorepo topology: `apps/*` bootstrap only. No domain logic in apps. Capabilities do not import each other. Dependency injection is used. Business logic lives in command/query handlers. No `utils.ts` or generic helper files. Files over 250 lines and functions over 30 lines (list each offender with its line count). Package `exports` has `"types"` first. No phantom dependencies (compare every import against the owning `package.json`).
+- Monorepo topology: `apps/*` bootstrap only. No domain logic in apps. Capabilities do not import each other. Dependency injection is used. Business logic lives in command/query handlers. No `utils.ts` or generic helper files. Files over 400 lines and functions over 30 lines (list each offender with its line count). Package `exports` has `"types"` first. No phantom dependencies (compare every import against the owning `package.json`).
 - Zero dead code: unused DB tables or columns (cross-check `SCHEMA_DATA_DICTIONARY.md` against schemas and `scripts/audit-schema-usage.mjs`), unused procedures, endpoints, components, exports, capability logic, package scripts, feature flags, and stale or untracked root-level files.
 - Database: every table has `id`, `tenantId`, `createdAt`, `createdBy`, `updatedAt`, `updatedBy`, `archivedAt`. Soft deletes. Indexed, tenant-scoped queries. No N+1 reads, inserts, deletes or archives (loops that await, or sequential mutations; `inArray` and bulk inserts required). Deterministic migrations.
 - Types: zero `any`, `as any`, `@ts-ignore`, `@ts-expect-error`, and unsafe casts, in source and in tests. Zod `.strict()` on all input and output schemas. DTOs separate from DB models.

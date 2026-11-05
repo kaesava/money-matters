@@ -107,7 +107,6 @@ export const expensesRouter = {
           properties: {
             tenant_id: ctx.tenantId,
             envelope_id: input.envelopeId,
-            amount: input.amount,
           },
         });
         await posthog.flush();
