@@ -50,7 +50,7 @@ export function SetupGoalItemRow({
       </div>
 
       <div className="flex flex-nowrap whitespace-nowrap items-center gap-2 self-end sm:self-auto">
-        <div className="w-32">
+        <div className="w-40">
           <AmountField
             value={
               isOngoing
@@ -118,7 +118,7 @@ export function SetupGoalItemRow({
                 : Math.round(rawAmt);
               onUpdateGoal(goal.id, "monthlyAmount", monthly);
             }}
-            className="ui-input px-3 text-xs font-bold rounded-xl border border-zinc-200 bg-blue-50 text-blue-700 font-medium cursor-pointer h-[46px]"
+            className="ui-input w-32 px-2.5 text-xs font-bold rounded-xl border border-zinc-200 bg-blue-50 text-blue-700 font-medium cursor-pointer h-[46px]"
           >
             <option value="WEEKLY">{t("categories.frequencyWeekly")}</option>
             <option value="FORTNIGHTLY">{t("categories.frequencyFortnightly")}</option>

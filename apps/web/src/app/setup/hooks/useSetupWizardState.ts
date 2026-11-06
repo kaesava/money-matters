@@ -19,9 +19,42 @@ import { useSetupGoalsState } from "./useSetupGoalsState";
 export function useSetupWizardState() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const userPrefQuery = trpc.getUserPreferences.useQuery();
-  const tenantQuery = trpc.getTenant.useQuery();
+  const utils = trpc.useUtils();
+  const tenantStatusQuery = trpc.getTenantStatus.useQuery();
+  const createTenantMut = trpc.createTenant.useMutation();
+  const userPrefQuery = trpc.getUserPreferences.useQuery(undefined, {
+    enabled: tenantStatusQuery.data?.hasTenant === true,
+  });
+  const tenantQuery = trpc.getTenant.useQuery(undefined, {
+    enabled: tenantStatusQuery.data?.hasTenant === true,
+  });
   const updatePrefMut = trpc.updateUserPreferences.useMutation();
+
+  // Auto-provision tenant for authenticated users without a household (e.g. Google OAuth sign-in)
+  const isCreatingTenantRef = useRef(false);
+  useEffect(() => {
+    if (
+      tenantStatusQuery.data &&
+      !tenantStatusQuery.data.hasTenant &&
+      !isCreatingTenantRef.current
+    ) {
+      isCreatingTenantRef.current = true;
+      createTenantMut
+        .mutateAsync({
+          name: "My Household",
+          country: "AU",
+          currency: "AUD",
+          timezone: "Australia/Sydney",
+        })
+        .then(async () => {
+          await tenantStatusQuery.refetch();
+          await utils.invalidate();
+        })
+        .catch(() => {
+          isCreatingTenantRef.current = false;
+        });
+    }
+  }, [tenantStatusQuery.data, createTenantMut, tenantStatusQuery, utils]);
 
   const [step, setStep] = useState(1);
   const [showDiscardModal, setShowDiscardModal] = useState(false);
@@ -191,12 +224,20 @@ export function useSetupWizardState() {
     existingPools: prepopulation.pools,
   });
 
-  const utils = trpc.useUtils();
-
   const handleDiscard = async () => {
     setShowDiscardModal(false);
     try {
-      await updatePrefMut.mutateAsync({ setupCompleted: true });
+      if (tenantStatusQuery.data?.hasTenant) {
+        await updatePrefMut.mutateAsync({ setupCompleted: true });
+      } else {
+        await createTenantMut.mutateAsync({
+          name: "My Household",
+          country: "AU",
+          currency: "AUD",
+          timezone: "Australia/Sydney",
+        });
+        await updatePrefMut.mutateAsync({ setupCompleted: true });
+      }
       utils.getTenantStatus.setData(undefined, (old) => old ? { ...old, setupCompleted: true } : undefined);
       await utils.getTenantStatus.refetch();
       await utils.invalidate();

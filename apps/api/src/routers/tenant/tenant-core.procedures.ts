@@ -1,5 +1,5 @@
 import { tenantProcedure, authenticatedProcedure, privateOwnerProcedure, publicProcedure, privateTenantProcedure } from '../../trpc/trpc.js';
-import { MONEY_MATTERS_APP_ID } from '../../trpc/edge-context.js';
+import { MONEY_MATTERS_APP_ID, clearEdgeContextCache } from '../../trpc/edge-context.js';
 import { db, tenants, tenantUsers, earlyAccessSubscribers } from "@money-matters/db";
 import { and, eq, sql, asc, isNull } from "drizzle-orm";
 import { inngest } from '../../inngest/client.js';
@@ -20,6 +20,7 @@ export const tenantCoreProcedures = {
       const appId = ctx.appId || ctx.session?.appId || MONEY_MATTERS_APP_ID;
       const handler = createTenantHandler(ctx.db || db);
       const result = await handler(input, appId, ctx.userId, ctx.email);
+      clearEdgeContextCache();
 
       inngest.send({
         name: 'auth/user.signup',

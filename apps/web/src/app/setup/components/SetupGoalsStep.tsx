@@ -176,7 +176,7 @@ export function SetupGoalsStep({
             placeholder={t("setup.goals.customGoalPlaceholder")}
             className="flex-1 px-3 py-2 text-xs font-bold rounded-xl border border-zinc-200"
           />
-          <div className="w-36">
+          <div className="w-40">
             <AmountField
               value={customTarget}
               onChange={setCustomTarget}
@@ -188,7 +188,7 @@ export function SetupGoalsStep({
             <select
               value={customFrequency}
               onChange={(e) => setCustomFrequency(e.target.value as "WEEKLY" | "FORTNIGHTLY" | "MONTHLY" | "QUARTERLY" | "ANNUALLY")}
-              className="w-32 px-3 py-2 text-xs font-bold rounded-xl border border-zinc-200 bg-white font-medium cursor-pointer"
+              className="w-32 px-2.5 py-2 text-xs font-bold rounded-xl border border-zinc-200 bg-white font-medium cursor-pointer"
             >
               <option value="WEEKLY">{t("categories.frequencyWeekly")}</option>
               <option value="FORTNIGHTLY">{t("categories.frequencyFortnightly")}</option>

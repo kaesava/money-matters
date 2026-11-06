@@ -125,5 +125,35 @@ describe('Edge Context Unit Tests', () => {
       expect(result.tenantId).toBe('tenant-member-2');
       expect(result.role).toBe('MEMBER');
     });
+
+    it('returns null and does not cache when user has no active tenant memberships', async () => {
+      const { resolveTenantMembership } = await import('./edge-context.js');
+      const mockDb = {
+        insert: () => ({
+          values: () => ({
+            onConflictDoUpdate: () => Promise.resolve(),
+          }),
+        }),
+        select: () => ({
+          from: () => ({
+            innerJoin: () => ({
+              where: () => ({
+                orderBy: () => Promise.resolve([]),
+              }),
+            }),
+          }),
+        }),
+      } as unknown as Parameters<typeof resolveTenantMembership>[0];
+
+      const result1 = await resolveTenantMembership(
+        mockDb,
+        { userId: 'user-new', email: 'new@example.com' },
+        null,
+        'test-corr-id'
+      );
+
+      expect(result1.tenantId).toBeNull();
+      expect(result1.role).toBeNull();
+    });
   });
 });

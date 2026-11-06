@@ -204,7 +204,7 @@ export default function SetupIncomeScreen() {
             <Text style={[styles.label, styles.labelGap]}>{t('setup.everyLabel')}</Text>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 8 }}>
               <TextInput
-                style={[styles.input, { width: 64, marginBottom: 0 }]}
+                style={[styles.input, { width: 48, textAlign: 'center', marginBottom: 0 }]}
                 keyboardType="number-pad"
                 value={String(inc.interval ?? 1)}
                 onChangeText={(txt) => {

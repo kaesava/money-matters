@@ -78,7 +78,8 @@ export async function resolveClaimsFromDatabase(
   requestDb: ReturnType<typeof createDbClient> | typeof db,
   correlationId: string
 ): Promise<ResolvedClaims | null> {
-  const cleanToken = token.split('.')[0];
+  const rawToken = token.replace(/^s:/, '');
+  const cleanToken = rawToken.split('.')[0];
   const now = Date.now();
   const cached = sessionClaimsMemoryCache.get(cleanToken);
   if (cached && now - cached.cachedAt < EDGE_CACHE_TTL_MS) {
@@ -94,7 +95,7 @@ export async function resolveClaimsFromDatabase(
       sql`SELECT s."userId" as "userId", u.email as "email", u.name as "name"
           FROM neon_auth.session s
           JOIN neon_auth.user u ON s."userId" = u.id
-          WHERE (s.token = ${token} OR s.token = ${cleanToken})
+          WHERE (s.token = ${token} OR s.token = ${cleanToken} OR s.token = ${rawToken})
             AND s."expiresAt" > NOW()
           LIMIT 1`
     );
@@ -245,19 +246,20 @@ export async function resolveTenantMembership(
       role: membership.role ?? null,
       appId: membership.appId ?? MONEY_MATTERS_APP_ID,
     };
-  } else {
-    resolved = {
-      tenantId: null,
-      role: null,
-      appId: MONEY_MATTERS_APP_ID,
-    };
+    if (tenantMembershipMemoryCache.size > 500) {
+      tenantMembershipMemoryCache.clear();
+    }
+    tenantMembershipMemoryCache.set(cacheKey, { membership: resolved, cachedAt: now });
+    return resolved;
   }
 
-  if (tenantMembershipMemoryCache.size > 500) {
-    tenantMembershipMemoryCache.clear();
-  }
-  tenantMembershipMemoryCache.set(cacheKey, { membership: resolved, cachedAt: now });
-  return resolved;
+  // Do not cache null tenant memberships in edge memory
+  // Onboarding users can create their household at any moment
+  return {
+    tenantId: null,
+    role: null,
+    appId: MONEY_MATTERS_APP_ID,
+  };
 }
 
 /**

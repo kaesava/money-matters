@@ -123,6 +123,10 @@ export default function SetupCategoriesScreen() {
             <Text style={{ fontSize: 12, color: DESIGN_TOKENS.colors.slate[400], fontWeight: '700' }}>
               ({activeEveryday.length})
             </Text>
+            <InfoTooltip
+              title={t('setup.reviewSummary.everydayTooltipTitle')}
+              content={t('setup.reviewSummary.everydayTooltipContent')}
+            />
           </View>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
             <Text style={styles.sectionTotal}>{formatMobileCurrency(totalEverydayMonthly)}/mo</Text>
@@ -210,6 +214,10 @@ export default function SetupCategoriesScreen() {
             <Text style={{ fontSize: 12, color: DESIGN_TOKENS.colors.slate[400], fontWeight: '700' }}>
               ({activeGoals.length})
             </Text>
+            <InfoTooltip
+              title={t('setup.reviewSummary.goalsTooltipTitle')}
+              content={t('setup.reviewSummary.goalsTooltipContent')}
+            />
           </View>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
             <Text style={styles.sectionTotal}>{formatMobileCurrency(totalGoalMonthly)}/mo</Text>

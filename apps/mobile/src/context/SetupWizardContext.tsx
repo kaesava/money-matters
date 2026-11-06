@@ -17,8 +17,41 @@ const SetupWizardContext = createContext<SetupWizardContextValue | null>(null);
 
 export function SetupWizardProvider({ children: reactChildren }: { children: React.ReactNode }) {
   const router = useRouter();
-  const userPrefQuery = trpc.getUserPreferences.useQuery();
-  const tenantQuery = trpc.getTenant.useQuery();
+  const utils = trpc.useUtils();
+  const tenantStatusQuery = trpc.getTenantStatus.useQuery();
+  const createTenantMut = trpc.createTenant.useMutation();
+  const userPrefQuery = trpc.getUserPreferences.useQuery(undefined, {
+    enabled: tenantStatusQuery.data?.hasTenant === true,
+  });
+  const tenantQuery = trpc.getTenant.useQuery(undefined, {
+    enabled: tenantStatusQuery.data?.hasTenant === true,
+  });
+
+  // Auto-provision tenant for authenticated users without a household
+  const isCreatingTenantRef = useRef(false);
+  useEffect(() => {
+    if (
+      tenantStatusQuery.data &&
+      !tenantStatusQuery.data.hasTenant &&
+      !isCreatingTenantRef.current
+    ) {
+      isCreatingTenantRef.current = true;
+      createTenantMut
+        .mutateAsync({
+          name: "My Household",
+          country: "AU",
+          currency: "AUD",
+          timezone: "Australia/Sydney",
+        })
+        .then(async () => {
+          await tenantStatusQuery.refetch();
+          await utils.invalidate();
+        })
+        .catch(() => {
+          isCreatingTenantRef.current = false;
+        });
+    }
+  }, [tenantStatusQuery.data, createTenantMut, tenantStatusQuery, utils]);
 
   const globalParams = useGlobalSearchParams<{ mode?: string }>();
   const isRerunParam = globalParams.mode === 'rerun';

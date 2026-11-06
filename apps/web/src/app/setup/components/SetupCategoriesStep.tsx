@@ -112,6 +112,12 @@ export function SetupCategoriesStep({
                 {t("setup.reviewSummary.everydaySpending")}
               </span>
               <span className="text-xs font-bold text-zinc-400">({activeEveryday.length})</span>
+              <span onClick={(e) => e.stopPropagation()}>
+                <InfoTooltip
+                  title={t("setup.reviewSummary.everydayTooltipTitle")}
+                  content={t("setup.reviewSummary.everydayTooltipContent")}
+                />
+              </span>
             </div>
             <div className="flex items-center gap-2.5">
               <span className="text-xs font-bold font-mono text-[#2563eb] bg-blue-50 px-2.5 py-1 rounded-md border border-blue-200">
@@ -196,6 +202,12 @@ export function SetupCategoriesStep({
                 {t("setup.reviewSummary.savingsGoals")}
               </span>
               <span className="text-xs font-bold text-zinc-400">({activeGoals.length})</span>
+              <span onClick={(e) => e.stopPropagation()}>
+                <InfoTooltip
+                  title={t("setup.reviewSummary.goalsTooltipTitle")}
+                  content={t("setup.reviewSummary.goalsTooltipContent")}
+                />
+              </span>
             </div>
             <div className="flex items-center gap-2.5">
               <span className="text-xs font-bold font-mono text-teal-800 bg-teal-50 px-2.5 py-1 rounded-md border border-teal-200">

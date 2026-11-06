@@ -133,6 +133,7 @@ export const envelopes = {
     "frequencyQuarterly": "Quarterly",
     "everyWeeks": "Every {interval} weeks",
     "everyMonths": "Every {interval} months",
+    "everyQuarters": "Every {interval} quarters",
     "everyYears": "Every {interval} years",
     "tooltips": {
       "scheduledBill": "Scheduled Bills have an ongoing schedule (like internet bill) while Flexible bills vary in timing or amount (like a vet visit)",
