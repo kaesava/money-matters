@@ -6,8 +6,8 @@ export interface EnvelopeRecurrenceFieldsProps {
   amount: string;
   setAmount: (val: string) => void;
   placeholder?: string;
-  frequency: 'WEEKLY' | 'FORTNIGHTLY' | 'MONTHLY' | 'ANNUALLY';
-  setFrequency?: (val: 'WEEKLY' | 'FORTNIGHTLY' | 'MONTHLY' | 'ANNUALLY') => void;
+  frequency: 'WEEKLY' | 'FORTNIGHTLY' | 'MONTHLY' | 'QUARTERLY' | 'ANNUALLY';
+  setFrequency?: (val: 'WEEKLY' | 'FORTNIGHTLY' | 'MONTHLY' | 'QUARTERLY' | 'ANNUALLY') => void;
   interval: number;
   setInterval?: (val: number) => void;
   startDate: string;
@@ -37,6 +37,7 @@ export function EnvelopeRecurrenceFields({
     { value: 'WEEKLY', label: t('categories.frequencyWeekly') },
     { value: 'FORTNIGHTLY', label: t('categories.frequencyFortnightly') },
     { value: 'MONTHLY', label: t('categories.frequencyMonthly') },
+    { value: 'QUARTERLY', label: t('setup.frequencyQuarterly') },
     { value: 'ANNUALLY', label: t('categories.frequencyAnnually') },
   ];
 

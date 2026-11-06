@@ -25,13 +25,15 @@ import { useSetupWizard } from '../../context/SetupWizardContext';
 import { IncomeItem } from '@money-matters/types';
 import { SetupProgressBar } from '../../components/setup/SetupProgressBar';
 
-const FREQUENCIES = ['WEEKLY', 'FORTNIGHTLY', 'MONTHLY'] as const;
+const FREQUENCIES = ['WEEKLY', 'FORTNIGHTLY', 'MONTHLY', 'QUARTERLY', 'ANNUALLY'] as const;
 type Frequency = (typeof FREQUENCIES)[number];
 
 const FREQ_LABELS: Record<Frequency, string> = {
-  WEEKLY: 'setup.income.scheduleWeekly',
-  FORTNIGHTLY: 'setup.income.scheduleFortnightly',
-  MONTHLY: 'setup.income.scheduleMonthly',
+  WEEKLY: 'setup.freqWeeks',
+  FORTNIGHTLY: 'setup.freqFortnights',
+  MONTHLY: 'setup.freqMonths',
+  QUARTERLY: 'setup.freqQuarters',
+  ANNUALLY: 'setup.freqYears',
 };
 
 function getDefaultStartDateAest(): string {
@@ -199,31 +201,31 @@ export default function SetupIncomeScreen() {
               containerStyle={styles.amountWrap}
             />
 
-            <Text style={[styles.label, styles.labelGap]}>{t('setup.income.scheduleLabel')}</Text>
-            <View style={styles.chipRow}>
-              {FREQUENCIES.map((fr) => (
-                <TouchableOpacity
-                  key={fr}
-                  style={[styles.chip, inc.frequency === fr && styles.chipActive]}
-                  onPress={() => handleUpdateIncomeField(inc.id, 'frequency', fr)}
-                >
-                  <Text style={[styles.chipText, inc.frequency === fr && styles.chipTextActive]}>
-                    {t(FREQ_LABELS[fr])}
-                  </Text>
-                </TouchableOpacity>
-              ))}
+            <Text style={[styles.label, styles.labelGap]}>{t('setup.everyLabel')}</Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+              <TextInput
+                style={[styles.input, { width: 64, marginBottom: 0 }]}
+                keyboardType="number-pad"
+                value={String(inc.interval ?? 1)}
+                onChangeText={(txt) => {
+                  const val = Math.max(1, Math.min(365, parseInt(txt, 10) || 1));
+                  handleUpdateIncomeField(inc.id, 'interval', val);
+                }}
+              />
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 6 }}>
+                {FREQUENCIES.map((fr) => (
+                  <TouchableOpacity
+                    key={fr}
+                    style={[styles.chip, inc.frequency === fr && styles.chipActive]}
+                    onPress={() => handleUpdateIncomeField(inc.id, 'frequency', fr)}
+                  >
+                    <Text style={[styles.chipText, inc.frequency === fr && styles.chipTextActive]}>
+                      {t(FREQ_LABELS[fr])}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
             </View>
-
-            <Text style={[styles.label, styles.labelGap]}>{t('categories.recurrenceInterval')}</Text>
-            <TextInput
-              style={styles.input}
-              keyboardType="number-pad"
-              value={String(inc.interval ?? 1)}
-              onChangeText={(txt) => {
-                const val = Math.max(1, Math.min(365, parseInt(txt, 10) || 1));
-                handleUpdateIncomeField(inc.id, 'interval', val);
-              }}
-            />
 
             <View style={styles.datePickerWrap}>
               <MobileDatePickerField

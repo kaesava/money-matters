@@ -14,15 +14,15 @@ interface SetupCategoriesStepProps {
   activeRegular: EstimatedCategoryItem[];
   activeGoals: EstimatedCategoryItem[];
   goals?: UserGoalItem[];
-  categoryFrequencies: Record<string, "WEEKLY" | "FORTNIGHTLY" | "MONTHLY" | "YEARLY">;
+  categoryFrequencies: Record<string, "WEEKLY" | "FORTNIGHTLY" | "MONTHLY" | "QUARTERLY" | "YEARLY">;
   setCategoryFrequencies: React.Dispatch<
-    React.SetStateAction<Record<string, "WEEKLY" | "FORTNIGHTLY" | "MONTHLY" | "YEARLY">>
+    React.SetStateAction<Record<string, "WEEKLY" | "FORTNIGHTLY" | "MONTHLY" | "QUARTERLY" | "YEARLY">>
   >;
   setAmountOverrides: React.Dispatch<React.SetStateAction<Record<string, number>>>;
   onRemoveCategory: (name: string) => void;
   onOpenAddEnvelope: () => void;
-  convertToMonthly: (amount: number, freq: "WEEKLY" | "FORTNIGHTLY" | "MONTHLY" | "YEARLY") => number;
-  convertFromMonthly: (monthlyAmount: number, freq: "WEEKLY" | "FORTNIGHTLY" | "MONTHLY" | "YEARLY") => number;
+  convertToMonthly: (amount: number, freq: "WEEKLY" | "FORTNIGHTLY" | "MONTHLY" | "QUARTERLY" | "YEARLY") => number;
+  convertFromMonthly: (monthlyAmount: number, freq: "WEEKLY" | "FORTNIGHTLY" | "MONTHLY" | "QUARTERLY" | "YEARLY") => number;
   totalMonthlyIncomeAud: number;
   totalAllocatedMonthly: number;
   totalEverydayMonthly: number;
@@ -63,6 +63,9 @@ export function SetupCategoriesStep({
   isRerun = false,
 }: SetupCategoriesStepProps) {
   const [warningMsg, setWarningMsg] = useState<string | null>(null);
+  const [everydayOpen, setEverydayOpen] = useState(false);
+  const [billsOpen, setBillsOpen] = useState(false);
+  const [goalsOpen, setGoalsOpen] = useState(false);
 
   const handleAttemptRemove = (name: string) => {
     const lower = name.trim().toLowerCase();
@@ -79,15 +82,9 @@ export function SetupCategoriesStep({
   return (
     <div className="flex flex-col gap-6 animate-in fade-in duration-200 max-w-3xl mx-auto w-full">
       <div>
-        <div className="flex items-center gap-2">
-          <h2 className="text-xl sm:text-2xl font-black text-[#1B2B4B]">
-            {t("setup.reviewSummary.title")}
-          </h2>
-          <InfoTooltip
-            title={t("setup.reviewSummary.title")}
-            content={t("setup.reviewSummary.subtitle")}
-          />
-        </div>
+        <h2 className="text-xl sm:text-2xl font-black text-[#1B2B4B]">
+          {t("setup.reviewSummary.title")}
+        </h2>
       </div>
 
       {warningMsg && (
@@ -102,45 +99,123 @@ export function SetupCategoriesStep({
         netSurplus={netSurplus}
       />
 
-      <div className="flex flex-col gap-6 w-full">
-        {/* Everyday Spending Categories */}
-        <SetupReviewCategoryList
-          title={t("setup.reviewSummary.everydaySpending")}
-          totalMonthly={totalEverydayMonthly}
-          categories={activeEveryday}
-          categoryFrequencies={categoryFrequencies}
-          setCategoryFrequencies={setCategoryFrequencies}
-          setAmountOverrides={setAmountOverrides}
-          onRemoveCategory={handleAttemptRemove}
-          convertToMonthly={convertToMonthly}
-          convertFromMonthly={convertFromMonthly}
-          isRerun={isRerun}
-        />
+      <div className="flex flex-col gap-4 w-full">
+        {/* Accordion 1: Everyday Spending Envelope */}
+        <div className="rounded-2xl border border-zinc-200/80 bg-slate-50 overflow-hidden shadow-2xs">
+          <button
+            type="button"
+            onClick={() => setEverydayOpen((prev) => !prev)}
+            className="w-full p-4 flex items-center justify-between hover:bg-slate-100/60 transition-colors text-left cursor-pointer"
+          >
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-black uppercase tracking-wider text-zinc-700">
+                {t("setup.reviewSummary.everydaySpending")}
+              </span>
+              <span className="text-xs font-bold text-zinc-400">({activeEveryday.length})</span>
+            </div>
+            <div className="flex items-center gap-2.5">
+              <span className="text-xs font-bold font-mono text-[#2563eb] bg-blue-50 px-2.5 py-1 rounded-md border border-blue-200">
+                ${totalEverydayMonthly.toFixed(2)}/mo
+              </span>
+              <span className="text-xs font-bold text-zinc-400">{everydayOpen ? "▲" : "▼"}</span>
+            </div>
+          </button>
+          {everydayOpen && (
+            <div className="p-4 pt-0 border-t border-zinc-200/50">
+              <SetupReviewCategoryList
+                title=""
+                totalMonthly={totalEverydayMonthly}
+                categories={activeEveryday}
+                categoryFrequencies={categoryFrequencies}
+                setCategoryFrequencies={setCategoryFrequencies}
+                setAmountOverrides={setAmountOverrides}
+                onRemoveCategory={handleAttemptRemove}
+                convertToMonthly={convertToMonthly}
+                convertFromMonthly={convertFromMonthly}
+                isRerun={isRerun}
+              />
+            </div>
+          )}
+        </div>
 
-        {/* Regular Bills List */}
-        <SetupReviewCategoryList
-          title={t("setup.reviewSummary.regularBills")}
-          totalMonthly={totalRegularMonthly}
-          categories={activeRegular}
-          categoryFrequencies={categoryFrequencies}
-          setCategoryFrequencies={setCategoryFrequencies}
-          setAmountOverrides={setAmountOverrides}
-          onRemoveCategory={handleAttemptRemove}
-          convertToMonthly={convertToMonthly}
-          convertFromMonthly={convertFromMonthly}
-          onToggleBillType={onToggleBillType}
-          onEditCategory={onEditCategory}
-          isRerun={isRerun}
-        />
+        {/* Accordion 2: Regular & Flexible Bills */}
+        <div className="rounded-2xl border border-zinc-200/80 bg-slate-50 overflow-hidden shadow-2xs">
+          <button
+            type="button"
+            onClick={() => setBillsOpen((prev) => !prev)}
+            className="w-full p-4 flex items-center justify-between hover:bg-slate-100/60 transition-colors text-left cursor-pointer"
+          >
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-black uppercase tracking-wider text-zinc-700">
+                {t("setup.reviewSummary.regularBills")}
+              </span>
+              <span className="text-xs font-bold text-zinc-400">({activeRegular.length})</span>
+              <span onClick={(e) => e.stopPropagation()}>
+                <InfoTooltip
+                  title={t("setup.reviewSummary.billsTooltipTitle")}
+                  content={t("setup.reviewSummary.billsTooltipContent")}
+                />
+              </span>
+            </div>
+            <div className="flex items-center gap-2.5">
+              <span className="text-xs font-bold font-mono text-[#2563eb] bg-blue-50 px-2.5 py-1 rounded-md border border-blue-200">
+                ${totalRegularMonthly.toFixed(2)}/mo
+              </span>
+              <span className="text-xs font-bold text-zinc-400">{billsOpen ? "▲" : "▼"}</span>
+            </div>
+          </button>
+          {billsOpen && (
+            <div className="p-4 pt-0 border-t border-zinc-200/50">
+              <SetupReviewCategoryList
+                title=""
+                totalMonthly={totalRegularMonthly}
+                categories={activeRegular}
+                categoryFrequencies={categoryFrequencies}
+                setCategoryFrequencies={setCategoryFrequencies}
+                setAmountOverrides={setAmountOverrides}
+                onRemoveCategory={handleAttemptRemove}
+                convertToMonthly={convertToMonthly}
+                convertFromMonthly={convertFromMonthly}
+                onToggleBillType={onToggleBillType}
+                onEditCategory={onEditCategory}
+                isRerun={isRerun}
+              />
+            </div>
+          )}
+        </div>
 
-        {/* Savings Goals */}
-        <SetupReviewGoalsList
-          activeGoals={activeGoals}
-          goals={goals}
-          totalGoalMonthly={totalGoalMonthly}
-          onRemoveCategory={handleAttemptRemove}
-          isRerun={isRerun}
-        />
+        {/* Accordion 3: Goals & Savings */}
+        <div className="rounded-2xl border border-zinc-200/80 bg-slate-50 overflow-hidden shadow-2xs">
+          <button
+            type="button"
+            onClick={() => setGoalsOpen((prev) => !prev)}
+            className="w-full p-4 flex items-center justify-between hover:bg-slate-100/60 transition-colors text-left cursor-pointer"
+          >
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-black uppercase tracking-wider text-zinc-700">
+                {t("setup.reviewSummary.savingsGoals")}
+              </span>
+              <span className="text-xs font-bold text-zinc-400">({activeGoals.length})</span>
+            </div>
+            <div className="flex items-center gap-2.5">
+              <span className="text-xs font-bold font-mono text-teal-800 bg-teal-50 px-2.5 py-1 rounded-md border border-teal-200">
+                ${totalGoalMonthly.toFixed(2)}/mo
+              </span>
+              <span className="text-xs font-bold text-zinc-400">{goalsOpen ? "▲" : "▼"}</span>
+            </div>
+          </button>
+          {goalsOpen && (
+            <div className="p-4 pt-0 border-t border-zinc-200/50">
+              <SetupReviewGoalsList
+                activeGoals={activeGoals}
+                goals={goals}
+                totalGoalMonthly={totalGoalMonthly}
+                onRemoveCategory={handleAttemptRemove}
+                isRerun={isRerun}
+              />
+            </div>
+          )}
+        </div>
 
         {/* Canonical Add Envelope CTA */}
         <button

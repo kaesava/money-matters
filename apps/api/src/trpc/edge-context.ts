@@ -62,7 +62,7 @@ interface CachedTenantMembership {
 
 const sessionClaimsMemoryCache = new Map<string, CachedSessionClaims>();
 const tenantMembershipMemoryCache = new Map<string, CachedTenantMembership>();
-const EDGE_CACHE_TTL_MS = 30_000; // 30 seconds
+const EDGE_CACHE_TTL_MS = 300_000; // 5 minutes
 
 export function clearEdgeContextCache(): void {
   sessionClaimsMemoryCache.clear();
@@ -70,7 +70,8 @@ export function clearEdgeContextCache(): void {
 }
 
 /**
- * Fallback: Resolves session claims directly from the database with a 2-second timeout.
+ * Fallback: Resolves session claims directly from the database with a 10-second timeout
+ * to comfortably accommodate Neon serverless compute cold starts.
  */
 export async function resolveClaimsFromDatabase(
   token: string,
@@ -86,7 +87,7 @@ export async function resolveClaimsFromDatabase(
 
   try {
     const timeoutPromise = new Promise<never>((_, reject) => {
-      setTimeout(() => reject(new Error('DB session lookup timed out after 2000ms')), 2000);
+      setTimeout(() => reject(new Error('DB session lookup timed out after 10000ms')), 10_000);
     });
 
     const queryPromise = requestDb.execute<{ userId: string; email: string; name: string }>(
@@ -126,7 +127,7 @@ export async function resolveClaimsFromDatabase(
 }
 
 /**
- * Fallback: Verifies session with Neon Auth endpoint using AbortController with 2s timeout.
+ * Fallback: Verifies session with Neon Auth endpoint using AbortController with 10s timeout.
  */
 export async function resolveClaimsFromNeonAuth(
   req: Request,
@@ -147,7 +148,7 @@ export async function resolveClaimsFromNeonAuth(
   const cookieHeader = req.headers.get('cookie');
   const authHeader = req.headers.get('authorization');
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 2000);
+  const timeoutId = setTimeout(() => controller.abort(), 10_000);
 
   try {
     logger.debug('Attempting Neon Auth session verification fallback', {

@@ -28,7 +28,7 @@ export function LifestyleVehicleSubCard({
   return (
     <View style={styles.card}>
       <View style={styles.row}>
-        <Text style={styles.title}>{t('setup.lifestyle.vehicleIndexTitle', { index: index + 1 })}</Text>
+        <Text style={styles.title}>{t('setup.lifestyle.vehicleIndexTitle', { number: index + 1 })}</Text>
         {showRemove && (
           <TouchableOpacity onPress={() => onRemove(vehicle.id)}>
             <Text style={styles.removeText}>{t('common.remove')}</Text>

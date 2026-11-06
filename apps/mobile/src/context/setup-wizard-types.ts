@@ -90,9 +90,9 @@ export interface SetupWizardContextValue {
   setBillTypeOverrides: React.Dispatch<
     React.SetStateAction<Record<string, 'SCHEDULED_BILL' | 'FLEXIBLE_BILL'>>
   >;
-  categoryFrequencies: Record<string, 'WEEKLY' | 'FORTNIGHTLY' | 'MONTHLY' | 'YEARLY'>;
+  categoryFrequencies: Record<string, 'WEEKLY' | 'FORTNIGHTLY' | 'MONTHLY' | 'QUARTERLY' | 'YEARLY'>;
   setCategoryFrequencies: React.Dispatch<
-    React.SetStateAction<Record<string, 'WEEKLY' | 'FORTNIGHTLY' | 'MONTHLY' | 'YEARLY'>>
+    React.SetStateAction<Record<string, 'WEEKLY' | 'FORTNIGHTLY' | 'MONTHLY' | 'QUARTERLY' | 'YEARLY'>>
   >;
   estimation: ReturnType<typeof calculateQuizEstimates>;
   activeCategories: EstimatedCategoryItem[];

@@ -42,6 +42,7 @@ export const landing = {
     "navPricing": "Pricing",
     "navFaq": "FAQ",
     "goToDashboard": "Go to Dashboard",
+    "continueSetup": "Continue Setup",
     "authModalTitleSignIn": "Welcome Back to Money Matters",
     "authModalTitleSignUp": "Start Your 60-Day Full Household Trial",
     "authModalSubtitleSignIn": "Sign in to access your automated payday plans.",

@@ -34,8 +34,8 @@ export interface EnvelopeFormFieldsProps {
   setTargetDate: (val: string) => void;
   goalMode: 'TARGET_DATE' | 'ONGOING';
   setGoalMode: (val: 'TARGET_DATE' | 'ONGOING') => void;
-  frequency?: 'WEEKLY' | 'FORTNIGHTLY' | 'MONTHLY' | 'ANNUALLY';
-  setFrequency?: (val: 'WEEKLY' | 'FORTNIGHTLY' | 'MONTHLY' | 'ANNUALLY') => void;
+  frequency?: 'WEEKLY' | 'FORTNIGHTLY' | 'MONTHLY' | 'QUARTERLY' | 'ANNUALLY';
+  setFrequency?: (val: 'WEEKLY' | 'FORTNIGHTLY' | 'MONTHLY' | 'QUARTERLY' | 'ANNUALLY') => void;
   interval?: number;
   setInterval?: (val: number) => void;
   goalStartDate?: string;

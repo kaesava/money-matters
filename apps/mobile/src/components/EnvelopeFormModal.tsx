@@ -3,6 +3,7 @@ import {
   MobileModalDialog,
   showMobileConfirm,
   useMobileToast,
+  RecurrenceFrequency,
 } from "@money-matters/ui/mobile";
 import { t } from "@money-matters/i18n";
 import { trpc } from "../lib/trpc";
@@ -20,7 +21,7 @@ export interface EnvelopeItem {
   targetDate?: string | null;
   endDate?: string | null;
   enteredAmount?: string | null;
-  budgetFrequency?: "WEEKLY" | "FORTNIGHTLY" | "MONTHLY" | "ANNUALLY" | string | null;
+  budgetFrequency?: RecurrenceFrequency | string | null;
   startDate?: string | null;
   rrule?: string | null;
   goalMode?: "TARGET_DATE" | "ONGOING" | null;
@@ -42,7 +43,7 @@ export interface EnvelopeDraftPayload {
   enteredAmount?: string;
   targetAmount?: string;
   endDate?: string;
-  budgetFrequency?: "WEEKLY" | "FORTNIGHTLY" | "MONTHLY" | "ANNUALLY";
+  budgetFrequency?: RecurrenceFrequency;
   startDate?: string;
   rrule?: string;
   goalMode?: "TARGET_DATE" | "ONGOING";

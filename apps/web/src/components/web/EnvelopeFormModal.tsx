@@ -15,7 +15,7 @@ export interface EnvelopeDraftPayload {
   enteredAmount?: string;
   targetAmount?: string;
   endDate?: string;
-  budgetFrequency?: "WEEKLY" | "FORTNIGHTLY" | "MONTHLY" | "ANNUALLY";
+  budgetFrequency?: "WEEKLY" | "FORTNIGHTLY" | "MONTHLY" | "QUARTERLY" | "ANNUALLY";
   startDate?: string;
   rrule?: string;
   goalMode?: "TARGET_DATE" | "ONGOING";

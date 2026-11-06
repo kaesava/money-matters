@@ -118,9 +118,18 @@ export function MobileDiscretionarySliders({
   setWeeklyPersonal,
   isZeroBased = false,
 }: MobileDiscretionarySlidersProps) {
+  const { currencySymbol, locale } = useCurrencyLocale();
+  const totalWeekly = weeklyGroceries + weeklyDining + weeklyPersonal;
+  const formattedTotal = `${currencySymbol}${formatAmountNumber(String(totalWeekly), locale, 0)}`;
+
   return (
     <View style={styles.container}>
-      <Text style={styles.heading}>{t('setup.lifestyle.spendingTitle')}</Text>
+      <View style={styles.headerRow}>
+        <Text style={styles.heading}>{t('setup.lifestyle.spendingTitle')}</Text>
+        <Text style={styles.estimateText}>
+          {t('setup.lifestyle.everydaySpendingEstimate', { amount: formattedTotal })}
+        </Text>
+      </View>
 
       <SliderRow
         label={t('setup.lifestyle.groceries')}
@@ -162,11 +171,22 @@ const styles = StyleSheet.create({
     borderColor: D.colors.slate[200],
     marginBottom: 12,
   },
+  headerRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
   heading: {
     fontSize: 13,
     fontWeight: '800',
     color: D.colors.primary,
-    marginBottom: 12,
+  },
+  estimateText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: D.colors.slate[600],
+    fontFamily: 'monospace',
   },
   sliderCard: {
     backgroundColor: '#F8FAFC',

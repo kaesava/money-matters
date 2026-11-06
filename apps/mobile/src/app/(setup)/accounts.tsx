@@ -23,13 +23,17 @@ export default function SetupBankAccountsScreen() {
   } = useSetupWizard();
 
   const handlePromptRemove = (id: string, name: string) => {
-    showMobileConfirm({
-      title: t('settings.bankAccountForm.archiveConfirmTitle'),
-      message: t('settings.bankAccountForm.archiveConfirmBody', { name }),
-      confirmText: t('common.delete'),
-      isDestructive: true,
-      onConfirm: () => handleRemoveAccount(id),
-    });
+    if (isRerun && !id.startsWith('acc-')) {
+      showMobileConfirm({
+        title: t('settings.bankAccountForm.archiveConfirmTitle'),
+        message: t('settings.bankAccountForm.archiveConfirmBody', { name }),
+        confirmText: t('common.delete'),
+        isDestructive: true,
+        onConfirm: () => handleRemoveAccount(id),
+      });
+    } else {
+      handleRemoveAccount(id);
+    }
   };
 
   const hasNegativeAvailable = bankAccounts.some(

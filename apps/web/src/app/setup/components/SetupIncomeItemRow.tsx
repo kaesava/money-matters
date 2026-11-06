@@ -69,32 +69,32 @@ export function SetupIncomeItemRow({
           onChange={(val) => onUpdateIncome(inc.id, "amount", parseFloat(val) || 0)}
           allowNegative={false}
         />
-        <div className="flex flex-col">
-          <FormLabel>{t("categories.frequencyLabel")}</FormLabel>
-          <select
-            value={inc.frequency}
-            onChange={(e) => onUpdateIncome(inc.id, "frequency", e.target.value as IncomeItem["frequency"])}
-            className="ui-input w-full px-3 text-xs font-bold rounded-xl border border-zinc-200 bg-white h-[46px] cursor-pointer"
-          >
-            <option value="WEEKLY">{t("categories.frequencyWeekly")}</option>
-            <option value="FORTNIGHTLY">{t("categories.frequencyFortnightly")}</option>
-            <option value="MONTHLY">{t("categories.frequencyMonthly")}</option>
-            <option value="ANNUALLY">{t("categories.frequencyAnnually")}</option>
-          </select>
-        </div>
-        <div className="flex flex-col">
-          <FormLabel>{t("categories.recurrenceInterval")}</FormLabel>
-          <input
-            type="number"
-            min={1}
-            max={365}
-            value={inc.interval ?? 1}
-            onChange={(e) => {
-              const val = Math.max(1, Math.min(365, parseInt(e.target.value, 10) || 1));
-              onUpdateIncome(inc.id, "interval", val);
-            }}
-            className="ui-input w-full px-3 text-xs font-bold rounded-xl border border-zinc-200 bg-white text-zinc-800 h-[46px]"
-          />
+        <div className="flex flex-col sm:col-span-2">
+          <FormLabel>{t("setup.everyLabel")}</FormLabel>
+          <div className="flex items-center gap-2">
+            <input
+              type="number"
+              min={1}
+              max={365}
+              value={inc.interval ?? 1}
+              onChange={(e) => {
+                const val = Math.max(1, Math.min(365, parseInt(e.target.value, 10) || 1));
+                onUpdateIncome(inc.id, "interval", val);
+              }}
+              className="ui-input w-20 px-3 text-xs font-bold rounded-xl border border-zinc-200 bg-white text-zinc-800 h-[46px]"
+            />
+            <select
+              value={inc.frequency}
+              onChange={(e) => onUpdateIncome(inc.id, "frequency", e.target.value as IncomeItem["frequency"])}
+              className="ui-input flex-1 px-3 text-xs font-bold rounded-xl border border-zinc-200 bg-white h-[46px] cursor-pointer"
+            >
+              <option value="WEEKLY">{t("setup.freqWeeks")}</option>
+              <option value="FORTNIGHTLY">{t("setup.freqFortnights")}</option>
+              <option value="MONTHLY">{t("setup.freqMonths")}</option>
+              <option value="QUARTERLY">{t("setup.freqQuarters")}</option>
+              <option value="ANNUALLY">{t("setup.freqYears")}</option>
+            </select>
+          </div>
         </div>
         <div className="flex flex-col">
           <FormLabel>{t("setup.income.nextPaydayLabel")}</FormLabel>

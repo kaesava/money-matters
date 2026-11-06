@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { UserGoalItem } from '@money-matters/types';
 import { DESIGN_TOKENS, AmountInput, MobileDatePickerField } from '@money-matters/ui/mobile';
@@ -22,11 +22,12 @@ function getMonthsDiff(targetDateStr: string): number {
   return Math.max(1, months);
 }
 
-function getFrequencyUnitLabel(freq?: string | null): string {
-  if (freq === 'WEEKLY') return '/wk';
-  if (freq === 'FORTNIGHTLY') return '/fn';
-  if (freq === 'ANNUALLY') return '/yr';
-  return '/mo';
+function getFrequencyLabel(freq?: string | null): string {
+  if (freq === 'WEEKLY') return t('categories.frequencyWeekly');
+  if (freq === 'FORTNIGHTLY') return t('categories.frequencyFortnightly');
+  if (freq === 'QUARTERLY') return t('setup.frequencyQuarterly');
+  if (freq === 'ANNUALLY') return t('categories.frequencyAnnually');
+  return t('categories.frequencyMonthly');
 }
 
 function renderGoalIcon(iconName?: string | null) {
@@ -59,13 +60,15 @@ export function SetupGoalCard({
   const rawAmt = goal.enteredAmount !== undefined && goal.enteredAmount !== null ? goal.enteredAmount : (goal.monthlyAmount || 0);
   const freq = goal.budgetFrequency || 'MONTHLY';
 
-  const handleFrequencyChange = (newFreq: 'WEEKLY' | 'FORTNIGHTLY' | 'MONTHLY' | 'ANNUALLY') => {
+  const handleFrequencyChange = (newFreq: 'WEEKLY' | 'FORTNIGHTLY' | 'MONTHLY' | 'QUARTERLY' | 'ANNUALLY') => {
     onUpdate(goal.id, 'budgetFrequency', newFreq);
     onUpdate(goal.id, 'enteredAmount', rawAmt);
     const monthly = newFreq === 'WEEKLY'
       ? Math.round((rawAmt * 52) / 12)
       : newFreq === 'FORTNIGHTLY'
       ? Math.round((rawAmt * 26) / 12)
+      : newFreq === 'QUARTERLY'
+      ? Math.round((rawAmt * 4) / 12)
       : newFreq === 'ANNUALLY'
       ? Math.round(rawAmt / 12)
       : Math.round(rawAmt);
@@ -140,19 +143,19 @@ export function SetupGoalCard({
         ) : (
           <View style={styles.freqCol}>
             <Text style={styles.fieldLabel}>{t('categories.recurrence')}</Text>
-            <View style={styles.freqChipsRow}>
-              {(['WEEKLY', 'FORTNIGHTLY', 'MONTHLY', 'ANNUALLY'] as const).map((f) => (
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.freqChipsRow}>
+              {(['WEEKLY', 'FORTNIGHTLY', 'MONTHLY', 'QUARTERLY', 'ANNUALLY'] as const).map((f) => (
                 <TouchableOpacity
                   key={f}
                   onPress={() => handleFrequencyChange(f)}
                   style={[styles.freqChip, freq === f && styles.freqChipActive]}
                 >
                   <Text style={[styles.freqChipText, freq === f && styles.freqChipTextActive]}>
-                    {getFrequencyUnitLabel(f)}
+                    {getFrequencyLabel(f)}
                   </Text>
                 </TouchableOpacity>
               ))}
-            </View>
+            </ScrollView>
           </View>
         )}
       </View>

@@ -9,12 +9,15 @@ export async function getTenantLocalDateString(db: DbOrTx, tenantId: string, d: 
   return getTenantDateString(d, { timezone: tenantRecord?.timezone || "Australia/Sydney" });
 }
 
-export function buildRRule(frequency?: "WEEKLY" | "FORTNIGHTLY" | "MONTHLY" | "ANNUALLY", interval: number = 1): string {
+export function buildRRule(frequency?: "WEEKLY" | "FORTNIGHTLY" | "MONTHLY" | "QUARTERLY" | "ANNUALLY", interval: number = 1): string {
   if (frequency === "WEEKLY") {
     return interval > 1 ? `FREQ=WEEKLY;INTERVAL=${interval}` : "FREQ=WEEKLY";
   }
   if (frequency === "FORTNIGHTLY") {
     return `FREQ=WEEKLY;INTERVAL=${interval * 2}`;
+  }
+  if (frequency === "QUARTERLY") {
+    return `FREQ=MONTHLY;INTERVAL=${interval * 3}`;
   }
   if (frequency === "ANNUALLY") {
     return interval > 1 ? `FREQ=YEARLY;INTERVAL=${interval}` : "FREQ=YEARLY";

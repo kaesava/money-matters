@@ -38,7 +38,7 @@ export interface CalculationsProps {
     dueDate?: string | null;
     goalMode?: 'TARGET_DATE' | 'ONGOING';
     enteredAmount?: number | null;
-    budgetFrequency?: 'WEEKLY' | 'FORTNIGHTLY' | 'MONTHLY' | 'ANNUALLY';
+    budgetFrequency?: 'WEEKLY' | 'FORTNIGHTLY' | 'MONTHLY' | 'QUARTERLY' | 'ANNUALLY';
   }>;
   customCategories: EstimatedCategoryItem[];
   removedCategoryNames: Set<string>;
@@ -89,6 +89,7 @@ export function computeSetupWizardCalculations(props: CalculationsProps) {
         const rawAmt = g.enteredAmount !== undefined && g.enteredAmount !== null ? g.enteredAmount : (g.monthlyAmount || g.targetAmount || 0);
         if (g.budgetFrequency === 'WEEKLY') baseMonthly = Math.round((rawAmt * 52) / 12);
         else if (g.budgetFrequency === 'FORTNIGHTLY') baseMonthly = Math.round((rawAmt * 26) / 12);
+        else if (g.budgetFrequency === 'QUARTERLY') baseMonthly = Math.round((rawAmt * 4) / 12);
         else if (g.budgetFrequency === 'ANNUALLY') baseMonthly = Math.round(rawAmt / 12);
         else baseMonthly = Math.round(rawAmt);
       } else {

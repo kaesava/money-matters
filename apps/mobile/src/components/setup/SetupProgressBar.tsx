@@ -14,6 +14,7 @@ interface SetupProgressBarProps {
 export function SetupProgressBar({ currentStep, totalSteps, isRerun }: SetupProgressBarProps) {
   const router = useRouter();
   const updatePref = trpc.updateUserPreferences.useMutation();
+  const utils = trpc.useUtils();
 
   const handleAction = () => {
     if (isRerun) {
@@ -21,7 +22,9 @@ export function SetupProgressBar({ currentStep, totalSteps, isRerun }: SetupProg
         title: t('setup.cancelSetupConfirmTitle'),
         message: t('setup.cancelSetupConfirmMessage'),
         confirmText: t('common.cancel'),
-        onConfirm: () => {
+        onConfirm: async () => {
+          utils.getTenantStatus.setData(undefined, (old) => old ? { ...old, setupCompleted: true } : undefined);
+          await utils.invalidate();
           router.replace('/(app)/home');
         },
       });
@@ -33,6 +36,9 @@ export function SetupProgressBar({ currentStep, totalSteps, isRerun }: SetupProg
         onConfirm: async () => {
           try {
             await updatePref.mutateAsync({ setupCompleted: true });
+            utils.getTenantStatus.setData(undefined, (old) => old ? { ...old, setupCompleted: true } : undefined);
+            await utils.getTenantStatus.refetch();
+            await utils.invalidate();
           } catch {
             // Non-blocking preference update
           }

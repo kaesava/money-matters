@@ -1,7 +1,6 @@
-"use client";
-
 import React from "react";
 import { t } from "@money-matters/i18n";
+import { InfoTooltip } from "@money-matters/ui/web";
 import { useLocale } from "../../../providers/LocaleProvider";
 
 interface LifestyleDiscretionarySlidersProps {
@@ -24,11 +23,24 @@ export function LifestyleDiscretionarySliders({
   isZeroBased = false,
 }: LifestyleDiscretionarySlidersProps) {
   const { fmt } = useLocale();
+  const totalWeekly = weeklyGroceries + weeklyDining + weeklyPersonal;
+
   return (
     <div className="flex flex-col gap-4 p-4 bg-slate-50 rounded-2xl border border-zinc-200/60">
-      <span className="text-xs font-black uppercase tracking-wider text-zinc-400">
-        {t("setup.lifestyle.spendingTitle")}
-      </span>
+      <div className="flex items-center justify-between">
+        <span className="text-xs font-black uppercase tracking-wider text-zinc-400">
+          {t("setup.lifestyle.spendingTitle")}
+        </span>
+        <div className="flex items-center gap-1.5">
+          <span className="text-xs font-bold text-slate-700 font-mono">
+            {t("setup.lifestyle.everydaySpendingEstimate", { amount: fmt(totalWeekly) })}
+          </span>
+          <InfoTooltip
+            title={t("setup.lifestyle.everydaySpendingTooltipTitle")}
+            content={t("setup.lifestyle.everydaySpendingTooltipContent")}
+          />
+        </div>
+      </div>
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <div className="flex flex-col gap-1.5 bg-white p-3 rounded-xl border border-zinc-200">
           <div className="flex justify-between items-center text-xs font-bold text-[#1B2B4B]">

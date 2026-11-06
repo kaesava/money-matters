@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
-import { parseRecurrenceRule, buildRecurrenceRule } from "@money-matters/ui/web";
+import { parseRecurrenceRule, buildRecurrenceRule, RecurrenceFrequency } from "@money-matters/ui/web";
 import { t } from "@money-matters/i18n";
 
 export interface EnvelopeModalItem {
@@ -48,7 +48,7 @@ export function useEnvelopeFormModalState({
   const [targetAmount, setTargetAmount] = useState("");
   const [targetDate, setTargetDate] = useState("");
   const [goalMode, setGoalMode] = useState<"TARGET_DATE" | "ONGOING">("TARGET_DATE");
-  const [frequency, setFrequency] = useState<"WEEKLY" | "FORTNIGHTLY" | "MONTHLY" | "ANNUALLY">("MONTHLY");
+  const [frequency, setFrequency] = useState<RecurrenceFrequency>("MONTHLY");
   const [interval, setInterval] = useState<number>(1);
   const [goalStartDate, setGoalStartDate] = useState("");
   const [isSurplusTarget, setIsSurplusTarget] = useState(false);

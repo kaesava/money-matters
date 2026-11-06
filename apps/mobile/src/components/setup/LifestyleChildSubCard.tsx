@@ -34,7 +34,7 @@ export function LifestyleChildSubCard({
   return (
     <View style={styles.card}>
       <View style={styles.row}>
-        <Text style={styles.title}>{t('setup.lifestyle.childIndexTitle', { index: index + 1 })}</Text>
+        <Text style={styles.title}>{t('setup.lifestyle.childIndexTitle', { number: index + 1 })}</Text>
         {showRemove && (
           <TouchableOpacity onPress={() => onRemove(child.id)}>
             <Text style={styles.removeText}>{t('common.remove')}</Text>

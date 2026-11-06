@@ -14,15 +14,16 @@ export interface SaveSetupIncomeInput {
   type?: "SALARY" | "FREELANCE" | "INVESTMENT" | "OTHER";
   incomeType?: "SALARIED" | "IRREGULAR";
   amount: string;
-  frequency: "WEEKLY" | "FORTNIGHTLY" | "MONTHLY" | "CUSTOM";
+  frequency: "WEEKLY" | "FORTNIGHTLY" | "MONTHLY" | "QUARTERLY" | "CUSTOM";
   receivingAccountId?: string | null;
   startDate?: string | null;
   rrule?: string | null;
 }
 
-export function deriveIncomeRrule(frequency: "WEEKLY" | "FORTNIGHTLY" | "MONTHLY" | "CUSTOM"): string {
+export function deriveIncomeRrule(frequency: "WEEKLY" | "FORTNIGHTLY" | "MONTHLY" | "QUARTERLY" | "CUSTOM"): string {
   if (frequency === "WEEKLY") return "FREQ=WEEKLY";
   if (frequency === "FORTNIGHTLY") return "FREQ=WEEKLY;INTERVAL=2";
+  if (frequency === "QUARTERLY") return "FREQ=MONTHLY;INTERVAL=3";
   return "FREQ=MONTHLY";
 }
 

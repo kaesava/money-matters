@@ -5,7 +5,7 @@ import { generateBurstDates } from "../engine/burst-engine.js";
 export interface EnvelopeScheduleCandidate {
   name: string;
   amount: string;
-  budgetFrequency: "WEEKLY" | "FORTNIGHTLY" | "MONTHLY" | "ANNUALLY";
+  budgetFrequency: "WEEKLY" | "FORTNIGHTLY" | "MONTHLY" | "QUARTERLY" | "ANNUALLY";
   envelopeId: string;
   startDate?: string | null;
   endDate?: string | null;
@@ -13,7 +13,7 @@ export interface EnvelopeScheduleCandidate {
 }
 
 export function computeBillScheduleAnchorDate(
-  budgetFrequency: "WEEKLY" | "FORTNIGHTLY" | "MONTHLY" | "ANNUALLY",
+  budgetFrequency: "WEEKLY" | "FORTNIGHTLY" | "MONTHLY" | "QUARTERLY" | "ANNUALLY",
   refDate: Date = new Date(),
   timeZone: string = "UTC"
 ): string {
@@ -26,7 +26,7 @@ export function computeBillScheduleAnchorDate(
     return new Intl.DateTimeFormat("en-CA", { timeZone }).format(target);
   }
 
-  // Monthly / Annually: 1st of next month in dynamic timezone
+  // Monthly / Quarterly / Annually: 1st of next month in dynamic timezone
   const parts = new Intl.DateTimeFormat("en-CA", {
     timeZone,
     year: "numeric",
@@ -46,12 +46,14 @@ export function computeBillScheduleAnchorDate(
   return `${nextYear}-${mm}-01`;
 }
 
-export function deriveRrule(budgetFrequency: "WEEKLY" | "FORTNIGHTLY" | "MONTHLY" | "ANNUALLY"): string {
+export function deriveRrule(budgetFrequency: "WEEKLY" | "FORTNIGHTLY" | "MONTHLY" | "QUARTERLY" | "ANNUALLY"): string {
   switch (budgetFrequency) {
     case "WEEKLY":
       return "FREQ=WEEKLY";
     case "FORTNIGHTLY":
       return "FREQ=WEEKLY;INTERVAL=2";
+    case "QUARTERLY":
+      return "FREQ=MONTHLY;INTERVAL=3";
     case "ANNUALLY":
       return "FREQ=YEARLY";
     case "MONTHLY":

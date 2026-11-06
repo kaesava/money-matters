@@ -5,6 +5,7 @@ import {
   DatePickerField,
   MobileGoalModeToggle,
   DESIGN_TOKENS,
+  RecurrenceFrequency,
 } from '@money-matters/ui/mobile';
 import { t } from '@money-matters/i18n';
 import { EnvelopeRecurrenceFields } from './EnvelopeRecurrenceFields';
@@ -17,8 +18,8 @@ export interface EnvelopeGoalFieldsProps {
   targetDate: string;
   setTargetDate: (v: string) => void;
   isTargetDateInPast?: boolean;
-  frequency?: 'WEEKLY' | 'FORTNIGHTLY' | 'MONTHLY' | 'ANNUALLY';
-  setFrequency?: (v: 'WEEKLY' | 'FORTNIGHTLY' | 'MONTHLY' | 'ANNUALLY') => void;
+  frequency?: RecurrenceFrequency;
+  setFrequency?: (v: RecurrenceFrequency) => void;
   interval?: number;
   setInterval?: (v: number) => void;
   goalStartDate?: string;

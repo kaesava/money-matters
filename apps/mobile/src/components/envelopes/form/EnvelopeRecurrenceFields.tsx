@@ -7,6 +7,7 @@ import {
   ChipSelect,
   DatePickerField,
   useCurrencyLocale,
+  RecurrenceFrequency,
 } from '@money-matters/ui/mobile';
 import { t } from '@money-matters/i18n';
 
@@ -15,8 +16,8 @@ export interface EnvelopeRecurrenceFieldsProps {
   amount: string;
   setAmount: (val: string) => void;
   placeholder?: string;
-  frequency: 'WEEKLY' | 'FORTNIGHTLY' | 'MONTHLY' | 'ANNUALLY';
-  setFrequency?: (val: 'WEEKLY' | 'FORTNIGHTLY' | 'MONTHLY' | 'ANNUALLY') => void;
+  frequency: RecurrenceFrequency;
+  setFrequency?: (val: RecurrenceFrequency) => void;
   interval: number;
   setInterval?: (val: number) => void;
   startDate: string;
@@ -62,10 +63,11 @@ export const EnvelopeRecurrenceFields: React.FC<EnvelopeRecurrenceFieldsProps> =
             { key: 'WEEKLY', label: t('categories.frequencyWeekly') },
             { key: 'FORTNIGHTLY', label: t('categories.frequencyFortnightly') },
             { key: 'MONTHLY', label: t('categories.frequencyMonthly') },
+            { key: 'QUARTERLY', label: t('setup.frequencyQuarterly') },
             { key: 'ANNUALLY', label: t('categories.frequencyAnnually') },
           ]}
           value={frequency}
-          onChange={(val) => setFrequency?.(val as 'WEEKLY' | 'FORTNIGHTLY' | 'MONTHLY' | 'ANNUALLY')}
+          onChange={(val) => setFrequency?.(val as RecurrenceFrequency)}
         />
       </View>
 

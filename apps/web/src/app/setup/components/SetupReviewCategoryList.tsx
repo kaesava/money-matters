@@ -12,14 +12,14 @@ interface SetupReviewCategoryListProps {
   badgeLabel?: string;
   badgeColorClass?: string;
   categories: EstimatedCategoryItem[];
-  categoryFrequencies: Record<string, "WEEKLY" | "FORTNIGHTLY" | "MONTHLY" | "YEARLY">;
+  categoryFrequencies: Record<string, "WEEKLY" | "FORTNIGHTLY" | "MONTHLY" | "QUARTERLY" | "YEARLY">;
   setCategoryFrequencies: React.Dispatch<
-    React.SetStateAction<Record<string, "WEEKLY" | "FORTNIGHTLY" | "MONTHLY" | "YEARLY">>
+    React.SetStateAction<Record<string, "WEEKLY" | "FORTNIGHTLY" | "MONTHLY" | "QUARTERLY" | "YEARLY">>
   >;
   setAmountOverrides: React.Dispatch<React.SetStateAction<Record<string, number>>>;
   onRemoveCategory: (name: string) => void;
-  convertToMonthly: (amount: number, freq: "WEEKLY" | "FORTNIGHTLY" | "MONTHLY" | "YEARLY") => number;
-  convertFromMonthly: (monthlyAmount: number, freq: "WEEKLY" | "FORTNIGHTLY" | "MONTHLY" | "YEARLY") => number;
+  convertToMonthly: (amount: number, freq: "WEEKLY" | "FORTNIGHTLY" | "MONTHLY" | "QUARTERLY" | "YEARLY") => number;
+  convertFromMonthly: (monthlyAmount: number, freq: "WEEKLY" | "FORTNIGHTLY" | "MONTHLY" | "QUARTERLY" | "YEARLY") => number;
   onToggleBillType?: (name: string, newType: "SCHEDULED_BILL" | "FLEXIBLE_BILL") => void;
   onEditCategory?: (category: EstimatedCategoryItem) => void;
   isRerun?: boolean;
@@ -97,7 +97,7 @@ export function SetupReviewCategoryList({
                 {isRerun ? (
                   <>
                     <span className="text-xs font-bold font-mono text-zinc-700 whitespace-nowrap">
-                      {fmt(displayVal)} {freq === "WEEKLY" ? "/ wk" : freq === "FORTNIGHTLY" ? "/ fn" : freq === "YEARLY" ? "/ yr" : "/ mo"}
+                      {fmt(displayVal)} {freq === "WEEKLY" ? "/ wk" : freq === "FORTNIGHTLY" ? "/ fn" : freq === "QUARTERLY" ? "/ qtr" : freq === "YEARLY" ? "/ yr" : "/ mo"}
                     </span>
                     {onEditCategory && (
                       <button
@@ -125,14 +125,15 @@ export function SetupReviewCategoryList({
                     <select
                       value={freq}
                       onChange={(e) => {
-                        const newFreq = e.target.value as "WEEKLY" | "FORTNIGHTLY" | "MONTHLY" | "YEARLY";
+                        const newFreq = e.target.value as "WEEKLY" | "FORTNIGHTLY" | "MONTHLY" | "QUARTERLY" | "YEARLY";
                         setCategoryFrequencies((prev) => ({ ...prev, [cat.name]: newFreq }));
                       }}
-                      className="px-2 py-1.5 text-[11px] font-bold rounded-lg border border-zinc-200 bg-slate-50 text-zinc-700"
+                      className="px-2 py-1.5 text-[11px] font-bold rounded-lg border border-zinc-200 bg-slate-50 text-zinc-700 cursor-pointer"
                     >
                       <option value="WEEKLY">/ wk</option>
                       <option value="FORTNIGHTLY">/ fn</option>
                       <option value="MONTHLY">/ mo</option>
+                      <option value="QUARTERLY">/ qtr</option>
                       <option value="YEARLY">/ yr</option>
                     </select>
                   </>

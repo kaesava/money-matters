@@ -13,7 +13,7 @@ export interface SaveSetupEnvelopeInput {
   targetAmount?: string | null;
   monthlyAmount?: string | null;
   enteredAmount?: string | null;
-  budgetFrequency?: "WEEKLY" | "FORTNIGHTLY" | "MONTHLY" | "ANNUALLY";
+  budgetFrequency?: "WEEKLY" | "FORTNIGHTLY" | "MONTHLY" | "QUARTERLY" | "ANNUALLY";
   startDate?: string | null;
   endDate?: string | null;
   rrule?: string | null;

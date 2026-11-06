@@ -3,7 +3,7 @@ import { View, Text, TouchableOpacity, ScrollView, TextInput, StyleSheet } from 
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { t } from '@money-matters/i18n';
-import { DESIGN_TOKENS, AmountInput, MobileGoalModeToggle, useMobileToast, MobileDatePickerField } from '@money-matters/ui/mobile';
+import { DESIGN_TOKENS, AmountInput, MobileGoalModeToggle, useMobileToast, MobileDatePickerField, showMobileConfirm } from '@money-matters/ui/mobile';
 import { useSetupWizard } from '../../context/SetupWizardContext';
 import { SetupGoalCard } from '../../components/setup/SetupGoalCard';
 import { getMobileLocaleConfig } from '../../lib/format';
@@ -35,7 +35,7 @@ export default function SetupGoalsScreen() {
   const [customName, setCustomName] = useState('');
   const [customTarget, setCustomTarget] = useState(isAud ? '5000' : '0');
   const [customDate, setCustomDate] = useState('');
-  const [customFrequency, setCustomFrequency] = useState<'WEEKLY' | 'FORTNIGHTLY' | 'MONTHLY' | 'ANNUALLY'>('MONTHLY');
+  const [customFrequency, setCustomFrequency] = useState<'WEEKLY' | 'FORTNIGHTLY' | 'MONTHLY' | 'QUARTERLY' | 'ANNUALLY'>('MONTHLY');
   const [customType, setCustomType] = useState<'TARGET_DATE' | 'ONGOING'>('TARGET_DATE');
 
   const tz = getMobileLocaleConfig().timezone;
@@ -77,6 +77,8 @@ export default function SetupGoalsScreen() {
         ? Math.round((amountNum * 52) / 12)
         : customFrequency === 'FORTNIGHTLY'
         ? Math.round((amountNum * 26) / 12)
+        : customFrequency === 'QUARTERLY'
+        ? Math.round((amountNum * 4) / 12)
         : customFrequency === 'ANNUALLY'
         ? Math.round(amountNum / 12)
         : Math.round(amountNum);
@@ -123,7 +125,7 @@ export default function SetupGoalsScreen() {
 
   const toast = useMobileToast();
 
-  const handleNext = async () => {
+  const proceedToNextStep = async () => {
     if (isRerun && dirtyGoalIds.size > 0) {
       await Promise.all(Array.from(dirtyGoalIds).map((id) => handleSaveGoalImmediate(id)));
       toast.success(t('toasts.saved'));
@@ -133,6 +135,27 @@ export default function SetupGoalsScreen() {
     } else {
       router.push('/(setup)/lifestyle');
     }
+  };
+
+  const handleNext = async () => {
+    if (customName.trim()) {
+      showMobileConfirm({
+        title: t('setup.goals.unsavedGoalTitle'),
+        message: t('setup.goals.unsavedGoalMessage', { name: customName.trim() }),
+        confirmText: t('setup.goals.addAndProceed'),
+        cancelText: t('setup.goals.discardAndProceed'),
+        onConfirm: async () => {
+          handleAddCustom();
+          await proceedToNextStep();
+        },
+        onCancel: async () => {
+          setCustomName('');
+          await proceedToNextStep();
+        },
+      });
+      return;
+    }
+    await proceedToNextStep();
   };
 
   const handleBack = () => {
@@ -175,19 +198,30 @@ export default function SetupGoalsScreen() {
         {customType === 'ONGOING' && (
           <View style={styles.freqSelectSection}>
             <Text style={styles.freqSectionLabel}>{t('categories.recurrence')}</Text>
-            <View style={styles.freqChipsRow}>
-              {(['WEEKLY', 'FORTNIGHTLY', 'MONTHLY', 'ANNUALLY'] as const).map((f) => (
-                <TouchableOpacity
-                  key={f}
-                  onPress={() => setCustomFrequency(f)}
-                  style={[styles.freqChip, customFrequency === f && styles.freqChipActive]}
-                >
-                  <Text style={[styles.freqChipText, customFrequency === f && styles.freqChipTextActive]}>
-                    {f === 'WEEKLY' ? '/wk' : f === 'FORTNIGHTLY' ? '/fn' : f === 'ANNUALLY' ? '/yr' : '/mo'}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </View>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.freqChipsRow}>
+              {(['WEEKLY', 'FORTNIGHTLY', 'MONTHLY', 'QUARTERLY', 'ANNUALLY'] as const).map((f) => {
+                const label = f === 'WEEKLY'
+                  ? t('categories.frequencyWeekly')
+                  : f === 'FORTNIGHTLY'
+                  ? t('categories.frequencyFortnightly')
+                  : f === 'QUARTERLY'
+                  ? t('setup.frequencyQuarterly')
+                  : f === 'ANNUALLY'
+                  ? t('categories.frequencyAnnually')
+                  : t('categories.frequencyMonthly');
+                return (
+                  <TouchableOpacity
+                    key={f}
+                    onPress={() => setCustomFrequency(f)}
+                    style={[styles.freqChip, customFrequency === f && styles.freqChipActive]}
+                  >
+                    <Text style={[styles.freqChipText, customFrequency === f && styles.freqChipTextActive]}>
+                      {label}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </ScrollView>
           </View>
         )}
         {customType === 'TARGET_DATE' && (

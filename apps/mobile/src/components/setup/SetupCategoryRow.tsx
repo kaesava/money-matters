@@ -6,9 +6,9 @@ import { t } from '@money-matters/i18n';
 
 interface SetupCategoryRowProps {
   cat: EstimatedCategoryItem;
-  freq: 'WEEKLY' | 'FORTNIGHTLY' | 'MONTHLY' | 'YEARLY';
+  freq: 'WEEKLY' | 'FORTNIGHTLY' | 'MONTHLY' | 'QUARTERLY' | 'YEARLY';
   onUpdateAmount: (monthlyAmount: number) => void;
-  onUpdateFreq: (freq: 'WEEKLY' | 'FORTNIGHTLY' | 'MONTHLY' | 'YEARLY') => void;
+  onUpdateFreq: (freq: 'WEEKLY' | 'FORTNIGHTLY' | 'MONTHLY' | 'QUARTERLY' | 'YEARLY') => void;
   onToggleBillType?: (newType: 'SCHEDULED_BILL' | 'FLEXIBLE_BILL') => void;
   onEditCategory?: () => void;
   onRemove: () => void;
@@ -19,6 +19,7 @@ const FREQS = [
   { key: 'WEEKLY', label: '/wk' },
   { key: 'FORTNIGHTLY', label: '/fn' },
   { key: 'MONTHLY', label: '/mo' },
+  { key: 'QUARTERLY', label: '/qtr' },
   { key: 'YEARLY', label: '/yr' },
 ] as const;
 
@@ -33,17 +34,21 @@ export function SetupCategoryRow({
   isRerun = false,
 }: SetupCategoryRowProps) {
   const convertFromMonthly = (monthly: number, f: typeof freq) => {
-    if (f === 'WEEKLY') return Math.round(monthly / (52 / 12));
-    if (f === 'FORTNIGHTLY') return Math.round(monthly / (26 / 12));
-    if (f === 'YEARLY') return Math.round(monthly * 12);
-    return Math.round(monthly);
+    let result = monthly;
+    if (f === 'WEEKLY') result = monthly / (52 / 12);
+    else if (f === 'FORTNIGHTLY') result = monthly / (26 / 12);
+    else if (f === 'QUARTERLY') result = monthly * 3;
+    else if (f === 'YEARLY') result = monthly * 12;
+    return Math.round(result * 100) / 100;
   };
 
   const convertToMonthly = (amount: number, f: typeof freq) => {
-    if (f === 'WEEKLY') return Math.round(amount * (52 / 12));
-    if (f === 'FORTNIGHTLY') return Math.round(amount * (26 / 12));
-    if (f === 'YEARLY') return Math.round(amount / 12);
-    return Math.round(amount);
+    let result = amount;
+    if (f === 'WEEKLY') result = amount * (52 / 12);
+    else if (f === 'FORTNIGHTLY') result = amount * (26 / 12);
+    else if (f === 'QUARTERLY') result = amount / 3;
+    else if (f === 'YEARLY') result = amount / 12;
+    return Math.round(result * 100) / 100;
   };
 
   const displayVal = convertFromMonthly(cat.monthlyAud, freq);

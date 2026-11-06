@@ -63,7 +63,7 @@ export function useSetupWizardState() {
   const [removedCategoryNames, setRemovedCategoryNames] = useState<Set<string>>(new Set());
   const [amountOverrides, setAmountOverrides] = useState<Record<string, number>>({});
   const [billTypeOverrides, setBillTypeOverrides] = useState<Record<string, "SCHEDULED_BILL" | "FLEXIBLE_BILL">>({});
-  const [categoryFrequencies, setCategoryFrequencies] = useState<Record<string, "WEEKLY" | "FORTNIGHTLY" | "MONTHLY" | "YEARLY">>({});
+  const [categoryFrequencies, setCategoryFrequencies] = useState<Record<string, "WEEKLY" | "FORTNIGHTLY" | "MONTHLY" | "QUARTERLY" | "YEARLY">>({});
 
   // Prepopulation query
   const prepopulation = useSetupWizardPrepopulation({
@@ -191,10 +191,15 @@ export function useSetupWizardState() {
     existingPools: prepopulation.pools,
   });
 
+  const utils = trpc.useUtils();
+
   const handleDiscard = async () => {
     setShowDiscardModal(false);
     try {
       await updatePrefMut.mutateAsync({ setupCompleted: true });
+      utils.getTenantStatus.setData(undefined, (old) => old ? { ...old, setupCompleted: true } : undefined);
+      await utils.getTenantStatus.refetch();
+      await utils.invalidate();
     } catch (_e) {
       // Ignore if preference update fails
     }

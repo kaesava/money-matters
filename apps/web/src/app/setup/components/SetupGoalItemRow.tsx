@@ -49,8 +49,8 @@ export function SetupGoalItemRow({
         </div>
       </div>
 
-      <div className="flex flex-wrap items-center gap-3 self-end sm:self-auto">
-        <div className="w-36">
+      <div className="flex flex-nowrap whitespace-nowrap items-center gap-2 self-end sm:self-auto">
+        <div className="w-32">
           <AmountField
             value={
               isOngoing
@@ -67,6 +67,8 @@ export function SetupGoalItemRow({
                   ? Math.round((num * 52) / 12)
                   : freq === "FORTNIGHTLY"
                   ? Math.round((num * 26) / 12)
+                  : freq === "QUARTERLY"
+                  ? Math.round((num * 4) / 12)
                   : freq === "ANNUALLY"
                   ? Math.round(num / 12)
                   : Math.round(num);
@@ -101,7 +103,7 @@ export function SetupGoalItemRow({
           <select
             value={goal.budgetFrequency || "MONTHLY"}
             onChange={(e) => {
-              const freq = e.target.value as "WEEKLY" | "FORTNIGHTLY" | "MONTHLY" | "ANNUALLY";
+              const freq = e.target.value as "WEEKLY" | "FORTNIGHTLY" | "MONTHLY" | "QUARTERLY" | "ANNUALLY";
               onUpdateGoal(goal.id, "budgetFrequency", freq);
               const rawAmt = goal.enteredAmount ?? goal.monthlyAmount ?? 0;
               onUpdateGoal(goal.id, "enteredAmount", rawAmt);
@@ -109,24 +111,28 @@ export function SetupGoalItemRow({
                 ? Math.round((rawAmt * 52) / 12)
                 : freq === "FORTNIGHTLY"
                 ? Math.round((rawAmt * 26) / 12)
+                : freq === "QUARTERLY"
+                ? Math.round((rawAmt * 4) / 12)
                 : freq === "ANNUALLY"
                 ? Math.round(rawAmt / 12)
                 : Math.round(rawAmt);
               onUpdateGoal(goal.id, "monthlyAmount", monthly);
             }}
-            className="ui-input px-3 text-xs font-bold rounded-xl border border-zinc-200 bg-blue-50 text-blue-700 font-mono cursor-pointer h-[46px]"
+            className="ui-input px-3 text-xs font-bold rounded-xl border border-zinc-200 bg-blue-50 text-blue-700 font-medium cursor-pointer h-[46px]"
           >
-            <option value="WEEKLY">{t("categories.frequencyWeekly")} (/wk)</option>
-            <option value="FORTNIGHTLY">{t("categories.frequencyFortnightly")} (/fn)</option>
-            <option value="MONTHLY">{t("categories.frequencyMonthly")} (/mo)</option>
-            <option value="ANNUALLY">{t("categories.frequencyAnnually")} (/yr)</option>
+            <option value="WEEKLY">{t("categories.frequencyWeekly")}</option>
+            <option value="FORTNIGHTLY">{t("categories.frequencyFortnightly")}</option>
+            <option value="MONTHLY">{t("categories.frequencyMonthly")}</option>
+            <option value="QUARTERLY">{t("setup.frequencyQuarterly")}</option>
+            <option value="ANNUALLY">{t("categories.frequencyAnnually")}</option>
           </select>
         )}
 
         <button
           type="button"
           onClick={() => onRemoveGoal(goal.id)}
-          className="text-xs text-red-500 font-bold hover:text-red-700 p-1 cursor-pointer"
+          className="text-xs text-red-500 font-bold hover:text-red-700 p-2 cursor-pointer transition-colors"
+          title={t("common.remove")}
         >
           ✕
         </button>

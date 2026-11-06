@@ -19,7 +19,7 @@ interface CalculationsProps {
     dueDate?: string | null;
     goalMode?: "TARGET_DATE" | "ONGOING";
     enteredAmount?: number | null;
-    budgetFrequency?: "WEEKLY" | "FORTNIGHTLY" | "MONTHLY" | "ANNUALLY";
+    budgetFrequency?: "WEEKLY" | "FORTNIGHTLY" | "MONTHLY" | "QUARTERLY" | "ANNUALLY";
   }>;
   customCategories: EstimatedCategoryItem[];
   removedCategoryNames: Set<string>;
@@ -134,22 +134,26 @@ export function useSetupWizardCalculations({
 
   const convertToMonthly = (
     amount: number,
-    freq: "WEEKLY" | "FORTNIGHTLY" | "MONTHLY" | "YEARLY"
+    freq: "WEEKLY" | "FORTNIGHTLY" | "MONTHLY" | "QUARTERLY" | "YEARLY"
   ): number => {
-    if (freq === "WEEKLY") return Math.round(amount * (52 / 12));
-    if (freq === "FORTNIGHTLY") return Math.round(amount * (26 / 12));
-    if (freq === "YEARLY") return Math.round(amount / 12);
-    return Math.round(amount);
+    let result = amount;
+    if (freq === "WEEKLY") result = amount * (52 / 12);
+    else if (freq === "FORTNIGHTLY") result = amount * (26 / 12);
+    else if (freq === "QUARTERLY") result = amount / 3;
+    else if (freq === "YEARLY") result = amount / 12;
+    return Math.round(result * 100) / 100;
   };
 
   const convertFromMonthly = (
     monthlyAmount: number,
-    freq: "WEEKLY" | "FORTNIGHTLY" | "MONTHLY" | "YEARLY"
+    freq: "WEEKLY" | "FORTNIGHTLY" | "MONTHLY" | "QUARTERLY" | "YEARLY"
   ): number => {
-    if (freq === "WEEKLY") return Math.round(monthlyAmount / (52 / 12));
-    if (freq === "FORTNIGHTLY") return Math.round(monthlyAmount / (26 / 12));
-    if (freq === "YEARLY") return Math.round(monthlyAmount * 12);
-    return Math.round(monthlyAmount);
+    let result = monthlyAmount;
+    if (freq === "WEEKLY") result = monthlyAmount / (52 / 12);
+    else if (freq === "FORTNIGHTLY") result = monthlyAmount / (26 / 12);
+    else if (freq === "QUARTERLY") result = monthlyAmount * 3;
+    else if (freq === "YEARLY") result = monthlyAmount * 12;
+    return Math.round(result * 100) / 100;
   };
 
   return {

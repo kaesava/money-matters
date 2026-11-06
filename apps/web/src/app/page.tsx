@@ -76,14 +76,7 @@ export default function Home() {
 
   useEffect(() => {
     setIsClient(true);
-    if (isAuthEnabled) {
-      authClient.getSession().then(({ data }) => {
-        if (data?.session) {
-          router.push("/dashboard");
-        }
-      });
-    }
-  }, [router]);
+  }, []);
 
   if (!isClient) return null;
 

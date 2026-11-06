@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
-import { parseRecurrenceRule, buildRecurrenceRule } from "@money-matters/ui/mobile";
+import { parseRecurrenceRule, buildRecurrenceRule, RecurrenceFrequency } from "@money-matters/ui/mobile";
 import { t } from "@money-matters/i18n";
 import { formatIsoDate } from "../../../lib/format";
 import type { EnvelopeItem } from "../../EnvelopeFormModal";
@@ -27,7 +27,7 @@ export function useMobileEnvelopeFormState({
   const [targetDate, setTargetDate] = useState("");
   const [goalMode, setGoalMode] = useState<"TARGET_DATE" | "ONGOING">("TARGET_DATE");
   const [billMode, setBillMode] = useState<"SCHEDULED_BILL" | "FLEXIBLE_BILL">("SCHEDULED_BILL");
-  const [frequency, setFrequency] = useState<"WEEKLY" | "FORTNIGHTLY" | "MONTHLY" | "ANNUALLY">("MONTHLY");
+  const [frequency, setFrequency] = useState<RecurrenceFrequency>("MONTHLY");
   const [interval, setInterval] = useState(1);
   const [goalStartDate, setGoalStartDate] = useState("");
   const [bankAccountId, setBankAccountId] = useState("");

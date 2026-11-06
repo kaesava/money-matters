@@ -51,7 +51,7 @@ export function SetupReviewGoalsList({
 
           const isOngoing = userGoal?.goalMode === "ONGOING" || (!userGoal?.dueDate && userGoal?.budgetFrequency);
           const freq = userGoal?.budgetFrequency || "MONTHLY";
-          const freqSuffix = freq === "WEEKLY" ? "/wk" : freq === "FORTNIGHTLY" ? "/fn" : freq === "ANNUALLY" ? "/yr" : "/mo";
+          const freqSuffix = freq === "WEEKLY" ? "/wk" : freq === "FORTNIGHTLY" ? "/fn" : freq === "QUARTERLY" ? "/qtr" : freq === "ANNUALLY" ? "/yr" : "/mo";
           const enteredAmt = userGoal?.enteredAmount ?? userGoal?.targetAmount ?? cat.monthlyAud;
 
           let displayMetric: string;

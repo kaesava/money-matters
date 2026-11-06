@@ -116,7 +116,7 @@ export function LifestyleHousingTransport({
             {vehicles.map((v, idx) => (
               <div key={v.id} className="p-3 bg-white rounded-xl border border-zinc-200 flex flex-col gap-2">
                 <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold text-[#1B2B4B]">{t("setup.lifestyle.vehicleIndexTitle", { index: idx + 1 })}</span>
+                  <span className="text-xs font-bold text-[#1B2B4B]">{t("setup.lifestyle.vehicleIndexTitle", { number: idx + 1 })}</span>
                   {vehicles.length > 1 && (
                     <button
                       type="button"

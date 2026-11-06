@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import { t } from "@money-matters/i18n";
-import { InfoTooltip, AmountField, GoalModeToggle } from "@money-matters/ui/web";
+import { InfoTooltip, AmountField, GoalModeToggle, ConfirmDialog } from "@money-matters/ui/web";
 import { SetupGoalsPresetsGrid, GoalPresetConfig } from "./SetupGoalsPresetsGrid";
 import { SetupGoalItemRow } from "./SetupGoalItemRow";
 
@@ -15,7 +15,7 @@ export interface UserGoalItem {
   dueDate?: string | null;
   goalMode?: "TARGET_DATE" | "ONGOING";
   enteredAmount?: number | null;
-  budgetFrequency?: "WEEKLY" | "FORTNIGHTLY" | "MONTHLY" | "ANNUALLY";
+  budgetFrequency?: "WEEKLY" | "FORTNIGHTLY" | "MONTHLY" | "QUARTERLY" | "ANNUALLY";
   startDate?: string | null;
   rrule?: string | null;
   isPrivate?: boolean;
@@ -59,7 +59,8 @@ export function SetupGoalsStep({
   const [customTarget, setCustomTarget] = useState(isAud ? "5000" : "0");
   const [customDate, setCustomDate] = useState("");
   const [customType, setCustomType] = useState<"TARGET_DATE" | "ONGOING">("TARGET_DATE");
-  const [customFrequency, setCustomFrequency] = useState<"WEEKLY" | "FORTNIGHTLY" | "MONTHLY" | "ANNUALLY">("MONTHLY");
+  const [customFrequency, setCustomFrequency] = useState<"WEEKLY" | "FORTNIGHTLY" | "MONTHLY" | "QUARTERLY" | "ANNUALLY">("MONTHLY");
+  const [showUnsavedDraftDialog, setShowUnsavedDraftDialog] = useState(false);
 
   const isPresetActive = (name: string) =>
     goals.some((g) => g.name.trim().toLowerCase() === name.trim().toLowerCase());
@@ -91,6 +92,8 @@ export function SetupGoalsStep({
         ? Math.round((amountNum * 52) / 12)
         : customFrequency === "FORTNIGHTLY"
         ? Math.round((amountNum * 26) / 12)
+        : customFrequency === "QUARTERLY"
+        ? Math.round((amountNum * 4) / 12)
         : customFrequency === "ANNUALLY"
         ? Math.round(amountNum / 12)
         : Math.round(amountNum);
@@ -118,6 +121,14 @@ export function SetupGoalsStep({
     setCustomName("");
     setCustomDate("");
     setCustomTarget("5000");
+  };
+
+  const handleNextClick = () => {
+    if (customName.trim()) {
+      setShowUnsavedDraftDialog(true);
+      return;
+    }
+    onNext();
   };
 
   const isCustomPastDate =
@@ -157,11 +168,6 @@ export function SetupGoalsStep({
         <div className="max-w-xs">
           <GoalModeToggle value={customType} onChange={setCustomType} />
         </div>
-        {customType === "ONGOING" && (
-          <p className="text-[11px] text-zinc-500 font-medium">
-            {t("setup.goals.recurringMonthlyNote")}
-          </p>
-        )}
         <div className="flex flex-col sm:flex-row gap-2">
           <input
             type="text"
@@ -181,13 +187,14 @@ export function SetupGoalsStep({
           {customType === "ONGOING" && (
             <select
               value={customFrequency}
-              onChange={(e) => setCustomFrequency(e.target.value as "WEEKLY" | "FORTNIGHTLY" | "MONTHLY" | "ANNUALLY")}
-              className="w-32 px-3 py-2 text-xs font-bold rounded-xl border border-zinc-200 bg-white font-mono cursor-pointer"
+              onChange={(e) => setCustomFrequency(e.target.value as "WEEKLY" | "FORTNIGHTLY" | "MONTHLY" | "QUARTERLY" | "ANNUALLY")}
+              className="w-32 px-3 py-2 text-xs font-bold rounded-xl border border-zinc-200 bg-white font-medium cursor-pointer"
             >
-              <option value="WEEKLY">{t("categories.frequencyWeekly")} (/wk)</option>
-              <option value="FORTNIGHTLY">{t("categories.frequencyFortnightly")} (/fn)</option>
-              <option value="MONTHLY">{t("categories.frequencyMonthly")} (/mo)</option>
-              <option value="ANNUALLY">{t("categories.frequencyAnnually")} (/yr)</option>
+              <option value="WEEKLY">{t("categories.frequencyWeekly")}</option>
+              <option value="FORTNIGHTLY">{t("categories.frequencyFortnightly")}</option>
+              <option value="MONTHLY">{t("categories.frequencyMonthly")}</option>
+              <option value="QUARTERLY">{t("setup.frequencyQuarterly")}</option>
+              <option value="ANNUALLY">{t("categories.frequencyAnnually")}</option>
             </select>
           )}
           {customType === "TARGET_DATE" && (
@@ -246,12 +253,31 @@ export function SetupGoalsStep({
         </button>
         <button
           type="button"
-          onClick={onNext}
+          onClick={handleNextClick}
           className="px-6 py-3 text-xs font-bold rounded-xl bg-[#2563eb] text-white hover:bg-blue-700 transition-all shadow-md cursor-pointer"
         >
           {t("common.next")} →
         </button>
       </div>
+
+      <ConfirmDialog
+        isOpen={showUnsavedDraftDialog}
+        onClose={() => {
+          setCustomName("");
+          setShowUnsavedDraftDialog(false);
+          onNext();
+        }}
+        onConfirm={() => {
+          handleAddCustom();
+          setShowUnsavedDraftDialog(false);
+          onNext();
+        }}
+        title={t("setup.goals.unsavedGoalTitle")}
+        description={t("setup.goals.unsavedGoalMessage", { name: customName.trim() })}
+        confirmLabel={t("setup.goals.addAndProceed")}
+        cancelLabel={t("setup.goals.discardAndProceed")}
+        variant="primary"
+      />
     </div>
   );
 }

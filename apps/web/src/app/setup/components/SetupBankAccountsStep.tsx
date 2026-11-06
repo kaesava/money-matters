@@ -18,6 +18,7 @@ interface SetupBankAccountsStepProps {
   onNext: () => void;
   onBack: () => void;
   totalSteps?: number;
+  isRerun?: boolean;
 }
 
 export function SetupBankAccountsStep({
@@ -28,6 +29,7 @@ export function SetupBankAccountsStep({
   onNext,
   onBack,
   totalSteps: _totalSteps = 4,
+  isRerun = false,
 }: SetupBankAccountsStepProps) {
   const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null);
 
@@ -92,7 +94,13 @@ export function SetupBankAccountsStep({
             acc={acc}
             index={index}
             totalCount={accounts.length}
-            onRemove={(id) => setDeleteTargetId(id)}
+            onRemove={(id) => {
+              if (isRerun && !id.startsWith("acc-")) {
+                setDeleteTargetId(id);
+              } else {
+                onRemoveAccount(id);
+              }
+            }}
             onFieldChange={handleFieldChange}
           />
         ))}

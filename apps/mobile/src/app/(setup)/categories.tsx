@@ -49,6 +49,10 @@ export default function SetupCategoriesScreen() {
 
   const netSurplus = estimation.totalMonthlyIncomeAud - totalAllocatedMonthly;
 
+  const [everydayOpen, setEverydayOpen] = useState(false);
+  const [billsOpen, setBillsOpen] = useState(false);
+  const [goalsOpen, setGoalsOpen] = useState(false);
+
   const handleAttemptRemoveCategory = (name: string) => {
     const lower = name.trim().toLowerCase();
     if (lower.includes('emergency') || lower.includes('surplus') || lower.includes('reserve')) {
@@ -80,7 +84,6 @@ export default function SetupCategoriesScreen() {
         <Text style={styles.title}>
           {t('setup.reviewSummary.title')}
         </Text>
-        <InfoTooltip title={t('setup.reviewSummary.title')} content={t('setup.reviewSummary.subtitle')} />
       </View>
 
       <View style={styles.summaryGrid}>
@@ -108,12 +111,27 @@ export default function SetupCategoriesScreen() {
         </View>
       </View>
 
+      {/* Accordion 1: Everyday Spending Envelope */}
       <View style={styles.sectionCard}>
-        <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>{t('setup.reviewSummary.everydaySpending')}</Text>
-          <Text style={styles.sectionTotal}>{formatMobileCurrency(totalEverydayMonthly)}/mo</Text>
-        </View>
-        {activeEveryday.map((cat) => (
+        <TouchableOpacity
+          onPress={() => setEverydayOpen((prev) => !prev)}
+          style={styles.sectionHeader}
+          activeOpacity={0.7}
+        >
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+            <Text style={styles.sectionTitle}>{t('setup.reviewSummary.everydaySpending')}</Text>
+            <Text style={{ fontSize: 12, color: DESIGN_TOKENS.colors.slate[400], fontWeight: '700' }}>
+              ({activeEveryday.length})
+            </Text>
+          </View>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+            <Text style={styles.sectionTotal}>{formatMobileCurrency(totalEverydayMonthly)}/mo</Text>
+            <Text style={{ fontSize: 12, color: DESIGN_TOKENS.colors.slate[400], fontWeight: '700' }}>
+              {everydayOpen ? '▲' : '▼'}
+            </Text>
+          </View>
+        </TouchableOpacity>
+        {everydayOpen && activeEveryday.map((cat) => (
           <SetupCategoryRow
             key={cat.name}
             cat={cat}
@@ -126,12 +144,31 @@ export default function SetupCategoriesScreen() {
         ))}
       </View>
 
+      {/* Accordion 2: Regular & Flexible Bills */}
       <View style={styles.sectionCard}>
-        <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>{t('setup.reviewSummary.regularBills')}</Text>
-          <Text style={styles.sectionTotal}>{formatMobileCurrency(totalRegularMonthly)}/mo</Text>
-        </View>
-        {activeRegular.map((cat) => (
+        <TouchableOpacity
+          onPress={() => setBillsOpen((prev) => !prev)}
+          style={styles.sectionHeader}
+          activeOpacity={0.7}
+        >
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+            <Text style={styles.sectionTitle}>{t('setup.reviewSummary.regularBills')}</Text>
+            <Text style={{ fontSize: 12, color: DESIGN_TOKENS.colors.slate[400], fontWeight: '700' }}>
+              ({activeRegular.length})
+            </Text>
+            <InfoTooltip
+              title={t('setup.reviewSummary.billsTooltipTitle')}
+              content={t('setup.reviewSummary.billsTooltipContent')}
+            />
+          </View>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+            <Text style={styles.sectionTotal}>{formatMobileCurrency(totalRegularMonthly)}/mo</Text>
+            <Text style={{ fontSize: 12, color: DESIGN_TOKENS.colors.slate[400], fontWeight: '700' }}>
+              {billsOpen ? '▲' : '▼'}
+            </Text>
+          </View>
+        </TouchableOpacity>
+        {billsOpen && activeRegular.map((cat) => (
           <SetupCategoryRow
             key={cat.name}
             cat={cat}
@@ -161,13 +198,36 @@ export default function SetupCategoriesScreen() {
         ))}
       </View>
 
-      <SetupCategoriesGoalsList
-        goals={activeGoals}
-        userGoals={goals}
-        totalGoalMonthly={totalGoalMonthly}
-        onRemove={handleAttemptRemoveCategory}
-        isRerun={isRerun}
-      />
+      {/* Accordion 3: Goals & Savings */}
+      <View style={styles.sectionCard}>
+        <TouchableOpacity
+          onPress={() => setGoalsOpen((prev) => !prev)}
+          style={styles.sectionHeader}
+          activeOpacity={0.7}
+        >
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+            <Text style={styles.sectionTitle}>{t('setup.reviewSummary.savingsGoals')}</Text>
+            <Text style={{ fontSize: 12, color: DESIGN_TOKENS.colors.slate[400], fontWeight: '700' }}>
+              ({activeGoals.length})
+            </Text>
+          </View>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+            <Text style={styles.sectionTotal}>{formatMobileCurrency(totalGoalMonthly)}/mo</Text>
+            <Text style={{ fontSize: 12, color: DESIGN_TOKENS.colors.slate[400], fontWeight: '700' }}>
+              {goalsOpen ? '▲' : '▼'}
+            </Text>
+          </View>
+        </TouchableOpacity>
+        {goalsOpen && (
+          <SetupCategoriesGoalsList
+            goals={activeGoals}
+            userGoals={goals}
+            totalGoalMonthly={totalGoalMonthly}
+            onRemove={handleAttemptRemoveCategory}
+            isRerun={isRerun}
+          />
+        )}
+      </View>
 
       <TouchableOpacity
         onPress={() => {

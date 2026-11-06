@@ -16,7 +16,7 @@ export const IncomeItemSchema = z.object({
   id: z.string(),
   name: z.string().min(1),
   amount: z.number().positive(),
-  frequency: z.enum(["WEEKLY", "FORTNIGHTLY", "MONTHLY", "ANNUALLY"]).default("FORTNIGHTLY"),
+  frequency: z.enum(["WEEKLY", "FORTNIGHTLY", "MONTHLY", "QUARTERLY", "ANNUALLY"]).default("FORTNIGHTLY"),
   interval: z.number().int().min(1).max(365).default(1).optional(),
   rrule: z.string().optional().nullable(),
   type: z.enum(["SALARY", "BUSINESS", "BENEFIT", "OTHER"]).default("SALARY"),
@@ -94,7 +94,7 @@ export interface EstimatedCategoryItem {
   startDate?: string | null;
   endDate?: string | null;
   rrule?: string | null;
-  budgetFrequency?: "WEEKLY" | "FORTNIGHTLY" | "MONTHLY" | "ANNUALLY" | null;
+  budgetFrequency?: "WEEKLY" | "FORTNIGHTLY" | "MONTHLY" | "QUARTERLY" | "ANNUALLY" | null;
   generateEvents?: boolean;
 }
 
@@ -363,7 +363,7 @@ export const UserGoalItemSchema = z.object({
   targetAmount: z.number().nonnegative().optional().nullable(),
   dueDate: z.string().optional().nullable(),
   enteredAmount: z.number().nonnegative().optional().nullable(),
-  budgetFrequency: z.enum(["WEEKLY", "FORTNIGHTLY", "MONTHLY", "ANNUALLY"]).optional(),
+  budgetFrequency: z.enum(["WEEKLY", "FORTNIGHTLY", "MONTHLY", "QUARTERLY", "ANNUALLY"]).optional(),
   startDate: z.string().optional().nullable(),
   rrule: z.string().optional().nullable(),
   isPrivate: z.boolean().optional(),

@@ -1,7 +1,7 @@
 import { t } from "@money-matters/i18n";
 import { fmtDate as defaultFmtDate } from "./date-formatting";
 
-export type RecurrenceFrequency = "WEEKLY" | "FORTNIGHTLY" | "MONTHLY" | "ANNUALLY";
+export type RecurrenceFrequency = "WEEKLY" | "FORTNIGHTLY" | "MONTHLY" | "QUARTERLY" | "ANNUALLY";
 
 export interface ParsedRecurrence {
   isRecurring: boolean;
@@ -26,6 +26,7 @@ export function parseRecurrenceRule(
     const fallbackFreq =
       preferredFrequency === "WEEKLY" ||
       preferredFrequency === "FORTNIGHTLY" ||
+      preferredFrequency === "QUARTERLY" ||
       preferredFrequency === "ANNUALLY"
         ? preferredFrequency
         : "MONTHLY";
@@ -57,6 +58,17 @@ export function parseRecurrenceRule(
     return { isRecurring: true, frequency: "ANNUALLY", interval: Math.max(1, rawInterval) };
   }
 
+  if (
+    preferredFrequency === "QUARTERLY" ||
+    (rawInterval > 1 && rawInterval % 3 === 0)
+  ) {
+    return {
+      isRecurring: true,
+      frequency: "QUARTERLY",
+      interval: Math.max(1, Math.floor(rawInterval / 3)),
+    };
+  }
+
   return { isRecurring: true, frequency: "MONTHLY", interval: Math.max(1, rawInterval) };
 }
 
@@ -71,6 +83,10 @@ export function buildRecurrenceRule(
   if (frequency === "FORTNIGHTLY") {
     const totalWeeks = intVal * 2;
     return `FREQ=WEEKLY;INTERVAL=${totalWeeks}`;
+  }
+  if (frequency === "QUARTERLY") {
+    const totalMonths = intVal * 3;
+    return `FREQ=MONTHLY;INTERVAL=${totalMonths}`;
   }
   if (frequency === "ANNUALLY") {
     return intVal > 1 ? `FREQ=YEARLY;INTERVAL=${intVal}` : "FREQ=YEARLY";
@@ -137,6 +153,8 @@ export function formatRecurrenceLabel(
         return t("categories.frequencyWeekly");
       case "FORTNIGHTLY":
         return t("categories.frequencyFortnightly");
+      case "QUARTERLY":
+        return t("categories.frequencyQuarterly");
       case "ANNUALLY":
         return t("categories.frequencyAnnually");
       case "MONTHLY":
@@ -144,8 +162,8 @@ export function formatRecurrenceLabel(
         return t("categories.frequencyMonthly");
     }
   }
-  if (frequency === "MONTHLY" && interval === 3) {
-    return t("categories.frequencyQuarterly");
+  if (frequency === "QUARTERLY") {
+    return t("categories.everyQuarters", { interval: String(interval) });
   }
   if (frequency === "MONTHLY") {
     return t("categories.everyMonths", { interval: String(interval) });
@@ -173,6 +191,8 @@ export function formatRecurrenceSuffix(
         return "/wk";
       case "FORTNIGHTLY":
         return "/fn";
+      case "QUARTERLY":
+        return "/qtr";
       case "ANNUALLY":
         return "/yr";
       case "MONTHLY":
@@ -180,7 +200,7 @@ export function formatRecurrenceSuffix(
         return "/mo";
     }
   }
-  if (frequency === "MONTHLY" && interval === 3) {
+  if (frequency === "QUARTERLY" && interval === 1) {
     return "/qtr";
   }
   return ` ${formatRecurrenceLabel(rrule, preferredFrequency).toLowerCase()}`;

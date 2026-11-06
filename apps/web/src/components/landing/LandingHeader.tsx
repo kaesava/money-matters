@@ -5,6 +5,7 @@ import Link from "next/link";
 import { t } from "@money-matters/i18n";
 import { Logo } from "@money-matters/ui/web";
 import { authClient } from "../../lib/auth";
+import { trpc } from "../../lib/trpc";
 
 export interface LandingHeaderProps {
   onAuthClick: (tab: "signIn" | "signUp") => void;
@@ -77,17 +78,37 @@ function LandingNav({ activeSection }: { activeSection: string }) {
 }
 
 function SignedInActions({ displayName }: { displayName: string }) {
+  const { data: tenantStatus } = trpc.getTenantStatus.useQuery(undefined, {
+    staleTime: 60_000,
+  });
+
+  const handleSignOut = async () => {
+    await authClient.signOut();
+    window.location.reload();
+  };
+
+  const isSetupIncomplete = tenantStatus && tenantStatus.setupCompleted === false;
+  const ctaHref = isSetupIncomplete ? "/setup" : "/dashboard";
+  const ctaText = isSetupIncomplete ? t("landing.continueSetup") : t("landing.goToDashboard");
+
   return (
     <div className="flex items-center gap-2.5">
       <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-100/80 border border-slate-200/80 text-xs font-semibold text-slate-700">
         <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
         <span className="max-w-[130px] truncate">{displayName}</span>
       </div>
+      <button
+        type="button"
+        onClick={handleSignOut}
+        className="text-xs sm:text-sm font-bold text-slate-600 hover:text-[#1B2B4B] hover:bg-slate-100/80 px-3 py-2 rounded-xl transition-colors cursor-pointer active:scale-98"
+      >
+        {t("settings.signOut")}
+      </button>
       <Link
-        href="/dashboard"
+        href={ctaHref}
         className="inline-flex items-center gap-1.5 bg-[#2563eb] hover:bg-blue-700 text-white text-xs sm:text-sm font-extrabold px-4 py-2 rounded-xl transition-all shadow-xs hover:shadow-md active:scale-98 cursor-pointer"
       >
-        <span>{t("landing.goToDashboard")}</span>
+        <span>{ctaText}</span>
         <span aria-hidden="true">→</span>
       </Link>
     </div>

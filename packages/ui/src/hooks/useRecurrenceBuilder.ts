@@ -3,11 +3,11 @@
 import { useState, useEffect } from "react";
 import { fmtDateIso } from "../dates/date-formatting";
 
-import { parseRecurrenceRule, buildRecurrenceRule } from "../dates/recurrence";
+import { parseRecurrenceRule, buildRecurrenceRule, RecurrenceFrequency } from "../dates/recurrence";
 
 export type RecurrenceState = {
   isRecurring: boolean;
-  frequency: "WEEKLY" | "FORTNIGHTLY" | "MONTHLY" | "ANNUALLY";
+  frequency: RecurrenceFrequency;
   interval: number;
   startDate: string; // YYYY-MM-DD
   endDate: string | null; // YYYY-MM-DD or null
@@ -15,7 +15,7 @@ export type RecurrenceState = {
 
 export function useRecurrenceBuilder(initialRrule?: string | null, initialStartDate?: string, initialEndDate?: string | null) {
   const [isRecurring, setIsRecurring] = useState<boolean>(!!initialRrule);
-  const [frequency, setFrequency] = useState<"WEEKLY" | "FORTNIGHTLY" | "MONTHLY" | "ANNUALLY">("MONTHLY");
+  const [frequency, setFrequency] = useState<RecurrenceFrequency>("MONTHLY");
   const [interval, setInterval] = useState<number>(1);
   const [startDate, setStartDate] = useState<string>(initialStartDate || fmtDateIso());
   const [endDate, setEndDate] = useState<string | null>(initialEndDate || null);

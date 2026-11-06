@@ -58,8 +58,8 @@ export function useSetupCategoriesSubmission() {
       const envelopesPayload = [
         ...nonGoalCategories.map((c, idx) => {
           const rawFreq = c.budgetFrequency || categoryFrequencies[c.name];
-          const budgetFreq: 'WEEKLY' | 'FORTNIGHTLY' | 'MONTHLY' | 'ANNUALLY' =
-            rawFreq === 'YEARLY' ? 'ANNUALLY' : (rawFreq as 'WEEKLY' | 'FORTNIGHTLY' | 'MONTHLY' | 'ANNUALLY') || 'MONTHLY';
+          const budgetFreq: 'WEEKLY' | 'FORTNIGHTLY' | 'MONTHLY' | 'QUARTERLY' | 'ANNUALLY' =
+            rawFreq === 'YEARLY' ? 'ANNUALLY' : (rawFreq as 'WEEKLY' | 'FORTNIGHTLY' | 'MONTHLY' | 'QUARTERLY' | 'ANNUALLY') || 'MONTHLY';
           const isEveryday = c.type === 'EVERYDAY';
           const resolvedEnvelopeType = isEveryday
             ? ('EVERYDAY' as const)

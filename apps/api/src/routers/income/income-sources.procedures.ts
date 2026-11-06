@@ -16,7 +16,7 @@ export const incomeSourcesProcedures = {
         isRecurring: z.boolean().default(true),
         startDate: z.string().optional(),
         endDate: z.string().nullable().optional(),
-        frequency: z.enum(["WEEKLY", "FORTNIGHTLY", "MONTHLY", "ANNUALLY"]).optional(),
+        frequency: z.enum(["WEEKLY", "FORTNIGHTLY", "MONTHLY", "QUARTERLY", "ANNUALLY"]).optional(),
         interval: z.number().min(1).max(365).optional(),
       }).strict()
     )
@@ -129,7 +129,7 @@ export const incomeSourcesProcedures = {
           isRecurring: z.boolean().optional(),
           startDate: z.string().optional(),
           endDate: z.string().nullable().optional(),
-          frequency: z.enum(["WEEKLY", "FORTNIGHTLY", "MONTHLY", "ANNUALLY"]).optional(),
+          frequency: z.enum(["WEEKLY", "FORTNIGHTLY", "MONTHLY", "QUARTERLY", "ANNUALLY"]).optional(),
           interval: z.number().min(1).max(365).optional(),
         }).strict(),
       }).strict()

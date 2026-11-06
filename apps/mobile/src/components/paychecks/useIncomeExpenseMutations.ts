@@ -78,7 +78,7 @@ export function useIncomeExpenseMutations({
     poolId: string;
     categoryId: string | null;
     isRecurring: boolean;
-    frequency?: 'WEEKLY' | 'FORTNIGHTLY' | 'MONTHLY' | 'ANNUALLY';
+    frequency?: 'WEEKLY' | 'FORTNIGHTLY' | 'MONTHLY' | 'QUARTERLY' | 'ANNUALLY';
     interval?: number;
     startDate?: string;
     endDate?: string;

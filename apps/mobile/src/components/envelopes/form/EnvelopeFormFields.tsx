@@ -7,6 +7,7 @@ import {
   FormLabel,
   AmountInput,
   MobileBillModeToggle,
+  RecurrenceFrequency,
 } from '@money-matters/ui/mobile';
 import { t } from '@money-matters/i18n';
 import { EnvelopeRecurrenceFields } from './EnvelopeRecurrenceFields';
@@ -23,7 +24,7 @@ export interface EnvelopeFormFieldsProps {
   targetDate: string; setTargetDate: (v: string) => void;
   goalMode?: 'TARGET_DATE' | 'ONGOING'; setGoalMode?: (v: 'TARGET_DATE' | 'ONGOING') => void;
   billMode?: 'SCHEDULED_BILL' | 'FLEXIBLE_BILL'; setBillMode?: (v: 'SCHEDULED_BILL' | 'FLEXIBLE_BILL') => void;
-  frequency?: 'WEEKLY' | 'FORTNIGHTLY' | 'MONTHLY' | 'ANNUALLY'; setFrequency?: (v: 'WEEKLY' | 'FORTNIGHTLY' | 'MONTHLY' | 'ANNUALLY') => void;
+  frequency?: RecurrenceFrequency; setFrequency?: (v: RecurrenceFrequency) => void;
   interval?: number; setInterval?: (v: number) => void;
   goalStartDate?: string; setGoalStartDate?: (v: string) => void;
   endDate?: string; setEndDate?: (v: string) => void;

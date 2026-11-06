@@ -119,7 +119,7 @@ export function SetupWizardProvider({ children: reactChildren }: { children: Rea
     Record<string, 'SCHEDULED_BILL' | 'FLEXIBLE_BILL'>
   >({});
   const [categoryFrequencies, setCategoryFrequencies] = useState<
-    Record<string, 'WEEKLY' | 'FORTNIGHTLY' | 'MONTHLY' | 'YEARLY'>
+    Record<string, 'WEEKLY' | 'FORTNIGHTLY' | 'MONTHLY' | 'QUARTERLY' | 'YEARLY'>
   >({});
 
   // Balance Sweep & Archival state

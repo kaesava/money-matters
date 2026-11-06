@@ -20,7 +20,7 @@ interface SubmissionProps {
   bankAccounts: BankAccountRowItem[];
   activeCategories: EstimatedCategoryItem[];
   goals: UserGoalItem[];
-  categoryFrequencies: Record<string, "WEEKLY" | "FORTNIGHTLY" | "MONTHLY" | "YEARLY">;
+  categoryFrequencies: Record<string, "WEEKLY" | "FORTNIGHTLY" | "MONTHLY" | "QUARTERLY" | "YEARLY">;
   sweepQueue: Array<{ poolId: string; sweepDestinationPoolId?: string | null }>;
   removedCategoryNames?: Set<string>;
   archivedAccountIds: Set<string>;
@@ -86,8 +86,8 @@ export function useSetupWizardSubmission({
       const envelopesPayload = [
         ...nonGoalCategories.map((c, idx) => {
           const rawFreq = c.budgetFrequency || categoryFrequencies[c.name];
-          const budgetFreq: "WEEKLY" | "FORTNIGHTLY" | "MONTHLY" | "ANNUALLY" =
-            rawFreq === "YEARLY" ? "ANNUALLY" : (rawFreq as "WEEKLY" | "FORTNIGHTLY" | "MONTHLY" | "ANNUALLY") || "MONTHLY";
+          const budgetFreq: "WEEKLY" | "FORTNIGHTLY" | "MONTHLY" | "QUARTERLY" | "ANNUALLY" =
+            rawFreq === "YEARLY" ? "ANNUALLY" : (rawFreq as "WEEKLY" | "FORTNIGHTLY" | "MONTHLY" | "QUARTERLY" | "ANNUALLY") || "MONTHLY";
           const isEveryday = c.type === "EVERYDAY";
           const resolvedEnvelopeType = isEveryday
             ? ("EVERYDAY" as const)
