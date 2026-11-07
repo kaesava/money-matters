@@ -6,7 +6,7 @@ import { t } from "@money-matters/i18n";
 import { PaginationBar, Spinner, InfoTooltip, SearchInput, SkeletonTable, ConfirmDialog, useToast } from "@money-matters/ui/web";
 import { useLocale } from "../../../../providers/LocaleProvider";
 
-type ArchivedItemType = "POOL" | "CATEGORY" | "INCOME_SOURCE" | "BANK_ACCOUNT";
+type ArchivedItemType = "POOL" | "ENVELOPE" | "INCOME_SOURCE" | "BANK_ACCOUNT";
 
 interface ArchivedItem {
   id: string;
@@ -39,14 +39,17 @@ export function ArchivedSection() {
         trpcUtils.listIncomeSources.invalidate(),
         trpcUtils.listBankAccounts.invalidate(),
         trpcUtils.listBankAccountsWithExpected.invalidate(),
+        trpcUtils.getBankAccountsWithMappings.invalidate(),
         trpcUtils.getMatrixProjectionData.invalidate(),
         trpcUtils.listTransactions.invalidate(),
+        trpcUtils.getHomeSummary.invalidate(),
+        trpcUtils.listExpenseEvents.invalidate(),
+        trpcUtils.listIncomeEvents.invalidate(),
+        trpcUtils.listBillSchedules.invalidate(),
       ]);
     },
     onError: (err) => {
-      const msg = err.message.includes("parent pool is archived")
-        ? t("settings.archived.orphanCategoryError")
-        : err.message || t("common.errorTryAgain");
+      const msg = err.message || t("common.errorTryAgain");
       toast.error(msg);
       setItemToRestore(null);
     },
@@ -56,7 +59,11 @@ export function ArchivedSection() {
 
   const filtered = items.filter((item) => {
     const matchesSearch = item.name.toLowerCase().includes(search.toLowerCase());
-    const matchesType = filterType === "ALL" || item.itemType === filterType;
+    const matchesType =
+      filterType === "ALL" ||
+      item.itemType === filterType ||
+      (filterType === "ENVELOPE" && (item.itemType === "POOL" || item.itemType === "ENVELOPE")) ||
+      (filterType === "POOL" && (item.itemType === "POOL" || item.itemType === "ENVELOPE"));
     return matchesSearch && matchesType;
   });
 
@@ -93,17 +100,15 @@ export function ArchivedSection() {
 
         {/* Filter Pills */}
         <div className="flex items-center gap-1 bg-zinc-100 p-1 rounded-xl flex-wrap">
-          {(["ALL", "CATEGORY", "POOL", "INCOME_SOURCE", "BANK_ACCOUNT"] as const).map((type) => {
+          {(["ALL", "ENVELOPE", "INCOME_SOURCE", "BANK_ACCOUNT"] as const).map((type) => {
             const label =
               type === "ALL"
                 ? t("common.all")
-                : type === "CATEGORY"
-                  ? t("settings.archived.categories")
-                  : type === "POOL"
-                    ? t("settings.archived.pools")
-                    : type === "INCOME_SOURCE"
-                      ? t("settings.archived.income")
-                      : t("settings.archived.accounts");
+                : type === "ENVELOPE"
+                  ? t("settings.archived.pools")
+                  : type === "INCOME_SOURCE"
+                    ? t("settings.archived.income")
+                    : t("settings.archived.accounts");
 
             return (
               <button

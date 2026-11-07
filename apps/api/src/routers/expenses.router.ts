@@ -1,5 +1,5 @@
 import { privateTenantProcedure, requiresWriteAccess } from '../trpc/trpc.js';
-import { envelopes, expenseEvents, tenants } from "@money-matters/db";
+import { envelopes, expenseEvents, bankAccounts, tenants } from "@money-matters/db";
 import { and, eq, sql, inArray } from "drizzle-orm";
 import { recordExpenseCommand } from "@money-matters/capability-transactions";
 import {
@@ -15,7 +15,7 @@ import { posthog } from '../lib/posthog.js';
 export const expensesRouter = {
   listBillSchedules: privateTenantProcedure
     .query(async ({ ctx }) => {
-      return await ctx.db
+      const rows = await ctx.db
         .select({
           id: envelopes.id,
           name: envelopes.name,
@@ -25,8 +25,11 @@ export const expensesRouter = {
           envelopeType: envelopes.envelopeType,
           budgetFrequency: envelopes.budgetFrequency,
           isPrivate: envelopes.isPrivate,
+          userId: envelopes.userId,
           isEssential: envelopes.isEssential,
           bankAccountId: envelopes.bankAccountId,
+          bankAccountIsPrivate: bankAccounts.isPrivate,
+          bankAccountUserId: bankAccounts.userId,
           rrule: envelopes.rrule,
           startDate: envelopes.startDate,
           endDate: envelopes.endDate,
@@ -42,6 +45,7 @@ export const expensesRouter = {
           )`.as("has_scheduled_events"),
         })
         .from(envelopes)
+        .leftJoin(bankAccounts, eq(envelopes.bankAccountId, bankAccounts.id))
         .where(
           and(
             eq(envelopes.tenantId, ctx.tenantId!),
@@ -51,6 +55,12 @@ export const expensesRouter = {
             sql`CAST(COALESCE(${envelopes.enteredAmount}, ${envelopes.monthlyAmount}, '0.00') AS numeric) > 0`
           )
         );
+
+      return rows.filter((r) => {
+        if (r.isPrivate && r.userId !== ctx.userId) return false;
+        if (r.bankAccountIsPrivate && r.bankAccountUserId !== ctx.userId) return false;
+        return true;
+      });
     }),
 
   createOneOffExpense: privateTenantProcedure
@@ -63,8 +73,11 @@ export const expensesRouter = {
           id: envelopes.id,
           isPrivate: envelopes.isPrivate,
           userId: envelopes.userId,
+          bankAccountIsPrivate: bankAccounts.isPrivate,
+          bankAccountUserId: bankAccounts.userId,
         })
         .from(envelopes)
+        .leftJoin(bankAccounts, eq(envelopes.bankAccountId, bankAccounts.id))
         .where(
           and(
             eq(envelopes.id, input.envelopeId),
@@ -79,7 +92,10 @@ export const expensesRouter = {
         throw new Error("Target envelope not found or access unauthorized.");
       }
 
-      if (targetEnvelope.isPrivate && targetEnvelope.userId !== ctx.userId) {
+      if (
+        (targetEnvelope.isPrivate && targetEnvelope.userId !== ctx.userId) ||
+        (targetEnvelope.bankAccountIsPrivate && targetEnvelope.bankAccountUserId !== ctx.userId)
+      ) {
         throw new Error("Unauthorized: Cannot create expenses against partner's private envelope.");
       }
 
@@ -117,7 +133,7 @@ export const expensesRouter = {
 
   listExpenseEvents: privateTenantProcedure
     .query(async ({ ctx }) => {
-      return await ctx.db
+      const rows = await ctx.db
         .select({
           id: expenseEvents.id,
           name: expenseEvents.name,
@@ -127,9 +143,14 @@ export const expensesRouter = {
           envelopeId: expenseEvents.envelopeId,
           envelopeName: envelopes.name,
           isScheduled: expenseEvents.isScheduled,
+          envelopeIsPrivate: envelopes.isPrivate,
+          envelopeUserId: envelopes.userId,
+          bankAccountIsPrivate: bankAccounts.isPrivate,
+          bankAccountUserId: bankAccounts.userId,
         })
         .from(expenseEvents)
         .leftJoin(envelopes, eq(expenseEvents.envelopeId, envelopes.id))
+        .leftJoin(bankAccounts, eq(envelopes.bankAccountId, bankAccounts.id))
         .where(
           and(
             eq(expenseEvents.tenantId, ctx.tenantId!),
@@ -137,6 +158,12 @@ export const expensesRouter = {
             sql`${expenseEvents.archivedAt} IS NULL`
           )
         );
+
+      return rows.filter((r) => {
+        if (r.envelopeIsPrivate && r.envelopeUserId !== ctx.userId) return false;
+        if (r.bankAccountIsPrivate && r.bankAccountUserId !== ctx.userId) return false;
+        return true;
+      });
     }),
 
   deleteExpenseEvent: privateTenantProcedure
@@ -147,6 +174,34 @@ export const expensesRouter = {
     )
     .mutation(async ({ input, ctx }) => {
       requiresWriteAccess(ctx);
+      const [evt] = await ctx.db
+        .select({
+          id: expenseEvents.id,
+          envelopeIsPrivate: envelopes.isPrivate,
+          envelopeUserId: envelopes.userId,
+          bankAccountIsPrivate: bankAccounts.isPrivate,
+          bankAccountUserId: bankAccounts.userId,
+        })
+        .from(expenseEvents)
+        .leftJoin(envelopes, eq(expenseEvents.envelopeId, envelopes.id))
+        .leftJoin(bankAccounts, eq(envelopes.bankAccountId, bankAccounts.id))
+        .where(
+          and(
+            eq(expenseEvents.id, input.eventId),
+            eq(expenseEvents.tenantId, ctx.tenantId!),
+            eq(expenseEvents.appId, ctx.appId!),
+            sql`${expenseEvents.archivedAt} IS NULL`
+          )
+        );
+
+      if (!evt) throw new Error("Expense event not found.");
+      if (
+        (evt.envelopeIsPrivate && evt.envelopeUserId !== ctx.userId) ||
+        (evt.bankAccountIsPrivate && evt.bankAccountUserId !== ctx.userId)
+      ) {
+        throw new Error("Expense event not found.");
+      }
+
       await ctx.db
         .update(expenseEvents)
         .set({ archivedAt: new Date(), updatedBy: ctx.userId!, updatedAt: new Date() })
@@ -172,17 +227,37 @@ export const expensesRouter = {
     .mutation(async ({ input, ctx }) => {
       requiresWriteAccess(ctx);
       const [evt] = await ctx.db
-        .select()
+        .select({
+          id: expenseEvents.id,
+          expectedAmount: expenseEvents.expectedAmount,
+          expectedDate: expenseEvents.expectedDate,
+          name: expenseEvents.name,
+          note: expenseEvents.note,
+          envelopeId: expenseEvents.envelopeId,
+          envelopeIsPrivate: envelopes.isPrivate,
+          envelopeUserId: envelopes.userId,
+          bankAccountIsPrivate: bankAccounts.isPrivate,
+          bankAccountUserId: bankAccounts.userId,
+        })
         .from(expenseEvents)
+        .leftJoin(envelopes, eq(expenseEvents.envelopeId, envelopes.id))
+        .leftJoin(bankAccounts, eq(envelopes.bankAccountId, bankAccounts.id))
         .where(
           and(
             eq(expenseEvents.id, input.eventId),
             eq(expenseEvents.tenantId, ctx.tenantId!),
-            eq(expenseEvents.appId, ctx.appId!)
+            eq(expenseEvents.appId, ctx.appId!),
+            sql`${expenseEvents.archivedAt} IS NULL`
           )
         );
 
       if (!evt) throw new Error("Expense event not found.");
+      if (
+        (evt.envelopeIsPrivate && evt.envelopeUserId !== ctx.userId) ||
+        (evt.bankAccountIsPrivate && evt.bankAccountUserId !== ctx.userId)
+      ) {
+        throw new Error("Expense event not found.");
+      }
 
       const paidAmount = input.amount || evt.expectedAmount;
       const paidDate = input.date || evt.expectedDate;
@@ -238,8 +313,13 @@ export const expensesRouter = {
           budgetFrequency: envelopes.budgetFrequency,
           startDate: envelopes.startDate,
           endDate: envelopes.endDate,
+          isPrivate: envelopes.isPrivate,
+          userId: envelopes.userId,
+          bankAccountIsPrivate: bankAccounts.isPrivate,
+          bankAccountUserId: bankAccounts.userId,
         })
         .from(envelopes)
+        .leftJoin(bankAccounts, eq(envelopes.bankAccountId, bankAccounts.id))
         .where(
           and(
             eq(envelopes.id, input.envelopeId),
@@ -251,6 +331,13 @@ export const expensesRouter = {
         .limit(1);
 
       if (!targetEnvelope) {
+        throw new Error("Bill schedule not found.");
+      }
+
+      if (
+        (targetEnvelope.isPrivate && targetEnvelope.userId !== ctx.userId) ||
+        (targetEnvelope.bankAccountIsPrivate && targetEnvelope.bankAccountUserId !== ctx.userId)
+      ) {
         throw new Error("Bill schedule not found.");
       }
 

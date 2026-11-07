@@ -34,16 +34,32 @@ export async function updateEnvelopeCommand(
       throw new Error("Envelope not found or access unauthorized.");
     }
 
-    const effectiveIsPrivate = input.isPrivate !== undefined ? Boolean(input.isPrivate) : Boolean(existing.isPrivate);
-    const effectiveBankAccountId = input.bankAccountId !== undefined ? input.bankAccountId : existing.bankAccountId;
-
-    if (input.isSurplusTarget === true && effectiveIsPrivate) {
-      throw new Error("A private envelope cannot be designated as the household Surplus Sweep Target.");
+    if (existing.isPrivate && existing.userId !== userId) {
+      throw new Error("Envelope not found or access unauthorized.");
     }
 
-    if (input.isSurplusTarget === true && effectiveBankAccountId) {
+    if (existing.bankAccountId) {
+      const [existingAccount] = await tx
+        .select({ isPrivate: bankAccounts.isPrivate, userId: bankAccounts.userId })
+        .from(bankAccounts)
+        .where(
+          and(
+            eq(bankAccounts.id, existing.bankAccountId),
+            eq(bankAccounts.tenantId, tenantId),
+            eq(bankAccounts.appId, appId)
+          )
+        )
+        .limit(1);
+      if (existingAccount?.isPrivate && existingAccount.userId !== userId) {
+        throw new Error("Envelope not found or access unauthorized.");
+      }
+    }
+
+    const effectiveBankAccountId = input.bankAccountId !== undefined ? input.bankAccountId : existing.bankAccountId;
+    let targetAccount: { isPrivate: boolean | null; userId: string | null } | null = null;
+    if (effectiveBankAccountId) {
       const [acc] = await tx
-        .select({ isPrivate: bankAccounts.isPrivate })
+        .select({ isPrivate: bankAccounts.isPrivate, userId: bankAccounts.userId })
         .from(bankAccounts)
         .where(
           and(
@@ -53,9 +69,31 @@ export async function updateEnvelopeCommand(
           )
         )
         .limit(1);
-      if (acc?.isPrivate) {
-        throw new Error("Surplus Sweep Target envelope cannot be linked to a private bank account.");
+      if (!acc) {
+        throw new Error("Linked bank account not found.");
       }
+      if (acc.isPrivate && acc.userId !== userId) {
+        throw new Error("Linked bank account not found.");
+      }
+      targetAccount = acc;
+    }
+
+    const effectiveIsPrivate = targetAccount?.isPrivate
+      ? true
+      : input.isPrivate !== undefined
+      ? Boolean(input.isPrivate)
+      : Boolean(existing.isPrivate);
+
+    const effectiveUserId = effectiveIsPrivate
+      ? (targetAccount?.userId ?? existing.userId ?? userId)
+      : null;
+
+    const willBeSurplusTarget = input.isSurplusTarget !== undefined ? input.isSurplusTarget : existing.isSurplusTarget;
+    if (willBeSurplusTarget && effectiveIsPrivate) {
+      throw new Error("A private envelope cannot be designated as the household Surplus Sweep Target.");
+    }
+    if (willBeSurplusTarget && targetAccount?.isPrivate) {
+      throw new Error("Surplus Sweep Target envelope cannot be linked to a private bank account.");
     }
 
     if (input.isSurplusTarget === false && existing.isSurplusTarget) {
@@ -135,6 +173,8 @@ export async function updateEnvelopeCommand(
         endDate,
         rrule,
         generateEvents: effectiveGenerateEvents,
+        isPrivate: effectiveIsPrivate,
+        userId: effectiveUserId,
         updatedBy: userId,
         updatedAt: new Date(),
       })

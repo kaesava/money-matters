@@ -39,13 +39,19 @@ export async function listEnvelopesQuery(
       createdAt: envelopes.createdAt,
       bankAccountName: bankAccounts.name,
       bankAccountUserId: bankAccounts.userId,
+      bankAccountIsPrivate: bankAccounts.isPrivate,
     })
     .from(envelopes)
     .leftJoin(bankAccounts, eq(envelopes.bankAccountId, bankAccounts.id))
     .where(and(...envelopeFilters));
 
   const visibleEnvelopes = userId
-    ? dbEnvelopes.filter((e) => !e.isPrivate || (e.userId ? e.userId === userId : e.bankAccountUserId === userId))
+    ? dbEnvelopes.filter((e) => {
+        const isPrivate = Boolean(e.isPrivate || e.bankAccountIsPrivate);
+        if (!isPrivate) return true;
+        const ownerId = e.userId || e.bankAccountUserId;
+        return ownerId === userId;
+      })
     : dbEnvelopes;
 
   // 2. Compute balances using DB-side aggregate SUM(CASE WHEN...)

@@ -171,7 +171,7 @@ export function IncomeFormModal({ isOpen, onClose, sourceToEdit }: IncomeFormMod
       isOpen={isOpen}
       onClose={onClose}
       isDirty={isDirty}
-      title={isEdit ? t("modals.incomeExpenseForm.titleEditIncome") : t("modals.incomeExpenseForm.titleAddIncome")}
+      title={isEdit ? (sourceToEdit?.name || "") : t("incomeBillsTabs.addIncomeSchedule")}
       maxWidth="max-w-md"
     >
       <form onSubmit={handleSave} className="space-y-4 text-xs font-semibold">

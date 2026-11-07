@@ -6,6 +6,7 @@ import {
   incomeEvents,
   expenseEvents,
   incomeSources,
+  bankAccounts,
   tenants,
   getEnvelopeBalancesMap,
 } from "@money-matters/db";
@@ -65,17 +66,28 @@ export const paydayMatrixProcedures = {
       
       return await ctx.db.transaction(async (tx) => {
         const [incomeEvt] = await tx
-          .select()
+          .select({
+            evt: incomeEvents,
+            bankAccountIsPrivate: bankAccounts.isPrivate,
+            bankAccountUserId: bankAccounts.userId,
+          })
           .from(incomeEvents)
+          .leftJoin(incomeSources, eq(incomeEvents.incomeSourceId, incomeSources.id))
+          .leftJoin(bankAccounts, eq(incomeSources.receivingAccountId, bankAccounts.id))
           .where(
             and(
               eq(incomeEvents.id, input.incomeEventId),
-              eq(incomeEvents.tenantId, ctx.tenantId!)
+              eq(incomeEvents.tenantId, ctx.tenantId!),
+              sql`${incomeEvents.archivedAt} IS NULL`
             )
           )
           .limit(1);
 
-        if (!incomeEvt || incomeEvt.status !== "PENDING") {
+        if (!incomeEvt || incomeEvt.evt.status !== "PENDING") {
+          throw new Error("Cannot save allocations for a payday that is no longer upcoming or has been processed.");
+        }
+
+        if (incomeEvt.bankAccountIsPrivate && incomeEvt.bankAccountUserId !== ctx.userId) {
           throw new Error("Cannot save allocations for a payday that is no longer upcoming or has been processed.");
         }
 
@@ -142,13 +154,38 @@ export const paydayMatrixProcedures = {
     )
     .mutation(async ({ input, ctx }) => {
       requiresWriteAccess(ctx);
+
+      const [targetEvt] = await ctx.db
+        .select({
+          bankAccountIsPrivate: bankAccounts.isPrivate,
+          bankAccountUserId: bankAccounts.userId,
+        })
+        .from(incomeEvents)
+        .leftJoin(incomeSources, eq(incomeEvents.incomeSourceId, incomeSources.id))
+        .leftJoin(bankAccounts, eq(incomeSources.receivingAccountId, bankAccounts.id))
+        .where(
+          and(
+            eq(incomeEvents.id, input.incomeEventId),
+            eq(incomeEvents.tenantId, ctx.tenantId!),
+            sql`${incomeEvents.archivedAt} IS NULL`
+          )
+        )
+        .limit(1);
+
+      if (!targetEvt) throw new Error("Income event not found.");
+      if (targetEvt.bankAccountIsPrivate && targetEvt.bankAccountUserId !== ctx.userId) {
+        throw new Error("Income event not found.");
+      }
+
       const amountNum = parseFloat(input.totalIncomeAmount);
       const allocationResult = await previewAllocationQuery(
         ctx.tenantId!,
         ctx.appId!,
         input.incomeEventId,
         amountNum,
-        ctx.db
+        ctx.db,
+        undefined,
+        ctx.userId!
       );
 
       return await ctx.db.transaction(async (tx) => {
@@ -215,9 +252,14 @@ export const paydayMatrixProcedures = {
         .strict()
     )
     .query(async ({ input, ctx }) => {
-      const activeEnvelopes = await ctx.db
-        .select()
+      const rawEnvelopes = await ctx.db
+        .select({
+          envelope: envelopes,
+          bankAccountIsPrivate: bankAccounts.isPrivate,
+          bankAccountUserId: bankAccounts.userId,
+        })
         .from(envelopes)
+        .leftJoin(bankAccounts, eq(envelopes.bankAccountId, bankAccounts.id))
         .where(
           and(
             eq(envelopes.tenantId, ctx.tenantId!),
@@ -225,6 +267,16 @@ export const paydayMatrixProcedures = {
             sql`${envelopes.archivedAt} IS NULL`
           )
         );
+
+      const activeEnvelopes = rawEnvelopes
+        .filter((r) => {
+          if (r.envelope.isPrivate && r.envelope.userId !== ctx.userId) return false;
+          if (r.bankAccountIsPrivate && r.bankAccountUserId !== ctx.userId) return false;
+          return true;
+        })
+        .map((r) => r.envelope);
+
+      const visibleEnvelopeIds = new Set(activeEnvelopes.map((e) => e.id));
 
       const [tenantRecord] = await ctx.db
         .select({ timezone: tenants.timezone })
@@ -242,7 +294,7 @@ export const paydayMatrixProcedures = {
       const nowStr = getTenantDateString(now, { timezone: tenantTz });
       const futureStr = getTenantDateString(futureDate, { timezone: tenantTz });
 
-      const dbIncomeEvents = await ctx.db
+      const rawIncomeEvents = await ctx.db
         .select({
           id: incomeEvents.id,
           expectedDate: incomeEvents.expectedDate,
@@ -252,9 +304,12 @@ export const paydayMatrixProcedures = {
           status: incomeEvents.status,
           sourceName: sql<string>`COALESCE(${incomeEvents.name}, ${incomeSources.name}, 'Income')`,
           incomeSourceId: incomeEvents.incomeSourceId,
+          bankAccountIsPrivate: bankAccounts.isPrivate,
+          bankAccountUserId: bankAccounts.userId,
         })
         .from(incomeEvents)
         .leftJoin(incomeSources, eq(incomeSources.id, incomeEvents.incomeSourceId))
+        .leftJoin(bankAccounts, eq(incomeSources.receivingAccountId, bankAccounts.id))
         .where(
           and(
             eq(incomeEvents.tenantId, ctx.tenantId!),
@@ -266,7 +321,12 @@ export const paydayMatrixProcedures = {
         )
         .orderBy(incomeEvents.expectedDate);
 
-      const dbExpenseEvents = await ctx.db
+      const dbIncomeEvents = rawIncomeEvents.filter((e) => {
+        if (e.bankAccountIsPrivate && e.bankAccountUserId !== ctx.userId) return false;
+        return true;
+      });
+
+      const rawExpenseEvents = await ctx.db
         .select({
           id: expenseEvents.id,
           envelopeId: expenseEvents.envelopeId,
@@ -288,6 +348,8 @@ export const paydayMatrixProcedures = {
           )
         )
         .orderBy(expenseEvents.expectedDate);
+
+      const dbExpenseEvents = rawExpenseEvents.filter((e) => e.envelopeId && visibleEnvelopeIds.has(e.envelopeId));
 
       const engineBuckets = activeEnvelopes.map((p) =>
         mapEnvelopeToEngineBucket(p, balancesMap[p.id] || 0)
@@ -313,13 +375,18 @@ export const paydayMatrixProcedures = {
           status: evt.status as "PENDING" | "CONFIRMED",
         }));
 
-      const planRows = await ctx.db
+      const rawPlanRows = await ctx.db
         .select({
           id: allocationPlans.id,
           incomeEventId: allocationPlans.incomeEventId,
           status: allocationPlans.status,
+          bankAccountIsPrivate: bankAccounts.isPrivate,
+          bankAccountUserId: bankAccounts.userId,
         })
         .from(allocationPlans)
+        .leftJoin(incomeEvents, eq(incomeEvents.id, allocationPlans.incomeEventId))
+        .leftJoin(incomeSources, eq(incomeSources.id, incomeEvents.incomeSourceId))
+        .leftJoin(bankAccounts, eq(bankAccounts.id, incomeSources.receivingAccountId))
         .where(
           and(
             eq(allocationPlans.tenantId, ctx.tenantId!),
@@ -327,6 +394,8 @@ export const paydayMatrixProcedures = {
             sql`${allocationPlans.archivedAt} IS NULL`
           )
         );
+
+      const planRows = rawPlanRows.filter((p) => !(p.bankAccountIsPrivate && p.bankAccountUserId !== ctx.userId));
 
       const planIds = planRows.map((p) => p.id);
       const cellOverrides: Record<string, number> = {};
@@ -343,6 +412,7 @@ export const paydayMatrixProcedures = {
 
         const planMap = new Map(planRows.map((p) => [p.id, p]));
         for (const line of lineRows) {
+          if (!visibleEnvelopeIds.has(line.envelopeId)) continue;
           const plan = planMap.get(line.planId);
           if (plan) {
             const amount = parseFloat(line.confirmedAmount || line.proposedAmount || "0");

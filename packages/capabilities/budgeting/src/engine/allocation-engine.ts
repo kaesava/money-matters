@@ -109,10 +109,11 @@ export function runAllocationEngine(input: AllocationEngineInput): AllocationEng
   }
 
   const isBucketEligible = (b: EngineBucket) => {
-    if (b.isPrivate && b.userId && input.incomeUserId && b.userId !== input.incomeUserId) {
-      return false;
+    if (b.isPrivate) {
+      if (!input.incomeUserId) return false; // Shared household income cannot fund ANY private envelope
+      if (b.userId !== input.incomeUserId) return false; // Private income can only fund owner's private envelope
     }
-    return true;
+    return true; // Both shared and private income can fund shared envelopes
   };
 
   const ctx: StepContext = {
@@ -133,10 +134,10 @@ export function runAllocationEngine(input: AllocationEngineInput): AllocationEng
   const everydayBuckets = input.buckets.filter(isEverydayBucket);
   const goalBuckets = input.buckets.filter(isGoalBucket);
 
+  runStep4EverydayAllowance(ctx, everydayBuckets);
   runStep1ImmediateBills(ctx, billBuckets, envImmediateExpensesMap);
   runStep2DeficitRepair(ctx, input.buckets);
   runStep3BillsSafetyFloor(ctx, billBuckets);
-  runStep4EverydayAllowance(ctx, everydayBuckets);
 
   const essentialBills = billBuckets.filter((b) => b.isEssential);
   const standardBills = billBuckets.filter((b) => !b.isEssential);

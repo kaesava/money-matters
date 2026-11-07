@@ -132,7 +132,7 @@ export function BankAccountFormModal({
       isOpen={isOpen}
       onClose={onClose}
       isDirty={isDirty}
-      title={editingAccount ? t("settings.bankAccountForm.editTitle") : t("settings.bankAccountForm.addTitle")}
+      title={editingAccount ? editingAccount.name : t("settings.bankAccountForm.addTitle")}
       maxWidth="max-w-lg"
     >
       <form onSubmit={onSubmit} className="flex flex-col gap-4">

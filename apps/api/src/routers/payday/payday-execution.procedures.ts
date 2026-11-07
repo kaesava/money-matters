@@ -19,6 +19,29 @@ export const paydayExecutionProcedures = {
     .input(z.object({ incomeEventId: z.string().uuid() }).strict())
     .mutation(async ({ input, ctx }) => {
       requiresWriteAccess(ctx);
+
+      const [targetEvent] = await ctx.db
+        .select({
+          bankAccountIsPrivate: bankAccounts.isPrivate,
+          bankAccountUserId: bankAccounts.userId,
+        })
+        .from(incomeEvents)
+        .leftJoin(incomeSources, eq(incomeEvents.incomeSourceId, incomeSources.id))
+        .leftJoin(bankAccounts, eq(incomeSources.receivingAccountId, bankAccounts.id))
+        .where(
+          and(
+            eq(incomeEvents.id, input.incomeEventId),
+            eq(incomeEvents.tenantId, ctx.tenantId!),
+            eq(incomeEvents.appId, ctx.appId!),
+            sql`${incomeEvents.archivedAt} IS NULL`
+          )
+        );
+
+      if (!targetEvent) throw new Error("Target income event not found.");
+      if (targetEvent.bankAccountIsPrivate && targetEvent.bankAccountUserId !== ctx.userId) {
+        throw new Error("Target income event not found.");
+      }
+
       return await resetAllocationPlanCommand(
         input.incomeEventId,
         ctx.tenantId!,
@@ -30,7 +53,7 @@ export const paydayExecutionProcedures = {
   previewPayday: privateTenantProcedure
     .input(z.object({ incomeEventId: z.string().uuid() }).strict())
     .query(async ({ input, ctx }) => {
-      return await previewPaydayQuery(input.incomeEventId, ctx.tenantId!, ctx.appId!, ctx.db);
+      return await previewPaydayQuery(input.incomeEventId, ctx.tenantId!, ctx.appId!, ctx.db, ctx.userId!);
     }),
 
   confirmPayday: privateTenantProcedure
@@ -73,9 +96,16 @@ export const paydayExecutionProcedures = {
   listAllocationPlan: privateTenantProcedure
     .input(z.object({ incomeEventId: z.string().uuid() }).strict())
     .query(async ({ input, ctx }) => {
-      const [plan] = await ctx.db
-        .select()
+      const [planRow] = await ctx.db
+        .select({
+          plan: allocationPlans,
+          bankAccountIsPrivate: bankAccounts.isPrivate,
+          bankAccountUserId: bankAccounts.userId,
+        })
         .from(allocationPlans)
+        .leftJoin(incomeEvents, eq(incomeEvents.id, allocationPlans.incomeEventId))
+        .leftJoin(incomeSources, eq(incomeSources.id, incomeEvents.incomeSourceId))
+        .leftJoin(bankAccounts, eq(bankAccounts.id, incomeSources.receivingAccountId))
         .where(
           and(
             eq(allocationPlans.incomeEventId, input.incomeEventId),
@@ -87,7 +117,12 @@ export const paydayExecutionProcedures = {
         .orderBy(desc(allocationPlans.createdAt))
         .limit(1);
 
-      if (!plan) return null;
+      if (!planRow) return null;
+      if (planRow.bankAccountIsPrivate && planRow.bankAccountUserId !== ctx.userId) {
+        return null;
+      }
+
+      const plan = planRow.plan;
 
       const lines = await ctx.db
         .select({
@@ -99,20 +134,24 @@ export const paydayExecutionProcedures = {
           reasoning: allocationPlanLines.reasoning,
           envelopeName: envelopes.name,
           poolName: envelopes.name,
+          envelopeIsPrivate: envelopes.isPrivate,
+          envelopeUserId: envelopes.userId,
         })
         .from(allocationPlanLines)
         .leftJoin(envelopes, eq(envelopes.id, allocationPlanLines.envelopeId))
         .where(eq(allocationPlanLines.planId, plan.id));
 
+      const visibleLines = lines.filter((l) => !(l.envelopeIsPrivate && l.envelopeUserId !== ctx.userId));
+
       return {
         ...plan,
-        lines: lines.map(l => ({ ...l, envelopeName: l.envelopeName ?? "Unknown Envelope", poolName: l.poolName ?? "Unknown Envelope" })),
+        lines: visibleLines.map(l => ({ ...l, envelopeName: l.envelopeName ?? "Unknown Envelope", poolName: l.poolName ?? "Unknown Envelope" })),
       };
     }),
 
   listAllAllocationPlans: privateTenantProcedure
     .query(async ({ ctx }) => {
-      const plans = await ctx.db
+      const rawPlans = await ctx.db
         .select({
           id: allocationPlans.id,
           tenantId: allocationPlans.tenantId,
@@ -128,6 +167,8 @@ export const paydayExecutionProcedures = {
           expectedDate: sql<string>`COALESCE(${incomeEvents.expectedDate}::text, ${incomeEvents.actualDate}::text, TO_CHAR(${allocationPlans.createdAt}, 'YYYY-MM-DD'))`,
           actualDate: incomeEvents.actualDate,
           note: incomeEvents.note,
+          bankAccountIsPrivate: bankAccounts.isPrivate,
+          bankAccountUserId: bankAccounts.userId,
         })
         .from(allocationPlans)
         .leftJoin(incomeEvents, eq(incomeEvents.id, allocationPlans.incomeEventId))
@@ -143,8 +184,10 @@ export const paydayExecutionProcedures = {
         .orderBy(desc(allocationPlans.createdAt))
         .limit(50);
 
+      const plans = rawPlans.filter((p) => !(p.bankAccountIsPrivate && p.bankAccountUserId !== ctx.userId));
+
       const planIds = plans.map(p => p.id);
-      let lines: Array<{ planId: string; envelopeId: string; proposedAmount: string; confirmedAmount: string | null; reasoning: string | null; envelopeName: string | null }> = [];
+      let lines: Array<{ planId: string; envelopeId: string; proposedAmount: string; confirmedAmount: string | null; reasoning: string | null; envelopeName: string | null; envelopeIsPrivate: boolean | null; envelopeUserId: string | null }> = [];
       if (planIds.length > 0) {
         lines = await ctx.db
           .select({
@@ -154,15 +197,19 @@ export const paydayExecutionProcedures = {
             confirmedAmount: allocationPlanLines.confirmedAmount,
             reasoning: allocationPlanLines.reasoning,
             envelopeName: envelopes.name,
+            envelopeIsPrivate: envelopes.isPrivate,
+            envelopeUserId: envelopes.userId,
           })
           .from(allocationPlanLines)
           .leftJoin(envelopes, eq(envelopes.id, allocationPlanLines.envelopeId))
           .where(inArray(allocationPlanLines.planId, planIds));
       }
 
+      const visibleLines = lines.filter((l) => !(l.envelopeIsPrivate && l.envelopeUserId !== ctx.userId));
+
       return plans.map((plan) => ({
         ...plan,
-        lines: lines
+        lines: visibleLines
           .filter((l) => l.planId === plan.id)
           .map((l) => ({
             ...l,

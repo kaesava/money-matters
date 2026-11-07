@@ -72,9 +72,14 @@ export async function listArchivedItemsQuery(
       ),
   ]);
 
-  const filterVisible = <T extends { isPrivate?: boolean | null; userId?: string | null; bankAccountUserId?: string | null }>(items: T[]): T[] => {
+  const filterVisible = <T extends { isPrivate?: boolean | null; userId?: string | null; bankAccountIsPrivate?: boolean | null; bankAccountUserId?: string | null }>(items: T[]): T[] => {
     if (!userId) return items;
-    return items.filter((item) => !item.isPrivate || (item.userId ? item.userId === userId : item.bankAccountUserId === userId));
+    return items.filter((item) => {
+      const isPrivate = Boolean(item.isPrivate || item.bankAccountIsPrivate);
+      if (!isPrivate) return true;
+      const ownerId = item.userId || item.bankAccountUserId;
+      return ownerId === userId;
+    });
   };
 
   const allVisible = [

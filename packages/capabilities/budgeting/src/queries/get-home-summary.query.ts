@@ -62,6 +62,7 @@ export async function getHomeSummaryQuery(
       isPrivate: envelopes.isPrivate,
       userId: envelopes.userId,
       bankAccountUserId: bankAccounts.userId,
+      bankAccountIsPrivate: bankAccounts.isPrivate,
       emoji: envelopes.emoji,
       colorKey: envelopes.colorKey,
     })
@@ -75,9 +76,13 @@ export async function getHomeSummaryQuery(
       )
     );
 
-  const visibleEnvelopes = dbEnvelopes.filter(
-    (e) => !e.isPrivate || (e.userId ? e.userId === userId : e.bankAccountUserId === userId)
-  );
+  const visibleEnvelopes = dbEnvelopes.filter((e) => {
+    const isPrivate = Boolean(e.isPrivate || e.bankAccountIsPrivate);
+    if (!isPrivate) return true;
+    const ownerId = e.userId || e.bankAccountUserId;
+    return ownerId === userId;
+  });
+  const visibleEnvelopeIds = new Set(visibleEnvelopes.map((e) => e.id));
 
   // 3. Compute balances map
   const balancesMap = await getEnvelopeBalancesMap(tenantId, appId, dbClient);
@@ -176,7 +181,7 @@ export async function getHomeSummaryQuery(
   }
 
   // 6. Upcoming income events
-  const dbIncomes = await dbClient
+  const dbIncomesRaw = await dbClient
     .select({
       id: incomeEvents.id,
       name: incomeEvents.name,
@@ -185,9 +190,12 @@ export async function getHomeSummaryQuery(
       sourceName: incomeSources.name,
       bankAccountId: incomeSources.receivingAccountId,
       status: incomeEvents.status,
+      bankAccountIsPrivate: bankAccounts.isPrivate,
+      bankAccountUserId: bankAccounts.userId,
     })
     .from(incomeEvents)
     .leftJoin(incomeSources, eq(incomeEvents.incomeSourceId, incomeSources.id))
+    .leftJoin(bankAccounts, eq(incomeSources.receivingAccountId, bankAccounts.id))
     .where(
       and(
         eq(incomeEvents.tenantId, tenantId),
@@ -197,6 +205,11 @@ export async function getHomeSummaryQuery(
       )
     )
     .orderBy(asc(incomeEvents.expectedDate));
+
+  const dbIncomes = dbIncomesRaw.filter((inc) => {
+    if (!inc.bankAccountIsPrivate) return true;
+    return inc.bankAccountUserId === userId;
+  });
 
   let nextPayday: HomeSummaryNextPayday | null = null;
   let daysToPayday = 14;
@@ -223,7 +236,7 @@ export async function getHomeSummaryQuery(
   }
 
   // 7. Upcoming expenses & transfers (Attention Items)
-  const dbExpenses = await dbClient
+  const dbExpensesRaw = await dbClient
     .select({
       id: expenseEvents.id,
       name: expenseEvents.name,
@@ -243,7 +256,9 @@ export async function getHomeSummaryQuery(
     )
     .orderBy(asc(expenseEvents.expectedDate));
 
-  const dbTransfers = await dbClient
+  const dbExpenses = dbExpensesRaw.filter((e) => !e.envelopeId || visibleEnvelopeIds.has(e.envelopeId));
+
+  const dbTransfersRaw = await dbClient
     .select({
       id: transferEvents.id,
       name: transferEvents.name,
@@ -263,6 +278,10 @@ export async function getHomeSummaryQuery(
       )
     )
     .orderBy(asc(transferEvents.expectedDate));
+
+  const dbTransfers = dbTransfersRaw.filter(
+    (t) => visibleEnvelopeIds.has(t.sourceEnvelopeId) && visibleEnvelopeIds.has(t.destinationEnvelopeId)
+  );
 
   // Compute bills due within horizon (until next payday or 14 days) per envelope
   const horizonDate = nextPayday?.expectedDate ?? todayInZone(userTimezone, new Date(Date.now() + 14 * 86400000));

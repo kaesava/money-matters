@@ -197,8 +197,8 @@ export function useSetupWizardSubmission({
       });
 
       utils.getTenantStatus.setData(undefined, (old) => (old ? { ...old, setupCompleted: true } : undefined));
-      await utils.getTenantStatus.refetch();
-      await utils.invalidate();
+      void utils.getTenantStatus.refetch();
+      void utils.invalidate();
 
       posthog.capture("setup_completed", { isRerun, income_count: incomes.length, category_count: activeCategories.length });
       if (isRerun) {
@@ -207,6 +207,11 @@ export function useSetupWizardSubmission({
         toast.success(t("toasts.setupSaved"));
       }
       router.replace("/dashboard");
+      setTimeout(() => {
+        if (typeof window !== "undefined" && window.location.pathname.startsWith("/setup")) {
+          window.location.assign("/dashboard");
+        }
+      }, 150);
     } catch (err: unknown) {
       console.error("Failed to complete setup:", err);
       toast.error(err instanceof Error ? err.message : t("setup.saveError"));

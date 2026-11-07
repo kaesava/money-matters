@@ -1,4 +1,4 @@
-import { envelopes, incomeEvents, incomeSources, expenseEvents, tenants, getEnvelopeBalancesMap, DbOrTx } from "@money-matters/db";
+import { envelopes, incomeEvents, incomeSources, expenseEvents, bankAccounts, tenants, getEnvelopeBalancesMap, DbOrTx } from "@money-matters/db";
 import { eq, and, sql } from "drizzle-orm";
 import { runAllocationEngine, EngineBucket } from "../engine/allocation-engine.js";
 import { parseRruleFrequencyDays } from "../commands/run-allocation.command.js";
@@ -11,7 +11,8 @@ export async function previewAllocationQuery(
   incomeEventId: string,
   incomeAmount: number,
   dbClient: DbOrTx,
-  runwayDays?: number
+  runwayDays?: number,
+  userId?: string
 ) {
   // 0. Fetch Tenant for currency and timezone
   const [tenantRecord] = await dbClient
@@ -24,10 +25,15 @@ export async function previewAllocationQuery(
   const currencyCode = tenantRecord?.currency || "AUD";
   const currencySymbol = SUPPORTED_CURRENCIES[currencyCode]?.symbol || "$";
 
-  // 1. Fetch Envelopes
-  const dbEnvelopes = await dbClient
-    .select()
+  // 1. Fetch Envelopes joined with bankAccounts
+  const rawEnvelopes = await dbClient
+    .select({
+      envelope: envelopes,
+      bankAccountIsPrivate: bankAccounts.isPrivate,
+      bankAccountUserId: bankAccounts.userId,
+    })
     .from(envelopes)
+    .leftJoin(bankAccounts, eq(envelopes.bankAccountId, bankAccounts.id))
     .where(
       and(
         eq(envelopes.tenantId, tenantId),
@@ -36,20 +42,42 @@ export async function previewAllocationQuery(
       )
     );
 
+  const dbEnvelopes = rawEnvelopes
+    .filter((row) => {
+      if (!userId) return true;
+      if (row.envelope.isPrivate && row.envelope.userId !== userId) return false;
+      if (row.bankAccountIsPrivate && row.bankAccountUserId !== userId) return false;
+      return true;
+    })
+    .map((row) => row.envelope);
+
   // 2. Compute balances using DB-side aggregate SUM(CASE WHEN...)
   const balancesMap = await getEnvelopeBalancesMap(tenantId, appId, dbClient);
 
-  // 3. Fetch income event joined with income source
+  // 3. Fetch income event joined with income source and bank account
   const [event] = await dbClient
     .select({
       id: incomeEvents.id,
       expectedDate: incomeEvents.expectedDate,
       rrule: incomeSources.rrule,
       incomeType: incomeSources.incomeType,
+      bankAccountIsPrivate: bankAccounts.isPrivate,
+      bankAccountUserId: bankAccounts.userId,
     })
     .from(incomeEvents)
     .leftJoin(incomeSources, eq(incomeEvents.incomeSourceId, incomeSources.id))
+    .leftJoin(bankAccounts, eq(incomeSources.receivingAccountId, bankAccounts.id))
     .where(eq(incomeEvents.id, incomeEventId));
+
+  if (
+    userId &&
+    event?.bankAccountIsPrivate &&
+    event.bankAccountUserId !== userId
+  ) {
+    throw new Error("Target income event not found.");
+  }
+
+  const incomeUserId = event?.bankAccountUserId || undefined;
 
   let freqDays = 14;
   if (event?.rrule) {
@@ -81,6 +109,9 @@ export async function previewAllocationQuery(
       )
     );
 
+  const visibleEnvelopeIds = new Set(dbEnvelopes.map((e) => e.id));
+  const filteredPendingExpenses = pendingExpenses.filter((e) => visibleEnvelopeIds.has(e.envelopeId));
+
   const { mapEnvelopeToEngineBucket } = await import("../engine/envelope-engine-mapper.js");
   const engineBuckets: EngineBucket[] = dbEnvelopes.map((env) =>
     mapEnvelopeToEngineBucket(env, balancesMap[env.id] || 0)
@@ -89,6 +120,7 @@ export async function previewAllocationQuery(
   const output = runAllocationEngine({
     incomeAmount,
     incomeType: event?.incomeType || "SALARIED",
+    incomeUserId,
     runwayDays: runwayDays ?? 30,
     buckets: engineBuckets,
     paycheckDate: event ? new Date(event.expectedDate + "T00:00:00Z") : new Date(),
@@ -96,7 +128,7 @@ export async function previewAllocationQuery(
     dueBufferDays: bufferDays,
     timezone: tenantTz,
     currencySymbol,
-    upcomingExpenses: pendingExpenses.map((e) => ({
+    upcomingExpenses: filteredPendingExpenses.map((e) => ({
       envelopeId: e.envelopeId,
       name: e.name,
       amount: parseFloat(e.amount),

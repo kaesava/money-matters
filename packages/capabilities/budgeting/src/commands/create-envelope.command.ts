@@ -26,7 +26,11 @@ export async function createEnvelopeCommand(
       throw new Error("Linked bank account not found.");
     }
 
-    const isPrivate = Boolean(input.isPrivate ?? targetAccount.isPrivate);
+    if (targetAccount.isPrivate && targetAccount.userId !== userId) {
+      throw new Error("Linked bank account not found.");
+    }
+
+    const isPrivate = Boolean(targetAccount.isPrivate || input.isPrivate);
 
     if (input.isSurplusTarget === true && isPrivate) {
       throw new Error("A private envelope cannot be designated as the household Surplus Sweep Target.");

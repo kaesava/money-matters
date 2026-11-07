@@ -50,7 +50,12 @@ export function buildTrpcClient(): ReturnType<typeof trpc.createClient> {
           return {};
         },
         // credentials: "include" sends cookies on same-origin /api/trpc requests
-        fetch: (url, options) => fetch(url, { ...options, credentials: "include" }),
+        fetch: (url, options) =>
+          fetch(url, {
+            ...options,
+            credentials: "include",
+            signal: options?.signal ?? AbortSignal.timeout(15000),
+          }),
       }),
     ],
   });

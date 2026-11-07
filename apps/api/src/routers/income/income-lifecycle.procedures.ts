@@ -1,5 +1,5 @@
 import { privateTenantProcedure, requiresWriteAccess } from '../../trpc/trpc.js';
-import { incomeSources, incomeEvents } from "@money-matters/db";
+import { incomeSources, incomeEvents, bankAccounts } from "@money-matters/db";
 import { and, eq, sql, inArray } from "drizzle-orm";
 import { generateBurstDates } from "@money-matters/capability-budgeting";
 import { z } from 'zod';
@@ -11,6 +11,27 @@ export const incomeLifecycleProcedures = {
     .mutation(async ({ input, ctx }) => {
       requiresWriteAccess(ctx);
       return await ctx.db.transaction(async (tx) => {
+        const [source] = await tx
+          .select({
+            bankAccountIsPrivate: bankAccounts.isPrivate,
+            bankAccountUserId: bankAccounts.userId,
+          })
+          .from(incomeSources)
+          .leftJoin(bankAccounts, eq(incomeSources.receivingAccountId, bankAccounts.id))
+          .where(
+            and(
+              eq(incomeSources.id, input.id),
+              eq(incomeSources.tenantId, ctx.tenantId!),
+              eq(incomeSources.appId, ctx.appId!),
+              sql`${incomeSources.archivedAt} IS NULL`
+            )
+          );
+
+        if (!source) throw new Error("Income source not found or access unauthorized.");
+        if (source.bankAccountIsPrivate && source.bankAccountUserId !== ctx.userId) {
+          throw new Error("Income source not found or access unauthorized.");
+        }
+
         const events = await tx
           .select()
           .from(incomeEvents)
@@ -76,8 +97,17 @@ export const incomeLifecycleProcedures = {
     .mutation(async ({ input, ctx }) => {
       requiresWriteAccess(ctx);
       const [source] = await ctx.db
-        .select()
+        .select({
+          id: incomeSources.id,
+          rrule: incomeSources.rrule,
+          startDate: incomeSources.startDate,
+          endDate: incomeSources.endDate,
+          amount: incomeSources.amount,
+          bankAccountIsPrivate: bankAccounts.isPrivate,
+          bankAccountUserId: bankAccounts.userId,
+        })
         .from(incomeSources)
+        .leftJoin(bankAccounts, eq(incomeSources.receivingAccountId, bankAccounts.id))
         .where(
           and(
             eq(incomeSources.id, input.id),
@@ -88,6 +118,9 @@ export const incomeLifecycleProcedures = {
         );
 
       if (!source) throw new Error("Income source not found or unauthorized.");
+      if (source.bankAccountIsPrivate && source.bankAccountUserId !== ctx.userId) {
+        throw new Error("Income source not found or unauthorized.");
+      }
       if (!source.rrule) return { count: 0 };
 
       const unperformedEvents = await ctx.db

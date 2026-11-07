@@ -18,11 +18,14 @@ import {
 import { EngineBucket } from "../engine/allocation-engine.js";
 import { previewAllocationQuery } from "./preview-allocation.query.js";
 
+import { bankAccounts } from "@money-matters/db";
+
 export async function previewPaydayQuery(
   incomeEventId: string,
   tenantId: string,
   appId: string,
-  dbClient: DbOrTx
+  dbClient: DbOrTx,
+  userId?: string
 ) {
   const [targetEvent] = await dbClient
     .select({
@@ -33,9 +36,12 @@ export async function previewPaydayQuery(
       name: sql`COALESCE(NULLIF(${incomeEvents.name}, ''), ${incomeSources.name}, 'Paycheck')`,
       receivingAccountId: incomeSources.receivingAccountId,
       incomeType: incomeSources.incomeType,
+      bankAccountIsPrivate: bankAccounts.isPrivate,
+      bankAccountUserId: bankAccounts.userId,
     })
     .from(incomeEvents)
     .leftJoin(incomeSources, eq(incomeEvents.incomeSourceId, incomeSources.id))
+    .leftJoin(bankAccounts, eq(incomeSources.receivingAccountId, bankAccounts.id))
     .where(
       and(
         eq(incomeEvents.id, incomeEventId),
@@ -49,14 +55,29 @@ export async function previewPaydayQuery(
     throw new Error("Target income event not found.");
   }
 
-  return await previewPaydayForEvent({ ...targetEvent, name: targetEvent.name as string | null }, tenantId, appId, dbClient);
+  if (
+    userId &&
+    targetEvent.bankAccountIsPrivate &&
+    targetEvent.bankAccountUserId !== userId
+  ) {
+    throw new Error("Target income event not found.");
+  }
+
+  return await previewPaydayForEvent(
+    { ...targetEvent, name: targetEvent.name as string | null },
+    tenantId,
+    appId,
+    dbClient,
+    userId
+  );
 }
 
 export async function previewPaydayForEvent(
   targetEvent: { id: string; expectedDate: string; expectedAmount: string; actualAmount?: string | null; name?: string | null; receivingAccountId?: string | null; incomeType?: "SALARIED" | "IRREGULAR" | null },
   tenantId: string,
   appId: string,
-  dbClient: DbOrTx
+  dbClient: DbOrTx,
+  userId?: string
 ) {
   const [savedPlan] = await dbClient
     .select({
@@ -109,7 +130,9 @@ export async function previewPaydayForEvent(
     appId,
     targetEvent.id,
     effectiveAmount,
-    dbClient
+    dbClient,
+    undefined,
+    userId
   );
 
   const baselineMap = new Map(baselinePreview.lines.map((l) => [l.bucketId, l]));

@@ -282,12 +282,10 @@ export function EnvelopeFormModal({
       onClose={onClose}
       isDirty={isDirty}
       title={
-        initialMode === "BILL_SCHEDULE"
-          ? isEdit
-            ? t("incomeBillsTabs.editBillSchedule")
-            : t("incomeBillsTabs.addBillSchedule")
-          : isEdit
-            ? t("categories.editPoolTitle", { name: categoryToEdit?.name || "" })
+        isEdit
+          ? (categoryToEdit?.name || "")
+          : initialMode === "BILL_SCHEDULE"
+            ? t("incomeBillsTabs.addBillSchedule")
             : t("categories.createPool")
       }
       footer={

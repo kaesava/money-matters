@@ -167,13 +167,39 @@ export function createTenantHandler(db: DbOrTx) {
       })
       .returning();
 
-        // 4. Bulk-insert default Envelopes on Primary Account in one statement.
+    // 4. Bulk-insert default Envelopes on Primary Account in one statement (Everyday Spending and Surplus Sweep Target).
     const isAudCurrency = currency === "AUD";
-    const defaultEnvelopes = [
-      { name: "Everyday Spending", envelopeType: "EVERYDAY" as const, monthlyAmount: isAudCurrency ? "1000.00" : "0.00", isPrivate: false, orderIndex: 0 },
-      { name: "Rent & Housing", envelopeType: "SCHEDULED_BILL" as const, monthlyAmount: isAudCurrency ? "2400.00" : "0.00", enteredAmount: isAudCurrency ? "2400.00" : "0.00", budgetFrequency: "MONTHLY", isEssential: true, orderIndex: 1 },
-      { name: "Electricity & Utilities", envelopeType: "SCHEDULED_BILL" as const, monthlyAmount: isAudCurrency ? "300.00" : "0.00", enteredAmount: isAudCurrency ? "300.00" : "0.00", budgetFrequency: "MONTHLY", isEssential: true, orderIndex: 2 },
-      { name: "Emergency Reserve", envelopeType: "ONGOING_GOAL" as const, targetAmount: isAudCurrency ? "10000.00" : "0.00", enteredAmount: isAudCurrency ? "300.00" : "0.00", monthlyAmount: isAudCurrency ? "300.00" : "0.00", budgetFrequency: "MONTHLY", isCommitted: true, isSurplusTarget: true, orderIndex: 3 },
+    const defaultEnvelopes: Array<{
+      name: string;
+      envelopeType: "EVERYDAY" | "ONGOING_GOAL";
+      monthlyAmount: string;
+      enteredAmount?: string;
+      targetAmount?: string;
+      budgetFrequency?: "MONTHLY";
+      isCommitted?: boolean;
+      isSurplusTarget?: boolean;
+      isPrivate: boolean;
+      orderIndex: number;
+    }> = [
+      {
+        name: "Everyday Spending",
+        envelopeType: "EVERYDAY",
+        monthlyAmount: isAudCurrency ? "1000.00" : "0.00",
+        isPrivate: false,
+        orderIndex: 0,
+      },
+      {
+        name: "Emergency Reserve",
+        envelopeType: "ONGOING_GOAL",
+        targetAmount: isAudCurrency ? "10000.00" : "0.00",
+        enteredAmount: isAudCurrency ? "300.00" : "0.00",
+        monthlyAmount: isAudCurrency ? "300.00" : "0.00",
+        budgetFrequency: "MONTHLY",
+        isCommitted: true,
+        isSurplusTarget: true,
+        isPrivate: false,
+        orderIndex: 1,
+      },
     ];
 
     await db.insert(envelopes).values(
@@ -183,13 +209,14 @@ export function createTenantHandler(db: DbOrTx) {
         bankAccountId: primaryAccount.id,
         name: e.name,
         envelopeType: e.envelopeType,
-        monthlyAmount: e.monthlyAmount || null,
-        enteredAmount: ("enteredAmount" in e ? e.enteredAmount : null) || null,
-        budgetFrequency: ("budgetFrequency" in e ? e.budgetFrequency : "MONTHLY") || "MONTHLY",
-        targetAmount: ("targetAmount" in e ? e.targetAmount : null) || null,
-        isEssential: ("isEssential" in e ? e.isEssential : false) || false,
-        isCommitted: ("isCommitted" in e ? e.isCommitted : false) || false,
-        isSurplusTarget: e.isSurplusTarget || false,
+        monthlyAmount: e.monthlyAmount,
+        enteredAmount: e.enteredAmount ?? null,
+        budgetFrequency: e.budgetFrequency ?? "MONTHLY",
+        targetAmount: e.targetAmount ?? null,
+        isEssential: false,
+        isCommitted: e.isCommitted ?? false,
+        isSurplusTarget: e.isSurplusTarget ?? false,
+        isPrivate: e.isPrivate,
         orderIndex: e.orderIndex,
         createdBy: userId,
         updatedBy: userId,

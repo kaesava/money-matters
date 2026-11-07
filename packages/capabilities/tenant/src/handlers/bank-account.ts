@@ -1,7 +1,7 @@
 import { z } from "zod";
-import { bankAccounts, envelopes, incomeEvents, incomeSources, DbOrTx } from "@money-matters/db";
+import { bankAccounts, envelopes, expenseEvents, incomeEvents, incomeSources, DbOrTx } from "@money-matters/db";
 import { CreateBankAccountCommand, UpdateBankAccountCommand } from "@money-matters/types";
-import { eq, and, sql, or } from "drizzle-orm";
+import { eq, and, sql, or, inArray } from "drizzle-orm";
 import { ensurePremiumAccess } from "@money-matters/core";
 
 /**
@@ -35,8 +35,13 @@ export function getBankAccountsWithMappingsHandler(db: DbOrTx) {
         )
       );
 
+    const visibleTenantPools = tenantPools.filter((p) => {
+      if (userId && p.isPrivate && p.userId !== userId) return false;
+      return true;
+    });
+
     return accounts.map((acc) => {
-      const linkedPools = tenantPools.filter((p) => p.bankAccountId === acc.id);
+      const linkedPools = visibleTenantPools.filter((p) => p.bankAccountId === acc.id);
       return {
         ...acc,
         envelopes: linkedPools,
@@ -110,6 +115,10 @@ export function updateBankAccountHandler(db: DbOrTx) {
       throw new Error("Bank account not found or access unauthorized.");
     }
 
+    if (existing.isPrivate && existing.userId !== userId) {
+      throw new Error("Bank account not found or access unauthorized.");
+    }
+
     const effectiveBalance = Number(input.lastKnownBalance ?? existing.lastKnownBalance ?? "0");
     const effectiveBuffer = Number(input.unbudgetedBuffer ?? existing.unbudgetedBuffer ?? "0");
 
@@ -151,7 +160,8 @@ export function updateBankAccountHandler(db: DbOrTx) {
 }
 
 /**
- * Archives a bank account within the tenant scope after ensuring no active envelopes are linked to it.
+ * Archives a bank account within the tenant scope after ensuring no Everyday or Surplus Target envelopes are linked.
+ * Cascades archival to non-special linked envelopes and income sources at timestamp T.
  */
 export function archiveBankAccountHandler(db: DbOrTx) {
   return async (
@@ -160,6 +170,27 @@ export function archiveBankAccountHandler(db: DbOrTx) {
     appId: string,
     userId: string
   ) => {
+    const [existing] = await db
+      .select()
+      .from(bankAccounts)
+      .where(
+        and(
+          eq(bankAccounts.id, accountId),
+          eq(bankAccounts.tenantId, tenantId),
+          eq(bankAccounts.appId, appId),
+          sql`${bankAccounts.archivedAt} IS NULL`
+        )
+      )
+      .limit(1);
+
+    if (!existing) {
+      throw new Error("Bank account not found or access unauthorized.");
+    }
+
+    if (existing.isPrivate && existing.userId !== userId) {
+      throw new Error("Bank account not found or access unauthorized.");
+    }
+
     const activePools = await db
       .select()
       .from(envelopes)
@@ -171,38 +202,28 @@ export function archiveBankAccountHandler(db: DbOrTx) {
         )
       );
 
-    if (activePools.length > 0) {
-      const linkedNames = activePools.map((p) => p.name).join(", ");
+    if (activePools.some((p) => p.envelopeType === "EVERYDAY")) {
       throw new Error(
-        `Cannot archive bank account because envelope(s) [${linkedNames}] are linked to it. Please re-assign them to another bank account first.`
+        "Cannot archive bank account linked to the Everyday envelope. Please re-assign the Everyday envelope to another bank account first."
       );
     }
 
-    const pendingIncomes = await db
-      .select({ id: incomeEvents.id })
-      .from(incomeEvents)
-      .leftJoin(incomeSources, eq(incomeSources.id, incomeEvents.incomeSourceId))
-      .where(
-        and(
-          eq(incomeSources.receivingAccountId, accountId),
-          sql`${incomeEvents.status} IN ('PENDING', 'PENDING')`,
-          sql`${incomeEvents.archivedAt} IS NULL`
-        )
-      );
-
-    if (pendingIncomes.length > 0) {
+    if (activePools.some((p) => p.isSurplusTarget)) {
       throw new Error(
-        "Cannot archive bank account because there are upcoming or pending income records assigned to it."
+        "Cannot archive bank account linked to the active Surplus Sweep Target. Please designate another Surplus Sweep Target or re-assign it to another bank account first."
       );
     }
 
+    const archiveTimestamp = new Date();
 
+    // 1. Archive the bank account
     const [archived] = await db
       .update(bankAccounts)
       .set({
-        archivedAt: new Date(),
+        archivedAt: archiveTimestamp,
+        archivedBy: userId,
         updatedBy: userId,
-        updatedAt: new Date(),
+        updatedAt: archiveTimestamp,
       })
       .where(
         and(
@@ -216,6 +237,96 @@ export function archiveBankAccountHandler(db: DbOrTx) {
 
     if (!archived) {
       throw new Error("Bank account not found or access unauthorized.");
+    }
+
+    // 2. Cascade archive linked envelopes and their pending expense events
+    const poolIds = activePools.map((p) => p.id);
+    if (poolIds.length > 0) {
+      await db
+        .update(envelopes)
+        .set({
+          archivedAt: archiveTimestamp,
+          archivedBy: userId,
+          updatedBy: userId,
+          updatedAt: archiveTimestamp,
+        })
+        .where(
+          and(
+            eq(envelopes.tenantId, tenantId),
+            eq(envelopes.appId, appId),
+            eq(envelopes.bankAccountId, accountId),
+            sql`${envelopes.archivedAt} IS NULL`
+          )
+        );
+
+      await db
+        .update(expenseEvents)
+        .set({
+          archivedAt: archiveTimestamp,
+          archivedBy: userId,
+          updatedBy: userId,
+          updatedAt: archiveTimestamp,
+        })
+        .where(
+          and(
+            inArray(expenseEvents.envelopeId, poolIds),
+            eq(expenseEvents.status, "PENDING"),
+            eq(expenseEvents.tenantId, tenantId),
+            eq(expenseEvents.appId, appId),
+            sql`${expenseEvents.archivedAt} IS NULL`
+          )
+        );
+    }
+
+    // 3. Cascade archive linked income sources and their pending income events
+    const linkedIncomes = await db
+      .select({ id: incomeSources.id })
+      .from(incomeSources)
+      .where(
+        and(
+          eq(incomeSources.tenantId, tenantId),
+          eq(incomeSources.appId, appId),
+          eq(incomeSources.receivingAccountId, accountId),
+          sql`${incomeSources.archivedAt} IS NULL`
+        )
+      );
+
+    const incomeIds = linkedIncomes.map((i) => i.id);
+    if (incomeIds.length > 0) {
+      await db
+        .update(incomeSources)
+        .set({
+          archivedAt: archiveTimestamp,
+          archivedBy: userId,
+          updatedBy: userId,
+          updatedAt: archiveTimestamp,
+        })
+        .where(
+          and(
+            eq(incomeSources.tenantId, tenantId),
+            eq(incomeSources.appId, appId),
+            eq(incomeSources.receivingAccountId, accountId),
+            sql`${incomeSources.archivedAt} IS NULL`
+          )
+        );
+
+      await db
+        .update(incomeEvents)
+        .set({
+          archivedAt: archiveTimestamp,
+          archivedBy: userId,
+          updatedBy: userId,
+          updatedAt: archiveTimestamp,
+        })
+        .where(
+          and(
+            inArray(incomeEvents.incomeSourceId, incomeIds),
+            eq(incomeEvents.status, "PENDING"),
+            eq(incomeEvents.tenantId, tenantId),
+            eq(incomeEvents.appId, appId),
+            sql`${incomeEvents.archivedAt} IS NULL`
+          )
+        );
     }
 
     return { success: true };

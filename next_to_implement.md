@@ -8,6 +8,22 @@
 * Aggressively cull un-used code, l18n keys, files and database tables/fields.
 * All user-facing literals (this includes screen/modal names, headers, titles, sub-titles, descrtiptions, filter labels, button labels, drop-down text, pagination labels, tab names, placeholder text, error messages, warning messages, information, info tooltips, etc.) must be consistent within and across the web app and mobile app UIs and importantly, must re-uses en.ts keys for like-for-like functionality across web and mobile app. Re-use keys as much as possible, rationalise keys where possible, and always cull un-used keys.
 * Ensure parity between mobile and web - UI & functionality. So, when you write address a new/change/fix for the Web app, also ensure that the mobile app is in parity and address it there too. When you write address a new/change/fix for the Mobile app, also ensure that the web app is in parity and address it there too. Do this even if not explicitly asked, unless I explicitly state the app (Mobile: or Web:). Re-use code as much as possible while keeping native UI experiences.
+* As you build code, you decide whether you want to run pnpm typecheck/lint/test/test coverage/i8ln-check/install/ and any other scripts/checks as you complete changes. However, at the end, ensure pnpm validate:prod runs successfully. Once successful, commit code, but ask me before pushing the code.
+
+I'm testing the web app in prod (moneymatters.kaesava.au), not dev
+
+Add to scope and update implementation plan.
+
+# Private setting
+* The ask I had in my previous prompt in relation to the Private flag was limited. I want you to do a full and thorough review of every capability that the Private Bank account touches and ensure that for all the below, only the owner of the private Bank Account and any Envelopes linked to it can see/perform the below, and other users within the Tenant cannot see/perform the below, even if they are Owners.
+- View/Edit/Archive/Unarchive the Envelope (linked to the private Bank Account)
+- View/Edit/Archive any Expense Schedules or Expense Events linked to the Envelope (linked to the private Bank Account)
+- View/Edit/Archive any Income Schedules or Income Events linked to the private Bank Account
+- Mark any Exoense Event linked to the Envelope (linked to the private Bank Account) as Paid
+- View/Save/Confirm for Payday Split any Income Event linked to the private Bank Account
+- View any History linked to the private Bank Account or where the Envelope (linked to the private Bank Account) is associated with the history (Incoming, Outgoing or Transfer from/to).
+
+grill-me across the previous or this prompt to ensure you have the right interpretation of the ask or intended app functionality.
 
 
 
@@ -45,7 +61,6 @@ Bills|Goals & All|Shared|Private, pagination, History link, Progress)
 
 
 
-* As you build code, you decide whether you want to run pnpm typecheck/lint/test/test coverage/i8ln-check/install/ for the modules you want. However, at the end, ensure pnpm validate runs successfully. Because pnpm validate is made up of multiple commands, just run the commands that failed sequentially until all of them pass, then try pnpm validate again. If it fails, repeat by running just the failed commands and then by running pnpm validate again. Once successful, commit code, but ask me before pushing the code.
 
 
 ## Header

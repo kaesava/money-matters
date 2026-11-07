@@ -139,6 +139,9 @@ function PoolsPageContent() {
     if (!poolToArchive) return;
     try {
       await archivePoolMut.mutateAsync({ poolId: poolToArchive.id });
+      if (selectedPoolForDrawer?.id === poolToArchive.id) {
+        setSelectedPoolForDrawer(null);
+      }
       posthog.capture("pool_archived", { pool_type: poolToArchive.type });
       toast.success(t("toasts.archived"));
     } catch (err: unknown) {
@@ -418,6 +421,9 @@ function PoolsPageContent() {
         onClose={() => setIsPoolModalOpen(false)}
         envelopeToEdit={poolToEdit}
         onSuccess={async () => {
+          if (poolToEdit?.id && selectedPoolForDrawer?.id === poolToEdit.id) {
+            setSelectedPoolForDrawer(null);
+          }
           await Promise.all([
             utils.listPools.refetch(),
             utils.listExpenseEvents.refetch(),

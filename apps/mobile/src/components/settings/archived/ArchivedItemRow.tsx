@@ -5,7 +5,7 @@ import { t } from '@money-matters/i18n';
 import { formatDate } from '../../../lib/format';
 
 export type RestorableItemType =
-  | 'CATEGORY'
+  | 'ENVELOPE'
   | 'POOL'
   | 'INCOME_SOURCE'
   | 'BANK_ACCOUNT';

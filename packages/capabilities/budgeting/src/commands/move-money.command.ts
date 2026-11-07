@@ -1,4 +1,4 @@
-import { transactionLedger, envelopes, DbOrTx, getEnvelopeBalancesMap } from "@money-matters/db";
+import { transactionLedger, envelopes, bankAccounts, DbOrTx, getEnvelopeBalancesMap } from "@money-matters/db";
 import { eq, and } from "drizzle-orm";
 import { z } from "zod";
 import { MoveMoneyCommand } from "@money-matters/types";
@@ -17,9 +17,14 @@ export async function moveMoneyCommand(
 
   return await dbClient.transaction(async (tx) => {
     // 1. Verify access to source envelope
-    const [sourceEnv] = await tx
-      .select()
+    const [sourceRow] = await tx
+      .select({
+        envelope: envelopes,
+        bankAccountIsPrivate: bankAccounts.isPrivate,
+        bankAccountUserId: bankAccounts.userId,
+      })
       .from(envelopes)
+      .leftJoin(bankAccounts, eq(envelopes.bankAccountId, bankAccounts.id))
       .where(
         and(
           eq(envelopes.id, input.sourceEnvelopeId),
@@ -28,18 +33,28 @@ export async function moveMoneyCommand(
         )
       );
 
-    if (!sourceEnv) {
+    if (!sourceRow) {
       throw new Error("Source envelope invalid or access unauthorized.");
     }
 
-    if (sourceEnv.isPrivate && sourceEnv.userId !== userId) {
+    const sourceEnv = (sourceRow as any).envelope ?? sourceRow;
+
+    if (
+      (sourceEnv.isPrivate && sourceEnv.userId !== userId) ||
+      (sourceRow.bankAccountIsPrivate && sourceRow.bankAccountUserId !== userId)
+    ) {
       throw new Error("Unauthorized: Cannot move money from partner's private envelope.");
     }
 
     // 2. Verify access to destination envelope
-    const [destEnv] = await tx
-      .select()
+    const [destRow] = await tx
+      .select({
+        envelope: envelopes,
+        bankAccountIsPrivate: bankAccounts.isPrivate,
+        bankAccountUserId: bankAccounts.userId,
+      })
       .from(envelopes)
+      .leftJoin(bankAccounts, eq(envelopes.bankAccountId, bankAccounts.id))
       .where(
         and(
           eq(envelopes.id, input.destinationEnvelopeId),
@@ -48,11 +63,16 @@ export async function moveMoneyCommand(
         )
       );
 
-    if (!destEnv) {
+    if (!destRow) {
       throw new Error("Destination envelope invalid or access unauthorized.");
     }
 
-    if (destEnv.isPrivate && destEnv.userId !== userId) {
+    const destEnv = (destRow as any).envelope ?? destRow;
+
+    if (
+      (destEnv.isPrivate && destEnv.userId !== userId) ||
+      (destRow.bankAccountIsPrivate && destRow.bankAccountUserId !== userId)
+    ) {
       throw new Error("Unauthorized: Cannot move money to partner's private envelope.");
     }
 

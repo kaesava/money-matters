@@ -47,7 +47,8 @@ export const transactionsRouter = {
         input.offset,
         ctx.db,
         input.envelopeId,
-        input.bankAccountId
+        input.bankAccountId,
+        ctx.userId!
       );
     }),
 
@@ -61,14 +62,23 @@ export const transactionsRouter = {
         input.limit,
         ctx.db,
         input.envelopeId,
-        input.bankAccountId
+        input.bankAccountId,
+        ctx.userId!
       );
     }),
 
   listEnvelopeTransactions: privateTenantProcedure
     .input(ListEnvelopeTransactionsQuery)
     .query(async ({ input, ctx }) => {
-      return await listEnvelopeTransactionsQuery(input.envelopeId || "", ctx.tenantId!, ctx.appId!, input.limit, input.offset, ctx.db);
+      return await listEnvelopeTransactionsQuery(
+        input.envelopeId || "",
+        ctx.tenantId!,
+        ctx.appId!,
+        input.limit,
+        input.offset,
+        ctx.db,
+        ctx.userId!
+      );
     }),
 
   getSpendingAnalytics: privateTenantProcedure
@@ -78,7 +88,9 @@ export const transactionsRouter = {
         ctx.tenantId!,
         ctx.appId!,
         input,
-        ctx.db
+        ctx.db,
+        new Date(),
+        ctx.userId!
       );
     }),
 };

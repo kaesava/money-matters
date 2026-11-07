@@ -53,16 +53,23 @@ describe("moveMoneyCommand", () => {
 
     // Make select return sourcePool then destPool
     let callCount = 0;
+    const createWhereHandler = () =>
+      vi.fn().mockImplementation(() => {
+        callCount++;
+        if (callCount === 1) {
+          return Promise.resolve([{ id: "pool-src", name: "Everyday", isPrivate: false }]);
+        }
+        return Promise.resolve([{ id: "pool-dst", name: "Holiday Savings", isPrivate: false }]);
+      });
+
     mockTx.select = vi.fn().mockImplementation(() => ({
-      from: vi.fn().mockImplementation(() => ({
-        where: vi.fn().mockImplementation(() => {
-          callCount++;
-          if (callCount === 1) {
-            return Promise.resolve([{ id: "pool-src", name: "Everyday" }]);
-          }
-          return Promise.resolve([{ id: "pool-dst", name: "Holiday Savings" }]);
-        }),
-      })),
+      from: vi.fn().mockImplementation(() => {
+        const whereFn = createWhereHandler();
+        return {
+          leftJoin: vi.fn().mockReturnValue({ where: whereFn }),
+          where: whereFn,
+        };
+      }),
     }));
 
     const mockDb: any = {
@@ -94,17 +101,24 @@ describe("moveMoneyCommand", () => {
   it("preserves custom user note override when provided", async () => {
     let insertedRows: any[] = [];
     let callCount = 0;
+    const createWhereHandler = () =>
+      vi.fn().mockImplementation(() => {
+        callCount++;
+        if (callCount === 1) {
+          return Promise.resolve([{ id: "pool-src", name: "Everyday", isPrivate: false }]);
+        }
+        return Promise.resolve([{ id: "pool-dst", name: "Bills Buffer", isPrivate: false }]);
+      });
+
     const mockTx: any = {
       select: vi.fn().mockImplementation(() => ({
-        from: vi.fn().mockImplementation(() => ({
-          where: vi.fn().mockImplementation(() => {
-            callCount++;
-            if (callCount === 1) {
-              return Promise.resolve([{ id: "pool-src", name: "Everyday" }]);
-            }
-            return Promise.resolve([{ id: "pool-dst", name: "Bills Buffer" }]);
-          }),
-        })),
+        from: vi.fn().mockImplementation(() => {
+          const whereFn = createWhereHandler();
+          return {
+            leftJoin: vi.fn().mockReturnValue({ where: whereFn }),
+            where: whereFn,
+          };
+        }),
       })),
       insert: vi.fn().mockImplementation(() => ({
         values: vi.fn().mockImplementation((vals: any) => {

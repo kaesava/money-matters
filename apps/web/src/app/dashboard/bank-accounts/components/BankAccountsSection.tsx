@@ -92,7 +92,7 @@ export function BankAccountsSection() {
 
         <div className="flex items-center gap-3">
           <div className="h-6 w-px bg-zinc-200 hidden sm:block" />
-          <div className="w-64">
+          <div className="w-72 sm:w-80 min-w-[320px]">
             <PoolPicker
               pools={list.pools.map((p) => ({
                 id: p.id,

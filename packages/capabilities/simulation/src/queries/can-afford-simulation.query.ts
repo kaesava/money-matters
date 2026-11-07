@@ -96,6 +96,8 @@ export async function canAffordSimulationQuery(
           isSurplusTarget: envelopes.isSurplusTarget,
           isPrivate: envelopes.isPrivate,
           userId: envelopes.userId,
+          bankAccountIsPrivate: bankAccounts.isPrivate,
+          bankAccountUserId: bankAccounts.userId,
         })
         .from(envelopes)
         .leftJoin(bankAccounts, eq(bankAccounts.id, envelopes.bankAccountId))
@@ -110,7 +112,7 @@ export async function canAffordSimulationQuery(
       // Compute balances using DB-side aggregate
       getEnvelopeBalancesMap(tenantId, appId, dbClient),
 
-      // Pending and confirmed income events joined with recurrence rule from income_sources
+      // Pending and confirmed income events joined with recurrence rule from income_sources and bank account privacy
       dbClient
         .select({
           id: incomeEvents.id,
@@ -120,9 +122,12 @@ export async function canAffordSimulationQuery(
           actualAmount: incomeEvents.actualAmount,
           status: incomeEvents.status,
           rrule: incomeSources.rrule,
+          bankAccountIsPrivate: bankAccounts.isPrivate,
+          bankAccountUserId: bankAccounts.userId,
         })
         .from(incomeEvents)
         .leftJoin(incomeSources, eq(incomeSources.id, incomeEvents.incomeSourceId))
+        .leftJoin(bankAccounts, eq(incomeSources.receivingAccountId, bankAccounts.id))
         .where(
           and(
             eq(incomeEvents.tenantId, tenantId),
@@ -159,10 +164,22 @@ export async function canAffordSimulationQuery(
 
   // ── 2. FILTER VISIBLE ENVELOPES ───────────────────────────────────────
   const visibleEnvelopes = dbEnvelopes.filter((env) => {
-    if (!env.isPrivate) return true;
-    if (includePersonal) return env.userId === userId;
+    const isPrivate = Boolean(env.isPrivate || env.bankAccountIsPrivate);
+    if (!isPrivate) return true;
+    const ownerId = env.userId || env.bankAccountUserId;
+    if (includePersonal) return ownerId === userId;
     return false;
   });
+  const visibleEnvelopeIds = new Set(visibleEnvelopes.map((e) => e.id));
+
+  const filteredIncomes = pendingIncomesRaw.filter((inc) => {
+    if (!inc.bankAccountIsPrivate) return true;
+    return inc.bankAccountUserId === userId;
+  });
+
+  const filteredExpenses = pendingExpensesRaw.filter(
+    (e) => !e.envelopeId || visibleEnvelopeIds.has(e.envelopeId)
+  );
 
   const everydayEnvelopes = visibleEnvelopes.filter((e) => e.envelopeType === "EVERYDAY");
   const billsEnvelopes = visibleEnvelopes.filter(
@@ -181,7 +198,7 @@ export async function canAffordSimulationQuery(
   }
 
   // ── 4. RESOLVE NEXT PAYCHECK & TIMELINE WINDOW ─────────────────────────
-  const sortedIncomes = [...pendingIncomesRaw].sort(
+  const sortedIncomes = [...filteredIncomes].sort(
     (a, b) => new Date(a.expectedDate).getTime() - new Date(b.expectedDate).getTime()
   );
 
@@ -198,7 +215,7 @@ export async function canAffordSimulationQuery(
 
   // ── 5. RING-FENCE UPCOMING BILLS BEFORE PAYDAY ─────────────────────────
   const billEnvIds = new Set<string>(billsEnvelopes.map((e) => e.id));
-  const billsDueBeforePayday = pendingExpensesRaw.filter(
+  const billsDueBeforePayday = filteredExpenses.filter(
     (e) => e.expectedDate >= todayStr && e.expectedDate <= nextPaycheckDateStr
   );
 
@@ -280,7 +297,7 @@ export async function canAffordSimulationQuery(
       everydayEnvelopes,
       engineBuckets,
       envelopeBalancesMap,
-      pendingExpensesRaw,
+      pendingExpensesRaw: filteredExpenses,
       sortedIncomes,
       projectionEngine: deps.projectionEngine,
       today,
@@ -305,7 +322,7 @@ export async function canAffordSimulationQuery(
     visibleEnvelopes,
     engineBuckets,
     envelopeBalancesMap,
-    pendingExpensesRaw,
+    pendingExpensesRaw: filteredExpenses,
     sortedIncomes,
     dailyAllowance,
     projectionEngine: deps.projectionEngine,

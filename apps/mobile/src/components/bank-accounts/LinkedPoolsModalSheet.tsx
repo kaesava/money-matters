@@ -70,7 +70,7 @@ export function LinkedPoolsModalSheet({
                     <Text style={styles.typeBadgeText}>
                       {pool.poolType === 'EVERYDAY'
                         ? t('poolTypes.everyday')
-                        : pool.poolType === 'REGULAR'
+                        : pool.poolType === 'REGULAR' || pool.poolType === 'SCHEDULED_BILL' || pool.poolType === 'FLEXIBLE_BILL'
                         ? t('poolTypes.bills')
                         : t('poolTypes.goals')}
                     </Text>

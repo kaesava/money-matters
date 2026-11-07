@@ -297,11 +297,17 @@ export function BankAccountTable({
                             {t("bankAccounts.sweepPoolBadge")}
                           </span>
                         )}
-                        <span className={`text-[9px] font-black px-1.5 py-0.5 rounded-md ${
-                          p.poolType === "EVERYDAY" ? "bg-emerald-50 text-emerald-700" : p.poolType === "REGULAR" ? "bg-blue-50 text-[#2563eb]" : "bg-indigo-50 text-indigo-700"
-                        }`}>
-                          {p.poolType === "EVERYDAY" ? t("incomeBillsTabs.everyday") : p.poolType === "REGULAR" ? t("incomeBillsTabs.bills") : t("incomeBillsTabs.goals")}
-                        </span>
+                        {(() => {
+                          const isEveryday = p.poolType === "EVERYDAY";
+                          const isBill = p.poolType === "REGULAR" || p.poolType === "SCHEDULED_BILL" || p.poolType === "FLEXIBLE_BILL";
+                          return (
+                            <span className={`text-[9px] font-black px-1.5 py-0.5 rounded-md ${
+                              isEveryday ? "bg-emerald-50 text-emerald-700" : isBill ? "bg-blue-50 text-[#2563eb]" : "bg-indigo-50 text-indigo-700"
+                            }`}>
+                              {isEveryday ? t("incomeBillsTabs.everyday") : isBill ? t("incomeBillsTabs.bills") : t("incomeBillsTabs.goals")}
+                            </span>
+                          );
+                        })()}
                       </div>
                       <span className="font-mono font-bold text-zinc-800">{fmtMoney(p.currentBalance || 0)}</span>
                     </div>

@@ -158,6 +158,7 @@ async function handleProxy(req: NextRequest) {
     const options: RequestInit = {
       method: req.method,
       headers,
+      signal: AbortSignal.timeout(15000),
     };
 
     if (req.method !== "GET" && req.method !== "HEAD") {

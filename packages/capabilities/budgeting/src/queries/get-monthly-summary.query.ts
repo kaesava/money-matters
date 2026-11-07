@@ -1,12 +1,13 @@
-import { envelopes, transactionLedger, getEnvelopeBalancesMap, DbOrTx, tenants } from "@money-matters/db";
-import { eq, and, sql } from "drizzle-orm";
+import { envelopes, bankAccounts, transactionLedger, getEnvelopeBalancesMap, DbOrTx, tenants } from "@money-matters/db";
+import { eq, and, sql, or, isNull } from "drizzle-orm";
 
 export async function getMonthlySummaryQuery(
   year: number,
   month: number,
   tenantId: string,
   appId: string,
-  dbClient: DbOrTx
+  dbClient: DbOrTx,
+  userId?: string
 ) {
   const [tenantRecord] = await dbClient
     .select({ timezone: tenants.timezone })
@@ -26,8 +27,13 @@ export async function getMonthlySummaryQuery(
     .select({
       id: envelopes.id,
       envelopeType: envelopes.envelopeType,
+      isPrivate: envelopes.isPrivate,
+      userId: envelopes.userId,
+      bankAccountIsPrivate: bankAccounts.isPrivate,
+      bankAccountUserId: bankAccounts.userId,
     })
     .from(envelopes)
+    .leftJoin(bankAccounts, eq(envelopes.bankAccountId, bankAccounts.id))
     .where(
       and(
         eq(envelopes.tenantId, tenantId),
@@ -36,19 +42,53 @@ export async function getMonthlySummaryQuery(
       )
     );
 
-  const envMap = new Map(dbEnvelopes.map((e) => [e.id, e.envelopeType]));
+  const visibleEnvelopes = userId
+    ? dbEnvelopes.filter((e) => {
+        const isPrivate = Boolean(e.isPrivate || e.bankAccountIsPrivate);
+        if (!isPrivate) return true;
+        const ownerId = e.userId || e.bankAccountUserId;
+        return ownerId === userId;
+      })
+    : dbEnvelopes;
+
+  const envMap = new Map(visibleEnvelopes.map((e) => [e.id, e.envelopeType]));
   const balancesMap = await getEnvelopeBalancesMap(tenantId, appId, dbClient);
 
   let everydayRemaining = 0;
   let billsRemaining = 0;
 
-  for (const env of dbEnvelopes) {
+  for (const env of visibleEnvelopes) {
     const bal = balancesMap[env.id] || 0;
     if (env.envelopeType === "EVERYDAY") {
       everydayRemaining += bal;
     } else if (env.envelopeType === "SCHEDULED_BILL" || env.envelopeType === "FLEXIBLE_BILL") {
       billsRemaining += bal;
     }
+  }
+
+  const txConditions = [
+    eq(transactionLedger.tenantId, tenantId),
+    eq(transactionLedger.appId, appId),
+    sql`(${transactionLedger.recordedAt} AT TIME ZONE ${tenantTz}) >= ${startMonthStr}::date`,
+    sql`(${transactionLedger.recordedAt} AT TIME ZONE ${tenantTz}) < ${endMonthStr}::date`,
+    sql`${transactionLedger.archivedAt} IS NULL`,
+  ];
+
+  if (userId) {
+    txConditions.push(
+      or(
+        eq(bankAccounts.isPrivate, false),
+        isNull(bankAccounts.isPrivate),
+        eq(bankAccounts.userId, userId)
+      )!
+    );
+    txConditions.push(
+      or(
+        eq(envelopes.isPrivate, false),
+        isNull(envelopes.isPrivate),
+        eq(envelopes.userId, userId)
+      )!
+    );
   }
 
   const txs = await dbClient
@@ -59,15 +99,9 @@ export async function getMonthlySummaryQuery(
       envelopeId: transactionLedger.envelopeId,
     })
     .from(transactionLedger)
-    .where(
-      and(
-        eq(transactionLedger.tenantId, tenantId),
-        eq(transactionLedger.appId, appId),
-        sql`(${transactionLedger.recordedAt} AT TIME ZONE ${tenantTz}) >= ${startMonthStr}::date`,
-        sql`(${transactionLedger.recordedAt} AT TIME ZONE ${tenantTz}) < ${endMonthStr}::date`,
-        sql`${transactionLedger.archivedAt} IS NULL`
-      )
-    );
+    .leftJoin(envelopes, eq(transactionLedger.envelopeId, envelopes.id))
+    .leftJoin(bankAccounts, eq(transactionLedger.bankAccountId, bankAccounts.id))
+    .where(and(...txConditions));
 
   let totalIncome = 0;
   let totalSpent = 0;

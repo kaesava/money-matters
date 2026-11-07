@@ -85,7 +85,7 @@ export function BankAccountFormModal({
       visible={visible}
       onClose={onClose}
       isDirty={isDirty}
-      title={isEdit ? t('settings.bankAccountForm.editTitle') : t('settings.bankAccounts.addAccount')}
+      title={isEdit ? (accountToEdit?.name || '') : t('settings.bankAccounts.addAccount')}
       subtitle={t('tooltips.bankAccounts.content')}
       footer={
         <View style={styles.footerContainer}>

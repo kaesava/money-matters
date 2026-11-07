@@ -43,6 +43,8 @@ export async function processSetupBankAccounts(
 
     const bankProviderVal = accInput.bankProvider || matchedExisting?.bankProvider || "Other";
 
+    const isPrivate = accInput.isPrivate ?? matchedExisting?.isPrivate ?? false;
+
     if (matchedExisting) {
       await tx
         .update(bankAccounts)
@@ -52,7 +54,8 @@ export async function processSetupBankAccounts(
           accountType: accInput.accountType || matchedExisting.accountType,
           lastKnownBalance: accInput.lastKnownBalance || matchedExisting.lastKnownBalance,
           unbudgetedBuffer: accInput.unbudgetedBuffer || matchedExisting.unbudgetedBuffer,
-          isPrivate: accInput.isPrivate ?? matchedExisting.isPrivate,
+          isPrivate,
+          userId: isPrivate ? (matchedExisting.userId || userId) : null,
           updatedAt: now,
           updatedBy: userId,
         })
@@ -70,7 +73,8 @@ export async function processSetupBankAccounts(
         accountType: accInput.accountType || "EVERYDAY",
         lastKnownBalance: accInput.lastKnownBalance || "0.00",
         unbudgetedBuffer: accInput.unbudgetedBuffer || "0.00",
-        isPrivate: accInput.isPrivate ?? false,
+        isPrivate,
+        userId: isPrivate ? userId : null,
         createdAt: now,
         createdBy: userId,
         updatedAt: now,

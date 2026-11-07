@@ -47,10 +47,37 @@ export const bankAccountsProcedures = {
       return await handler(input.accountId, input.data, ctx.tenantId!, ctx.appId!, ctx.userId!);
     }),
 
-  archiveBankAccount: privateOwnerProcedure
+  archiveBankAccount: privateTenantProcedure
     .input(z.object({ accountId: z.string().uuid() }).strict())
     .mutation(async ({ input, ctx }) => {
       requiresWriteAccess(ctx);
+      const [acc] = await ctx.db
+        .select({ isPrivate: bankAccounts.isPrivate, userId: bankAccounts.userId })
+        .from(bankAccounts)
+        .where(
+          and(
+            eq(bankAccounts.id, input.accountId),
+            eq(bankAccounts.tenantId, ctx.tenantId!),
+            eq(bankAccounts.appId, ctx.appId!),
+            sql`${bankAccounts.archivedAt} IS NULL`
+          )
+        )
+        .limit(1);
+
+      if (!acc) {
+        throw new Error("Bank account not found or access unauthorized.");
+      }
+
+      if (acc.isPrivate) {
+        if (acc.userId !== ctx.userId) {
+          throw new Error("Bank account not found or access unauthorized.");
+        }
+      } else {
+        if (ctx.session?.role !== "OWNER") {
+          throw new Error("Only household owners can archive shared bank accounts.");
+        }
+      }
+
       const handler = archiveBankAccountHandler(ctx.db);
       return await handler(input.accountId, ctx.tenantId!, ctx.appId!, ctx.userId!);
     }),
@@ -126,6 +153,27 @@ export const bankAccountsProcedures = {
       const accountId = input.accountId;
 
       return await ctx.db.transaction(async (tx) => {
+        const [acc] = await tx
+          .select({ isPrivate: bankAccounts.isPrivate, userId: bankAccounts.userId })
+          .from(bankAccounts)
+          .where(
+            and(
+              eq(bankAccounts.id, accountId),
+              eq(bankAccounts.tenantId, ctx.tenantId!),
+              eq(bankAccounts.appId, ctx.appId!),
+              sql`${bankAccounts.archivedAt} IS NULL`
+            )
+          )
+          .limit(1);
+
+        if (!acc) {
+          throw new Error("Bank account not found or access unauthorized.");
+        }
+
+        if (acc.isPrivate && acc.userId !== ctx.userId) {
+          throw new Error("Bank account not found or access unauthorized.");
+        }
+
         await tx
           .update(bankAccounts)
           .set({

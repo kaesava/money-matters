@@ -36,16 +36,19 @@ export function MobileArchivedSection() {
         utils.listIncomeSources.invalidate(),
         utils.listBankAccounts.invalidate(),
         utils.listBankAccountsWithExpected.invalidate(),
+        utils.getBankAccountsWithMappings.invalidate(),
         utils.getMatrixProjectionData.invalidate(),
         utils.listTransactions.invalidate(),
+        utils.getHomeSummary.invalidate(),
+        utils.listExpenseEvents.invalidate(),
+        utils.listIncomeEvents.invalidate(),
+        utils.listBillSchedules.invalidate(),
       ]);
       toast.success(t('settings.archived.restoreSuccess'));
       setRestoringId(null);
     },
     onError: (err) => {
-      const msg = err.message.includes('parent pool is archived')
-        ? t('settings.archived.orphanCategoryError')
-        : err.message || t('common.errorTryAgain');
+      const msg = err.message || t('common.errorTryAgain');
       toast.error(msg);
       setRestoringId(null);
     },
@@ -56,7 +59,11 @@ export function MobileArchivedSection() {
   const filtered = items
     .filter((item) => {
       const matchesSearch = item.name.toLowerCase().includes(search.toLowerCase());
-      const matchesType = filterType === 'ALL' || item.itemType === filterType;
+      const matchesType =
+        filterType === 'ALL' ||
+        item.itemType === filterType ||
+        (filterType === 'POOL' && item.itemType === 'ENVELOPE') ||
+        (filterType === 'ENVELOPE' && item.itemType === 'POOL');
       return matchesSearch && matchesType;
     })
     .sort((a, b) => {
@@ -213,9 +220,7 @@ export function MobileArchivedSection() {
             options: [
               { id: 'ALL', label: t('common.all') },
               { id: 'POOL', label: t('settings.archived.pools') },
-              { id: 'CATEGORY', label: t('settings.archived.categories') },
               { id: 'INCOME_SOURCE', label: t('settings.archived.income') },
-              { id: 'EXPENSE_SOURCE', label: t('settings.archived.expenses') },
               { id: 'BANK_ACCOUNT', label: t('settings.archived.accounts') },
             ],
           },

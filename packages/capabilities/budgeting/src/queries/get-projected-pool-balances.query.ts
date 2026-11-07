@@ -2,6 +2,7 @@ import {
   incomeEvents,
   incomeSources,
   envelopes,
+  bankAccounts,
   transactionLedger,
   allocationPlans,
   allocationPlanLines,
@@ -35,8 +36,32 @@ export async function getProjectedPoolBalancesQuery(
   // 1. Fetch envelopes, balances map, and tenant timezone concurrently
   const [dbEnvelopes, envBalancesMap, tenantRecord] = await Promise.all([
     dbClient
-      .select()
+      .select({
+        id: envelopes.id,
+        name: envelopes.name,
+        envelopeType: envelopes.envelopeType,
+        bankAccountId: envelopes.bankAccountId,
+        safetyBufferFloor: envelopes.safetyBufferFloor,
+        monthlyAmount: envelopes.monthlyAmount,
+        enteredAmount: envelopes.enteredAmount,
+        budgetFrequency: envelopes.budgetFrequency,
+        startDate: envelopes.startDate,
+        endDate: envelopes.endDate,
+        rrule: envelopes.rrule,
+        goalMode: envelopes.goalMode,
+        targetAmount: envelopes.targetAmount,
+        isEssential: envelopes.isEssential,
+        isCommitted: envelopes.isCommitted,
+        isSurplusTarget: envelopes.isSurplusTarget,
+        isPrivate: envelopes.isPrivate,
+        generateEvents: envelopes.generateEvents,
+        userId: envelopes.userId,
+        orderIndex: envelopes.orderIndex,
+        bankAccountIsPrivate: bankAccounts.isPrivate,
+        bankAccountUserId: bankAccounts.userId,
+      })
       .from(envelopes)
+      .leftJoin(bankAccounts, eq(envelopes.bankAccountId, bankAccounts.id))
       .where(
         and(
           eq(envelopes.tenantId, tenantId),
@@ -52,11 +77,19 @@ export async function getProjectedPoolBalancesQuery(
       .limit(1),
   ]);
 
+  const visibleEnvelopes = dbEnvelopes.filter((e) => {
+    const isPrivate = Boolean(e.isPrivate || e.bankAccountIsPrivate);
+    if (!isPrivate) return true;
+    const ownerId = e.userId || e.bankAccountUserId;
+    return ownerId === userId;
+  });
+  const visibleEnvelopeIds = new Set(visibleEnvelopes.map((e) => e.id));
+
   const tenantTimezone = tenantRecord[0]?.timezone || "UTC";
 
   const { mapEnvelopeToEngineBucket } = await import("../engine/envelope-engine-mapper.js");
-  const engineBuckets: EngineBucket[] = dbEnvelopes.map((env) =>
-    mapEnvelopeToEngineBucket(env, envBalancesMap[env.id] || 0)
+  const engineBuckets: EngineBucket[] = visibleEnvelopes.map((env) =>
+    mapEnvelopeToEngineBucket(env as unknown as Parameters<typeof mapEnvelopeToEngineBucket>[0], envBalancesMap[env.id] || 0)
   );
 
   // 2. Fetch pending income events
@@ -69,9 +102,12 @@ export async function getProjectedPoolBalancesQuery(
       status: incomeEvents.status,
       name: sql`COALESCE(NULLIF(${incomeEvents.name}, ''), ${incomeSources.name}, 'Paycheck')`,
       rrule: incomeSources.rrule,
+      bankAccountIsPrivate: bankAccounts.isPrivate,
+      bankAccountUserId: bankAccounts.userId,
     })
     .from(incomeEvents)
     .leftJoin(incomeSources, eq(incomeEvents.incomeSourceId, incomeSources.id))
+    .leftJoin(bankAccounts, eq(incomeSources.receivingAccountId, bankAccounts.id))
     .where(
       and(
         eq(incomeEvents.tenantId, tenantId),
@@ -81,7 +117,12 @@ export async function getProjectedPoolBalancesQuery(
       )
     );
 
-  const matrixIncomeEvents: MatrixIncomeEvent[] = pendingIncomesRaw.map((e) => ({
+  const filteredIncomes = pendingIncomesRaw.filter((e) => {
+    if (!e.bankAccountIsPrivate) return true;
+    return e.bankAccountUserId === userId;
+  });
+
+  const matrixIncomeEvents: MatrixIncomeEvent[] = filteredIncomes.map((e) => ({
     id: e.id,
     sourceName: String(e.name || "Paycheck"),
     expectedDate: e.expectedDate,
@@ -110,12 +151,14 @@ export async function getProjectedPoolBalancesQuery(
       )
     );
 
-  const matrixExpenseEvents: ScheduledExpenseEvent[] = pendingExpensesRaw.map((e) => ({
-    categoryId: e.envelopeId,
-    dueDate: e.expectedDate,
-    amount: parseFloat(e.expectedAmount),
-    status: e.status as "PENDING" | "CONFIRMED",
-  }));
+  const matrixExpenseEvents: ScheduledExpenseEvent[] = pendingExpensesRaw
+    .filter((e) => !e.envelopeId || visibleEnvelopeIds.has(e.envelopeId))
+    .map((e) => ({
+      categoryId: e.envelopeId,
+      dueDate: e.expectedDate,
+      amount: parseFloat(e.expectedAmount),
+      status: e.status as "PENDING" | "CONFIRMED",
+    }));
 
   // 4. Fetch cell overrides
   const pendingPlans = await dbClient
@@ -138,7 +181,9 @@ export async function getProjectedPoolBalancesQuery(
 
   const cellOverrides: Record<string, number> = {};
   for (const p of pendingPlans) {
-    cellOverrides[`${p.incomeEventId}_${p.envelopeId}`] = parseFloat(p.confirmedAmount || p.proposedAmount);
+    if (visibleEnvelopeIds.has(p.envelopeId)) {
+      cellOverrides[`${p.incomeEventId}_${p.envelopeId}`] = parseFloat(p.confirmedAmount || p.proposedAmount);
+    }
   }
 
   // 5. Compute matrix projection

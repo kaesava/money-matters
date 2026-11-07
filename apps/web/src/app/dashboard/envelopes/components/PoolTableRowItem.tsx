@@ -99,7 +99,7 @@ export function PoolTableRowItem({
 
           {pool.rawPool.isSurplusTarget && (
             <span className="inline-flex items-center gap-1">
-              <span title={t("categories.targetPoolShortfallSurplus")} className="text-sm cursor-help">
+              <span className="text-sm">
                 🎯
               </span>
               <InfoTooltip

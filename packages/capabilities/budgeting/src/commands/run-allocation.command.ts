@@ -32,10 +32,15 @@ export async function runAllocationCommand(
   markAsReceivedToday?: boolean,
   runwayDays?: number
 ) {
-  // 1. Fetch Envelopes
-  const dbEnvelopes = await dbClient
-    .select()
+  // 1. Fetch Envelopes joined with bankAccounts
+  const rawEnvelopes = await dbClient
+    .select({
+      envelope: envelopes,
+      bankAccountIsPrivate: bankAccounts.isPrivate,
+      bankAccountUserId: bankAccounts.userId,
+    })
     .from(envelopes)
+    .leftJoin(bankAccounts, eq(envelopes.bankAccountId, bankAccounts.id))
     .where(
       and(
         eq(envelopes.tenantId, tenantId),
@@ -43,6 +48,14 @@ export async function runAllocationCommand(
         sql`${envelopes.archivedAt} IS NULL`
       )
     );
+
+  const dbEnvelopes = rawEnvelopes
+    .filter((row) => {
+      if (row.envelope.isPrivate && row.envelope.userId !== userId) return false;
+      if (row.bankAccountIsPrivate && row.bankAccountUserId !== userId) return false;
+      return true;
+    })
+    .map((row) => row.envelope);
 
   // 2. Compute balances using DB-side aggregate SUM(CASE WHEN...)
   const balancesMap = await getEnvelopeBalancesMap(tenantId, appId, dbClient);
@@ -54,12 +67,26 @@ export async function runAllocationCommand(
       expectedDate: incomeEvents.expectedDate,
       rrule: incomeSources.rrule,
       incomeType: incomeSources.incomeType,
-      userId: bankAccounts.userId,
+      bankAccountUserId: bankAccounts.userId,
+      bankAccountIsPrivate: bankAccounts.isPrivate,
     })
     .from(incomeEvents)
     .leftJoin(incomeSources, eq(incomeEvents.incomeSourceId, incomeSources.id))
     .leftJoin(bankAccounts, eq(incomeSources.receivingAccountId, bankAccounts.id))
     .where(eq(incomeEvents.id, incomeEventId));
+
+  if (!eventWithSource) {
+    throw new Error("Income event not found.");
+  }
+
+  if (
+    eventWithSource.bankAccountIsPrivate &&
+    eventWithSource.bankAccountUserId !== userId
+  ) {
+    throw new Error("Income event not found.");
+  }
+
+  const incomeUserId = eventWithSource.bankAccountUserId || undefined;
 
   const [tenantRecord] = await dbClient
     .select({ timezone: tenants.timezone })
@@ -103,6 +130,9 @@ export async function runAllocationCommand(
       )
     );
 
+  const visibleEnvelopeIds = new Set(dbEnvelopes.map((e) => e.id));
+  const filteredPendingExpenses = pendingExpenses.filter((e) => visibleEnvelopeIds.has(e.envelopeId));
+
   const { mapEnvelopeToEngineBucket } = await import("../engine/envelope-engine-mapper.js");
   const engineBuckets: EngineBucket[] = dbEnvelopes.map((env) =>
     mapEnvelopeToEngineBucket(env, balancesMap[env.id] || 0)
@@ -111,14 +141,14 @@ export async function runAllocationCommand(
   const engineOutput = runAllocationEngine({
     incomeAmount,
     incomeType: eventWithSource?.incomeType || "SALARIED",
-    incomeUserId: eventWithSource?.userId ?? undefined,
+    incomeUserId,
     runwayDays: runwayDays ?? 30,
     buckets: engineBuckets,
     paycheckDate: eventWithSource ? new Date(eventWithSource.expectedDate + "T00:00:00Z") : new Date(),
     paycheckFrequencyDays: freqDays,
     dueBufferDays: bufferDays,
     timezone: tenantTz,
-    upcomingExpenses: pendingExpenses.map((e) => ({
+    upcomingExpenses: filteredPendingExpenses.map((e) => ({
       envelopeId: e.envelopeId,
       name: e.name,
       amount: parseFloat(e.amount),

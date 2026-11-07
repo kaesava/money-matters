@@ -1,8 +1,7 @@
 "use client";
 
 import { useState, useEffect, Suspense, useCallback } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
-import { authClient } from "../lib/auth";
+import { useSearchParams } from "next/navigation";
 import { trpc } from "../lib/trpc";
 import { useToast } from "@money-matters/ui/web";
 import { t } from "@money-matters/i18n";
@@ -38,7 +37,6 @@ function EarlyAccessQueryWatcher({ onTrigger }: { onTrigger: () => void }) {
 }
 
 export default function Home() {
-  const router = useRouter();
   const toast = useToast();
   const [isClient, setIsClient] = useState(false);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);

@@ -1,5 +1,5 @@
-import { transactionLedger, envelopes, DbOrTx } from "@money-matters/db";
-import { eq, and, sql, gte, desc, notInArray, ilike } from "drizzle-orm";
+import { transactionLedger, envelopes, bankAccounts, DbOrTx } from "@money-matters/db";
+import { eq, and, sql, gte, desc, notInArray, ilike, or, isNull } from "drizzle-orm";
 import {
   SpendingTimeframe,
   SpendingFlowType,
@@ -35,7 +35,8 @@ export async function getSpendingAnalyticsQuery(
   appId: string,
   params: AnalyticsFilterParams,
   dbClient: DbOrTx,
-  referenceDate: Date = new Date()
+  referenceDate: Date = new Date(),
+  userId?: string
 ): Promise<SpendingAnalyticsDTO> {
   const { timeframe, flowType = "ALL", envelopeId, bankAccountId, searchQuery } = params;
 
@@ -65,6 +66,23 @@ export async function getSpendingAnalyticsQuery(
     conditions.push(ilike(transactionLedger.note, `%${searchQuery.trim()}%`));
   }
 
+  if (userId) {
+    conditions.push(
+      or(
+        eq(bankAccounts.isPrivate, false),
+        isNull(bankAccounts.isPrivate),
+        eq(bankAccounts.userId, userId)
+      )!
+    );
+    conditions.push(
+      or(
+        eq(envelopes.isPrivate, false),
+        isNull(envelopes.isPrivate),
+        eq(envelopes.userId, userId)
+      )!
+    );
+  }
+
   const rows = await dbClient
     .select({
       id: transactionLedger.id,
@@ -79,6 +97,7 @@ export async function getSpendingAnalyticsQuery(
     })
     .from(transactionLedger)
     .leftJoin(envelopes, eq(transactionLedger.envelopeId, envelopes.id))
+    .leftJoin(bankAccounts, eq(transactionLedger.bankAccountId, bankAccounts.id))
     .where(and(...conditions))
     .orderBy(desc(transactionLedger.recordedAt));
 

@@ -163,7 +163,7 @@ export function PoolPicker({
       {error && <p className="mt-1 text-xs font-medium text-rose-500">{error}</p>}
 
       {isOpen && (
-        <div className="absolute left-0 top-full z-50 mt-1 max-h-80 w-full overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-xl dark:border-slate-800 dark:bg-slate-900 flex flex-col animate-in fade-in duration-150">
+        <div className="absolute left-0 top-full z-50 mt-1 max-h-80 w-full min-w-[320px] overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-xl dark:border-slate-800 dark:bg-slate-900 flex flex-col animate-in fade-in duration-150">
           {/* Search Input */}
           <div className="p-2 border-b border-slate-100 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-900/80">
             <div className="relative flex items-center">

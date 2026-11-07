@@ -1,6 +1,6 @@
 export const commandPalette = {
   commandPalette: {
-    triggerPlaceholder: "Search accounts, envelopes, bills, transactions... (⌘K)",
+    triggerPlaceholder: "Search bank accounts, envelopes, bills, transactions... (⌘K)",
     triggerTitle: "Search & Ask Penny",
     triggerSubtitle: "Global Search & Command Palette",
     mobilePlaceholder: "Search anything...",
@@ -10,7 +10,7 @@ export const commandPalette = {
     askPennyHint: "Press Tab to ask AI",
     categories: {
       all: "All",
-      accounts: "Accounts",
+      accounts: "Bank Accounts",
       envelopes: "Envelopes",
       events: "Upcoming",
       transactions: "Transactions",

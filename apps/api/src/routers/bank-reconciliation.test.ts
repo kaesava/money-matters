@@ -56,23 +56,30 @@ describe("Bank Reconciliation & Mapping Rules", () => {
     expect(insertedAccounts).toHaveLength(1);
     expect(insertedAccounts[0].name).toBe("Other Financial Institution (Everyday)");
 
-    expect(insertedEnvelopes.length).toBeGreaterThanOrEqual(3);
+    expect(insertedEnvelopes).toHaveLength(2);
     const envelopeTypes = insertedEnvelopes.map((p) => p.envelopeType);
     expect(envelopeTypes).toContain("EVERYDAY");
-    expect(envelopeTypes).toContain("SCHEDULED_BILL");
     expect(envelopeTypes).toContain("ONGOING_GOAL");
     expect(insertedEnvelopes.every((p) => p.bankAccountId === "acc-primary-123")).toBe(true);
   });
 
-  it("should block archiving a bank account if active envelopes are linked to it", async () => {
+  it("should block archiving a bank account if Everyday envelope is linked to it", async () => {
+    let callCount = 0;
     const mockDb: any = {
       select: () => ({
         from: () => ({
-          where: () =>
-            Promise.resolve([
+          where: () => {
+            callCount++;
+            if (callCount === 1) {
+              return {
+                limit: () => Promise.resolve([{ id: "acc-1", isPrivate: false, userId: "user-1" }]),
+              };
+            }
+            return Promise.resolve([
               { id: "env-1", envelopeType: "EVERYDAY", bankAccountId: "acc-1" },
               { id: "env-2", envelopeType: "SCHEDULED_BILL", bankAccountId: "acc-1" },
-            ]),
+            ]);
+          },
         }),
       }),
     };
@@ -80,7 +87,7 @@ describe("Bank Reconciliation & Mapping Rules", () => {
     const archiveHandler = archiveBankAccountHandler(mockDb);
     await expect(
       archiveHandler("acc-1", "tenant-1", "app-1", "user-1")
-    ).rejects.toThrow("Cannot archive bank account because envelope(s)");
+    ).rejects.toThrow("Cannot archive bank account linked to the Everyday envelope");
   });
 
   it("should calculate expected bank balance correctly including unbudgeted buffer and linked pool balances", () => {

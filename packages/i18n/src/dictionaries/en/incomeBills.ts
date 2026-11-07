@@ -10,6 +10,7 @@ export const incomeBills = {
     "schedules": "Schedules",
     "searchPlaceholder": "Search events, envelopes, accounts, amount...",
     "allocateMaxTooltip": "Allocate entire remaining shortfall from this envelope",
+    "addIncomeSchedule": "Add Income Schedule",
     "addBillSchedule": "Add Bill Schedule",
     "editBillSchedule": "Edit Bill Schedule",
     "oneOffIncome": "One-off Income",

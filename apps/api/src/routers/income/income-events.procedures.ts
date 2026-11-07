@@ -1,5 +1,5 @@
 import { privateTenantProcedure, requiresWriteAccess } from '../../trpc/trpc.js';
-import { incomeSources, incomeEvents } from "@money-matters/db";
+import { incomeSources, incomeEvents, bankAccounts } from "@money-matters/db";
 import { and, eq, sql, asc } from "drizzle-orm";
 import { posthog } from '../../lib/posthog.js';
 import { CreateIncomeEventCommand } from "@money-matters/types";
@@ -10,6 +10,30 @@ export const incomeEventsProcedures = {
     .input(CreateIncomeEventCommand)
     .mutation(async ({ input, ctx }) => {
       requiresWriteAccess(ctx);
+
+      if (input.incomeSourceId) {
+        const [source] = await ctx.db
+          .select({
+            bankAccountIsPrivate: bankAccounts.isPrivate,
+            bankAccountUserId: bankAccounts.userId,
+          })
+          .from(incomeSources)
+          .leftJoin(bankAccounts, eq(incomeSources.receivingAccountId, bankAccounts.id))
+          .where(
+            and(
+              eq(incomeSources.id, input.incomeSourceId),
+              eq(incomeSources.tenantId, ctx.tenantId!),
+              eq(incomeSources.appId, ctx.appId!),
+              sql`${incomeSources.archivedAt} IS NULL`
+            )
+          );
+
+        if (!source) throw new Error("Income source not found.");
+        if (source.bankAccountIsPrivate && source.bankAccountUserId !== ctx.userId) {
+          throw new Error("Income source not found.");
+        }
+      }
+
       const [event] = await ctx.db
         .insert(incomeEvents)
         .values({
@@ -43,9 +67,12 @@ export const incomeEventsProcedures = {
           incomeSourceId: incomeEvents.incomeSourceId,
           sourceName: incomeSources.name,
           bankAccountId: incomeSources.receivingAccountId,
+          bankAccountIsPrivate: bankAccounts.isPrivate,
+          bankAccountUserId: bankAccounts.userId,
         })
         .from(incomeEvents)
         .leftJoin(incomeSources, eq(incomeEvents.incomeSourceId, incomeSources.id))
+        .leftJoin(bankAccounts, eq(incomeSources.receivingAccountId, bankAccounts.id))
         .where(
           and(
             eq(incomeEvents.tenantId, ctx.tenantId!),
@@ -55,10 +82,15 @@ export const incomeEventsProcedures = {
         )
         .orderBy(asc(incomeEvents.expectedDate));
 
-      const firstUpcoming = events.find((e) => e.status === "PENDING");
+      const visibleEvents = events.filter((e) => {
+        if (e.bankAccountIsPrivate && e.bankAccountUserId !== ctx.userId) return false;
+        return true;
+      });
+
+      const firstUpcoming = visibleEvents.find((e) => e.status === "PENDING");
       const nextId = firstUpcoming?.id;
 
-      return events.map((e) => ({
+      return visibleEvents.map((e) => ({
         ...e,
         isNextPayday: e.id === nextId,
       }));
@@ -76,6 +108,27 @@ export const incomeEventsProcedures = {
     )
     .mutation(async ({ input, ctx }) => {
       requiresWriteAccess(ctx);
+
+      if (input.receivingAccountId) {
+        const [acc] = await ctx.db
+          .select({ isPrivate: bankAccounts.isPrivate, userId: bankAccounts.userId })
+          .from(bankAccounts)
+          .where(
+            and(
+              eq(bankAccounts.id, input.receivingAccountId),
+              eq(bankAccounts.tenantId, ctx.tenantId!),
+              eq(bankAccounts.appId, ctx.appId!),
+              sql`${bankAccounts.archivedAt} IS NULL`
+            )
+          )
+          .limit(1);
+
+        if (!acc) throw new Error("Receiving bank account not found.");
+        if (acc.isPrivate && acc.userId !== ctx.userId) {
+          throw new Error("Receiving bank account not found.");
+        }
+      }
+
       const [source] = await ctx.db
         .insert(incomeSources)
         .values({
@@ -122,16 +175,31 @@ export const incomeEventsProcedures = {
     .mutation(async ({ input, ctx }) => {
       requiresWriteAccess(ctx);
       const [existing] = await ctx.db
-        .select({ incomeSourceId: incomeEvents.incomeSourceId })
+        .select({
+          incomeSourceId: incomeEvents.incomeSourceId,
+          bankAccountIsPrivate: bankAccounts.isPrivate,
+          bankAccountUserId: bankAccounts.userId,
+        })
         .from(incomeEvents)
+        .leftJoin(incomeSources, eq(incomeEvents.incomeSourceId, incomeSources.id))
+        .leftJoin(bankAccounts, eq(incomeSources.receivingAccountId, bankAccounts.id))
         .where(
           and(
             eq(incomeEvents.id, input.eventId),
             eq(incomeEvents.tenantId, ctx.tenantId!),
-            eq(incomeEvents.appId, ctx.appId!)
+            eq(incomeEvents.appId, ctx.appId!),
+            sql`${incomeEvents.archivedAt} IS NULL`
           )
         )
         .limit(1);
+
+      if (!existing) {
+        throw new Error("Income event not found.");
+      }
+
+      if (existing.bankAccountIsPrivate && existing.bankAccountUserId !== ctx.userId) {
+        throw new Error("Income event not found.");
+      }
 
       const isScheduled = Boolean(existing?.incomeSourceId);
       const setPayload: Record<string, unknown> = {
@@ -175,17 +243,28 @@ export const incomeEventsProcedures = {
     .mutation(async ({ input, ctx }) => {
       requiresWriteAccess(ctx);
       const [evt] = await ctx.db
-        .select()
+        .select({
+          id: incomeEvents.id,
+          expectedAmount: incomeEvents.expectedAmount,
+          bankAccountIsPrivate: bankAccounts.isPrivate,
+          bankAccountUserId: bankAccounts.userId,
+        })
         .from(incomeEvents)
+        .leftJoin(incomeSources, eq(incomeEvents.incomeSourceId, incomeSources.id))
+        .leftJoin(bankAccounts, eq(incomeSources.receivingAccountId, bankAccounts.id))
         .where(
           and(
             eq(incomeEvents.id, input.eventId),
             eq(incomeEvents.tenantId, ctx.tenantId!),
-            eq(incomeEvents.appId, ctx.appId!)
+            eq(incomeEvents.appId, ctx.appId!),
+            sql`${incomeEvents.archivedAt} IS NULL`
           )
         );
 
       if (!evt) throw new Error("Income event not found.");
+      if (evt.bankAccountIsPrivate && evt.bankAccountUserId !== ctx.userId) {
+        throw new Error("Income event not found.");
+      }
 
       const amountToReceive = input.actualAmount || evt.expectedAmount;
 
@@ -221,6 +300,29 @@ export const incomeEventsProcedures = {
     )
     .mutation(async ({ input, ctx }) => {
       requiresWriteAccess(ctx);
+      const [evt] = await ctx.db
+        .select({
+          id: incomeEvents.id,
+          bankAccountIsPrivate: bankAccounts.isPrivate,
+          bankAccountUserId: bankAccounts.userId,
+        })
+        .from(incomeEvents)
+        .leftJoin(incomeSources, eq(incomeEvents.incomeSourceId, incomeSources.id))
+        .leftJoin(bankAccounts, eq(incomeSources.receivingAccountId, bankAccounts.id))
+        .where(
+          and(
+            eq(incomeEvents.id, input.eventId),
+            eq(incomeEvents.tenantId, ctx.tenantId!),
+            eq(incomeEvents.appId, ctx.appId!),
+            sql`${incomeEvents.archivedAt} IS NULL`
+          )
+        );
+
+      if (!evt) throw new Error("Income event not found.");
+      if (evt.bankAccountIsPrivate && evt.bankAccountUserId !== ctx.userId) {
+        throw new Error("Income event not found.");
+      }
+
       await ctx.db
         .update(incomeEvents)
         .set({

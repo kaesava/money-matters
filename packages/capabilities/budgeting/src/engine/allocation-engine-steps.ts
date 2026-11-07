@@ -49,17 +49,20 @@ export function runStep1ImmediateBills(
     if (shortfall <= 0) continue;
 
     const sym = ctx.currencySymbol;
-    const alloc = allocate(
-      ctx,
-      b,
-      shortfall,
-      `Immediate bill coverage (${sym}${toDollars(dueCents).toFixed(2)} due within cycle + ${ctx.bufferDays}d buffer): ${sym}${toDollars(Math.min(ctx.remainingCents, shortfall)).toFixed(2)} allocated.`
-    );
+    const allocCents = Math.min(ctx.remainingCents, shortfall);
+    const reasoning =
+      allocCents < shortfall
+        ? `Immediate bill coverage (${sym}${toDollars(dueCents).toFixed(2)} due within cycle + ${ctx.bufferDays}d buffer): ${sym}${toDollars(allocCents).toFixed(2)} allocated (${sym}${toDollars(shortfall - allocCents).toFixed(2)} shortfall).`
+        : `Immediate bill coverage (${sym}${toDollars(dueCents).toFixed(2)} due within cycle + ${ctx.bufferDays}d buffer): ${sym}${toDollars(allocCents).toFixed(2)} allocated.`;
+
+    const alloc = allocate(ctx, b, shortfall, reasoning);
     if (alloc > 0) {
       ctx.priorBillAllocated.set(b.id, (ctx.priorBillAllocated.get(b.id) ?? 0) + alloc);
     }
   }
 }
+
+export const runStep2ImmediateBills = runStep1ImmediateBills;
 
 export function runStep2DeficitRepair(ctx: StepContext, buckets: EngineBucket[]): void {
   const sym = ctx.currencySymbol;
@@ -123,6 +126,8 @@ export function runStep4EverydayAllowance(ctx: StepContext, everydayBuckets: Eng
     }
   }
 }
+
+export const runStep1EverydayAllowance = runStep4EverydayAllowance;
 
 export function runStep5ProRataBills(
   ctx: StepContext,

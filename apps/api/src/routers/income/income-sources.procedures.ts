@@ -1,5 +1,5 @@
 import { privateTenantProcedure, requiresWriteAccess } from '../../trpc/trpc.js';
-import { incomeSources, incomeEvents } from "@money-matters/db";
+import { incomeSources, incomeEvents, bankAccounts } from "@money-matters/db";
 import { and, eq, sql, inArray } from "drizzle-orm";
 import { generateBurstDates } from "@money-matters/capability-budgeting";
 import { posthog } from '../../lib/posthog.js';
@@ -22,6 +22,27 @@ export const incomeSourcesProcedures = {
     )
     .mutation(async ({ input, ctx }) => {
       requiresWriteAccess(ctx);
+
+      if (input.receivingAccountId) {
+        const [acc] = await ctx.db
+          .select({ isPrivate: bankAccounts.isPrivate, userId: bankAccounts.userId })
+          .from(bankAccounts)
+          .where(
+            and(
+              eq(bankAccounts.id, input.receivingAccountId),
+              eq(bankAccounts.tenantId, ctx.tenantId!),
+              eq(bankAccounts.appId, ctx.appId!),
+              sql`${bankAccounts.archivedAt} IS NULL`
+            )
+          )
+          .limit(1);
+
+        if (!acc) throw new Error("Receiving bank account not found.");
+        if (acc.isPrivate && acc.userId !== ctx.userId) {
+          throw new Error("Receiving bank account not found.");
+        }
+      }
+
       let rrule: string | null = null;
       if (input.isRecurring && input.startDate) {
         rrule = buildRRule(input.frequency, input.interval ?? 1);
@@ -136,9 +157,14 @@ export const incomeSourcesProcedures = {
     )
     .mutation(async ({ input, ctx }) => {
       requiresWriteAccess(ctx);
-      const [source] = await ctx.db
-        .select()
+      const [sourceRow] = await ctx.db
+        .select({
+          source: incomeSources,
+          bankAccountIsPrivate: bankAccounts.isPrivate,
+          bankAccountUserId: bankAccounts.userId,
+        })
         .from(incomeSources)
+        .leftJoin(bankAccounts, eq(incomeSources.receivingAccountId, bankAccounts.id))
         .where(
           and(
             eq(incomeSources.id, input.id),
@@ -148,8 +174,34 @@ export const incomeSourcesProcedures = {
           )
         );
 
-      if (!source) {
+      if (!sourceRow) {
         throw new Error("Income source not found or unauthorized.");
+      }
+
+      if (sourceRow.bankAccountIsPrivate && sourceRow.bankAccountUserId !== ctx.userId) {
+        throw new Error("Income source not found or unauthorized.");
+      }
+
+      const source = sourceRow.source;
+
+      if (input.data.receivingAccountId) {
+        const [acc] = await ctx.db
+          .select({ isPrivate: bankAccounts.isPrivate, userId: bankAccounts.userId })
+          .from(bankAccounts)
+          .where(
+            and(
+              eq(bankAccounts.id, input.data.receivingAccountId),
+              eq(bankAccounts.tenantId, ctx.tenantId!),
+              eq(bankAccounts.appId, ctx.appId!),
+              sql`${bankAccounts.archivedAt} IS NULL`
+            )
+          )
+          .limit(1);
+
+        if (!acc) throw new Error("Receiving bank account not found.");
+        if (acc.isPrivate && acc.userId !== ctx.userId) {
+          throw new Error("Receiving bank account not found.");
+        }
       }
 
       const events = await ctx.db
@@ -289,7 +341,7 @@ export const incomeSourcesProcedures = {
 
   listIncomeSources: privateTenantProcedure
     .query(async ({ ctx }) => {
-      return await ctx.db
+      const rows = await ctx.db
         .select({
           id: incomeSources.id,
           name: incomeSources.name,
@@ -298,8 +350,11 @@ export const incomeSourcesProcedures = {
           rrule: incomeSources.rrule,
           startDate: incomeSources.startDate,
           endDate: incomeSources.endDate,
+          bankAccountIsPrivate: bankAccounts.isPrivate,
+          bankAccountUserId: bankAccounts.userId,
         })
         .from(incomeSources)
+        .leftJoin(bankAccounts, eq(incomeSources.receivingAccountId, bankAccounts.id))
         .where(
           and(
             eq(incomeSources.tenantId, ctx.tenantId!),
@@ -308,6 +363,11 @@ export const incomeSourcesProcedures = {
             sql`${incomeSources.rrule} IS NOT NULL`
           )
         );
+
+      return rows.filter((r) => {
+        if (r.bankAccountIsPrivate && r.bankAccountUserId !== ctx.userId) return false;
+        return true;
+      });
     }),
 
 };

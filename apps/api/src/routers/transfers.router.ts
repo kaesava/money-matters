@@ -1,5 +1,5 @@
 import { privateTenantProcedure, requiresWriteAccess } from '../trpc/trpc.js';
-import { transferEvents, envelopes } from "@money-matters/db";
+import { transferEvents, envelopes, bankAccounts } from "@money-matters/db";
 import { and, eq, sql } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 import { moveMoneyCommand } from "@money-matters/capability-budgeting";
@@ -10,8 +10,10 @@ export const transfersRouter = {
     .query(async ({ ctx }) => {
       const sourceEnvelopes = alias(envelopes, "sourceEnvelopes");
       const destEnvelopes = alias(envelopes, "destEnvelopes");
+      const sourceBankAccounts = alias(bankAccounts, "sourceBankAccounts");
+      const destBankAccounts = alias(bankAccounts, "destBankAccounts");
 
-      return await ctx.db
+      const rows = await ctx.db
         .select({
           id: transferEvents.id,
           name: transferEvents.name,
@@ -22,14 +24,24 @@ export const transfersRouter = {
           sourcePoolId: transferEvents.sourceEnvelopeId,
           sourceEnvelopeName: sourceEnvelopes.name,
           sourcePoolName: sourceEnvelopes.name,
+          sourceIsPrivate: sourceEnvelopes.isPrivate,
+          sourceUserId: sourceEnvelopes.userId,
+          sourceBankIsPrivate: sourceBankAccounts.isPrivate,
+          sourceBankUserId: sourceBankAccounts.userId,
           destinationEnvelopeId: transferEvents.destinationEnvelopeId,
           destinationPoolId: transferEvents.destinationEnvelopeId,
           destinationEnvelopeName: destEnvelopes.name,
           destinationPoolName: destEnvelopes.name,
+          destIsPrivate: destEnvelopes.isPrivate,
+          destUserId: destEnvelopes.userId,
+          destBankIsPrivate: destBankAccounts.isPrivate,
+          destBankUserId: destBankAccounts.userId,
         })
         .from(transferEvents)
         .leftJoin(sourceEnvelopes, eq(transferEvents.sourceEnvelopeId, sourceEnvelopes.id))
+        .leftJoin(sourceBankAccounts, eq(sourceEnvelopes.bankAccountId, sourceBankAccounts.id))
         .leftJoin(destEnvelopes, eq(transferEvents.destinationEnvelopeId, destEnvelopes.id))
+        .leftJoin(destBankAccounts, eq(destEnvelopes.bankAccountId, destBankAccounts.id))
         .where(
           and(
             eq(transferEvents.tenantId, ctx.tenantId!),
@@ -37,6 +49,14 @@ export const transfersRouter = {
             sql`${transferEvents.archivedAt} IS NULL`
           )
         );
+
+      return rows.filter((r) => {
+        if (r.sourceIsPrivate && r.sourceUserId !== ctx.userId) return false;
+        if (r.sourceBankIsPrivate && r.sourceBankUserId !== ctx.userId) return false;
+        if (r.destIsPrivate && r.destUserId !== ctx.userId) return false;
+        if (r.destBankIsPrivate && r.destBankUserId !== ctx.userId) return false;
+        return true;
+      });
     }),
 
   createTransferSource: privateTenantProcedure
@@ -62,8 +82,16 @@ export const transfersRouter = {
       }
 
       const [sourceEnv] = await ctx.db
-        .select({ id: envelopes.id, name: envelopes.name })
+        .select({
+          id: envelopes.id,
+          name: envelopes.name,
+          isPrivate: envelopes.isPrivate,
+          userId: envelopes.userId,
+          bankAccountIsPrivate: bankAccounts.isPrivate,
+          bankAccountUserId: bankAccounts.userId,
+        })
         .from(envelopes)
+        .leftJoin(bankAccounts, eq(envelopes.bankAccountId, bankAccounts.id))
         .where(
           and(
             eq(envelopes.id, sourceId),
@@ -75,8 +103,16 @@ export const transfersRouter = {
         .limit(1);
 
       const [destEnv] = await ctx.db
-        .select({ id: envelopes.id, name: envelopes.name })
+        .select({
+          id: envelopes.id,
+          name: envelopes.name,
+          isPrivate: envelopes.isPrivate,
+          userId: envelopes.userId,
+          bankAccountIsPrivate: bankAccounts.isPrivate,
+          bankAccountUserId: bankAccounts.userId,
+        })
         .from(envelopes)
+        .leftJoin(bankAccounts, eq(envelopes.bankAccountId, bankAccounts.id))
         .where(
           and(
             eq(envelopes.id, destId),
@@ -89,6 +125,20 @@ export const transfersRouter = {
 
       if (!sourceEnv || !destEnv) {
         throw new Error("Source or destination envelope not found.");
+      }
+
+      if (
+        (sourceEnv.isPrivate && sourceEnv.userId !== ctx.userId) ||
+        (sourceEnv.bankAccountIsPrivate && sourceEnv.bankAccountUserId !== ctx.userId)
+      ) {
+        throw new Error("Source envelope not found.");
+      }
+
+      if (
+        (destEnv.isPrivate && destEnv.userId !== ctx.userId) ||
+        (destEnv.bankAccountIsPrivate && destEnv.bankAccountUserId !== ctx.userId)
+      ) {
+        throw new Error("Destination envelope not found.");
       }
 
       const [tenantRecord] = await ctx.db
@@ -137,6 +187,47 @@ export const transfersRouter = {
     )
     .mutation(async ({ input, ctx }) => {
       requiresWriteAccess(ctx);
+
+      const sourceEnvelopes = alias(envelopes, "sourceEnvelopes");
+      const destEnvelopes = alias(envelopes, "destEnvelopes");
+      const sourceBankAccounts = alias(bankAccounts, "sourceBankAccounts");
+      const destBankAccounts = alias(bankAccounts, "destBankAccounts");
+
+      const [evt] = await ctx.db
+        .select({
+          id: transferEvents.id,
+          sourceIsPrivate: sourceEnvelopes.isPrivate,
+          sourceUserId: sourceEnvelopes.userId,
+          sourceBankIsPrivate: sourceBankAccounts.isPrivate,
+          sourceBankUserId: sourceBankAccounts.userId,
+          destIsPrivate: destEnvelopes.isPrivate,
+          destUserId: destEnvelopes.userId,
+          destBankIsPrivate: destBankAccounts.isPrivate,
+          destBankUserId: destBankAccounts.userId,
+        })
+        .from(transferEvents)
+        .leftJoin(sourceEnvelopes, eq(transferEvents.sourceEnvelopeId, sourceEnvelopes.id))
+        .leftJoin(sourceBankAccounts, eq(sourceEnvelopes.bankAccountId, sourceBankAccounts.id))
+        .leftJoin(destEnvelopes, eq(transferEvents.destinationEnvelopeId, destEnvelopes.id))
+        .leftJoin(destBankAccounts, eq(destEnvelopes.bankAccountId, destBankAccounts.id))
+        .where(
+          and(
+            eq(transferEvents.id, input.eventId),
+            eq(transferEvents.tenantId, ctx.tenantId!),
+            eq(transferEvents.appId, ctx.appId!)
+          )
+        );
+
+      if (!evt) throw new Error("Transfer event not found.");
+      if (
+        (evt.sourceIsPrivate && evt.sourceUserId !== ctx.userId) ||
+        (evt.sourceBankIsPrivate && evt.sourceBankUserId !== ctx.userId) ||
+        (evt.destIsPrivate && evt.destUserId !== ctx.userId) ||
+        (evt.destBankIsPrivate && evt.destBankUserId !== ctx.userId)
+      ) {
+        throw new Error("Transfer event not found.");
+      }
+
       await ctx.db
         .update(transferEvents)
         .set({

@@ -150,11 +150,9 @@ export function IncomeExpenseFormModal({
       isDirty={isDirty}
       title={
         isEdit
-          ? mode === 'INCOME'
-            ? t('modals.incomeExpenseForm.titleEditIncome')
-            : t('modals.incomeExpenseForm.titleEditExpense')
+          ? (sourceToEdit?.name || '')
           : mode === 'INCOME'
-          ? t('modals.incomeExpenseForm.titleAddIncome')
+          ? t('incomeBillsTabs.addIncomeSchedule')
           : t('modals.incomeExpenseForm.titleAddExpense')
       }
       footer={

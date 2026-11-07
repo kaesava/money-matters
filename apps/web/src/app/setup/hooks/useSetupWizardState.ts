@@ -70,10 +70,9 @@ export function useSetupWizardState() {
       initialSetupCompletedRef.current = Boolean(userPrefQuery.data?.setupCompleted);
       if (initialSetupCompletedRef.current && !isRerunParam) {
         setIsRerun(true);
-        router.replace("/setup?mode=rerun");
       }
     }
-  }, [userPrefQuery.data, isRerunParam, router]);
+  }, [userPrefQuery.data, isRerunParam]);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {

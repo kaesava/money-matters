@@ -98,6 +98,7 @@ export function SidebarContent({
               <Link
                 key={item.key}
                 href={item.href}
+                prefetch={false}
                 onClick={() => setMobileMenuOpen(false)}
                 className={`flex items-center gap-3.5 px-3 py-3 rounded-xl text-sm font-bold transition-all duration-200 group relative ${
                   isActive
