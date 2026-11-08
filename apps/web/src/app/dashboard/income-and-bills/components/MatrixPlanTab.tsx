@@ -52,9 +52,12 @@ export function MatrixPlanTab({
     savingColId,
     colToSave,
     setColToSave,
+    colToReset,
+    setColToReset,
     incomeToDelete,
     setIncomeToDelete,
     handleSaveAutoSplit,
+    handleResetPlan,
     confirmDeleteIncome,
   } = useMatrixPlanData({
     propsCategories,
@@ -186,6 +189,7 @@ export function MatrixPlanTab({
             returnTo={returnTo}
             fmt={fmt}
             onSaveAutoSplit={handleSaveAutoSplit}
+            onResetPlan={(id) => setColToReset(id)}
             onRequestDeleteIncome={(id) => setIncomeToDelete(id)}
           />
 
@@ -303,6 +307,22 @@ export function MatrixPlanTab({
         description={t("matrix.saveDialogDescription")}
         confirmLabel={t("matrix.saveDialogConfirm")}
         variant="primary"
+      />
+
+      <ConfirmDialog
+        isOpen={!!colToReset}
+        onClose={() => setColToReset(null)}
+        onConfirm={async () => {
+          if (colToReset) {
+            const targetId = colToReset;
+            setColToReset(null);
+            await handleResetPlan(targetId);
+          }
+        }}
+        title={t("paydayDrawer.recalculateConfirmTitle")}
+        description={t("paydayDrawer.recalculateConfirmDescription")}
+        confirmLabel={t("common.confirm")}
+        variant="danger"
       />
 
       <ConfirmDialog

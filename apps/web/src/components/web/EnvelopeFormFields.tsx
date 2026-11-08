@@ -210,6 +210,7 @@ export function EnvelopeFormFields({
               setGenerateEvents={setGenerateEvents}
               initialGenerateEvents={initialGenerateEvents}
               hasExistingScheduledEvents={hasExistingScheduledEvents}
+              isEdit={isEdit}
             />
           )}
         </div>

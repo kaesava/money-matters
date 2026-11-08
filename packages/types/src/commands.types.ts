@@ -142,9 +142,12 @@ export const CreateIncomeSourceScheduleCommand = z.object({
 }).strict();
 
 export const CreateIncomeEventCommand = z.object({
-  incomeSourceId: z.string().uuid(),
+  incomeSourceId: z.string().uuid().optional(),
+  name: z.string().optional(),
   expectedDate: z.string(),
   expectedAmount: z.string().regex(/^\d{1,12}(\.\d{1,2})?$/),
+  contributionMode: z.enum(["FULL", "PERCENTAGE", "FIXED_AMOUNT"]).optional(),
+  contributionValue: z.string().regex(/^\d{1,12}(\.\d{1,2})?$/).nullable().optional(),
 }).strict();
 
 export const TransactionTypeSchema = z.enum([
@@ -204,6 +207,8 @@ export const OverrideEventCommand = z.object({
   actualDate: z.string().optional(),
   name: z.string().optional(),
   envelopeId: z.string().uuid().optional(),
+  contributionMode: z.enum(["FULL", "PERCENTAGE", "FIXED_AMOUNT"]).optional(),
+  contributionValue: z.string().regex(/^\d{1,12}(\.\d{1,2})?$/).nullable().optional(),
   note: z.string().optional(),
   updateSeries: z.boolean().default(false),
 }).strict().refine((val) => !(val.eventType === "EXPENSE" && val.status === "CONFIRMED"), {

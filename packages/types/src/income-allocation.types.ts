@@ -46,6 +46,8 @@ export const IncomeEventSchema = BaseSchema.extend({
   expectedDate: z.string(),
   expectedAmount: z.string(),
   actualAmount: z.string().nullable(),
+  contributionMode: IncomeContributionModeEnum.default("FULL").optional(),
+  contributionValue: z.string().nullable().optional(),
   status: z.enum(["PENDING", "SKIPPED", "CONFIRMED"]),
 }).strict();
 export type IncomeEventType = z.infer<typeof IncomeEventSchema>;

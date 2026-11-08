@@ -193,6 +193,7 @@ export const EnvelopeFormFields: React.FC<EnvelopeFormFieldsProps> = ({
               setGenerateEvents={setGenerateEvents}
               initialGenerateEvents={initialGenerateEvents}
               hasExistingScheduledEvents={hasExistingScheduledEvents}
+              isEdit={isEdit}
             />
           )}
         </View>

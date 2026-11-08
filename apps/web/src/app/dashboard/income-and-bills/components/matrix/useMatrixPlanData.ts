@@ -53,6 +53,7 @@ export function useMatrixPlanData({
   const deleteIncomeMut = trpc.deleteIncomeEvent.useMutation();
   const allPlansQuery = trpc.listAllAllocationPlans.useQuery();
   const saveAutoAllocationMut = trpc.saveAutoAllocation.useMutation();
+  const resetAllocationPlanMut = trpc.resetAllocationPlan.useMutation();
   const matrixQuery = trpc.getMatrixProjectionData.useQuery({ monthsAhead: 12 });
 
   const categories = useMemo(() => {
@@ -113,6 +114,7 @@ export function useMatrixPlanData({
   const [incomeToDelete, setIncomeToDelete] = useState<string | null>(null);
   const [savingColId, setSavingColId] = useState<string | null>(null);
   const [colToSave, setColToSave] = useState<string | null>(null);
+  const [colToReset, setColToReset] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState<"ALL" | "PENDING" | "CONFIRMED">("PENDING");
 
   const columnStateMap = useMemo(() => {
@@ -226,6 +228,22 @@ export function useMatrixPlanData({
     }
   };
 
+  const handleResetPlan = async (colId: string) => {
+    try {
+      await resetAllocationPlanMut.mutateAsync({ incomeEventId: colId });
+      await Promise.all([
+        utils.listAllAllocationPlans.invalidate(),
+        utils.getMatrixProjectionData.invalidate(),
+        utils.previewPayday.invalidate({ incomeEventId: colId }),
+      ]);
+      toast.success(t("paydayDrawer.recalculateSuccess"));
+    } catch (err: unknown) {
+      toast.error((err as Error).message || t("paydayDrawer.recalculateFailed"));
+    } finally {
+      setColToReset(null);
+    }
+  };
+
   const confirmDeleteIncome = async () => {
     if (!incomeToDelete) return;
     try {
@@ -264,9 +282,12 @@ export function useMatrixPlanData({
     savingColId,
     colToSave,
     setColToSave,
+    colToReset,
+    setColToReset,
     incomeToDelete,
     setIncomeToDelete,
     handleSaveAutoSplit,
+    handleResetPlan,
     confirmDeleteIncome,
   };
 }

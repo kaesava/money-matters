@@ -7,6 +7,7 @@ export interface EnvelopeEventsToggleSectionProps {
   setGenerateEvents: (val: boolean) => void;
   initialGenerateEvents?: boolean;
   hasExistingScheduledEvents?: boolean;
+  isEdit?: boolean;
 }
 
 export function EnvelopeEventsToggleSection({
@@ -14,6 +15,7 @@ export function EnvelopeEventsToggleSection({
   setGenerateEvents,
   initialGenerateEvents = true,
   hasExistingScheduledEvents = false,
+  isEdit = false,
 }: EnvelopeEventsToggleSectionProps) {
   const isModified = generateEvents !== initialGenerateEvents;
 
@@ -46,7 +48,7 @@ export function EnvelopeEventsToggleSection({
                 </AlertBanner>
               ) : (
                 <AlertBanner variant="warning" className="py-2.5 px-3">
-                  {hasExistingScheduledEvents
+                  {isEdit || hasExistingScheduledEvents
                     ? t('categories.generateEventsUncheckedEditImplication')
                     : t('categories.generateEventsUncheckedNewImplication')}
                 </AlertBanner>

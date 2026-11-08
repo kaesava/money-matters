@@ -129,6 +129,8 @@ export async function restoreItemCommand(
                 incomeSourceId: inc.id,
                 expectedDate: getLocalDateString(d),
                 expectedAmount: inc.amount,
+                contributionMode: inc.contributionMode || "FULL",
+                contributionValue: inc.contributionValue || null,
                 status: "PENDING" as const,
                 tenantId,
                 appId,
@@ -142,6 +144,8 @@ export async function restoreItemCommand(
             incomeSourceId: inc.id,
             expectedDate: startDate,
             expectedAmount: inc.amount,
+            contributionMode: inc.contributionMode || "FULL",
+            contributionValue: inc.contributionValue || null,
             status: "PENDING",
             tenantId,
             appId,
@@ -258,11 +262,27 @@ export async function restoreItemCommand(
       throw new Error("Cannot restore income schedule because its receiving bank account is archived. Please restore the bank account first.");
     }
 
+    const activePrivate = await dbClient
+      .select({ id: envelopes.id })
+      .from(envelopes)
+      .leftJoin(bankAccounts, eq(envelopes.bankAccountId, bankAccounts.id))
+      .where(
+        and(
+          eq(envelopes.tenantId, tenantId),
+          eq(envelopes.appId, appId),
+          sql`${envelopes.archivedAt} IS NULL`,
+          sql`(${envelopes.isPrivate} = true OR ${bankAccounts.isPrivate} = true)`
+        )
+      );
+
+    const hasPrivate = activePrivate.length > 0;
+
     const [restored] = await dbClient
       .update(incomeSources)
       .set({
         archivedAt: null,
         archivedBy: null,
+        ...(!hasPrivate ? { contributionMode: "FULL", contributionValue: null } : {}),
         updatedBy: userId,
         updatedAt: new Date(),
       })
@@ -285,6 +305,8 @@ export async function restoreItemCommand(
               incomeSourceId: restored.id,
               expectedDate: getLocalDateString(d),
               expectedAmount: restored.amount,
+              contributionMode: restored.contributionMode || "FULL",
+              contributionValue: restored.contributionValue || null,
               status: "PENDING" as const,
               tenantId,
               appId,
@@ -298,6 +320,8 @@ export async function restoreItemCommand(
           incomeSourceId: restored.id,
           expectedDate: startDate,
           expectedAmount: restored.amount,
+          contributionMode: restored.contributionMode || "FULL",
+          contributionValue: restored.contributionValue || null,
           status: "PENDING",
           tenantId,
           appId,

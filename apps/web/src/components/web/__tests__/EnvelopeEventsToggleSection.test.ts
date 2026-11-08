@@ -28,7 +28,8 @@ describe('EnvelopeEventsToggleSection (Web)', () => {
     const resolveImplication = (
       generateEvents: boolean,
       initialGenerateEvents: boolean,
-      hasExistingScheduledEvents: boolean
+      hasExistingScheduledEvents: boolean,
+      isEdit: boolean = false
     ) => {
       const isModified = generateEvents !== initialGenerateEvents;
       if (!isModified) return null;
@@ -40,9 +41,10 @@ describe('EnvelopeEventsToggleSection (Web)', () => {
       }
       return {
         variant: 'warning',
-        key: hasExistingScheduledEvents
-          ? 'categories.generateEventsUncheckedEditImplication'
-          : 'categories.generateEventsUncheckedNewImplication',
+        key:
+          isEdit || hasExistingScheduledEvents
+            ? 'categories.generateEventsUncheckedEditImplication'
+            : 'categories.generateEventsUncheckedNewImplication',
       };
     };
 
@@ -67,8 +69,16 @@ describe('EnvelopeEventsToggleSection (Web)', () => {
       });
     });
 
+    it('returns edit warning variant when unchecking in edit mode even without pre-fetched events', () => {
+      const res = resolveImplication(false, true, false, true);
+      expect(res).toEqual({
+        variant: 'warning',
+        key: 'categories.generateEventsUncheckedEditImplication',
+      });
+    });
+
     it('returns new envelope warning variant when unchecking in create mode', () => {
-      const res = resolveImplication(false, true, false);
+      const res = resolveImplication(false, true, false, false);
       expect(res).toEqual({
         variant: 'warning',
         key: 'categories.generateEventsUncheckedNewImplication',

@@ -30,6 +30,7 @@ export interface MatrixTableHeaderProps {
   returnTo: string;
   fmt: (val: number | string) => string;
   onSaveAutoSplit: (colId: string) => void;
+  onResetPlan: (colId: string) => void;
   onRequestDeleteIncome: (colId: string) => void;
 }
 
@@ -43,6 +44,7 @@ export function MatrixTableHeader({
   returnTo,
   fmt,
   onSaveAutoSplit,
+  onResetPlan,
   onRequestDeleteIncome,
 }: MatrixTableHeaderProps) {
   const router = useRouter();
@@ -78,23 +80,39 @@ export function MatrixTableHeader({
               }`}
             >
               <div className="flex flex-col items-center justify-center gap-0.5">
-                <div className="text-sm font-bold text-[#1B2B4B] dark:text-white truncate max-w-[160px]">
+                {/* Row 1: Status Badge on its own row */}
+                {isConfirmed ? (
+                  <span className="px-1.5 py-0.5 text-[10px] font-bold rounded bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300">
+                    {t("matrix.confirmedBadge")}
+                  </span>
+                ) : isSaved ? (
+                  <span className="px-1.5 py-0.5 text-[10px] font-bold rounded bg-slate-200 text-slate-800 dark:bg-slate-800 dark:text-slate-300">
+                    {t("matrix.savedBadge")}
+                  </span>
+                ) : (
+                  <span className="px-1.5 py-0.5 text-[10px] font-bold rounded bg-zinc-200 text-zinc-700 dark:bg-zinc-700 dark:text-zinc-300">
+                    {t("matrix.autoBadge")}
+                  </span>
+                )}
+
+                {/* Row 2: Source Name */}
+                <div className="text-sm font-bold text-[#1B2B4B] dark:text-white truncate max-w-[160px] mt-0.5">
                   {col.sourceName}
                 </div>
 
+                {/* Row 3: Date */}
                 <div className="text-xs text-zinc-500 font-medium">
                   {dateStr}
                 </div>
 
+                {/* Row 4: Total Income */}
                 <div className="text-sm font-extrabold text-emerald-600 dark:text-emerald-400 font-mono mt-0.5">
                   +{fmt(col.totalIncome)}
                 </div>
 
+                {/* Row 5: Actions */}
                 {isConfirmed ? (
                   <div className="flex items-center justify-center gap-2 text-xs mt-1.5 font-medium">
-                    <span className="px-1.5 py-0.5 text-[10px] font-bold rounded bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300">
-                      {t("matrix.confirmedBadge")}
-                    </span>
                     <button
                       type="button"
                       onClick={() =>
@@ -110,9 +128,14 @@ export function MatrixTableHeader({
                   </div>
                 ) : isSaved ? (
                   <div className="flex items-center justify-center gap-2 text-xs mt-1.5 font-medium">
-                    <span className="px-1.5 py-0.5 text-[10px] font-bold rounded bg-slate-200 text-slate-800 dark:bg-slate-800 dark:text-slate-300">
-                      {t("matrix.savedBadge")}
-                    </span>
+                    <button
+                      type="button"
+                      onClick={() => onResetPlan(col.id)}
+                      className="font-bold text-amber-600 hover:underline cursor-pointer transition-colors"
+                      title={t("common.reset")}
+                    >
+                      {t("common.reset")}
+                    </button>
                     <button
                       type="button"
                       onClick={() =>
@@ -136,17 +159,14 @@ export function MatrixTableHeader({
                   </div>
                 ) : (
                   <div className="flex items-center justify-center gap-2 text-xs mt-1.5 font-medium">
-                    <span className="px-1.5 py-0.5 text-[10px] font-bold rounded bg-zinc-200 text-zinc-700 dark:bg-zinc-700 dark:text-zinc-300">
-                      {t("matrix.autoBadge")}
-                    </span>
                     <button
                       type="button"
                       disabled={savingColId === col.id}
                       onClick={() => onSaveAutoSplit(col.id)}
                       className="font-bold text-emerald-600 hover:underline cursor-pointer transition-colors disabled:opacity-50"
-                      title={t("matrix.saveSplit")}
+                      title={t("common.save")}
                     >
-                      {savingColId === col.id ? "..." : t("matrix.saveSplit")}
+                      {savingColId === col.id ? "..." : t("common.save")}
                     </button>
                     <button
                       type="button"

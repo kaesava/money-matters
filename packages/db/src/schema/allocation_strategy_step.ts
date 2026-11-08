@@ -9,6 +9,8 @@ export const allocationStepTypeEnum = pgEnum("allocation_step_type_enum", [
   "BILLS_SAFETY_FLOOR",
   "PRO_RATA_BILLS",
   "EVERYDAY_ALLOWANCE",
+  "ESSENTIAL_BILLS",
+  "FLEXIBLE_BILLS",
   "COMMITTED_GOALS",
   "STANDARD_GOALS",
   "FIXED_AMOUNT",

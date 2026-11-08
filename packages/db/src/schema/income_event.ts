@@ -1,5 +1,5 @@
 import { pgTable, uuid, numeric, pgEnum, date, varchar, index } from "drizzle-orm/pg-core";
-import { incomeSources } from "./income.js";
+import { incomeSources, incomeContributionModeEnum } from "./income.js";
 import { tenantAndTimestamps } from "./base.js";
 
 export const incomeEventStatusEnum = pgEnum("income_event_status_enum", ["PENDING", "CONFIRMED"]);
@@ -15,6 +15,8 @@ export const incomeEvents = pgTable(
 
     expectedAmount: numeric("expected_amount", { precision: 12, scale: 2 }).notNull(),
     actualAmount: numeric("actual_amount", { precision: 12, scale: 2 }),
+    contributionMode: incomeContributionModeEnum("contribution_mode").notNull().default("FULL"),
+    contributionValue: numeric("contribution_value", { precision: 12, scale: 2 }),
     note: varchar("note", { length: 500 }),
     status: incomeEventStatusEnum("status").notNull().default("PENDING"),
     ...tenantAndTimestamps,

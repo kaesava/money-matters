@@ -60,7 +60,7 @@ export const incomeBills = {
     "incomeSchedulesAndBillsTitle": "Plan",
     "incomeSchedulesAndBillsSubtitle": "Upcoming paydays and bills, recurring income and bill schedules, and your 12-month payday plans.",
     "twelveMonthTab": "12-Month Payday Plan",
-    "twelveMonthPlanGuidanceBanner": "Future paydays are automatically pre-calculated using your payday planning rules. These plans update dynamically as your income or bill schedules change. Click 'Save Plan' on any payday to lock in custom allocations so they won't be recalculated.",
+    "twelveMonthPlanGuidanceBanner": "Future paydays are automatically pre-calculated using your payday planning rules. These plans update dynamically as your income or bill schedules change. Click 'Save' on any payday to lock in custom allocations so they won't be recalculated.",
     "openCustomTransferModalLink": "Transfer funds between Envelopes",
     "householdContribution": {
       "title": "Household Contribution",

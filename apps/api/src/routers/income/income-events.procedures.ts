@@ -38,10 +38,13 @@ export const incomeEventsProcedures = {
         .insert(incomeEvents)
         .values({
           incomeSourceId: input.incomeSourceId,
+          name: input.name || null,
           expectedDate: input.expectedDate,
           actualDate: input.expectedDate,
           expectedAmount: input.expectedAmount,
           actualAmount: input.expectedAmount,
+          contributionMode: input.contributionMode || "FULL",
+          contributionValue: input.contributionValue || null,
           status: "PENDING",
           tenantId: ctx.tenantId!,
           appId: ctx.appId!,
@@ -62,6 +65,8 @@ export const incomeEventsProcedures = {
           actualDate: incomeEvents.actualDate,
           expectedAmount: incomeEvents.expectedAmount,
           actualAmount: incomeEvents.actualAmount,
+          contributionMode: sql<string>`COALESCE(${incomeEvents.contributionMode}, ${incomeSources.contributionMode}, 'FULL')`,
+          contributionValue: sql<string | null>`COALESCE(${incomeEvents.contributionValue}, ${incomeSources.contributionValue})`,
           status: incomeEvents.status,
           note: incomeEvents.note,
           incomeSourceId: incomeEvents.incomeSourceId,
@@ -106,11 +111,19 @@ export const incomeEventsProcedures = {
         amount: z.string().regex(/^\d+(\.\d{1,2})?$/),
         expectedDate: z.string(),
         receivingAccountId: z.string().uuid().optional(),
+        contributionMode: z.enum(["FULL", "PERCENTAGE", "FIXED_AMOUNT"]).optional(),
+        contributionValue: z.string().regex(/^\d+(\.\d{1,2})?$/).nullable().optional(),
         note: z.string().optional(),
       }).strict()
     )
     .mutation(async ({ input, ctx }) => {
       requiresWriteAccess(ctx);
+
+      if (input.contributionMode === "FIXED_AMOUNT" && input.contributionValue) {
+        if (parseFloat(input.contributionValue) > parseFloat(input.amount)) {
+          throw new Error("Household contribution cannot exceed the expected income amount.");
+        }
+      }
 
       if (input.receivingAccountId) {
         const [acc] = await ctx.db
@@ -140,6 +153,8 @@ export const incomeEventsProcedures = {
           receivingAccountId: input.receivingAccountId || null,
           rrule: null,
           startDate: input.expectedDate,
+          contributionMode: input.contributionMode || "FULL",
+          contributionValue: input.contributionValue || null,
           tenantId: ctx.tenantId!,
           appId: ctx.appId!,
           createdBy: ctx.userId!,
@@ -151,10 +166,13 @@ export const incomeEventsProcedures = {
         .insert(incomeEvents)
         .values({
           incomeSourceId: source.id,
+          name: input.name,
           expectedDate: input.expectedDate,
           actualDate: input.expectedDate,
           expectedAmount: input.amount,
           actualAmount: input.amount,
+          contributionMode: input.contributionMode || "FULL",
+          contributionValue: input.contributionValue || null,
           note: input.note || null,
           status: "PENDING",
           tenantId: ctx.tenantId!,
@@ -173,6 +191,8 @@ export const incomeEventsProcedures = {
         eventId: z.string().uuid(),
         expectedAmount: z.string().regex(/^\d+(\.\d{1,2})?$/).optional(),
         expectedDate: z.string().optional(),
+        contributionMode: z.enum(["FULL", "PERCENTAGE", "FIXED_AMOUNT"]).optional(),
+        contributionValue: z.string().regex(/^\d+(\.\d{1,2})?$/).nullable().optional(),
       }).strict()
     )
     .mutation(async ({ input, ctx }) => {

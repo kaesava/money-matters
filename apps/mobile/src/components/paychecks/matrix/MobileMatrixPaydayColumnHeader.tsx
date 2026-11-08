@@ -44,43 +44,45 @@ export const MobileMatrixPaydayColumnHeader: React.FC<MobileMatrixPaydayColumnHe
         isSaved && styles.savedCol,
       ]}
     >
-      {/* Row 1: Source Name */}
+      {/* Row 1: Status Badge on its own row */}
+      {isConfirmed ? (
+        <View style={styles.confirmedBadge}>
+          <Text style={styles.confirmedBadgeText}>{t('matrix.confirmedBadge')}</Text>
+        </View>
+      ) : isSaved ? (
+        <View style={styles.savedBadge}>
+          <Text style={styles.savedBadgeText}>{t('matrix.savedBadge')}</Text>
+        </View>
+      ) : (
+        <View style={styles.autoBadge}>
+          <Text style={styles.autoBadgeText}>{t('matrix.autoBadge')}</Text>
+        </View>
+      )}
+
+      {/* Row 2: Source Name */}
       <Text style={styles.sourceName} numberOfLines={1}>
         {col.sourceName || t('common.income')}
       </Text>
 
-      {/* Row 2: Date */}
+      {/* Row 3: Date */}
       <Text style={styles.dateText}>{dateStr}</Text>
 
-      {/* Row 3: Total Income */}
+      {/* Row 4: Total Income */}
       <Text style={styles.incomeAmount}>+{formatMobileCurrency(col.totalIncome)}</Text>
 
-      {/* Row 4: Actions & Badges */}
+      {/* Row 5: Actions */}
       {isConfirmed ? (
         <View style={styles.actionRow}>
-          <View style={styles.confirmedBadge}>
-            <Text style={styles.confirmedBadgeText}>{t('matrix.confirmedBadge')}</Text>
-          </View>
           <TouchableOpacity onPress={() => onReview(col.id)} style={styles.reviewBtn}>
             <Text style={styles.reviewText}>{t('matrix.review')}</Text>
           </TouchableOpacity>
         </View>
       ) : (
         <View style={styles.actionRow}>
-          {isSaved && (
-            <View style={styles.savedBadge}>
-              <Text style={styles.savedBadgeText}>🔒 {t('matrix.lockedBadge')}</Text>
-            </View>
-          )}
-
-          <TouchableOpacity onPress={() => onReview(col.id)} style={styles.reviewBtn}>
-            <Text style={styles.reviewText}>{t('matrix.review')}</Text>
-          </TouchableOpacity>
-
           {isSaved && onReset && (
             <>
               <TouchableOpacity onPress={() => onReset(col.id)} style={styles.resetBtn}>
-                <Text style={styles.resetText}>{t('matrix.unlock')}</Text>
+                <Text style={styles.resetText}>{t('common.reset')}</Text>
               </TouchableOpacity>
               <Text style={styles.separator}>|</Text>
             </>
@@ -93,11 +95,17 @@ export const MobileMatrixPaydayColumnHeader: React.FC<MobileMatrixPaydayColumnHe
                 disabled={isSaving}
                 style={styles.saveBtn}
               >
-                <Text style={styles.saveText}>{isSaving ? '…' : t('matrix.lock')}</Text>
+                <Text style={styles.saveText}>{isSaving ? '…' : t('common.save')}</Text>
               </TouchableOpacity>
               <Text style={styles.separator}>|</Text>
             </>
           )}
+
+          <TouchableOpacity onPress={() => onReview(col.id)} style={styles.reviewBtn}>
+            <Text style={styles.reviewText}>{t('common.edit')}</Text>
+          </TouchableOpacity>
+
+          <Text style={styles.separator}>|</Text>
 
           <TouchableOpacity onPress={() => onDelete(col.id)} style={styles.deleteBtn}>
             <Text style={styles.deleteText}>{t('common.delete')}</Text>
@@ -175,12 +183,23 @@ const styles = StyleSheet.create({
     paddingHorizontal: 4,
     paddingVertical: 1,
     borderRadius: 4,
-    backgroundColor: DESIGN_TOKENS.colors.accentLight,
+    backgroundColor: DESIGN_TOKENS.colors.slate[200],
   },
   savedBadgeText: {
     fontSize: 9,
     fontWeight: '800',
-    color: DESIGN_TOKENS.colors.accentDark,
+    color: DESIGN_TOKENS.colors.slate[800],
+  },
+  autoBadge: {
+    paddingHorizontal: 4,
+    paddingVertical: 1,
+    borderRadius: 4,
+    backgroundColor: DESIGN_TOKENS.colors.slate[200],
+  },
+  autoBadgeText: {
+    fontSize: 9,
+    fontWeight: '800',
+    color: DESIGN_TOKENS.colors.slate[700],
   },
   reviewBtn: {
     paddingVertical: 2,

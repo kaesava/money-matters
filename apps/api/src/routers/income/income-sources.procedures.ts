@@ -70,6 +70,12 @@ export const incomeSourcesProcedures = {
           })
           .returning();
 
+        if (input.contributionMode === "FIXED_AMOUNT" && input.contributionValue) {
+          if (parseFloat(input.contributionValue) > parseFloat(input.amount)) {
+            throw new Error("Household contribution cannot exceed the expected income amount.");
+          }
+        }
+
         const [insertedEvent] = await ctx.db
           .insert(incomeEvents)
           .values({
@@ -79,6 +85,8 @@ export const incomeSourcesProcedures = {
             actualDate: eventDate,
             expectedAmount: input.amount,
             actualAmount: input.amount,
+            contributionMode: input.contributionMode || "FULL",
+            contributionValue: input.contributionValue || null,
             status: "PENDING" as const,
             tenantId: ctx.tenantId!,
             appId: ctx.appId!,
@@ -106,6 +114,12 @@ export const incomeSourcesProcedures = {
           archivedAt: null,
           firstEventId: insertedEvent.id,
         };
+      }
+
+      if (input.contributionMode === "FIXED_AMOUNT" && input.contributionValue) {
+        if (parseFloat(input.contributionValue) > parseFloat(input.amount)) {
+          throw new Error("Household contribution cannot exceed the expected income amount.");
+        }
       }
 
       const [source] = await ctx.db
@@ -138,6 +152,8 @@ export const incomeSourcesProcedures = {
                 name: input.name,
                 expectedDate: await getTenantLocalDateString(ctx.db, ctx.tenantId!, d),
                 expectedAmount: input.amount,
+                contributionMode: input.contributionMode || "FULL",
+                contributionValue: input.contributionValue || null,
                 status: "PENDING" as const,
                 tenantId: ctx.tenantId!,
                 appId: ctx.appId!,
@@ -318,6 +334,14 @@ export const incomeSourcesProcedures = {
         rrule = buildRRule(targetFreq, newInt);
       }
 
+      const targetMode = input.data.contributionMode ?? source.contributionMode;
+      const targetValue = input.data.contributionValue !== undefined ? input.data.contributionValue : source.contributionValue;
+      if (targetMode === "FIXED_AMOUNT" && targetValue) {
+        if (parseFloat(targetValue) > parseFloat(newAmount)) {
+          throw new Error("Household contribution cannot exceed the expected income amount.");
+        }
+      }
+
       if (unperformedEvents.length > 0) {
         await ctx.db
           .update(incomeEvents)
@@ -334,6 +358,8 @@ export const incomeSourcesProcedures = {
                 incomeSourceId: source.id,
                 expectedDate: await getTenantLocalDateString(ctx.db, ctx.tenantId!, d),
                 expectedAmount: newAmount,
+                contributionMode: targetMode || "FULL",
+                contributionValue: targetValue || null,
                 status: "PENDING" as const,
                 tenantId: ctx.tenantId!,
                 appId: ctx.appId!,
@@ -380,6 +406,8 @@ export const incomeSourcesProcedures = {
           rrule: incomeSources.rrule,
           startDate: incomeSources.startDate,
           endDate: incomeSources.endDate,
+          contributionMode: incomeSources.contributionMode,
+          contributionValue: incomeSources.contributionValue,
           bankAccountIsPrivate: bankAccounts.isPrivate,
           bankAccountUserId: bankAccounts.userId,
         })

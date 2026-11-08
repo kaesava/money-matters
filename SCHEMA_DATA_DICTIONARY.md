@@ -277,6 +277,8 @@
 | `actualDate` | date | - | Domain column |
 | `expectedAmount` | numeric | - | Domain column |
 | `actualAmount` | numeric | - | Domain column |
+| `contributionMode` | incomeContributionModeEnum | - | Contribution mode for shared vs private allocation |
+| `contributionValue` | numeric | - | Contribution percentage or fixed dollar amount |
 | `note` | varchar | - | Domain column |
 | `status` | incomeEventStatusEnum | - | Domain column |
 | `tenantId` | uuid | No | Tenant Foreign Key (RLS isolation) |

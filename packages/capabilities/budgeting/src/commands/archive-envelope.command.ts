@@ -84,5 +84,10 @@ export async function archiveEnvelopeCommand(
     )
     .returning();
 
+  if (envelope.isPrivate || envelope.bankAccountIsPrivate) {
+    const { resetContributionsIfNoPrivateEnvelopes } = await import("./reset-contributions-if-no-private.js");
+    await resetContributionsIfNoPrivateEnvelopes(tenantId, appId, userId, dbClient);
+  }
+
   return archived;
 }

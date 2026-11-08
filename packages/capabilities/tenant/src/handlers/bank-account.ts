@@ -329,6 +329,36 @@ export function archiveBankAccountHandler(db: DbOrTx) {
         );
     }
 
+    if (existing.isPrivate) {
+      const activePrivate = await db
+        .select({ id: envelopes.id })
+        .from(envelopes)
+        .leftJoin(bankAccounts, eq(envelopes.bankAccountId, bankAccounts.id))
+        .where(
+          and(
+            eq(envelopes.tenantId, tenantId),
+            eq(envelopes.appId, appId),
+            sql`${envelopes.archivedAt} IS NULL`,
+            or(
+              and(eq(envelopes.isPrivate, true), eq(envelopes.userId, userId)),
+              and(eq(bankAccounts.isPrivate, true), eq(bankAccounts.userId, userId))
+            )
+          )
+        );
+
+      if (activePrivate.length === 0) {
+        await db
+          .update(incomeSources)
+          .set({ contributionMode: "FULL", contributionValue: null, updatedAt: new Date(), updatedBy: userId })
+          .where(and(eq(incomeSources.tenantId, tenantId), eq(incomeSources.appId, appId), sql`${incomeSources.archivedAt} IS NULL`));
+
+        await db
+          .update(incomeEvents)
+          .set({ contributionMode: "FULL", contributionValue: null, updatedAt: new Date(), updatedBy: userId })
+          .where(and(eq(incomeEvents.tenantId, tenantId), eq(incomeEvents.appId, appId), sql`${incomeEvents.status} != 'CONFIRMED'`, sql`${incomeEvents.archivedAt} IS NULL`));
+      }
+    }
+
     return { success: true };
   };
 }

@@ -146,8 +146,9 @@ export function runAllocationEngine(input: AllocationEngineInput): AllocationEng
     { stepType: "DEFICIT_REPAIR" },
     { stepType: "BILLS_SAFETY_FLOOR" },
     { stepType: "EVERYDAY_ALLOWANCE" },
-    { stepType: "PRO_RATA_BILLS" },
+    { stepType: "ESSENTIAL_BILLS" },
     { stepType: "COMMITTED_GOALS" },
+    { stepType: "FLEXIBLE_BILLS" },
     { stepType: "STANDARD_GOALS" },
     { stepType: "SURPLUS_SWEEP" },
   ];
@@ -198,6 +199,16 @@ export function runAllocationEngine(input: AllocationEngineInput): AllocationEng
         case "EVERYDAY_ALLOWANCE":
           runStep4EverydayAllowance(ctx, everydayBuckets);
           break;
+        case "ESSENTIAL_BILLS": {
+          const essentialBills = billBuckets.filter((b) => b.isEssential);
+          runStep5ProRataBills(ctx, essentialBills, futureExpenses, input.paycheckDate);
+          break;
+        }
+        case "FLEXIBLE_BILLS": {
+          const standardBills = billBuckets.filter((b) => !b.isEssential);
+          runStep5ProRataBills(ctx, standardBills, futureExpenses, input.paycheckDate);
+          break;
+        }
         case "PRO_RATA_BILLS": {
           const essentialBills = billBuckets.filter((b) => b.isEssential);
           const standardBills = billBuckets.filter((b) => !b.isEssential);

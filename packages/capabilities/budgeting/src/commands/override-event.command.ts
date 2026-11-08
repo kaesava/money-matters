@@ -40,6 +40,8 @@ export async function overrideEventCommand(
       if (input.status) setPayload.status = input.status;
       if (input.name) setPayload.name = input.name;
       if (input.note !== undefined) setPayload.note = input.note;
+      if (input.contributionMode !== undefined) setPayload.contributionMode = input.contributionMode;
+      if (input.contributionValue !== undefined) setPayload.contributionValue = input.contributionValue;
 
       const [updatedEvent] = await tx
         .update(incomeEvents)
@@ -55,14 +57,16 @@ export async function overrideEventCommand(
 
       if (!updatedEvent) throw new Error("Income event not found.");
 
-      if (input.updateSeries && updatedEvent.incomeSourceId && (input.amount || input.expectedAmount)) {
-        const seriesAmount = (input.expectedAmount || input.amount)!;
+      if (input.updateSeries && updatedEvent.incomeSourceId) {
         const sourcePayload: Record<string, unknown> = {
-          amount: seriesAmount,
           updatedBy: userId,
           updatedAt: new Date(),
         };
+        const seriesAmount = input.expectedAmount || input.amount;
+        if (seriesAmount) sourcePayload.amount = seriesAmount;
         if (input.name) sourcePayload.name = input.name;
+        if (input.contributionMode !== undefined) sourcePayload.contributionMode = input.contributionMode;
+        if (input.contributionValue !== undefined) sourcePayload.contributionValue = input.contributionValue;
 
         await tx
           .update(incomeSources)
@@ -77,11 +81,13 @@ export async function overrideEventCommand(
 
         // Bulk update subsequent pending scheduled events in the series
         const eventUpdatePayload: Record<string, unknown> = {
-          expectedAmount: seriesAmount,
           updatedBy: userId,
           updatedAt: new Date(),
         };
+        if (seriesAmount) eventUpdatePayload.expectedAmount = seriesAmount;
         if (input.name) eventUpdatePayload.name = input.name;
+        if (input.contributionMode !== undefined) eventUpdatePayload.contributionMode = input.contributionMode;
+        if (input.contributionValue !== undefined) eventUpdatePayload.contributionValue = input.contributionValue;
 
         await tx
           .update(incomeEvents)

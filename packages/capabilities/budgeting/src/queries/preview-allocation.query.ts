@@ -61,8 +61,8 @@ export async function previewAllocationQuery(
       expectedDate: incomeEvents.expectedDate,
       rrule: incomeSources.rrule,
       incomeType: incomeSources.incomeType,
-      contributionMode: incomeSources.contributionMode,
-      contributionValue: incomeSources.contributionValue,
+      contributionMode: sql<"FULL" | "PERCENTAGE" | "FIXED_AMOUNT">`COALESCE(${incomeEvents.contributionMode}, ${incomeSources.contributionMode}, 'FULL')`,
+      contributionValue: sql<string | null>`COALESCE(${incomeEvents.contributionValue}, ${incomeSources.contributionValue})`,
       bankAccountIsPrivate: bankAccounts.isPrivate,
       bankAccountUserId: bankAccounts.userId,
     })

@@ -8,6 +8,7 @@ export interface EnvelopeEventsToggleSectionProps {
   setGenerateEvents: (val: boolean) => void;
   initialGenerateEvents?: boolean;
   hasExistingScheduledEvents?: boolean;
+  isEdit?: boolean;
 }
 
 export const EnvelopeEventsToggleSection: React.FC<EnvelopeEventsToggleSectionProps> = ({
@@ -15,6 +16,7 @@ export const EnvelopeEventsToggleSection: React.FC<EnvelopeEventsToggleSectionPr
   setGenerateEvents,
   initialGenerateEvents = true,
   hasExistingScheduledEvents = false,
+  isEdit = false,
 }) => {
   const isModified = generateEvents !== initialGenerateEvents;
 
@@ -33,7 +35,7 @@ export const EnvelopeEventsToggleSection: React.FC<EnvelopeEventsToggleSectionPr
             </MobileAlertBanner>
           ) : (
             <MobileAlertBanner variant="warning">
-              {hasExistingScheduledEvents
+              {isEdit || hasExistingScheduledEvents
                 ? t('categories.generateEventsUncheckedEditImplication')
                 : t('categories.generateEventsUncheckedNewImplication')}
             </MobileAlertBanner>

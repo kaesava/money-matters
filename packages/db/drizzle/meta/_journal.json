@@ -330,6 +330,13 @@
       "when": 1784228494251,
       "tag": "0047_bulletproof_stealth_privacy_rls",
       "breakpoints": true
+    },
+    {
+      "idx": 47,
+      "version": "7",
+      "when": 1784238494251,
+      "tag": "0048_income_events_contribution_mode",
+      "breakpoints": true
     }
   ]
 }
