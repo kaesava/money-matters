@@ -33,6 +33,8 @@ export interface EnvelopeItem {
   healthStatus?: string | null;
   isSurplusTarget?: boolean | null;
   hasScheduledEvents?: boolean | null;
+  isEssential?: boolean | null;
+  isCommitted?: boolean | null;
 }
 
 export interface EnvelopeDraftPayload {
@@ -48,6 +50,8 @@ export interface EnvelopeDraftPayload {
   rrule?: string;
   goalMode?: "TARGET_DATE" | "ONGOING";
   isSurplusTarget?: boolean;
+  isEssential?: boolean;
+  isCommitted?: boolean;
   bankAccountId?: string;
   generateEvents?: boolean;
 }
@@ -116,6 +120,10 @@ export function EnvelopeFormModal({
     setBankAccountId,
     isSurplusTarget,
     setIsSurplusTarget,
+    isEssential,
+    setIsEssential,
+    isCommitted,
+    setIsCommitted,
     generateEvents,
     setGenerateEvents,
     calculatedMonthly,
@@ -336,6 +344,10 @@ export function EnvelopeFormModal({
         isTargetDateInPast={isTargetDateInPast}
         isSurplusTarget={isSurplusTarget}
         setIsSurplusTarget={setIsSurplusTarget}
+        isEssential={isEssential}
+        setIsEssential={setIsEssential}
+        isCommitted={isCommitted}
+        setIsCommitted={setIsCommitted}
         isEdit={isEdit}
         isSurplusDisabled={Boolean(isEdit && categoryToEdit?.isSurplusTarget)}
         hideTypeOptions={initialMode === "BILL_SCHEDULE"}

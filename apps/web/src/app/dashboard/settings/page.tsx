@@ -16,6 +16,7 @@ import { SubscriptionSection } from "./components/SubscriptionSection";
 import { PartnerInviteSection } from "./components/PartnerInviteSection";
 import { HouseholdDetailsSection } from "./components/HouseholdDetailsSection";
 import { HouseholdDangerZoneSection } from "./components/HouseholdDangerZoneSection";
+import { AllocationStrategySection } from "./components/AllocationStrategySection";
 import { ArchivedSection } from "./components/ArchivedSection";
 import { PrivacySection } from "./components/PrivacySection";
 import { useProductTour } from "../../../providers/ProductTourContext";
@@ -147,6 +148,7 @@ function SettingsPageContent() {
             discardHouseholdRef.current = fn;
           }}
         />
+        <AllocationStrategySection />
         <PartnerInviteSection />
         <HouseholdDangerZoneSection />
       </div>

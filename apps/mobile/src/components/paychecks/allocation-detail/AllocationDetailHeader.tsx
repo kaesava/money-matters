@@ -9,12 +9,14 @@ interface AllocationDetailHeaderProps {
   allocation: MobilePaydayAllocationRecord;
   totalIncome: number;
   isConfirmed: boolean;
+  strategyName?: string | null;
 }
 
 export const AllocationDetailHeader: React.FC<AllocationDetailHeaderProps> = ({
   allocation,
   totalIncome,
   isConfirmed,
+  strategyName,
 }) => {
   return (
     <View style={styles.topCard}>
@@ -49,6 +51,12 @@ export const AllocationDetailHeader: React.FC<AllocationDetailHeaderProps> = ({
       </View>
 
       <View style={styles.dateMetaBox}>
+        {strategyName && (
+          <View style={styles.dateMetaRow}>
+            <Text style={styles.dateMetaLabel}>{t('settings.paydayRules.activePresetLabel')}:</Text>
+            <Text style={styles.dateMetaValue}>{strategyName}</Text>
+          </View>
+        )}
         <View style={styles.dateMetaRow}>
           <Text style={styles.dateMetaLabel}>{t('paydayDrawer.incomeDate')}:</Text>
           <Text style={styles.dateMetaValue}>{formatDate(allocation.expectedDate)}</Text>

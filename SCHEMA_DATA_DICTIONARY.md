@@ -40,6 +40,41 @@
 | `updatedBy` | uuid | Yes | Modifier User ID |
 | `archivedAt` | timestamp | Yes | Soft delete timestamp |
 
+## Table: `allocation_strategies` (`allocation_strategy.ts`)
+
+| Column | Type | Nullable | Description |
+| :--- | :--- | :--- | :--- |
+| `id` | uuid | No | Primary Key |
+| `name` | varchar | - | Strategy profile name |
+| `presetKey` | varchar | - | Canonical preset key or CUSTOM |
+| `description` | text | - | Plain-English strategy explanation |
+| `isDefault` | boolean | - | Flag indicating active strategy for tenant |
+| `tenantId` | uuid | No | Tenant Foreign Key (RLS isolation) |
+| `appId` | varchar | No | Application ID |
+| `createdAt` | timestamp | No | Creation timestamp |
+| `createdBy` | uuid | Yes | Creator User ID |
+| `updatedAt` | timestamp | No | Last update timestamp |
+| `updatedBy` | uuid | Yes | Modifier User ID |
+| `archivedAt` | timestamp | Yes | Soft delete timestamp |
+
+## Table: `allocation_strategy_steps` (`allocation_strategy_step.ts`)
+
+| Column | Type | Nullable | Description |
+| :--- | :--- | :--- | :--- |
+| `id` | uuid | No | Primary Key |
+| `strategyId` | uuid | - | Foreign key to allocation_strategies |
+| `orderIndex` | integer | - | Order index within the allocation recipe |
+| `stepType` | allocationStepTypeEnum | - | Allocation rule block type |
+| `targetEnvelopeId` | uuid | - | Target envelope for fixed/sweep steps |
+| `config` | jsonb | - | Optional step configuration parameters |
+| `tenantId` | uuid | No | Tenant Foreign Key (RLS isolation) |
+| `appId` | varchar | No | Application ID |
+| `createdAt` | timestamp | No | Creation timestamp |
+| `createdBy` | uuid | Yes | Creator User ID |
+| `updatedAt` | timestamp | No | Last update timestamp |
+| `updatedBy` | uuid | Yes | Modifier User ID |
+| `archivedAt` | timestamp | Yes | Soft delete timestamp |
+
 ## Table: `apps` (`app.ts`)
 
 | Column | Type | Nullable | Description |
@@ -220,6 +255,8 @@
 | `rrule` | varchar | - | Domain column |
 | `startDate` | date | - | Domain column |
 | `endDate` | date | - | Domain column |
+| `contributionMode` | incomeContributionModeEnum | - | Contribution mode for shared vs private allocation |
+| `contributionValue` | numeric | - | Contribution percentage or fixed dollar amount |
 | `tenantId` | uuid | No | Tenant Foreign Key (RLS isolation) |
 | `appId` | varchar | No | Application ID |
 | `createdAt` | timestamp | No | Creation timestamp |

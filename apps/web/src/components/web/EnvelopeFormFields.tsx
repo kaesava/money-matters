@@ -44,6 +44,10 @@ export interface EnvelopeFormFieldsProps {
   isSurplusTarget: boolean;
   setIsSurplusTarget: (val: boolean) => void;
   isSurplusDisabled: boolean;
+  isEssential?: boolean;
+  setIsEssential?: (val: boolean) => void;
+  isCommitted?: boolean;
+  setIsCommitted?: (val: boolean) => void;
   generateEvents?: boolean;
   setGenerateEvents?: (val: boolean) => void;
   initialGenerateEvents?: boolean;
@@ -85,6 +89,10 @@ export function EnvelopeFormFields({
   isSurplusTarget,
   setIsSurplusTarget,
   isSurplusDisabled,
+  isEssential = false,
+  setIsEssential,
+  isCommitted = false,
+  setIsCommitted,
   generateEvents = true,
   setGenerateEvents,
   initialGenerateEvents = true,
@@ -179,6 +187,23 @@ export function EnvelopeFormFields({
             />
           )}
 
+          {setIsEssential && (
+            <div className="pt-2">
+              <label className="flex items-start gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={Boolean(isEssential)}
+                  onChange={(e) => setIsEssential(e.target.checked)}
+                  className="w-4 h-4 mt-0.5 rounded text-[#2563eb] focus:ring-[#2563eb]"
+                />
+                <div className="flex flex-col">
+                  <span className="font-bold text-zinc-800">{t('categories.essentialBillLabel')}</span>
+                  <span className="text-[11px] text-zinc-500 font-normal">{t('categories.essentialBillHint')}</span>
+                </div>
+              </label>
+            </div>
+          )}
+
           {billMode === 'SCHEDULED_BILL' && setGenerateEvents && (
             <EnvelopeEventsToggleSection
               generateEvents={generateEvents}
@@ -242,6 +267,23 @@ export function EnvelopeFormFields({
               setEndDate={setTargetDate}
               calculatedMonthly={calculatedMonthly}
             />
+          )}
+
+          {setIsCommitted && (
+            <div className="pt-2">
+              <label className="flex items-start gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={Boolean(isCommitted)}
+                  onChange={(e) => setIsCommitted(e.target.checked)}
+                  className="w-4 h-4 mt-0.5 rounded text-[#2563eb] focus:ring-[#2563eb]"
+                />
+                <div className="flex flex-col">
+                  <span className="font-bold text-zinc-800">{t('categories.committedGoalLabel')}</span>
+                  <span className="text-[11px] text-zinc-500 font-normal">{t('categories.committedGoalHint')}</span>
+                </div>
+              </label>
+            </div>
           )}
         </>
       )}

@@ -65,6 +65,8 @@ export function useIncomeExpenseForm(
   const [poolId, setPoolId] = useState('');
   const [categoryId, setCategoryId] = useState<string | null>(null);
   const [receivingAccountId, setReceivingAccountId] = useState('');
+  const [contributionMode, setContributionMode] = useState<'FULL' | 'PERCENTAGE' | 'FIXED_AMOUNT'>('FULL');
+  const [contributionValue, setContributionValue] = useState('');
 
   const [nameError, setNameError] = useState('');
   const [amountError, setAmountError] = useState('');
@@ -91,6 +93,8 @@ export function useIncomeExpenseForm(
       setPoolId(sourceToEdit.poolId || '');
       setCategoryId(sourceToEdit.categoryId || null);
       setReceivingAccountId(sourceToEdit.receivingAccountId || '');
+      setContributionMode(sourceToEdit.contributionMode || 'FULL');
+      setContributionValue(sourceToEdit.contributionValue ? String(sourceToEdit.contributionValue) : '');
 
       const { origIsRecurring, origFrequency, origInterval } = parseSourceRecurrence(sourceToEdit);
       setIsRecurring(origIsRecurring);
@@ -113,6 +117,8 @@ export function useIncomeExpenseForm(
       setPoolId(rawPools.find((p) => p.poolType === 'REGULAR')?.id || rawPools[0]?.id || '');
       setCategoryId(null);
       setReceivingAccountId(bankAccounts[0]?.id || '');
+      setContributionMode('FULL');
+      setContributionValue('');
       setIsRecurring(true);
       setFrequency('MONTHLY');
       setInterval(1);
@@ -126,7 +132,7 @@ export function useIncomeExpenseForm(
 
   const isDirty = useMemo(() => {
     if (!sourceToEdit) {
-      return name.trim() !== '' || amount.trim() !== '';
+      return name.trim() !== '' || amount.trim() !== '' || contributionValue.trim() !== '';
     }
     const origStartDate = sourceToEdit.startDate ? formatIsoDate(sourceToEdit.startDate) : formatIsoDate(new Date());
     const origEndDate = sourceToEdit.endDate ? formatIsoDate(sourceToEdit.endDate) : '';
@@ -138,6 +144,8 @@ export function useIncomeExpenseForm(
       poolId !== (sourceToEdit.poolId || '') ||
       categoryId !== (sourceToEdit.categoryId || null) ||
       receivingAccountId !== (sourceToEdit.receivingAccountId || '') ||
+      contributionMode !== (sourceToEdit.contributionMode || 'FULL') ||
+      contributionValue !== (sourceToEdit.contributionValue ? String(sourceToEdit.contributionValue) : '') ||
       isRecurring !== origIsRecurring ||
       frequency !== origFrequency ||
       (interval || 1) !== origInterval ||
@@ -150,6 +158,8 @@ export function useIncomeExpenseForm(
     poolId,
     categoryId,
     receivingAccountId,
+    contributionMode,
+    contributionValue,
     isRecurring,
     frequency,
     interval,
@@ -188,6 +198,8 @@ export function useIncomeExpenseForm(
     poolId,
     categoryId,
     receivingAccountId,
+    contributionMode,
+    contributionValue,
     nameError,
     amountError,
     poolError,
@@ -201,6 +213,8 @@ export function useIncomeExpenseForm(
     setPoolId,
     setCategoryId,
     setReceivingAccountId,
+    setContributionMode,
+    setContributionValue,
     setNameError,
     setAmountError,
     setPoolError,

@@ -82,6 +82,9 @@ export function IncomeSplitOverview() {
 
   const currentUserId = userProfileQuery.data?.id || pools[0]?.id || "default-user";
 
+  const activeStrategyQuery = trpc.getActiveAllocationStrategy.useQuery();
+  const activeStrategy = activeStrategyQuery.data;
+
   if (isLoading) {
     return (
       <div className="flex h-96 items-center justify-center">
@@ -93,10 +96,15 @@ export function IncomeSplitOverview() {
   return (
     <div className="flex flex-col gap-6 max-w-7xl mx-auto pb-16 animate-in fade-in duration-200">
       <div className="flex flex-wrap items-center justify-between gap-4">
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-3">
           <h1 className="text-2xl font-black text-[#1B2B4B]">
             {t("incomeBillsTabs.twelveMonthIncomeSplit")}
           </h1>
+          {activeStrategy && (
+            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-blue-50 text-blue-700 border border-blue-200">
+              {t("paydayDrawer.activeStrategyBadge", { name: activeStrategy.name })}
+            </span>
+          )}
           <InfoTooltip
             title={t("incomeBillsTabs.twelveMonthIncomeSplit")}
             content={t("incomeBillsTabs.twelveMonthIncomeSplitTooltip")}

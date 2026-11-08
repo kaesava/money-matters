@@ -118,6 +118,7 @@ export function IncomeSplitScreen({
         isFutureDate={isFutureDate}
         submitting={submitting}
         isDeficit={isDeficit}
+        strategyName={previewQuery.data?.strategyName}
         onConfirm={() => {
           if (!isFutureDate && !isDeficit && !submitting) {
             setShowConfirmWarning(true);

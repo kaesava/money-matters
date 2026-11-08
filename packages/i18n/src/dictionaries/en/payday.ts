@@ -91,7 +91,8 @@ export const payday = {
     "deficitExitTitle": "Unsaved changes with deficit",
     "deficitExitDesc": "Your allocations exceed total income by {amount}. You cannot save a payday plan while in deficit.",
     "recalculateUnlockedConfirmTitle": "Reset to Recommended?",
-    "recalculateUnlockedConfirmDescription": "Resetting will discard your custom adjustments and restore the algorithm's suggested payday plan. Continue?"
+    "recalculateUnlockedConfirmDescription": "Resetting will discard your custom adjustments and restore the algorithm's suggested payday plan. Continue?",
+    "activeStrategyBadge": "Strategy: {name}"
   },
   "paychecks": {
     "transfer": {

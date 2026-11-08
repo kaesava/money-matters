@@ -18,6 +18,8 @@ export const incomeSourcesProcedures = {
         endDate: z.string().nullable().optional(),
         frequency: z.enum(["WEEKLY", "FORTNIGHTLY", "MONTHLY", "QUARTERLY", "ANNUALLY"]).optional(),
         interval: z.number().min(1).max(365).optional(),
+        contributionMode: z.enum(["FULL", "PERCENTAGE", "FIXED_AMOUNT"]).optional(),
+        contributionValue: z.string().regex(/^\d+(\.\d{1,2})?$/).nullable().optional(),
       }).strict()
     )
     .mutation(async ({ input, ctx }) => {
@@ -73,6 +75,8 @@ export const incomeSourcesProcedures = {
           rrule: null,
           startDate: eventDate,
           endDate: null,
+          contributionMode: input.contributionMode || "FULL",
+          contributionValue: input.contributionValue || null,
           tenantId: ctx.tenantId!,
           appId: ctx.appId!,
           createdBy: ctx.userId!,
@@ -93,6 +97,8 @@ export const incomeSourcesProcedures = {
           rrule,
           startDate: input.startDate || null,
           endDate: input.endDate || null,
+          contributionMode: input.contributionMode || "FULL",
+          contributionValue: input.contributionValue || null,
           tenantId: ctx.tenantId!,
           appId: ctx.appId!,
           createdBy: ctx.userId!,
@@ -152,6 +158,8 @@ export const incomeSourcesProcedures = {
           endDate: z.string().nullable().optional(),
           frequency: z.enum(["WEEKLY", "FORTNIGHTLY", "MONTHLY", "QUARTERLY", "ANNUALLY"]).optional(),
           interval: z.number().min(1).max(365).optional(),
+          contributionMode: z.enum(["FULL", "PERCENTAGE", "FIXED_AMOUNT"]).optional(),
+          contributionValue: z.string().regex(/^\d+(\.\d{1,2})?$/).nullable().optional(),
         }).strict(),
       }).strict()
     )
@@ -326,6 +334,8 @@ export const incomeSourcesProcedures = {
           rrule,
           startDate: newStartDate,
           endDate: newEndDate,
+          ...(input.data.contributionMode !== undefined ? { contributionMode: input.data.contributionMode } : {}),
+          ...(input.data.contributionValue !== undefined ? { contributionValue: input.data.contributionValue } : {}),
           updatedAt: new Date(),
           updatedBy: ctx.userId!,
         })

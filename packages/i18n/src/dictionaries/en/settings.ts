@@ -163,6 +163,72 @@ export const settings = {
       "showIcons": "Show information icons",
       "showIconsHint": "Switch information tooltip (i) icons on or off across all screens.",
       "timezone": "Display timezone"
+    },
+    "paydayRules": {
+      "title": "Payday Rules",
+      "description": "Control how income cascades across your bills, everyday spending, and savings goals.",
+      "activePresetLabel": "Active Strategy",
+      "activeBadge": "Active",
+      "customizeButton": "Customize Rules",
+      "resetToRecommended": "Reset to Recommended",
+      "resetConfirmTitle": "Reset to Recommended Rules",
+      "resetConfirmMessage": "Are you sure you want to restore the standard Balanced rules? Any custom order or rule blocks will be replaced.",
+      "presets": {
+        "balanced": {
+          "name": "Balanced",
+          "description": "Bills due soon and everyday living are protected first, followed by upcoming bills and savings goals."
+        },
+        "billsFortress": {
+          "name": "Bills Fortress",
+          "description": "Safeguards all current and upcoming bills before funding everyday spending or savings."
+        },
+        "payYourselfFirst": {
+          "name": "Pay Yourself First",
+          "description": "Prioritizes non-negotiable savings goals right after bills due soon, before everyday spending."
+        },
+        "custom": {
+          "name": "Custom Rules",
+          "description": "Tailored rule recipe configured specifically for your household."
+        }
+      },
+      "stepTypes": {
+        "IMMEDIATE_BILLS": "Bills Due Soon",
+        "DEFICIT_REPAIR": "Cover Negative Balances",
+        "BILLS_SAFETY_FLOOR": "Bills Safety Cushion",
+        "PRO_RATA_BILLS": "Upcoming Bills",
+        "EVERYDAY_ALLOWANCE": "Everyday Living Allowance",
+        "COMMITTED_GOALS": "Non-Negotiable Goals",
+        "STANDARD_GOALS": "Flexible Savings Goals",
+        "FIXED_AMOUNT": "Fixed Amount to Envelope",
+        "PERCENTAGE_SPLIT": "Percentage Share",
+        "SURPLUS_SWEEP": "Remaining Surplus Sweep"
+      },
+      "stepDescriptions": {
+        "IMMEDIATE_BILLS": "Funds bills due before next pay plus buffer days.",
+        "DEFICIT_REPAIR": "Restores any envelopes that have dropped into a negative balance.",
+        "BILLS_SAFETY_FLOOR": "Ensures bill envelopes maintain their required minimum safety cushion.",
+        "PRO_RATA_BILLS": "Paces future bills so money is set aside smoothly ahead of time.",
+        "EVERYDAY_ALLOWANCE": "Allocates your regular everyday spending allowance for this pay cycle.",
+        "COMMITTED_GOALS": "Funds goals marked as non-negotiable.",
+        "STANDARD_GOALS": "Allocates regular contributions to your flexible savings goals.",
+        "FIXED_AMOUNT": "Allocates a dedicated fixed dollar amount to a chosen envelope.",
+        "PERCENTAGE_SPLIT": "Distributes a set percentage of remaining income.",
+        "SURPLUS_SWEEP": "Sweeps any remaining unallocated income into your designated envelope."
+      },
+      "pageTitle": "Payday Rules & Allocation Recipe",
+      "pageSubtitle": "Customize the priority and order in which your income is allocated across your household envelopes on payday.",
+      "addRuleButton": "+ Add Custom Rule",
+      "moveUp": "Move Up",
+      "moveDown": "Move Down",
+      "removeRule": "Remove Rule",
+      "targetEnvelopeLabel": "Target Envelope",
+      "amountLabel": "Amount",
+      "percentageLabel": "Percentage (%)",
+      "emptyRulesTitle": "No Rules Defined",
+      "emptyRulesSubtitle": "Add a rule or reset to the recommended preset to get started.",
+      "saveChanges": "Save Rules",
+      "saving": "Saving...",
+      "saveSuccess": "Payday rules updated successfully."
     }
   },
   "subscription": {
@@ -335,3 +401,4 @@ export const settings = {
     "noAccountsFoundMatching": "No bank accounts found matching your search."
   }
 } as const;
+

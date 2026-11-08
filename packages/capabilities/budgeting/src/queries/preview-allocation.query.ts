@@ -61,6 +61,8 @@ export async function previewAllocationQuery(
       expectedDate: incomeEvents.expectedDate,
       rrule: incomeSources.rrule,
       incomeType: incomeSources.incomeType,
+      contributionMode: incomeSources.contributionMode,
+      contributionValue: incomeSources.contributionValue,
       bankAccountIsPrivate: bankAccounts.isPrivate,
       bankAccountUserId: bankAccounts.userId,
     })
@@ -113,6 +115,9 @@ export async function previewAllocationQuery(
   const filteredPendingExpenses = pendingExpenses.filter((e) => visibleEnvelopeIds.has(e.envelopeId));
 
   const { mapEnvelopeToEngineBucket } = await import("../engine/envelope-engine-mapper.js");
+  const { getActiveAllocationStrategyQuery } = await import("./get-active-allocation-strategy.query.js");
+  const activeStrategy = await getActiveAllocationStrategyQuery(tenantId, appId, userId, dbClient);
+
   const engineBuckets: EngineBucket[] = dbEnvelopes.map((env) =>
     mapEnvelopeToEngineBucket(env, balancesMap[env.id] || 0)
   );
@@ -121,6 +126,13 @@ export async function previewAllocationQuery(
     incomeAmount,
     incomeType: event?.incomeType || "SALARIED",
     incomeUserId,
+    contributionMode: event?.contributionMode || "FULL",
+    contributionValue: event?.contributionValue ? parseFloat(event.contributionValue) : null,
+    strategySteps: activeStrategy?.steps?.map((s) => ({
+      stepType: s.stepType,
+      targetEnvelopeId: s.targetEnvelopeId,
+      config: s.config as Record<string, unknown> | null,
+    })),
     runwayDays: runwayDays ?? 30,
     buckets: engineBuckets,
     paycheckDate: event ? new Date(event.expectedDate + "T00:00:00Z") : new Date(),

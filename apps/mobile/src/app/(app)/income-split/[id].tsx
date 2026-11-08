@@ -104,6 +104,7 @@ export default function IncomeSplitStudioScreen() {
             isFutureDate={isFutureDate}
             submitting={submitting}
             isDeficit={isDeficit}
+            strategyName={previewData?.strategyName}
             onConfirm={handleConfirmSplit}
             onUnlockAndRecalculate={handleRecalculateTrigger}
             onRecalculate={handleRecalculateTrigger}

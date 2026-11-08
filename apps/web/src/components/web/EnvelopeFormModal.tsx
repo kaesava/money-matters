@@ -87,6 +87,10 @@ export function EnvelopeFormModal({
     setGoalStartDate,
     isSurplusTarget,
     setIsSurplusTarget,
+    isEssential,
+    setIsEssential,
+    isCommitted,
+    setIsCommitted,
     generateEvents,
     setGenerateEvents,
     submitting,
@@ -252,6 +256,10 @@ export function EnvelopeFormModal({
           isSurplusTarget={isSurplusTarget}
           setIsSurplusTarget={setIsSurplusTarget}
           isSurplusDisabled={Boolean(isEdit && categoryToEdit?.isSurplusTarget)}
+          isEssential={isEssential}
+          setIsEssential={setIsEssential}
+          isCommitted={isCommitted}
+          setIsCommitted={setIsCommitted}
           generateEvents={generateEvents}
           setGenerateEvents={setGenerateEvents}
           initialGenerateEvents={initialGenerateEvents}

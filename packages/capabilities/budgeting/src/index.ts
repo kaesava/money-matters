@@ -27,4 +27,8 @@ export * from "./engine/shortfall-allocation.js";
 export * from "./queries/get-income-split-analytics.query.js";
 export * from "./queries/get-home-summary.query.js";
 export * from "./engine/envelope-engine-mapper.js";
+export * from "./commands/seed-allocation-strategy.command.js";
+export * from "./commands/apply-allocation-preset.command.js";
+export * from "./commands/update-allocation-strategy-steps.command.js";
+export * from "./queries/get-active-allocation-strategy.query.js";
 

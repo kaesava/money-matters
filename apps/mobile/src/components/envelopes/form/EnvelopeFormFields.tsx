@@ -7,6 +7,7 @@ import {
   FormLabel,
   AmountInput,
   MobileBillModeToggle,
+  MobileCheckbox,
   RecurrenceFrequency,
 } from '@money-matters/ui/mobile';
 import { t } from '@money-matters/i18n';
@@ -32,6 +33,8 @@ export interface EnvelopeFormFieldsProps {
   bankAccountId: string; setBankAccountId: (v: string) => void;
   bankDisabled?: boolean;
   isSurplusTarget: boolean; setIsSurplusTarget: (v: boolean) => void;
+  isEssential?: boolean; setIsEssential?: (v: boolean) => void;
+  isCommitted?: boolean; setIsCommitted?: (v: boolean) => void;
   isEdit: boolean;
   isSurplusDisabled: boolean;
   hideTypeOptions?: boolean;
@@ -77,6 +80,10 @@ export const EnvelopeFormFields: React.FC<EnvelopeFormFieldsProps> = ({
   bankDisabled = false,
   isSurplusTarget,
   setIsSurplusTarget,
+  isEssential = false,
+  setIsEssential,
+  isCommitted = false,
+  setIsCommitted,
   isEdit,
   isSurplusDisabled,
   hideTypeOptions = false,
@@ -169,6 +176,17 @@ export const EnvelopeFormFields: React.FC<EnvelopeFormFieldsProps> = ({
             />
           )}
 
+          {setIsEssential && (
+            <View style={styles.checkboxContainer}>
+              <MobileCheckbox
+                checked={Boolean(isEssential)}
+                onChange={setIsEssential}
+                label={t('categories.essentialBillLabel')}
+              />
+              <Text style={styles.checkboxHint}>{t('categories.essentialBillHint')}</Text>
+            </View>
+          )}
+
           {billMode === 'SCHEDULED_BILL' && setGenerateEvents && (
             <EnvelopeEventsToggleSection
               generateEvents={generateEvents}
@@ -190,24 +208,37 @@ export const EnvelopeFormFields: React.FC<EnvelopeFormFieldsProps> = ({
       )}
 
       {type === 'GOAL' && (
-        <EnvelopeGoalFields
-          goalMode={goalMode}
-          setGoalMode={setGoalMode}
-          targetAmount={targetAmount}
-          setTargetAmount={setTargetAmount}
-          targetDate={targetDate}
-          setTargetDate={setTargetDate}
-          isTargetDateInPast={isTargetDateInPast}
-          frequency={frequency}
-          setFrequency={setFrequency}
-          interval={interval}
-          setInterval={setInterval}
-          goalStartDate={goalStartDate}
-          setGoalStartDate={setGoalStartDate}
-          endDate={endDate}
-          setEndDate={setEndDate}
-          calculatedMonthly={calculatedMonthly}
-        />
+        <View style={styles.goalSection}>
+          <EnvelopeGoalFields
+            goalMode={goalMode}
+            setGoalMode={setGoalMode}
+            targetAmount={targetAmount}
+            setTargetAmount={setTargetAmount}
+            targetDate={targetDate}
+            setTargetDate={setTargetDate}
+            isTargetDateInPast={isTargetDateInPast}
+            frequency={frequency}
+            setFrequency={setFrequency}
+            interval={interval}
+            setInterval={setInterval}
+            goalStartDate={goalStartDate}
+            setGoalStartDate={setGoalStartDate}
+            endDate={endDate}
+            setEndDate={setEndDate}
+            calculatedMonthly={calculatedMonthly}
+          />
+
+          {setIsCommitted && (
+            <View style={styles.checkboxContainer}>
+              <MobileCheckbox
+                checked={Boolean(isCommitted)}
+                onChange={setIsCommitted}
+                label={t('categories.committedGoalLabel')}
+              />
+              <Text style={styles.checkboxHint}>{t('categories.committedGoalHint')}</Text>
+            </View>
+          )}
+        </View>
       )}
 
       {type !== 'EVERYDAY' && (
@@ -243,6 +274,18 @@ const styles = StyleSheet.create({
   },
   billSection: {
     gap: 12,
+  },
+  goalSection: {
+    gap: 12,
+  },
+  checkboxContainer: {
+    paddingTop: 4,
+    gap: 2,
+  },
+  checkboxHint: {
+    fontSize: 11,
+    color: DESIGN_TOKENS.colors.subtleText,
+    paddingLeft: 30,
   },
 });
 

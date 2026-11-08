@@ -121,12 +121,16 @@ export const CreateIncomeSourceCommand = z.object({
   name: z.string().min(1),
   amount: z.string().regex(/^\d{1,12}(\.\d{1,2})?$/),
   receivingAccountId: z.string().uuid().optional(),
+  contributionMode: z.enum(["FULL", "PERCENTAGE", "FIXED_AMOUNT"]).optional(),
+  contributionValue: z.string().regex(/^\d{1,12}(\.\d{1,2})?$/).nullable().optional(),
 }).strict();
 
 export const UpdateIncomeSourceCommand = z.object({
   name: z.string().min(1).optional(),
   amount: z.string().regex(/^\d{1,12}(\.\d{1,2})?$/).optional(),
   receivingAccountId: z.string().uuid().optional(),
+  contributionMode: z.enum(["FULL", "PERCENTAGE", "FIXED_AMOUNT"]).optional(),
+  contributionValue: z.string().regex(/^\d{1,12}(\.\d{1,2})?$/).nullable().optional(),
 }).strict();
 
 export const CreateIncomeSourceScheduleCommand = z.object({

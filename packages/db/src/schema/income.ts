@@ -3,6 +3,11 @@ import { bankAccounts } from "./bank_account.js";
 import { tenantAndTimestamps } from "./base.js";
 
 export const incomeTypeEnum = pgEnum("income_type_enum", ["SALARIED", "IRREGULAR"]);
+export const incomeContributionModeEnum = pgEnum("income_contribution_mode_enum", [
+  "FULL",
+  "PERCENTAGE",
+  "FIXED_AMOUNT",
+]);
 
 export const incomeSources = pgTable("income_sources", {
   id: uuid("id").primaryKey().defaultRandom(),
@@ -13,6 +18,8 @@ export const incomeSources = pgTable("income_sources", {
   rrule: varchar("rrule", { length: 255 }),
   startDate: date("start_date"),
   endDate: date("end_date"),
+  contributionMode: incomeContributionModeEnum("contribution_mode").notNull().default("FULL"),
+  contributionValue: numeric("contribution_value", { precision: 12, scale: 2 }),
   ...tenantAndTimestamps,
 });
 

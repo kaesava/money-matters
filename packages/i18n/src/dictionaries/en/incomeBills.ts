@@ -61,7 +61,20 @@ export const incomeBills = {
     "incomeSchedulesAndBillsSubtitle": "Upcoming paydays and bills, recurring income and bill schedules, and your 12-month payday plans.",
     "twelveMonthTab": "12-Month Payday Plan",
     "twelveMonthPlanGuidanceBanner": "Future paydays are automatically pre-calculated using your payday planning rules. These plans update dynamically as your income or bill schedules change. Click 'Save Plan' on any payday to lock in custom allocations so they won't be recalculated.",
-    "openCustomTransferModalLink": "Transfer funds between Envelopes"
+    "openCustomTransferModalLink": "Transfer funds between Envelopes",
+    "householdContribution": {
+      "title": "Household Contribution",
+      "allSharedNote": "All income is allocated across shared household envelopes.",
+      "modeLabel": "Contribution Mode",
+      "full": "100% to Household Envelopes",
+      "percentage": "Percentage Share",
+      "percentagePlaceholder": "50",
+      "percentageSuffix": "%",
+      "fixedAmount": "Fixed Dollar Amount",
+      "remainderNote": "The remaining portion will be automatically allocated to your personal envelopes.",
+      "percentageInvalid": "Percentage must be between 1 and 100",
+      "amountInvalid": "Amount must be a valid positive number"
+    }
   },
   "incomeAndBills": {
     "incomeSchedule": "Income Name",

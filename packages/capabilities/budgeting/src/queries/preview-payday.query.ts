@@ -149,6 +149,9 @@ export async function previewPaydayForEvent(
     };
   });
 
+  const { getActiveAllocationStrategyQuery } = await import("./get-active-allocation-strategy.query.js");
+  const activeStrategy = await getActiveAllocationStrategyQuery(tenantId, appId, userId, dbClient);
+
   return {
     incomeEventId: targetEvent.id,
     incomeEventName: targetEvent.name || "Paycheck",
@@ -158,6 +161,8 @@ export async function previewPaydayForEvent(
     receivingAccountId: targetEvent.receivingAccountId || null,
     hasSavedPlan: Boolean(savedPlan),
     planStatus: savedPlan?.status || "NONE",
+    strategyPresetKey: activeStrategy?.presetKey || "BALANCED",
+    strategyName: activeStrategy?.name || "Standard Balanced",
     lines,
     totalAllocated: lines.reduce((sum, l) => sum + (l.savedAmount ?? l.proposedAmount), 0),
   };

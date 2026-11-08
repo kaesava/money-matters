@@ -23,6 +23,8 @@ export interface SourceToEdit {
   startDate?: string | Date | null;
   endDate?: string | null;
   interval?: number | null;
+  contributionMode?: 'FULL' | 'PERCENTAGE' | 'FIXED_AMOUNT';
+  contributionValue?: string | null;
 }
 
 interface IncomeExpenseFormModalProps {
@@ -42,11 +44,12 @@ export function IncomeExpenseFormModal({
 }: IncomeExpenseFormModalProps) {
   const isEdit = Boolean(sourceToEdit);
 
-  const poolsQuery = trpc.listPools.useQuery(undefined, { enabled: visible && mode === 'EXPENSE' });
+  const poolsQuery = trpc.listPools.useQuery(undefined, { enabled: visible });
   const bankAccountsQuery = trpc.listBankAccounts.useQuery(undefined, { enabled: visible && mode === 'INCOME' });
 
   const rawPools = poolsQuery.data ?? [];
   const bankAccounts = bankAccountsQuery.data ?? [];
+  const hasPrivateEnvelopes = useMemo(() => rawPools.some((p) => p.isPrivate), [rawPools]);
 
   const pickerPools: MobilePoolOption[] = useMemo(() => {
     return rawPools.map((p) => ({
@@ -65,6 +68,8 @@ export function IncomeExpenseFormModal({
     poolId,
     categoryId,
     receivingAccountId,
+    contributionMode,
+    contributionValue,
     nameError,
     amountError,
     poolError,
@@ -78,6 +83,8 @@ export function IncomeExpenseFormModal({
     setPoolId,
     setCategoryId,
     setReceivingAccountId,
+    setContributionMode,
+    setContributionValue,
     setNameError,
     setAmountError,
     setPoolError,
@@ -109,6 +116,22 @@ export function IncomeExpenseFormModal({
       hasErr = true;
     }
 
+    if (mode === 'INCOME' && hasPrivateEnvelopes) {
+      if (contributionMode === 'PERCENTAGE') {
+        const pct = parseFloat(contributionValue);
+        if (isNaN(pct) || pct <= 0 || pct > 100) {
+          setAmountError(t('incomeBillsTabs.householdContribution.percentageInvalid'));
+          hasErr = true;
+        }
+      } else if (contributionMode === 'FIXED_AMOUNT') {
+        const fix = parseFloat(contributionValue);
+        if (isNaN(fix) || fix <= 0) {
+          setAmountError(t('incomeBillsTabs.householdContribution.amountInvalid'));
+          hasErr = true;
+        }
+      }
+    }
+
     if (hasErr) return;
 
     const saveAction = () => {
@@ -123,6 +146,8 @@ export function IncomeExpenseFormModal({
         interval: recurrenceBuilder.interval,
         startDate: recurrenceBuilder.startDate,
         endDate: recurrenceBuilder.endDate || undefined,
+        contributionMode: hasPrivateEnvelopes ? contributionMode : 'FULL',
+        contributionValue: hasPrivateEnvelopes && contributionMode !== 'FULL' ? contributionValue : null,
       });
     };
 
@@ -197,6 +222,11 @@ export function IncomeExpenseFormModal({
         pickerPools={pickerPools}
         bankAccounts={bankAccounts}
         recurrenceBuilder={recurrenceBuilder}
+        hasPrivateEnvelopes={hasPrivateEnvelopes}
+        contributionMode={contributionMode}
+        onContributionModeChange={setContributionMode}
+        contributionValue={contributionValue}
+        onContributionValueChange={setContributionValue}
         onNameChange={(val) => {
           setName(val);
           if (nameError) setNameError('');

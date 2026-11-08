@@ -239,11 +239,60 @@ export function runStep6Goals(
   }
 }
 
-export function runStep7SurplusSweep(ctx: StepContext, buckets: EngineBucket[]): void {
+export function runStepFixedAmount(
+  ctx: StepContext,
+  buckets: EngineBucket[],
+  targetEnvelopeId?: string | null,
+  amountDollars?: number
+): void {
+  if (!targetEnvelopeId || !amountDollars || amountDollars <= 0) return;
+  const target = buckets.find((b) => b.id === targetEnvelopeId);
+  if (!target) return;
+  const amountCents = toCents(amountDollars);
+  const sym = ctx.currencySymbol;
+  allocate(
+    ctx,
+    target,
+    amountCents,
+    `Fixed allocation rule: ${sym}${toDollars(Math.min(ctx.remainingCents, amountCents)).toFixed(2)} allocated to ${target.name}.`
+  );
+}
+
+export function runStepPercentageSplit(
+  ctx: StepContext,
+  buckets: EngineBucket[],
+  targetEnvelopeId?: string | null,
+  percentage?: number
+): void {
+  if (!targetEnvelopeId || !percentage || percentage <= 0 || ctx.remainingCents <= 0) return;
+  const target = buckets.find((b) => b.id === targetEnvelopeId);
+  if (!target) return;
+  const pct = Math.min(100, Math.max(0, percentage));
+  const amountCents = Math.round(ctx.remainingCents * (pct / 100));
+  if (amountCents <= 0) return;
+  const sym = ctx.currencySymbol;
+  allocate(
+    ctx,
+    target,
+    amountCents,
+    `Percentage split rule (${pct}% of remaining funds): ${sym}${toDollars(amountCents).toFixed(2)} allocated to ${target.name}.`
+  );
+}
+
+export function runStep7SurplusSweep(
+  ctx: StepContext,
+  buckets: EngineBucket[],
+  targetEnvelopeId?: string | null
+): void {
   if (ctx.remainingCents <= 0) return;
   const sym = ctx.currencySymbol;
 
+  const targetFromConfig = targetEnvelopeId
+    ? buckets.find((b) => b.id === targetEnvelopeId && ctx.isBucketEligible(b))
+    : null;
+
   const eligibleSurplus =
+    targetFromConfig ||
     buckets.find((b) => b.isSurplusTarget && ctx.isBucketEligible(b)) ||
     buckets.find((b) => !b.isPrivate && b.type === "EVERYDAY" && ctx.isBucketEligible(b)) ||
     buckets.find((b) => !b.isPrivate && (b.type === "TARGET_GOAL" || b.type === "ONGOING_GOAL" || b.type === "GOAL") && ctx.isBucketEligible(b)) ||

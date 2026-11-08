@@ -16,6 +16,7 @@ interface MobilePaydayCelebrationCardProps {
   isFutureDate?: boolean;
   submitting: boolean;
   isDeficit?: boolean;
+  strategyName?: string | null;
   onConfirm: () => void;
   onUnlockAndRecalculate?: () => void;
   onRecalculate?: () => void;
@@ -35,6 +36,7 @@ export function MobilePaydayCelebrationCard({
   isFutureDate = false,
   submitting,
   isDeficit = false,
+  strategyName,
   onConfirm,
   onUnlockAndRecalculate,
   onRecalculate,
@@ -53,9 +55,18 @@ export function MobilePaydayCelebrationCard({
   return (
     <View style={styles.card}>
       <View style={styles.header}>
-        <View style={styles.badgeRow}>
-          <Text style={styles.sparkle}>{isLocked ? '🔒' : '✨'}</Text>
-          <Text style={styles.badgeText}>{badgeText}</Text>
+        <View style={styles.badgeRowContainer}>
+          <View style={styles.badgeRow}>
+            <Text style={styles.sparkle}>{isLocked ? '🔒' : '✨'}</Text>
+            <Text style={styles.badgeText}>{badgeText}</Text>
+          </View>
+          {strategyName && (
+            <View style={styles.strategyBadge}>
+              <Text style={styles.strategyBadgeText}>
+                {t('paydayDrawer.activeStrategyBadge', { name: strategyName })}
+              </Text>
+            </View>
+          )}
         </View>
         <Text style={styles.title}>{t('paydayDrawer.celebrationTitle')}</Text>
         <Text style={styles.subtitle}>{t('paydayDrawer.celebrationSubtitle')}</Text>
@@ -102,6 +113,12 @@ const styles = StyleSheet.create({
   header: {
     gap: 6,
   },
+  badgeRowContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    flexWrap: 'wrap',
+  },
   badgeRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -111,6 +128,19 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: 12,
+  },
+  strategyBadge: {
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.25)',
+  },
+  strategyBadgeText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#FFFFFF',
   },
   sparkle: {
     fontSize: 12,

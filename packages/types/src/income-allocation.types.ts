@@ -7,6 +7,9 @@ import { BaseSchema } from "./tenant.types.js";
 export const IncomeTypeEnum = z.enum(["SALARIED", "IRREGULAR"]);
 export type IncomeType = z.infer<typeof IncomeTypeEnum>;
 
+export const IncomeContributionModeEnum = z.enum(["FULL", "PERCENTAGE", "FIXED_AMOUNT"]);
+export type IncomeContributionMode = z.infer<typeof IncomeContributionModeEnum>;
+
 export const IncomeSourceSchema = BaseSchema.extend({
   tenantId: z.string().uuid(),
   name: z.string().min(1),
@@ -14,7 +17,10 @@ export const IncomeSourceSchema = BaseSchema.extend({
   amount: z.string(),
   receivingAccountId: z.string().uuid().nullable(),
   startDate: z.string().nullable().optional(),
+  endDate: z.string().nullable().optional(),
   rrule: z.string().nullable().optional(),
+  contributionMode: IncomeContributionModeEnum.default("FULL"),
+  contributionValue: z.string().nullable().optional(),
 }).strict();
 export type IncomeSourceType = z.infer<typeof IncomeSourceSchema>;
 

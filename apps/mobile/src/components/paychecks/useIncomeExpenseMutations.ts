@@ -82,6 +82,8 @@ export function useIncomeExpenseMutations({
     interval?: number;
     startDate?: string;
     endDate?: string;
+    contributionMode?: 'FULL' | 'PERCENTAGE' | 'FIXED_AMOUNT';
+    contributionValue?: string | null;
   }) => {
     const formattedAmount = parseFloat(params.amount).toFixed(2);
     try {
@@ -98,6 +100,8 @@ export function useIncomeExpenseMutations({
               interval: params.isRecurring ? (params.interval || 1) : undefined,
               startDate: params.startDate || undefined,
               endDate: params.isRecurring && params.endDate ? params.endDate : undefined,
+              contributionMode: params.contributionMode,
+              contributionValue: params.contributionValue,
             },
           });
           toast.success(t('toasts.saved'));
@@ -111,6 +115,8 @@ export function useIncomeExpenseMutations({
             interval: params.isRecurring ? (params.interval || 1) : undefined,
             startDate: params.startDate || undefined,
             endDate: params.isRecurring && params.endDate ? params.endDate : undefined,
+            contributionMode: params.contributionMode,
+            contributionValue: params.contributionValue,
           });
           toast.success(t('toasts.saved'));
         }

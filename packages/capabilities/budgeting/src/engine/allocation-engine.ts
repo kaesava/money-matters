@@ -1,14 +1,17 @@
-import { EnvelopeType } from "@money-matters/types";
+import { EnvelopeType, AllocationStepType } from "@money-matters/types";
 import { isBillsBucket, isGoalBucket, isEverydayBucket } from "./envelope-engine-mapper.js";
 import { toCents, toDollars, calculateCycleFactor } from "./allocation-engine-utils.js";
 import {
   StepContext,
+  allocate,
   runStep1ImmediateBills,
   runStep2DeficitRepair,
   runStep3BillsSafetyFloor,
   runStep4EverydayAllowance,
   runStep5ProRataBills,
   runStep6Goals,
+  runStepFixedAmount,
+  runStepPercentageSplit,
   runStep7SurplusSweep,
 } from "./allocation-engine-steps.js";
 
@@ -54,10 +57,19 @@ export interface AllocationLine {
   reasoning: string;
 }
 
+export interface AllocationStrategyStepItem {
+  stepType: AllocationStepType;
+  targetEnvelopeId?: string | null;
+  config?: Record<string, unknown> | null;
+}
+
 export interface AllocationEngineInput {
   incomeAmount: number;
   incomeUserId?: string;
   incomeType?: "SALARIED" | "IRREGULAR";
+  contributionMode?: "FULL" | "PERCENTAGE" | "FIXED_AMOUNT";
+  contributionValue?: number | string | null;
+  strategySteps?: AllocationStrategyStepItem[];
   runwayDays?: number;
   buckets: EngineBucket[];
   paycheckDate: Date;
@@ -108,48 +120,148 @@ export function runAllocationEngine(input: AllocationEngineInput): AllocationEng
     runningBalances.set(b.id, toCents(b.currentBalance));
   }
 
-  const isBucketEligible = (b: EngineBucket) => {
-    if (b.isPrivate) {
-      if (!input.incomeUserId) return false; // Shared household income cannot fund ANY private envelope
-      if (b.userId !== input.incomeUserId) return false; // Private income can only fund owner's private envelope
+  // Pre-allocation contribution split
+  const totalIncomeCents = toCents(Math.max(0, input.incomeAmount || 0));
+  const hasPrivateEnvelopes = input.buckets.some(
+    (b) => b.isPrivate && (!input.incomeUserId || b.userId === input.incomeUserId)
+  );
+
+  let sharedCents = totalIncomeCents;
+  if (hasPrivateEnvelopes && input.contributionMode && input.contributionMode !== "FULL") {
+    if (input.contributionMode === "FIXED_AMOUNT") {
+      const fixedVal = typeof input.contributionValue === "string" ? parseFloat(input.contributionValue) : (input.contributionValue ?? 0);
+      const fixedCents = toCents(Math.max(0, fixedVal || 0));
+      // Guardrail: contribution to shared cannot exceed actual income
+      sharedCents = Math.min(totalIncomeCents, fixedCents);
+    } else if (input.contributionMode === "PERCENTAGE") {
+      const rawPct = typeof input.contributionValue === "string" ? parseFloat(input.contributionValue) : (input.contributionValue ?? 100);
+      const pct = Math.min(100, Math.max(0, isNaN(rawPct) ? 100 : rawPct));
+      sharedCents = Math.round(totalIncomeCents * (pct / 100));
     }
-    return true; // Both shared and private income can fund shared envelopes
+  }
+  const privateCents = totalIncomeCents - sharedCents;
+
+  const defaultSteps: AllocationStrategyStepItem[] = [
+    { stepType: "IMMEDIATE_BILLS" },
+    { stepType: "DEFICIT_REPAIR" },
+    { stepType: "BILLS_SAFETY_FLOOR" },
+    { stepType: "EVERYDAY_ALLOWANCE" },
+    { stepType: "PRO_RATA_BILLS" },
+    { stepType: "COMMITTED_GOALS" },
+    { stepType: "STANDARD_GOALS" },
+    { stepType: "SURPLUS_SWEEP" },
+  ];
+
+  const stepsToExecute = input.strategySteps && input.strategySteps.length > 0 ? input.strategySteps : defaultSteps;
+
+  const executePipeline = (availableCents: number, targetBuckets: EngineBucket[], isPrivateScope: boolean) => {
+    const isBucketEligible = (b: EngineBucket) => {
+      if (isPrivateScope) {
+        if (!b.isPrivate) return false;
+        if (input.incomeUserId && b.userId && b.userId !== input.incomeUserId) return false;
+        return true;
+      }
+      return !b.isPrivate;
+    };
+
+    const ctx: StepContext = {
+      remainingCents: availableCents,
+      linesMap,
+      runningBalances,
+      priorBillAllocated: new Map(),
+      currencySymbol: input.currencySymbol || "$",
+      cycleFactor,
+      regularCycleDays,
+      bufferDays,
+      bufferedCutoffDateStr,
+      isIrregular,
+      isBucketEligible,
+    };
+
+    for (const step of stepsToExecute) {
+      if (ctx.remainingCents <= 0 && step.stepType !== "SURPLUS_SWEEP") continue;
+
+      const billBuckets = targetBuckets.filter(isBillsBucket);
+      const everydayBuckets = targetBuckets.filter(isEverydayBucket);
+      const goalBuckets = targetBuckets.filter(isGoalBucket);
+
+      switch (step.stepType) {
+        case "IMMEDIATE_BILLS":
+          runStep1ImmediateBills(ctx, billBuckets, envImmediateExpensesMap);
+          break;
+        case "DEFICIT_REPAIR":
+          runStep2DeficitRepair(ctx, targetBuckets);
+          break;
+        case "BILLS_SAFETY_FLOOR":
+          runStep3BillsSafetyFloor(ctx, billBuckets);
+          break;
+        case "EVERYDAY_ALLOWANCE":
+          runStep4EverydayAllowance(ctx, everydayBuckets);
+          break;
+        case "PRO_RATA_BILLS": {
+          const essentialBills = billBuckets.filter((b) => b.isEssential);
+          const standardBills = billBuckets.filter((b) => !b.isEssential);
+          runStep5ProRataBills(ctx, essentialBills, futureExpenses, input.paycheckDate);
+          runStep5ProRataBills(ctx, standardBills, futureExpenses, input.paycheckDate);
+          break;
+        }
+        case "COMMITTED_GOALS": {
+          const committedGoals = goalBuckets.filter((b) => b.isCommitted);
+          runStep6Goals(ctx, committedGoals, input.paycheckDate, baseNextCutoffTime);
+          break;
+        }
+        case "STANDARD_GOALS": {
+          const uncommittedGoals = goalBuckets.filter((b) => !b.isCommitted && !b.isSurplusTarget);
+          runStep6Goals(ctx, uncommittedGoals, input.paycheckDate, baseNextCutoffTime);
+          break;
+        }
+        case "FIXED_AMOUNT": {
+          const amt = typeof step.config?.amount === "number" ? step.config.amount : parseFloat(String(step.config?.amount || "0"));
+          runStepFixedAmount(ctx, targetBuckets, step.targetEnvelopeId, amt);
+          break;
+        }
+        case "PERCENTAGE_SPLIT": {
+          const pct = typeof step.config?.percentage === "number" ? step.config.percentage : parseFloat(String(step.config?.percentage || "0"));
+          runStepPercentageSplit(ctx, targetBuckets, step.targetEnvelopeId, pct);
+          break;
+        }
+        case "SURPLUS_SWEEP":
+          runStep7SurplusSweep(ctx, targetBuckets, step.targetEnvelopeId);
+          break;
+      }
+    }
+    return ctx.remainingCents;
   };
 
-  const ctx: StepContext = {
-    remainingCents: toCents(Math.max(0, input.incomeAmount || 0)),
-    linesMap,
-    runningBalances,
-    priorBillAllocated: new Map(),
-    currencySymbol: input.currencySymbol || "$",
-    cycleFactor,
-    regularCycleDays,
-    bufferDays,
-    bufferedCutoffDateStr,
-    isIrregular,
-    isBucketEligible,
-  };
+  // 1. Run Shared Allocation
+  const sharedBuckets = input.buckets.filter((b) => !b.isPrivate);
+  const leftoverSharedCents = executePipeline(sharedCents, sharedBuckets, false);
 
-  const billBuckets = input.buckets.filter(isBillsBucket);
-  const everydayBuckets = input.buckets.filter(isEverydayBucket);
-  const goalBuckets = input.buckets.filter(isGoalBucket);
+  // 2. Run Private Allocation (if private funds exist and earner owns private envelopes)
+  let leftoverPrivateCents = 0;
+  if (privateCents > 0 && hasPrivateEnvelopes) {
+    const earnerPrivateBuckets = input.buckets.filter(
+      (b) => b.isPrivate && (!input.incomeUserId || b.userId === input.incomeUserId)
+    );
 
-  runStep4EverydayAllowance(ctx, everydayBuckets);
-  runStep1ImmediateBills(ctx, billBuckets, envImmediateExpensesMap);
-  runStep2DeficitRepair(ctx, input.buckets);
-  runStep3BillsSafetyFloor(ctx, billBuckets);
-
-  const essentialBills = billBuckets.filter((b) => b.isEssential);
-  const standardBills = billBuckets.filter((b) => !b.isEssential);
-  runStep5ProRataBills(ctx, essentialBills, futureExpenses, input.paycheckDate);
-  runStep5ProRataBills(ctx, standardBills, futureExpenses, input.paycheckDate);
-
-  const committedGoals = goalBuckets.filter((b) => b.isCommitted);
-  const uncommittedGoals = goalBuckets.filter((b) => !b.isCommitted && !b.isSurplusTarget);
-  runStep6Goals(ctx, committedGoals, input.paycheckDate, baseNextCutoffTime);
-  runStep6Goals(ctx, uncommittedGoals, input.paycheckDate, baseNextCutoffTime);
-
-  runStep7SurplusSweep(ctx, input.buckets);
+    if (earnerPrivateBuckets.length === 1) {
+      // Exactly 1 private envelope: 100% of private income flows directly to this envelope
+      const privateTarget = earnerPrivateBuckets[0];
+      const sym = input.currencySymbol || "$";
+      const line = linesMap.get(privateTarget.id)!;
+      line.amountCents += privateCents;
+      line.reasonings.push(
+        `Personal income allocation: ${sym}${toDollars(privateCents).toFixed(2)} allocated to personal envelope (${privateTarget.name}).`
+      );
+      const curBal = runningBalances.get(privateTarget.id) ?? 0;
+      runningBalances.set(privateTarget.id, curBal + privateCents);
+    } else if (earnerPrivateBuckets.length > 1) {
+      // Multiple private envelopes: run the recipe across the earner's private envelopes
+      leftoverPrivateCents = executePipeline(privateCents, earnerPrivateBuckets, true);
+    } else {
+      leftoverPrivateCents = privateCents;
+    }
+  }
 
   const lines: AllocationLine[] = Array.from(linesMap.entries()).map(([bucketId, data]) => ({
     bucketId,
@@ -168,6 +280,6 @@ export function runAllocationEngine(input: AllocationEngineInput): AllocationEng
   return {
     status: isInsufficient ? "INSUFFICIENT" : "OK",
     lines,
-    unallocatedAmount: toDollars(ctx.remainingCents),
+    unallocatedAmount: toDollars(leftoverSharedCents + leftoverPrivateCents),
   };
 }

@@ -316,6 +316,13 @@
       "when": 1784208494251,
       "tag": "0045_harden_stealth_privacy_rls",
       "breakpoints": true
+    },
+    {
+      "idx": 45,
+      "version": "7",
+      "when": 1784218494251,
+      "tag": "0046_allocation_strategies_and_contribution_mode",
+      "breakpoints": true
     }
   ]
 }

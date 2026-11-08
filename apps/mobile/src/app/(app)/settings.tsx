@@ -19,6 +19,7 @@ import { FeedbackFormModal } from '../../components/FeedbackFormModal';
 import { MobileTenantSwitcherModal } from '../../components/settings/MobileTenantSwitcherModal';
 import { MobileBankAccountsSection } from '../../components/settings/MobileBankAccountsSection';
 import { MobileArchivedSection } from '../../components/settings/MobileArchivedSection';
+import { MobileAllocationStrategySection } from '../../components/settings/MobileAllocationStrategySection';
 import { getMobileVersionInfo } from '../../lib/version';
 import { useMobileProductTour } from '../../context/ProductTourContext';
 
@@ -154,6 +155,8 @@ export default function SettingsScreen() {
                   discardHouseholdRef.current = fn;
                 }}
               />
+
+              <MobileAllocationStrategySection />
 
               <HouseholdPartnerInviteSection />
 

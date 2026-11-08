@@ -17,6 +17,7 @@ interface PaydayCelebrationCardProps {
   isFutureDate?: boolean;
   submitting: boolean;
   isDeficit?: boolean;
+  strategyName?: string | null;
   onConfirm: () => void;
   onUnlockAndRecalculate?: () => void;
   onRecalculate?: () => void;
@@ -37,6 +38,7 @@ export function PaydayCelebrationCard({
   isFutureDate = false,
   submitting,
   isDeficit = false,
+  strategyName,
   onConfirm,
   onUnlockAndRecalculate,
   onRecalculate,
@@ -65,17 +67,24 @@ export function PaydayCelebrationCard({
     <div className="bg-gradient-to-br from-blue-900 via-[#1B2B4B] to-slate-900 border border-blue-500/30 rounded-2xl p-6 sm:p-7 text-white shadow-xl space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="space-y-1">
-          <div className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider border ${badgeStyle}`}>
-            {isConfirmed ? (
-              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-300" />
-            ) : isLocked ? (
-              <Lock className="w-3.5 h-3.5 text-indigo-300" />
-            ) : isDirty ? (
-              <Sparkles className="w-3.5 h-3.5 text-amber-300" />
-            ) : (
-              <Sparkles className="w-3.5 h-3.5 text-blue-300" />
+          <div className="flex items-center gap-2 flex-wrap">
+            <div className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider border ${badgeStyle}`}>
+              {isConfirmed ? (
+                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-300" />
+              ) : isLocked ? (
+                <Lock className="w-3.5 h-3.5 text-indigo-300" />
+              ) : isDirty ? (
+                <Sparkles className="w-3.5 h-3.5 text-amber-300" />
+              ) : (
+                <Sparkles className="w-3.5 h-3.5 text-blue-300" />
+              )}
+              <span>{badgeText}</span>
+            </div>
+            {strategyName && (
+              <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-white/10 text-white/90 border border-white/20">
+                {t("paydayDrawer.activeStrategyBadge", { name: strategyName })}
+              </span>
             )}
-            <span>{badgeText}</span>
           </div>
           <h2 className="text-xl sm:text-2xl font-black tracking-tight text-white pt-1">
             {t("paydayDrawer.celebrationTitle")}

@@ -9,6 +9,7 @@ import { Feather } from '@expo/vector-icons';
 import { DESIGN_TOKENS, MobileModalDialog } from '@money-matters/ui/mobile';
 import { t } from '@money-matters/i18n';
 import { formatDate } from '../../lib/format';
+import { trpc } from '../../lib/trpc';
 import { AllocationDetailHeader } from './allocation-detail/AllocationDetailHeader';
 import { AllocationDetailLinesList } from './allocation-detail/AllocationDetailLinesList';
 
@@ -46,6 +47,9 @@ export function MobilePaydayAllocationDetailModal({
   onClose,
   onOpenSplitStudio,
 }: MobilePaydayAllocationDetailModalProps) {
+  const activeStrategyQuery = trpc.getActiveAllocationStrategy.useQuery(undefined, { enabled: visible });
+  const activeStrategy = activeStrategyQuery.data;
+
   if (!visible || !allocation) return null;
 
   const totalIncome = parseFloat(allocation.totalIncomeAmount) || 0;
@@ -63,6 +67,7 @@ export function MobilePaydayAllocationDetailModal({
           allocation={allocation}
           totalIncome={totalIncome}
           isConfirmed={isConfirmed}
+          strategyName={activeStrategy?.name}
         />
 
         <AllocationDetailLinesList lines={allocation.lines} />

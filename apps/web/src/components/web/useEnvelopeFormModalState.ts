@@ -25,6 +25,8 @@ export interface EnvelopeModalItem {
   rrule?: string | null;
   isSurplusTarget?: boolean | null;
   hasScheduledEvents?: boolean | null;
+  isEssential?: boolean | null;
+  isCommitted?: boolean | null;
 }
 
 export interface UseEnvelopeFormModalStateParams {
@@ -52,6 +54,8 @@ export function useEnvelopeFormModalState({
   const [interval, setInterval] = useState<number>(1);
   const [goalStartDate, setGoalStartDate] = useState("");
   const [isSurplusTarget, setIsSurplusTarget] = useState(false);
+  const [isEssential, setIsEssential] = useState(false);
+  const [isCommitted, setIsCommitted] = useState(false);
   const [generateEvents, setGenerateEvents] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
@@ -84,6 +88,8 @@ export function useEnvelopeFormModalState({
       const rawStartDate = categoryToEdit.startDate || "";
       setGoalStartDate(rawStartDate ? rawStartDate.split("T")[0] : "");
       setIsSurplusTarget(categoryToEdit.isSurplusTarget ?? false);
+      setIsEssential(categoryToEdit.isEssential ?? false);
+      setIsCommitted(categoryToEdit.isCommitted ?? false);
       const isInitialScheduled =
         (categoryToEdit.envelopeType || categoryToEdit.poolType || categoryToEdit.type || "REGULAR") ===
         "SCHEDULED_BILL";
@@ -101,6 +107,8 @@ export function useEnvelopeFormModalState({
       setInterval(1);
       setGoalStartDate(new Intl.DateTimeFormat("en-CA").format(new Date()));
       setIsSurplusTarget(false);
+      setIsEssential(false);
+      setIsCommitted(false);
       setGenerateEvents(true);
     }
     setErrorMsg(null);
@@ -156,6 +164,8 @@ export function useEnvelopeFormModalState({
           targetAmount.trim() ||
           targetDate ||
           isSurplusTarget ||
+          isEssential ||
+          isCommitted ||
           type !== "REGULAR" ||
           billMode !== "SCHEDULED_BILL" ||
           goalMode !== "TARGET_DATE" ||
@@ -185,6 +195,8 @@ export function useEnvelopeFormModalState({
     const rawStartDate = categoryToEdit.startDate || "";
     const initialStartDate = rawStartDate ? rawStartDate.split("T")[0] : "";
     const initialSurplus = categoryToEdit.isSurplusTarget ?? false;
+    const initialEssential = categoryToEdit.isEssential ?? false;
+    const initialCommitted = categoryToEdit.isCommitted ?? false;
     const initialGenerate = categoryToEdit.hasScheduledEvents ?? (initialBillMode === "SCHEDULED_BILL");
 
     if (name.trim() !== initialName) return true;
@@ -195,6 +207,7 @@ export function useEnvelopeFormModalState({
     }
 
     if (type === "REGULAR") {
+      if (isEssential !== initialEssential) return true;
       if (billMode !== initialBillMode) return true;
       if (targetAmount.trim() !== initialTarget) return true;
       if (billMode === "SCHEDULED_BILL") {
@@ -208,6 +221,7 @@ export function useEnvelopeFormModalState({
     }
 
     if (type === "GOAL") {
+      if (isCommitted !== initialCommitted) return true;
       if (goalMode !== initialGoalMode) return true;
       if (targetAmount.trim() !== initialTarget) return true;
       if (goalMode === "TARGET_DATE") {
@@ -235,6 +249,8 @@ export function useEnvelopeFormModalState({
     goalMode,
     frequency,
     interval,
+    isEssential,
+    isCommitted,
     goalStartDate,
     isSurplusTarget,
     type,
@@ -343,6 +359,8 @@ export function useEnvelopeFormModalState({
       rrule: isScheduledBill || isOngoingGoal ? rruleString || undefined : undefined,
       goalMode: type === "GOAL" ? goalMode : undefined,
       isSurplusTarget: type !== "EVERYDAY" ? isSurplusTarget : undefined,
+      isEssential: type === "REGULAR" ? isEssential : undefined,
+      isCommitted: type === "GOAL" ? isCommitted : undefined,
       generateEvents: isScheduledBill ? generateEvents : undefined,
     };
   };
@@ -374,6 +392,10 @@ export function useEnvelopeFormModalState({
     setGoalStartDate,
     isSurplusTarget,
     setIsSurplusTarget,
+    isEssential,
+    setIsEssential,
+    isCommitted,
+    setIsCommitted,
     generateEvents,
     setGenerateEvents,
     submitting,
