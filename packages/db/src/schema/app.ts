@@ -1,4 +1,5 @@
-import { pgTable, uuid, varchar, timestamp } from "drizzle-orm/pg-core";
+import { pgTable, uuid, varchar, timestamp, jsonb } from "drizzle-orm/pg-core";
+import { type AppFeatureFlags, DEFAULT_APP_FEATURE_FLAGS } from "@money-matters/types";
 
 /**
  * Application registry. Each row represents a distinct product (e.g. Money Matters).
@@ -13,6 +14,8 @@ export const apps = pgTable("apps", {
   id: uuid("id").primaryKey(),
   name: varchar("name", { length: 255 }).notNull(),
   slug: varchar("slug", { length: 255 }).notNull().unique(),
+  featureFlags: jsonb("feature_flags").$type<AppFeatureFlags>().default(DEFAULT_APP_FEATURE_FLAGS).notNull(),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });
+

@@ -4,6 +4,7 @@ import {
   AssistantAskInputSchema,
   AssistantResultSchema,
   AssistantUsageSchema,
+  DEFAULT_APP_FEATURE_FLAGS,
 } from "@money-matters/types";
 import {
   askAssistant,
@@ -12,6 +13,8 @@ import {
 } from "@money-matters/capability-assistant";
 import { checkAiTenantRateLimit } from "@money-matters/core";
 import { AI_TIER_LIMITS } from "@money-matters/config";
+import { apps } from "@money-matters/db";
+import { eq } from "drizzle-orm";
 import { createAssistantIntentHandler } from "./assistant-adapters.js";
 
 const llmProvider = new CloudflareGatewayLlmProvider();
@@ -21,6 +24,21 @@ export const assistantRouter = router({
     .input(AssistantAskInputSchema)
     .output(AssistantResultSchema)
     .mutation(async ({ ctx, input }) => {
+      // 0. App feature flag check
+      const [appRecord] = await ctx.db
+        .select({ featureFlags: apps.featureFlags })
+        .from(apps)
+        .where(eq(apps.id, ctx.appId))
+        .limit(1);
+
+      const flags = appRecord?.featureFlags || DEFAULT_APP_FEATURE_FLAGS;
+      if (!flags.aiAssistant) {
+        return {
+          type: "unavailable",
+          reason: "disabled",
+        };
+      }
+
       // 1. Sliding window burst limit check (fail closed if active)
       const burstLimit = AI_TIER_LIMITS.free.burstPerMinute;
       const rateLimitCheck = await checkAiTenantRateLimit(ctx.tenantId, burstLimit);

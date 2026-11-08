@@ -1,7 +1,8 @@
-import { envelopes, expenseEvents, bankAccounts, DbOrTx } from "@money-matters/db";
+import { envelopes, expenseEvents, bankAccounts, tenants, DbOrTx } from "@money-matters/db";
 import { eq, and, sql } from "drizzle-orm";
 import { z } from "zod";
 import { UpdateEnvelopeCommand } from "@money-matters/types";
+import { getTenantDateString } from "@money-matters/core";
 import {
   deriveRruleFromFrequency,
   computeDefaultStartDate,
@@ -241,7 +242,18 @@ export async function updateEnvelopeCommand(
       if (shouldBurstFresh) {
         await clearScheduledEnvelopeEvents(tx, envelopeId, tenantId, appId);
         if (rrule && startDate && parseFloat(newAmountVal) > 0) {
-          await burstEnvelopeEvents(tx, {
+          const [tenantRecord] = await tx
+            .select({ timezone: tenants.timezone })
+            .from(tenants)
+            .where(eq(tenants.id, tenantId))
+            .limit(1);
+          const tenantTz = tenantRecord?.timezone || "Australia/Sydney";
+          const todayStr = getTenantDateString(new Date(), { timezone: tenantTz });
+          const yesterday = new Date(Date.now() - 86400000);
+          const yesterdayStr = getTenantDateString(yesterday, { timezone: tenantTz });
+          const afterDateStr = startDate < todayStr ? yesterdayStr : null;
+
+          const count = await burstEnvelopeEvents(tx, {
             envelopeId,
             name: updated.name,
             amount: newAmountVal,
@@ -251,7 +263,21 @@ export async function updateEnvelopeCommand(
             tenantId,
             appId,
             userId,
+            timeZone: tenantTz,
+            afterDateStr,
           });
+
+          if (count === 0) {
+            await tx
+              .update(envelopes)
+              .set({ lastBurstDate: endDate || null, updatedAt: new Date(), updatedBy: userId })
+              .where(eq(envelopes.id, envelopeId));
+          }
+        } else {
+          await tx
+            .update(envelopes)
+            .set({ lastBurstDate: null, updatedAt: new Date(), updatedBy: userId })
+            .where(eq(envelopes.id, envelopeId));
         }
       } else if (amountChanged || nameChanged) {
         // In-place update of all unconfirmed pending events

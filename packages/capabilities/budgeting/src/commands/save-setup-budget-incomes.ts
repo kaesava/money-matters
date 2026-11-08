@@ -85,6 +85,7 @@ export async function processSetupIncomes(
         amount: incInput.amount,
         rrule,
         startDate,
+        endDate: (incInput as { endDate?: string | null }).endDate || null,
         tenantId,
         appId,
         userId,

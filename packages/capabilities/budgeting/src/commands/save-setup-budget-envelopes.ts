@@ -242,6 +242,7 @@ export async function processSetupEnvelopes(
         amount: amountVal,
         rrule: rrule || deriveRrule(effectiveFreq),
         startDate: startDate || computeBillScheduleAnchorDate(effectiveFreq, now, timeZone),
+        endDate: envInput.endDate || null,
         isScheduledBill,
         timeZone,
         tenantId,

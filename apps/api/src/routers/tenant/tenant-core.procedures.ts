@@ -1,6 +1,6 @@
 import { tenantProcedure, authenticatedProcedure, privateOwnerProcedure, publicProcedure, privateTenantProcedure } from '../../trpc/trpc.js';
 import { MONEY_MATTERS_APP_ID, clearEdgeContextCache } from '../../trpc/edge-context.js';
-import { db, tenants, tenantUsers, earlyAccessSubscribers } from "@money-matters/db";
+import { db, tenants, tenantUsers, earlyAccessSubscribers, apps } from "@money-matters/db";
 import { and, eq, sql, asc, isNull } from "drizzle-orm";
 import { inngest } from '../../inngest/client.js';
 import { 
@@ -9,7 +9,7 @@ import {
   exportDataHandler,
   deleteMyAccountHandler,
 } from "@money-matters/capability-tenant";
-import { CreateTenantCommand } from "@money-matters/types";
+import { CreateTenantCommand, DEFAULT_APP_FEATURE_FLAGS } from "@money-matters/types";
 import { z } from 'zod';
 import { posthog } from '../../lib/posthog.js';
 
@@ -55,6 +55,7 @@ export const tenantCoreProcedures = {
   getTenantStatus: authenticatedProcedure
     .query(async ({ ctx }) => {
       let setupCompleted = false;
+      const appId = ctx.appId || MONEY_MATTERS_APP_ID;
 
       if (ctx.tenantId) {
         const [tenant] = await ctx.db
@@ -69,10 +70,19 @@ export const tenantCoreProcedures = {
         setupCompleted = tenant?.setupStatus === "COMPLETED" || Boolean(tenant?.setupCompletedAt);
       }
 
+      const [appRecord] = await ctx.db
+        .select({
+          featureFlags: apps.featureFlags,
+        })
+        .from(apps)
+        .where(eq(apps.id, appId))
+        .limit(1);
+
       return {
         hasTenant: ctx.tenantId !== null,
         tenantId: ctx.tenantId,
         setupCompleted,
+        features: appRecord?.featureFlags || DEFAULT_APP_FEATURE_FLAGS,
       };
     }),
 

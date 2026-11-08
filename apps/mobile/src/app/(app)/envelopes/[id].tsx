@@ -11,6 +11,8 @@ import { MarkPaidModal, MarkPaidEvent } from '../../../components/MarkPaidModal'
 import { PoolSummaryCard } from '../../../components/envelopes/PoolSummaryCard';
 import { PoolUpcomingSection } from '../../../components/envelopes/PoolUpcomingSection';
 import { PoolHistorySection } from '../../../components/envelopes/PoolHistorySection';
+import { useAppFeatures } from '../../../context/useAppFeatures';
+import { NotesFeedModal } from '@money-matters/capability-file-notes/mobile';
 
 export default function PoolDetailScreen() {
   const { id, returnTo } = useLocalSearchParams<{ id: string; returnTo?: string }>();
@@ -23,6 +25,8 @@ export default function PoolDetailScreen() {
   const [markPaidEvent, setMarkPaidEvent] = useState<MarkPaidEvent | null>(null);
   const [upcomingExpanded, setUpcomingExpanded] = useState(true);
   const [historyExpanded, setHistoryExpanded] = useState(true);
+  const [notesModalVisible, setNotesModalVisible] = useState(false);
+  const { hasFileNotes } = useAppFeatures();
 
   const poolsQuery = trpc.listPools.useQuery(undefined, { enabled: !!session?.user });
   const bankAccountsQuery = trpc.listBankAccounts.useQuery(undefined, { enabled: !!session?.user });
@@ -68,6 +72,7 @@ export default function PoolDetailScreen() {
           pool={pool}
           bankAccountName={bankAccount?.name}
           onEdit={() => setPoolModalVisible(true)}
+          onOpenNotes={hasFileNotes ? () => setNotesModalVisible(true) : undefined}
           onDrawDown={
             pool.envelopeType === 'EVERYDAY'
               ? undefined
@@ -158,6 +163,16 @@ export default function PoolDetailScreen() {
           txLedgerQuery.refetch();
         }}
       />
+
+      {hasFileNotes && (
+        <NotesFeedModal
+          visible={notesModalVisible}
+          entityType="ENVELOPE"
+          entityId={pool.id}
+          entityName={pool.name}
+          onClose={() => setNotesModalVisible(false)}
+        />
+      )}
     </MobileScreenWrapper>
   );
 }

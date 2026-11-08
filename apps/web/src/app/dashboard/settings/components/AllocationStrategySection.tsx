@@ -5,10 +5,12 @@ import Link from "next/link";
 import { t } from "@money-matters/i18n";
 import { useToast, ConfirmDialog, InfoTooltip } from "@money-matters/ui/web";
 import { trpc } from "../../../../lib/trpc";
+import { useAppFeatures } from "../../../../hooks/useAppFeatures";
 
 export function AllocationStrategySection() {
   const toast = useToast();
   const utils = trpc.useUtils();
+  const { hasPrivateMode } = useAppFeatures();
 
   const [activeTab, setActiveTab] = useState<"household" | "personal">("household");
 
@@ -17,8 +19,8 @@ export function AllocationStrategySection() {
   const isOwner = govQuery.data?.isOwner ?? true;
 
   const hasPrivateEnvelopes = useMemo(
-    () => (envelopesQuery.data || []).some((e) => e.isPrivate),
-    [envelopesQuery.data]
+    () => hasPrivateMode && (envelopesQuery.data || []).some((e) => e.isPrivate),
+    [envelopesQuery.data, hasPrivateMode]
   );
 
   const isPersonalScope = activeTab === "personal";

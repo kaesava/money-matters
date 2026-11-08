@@ -9,6 +9,8 @@ import { BankAccountFormModal } from "./BankAccountFormModal";
 import { ReconciliationModal } from "../../../../components/ReconciliationModal";
 import { QuickExpenseDrawer } from "../../../../components/web/QuickExpenseDrawer";
 import { useLocale } from "../../../../providers/LocaleProvider";
+import { useAppFeatures } from "../../../../hooks/useAppFeatures";
+import { FileNotesDrawer } from "@money-matters/capability-file-notes/web";
 import { useBankAccountsList } from "./useBankAccountsList";
 
 const BANK_OPTIONS: Array<{ key: BankName; label: string; logoBg: string; textColor: string }> = [
@@ -23,6 +25,8 @@ const BANK_OPTIONS: Array<{ key: BankName; label: string; logoBg: string; textCo
 
 export function BankAccountsSection() {
   const { fmt } = useLocale();
+  const { hasFileNotes } = useAppFeatures();
+  const [notesAccount, setNotesAccount] = React.useState<{ id: string; name: string } | null>(null);
   const fmtMoney = (val: string | number | undefined) => {
     const num = typeof val === "string" ? parseFloat(val) : typeof val === "number" ? val : 0;
     return fmt(num);
@@ -143,9 +147,18 @@ export function BankAccountsSection() {
         onPageSizeChange={list.setPageSize}
         openEditModal={list.openEditModal}
         openAlignmentModal={list.handleDirectAlignment}
+        onOpenFileNotes={hasFileNotes ? (acc) => setNotesAccount({ id: acc.id, name: acc.name }) : undefined}
         fmtMoney={fmtMoney}
         isLoading={list.bankAccountsQuery.isLoading}
       />
+
+      {hasFileNotes && notesAccount && (
+        <FileNotesDrawer
+          entityType="BANK_ACCOUNT"
+          entity={notesAccount}
+          onClose={() => setNotesAccount(null)}
+        />
+      )}
 
       {/* Add / Edit Account Modal */}
       {list.isModalOpen && (() => {

@@ -13,6 +13,7 @@
     }
   },
   "dependencies": {
+    "@money-matters/types": "workspace:*",
     "@neondatabase/serverless": "^0.9.0",
     "drizzle-orm": "^0.39.0",
     "uuid": "^9.0.1",
@@ -34,6 +35,8 @@
     "push": "npx dotenv-cli -e ../../.env.development -- drizzle-kit push --force",
     "seed": "npx dotenv-cli -e ../../.env.development -- tsx src/seed.ts",
     "seed:prod": "npx dotenv-cli -e ../../.env -- tsx src/seed.ts",
+    "app:set-flag": "npx dotenv-cli -e ../../.env -- tsx src/set-app-flag.ts",
+
 
     "typecheck": "tsc --noEmit",
     "lint": "eslint . --cache",

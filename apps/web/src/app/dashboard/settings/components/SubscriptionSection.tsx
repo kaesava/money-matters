@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import { trpc } from "../../../../lib/trpc";
+import { useAppFeatures } from "../../../../hooks/useAppFeatures";
 import { Spinner, useToast, AiUsageCard } from "@money-matters/ui/web";
 import { t } from "@money-matters/i18n";
 import type { inferRouterOutputs } from "@trpc/server";
@@ -234,11 +235,13 @@ export function SubscriptionSection({ status }: SubscriptionSectionProps) {
 }
 
 function AiUsageCardWrapper() {
+  const { hasAiAssistant } = useAppFeatures();
   const usageQuery = trpc.assistantUsage.useQuery(undefined, {
+    enabled: hasAiAssistant,
     staleTime: 30_000,
   });
 
-  if (!usageQuery.data) return null;
+  if (!hasAiAssistant || !usageQuery.data) return null;
 
   return (
     <AiUsageCard

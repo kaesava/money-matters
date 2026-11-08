@@ -22,6 +22,8 @@ interface EnvelopesFilterSheetProps {
   onReset: () => void;
 }
 
+import { useAppFeatures } from '../../context/useAppFeatures';
+
 export function EnvelopesFilterSheet({
   visible,
   onClose,
@@ -36,6 +38,38 @@ export function EnvelopesFilterSheet({
   setPrivacyFilter,
   onReset,
 }: EnvelopesFilterSheetProps) {
+  const { hasPrivateMode } = useAppFeatures();
+
+  const sections = [
+    {
+      id: 'type',
+      title: t('categories.filterByType'),
+      selectedValue: typeFilter,
+      onSelect: (val: string) => setTypeFilter(val as PoolTypeFilter),
+      options: [
+        { id: 'ALL', label: t('common.all') },
+        { id: 'EVERYDAY', label: t('poolTypes.everyday') },
+        { id: 'REGULAR', label: t('poolTypes.bills') },
+        { id: 'GOAL', label: t('poolTypes.goals') },
+      ],
+    },
+    ...(hasPrivateMode
+      ? [
+          {
+            id: 'privacy',
+            title: t('categories.filterByPrivacy'),
+            selectedValue: privacyFilter,
+            onSelect: (val: string) => setPrivacyFilter(val as PrivacyFilter),
+            options: [
+              { id: 'ALL', label: t('common.all') },
+              { id: 'SHARED', label: t('common.shared') },
+              { id: 'PRIVATE', label: t('common.private') },
+            ],
+          },
+        ]
+      : []),
+  ];
+
   return (
     <MobileFilterSheet
       visible={visible}
@@ -50,31 +84,7 @@ export function EnvelopesFilterSheet({
       ]}
       onSortFieldChange={(field) => onSortFieldChange(field as PoolSortField)}
       onSortOrderChange={onSortOrderChange}
-      sections={[
-        {
-          id: 'type',
-          title: t('categories.filterByType'),
-          selectedValue: typeFilter,
-          onSelect: (val) => setTypeFilter(val as PoolTypeFilter),
-          options: [
-            { id: 'ALL', label: t('common.all') },
-            { id: 'EVERYDAY', label: t('poolTypes.everyday') },
-            { id: 'REGULAR', label: t('poolTypes.bills') },
-            { id: 'GOAL', label: t('poolTypes.goals') },
-          ],
-        },
-        {
-          id: 'privacy',
-          title: t('categories.filterByPrivacy'),
-          selectedValue: privacyFilter,
-          onSelect: (val) => setPrivacyFilter(val as PrivacyFilter),
-          options: [
-            { id: 'ALL', label: t('common.all') },
-            { id: 'SHARED', label: t('common.shared') },
-            { id: 'PRIVATE', label: t('common.private') },
-          ],
-        },
-      ]}
+      sections={sections}
       onReset={onReset}
     />
   );

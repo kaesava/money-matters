@@ -17,6 +17,26 @@ import * as rruleNs from "rrule";
 const rrulePkg = rruleNs as unknown as { RRule?: typeof rruleNs.RRule; default?: { RRule?: typeof rruleNs.RRule } };
 const RRule = (rrulePkg.RRule || rrulePkg["default"]?.RRule || rrulePkg["default"]) as typeof rruleNs.RRule;
 
+function parseUtcDateParts(dateStr: string): Date | null {
+  const clean = dateStr.slice(0, 10);
+  const parts = clean.split("-").map(Number);
+  if (parts.length < 3 || isNaN(parts[0]) || isNaN(parts[1]) || isNaN(parts[2])) {
+    return null;
+  }
+  const d = new Date(Date.UTC(parts[0], parts[1] - 1, parts[2], 0, 0, 0));
+  return isNaN(d.getTime()) ? null : d;
+}
+
+function parseUtcEndOfDayParts(dateStr: string): Date | null {
+  const clean = dateStr.slice(0, 10);
+  const parts = clean.split("-").map(Number);
+  if (parts.length < 3 || isNaN(parts[0]) || isNaN(parts[1]) || isNaN(parts[2])) {
+    return null;
+  }
+  const d = new Date(Date.UTC(parts[0], parts[1] - 1, parts[2], 23, 59, 59, 999));
+  return isNaN(d.getTime()) ? null : d;
+}
+
 export function generateBurstDates(
   rruleStr: string,
   startDateStr: string,
@@ -26,25 +46,27 @@ export function generateBurstDates(
   afterDateStr?: string | null
 ): Date[] {
   const dates: Date[] = [];
-  const start = new Date(startDateStr);
-  if (isNaN(start.getTime())) return dates;
-  const now = new Date();
+  const start = parseUtcDateParts(startDateStr);
+  if (!start) {
+    return dates;
+  }
 
-  // Create a strict cutoff based on the current date + N months
-  const cutOff = new Date(now.getFullYear(), now.getMonth() + monthsAhead, now.getDate());
+  const now = new Date();
+  // Create strict cutoff in UTC
+  const cutOff = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + monthsAhead, now.getUTCDate(), 23, 59, 59, 999));
 
   let limitDate = cutOff;
   if (endDateStr) {
-    const end = new Date(endDateStr);
-    if (!isNaN(end.getTime()) && end < cutOff) {
+    const end = parseUtcEndOfDayParts(endDateStr);
+    if (end && end < cutOff) {
       limitDate = end;
     }
   }
 
   // If afterDateStr is provided and already at or past the limitDate, return empty
   if (afterDateStr) {
-    const after = new Date(afterDateStr);
-    if (!isNaN(after.getTime()) && after >= limitDate) {
+    const after = parseUtcEndOfDayParts(afterDateStr);
+    if (after && after >= limitDate) {
       return dates;
     }
   }
@@ -52,14 +74,17 @@ export function generateBurstDates(
   try {
     const options = RRule.parseString(rruleStr);
     options.dtstart = start;
-    options.until = limitDate; // RRule handles until inclusive
+    if (options.until && options.until < limitDate) {
+      limitDate = options.until;
+    }
+    options.until = limitDate;
 
     const rule = new RRule(options);
 
     let searchStart = start;
     if (afterDateStr) {
-      const after = new Date(afterDateStr);
-      if (!isNaN(after.getTime()) && after > start) {
+      const after = parseUtcDateParts(afterDateStr);
+      if (after && after > start) {
         searchStart = after;
       }
     }
@@ -67,19 +92,19 @@ export function generateBurstDates(
     // Generate occurrences between searchStart and limitDate
     const generated = rule.between(searchStart, limitDate, true);
 
-    const filtered = afterDateStr
+    const afterClean = afterDateStr ? afterDateStr.slice(0, 10) : null;
+    const filtered = afterClean
       ? generated.filter((d) => {
           const y = d.getUTCFullYear();
           const m = String(d.getUTCMonth() + 1).padStart(2, "0");
           const day = String(d.getUTCDate()).padStart(2, "0");
           const dUtcStr = `${y}-${m}-${day}`;
-          return dUtcStr > afterDateStr;
+          return dUtcStr > afterClean;
         })
       : generated;
 
     return filtered.slice(0, maxOccurrences);
   } catch (e) {
-    // Fallback if rrule string parsing fails (should not happen for valid generated rrules)
     console.error("Failed to parse rrule", e);
     return dates;
   }

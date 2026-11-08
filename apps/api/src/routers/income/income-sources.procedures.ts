@@ -1,7 +1,8 @@
 import { privateTenantProcedure, requiresWriteAccess } from '../../trpc/trpc.js';
-import { incomeSources, incomeEvents, bankAccounts } from "@money-matters/db";
+import { incomeSources, incomeEvents, bankAccounts, tenants } from "@money-matters/db";
 import { and, eq, sql, inArray } from "drizzle-orm";
-import { generateBurstDates } from "@money-matters/capability-budgeting";
+import { burstIncomeEvents } from "@money-matters/capability-budgeting";
+import { getTenantDateString } from "@money-matters/core";
 import { posthog } from '../../lib/posthog.js';
 import { z } from 'zod';
 import { getTenantLocalDateString, buildRRule } from './income-helpers.js';
@@ -143,34 +144,27 @@ export const incomeSourcesProcedures = {
       let firstEventId: string | null = null;
 
       if (input.startDate && rrule) {
-        const dates = generateBurstDates(rrule, input.startDate, input.endDate, 12);
-        if (dates.length > 0) {
-          const insertedEvents = await ctx.db.insert(incomeEvents).values(
-            await Promise.all(
-              dates.map(async (d) => ({
-                incomeSourceId: source.id,
-                name: input.name,
-                expectedDate: await getTenantLocalDateString(ctx.db, ctx.tenantId!, d),
-                expectedAmount: input.amount,
-                contributionMode: input.contributionMode || "FULL",
-                contributionValue: input.contributionValue || null,
-                status: "PENDING" as const,
-                tenantId: ctx.tenantId!,
-                appId: ctx.appId!,
-                createdBy: ctx.userId!,
-                updatedBy: ctx.userId!,
-              }))
-            )
-          ).returning();
-          firstEventId = insertedEvents[0]?.id ?? null;
-          const lastDate = insertedEvents[insertedEvents.length - 1]?.expectedDate;
-          if (lastDate) {
-            await ctx.db
-              .update(incomeSources)
-              .set({ lastBurstDate: lastDate, updatedAt: new Date(), updatedBy: ctx.userId! })
-              .where(eq(incomeSources.id, source.id));
-          }
-        }
+        const [tenantRecord] = await ctx.db
+          .select({ timezone: tenants.timezone })
+          .from(tenants)
+          .where(eq(tenants.id, ctx.tenantId!))
+          .limit(1);
+        const timeZone = tenantRecord?.timezone || "Australia/Sydney";
+
+        await burstIncomeEvents(ctx.db, {
+          incomeSourceId: source.id,
+          name: input.name,
+          amount: input.amount,
+          rrule,
+          startDate: input.startDate,
+          endDate: input.endDate,
+          contributionMode: input.contributionMode,
+          contributionValue: input.contributionValue,
+          tenantId: ctx.tenantId!,
+          appId: ctx.appId!,
+          userId: ctx.userId!,
+          timeZone,
+        });
       }
 
       if (posthog && ctx.userId) {
@@ -356,27 +350,38 @@ export const incomeSourcesProcedures = {
           .where(inArray(incomeEvents.id, unperformedEvents.map((e) => e.id)));
       }
 
-      let newLastBurstDate: string | undefined = undefined;
+      let newLastBurstDate: string | null = null;
 
       if (rrule) {
-        const dates = generateBurstDates(rrule, newStartDate, newEndDate, 12);
-        if (dates.length > 0) {
-          const eventPayloads = await Promise.all(
-            dates.map(async (d) => ({
-              incomeSourceId: source.id,
-              expectedDate: await getTenantLocalDateString(ctx.db, ctx.tenantId!, d),
-              expectedAmount: newAmount,
-              contributionMode: targetMode || "FULL",
-              contributionValue: targetValue || null,
-              status: "PENDING" as const,
-              tenantId: ctx.tenantId!,
-              appId: ctx.appId!,
-              createdBy: ctx.userId!,
-              updatedBy: ctx.userId!,
-            }))
-          );
-          await ctx.db.insert(incomeEvents).values(eventPayloads);
-          newLastBurstDate = eventPayloads[eventPayloads.length - 1].expectedDate;
+        const [tenantRecord] = await ctx.db
+          .select({ timezone: tenants.timezone })
+          .from(tenants)
+          .where(eq(tenants.id, ctx.tenantId!))
+          .limit(1);
+        const timeZone = tenantRecord?.timezone || "Australia/Sydney";
+        const todayStr = getTenantDateString(new Date(), { timezone: timeZone });
+        const yesterday = new Date(Date.now() - 86400000);
+        const yesterdayStr = getTenantDateString(yesterday, { timezone: timeZone });
+        const afterDateStr = newStartDate < todayStr ? yesterdayStr : null;
+
+        const count = await burstIncomeEvents(ctx.db, {
+          incomeSourceId: source.id,
+          name: newName,
+          amount: newAmount,
+          rrule,
+          startDate: newStartDate,
+          endDate: newEndDate,
+          contributionMode: targetMode,
+          contributionValue: targetValue,
+          tenantId: ctx.tenantId!,
+          appId: ctx.appId!,
+          userId: ctx.userId!,
+          timeZone,
+          afterDateStr,
+        });
+
+        if (count === 0 && newEndDate) {
+          newLastBurstDate = newEndDate;
         }
       }
 
@@ -389,7 +394,7 @@ export const incomeSourcesProcedures = {
           rrule,
           startDate: newStartDate,
           endDate: newEndDate,
-          ...(newLastBurstDate !== undefined ? { lastBurstDate: newLastBurstDate } : {}),
+          ...(newLastBurstDate !== null ? { lastBurstDate: newLastBurstDate } : {}),
           ...(input.data.contributionMode !== undefined ? { contributionMode: input.data.contributionMode } : {}),
           ...(input.data.contributionValue !== undefined ? { contributionValue: input.data.contributionValue } : {}),
           updatedAt: new Date(),

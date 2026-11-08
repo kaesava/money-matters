@@ -42,6 +42,8 @@ function isNetworkOrServerError(error: unknown): boolean {
   );
 }
 
+import { WebFileNotesProvider } from "./FileNotesProvider";
+
 interface AppProvidersProps {
   children: React.ReactNode;
 }
@@ -142,7 +144,9 @@ export function AppProviders({ children }: AppProvidersProps) {
                   onDismiss={clearGlobalError}
                   message={lastErrorMessage}
                 />
-                {children}
+                <WebFileNotesProvider>
+                  {children}
+                </WebFileNotesProvider>
                 <ToastContainer />
                 <AnalyticsConsentBanner />
               </LocaleProvider>

@@ -1,7 +1,9 @@
-import { envelopes, incomeSources, incomeEvents, expenseEvents, bankAccounts, tenants, DbOrTx } from "@money-matters/db";
+import { envelopes, incomeSources, incomeEvents, expenseEvents, bankAccounts, tenants, apps, DbOrTx } from "@money-matters/db";
 import { eq, and, sql } from "drizzle-orm";
-import { generateBurstDates } from "../engine/burst-engine.js";
 import { getTenantDateString } from "@money-matters/core";
+import { burstEnvelopeEvents } from "./envelope-schedule.js";
+import { burstIncomeEvents } from "./income-schedule.js";
+import { DEFAULT_APP_FEATURE_FLAGS } from "@money-matters/types";
 
 export async function restoreItemCommand(
   itemId: string,
@@ -18,6 +20,9 @@ export async function restoreItemCommand(
     .limit(1);
   const tenantTz = tenantRecord?.timezone || "Australia/Sydney";
   const getLocalDateString = (d: Date = new Date()) => getTenantDateString(d, { timezone: tenantTz });
+  const todayStr = getLocalDateString();
+  const yesterday = new Date(Date.now() - 86400000);
+  const yesterdayStr = getLocalDateString(yesterday);
 
   if (itemType === "BANK_ACCOUNT") {
     const [acc] = await dbClient
@@ -27,6 +32,17 @@ export async function restoreItemCommand(
     if (!acc) throw new Error("Bank account not found.");
     if (acc.isPrivate && acc.userId !== userId) {
       throw new Error("Access unauthorized or private account.");
+    }
+    if (acc.isPrivate) {
+      const [appRecord] = await dbClient
+        .select({ featureFlags: apps.featureFlags })
+        .from(apps)
+        .where(eq(apps.id, appId))
+        .limit(1);
+      const flags = appRecord?.featureFlags || DEFAULT_APP_FEATURE_FLAGS;
+      if (!flags.privateMode) {
+        throw new Error("Private Mode is currently disabled for this application. Private items cannot be restored.");
+      }
     }
 
     const bankArchivedAt = acc.archivedAt;
@@ -80,27 +96,20 @@ export async function restoreItemCommand(
           env.startDate &&
           parseFloat(amountVal) > 0
         ) {
-          const dates = generateBurstDates(env.rrule, env.startDate, env.endDate, 12);
-          if (dates.length > 0) {
-            const eventPayloads = dates.map((d) => ({
-              envelopeId: env.id,
-              name: env.name,
-              expectedDate: getLocalDateString(d),
-              expectedAmount: amountVal,
-              isScheduled: true,
-              status: "PENDING" as const,
-              tenantId,
-              appId,
-              createdBy: userId,
-              updatedBy: userId,
-            }));
-            await dbClient.insert(expenseEvents).values(eventPayloads);
-            const maxDate = eventPayloads[eventPayloads.length - 1].expectedDate;
-            await dbClient
-              .update(envelopes)
-              .set({ lastBurstDate: maxDate, updatedAt: new Date(), updatedBy: userId })
-              .where(eq(envelopes.id, env.id));
-          }
+          const afterDateStr = env.startDate < todayStr ? yesterdayStr : null;
+          await burstEnvelopeEvents(dbClient, {
+            envelopeId: env.id,
+            name: env.name,
+            amount: amountVal,
+            rrule: env.rrule,
+            startDate: env.startDate,
+            endDate: env.endDate,
+            tenantId,
+            appId,
+            userId,
+            timeZone: tenantTz,
+            afterDateStr,
+          });
         }
       }
 
@@ -124,34 +133,32 @@ export async function restoreItemCommand(
         .returning();
 
       for (const inc of restoredIncomes) {
-        const startDate = inc.startDate || getLocalDateString();
+        const startDate = inc.startDate || todayStr;
         if (inc.rrule) {
-          const dates = generateBurstDates(inc.rrule, startDate, inc.endDate, 12);
-          if (dates.length > 0) {
-            const eventPayloads = dates.map((d) => ({
-              incomeSourceId: inc.id,
-              expectedDate: getLocalDateString(d),
-              expectedAmount: inc.amount,
-              contributionMode: inc.contributionMode || "FULL",
-              contributionValue: inc.contributionValue || null,
-              status: "PENDING" as const,
-              tenantId,
-              appId,
-              createdBy: userId,
-              updatedBy: userId,
-            }));
-            await dbClient.insert(incomeEvents).values(eventPayloads);
-            const maxDate = eventPayloads[eventPayloads.length - 1].expectedDate;
-            await dbClient
-              .update(incomeSources)
-              .set({ lastBurstDate: maxDate, updatedAt: new Date(), updatedBy: userId })
-              .where(eq(incomeSources.id, inc.id));
-          }
+          const afterDateStr = startDate < todayStr ? yesterdayStr : null;
+          await burstIncomeEvents(dbClient, {
+            incomeSourceId: inc.id,
+            name: inc.name,
+            amount: inc.amount,
+            rrule: inc.rrule,
+            startDate,
+            endDate: inc.endDate,
+            contributionMode: inc.contributionMode,
+            contributionValue: inc.contributionValue,
+            tenantId,
+            appId,
+            userId,
+            timeZone: tenantTz,
+            afterDateStr,
+          });
         } else {
           await dbClient.insert(incomeEvents).values({
             incomeSourceId: inc.id,
+            name: inc.name,
             expectedDate: startDate,
+            actualDate: startDate,
             expectedAmount: inc.amount,
+            actualAmount: inc.amount,
             contributionMode: inc.contributionMode || "FULL",
             contributionValue: inc.contributionValue || null,
             status: "PENDING",
@@ -190,6 +197,18 @@ export async function restoreItemCommand(
       throw new Error("Access unauthorized or private envelope.");
     }
 
+    if (isEnvPrivate || env.bankAccountIsPrivate) {
+      const [appRecord] = await dbClient
+        .select({ featureFlags: apps.featureFlags })
+        .from(apps)
+        .where(eq(apps.id, appId))
+        .limit(1);
+      const flags = appRecord?.featureFlags || DEFAULT_APP_FEATURE_FLAGS;
+      if (!flags.privateMode) {
+        throw new Error("Private Mode is currently disabled for this application. Private items cannot be restored.");
+      }
+    }
+
     if (env.bankAccountArchivedAt) {
       throw new Error("Cannot restore envelope because its linked bank account is archived. Please restore the bank account first.");
     }
@@ -220,27 +239,20 @@ export async function restoreItemCommand(
         restored.startDate &&
         parseFloat(amountVal) > 0
       ) {
-        const dates = generateBurstDates(restored.rrule, restored.startDate, restored.endDate, 12);
-        if (dates.length > 0) {
-          const eventPayloads = dates.map((d) => ({
-            envelopeId: restored.id,
-            name: restored.name,
-            expectedDate: getLocalDateString(d),
-            expectedAmount: amountVal,
-            isScheduled: true,
-            status: "PENDING" as const,
-            tenantId,
-            appId,
-            createdBy: userId,
-            updatedBy: userId,
-          }));
-          await dbClient.insert(expenseEvents).values(eventPayloads);
-          const maxDate = eventPayloads[eventPayloads.length - 1].expectedDate;
-          await dbClient
-            .update(envelopes)
-            .set({ lastBurstDate: maxDate, updatedAt: new Date(), updatedBy: userId })
-            .where(eq(envelopes.id, restored.id));
-        }
+        const afterDateStr = restored.startDate < todayStr ? yesterdayStr : null;
+        await burstEnvelopeEvents(dbClient, {
+          envelopeId: restored.id,
+          name: restored.name,
+          amount: amountVal,
+          rrule: restored.rrule,
+          startDate: restored.startDate,
+          endDate: restored.endDate,
+          tenantId,
+          appId,
+          userId,
+          timeZone: tenantTz,
+          afterDateStr,
+        });
       }
     }
 
@@ -302,34 +314,32 @@ export async function restoreItemCommand(
       .returning();
 
     if (restored) {
-      const startDate = restored.startDate || getLocalDateString();
+      const startDate = restored.startDate || todayStr;
       if (restored.rrule) {
-        const dates = generateBurstDates(restored.rrule, startDate, restored.endDate, 12);
-        if (dates.length > 0) {
-          const eventPayloads = dates.map((d) => ({
-            incomeSourceId: restored.id,
-            expectedDate: getLocalDateString(d),
-            expectedAmount: restored.amount,
-            contributionMode: restored.contributionMode || "FULL",
-            contributionValue: restored.contributionValue || null,
-            status: "PENDING" as const,
-            tenantId,
-            appId,
-            createdBy: userId,
-            updatedBy: userId,
-          }));
-          await dbClient.insert(incomeEvents).values(eventPayloads);
-          const maxDate = eventPayloads[eventPayloads.length - 1].expectedDate;
-          await dbClient
-            .update(incomeSources)
-            .set({ lastBurstDate: maxDate, updatedAt: new Date(), updatedBy: userId })
-            .where(eq(incomeSources.id, restored.id));
-        }
+        const afterDateStr = startDate < todayStr ? yesterdayStr : null;
+        await burstIncomeEvents(dbClient, {
+          incomeSourceId: restored.id,
+          name: restored.name,
+          amount: restored.amount,
+          rrule: restored.rrule,
+          startDate,
+          endDate: restored.endDate,
+          contributionMode: restored.contributionMode,
+          contributionValue: restored.contributionValue,
+          tenantId,
+          appId,
+          userId,
+          timeZone: tenantTz,
+          afterDateStr,
+        });
       } else {
         await dbClient.insert(incomeEvents).values({
           incomeSourceId: restored.id,
+          name: restored.name,
           expectedDate: startDate,
+          actualDate: startDate,
           expectedAmount: restored.amount,
+          actualAmount: restored.amount,
           contributionMode: restored.contributionMode || "FULL",
           contributionValue: restored.contributionValue || null,
           status: "PENDING",

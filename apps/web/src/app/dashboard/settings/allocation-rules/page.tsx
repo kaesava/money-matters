@@ -12,6 +12,7 @@ import {
 } from "@money-matters/ui/web";
 import { trpc } from "../../../../lib/trpc";
 import { AllocationStepType } from "@money-matters/types";
+import { useAppFeatures } from "../../../../hooks/useAppFeatures";
 
 interface EditableStep {
   id?: string;
@@ -24,7 +25,8 @@ interface EditableStep {
 function AllocationRulesContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const scope = searchParams.get("scope") === "personal" ? "personal" : "household";
+  const { hasPrivateMode } = useAppFeatures();
+  const scope = (searchParams.get("scope") === "personal" && hasPrivateMode) ? "personal" : "household";
   const isPersonal = scope === "personal";
 
   const toast = useToast();

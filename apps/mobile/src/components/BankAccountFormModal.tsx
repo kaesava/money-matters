@@ -17,6 +17,7 @@ import {
   InfoTooltip,
 } from '@money-matters/ui/mobile';
 import { t } from '@money-matters/i18n';
+import { useAppFeatures } from '../context/useAppFeatures';
 import { AccountBalanceCard } from './bank-accounts/AccountBalanceCard';
 import {
   type BankAccountItemToEdit,
@@ -79,6 +80,8 @@ export function BankAccountFormModal({
       onConfirm: () => setIsPrivate(targetVal),
     });
   };
+
+  const { hasPrivateMode } = useAppFeatures();
 
   return (
     <MobileModalDialog
@@ -146,18 +149,20 @@ export function BankAccountFormModal({
         />
 
         {/* Privacy Toggle with Single Tooltip */}
-        <View style={styles.switchRow}>
-          <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-            <Text style={styles.switchLabel}>{t('settings.bankAccountForm.privacyLabel')}</Text>
-            <InfoTooltip content={t('settings.bankAccountForm.privacyHint')} />
+        {hasPrivateMode && (
+          <View style={styles.switchRow}>
+            <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+              <Text style={styles.switchLabel}>{t('settings.bankAccountForm.privacyLabel')}</Text>
+              <InfoTooltip content={t('settings.bankAccountForm.privacyHint')} />
+            </View>
+            <Switch
+              value={isPrivate}
+              onValueChange={handleTogglePrivate}
+              disabled={isEdit}
+              trackColor={{ false: DESIGN_TOKENS.colors.border, true: DESIGN_TOKENS.colors.sereneBlue }}
+            />
           </View>
-          <Switch
-            value={isPrivate}
-            onValueChange={handleTogglePrivate}
-            disabled={isEdit}
-            trackColor={{ false: DESIGN_TOKENS.colors.border, true: DESIGN_TOKENS.colors.sereneBlue }}
-          />
-        </View>
+        )}
       </ScrollView>
     </MobileModalDialog>
   );

@@ -20,6 +20,7 @@ import {
 import { trpc } from '../../../lib/trpc';
 import { AppScreenWrapper } from '../../../components/AppScreenWrapper';
 import { AllocationStepType } from '@money-matters/types';
+import { useAppFeatures } from '../../../context/useAppFeatures';
 
 interface EditableStep {
   id?: string;
@@ -32,7 +33,8 @@ interface EditableStep {
 export default function MobileAllocationRulesScreen() {
   const router = useRouter();
   const params = useLocalSearchParams<{ scope?: string }>();
-  const isPersonal = params.scope === 'personal';
+  const { hasPrivateMode } = useAppFeatures();
+  const isPersonal = params.scope === 'personal' && hasPrivateMode;
   const toast = useMobileToast();
   const utils = trpc.useUtils();
 

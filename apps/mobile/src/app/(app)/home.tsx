@@ -19,14 +19,17 @@ import { ReconcileNudgeCard } from '../../components/dashboard/attention/Reconci
 import { MobileReconciliationModal } from '../../components/envelopes/MobileReconciliationModal';
 import { useHomeData } from '../../components/dashboard/useHomeData';
 import { useHomeModals } from '../../components/dashboard/useHomeModals';
+import { useAppFeatures } from '../../context/useAppFeatures';
 
 export default function HomeScreen() {
   const router = useRouter();
   const { token } = useLocalSearchParams<{ token?: string }>();
   const posthog = usePostHog();
+  const { hasAiAssistant } = useAppFeatures();
 
   const askMutation = trpc.assistantAsk.useMutation();
   const usageQuery = trpc.assistantUsage.useQuery(undefined, {
+    enabled: hasAiAssistant,
     staleTime: 30_000,
   });
 
@@ -154,7 +157,7 @@ export default function HomeScreen() {
   return (
     <AppScreenWrapper
       title={t('dashboard.title')}
-      onOpenAsk={() => setAskSheetVisible(true)}
+      onOpenAsk={hasAiAssistant ? () => setAskSheetVisible(true) : undefined}
       scrollable={false}
     >
       <TrialBanner />
@@ -286,15 +289,19 @@ export default function HomeScreen() {
         upcomingEvents={searchEvents}
         onSearchTransactions={handleSearchTransactions}
         remainingCalls={
-          usageQuery.data?.limit && usageQuery.data
+          hasAiAssistant && usageQuery.data?.limit && usageQuery.data
             ? Math.max(0, usageQuery.data.limit - usageQuery.data.used)
             : undefined
         }
-        onAskPenny={async (query: string) => {
-          const res = await askMutation.mutateAsync({ query });
-          usageQuery.refetch();
-          return res;
-        }}
+        onAskPenny={
+          hasAiAssistant
+            ? async (query: string) => {
+                const res = await askMutation.mutateAsync({ query });
+                usageQuery.refetch();
+                return res;
+              }
+            : undefined
+        }
         onNavigatePrefill={handleAssistantPrefill}
         onSelectAccount={() => {
           router.push('/(app)/settings/bank-accounts' as Href);

@@ -17,6 +17,7 @@
   "dependencies": {
     "@money-matters/config": "workspace:*",
     "@money-matters/core": "workspace:*",
+    "@money-matters/capability-file-notes": "workspace:*",
     "@money-matters/i18n": "workspace:^",
     "@money-matters/types": "workspace:*",
     "@money-matters/ui": "workspace:^",

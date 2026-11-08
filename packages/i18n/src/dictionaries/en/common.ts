@@ -226,7 +226,8 @@ export const common = {
   },
   "errors": {
     "somethingWentWrongTitle": "Something Went Wrong",
-    "somethingWentWrongBody": "An unexpected application error occurred. Our team has been notified automatically."
+    "somethingWentWrongBody": "An unexpected application error occurred. Our team has been notified automatically.",
+    "privateModeDisabledRestore": "Private Mode is currently disabled for this application. Private items cannot be restored."
   },
   "legal": {
     "privacyPolicy": "Privacy Policy",

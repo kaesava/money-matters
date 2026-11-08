@@ -5,11 +5,13 @@ import { Feather } from '@expo/vector-icons';
 import { t } from '@money-matters/i18n';
 import { DESIGN_TOKENS, showMobileConfirm, useMobileToast } from '@money-matters/ui/mobile';
 import { trpc } from '../../lib/trpc';
+import { useAppFeatures } from '../../context/useAppFeatures';
 
 export function MobileAllocationStrategySection() {
   const router = useRouter();
   const toast = useMobileToast();
   const utils = trpc.useUtils();
+  const { hasPrivateMode } = useAppFeatures();
 
   const [activeTab, setActiveTab] = useState<'household' | 'personal'>('household');
 
@@ -18,8 +20,8 @@ export function MobileAllocationStrategySection() {
   const isOwner = govQuery.data?.isOwner ?? true;
 
   const hasPrivateEnvelopes = useMemo(
-    () => (envelopesQuery.data || []).some((e) => e.isPrivate),
-    [envelopesQuery.data]
+    () => hasPrivateMode && (envelopesQuery.data || []).some((e) => e.isPrivate),
+    [envelopesQuery.data, hasPrivateMode]
   );
 
   const isPersonalScope = activeTab === 'personal';

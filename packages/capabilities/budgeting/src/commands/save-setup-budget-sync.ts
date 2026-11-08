@@ -1,6 +1,7 @@
 import { DbOrTx, expenseEvents, incomeEvents, envelopes, incomeSources } from "@money-matters/db";
 import { and, eq, inArray, sql } from "drizzle-orm";
-import { generateBurstDates } from "../engine/burst-engine.js";
+import { burstEnvelopeEvents } from "./envelope-schedule.js";
+import { burstIncomeEvents } from "./income-schedule.js";
 
 export async function archivePendingIncomeEvents(
   tx: DbOrTx,
@@ -45,7 +46,18 @@ export async function synchronizeUpdatedIncomeEvents(
   sourceId: string,
   scheduleChanged: boolean,
   nameOrAmountChanged: boolean,
-  params: { name: string; amount: string; rrule: string; startDate: string; tenantId: string; appId: string; userId: string; now: Date }
+  params: {
+    name: string;
+    amount: string;
+    rrule: string;
+    startDate: string;
+    endDate?: string | null;
+    timeZone?: string;
+    tenantId: string;
+    appId: string;
+    userId: string;
+    now: Date;
+  }
 ): Promise<void> {
   if (scheduleChanged) {
     await tx
@@ -53,33 +65,23 @@ export async function synchronizeUpdatedIncomeEvents(
       .set({ archivedAt: params.now, updatedBy: params.userId, updatedAt: params.now })
       .where(and(eq(incomeEvents.incomeSourceId, sourceId), eq(incomeEvents.status, "PENDING"), sql`${incomeEvents.archivedAt} IS NULL`));
 
-    const dates = generateBurstDates(params.rrule, params.startDate, null, 12);
-    if (dates.length > 0) {
-      const eventPayloads = dates.map((d) => {
-        const dateStr = new Intl.DateTimeFormat("en-CA", { timeZone: "Australia/Sydney" }).format(d);
-        return {
-          tenantId: params.tenantId,
-          appId: params.appId,
-          incomeSourceId: sourceId,
-          name: params.name,
-          expectedDate: dateStr,
-          actualDate: dateStr,
-          expectedAmount: params.amount,
-          actualAmount: params.amount,
-          status: "PENDING" as const,
-          createdAt: params.now,
-          createdBy: params.userId,
-          updatedAt: params.now,
-          updatedBy: params.userId,
-        };
-      });
+    const count = await burstIncomeEvents(tx, {
+      incomeSourceId: sourceId,
+      name: params.name,
+      amount: params.amount,
+      rrule: params.rrule,
+      startDate: params.startDate,
+      endDate: params.endDate,
+      tenantId: params.tenantId,
+      appId: params.appId,
+      userId: params.userId,
+      timeZone: params.timeZone,
+    });
 
-      await tx.insert(incomeEvents).values(eventPayloads);
-
-      const maxDate = eventPayloads[eventPayloads.length - 1].expectedDate;
+    if (count === 0) {
       await tx
         .update(incomeSources)
-        .set({ lastBurstDate: maxDate, updatedAt: params.now, updatedBy: params.userId })
+        .set({ lastBurstDate: params.endDate || null, updatedAt: params.now, updatedBy: params.userId })
         .where(eq(incomeSources.id, sourceId));
     }
   } else if (nameOrAmountChanged) {
@@ -100,6 +102,7 @@ export async function synchronizeUpdatedEnvelopeEvents(
     amount: string;
     rrule: string;
     startDate: string;
+    endDate?: string | null;
     isScheduledBill?: boolean;
     timeZone?: string;
     tenantId: string;
@@ -108,7 +111,6 @@ export async function synchronizeUpdatedEnvelopeEvents(
     now: Date;
   }
 ): Promise<void> {
-  const tz = params.timeZone || "Australia/Sydney";
   const shouldBurst = params.isScheduledBill !== false;
 
   if (scheduleChanged) {
@@ -118,29 +120,23 @@ export async function synchronizeUpdatedEnvelopeEvents(
       .where(and(eq(expenseEvents.envelopeId, envelopeId), eq(expenseEvents.isScheduled, true), eq(expenseEvents.status, "PENDING"), sql`${expenseEvents.archivedAt} IS NULL`));
 
     if (shouldBurst && parseFloat(params.amount) > 0) {
-      const dates = generateBurstDates(params.rrule, params.startDate, null, 12);
-      if (dates.length > 0) {
-        const eventPayloads = dates.map((d) => ({
-          tenantId: params.tenantId,
-          appId: params.appId,
-          envelopeId,
-          name: params.name,
-          expectedDate: new Intl.DateTimeFormat("en-CA", { timeZone: tz }).format(d),
-          expectedAmount: params.amount,
-          isScheduled: true,
-          status: "PENDING" as const,
-          createdAt: params.now,
-          createdBy: params.userId,
-          updatedAt: params.now,
-          updatedBy: params.userId,
-        }));
+      const count = await burstEnvelopeEvents(tx, {
+        envelopeId,
+        name: params.name,
+        amount: params.amount,
+        rrule: params.rrule,
+        startDate: params.startDate,
+        endDate: params.endDate,
+        tenantId: params.tenantId,
+        appId: params.appId,
+        userId: params.userId,
+        timeZone: params.timeZone,
+      });
 
-        await tx.insert(expenseEvents).values(eventPayloads);
-
-        const maxDate = eventPayloads[eventPayloads.length - 1].expectedDate;
+      if (count === 0) {
         await tx
           .update(envelopes)
-          .set({ lastBurstDate: maxDate, updatedAt: params.now, updatedBy: params.userId })
+          .set({ lastBurstDate: params.endDate || null, updatedAt: params.now, updatedBy: params.userId })
           .where(eq(envelopes.id, envelopeId));
       }
     } else {

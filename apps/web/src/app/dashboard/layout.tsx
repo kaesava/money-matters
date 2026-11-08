@@ -8,6 +8,7 @@ import { QuickExpenseDrawer } from "../../components/web/QuickExpenseDrawer";
 
 import { TrialBanner } from "../../components/TrialBanner";
 import { useSubscriptionStatus } from "../../hooks/useSubscriptionStatus";
+import { useAppFeatures } from "../../hooks/useAppFeatures";
 import { Spinner, CommandPaletteModal } from "@money-matters/ui/web";
 import { useNetworkStatus } from "../../providers/AppProviders";
 import type { QuickActionInitialData } from "@money-matters/types";
@@ -30,6 +31,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const utils = trpc.useUtils();
   const { isGlobalError, clearGlobalError, lastErrorMessage } = useNetworkStatus();
   const { data: session, isPending } = authClient.useSession();
+  const { hasAiAssistant } = useAppFeatures();
   const [isExchanging, setIsExchanging] = useState(false);
 
   const tenantStatusQuery = trpc.getTenantStatus.useQuery(undefined, {
@@ -149,7 +151,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   const askMutation = trpc.assistantAsk.useMutation();
   const usageQuery = trpc.assistantUsage.useQuery(undefined, {
-    enabled: !!session?.user,
+    enabled: !!session?.user && hasAiAssistant,
     staleTime: 30_000,
   });
 
@@ -437,12 +439,12 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             envelopes={searchEnvelopes}
             upcomingEvents={searchEvents}
             onSearchTransactions={handleSearchTransactions}
-            remainingCalls={usageQuery.data?.limit && usageQuery.data ? Math.max(0, usageQuery.data.limit - usageQuery.data.used) : undefined}
-            onAskPenny={async (q) => {
+            remainingCalls={hasAiAssistant && usageQuery.data?.limit && usageQuery.data ? Math.max(0, usageQuery.data.limit - usageQuery.data.used) : undefined}
+            onAskPenny={hasAiAssistant ? async (q) => {
               const res = await askMutation.mutateAsync({ query: q });
               usageQuery.refetch();
               return res;
-            }}
+            } : undefined}
             onNavigatePrefill={(prefill) =>
               handlePennyPrefillNavigation(prefill, router, setQuickExpenseData, setQuickExpenseOpen)
             }

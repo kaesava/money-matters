@@ -2,6 +2,7 @@ export * from "./commands/create-envelope.command.js";
 export * from "./commands/update-envelope.command.js";
 export * from "./commands/archive-envelope.command.js";
 export * from "./commands/envelope-schedule.js";
+export * from "./commands/income-schedule.js";
 export * from "./commands/restore-item.command.js";
 export * from "./commands/run-allocation.command.js";
 export * from "./commands/move-money.command.js";

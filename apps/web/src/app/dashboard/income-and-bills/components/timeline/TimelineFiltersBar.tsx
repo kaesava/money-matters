@@ -1,6 +1,7 @@
 import React from "react";
 import { SearchInput } from "@money-matters/ui/web";
 import { t } from "@money-matters/i18n";
+import { useAppFeatures } from "../../../../../hooks/useAppFeatures";
 
 interface TimelineFiltersBarProps {
   searchQuery: string;
@@ -25,6 +26,7 @@ export function TimelineFiltersBar({
   onKindFilterChange,
   autoFocus = false,
 }: TimelineFiltersBarProps) {
+  const { hasPrivateMode } = useAppFeatures();
   return (
     <div className="flex flex-wrap items-center justify-between gap-4 bg-white dark:bg-zinc-900 p-4 border border-zinc-200 dark:border-zinc-800 rounded-2xl shadow-xs">
       <div className="flex-1 w-full max-w-full">
@@ -64,41 +66,43 @@ export function TimelineFiltersBar({
         </div>
 
         {/* Scope Filter Pills: All | Shared | Private */}
-        <div className="flex items-center gap-1 bg-zinc-100 dark:bg-zinc-800 p-1 rounded-xl">
-          <button
-            type="button"
-            onClick={() => onScopeFilterChange("ALL")}
-            className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all ${
-              scopeFilter === "ALL"
-                ? "bg-white dark:bg-zinc-900 text-[#1B2B4B] dark:text-white shadow-xs"
-                : "text-zinc-500 hover:text-zinc-900 dark:hover:text-white"
-            }`}
-          >
-            {t("common.all")}
-          </button>
-          <button
-            type="button"
-            onClick={() => onScopeFilterChange("SHARED")}
-            className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all ${
-              scopeFilter === "SHARED"
-                ? "bg-white dark:bg-zinc-900 text-[#1B2B4B] dark:text-white shadow-xs"
-                : "text-zinc-500 hover:text-zinc-900 dark:hover:text-white"
-            }`}
-          >
-            {t("common.shared")}
-          </button>
-          <button
-            type="button"
-            onClick={() => onScopeFilterChange("PRIVATE")}
-            className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all ${
-              scopeFilter === "PRIVATE"
-                ? "bg-white dark:bg-zinc-900 text-[#1B2B4B] dark:text-white shadow-xs"
-                : "text-zinc-500 hover:text-zinc-900 dark:hover:text-white"
-            }`}
-          >
-            {t("common.private")}
-          </button>
-        </div>
+        {hasPrivateMode && (
+          <div className="flex items-center gap-1 bg-zinc-100 dark:bg-zinc-800 p-1 rounded-xl">
+            <button
+              type="button"
+              onClick={() => onScopeFilterChange("ALL")}
+              className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all ${
+                scopeFilter === "ALL"
+                  ? "bg-white dark:bg-zinc-900 text-[#1B2B4B] dark:text-white shadow-xs"
+                  : "text-zinc-500 hover:text-zinc-900 dark:hover:text-white"
+              }`}
+            >
+              {t("common.all")}
+            </button>
+            <button
+              type="button"
+              onClick={() => onScopeFilterChange("SHARED")}
+              className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all ${
+                scopeFilter === "SHARED"
+                  ? "bg-white dark:bg-zinc-900 text-[#1B2B4B] dark:text-white shadow-xs"
+                  : "text-zinc-500 hover:text-zinc-900 dark:hover:text-white"
+              }`}
+            >
+              {t("common.shared")}
+            </button>
+            <button
+              type="button"
+              onClick={() => onScopeFilterChange("PRIVATE")}
+              className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all ${
+                scopeFilter === "PRIVATE"
+                  ? "bg-white dark:bg-zinc-900 text-[#1B2B4B] dark:text-white shadow-xs"
+                  : "text-zinc-500 hover:text-zinc-900 dark:hover:text-white"
+              }`}
+            >
+              {t("common.private")}
+            </button>
+          </div>
+        )}
 
         {/* Kind Filter Pills: All | Income | Expense | Transfer */}
         <div className="flex items-center gap-1 bg-zinc-100 dark:bg-zinc-800 p-1 rounded-xl">

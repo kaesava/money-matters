@@ -22,6 +22,8 @@ export interface AppConfig {
     canAffordCalculator: boolean;
     foundingMemberPromo: boolean;
     aiAssistant: boolean;
+    privateMode: boolean;
+    fileNotes: boolean;
   };
 }
 
@@ -40,6 +42,8 @@ const REGISTRY: Record<string, AppConfig> = {
       canAffordCalculator: true,
       foundingMemberPromo: true,
       aiAssistant: true,
+      privateMode: true,
+      fileNotes: true,
     },
   },
 };

@@ -17,6 +17,7 @@ import { setLanguage, SupportedLanguage } from '@money-matters/i18n';
 import { setMobileLocaleConfig } from '../lib/format';
 import { posthog } from '../config/posthog';
 import { MobileAnalyticsConsentPrompt } from '../components/MobileAnalyticsConsentPrompt';
+import { MobileFileNotesProvider } from './FileNotesProvider';
 
 interface AppProvidersProps {
   children: React.ReactNode;
@@ -143,7 +144,9 @@ export function AppProviders({ children }: AppProvidersProps) {
             <NotificationServiceProvider value={notificationServiceValue}>
               <MobilePreferencesSync>
                 <MobileToastProvider>
-                  {children}
+                  <MobileFileNotesProvider>
+                    {children}
+                  </MobileFileNotesProvider>
                   <MobileToastContainer />
                   <MobileConfirmContainer />
                   <MobileAnalyticsConsentPrompt />

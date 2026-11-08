@@ -85,6 +85,7 @@
 | `id` | uuid | - | Domain column |
 | `name` | varchar | - | Domain column |
 | `slug` | varchar | - | Domain column |
+| `featureFlags` | jsonb | No | App-level feature flags and storage quota configuration |
 | `createdAt` | timestamp | - | Domain column |
 | `updatedAt` | timestamp | - | Domain column |
 | `tenantId` | uuid | No | Tenant Foreign Key (RLS isolation) |
@@ -497,6 +498,29 @@
 | `updatedAt` | timestamp | No | Last update timestamp |
 | `updatedBy` | uuid | Yes | Modifier User ID |
 | `archivedAt` | timestamp | Yes | Soft delete timestamp |
+
+## Table: `file_notes` (`file_note.ts`)
+
+| Column | Type | Nullable | Description |
+| :--- | :--- | :--- | :--- |
+| `id` | uuid | No | Primary Key |
+| `entityType` | varchar | No | Target entity polymorphic discriminator ('ENVELOPE', 'BANK_ACCOUNT') |
+| `entityId` | uuid | No | Target entity unique identifier |
+| `comment` | text | Yes | Plaintext or rich text note contents |
+| `fileKey` | varchar | Yes | Cloudflare R2 object storage key path |
+| `fileName` | varchar | Yes | Original uploaded file name |
+| `fileMimeType` | varchar | Yes | MIME type of uploaded file |
+| `fileSize` | varchar | Yes | File size in bytes as string |
+| `isPrivate` | boolean | No | Stealth privacy isolation flag |
+| `userId` | uuid | Yes | Owner user ID for private notes (stealth RLS isolation) |
+| `tenantId` | uuid | No | Tenant Foreign Key (RLS isolation) |
+| `appId` | uuid | No | Application Foreign Key |
+| `createdAt` | timestamp | No | Creation timestamp |
+| `createdBy` | uuid | No | Creator User ID |
+| `updatedAt` | timestamp | No | Last update timestamp |
+| `updatedBy` | uuid | No | Modifier User ID |
+| `archivedAt` | timestamp | Yes | Soft delete timestamp |
+| `archivedBy` | uuid | Yes | User ID who soft-deleted the record |
 
 ---
 

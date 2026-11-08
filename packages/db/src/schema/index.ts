@@ -21,3 +21,7 @@ export * from "./billing_invoice.js";
 export * from "./ai_usage.js";
 export * from "./allocation_strategy.js";
 export * from "./allocation_strategy_step.js";
+export * from "./file_note.js";
+
+
+

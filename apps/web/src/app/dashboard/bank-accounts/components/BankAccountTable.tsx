@@ -2,6 +2,7 @@
 
 import React, { useEffect } from "react";
 import Link from "next/link";
+import { FileText } from "lucide-react";
 import { PaginationBar, SkeletonTable } from "@money-matters/ui/web";
 import { t, TranslationKey } from "@money-matters/i18n";
 import type { AccountType } from "@money-matters/types";
@@ -41,6 +42,7 @@ export interface BankAccountTableProps {
   openEditModal: (acc: BankAccountItem) => void;
   openAlignmentModal?: (acc: BankAccountItem) => void;
   openLinkedPoolsModal?: (acc: BankAccountItem) => void;
+  onOpenFileNotes?: (acc: BankAccountItem) => void;
   fmtMoney: (val: string | number | undefined) => string;
   isLoading?: boolean;
 }
@@ -59,6 +61,7 @@ export function BankAccountTable({
   openEditModal,
   openAlignmentModal,
   openLinkedPoolsModal,
+  onOpenFileNotes,
   fmtMoney,
   isLoading,
 }: BankAccountTableProps) {
@@ -138,6 +141,19 @@ export function BankAccountTable({
                             >
                               🔒
                             </span>
+                          )}
+                          {onOpenFileNotes && (
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                onOpenFileNotes(acc);
+                              }}
+                              className="text-zinc-400 hover:text-zinc-600 p-0.5 rounded hover:bg-zinc-100 transition-colors cursor-pointer"
+                              title={t("fileNotes.drawerSubtitle")}
+                            >
+                              <FileText className="w-3.5 h-3.5" />
+                            </button>
                           )}
                         </div>
                         {(() => {

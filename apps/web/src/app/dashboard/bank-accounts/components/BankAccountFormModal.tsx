@@ -4,6 +4,7 @@ import React, { useId, useState } from "react";
 import { InfoTooltip, isFormDirty, ConfirmDialog, Button, Input, AmountField, ModalDialog } from "@money-matters/ui/web";
 import { t } from "@money-matters/i18n";
 import { useLocale } from "../../../../providers/LocaleProvider";
+import { useAppFeatures } from "../../../../hooks/useAppFeatures";
 import {
   computeAccountAvailability,
   ACCOUNT_TYPES,
@@ -71,6 +72,7 @@ export function BankAccountFormModal({
   errorMsg,
 }: BankAccountFormModalProps) {
   const { currency, currencySymbol, minorUnits } = useLocale();
+  const { hasPrivateMode } = useAppFeatures();
   const privateCheckId = useId();
 
   const [privacyWarningTarget, setPrivacyWarningTarget] = useState<boolean | null>(null);
@@ -242,20 +244,22 @@ export function BankAccountFormModal({
           </div>
         </div>
 
-        <div className={`flex items-center gap-2 p-3 rounded-xl border ${Boolean(editingAccount) || isTrialExpired ? "bg-zinc-100 border-zinc-200 opacity-70" : "bg-slate-50 border-zinc-200"}`}>
-          <label htmlFor={privateCheckId} className={`flex items-center gap-2 text-xs font-bold text-zinc-700 flex-1 ${Boolean(editingAccount) ? "cursor-not-allowed" : "cursor-pointer"}`}>
-            <input
-              id={privateCheckId}
-              type="checkbox"
-              checked={accIsPrivate}
-              disabled={Boolean(editingAccount) || isTrialExpired}
-              onChange={handlePrivateCheckboxChange}
-              className="w-4 h-4 text-[#2563eb] rounded focus:ring-2 focus:ring-[#2563eb] disabled:opacity-50"
-            />
-            <span>{t("settings.bankAccountForm.privacyLabel")}</span>
-          </label>
-          <InfoTooltip content={t("settings.bankAccountForm.privacyHint")} />
-        </div>
+        {hasPrivateMode && (
+          <div className={`flex items-center gap-2 p-3 rounded-xl border ${Boolean(editingAccount) || isTrialExpired ? "bg-zinc-100 border-zinc-200 opacity-70" : "bg-slate-50 border-zinc-200"}`}>
+            <label htmlFor={privateCheckId} className={`flex items-center gap-2 text-xs font-bold text-zinc-700 flex-1 ${Boolean(editingAccount) ? "cursor-not-allowed" : "cursor-pointer"}`}>
+              <input
+                id={privateCheckId}
+                type="checkbox"
+                checked={accIsPrivate}
+                disabled={Boolean(editingAccount) || isTrialExpired}
+                onChange={handlePrivateCheckboxChange}
+                className="w-4 h-4 text-[#2563eb] rounded focus:ring-2 focus:ring-[#2563eb] disabled:opacity-50"
+              />
+              <span>{t("settings.bankAccountForm.privacyLabel")}</span>
+            </label>
+            <InfoTooltip content={t("settings.bankAccountForm.privacyHint")} />
+          </div>
+        )}
 
         <div className="flex items-center justify-between gap-2 pt-2 border-t border-zinc-100">
           <div>

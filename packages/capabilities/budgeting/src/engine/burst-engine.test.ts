@@ -96,4 +96,19 @@ describe('Recurrence Burst Date Engine', () => {
     const dates = generateBurstDates('FREQ=MONTHLY', '2026-01-01', null, 12, 1000, futureDate);
     expect(dates).toHaveLength(0);
   });
+
+  it('respects UNTIL in RRULE when earlier than 12-month cutoff', () => {
+    // RRULE with UNTIL after 3 occurrences
+    const dates = generateBurstDates('FREQ=MONTHLY;UNTIL=20260401T000000Z', '2026-01-01', null, 12);
+    expect(dates.length).toBeLessThanOrEqual(4);
+    const fmt = (d: Date) => d.toISOString().slice(0, 10);
+    for (const d of dates) {
+      expect(fmt(d) <= '2026-04-01').toBe(true);
+    }
+  });
+
+  it('returns empty array when endDate has already passed and afterDateStr is on/after endDate', () => {
+    const dates = generateBurstDates('FREQ=MONTHLY', '2025-01-01', '2025-06-30', 12, 1000, '2025-06-30');
+    expect(dates).toHaveLength(0);
+  });
 });

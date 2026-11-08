@@ -60,6 +60,20 @@ export const FEATURE_FLAGS = {
     tenantScopable: true,
     killSwitchEnabled: false,
   },
+  privateMode: {
+    key: "privateMode",
+    owner: "product",
+    expiresAt: "never",
+    tenantScopable: true,
+    killSwitchEnabled: false,
+  },
+  fileNotes: {
+    key: "fileNotes",
+    owner: "product",
+    expiresAt: "never",
+    tenantScopable: true,
+    killSwitchEnabled: false,
+  },
 } as const;
 
 

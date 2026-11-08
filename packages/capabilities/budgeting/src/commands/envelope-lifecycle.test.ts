@@ -360,4 +360,148 @@ describe("Envelope Lifecycle & Event Sync", () => {
     expect(updatedEnvelopePayload).toBeDefined();
     expect(updatedEnvelopePayload.lastBurstDate > "2026-06-01").toBe(true);
   });
+
+  it("restoreItemCommand does not generate past events when restored item had past startDate", async () => {
+    let insertedExpensePayloads: any[] = [];
+    const pastStartDate = "2025-01-01";
+    const todayAest = new Intl.DateTimeFormat("en-CA", { timeZone: "Australia/Sydney" }).format(new Date());
+
+    const mockDb = {
+      select: vi.fn().mockReturnValue({
+        from: vi.fn().mockImplementation((table: any) => {
+          if (table === tenants) {
+            return {
+              where: vi.fn().mockReturnValue({
+                limit: vi.fn().mockResolvedValue([{ timezone: "Australia/Sydney" }]),
+              }),
+            };
+          }
+          return {
+            leftJoin: vi.fn().mockReturnValue({
+              where: vi.fn().mockResolvedValue([
+                { isPrivate: false, bankAccountUserId: null, generateEvents: true },
+              ]),
+            }),
+          };
+        }),
+      }),
+      update: vi.fn().mockReturnValue({
+        set: vi.fn().mockReturnValue({
+          where: vi.fn().mockReturnValue({
+            returning: vi.fn().mockResolvedValue([
+              {
+                id: "env-past-restore",
+                name: "Old Gym Membership",
+                envelopeType: "SCHEDULED_BILL",
+                generateEvents: true,
+                goalMode: "TARGET_DATE",
+                rrule: "FREQ=MONTHLY;INTERVAL=1",
+                startDate: pastStartDate,
+                monthlyAmount: "50.00",
+                enteredAmount: "50.00",
+              },
+            ]),
+          }),
+        }),
+      }),
+      insert: vi.fn().mockImplementation(() => ({
+        values: vi.fn().mockImplementation((payloads: any[]) => {
+          insertedExpensePayloads = payloads;
+          return Promise.resolve(payloads);
+        }),
+      })),
+    } as unknown as DbOrTx;
+
+    await restoreItemCommand("env-past-restore", "ENVELOPE", tenantId, appId, userId, mockDb);
+    expect(insertedExpensePayloads.length).toBeGreaterThan(0);
+    // All restored events must have expectedDate >= today
+    for (const ev of insertedExpensePayloads) {
+      expect(ev.expectedDate >= todayAest).toBe(true);
+    }
+  });
+
+  it("updateEnvelopeCommand does not generate past events when updating schedule with past startDate", async () => {
+    let insertedExpensePayloads: any[] = [];
+    const pastStartDate = "2025-01-01";
+    const todayAest = new Intl.DateTimeFormat("en-CA", { timeZone: "Australia/Sydney" }).format(new Date());
+
+    const mockDb = {
+      select: vi.fn().mockReturnValue({
+        from: vi.fn().mockImplementation((table: any) => {
+          if (table === tenants) {
+            return {
+              where: vi.fn().mockReturnValue({
+                limit: vi.fn().mockResolvedValue([{ timezone: "Australia/Sydney" }]),
+              }),
+            };
+          }
+          return {
+            where: vi.fn().mockResolvedValue([
+              {
+                id: "env-update-past",
+                name: "Past Rent",
+                envelopeType: "SCHEDULED_BILL",
+                budgetFrequency: "MONTHLY",
+                isPrivate: false,
+                generateEvents: true,
+                goalMode: "TARGET_DATE",
+                startDate: pastStartDate,
+                rrule: "FREQ=MONTHLY;INTERVAL=1",
+                enteredAmount: "500.00",
+                monthlyAmount: "500.00",
+              },
+            ]),
+          };
+        }),
+      }),
+      update: vi.fn().mockReturnValue({
+        set: vi.fn().mockReturnValue({
+          where: vi.fn().mockReturnValue({
+            returning: vi.fn().mockResolvedValue([
+              {
+                id: "env-update-past",
+                name: "Past Rent Updated",
+                envelopeType: "SCHEDULED_BILL",
+                budgetFrequency: "FORTNIGHTLY",
+                isPrivate: false,
+                generateEvents: true,
+                startDate: pastStartDate,
+                rrule: "FREQ=WEEKLY;INTERVAL=2",
+                enteredAmount: "250.00",
+                monthlyAmount: "541.67",
+              },
+            ]),
+          }),
+        }),
+      }),
+      delete: vi.fn().mockReturnValue({
+        where: vi.fn().mockResolvedValue([]),
+      }),
+      insert: vi.fn().mockImplementation(() => ({
+        values: vi.fn().mockImplementation((payloads: any[]) => {
+          insertedExpensePayloads = payloads;
+          return Promise.resolve(payloads);
+        }),
+      })),
+      transaction: vi.fn().mockImplementation((cb: any) => cb(mockDb)),
+    } as unknown as DbOrTx;
+
+    await updateEnvelopeCommand(
+      "env-update-past",
+      {
+        budgetFrequency: "FORTNIGHTLY",
+        enteredAmount: "250.00",
+      },
+      tenantId,
+      appId,
+      userId,
+      mockDb
+    );
+
+    expect(insertedExpensePayloads.length).toBeGreaterThan(0);
+    // All newly generated events must be >= today
+    for (const ev of insertedExpensePayloads) {
+      expect(ev.expectedDate >= todayAest).toBe(true);
+    }
+  });
 });

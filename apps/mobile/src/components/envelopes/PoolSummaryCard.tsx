@@ -19,6 +19,7 @@ interface PoolSummaryCardProps {
   bankAccountName?: string | null;
   onEdit: () => void;
   onDrawDown?: () => void;
+  onOpenNotes?: () => void;
 }
 
 export function PoolSummaryCard({
@@ -26,6 +27,7 @@ export function PoolSummaryCard({
   bankAccountName,
   onEdit,
   onDrawDown,
+  onOpenNotes,
 }: PoolSummaryCardProps) {
   const badgeText = pool.envelopeType === 'SCHEDULED_BILL'
     ? t('categories.scheduledBillBadge')
@@ -112,6 +114,12 @@ export function PoolSummaryCard({
           <TouchableOpacity onPress={onDrawDown} style={styles.drawDownBtn}>
             <Feather name="arrow-down-circle" size={15} color={DESIGN_TOKENS.colors.successDark} />
             <Text style={styles.drawDownBtnText}>{t('categories.actions.drawDown')}</Text>
+          </TouchableOpacity>
+        )}
+        {onOpenNotes && (
+          <TouchableOpacity onPress={onOpenNotes} style={styles.notesBtn}>
+            <Feather name="file-text" size={15} color={DESIGN_TOKENS.colors.slate[700]} />
+            <Text style={styles.notesBtnText}>{t('fileNotes.attachFile')}</Text>
           </TouchableOpacity>
         )}
         <TouchableOpacity onPress={onEdit} style={styles.primaryActionBtn}>
@@ -202,4 +210,17 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
   },
   drawDownBtnText: { fontSize: 13, fontWeight: '700', color: DESIGN_TOKENS.colors.successDark },
+  notesBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    backgroundColor: DESIGN_TOKENS.colors.slate[100],
+    borderWidth: 1,
+    borderColor: DESIGN_TOKENS.colors.slate[200],
+    borderRadius: 12,
+    paddingVertical: 10,
+  },
+  notesBtnText: { fontSize: 13, fontWeight: '700', color: DESIGN_TOKENS.colors.slate[700] },
 });
