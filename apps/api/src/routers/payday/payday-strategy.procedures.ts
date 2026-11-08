@@ -8,9 +8,11 @@ import {
   ApplyAllocationPresetCommand,
   UpdateAllocationStrategyStepsCommand,
   CANONICAL_ALLOCATION_PRESETS,
+  DEFAULT_APP_FEATURE_FLAGS,
 } from "@money-matters/types";
-import { allocationStrategies } from "@money-matters/db";
+import { allocationStrategies, apps } from "@money-matters/db";
 import { eq, and, sql } from "drizzle-orm";
+import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 
 export const paydayStrategyProcedures = {
@@ -52,6 +54,21 @@ export const paydayStrategyProcedures = {
     .input(UpdateAllocationStrategyStepsCommand)
     .mutation(async ({ input, ctx }) => {
       requiresWriteAccess(ctx);
+
+      const [appRecord] = await ctx.db
+        .select({ featureFlags: apps.featureFlags })
+        .from(apps)
+        .where(eq(apps.id, ctx.appId!))
+        .limit(1);
+
+      const flags = appRecord?.featureFlags || DEFAULT_APP_FEATURE_FLAGS;
+      if (!flags.customAllocationRules) {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "Custom allocation rules are disabled for this application.",
+        });
+      }
+
       const [strategy] = await ctx.db
         .select({ isPrivate: allocationStrategies.isPrivate, userId: allocationStrategies.userId })
         .from(allocationStrategies)

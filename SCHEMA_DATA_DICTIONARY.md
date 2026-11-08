@@ -85,7 +85,7 @@
 | `id` | uuid | - | Domain column |
 | `name` | varchar | - | Domain column |
 | `slug` | varchar | - | Domain column |
-| `featureFlags` | jsonb | No | App-level feature flags and storage quota configuration |
+| `featureFlags` | jsonb | No | App-level feature flags and entitlements (`fileNotes`, `askPenny`, `privateMode`, `simulation`, `customAllocationRules`, quotas) |
 | `createdAt` | timestamp | - | Domain column |
 | `updatedAt` | timestamp | - | Domain column |
 | `tenantId` | uuid | No | Tenant Foreign Key (RLS isolation) |

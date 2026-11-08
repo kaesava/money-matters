@@ -13,6 +13,7 @@ export interface MobileAskSheetProps {
   onAsk: (query: string) => Promise<AssistantResult>;
   onNavigatePrefill: (result: Extract<AssistantResult, { type: "prefill" }>) => void;
   remainingCalls?: number;
+  hasSimulation?: boolean;
 }
 
 const SUGGESTED_CHIPS = [
@@ -30,6 +31,7 @@ export const MobileAskSheet: React.FC<MobileAskSheetProps> = ({
   onAsk,
   onNavigatePrefill,
   remainingCalls,
+  hasSimulation = true,
 }) => {
   const [query, setQuery] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -139,7 +141,7 @@ export const MobileAskSheet: React.FC<MobileAskSheetProps> = ({
         <View style={styles.sectionGap}>
           <Text style={styles.sectionHeader}>{t("assistant.suggestedTitle")}</Text>
           <View style={styles.chipsRow}>
-            {SUGGESTED_CHIPS.map((chipKey) => {
+            {SUGGESTED_CHIPS.filter((chipKey) => hasSimulation || chipKey !== "assistant.chips.canAfford").map((chipKey) => {
               const label = t(chipKey);
               return (
                 <TouchableOpacity

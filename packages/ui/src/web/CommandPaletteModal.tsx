@@ -72,6 +72,7 @@ export interface CommandPaletteModalProps {
   onSelectEvent?: (event: SearchResultEvent) => void;
   onSelectTransaction?: (transaction: SearchResultTransaction) => void;
   onViewAllTransactions?: (query: string) => void;
+  hasSimulation?: boolean;
 }
 
 type PaletteActionItem =
@@ -107,6 +108,7 @@ export const CommandPaletteModal: React.FC<CommandPaletteModalProps> = ({
   onSelectEvent,
   onSelectTransaction,
   onViewAllTransactions,
+  hasSimulation = true,
 }) => {
   const [query, setQuery] = useState("");
   const [activeCategory, setActiveCategory] = useState<CommandPaletteCategory>("all");
@@ -743,7 +745,7 @@ export const CommandPaletteModal: React.FC<CommandPaletteModalProps> = ({
                 {t("assistant.suggestedTitle")}
               </span>
               <div className="flex flex-wrap gap-2">
-                {SUGGESTED_CHIPS.map((chipKey) => {
+                {SUGGESTED_CHIPS.filter((chipKey) => hasSimulation || chipKey !== "assistant.chips.canAfford").map((chipKey) => {
                   const label = t(chipKey);
                   return (
                     <button

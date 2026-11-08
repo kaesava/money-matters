@@ -4,6 +4,7 @@ import React, { useMemo } from "react";
 import { useToast, ConfirmDialog, ModalDialog, Button, FormErrorBanner } from "@money-matters/ui/web";
 import { t } from "@money-matters/i18n";
 import { trpc } from "../../lib/trpc";
+import { useAppFeatures } from "../../hooks/useAppFeatures";
 import { EnvelopeFormFields } from "./EnvelopeFormFields";
 import { useEnvelopeFormModalState, EnvelopeModalItem } from "./useEnvelopeFormModalState";
 
@@ -48,6 +49,7 @@ export function EnvelopeFormModal({
   initialMode = "ALL",
 }: EnvelopeFormModalProps) {
   const categoryToEdit = envelopeToEdit ?? legacyCategoryToEdit;
+  const { hasPrivateMode } = useAppFeatures();
   const toast = useToast();
   const utils = trpc.useUtils();
 
@@ -228,7 +230,7 @@ export function EnvelopeFormModal({
             ...(!isEdit && !isAccountSelectionDisabled ? [{ value: "", label: t("categories.selectBankAccount") }] : []),
             ...bankAccounts.map((acc) => ({
               value: acc.id,
-              label: `${acc.name} ${acc.isPrivate ? t("categories.privateBadge") : t("categories.householdBadge")}`,
+              label: `${acc.name}${hasPrivateMode ? ` ${acc.isPrivate ? t("categories.privateBadge") : t("categories.householdBadge")}` : ''}`,
             })),
           ]}
           poolTypeOptions={

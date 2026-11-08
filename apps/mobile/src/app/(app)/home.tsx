@@ -14,7 +14,6 @@ import { TrialBanner } from '../../components/dashboard/TrialBanner';
 import { MarkPaidModal } from '../../components/MarkPaidModal';
 import { QuickExpenseModal } from '../../components/QuickExpenseModal';
 import { MobileAffordCheckModal } from '../../components/afford-check/MobileAffordCheckModal';
-import { MobileAffordCheckCard } from '../../components/dashboard/MobileAffordCheckCard';
 import { ReconcileNudgeCard } from '../../components/dashboard/attention/ReconcileNudgeCard';
 import { MobileReconciliationModal } from '../../components/envelopes/MobileReconciliationModal';
 import { useHomeData } from '../../components/dashboard/useHomeData';
@@ -25,7 +24,7 @@ export default function HomeScreen() {
   const router = useRouter();
   const { token } = useLocalSearchParams<{ token?: string }>();
   const posthog = usePostHog();
-  const { hasAiAssistant } = useAppFeatures();
+  const { hasAiAssistant, hasSimulation } = useAppFeatures();
 
   const askMutation = trpc.assistantAsk.useMutation();
   const usageQuery = trpc.assistantUsage.useQuery(undefined, {
@@ -250,11 +249,13 @@ export default function HomeScreen() {
       />
 
       {/* Affordability Check Modal */}
-      <MobileAffordCheckModal
-        visible={affordModalVisible}
-        onClose={() => setAffordModalVisible(false)}
-        initialAmount={affordModalAmount}
-      />
+      {hasSimulation && (
+        <MobileAffordCheckModal
+          visible={affordModalVisible}
+          onClose={() => setAffordModalVisible(false)}
+          initialAmount={affordModalAmount}
+        />
+      )}
 
       {/* Reconciliation Modal */}
       {reconcileAccount && (
@@ -284,6 +285,7 @@ export default function HomeScreen() {
       <MobileCommandPaletteSheet
         isOpen={askSheetVisible}
         onClose={() => setAskSheetVisible(false)}
+        hasSimulation={hasSimulation}
         accounts={searchAccounts}
         envelopes={searchEnvelopes}
         upcomingEvents={searchEvents}

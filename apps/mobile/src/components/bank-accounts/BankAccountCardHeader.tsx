@@ -1,5 +1,6 @@
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { Feather } from '@expo/vector-icons';
 import { BankProviderBadge, CardDrawerIndicator, DESIGN_TOKENS } from '@money-matters/ui/mobile';
 import { formatMobileCurrency } from '../../lib/format';
 import { t } from '@money-matters/i18n';
@@ -12,6 +13,7 @@ export interface BankAccountCardHeaderProps {
   availBal: number;
   actualBal: number;
   buffer: number;
+  onPressNotes?: () => void;
 }
 
 export function BankAccountCardHeader({
@@ -22,6 +24,7 @@ export function BankAccountCardHeader({
   availBal,
   actualBal,
   buffer,
+  onPressNotes,
 }: BankAccountCardHeaderProps) {
   return (
     <View style={styles.cardHeader}>
@@ -40,6 +43,19 @@ export function BankAccountCardHeader({
             <View style={styles.privatePill}>
               <Text style={styles.privateText}>{t('bankAccounts.privateBadge')}</Text>
             </View>
+          )}
+          {onPressNotes && (
+            <TouchableOpacity
+              onPress={(e) => {
+                e.stopPropagation?.();
+                onPressNotes();
+              }}
+              style={styles.notesBtn}
+              accessibilityLabel={t('fileNotes.attachFile')}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            >
+              <Feather name="paperclip" size={13} color={DESIGN_TOKENS.colors.slate[500]} />
+            </TouchableOpacity>
           )}
         </View>
       </View>
@@ -122,5 +138,10 @@ const styles = StyleSheet.create({
     fontFamily: 'monospace',
     fontWeight: '500',
     marginTop: 1,
+  },
+  notesBtn: {
+    padding: 3,
+    borderRadius: 6,
+    backgroundColor: DESIGN_TOKENS.colors.slate[100],
   },
 });

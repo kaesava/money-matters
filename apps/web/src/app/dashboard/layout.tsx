@@ -31,7 +31,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const utils = trpc.useUtils();
   const { isGlobalError, clearGlobalError, lastErrorMessage } = useNetworkStatus();
   const { data: session, isPending } = authClient.useSession();
-  const { hasAiAssistant } = useAppFeatures();
+  const { hasAiAssistant, hasSimulation } = useAppFeatures();
   const [isExchanging, setIsExchanging] = useState(false);
 
   const tenantStatusQuery = trpc.getTenantStatus.useQuery(undefined, {
@@ -435,6 +435,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           <CommandPaletteModal
             isOpen={askPennyOpen}
             onClose={() => setAskPennyOpen(false)}
+            hasSimulation={hasSimulation}
             accounts={searchAccounts}
             envelopes={searchEnvelopes}
             upcomingEvents={searchEvents}
@@ -446,7 +447,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               return res;
             } : undefined}
             onNavigatePrefill={(prefill) =>
-              handlePennyPrefillNavigation(prefill, router, setQuickExpenseData, setQuickExpenseOpen)
+              handlePennyPrefillNavigation(prefill, router, setQuickExpenseData, setQuickExpenseOpen, hasSimulation)
             }
             onSelectAccount={() => {
               router.push("/dashboard/bank-accounts");

@@ -358,6 +358,20 @@
       "when": 1784268494251,
       "tag": "0051_add_app_feature_flags_and_file_notes",
       "breakpoints": true
+    },
+    {
+      "idx": 51,
+      "version": "7",
+      "when": 1784278494251,
+      "tag": "0052_add_simulation_and_custom_allocation_rules_flags",
+      "breakpoints": true
+    },
+    {
+      "idx": 52,
+      "version": "7",
+      "when": 1784288494251,
+      "tag": "0053_unified_two_mode_funding_architecture",
+      "breakpoints": true
     }
   ]
 }

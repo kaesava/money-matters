@@ -7,7 +7,7 @@ import {
   ScrollView,
   ActivityIndicator,
 } from 'react-native';
-import { useRouter, useLocalSearchParams } from 'expo-router';
+import { useRouter, useLocalSearchParams, type Href } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
 import { t } from '@money-matters/i18n';
 import {
@@ -33,19 +33,30 @@ interface EditableStep {
 export default function MobileAllocationRulesScreen() {
   const router = useRouter();
   const params = useLocalSearchParams<{ scope?: string }>();
-  const { hasPrivateMode } = useAppFeatures();
+  const { hasPrivateMode, hasCustomAllocationRules } = useAppFeatures();
   const isPersonal = params.scope === 'personal' && hasPrivateMode;
   const toast = useMobileToast();
   const utils = trpc.useUtils();
 
-  const govQuery = trpc.getHouseholdGovernanceInfo.useQuery();
+  useEffect(() => {
+    if (!hasCustomAllocationRules) {
+      router.replace('/(app)/settings' as Href);
+    }
+  }, [hasCustomAllocationRules, router]);
+
+  const govQuery = trpc.getHouseholdGovernanceInfo.useQuery(undefined, {
+    enabled: hasCustomAllocationRules,
+  });
   const isOwner = govQuery.data?.isOwner ?? true;
   const canEdit = isPersonal || isOwner;
 
-  const strategyQuery = trpc.getActiveAllocationStrategy.useQuery({
-    isPrivate: isPersonal,
+  const strategyQuery = trpc.getActiveAllocationStrategy.useQuery(
+    { isPrivate: isPersonal },
+    { enabled: hasCustomAllocationRules }
+  );
+  const envelopesQuery = trpc.listPools.useQuery(undefined, {
+    enabled: hasCustomAllocationRules,
   });
-  const envelopesQuery = trpc.listPools.useQuery();
   const updateStepsMut = trpc.updateAllocationStrategySteps.useMutation();
   const applyPresetMut = trpc.applyAllocationPreset.useMutation();
 
@@ -167,6 +178,10 @@ export default function MobileAllocationRulesScreen() {
       router.back();
     }
   };
+
+  if (!hasCustomAllocationRules) {
+    return null;
+  }
 
   if (strategyQuery.isLoading) {
     return (

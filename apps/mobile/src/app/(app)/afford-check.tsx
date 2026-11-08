@@ -1,20 +1,28 @@
-import React, { useState, useDeferredValue } from 'react';
+import React, { useState, useDeferredValue, useEffect } from 'react';
 import {
   View,
   ScrollView,
   StyleSheet,
   ActivityIndicator,
 } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useRouter, type Href } from 'expo-router';
 import { DESIGN_TOKENS, MobileScreenWrapper, GoalDelayCard } from '@money-matters/ui/mobile';
 import { t } from '@money-matters/i18n';
 import { trpc } from '../../lib/trpc';
+import { useAppFeatures } from '../../context/useAppFeatures';
 import { AffordCheckInputControls } from '../../components/afford-check/AffordCheckInputControls';
 import { AffordCheckVerdictCard } from '../../components/afford-check/AffordCheckVerdictCard';
 import { AffordCheckBreakdownCard } from '../../components/afford-check/AffordCheckBreakdownCard';
 
 export default function AffordCheckScreen() {
   const router = useRouter();
+  const { hasSimulation, isLoading: isFeaturesLoading } = useAppFeatures();
+
+  useEffect(() => {
+    if (!isFeaturesLoading && !hasSimulation) {
+      router.replace('/(app)/home' as Href);
+    }
+  }, [hasSimulation, isFeaturesLoading, router]);
 
   const [rawAmount, setRawAmount] = useState('');
   const [mode, setMode] = useState<'ONE_OFF' | 'RECURRING'>('ONE_OFF');
@@ -37,9 +45,19 @@ export default function AffordCheckScreen() {
       includePersonal,
     },
     {
-      enabled: isValidAmount,
+      enabled: isValidAmount && hasSimulation,
     }
   );
+
+  if (!isFeaturesLoading && !hasSimulation) {
+    return (
+      <MobileScreenWrapper title={t('canIAfford.title')} showBack onBackPress={() => router.back()}>
+        <View style={styles.container}>
+          <ActivityIndicator size="small" color={DESIGN_TOKENS.colors.sereneBlue} style={styles.loadingIndicator} />
+        </View>
+      </MobileScreenWrapper>
+    );
+  }
 
   const handleAmountChange = (text: string) => {
     if (text === '' || /^\d{0,12}(\.\d{0,2})?$/.test(text)) {

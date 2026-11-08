@@ -19,6 +19,8 @@ import {
 } from '@money-matters/ui/mobile';
 import { t } from '@money-matters/i18n';
 import { trpc } from '../../lib/trpc';
+import { useAppFeatures } from '../../context/useAppFeatures';
+import { NotesFeedModal } from '@money-matters/capability-file-notes/mobile';
 import {
   BankAccountFormModal,
   BankAccountItemToEdit,
@@ -46,6 +48,8 @@ export function MobileBankAccountsSection() {
     pools: LinkedPoolItem[];
   } | null>(null);
   const [transferModalVisible, setTransferModalVisible] = useState(false);
+  const [notesAccount, setNotesAccount] = useState<{ id: string; name: string } | null>(null);
+  const { hasFileNotes } = useAppFeatures();
 
   // Search, Filter, Sort State
   const searchParams = useLocalSearchParams<{ id?: string }>();
@@ -269,6 +273,11 @@ export function MobileBankAccountsSection() {
                     pools: linkedPools,
                   })
                 }
+                onPressNotes={
+                  hasFileNotes
+                    ? () => setNotesAccount({ id: acc.id, name: acc.name })
+                    : undefined
+                }
               />
             );
           })}
@@ -375,6 +384,17 @@ export function MobileBankAccountsSection() {
           poolsQuery.refetch();
         }}
       />
+
+      {/* File & Notes Modal for Bank Account */}
+      {notesAccount && (
+        <NotesFeedModal
+          visible={!!notesAccount}
+          onClose={() => setNotesAccount(null)}
+          entityType="BANK_ACCOUNT"
+          entityId={notesAccount.id}
+          entityName={notesAccount.name}
+        />
+      )}
     </View>
   );
 }

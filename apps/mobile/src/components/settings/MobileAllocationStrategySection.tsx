@@ -11,7 +11,7 @@ export function MobileAllocationStrategySection() {
   const router = useRouter();
   const toast = useMobileToast();
   const utils = trpc.useUtils();
-  const { hasPrivateMode } = useAppFeatures();
+  const { hasPrivateMode, hasCustomAllocationRules } = useAppFeatures();
 
   const [activeTab, setActiveTab] = useState<'household' | 'personal'>('household');
 
@@ -124,22 +124,24 @@ export function MobileAllocationStrategySection() {
           <Text style={styles.subtitle}>{t('settings.paydayRules.description')}</Text>
         </View>
 
-        {canEdit ? (
-          <TouchableOpacity
-            style={styles.customizeBtn}
-            onPress={() => router.push(`/(app)/settings/allocation-rules?scope=${activeTab}` as Href)}
-            activeOpacity={0.7}
-          >
-            <Feather name="sliders" size={14} color={DESIGN_TOKENS.colors.sereneBlue} />
-            <Text style={styles.customizeBtnText}>{t('settings.paydayRules.customizeButton')}</Text>
-          </TouchableOpacity>
-        ) : (
-          <View style={[styles.customizeBtn, styles.customizeBtnDisabled]}>
-            <Feather name="sliders" size={14} color={DESIGN_TOKENS.colors.slate[400]} />
-            <Text style={[styles.customizeBtnText, styles.customizeBtnTextDisabled]}>
-              {t('settings.paydayRules.customizeButton')}
-            </Text>
-          </View>
+        {hasCustomAllocationRules && (
+          canEdit ? (
+            <TouchableOpacity
+              style={styles.customizeBtn}
+              onPress={() => router.push(`/(app)/settings/allocation-rules?scope=${activeTab}` as Href)}
+              activeOpacity={0.7}
+            >
+              <Feather name="sliders" size={14} color={DESIGN_TOKENS.colors.sereneBlue} />
+              <Text style={styles.customizeBtnText}>{t('settings.paydayRules.customizeButton')}</Text>
+            </TouchableOpacity>
+          ) : (
+            <View style={[styles.customizeBtn, styles.customizeBtnDisabled]}>
+              <Feather name="sliders" size={14} color={DESIGN_TOKENS.colors.slate[400]} />
+              <Text style={[styles.customizeBtnText, styles.customizeBtnTextDisabled]}>
+                {t('settings.paydayRules.customizeButton')}
+              </Text>
+            </View>
+          )
         )}
       </View>
 
@@ -182,33 +184,35 @@ export function MobileAllocationStrategySection() {
         })}
 
         {/* 4th Preset Card: Custom Rules */}
-        <View
-          style={[
-            styles.presetCard,
-            activePreset === 'CUSTOM' && styles.presetCardSelected,
-          ]}
-        >
-          <View style={styles.presetHeader}>
-            <Text style={[styles.presetName, activePreset === 'CUSTOM' && styles.presetNameSelected]}>
-              {t('settings.paydayRules.presets.custom.name')}
-            </Text>
-            {activePreset === 'CUSTOM' ? (
-              <View style={styles.activeCheckRow}>
-                <Feather name="check" size={12} color={DESIGN_TOKENS.colors.sereneBlue} />
-                <Text style={styles.activeCheckText}>
-                  {t('settings.paydayRules.activeBadge')}
-                </Text>
-              </View>
-            ) : (
-              <Text style={styles.customiseHintText}>
-                {t('settings.paydayRules.customiseToActivate')}
+        {hasCustomAllocationRules && (
+          <View
+            style={[
+              styles.presetCard,
+              activePreset === 'CUSTOM' && styles.presetCardSelected,
+            ]}
+          >
+            <View style={styles.presetHeader}>
+              <Text style={[styles.presetName, activePreset === 'CUSTOM' && styles.presetNameSelected]}>
+                {t('settings.paydayRules.presets.custom.name')}
               </Text>
-            )}
+              {activePreset === 'CUSTOM' ? (
+                <View style={styles.activeCheckRow}>
+                  <Feather name="check" size={12} color={DESIGN_TOKENS.colors.sereneBlue} />
+                  <Text style={styles.activeCheckText}>
+                    {t('settings.paydayRules.activeBadge')}
+                  </Text>
+                </View>
+              ) : (
+                <Text style={styles.customiseHintText}>
+                  {t('settings.paydayRules.customiseToActivate')}
+                </Text>
+              )}
+            </View>
+            <Text style={styles.presetDesc}>
+              {t('settings.paydayRules.presets.custom.description')}
+            </Text>
           </View>
-          <Text style={styles.presetDesc}>
-            {t('settings.paydayRules.presets.custom.description')}
-          </Text>
-        </View>
+        )}
       </View>
     </View>
   );

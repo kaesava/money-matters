@@ -4,6 +4,7 @@ import type { AssistantResult } from '@money-matters/types';
 import { QuickActionType, QuickActionInitialData } from '../QuickExpenseModal';
 import { MarkPaidEvent } from '../MarkPaidModal';
 import { MobileReconciliationModalProps } from '../envelopes/MobileReconciliationModal';
+import { useAppFeatures } from '../../context/useAppFeatures';
 
 interface PoolItem {
   id: string;
@@ -27,6 +28,7 @@ export function useHomeModals(
   everydayPool?: PoolItem
 ) {
   const router = useRouter();
+  const { hasSimulation } = useAppFeatures();
 
   const [quickModalVisible, setQuickModalVisible] = useState(false);
   const [quickModalType, setQuickModalType] = useState<QuickActionType>('DEBIT');
@@ -98,9 +100,11 @@ export function useHomeModals(
         setQuickModalType('TRANSFER');
         setQuickModalVisible(true);
       } else if (prefill.target === 'afford-check') {
-        const amountStr = prefill.params?.amount ? String(prefill.params.amount) : undefined;
-        setAffordModalAmount(amountStr);
-        setAffordModalVisible(true);
+        if (hasSimulation) {
+          const amountStr = prefill.params?.amount ? String(prefill.params.amount) : undefined;
+          setAffordModalAmount(amountStr);
+          setAffordModalVisible(true);
+        }
       } else if (prefill.target === 'create-bill' || prefill.target === 'create-income') {
         router.push('/(app)/paychecks' as Href);
       } else if (prefill.target === 'history-filter') {
@@ -114,7 +118,7 @@ export function useHomeModals(
         else if (screen === 'history') router.push('/(app)/transactions' as Href);
       }
     },
-    [router]
+    [router, hasSimulation]
   );
 
   return {

@@ -11,7 +11,10 @@ export function useAppFeatures() {
   return {
     hasAiAssistant: Boolean(features.aiAssistant),
     hasPrivateMode: Boolean(features.privateMode),
+    hasPartnerInvites: Boolean(features.privateMode),
     hasFileNotes: Boolean(features.fileNotes),
+    hasSimulation: Boolean(features.simulation),
+    hasCustomAllocationRules: Boolean(features.customAllocationRules),
     features,
     isLoading: query.isLoading,
   };

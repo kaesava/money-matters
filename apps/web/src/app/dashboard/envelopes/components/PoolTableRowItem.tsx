@@ -3,6 +3,7 @@ import Link from "next/link";
 import { InfoTooltip, formatRecurrenceLabel } from "@money-matters/ui/web";
 import { t } from "@money-matters/i18n";
 import { MoreVertical, Edit2, History, Receipt, ArrowDownCircle } from "lucide-react";
+import { useAppFeatures } from "../../../../hooks/useAppFeatures";
 import { PoolTableRow } from "../types";
 
 export interface PoolTableRowItemProps {
@@ -24,6 +25,7 @@ export function PoolTableRowItem({
   fmtMoney,
   fmtDate,
 }: PoolTableRowItemProps) {
+  const { hasPrivateMode } = useAppFeatures();
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
@@ -120,7 +122,7 @@ export function PoolTableRowItem({
             </span>
           )}
 
-          {pool.isPrivate && (
+          {hasPrivateMode && pool.isPrivate && (
             <span title={t("categories.privateBadge")} className="text-[10px] cursor-help">
               🔒
             </span>

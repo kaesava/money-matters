@@ -1,10 +1,11 @@
 'use client';
 
-import React, { useState, useId, useDeferredValue } from 'react';
-import { useSearchParams } from 'next/navigation';
+import React, { useState, useId, useDeferredValue, useEffect } from 'react';
+import { useSearchParams, useRouter } from 'next/navigation';
 import { trpc } from '@/lib/trpc';
 import { t } from '@money-matters/i18n';
 import { InfoTooltip, useCurrencyLocale } from '@money-matters/ui';
+import { useAppFeatures } from '@/hooks/useAppFeatures';
 import { AffordCheckVerdict } from './AffordCheckVerdict';
 import { AffordCheckBreakdown } from './AffordCheckBreakdown';
 import { GoalDelayCard } from './GoalDelayCard';
@@ -13,12 +14,20 @@ import { ArrowLeft, Repeat, ShoppingBag } from 'lucide-react';
 import Link from 'next/link';
 
 export function AffordCheckScreen() {
+  const router = useRouter();
+  const { hasSimulation, isLoading: isFeaturesLoading } = useAppFeatures();
   const { currencySymbol } = useCurrencyLocale();
   const searchParams = useSearchParams();
   const urlAmount = searchParams.get('amount') || '';
   const amountInputId = useId();
   const itemNameInputId = useId();
   const includePersonalId = useId();
+
+  useEffect(() => {
+    if (!isFeaturesLoading && !hasSimulation) {
+      router.replace('/dashboard');
+    }
+  }, [hasSimulation, isFeaturesLoading, router]);
 
   const [rawAmount, setRawAmount] = useState(urlAmount);
   const [mode, setMode] = useState<'ONE_OFF' | 'RECURRING'>('ONE_OFF');
@@ -41,10 +50,14 @@ export function AffordCheckScreen() {
       includePersonal,
     },
     {
-      enabled: isValidAmount,
+      enabled: isValidAmount && hasSimulation,
       refetchOnWindowFocus: false,
     }
   );
+
+  if (!isFeaturesLoading && !hasSimulation) {
+    return <AffordCheckSkeleton />;
+  }
 
   const handleAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const val = e.target.value;

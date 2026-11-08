@@ -25,7 +25,14 @@ interface EditableStep {
 function AllocationRulesContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { hasPrivateMode } = useAppFeatures();
+  const { hasPrivateMode, hasCustomAllocationRules, isLoading: isFeaturesLoading } = useAppFeatures();
+
+  useEffect(() => {
+    if (!isFeaturesLoading && !hasCustomAllocationRules) {
+      router.replace("/dashboard/settings");
+    }
+  }, [hasCustomAllocationRules, isFeaturesLoading, router]);
+
   const scope = (searchParams.get("scope") === "personal" && hasPrivateMode) ? "personal" : "household";
   const isPersonal = scope === "personal";
 
@@ -148,6 +155,10 @@ function AllocationRulesContent() {
       router.push("/dashboard/settings?tab=household");
     }
   };
+
+  if (!isFeaturesLoading && !hasCustomAllocationRules) {
+    return null;
+  }
 
   return (
     <div className="max-w-4xl mx-auto space-y-6 pb-16">

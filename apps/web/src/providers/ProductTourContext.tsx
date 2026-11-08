@@ -1,11 +1,12 @@
 'use client';
 
-import React, { createContext, useContext, useState, useEffect, useCallback, useRef, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useMemo, useRef, ReactNode } from 'react';
 import { useRouter, usePathname, useSearchParams } from 'next/navigation';
 import { trpc } from '../lib/trpc';
 import posthog from '../lib/posthog-client';
 import { useToast } from '@money-matters/ui/web';
 import { t } from '@money-matters/i18n';
+import { useAppFeatures } from '../hooks/useAppFeatures';
 import {
   ProductTourPopover,
   ProductTourSpotlight,
@@ -113,6 +114,11 @@ export function ProductTourProvider({ children }: { children: ReactNode }) {
   const [targetRect, setTargetRect] = useState<DOMRect | null>(null);
   const hasDismissedRef = useRef(false);
 
+  const { hasSimulation } = useAppFeatures();
+  const tourSteps = useMemo(() => {
+    return TOUR_STEPS.filter((s) => s.id !== 'afford-check' || hasSimulation);
+  }, [hasSimulation]);
+
   // Check if tour should prompt on first dashboard visit
   useEffect(() => {
     if (!userPrefQuery.data || userPrefQuery.isLoading) return;
@@ -218,7 +224,7 @@ export function ProductTourProvider({ children }: { children: ReactNode }) {
       return;
     }
 
-    const stepDef = TOUR_STEPS[currentStep - 1];
+    const stepDef = tourSteps[currentStep - 1];
     if (!stepDef) return;
 
     const el = document.querySelector(stepDef.selector);
@@ -229,13 +235,13 @@ export function ProductTourProvider({ children }: { children: ReactNode }) {
     } else {
       setTargetRect(null);
     }
-  }, [isTourActive, currentStep]);
+  }, [isTourActive, currentStep, tourSteps]);
 
   // Re-measure on step or route change
   useEffect(() => {
     if (!isTourActive) return;
 
-    const stepDef = TOUR_STEPS[currentStep - 1];
+    const stepDef = tourSteps[currentStep - 1];
     if (!stepDef) return;
 
     const currentSearch = searchParams?.toString();
@@ -286,14 +292,14 @@ export function ProductTourProvider({ children }: { children: ReactNode }) {
   }, [isTourActive, updateTargetRect]);
 
   const handleNext = useCallback(() => {
-    if (currentStep < TOUR_STEPS.length) {
+    if (currentStep < tourSteps.length) {
       const next = currentStep + 1;
       setCurrentStep(next);
       posthog.capture('tour_step_viewed', { step: next });
     } else {
       completeTour();
     }
-  }, [currentStep, completeTour]);
+  }, [currentStep, completeTour, tourSteps.length]);
 
   const handleBack = useCallback(() => {
     if (currentStep > 1) {
@@ -301,11 +307,11 @@ export function ProductTourProvider({ children }: { children: ReactNode }) {
     }
   }, [currentStep]);
 
-  const activeStepDef = TOUR_STEPS[currentStep - 1];
+  const activeStepDef = tourSteps[currentStep - 1];
   const stepConfig: TourStepConfig | null = activeStepDef
     ? {
         step: currentStep,
-        totalSteps: TOUR_STEPS.length,
+        totalSteps: tourSteps.length,
         titleKey: activeStepDef.titleKey,
         descKey: activeStepDef.descKey,
         badgeKey: activeStepDef.badgeKey,
@@ -341,7 +347,7 @@ export function ProductTourProvider({ children }: { children: ReactNode }) {
             onNext={handleNext}
             onBack={handleBack}
             onSkip={skipTour}
-            isLastStep={currentStep === TOUR_STEPS.length}
+            isLastStep={currentStep === tourSteps.length}
           />
         </>
       )}

@@ -5,6 +5,7 @@ import Link from "next/link";
 import { FileText } from "lucide-react";
 import { PaginationBar, SkeletonTable } from "@money-matters/ui/web";
 import { t, TranslationKey } from "@money-matters/i18n";
+import { useAppFeatures } from "../../../../hooks/useAppFeatures";
 import type { AccountType } from "@money-matters/types";
 
 export type BankName = "CBA" | "Westpac" | "ANZ" | "NAB" | "ING" | "Macquarie" | "Other";
@@ -66,6 +67,7 @@ export function BankAccountTable({
   isLoading,
 }: BankAccountTableProps) {
   const [selectedAccForPools, setSelectedAccForPools] = React.useState<BankAccountItem | null>(null);
+  const { hasPrivateMode } = useAppFeatures();
 
   useEffect(() => {
     if (!selectedAccForPools) return;
@@ -134,7 +136,7 @@ export function BankAccountTable({
                               {t(`bankAccounts.accountTypes.${acc.accountType}` as TranslationKey)}
                             </span>
                           )}
-                          {acc.isPrivate && (
+                          {hasPrivateMode && acc.isPrivate && (
                             <span
                               title="Private"
                               className="text-[10px] font-extrabold px-1.5 py-0.5 rounded-full bg-slate-100 text-slate-700 border border-slate-200 inline-flex items-center cursor-help"

@@ -1,4 +1,11 @@
 
+#### FLAGS
+pnpm app:set-flag --flag=aiAssistant --value=true
+pnpm app:set-flag --flag=privateMode --value=true
+pnpm app:set-flag --flag=fileNotes --value=true
+pnpm app:set-flag --flag=simulation --value=true
+pnpm app:set-flag --flag=customAllocationRules --value=true
+
 #####################################
 
 # Rules
@@ -14,7 +21,7 @@ Manual Verification
 
 Feature flags - Ask Penny, File Notes, Private
 File Notes - Bank Accounts, Envelopes
-
+New Bill/Goal types - Recurring vs. Balance
 Test Owner changing role of another user from Member to Owner, and back to Member.
 Test sole Owner attempting to demote themselves: verify blocked with clear guidance.
 Test multi-owner household: Owner demoting themselves: verify confirmation modal, and verify they immediately lose Owner privileges upon confirmation.

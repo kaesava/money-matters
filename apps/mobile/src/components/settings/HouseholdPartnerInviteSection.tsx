@@ -5,10 +5,12 @@ import { t } from '@money-matters/i18n';
 import { trpc } from '../../lib/trpc';
 import { HouseholdMemberList, MemberItem } from './household/HouseholdMemberList';
 import { PartnerInviteForm } from './household/PartnerInviteForm';
+import { useAppFeatures } from '../../context/useAppFeatures';
 
 export function HouseholdPartnerInviteSection() {
   const toast = useMobileToast();
   const utils = trpc.useUtils();
+  const { hasPartnerInvites } = useAppFeatures();
   const [partnerEmail, setPartnerEmail] = useState('');
   const [partnerInviting, setPartnerInviting] = useState(false);
   const [inviteSuccessMsg, setInviteSuccessMsg] = useState<string | null>(null);
@@ -122,14 +124,16 @@ export function HouseholdPartnerInviteSection() {
         onChangeRole={handleChangeRole}
       />
 
-      <PartnerInviteForm
-        isOwner={isOwner}
-        partnerEmail={partnerEmail}
-        onPartnerEmailChange={setPartnerEmail}
-        partnerInviting={partnerInviting}
-        onInvitePartner={handleInvitePartner}
-        inviteSuccessMsg={inviteSuccessMsg}
-      />
+      {hasPartnerInvites && (
+        <PartnerInviteForm
+          isOwner={isOwner}
+          partnerEmail={partnerEmail}
+          onPartnerEmailChange={setPartnerEmail}
+          partnerInviting={partnerInviting}
+          onInvitePartner={handleInvitePartner}
+          inviteSuccessMsg={inviteSuccessMsg}
+        />
+      )}
 
       <TypedConfirmDialog
         visible={Boolean(memberToRemove)}

@@ -10,7 +10,7 @@ import { useAppFeatures } from "../../../../hooks/useAppFeatures";
 export function AllocationStrategySection() {
   const toast = useToast();
   const utils = trpc.useUtils();
-  const { hasPrivateMode } = useAppFeatures();
+  const { hasPrivateMode, hasCustomAllocationRules } = useAppFeatures();
 
   const [activeTab, setActiveTab] = useState<"household" | "personal">("household");
 
@@ -135,27 +135,29 @@ export function AllocationStrategySection() {
           </p>
         </div>
 
-        {canEdit ? (
-          <Link
-            href={`/dashboard/settings/allocation-rules?scope=${activeTab}`}
-            className="inline-flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold text-[#2563eb] bg-blue-50 hover:bg-blue-100 dark:bg-blue-950/40 dark:hover:bg-blue-900/60 dark:text-blue-400 transition-colors shrink-0 cursor-pointer"
-          >
-            <span>⚙️</span>
-            <span>{t("settings.paydayRules.customizeButton")}</span>
-          </Link>
-        ) : (
-          <span
-            className="inline-flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold text-slate-400 bg-slate-100 dark:bg-zinc-800 dark:text-slate-500 cursor-not-allowed shrink-0"
-            title={t("settings.paydayRules.onlyOwnerCanChange")}
-          >
-            <span>⚙️</span>
-            <span>{t("settings.paydayRules.customizeButton")}</span>
-          </span>
+        {hasCustomAllocationRules && (
+          canEdit ? (
+            <Link
+              href={`/dashboard/settings/allocation-rules?scope=${activeTab}`}
+              className="inline-flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold text-[#2563eb] bg-blue-50 hover:bg-blue-100 dark:bg-blue-950/40 dark:hover:bg-blue-900/60 dark:text-blue-400 transition-colors shrink-0 cursor-pointer"
+            >
+              <span>⚙️</span>
+              <span>{t("settings.paydayRules.customizeButton")}</span>
+            </Link>
+          ) : (
+            <span
+              className="inline-flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold text-slate-400 bg-slate-100 dark:bg-zinc-800 dark:text-slate-500 cursor-not-allowed shrink-0"
+              title={t("settings.paydayRules.onlyOwnerCanChange")}
+            >
+              <span>⚙️</span>
+              <span>{t("settings.paydayRules.customizeButton")}</span>
+            </span>
+          )
         )}
       </div>
 
-      {/* 4 Presets Grid: Balanced, Bills Fortress, Pay Yourself First, Custom */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-3 pt-2">
+      {/* Presets Grid: Balanced, Bills Fortress, Pay Yourself First (and Custom if enabled) */}
+      <div className={`grid grid-cols-1 ${hasCustomAllocationRules ? "md:grid-cols-4" : "md:grid-cols-3"} gap-3 pt-2`}>
         {presetsList.map((p) => {
           const isSelected = activePreset === p.key;
           return (
@@ -195,34 +197,36 @@ export function AllocationStrategySection() {
           );
         })}
 
-        {/* 4th Preset Card: Custom Rules */}
-        <div
-          className={`text-left p-4 rounded-xl border transition-all flex flex-col justify-between gap-2 ${
-            activePreset === "CUSTOM"
-              ? "border-[#2563eb] bg-blue-50/50 dark:bg-blue-950/20 shadow-xs ring-1 ring-[#2563eb]"
-              : "border-slate-200 dark:border-slate-800 bg-white/40 dark:bg-zinc-800/40"
-          }`}
-        >
-          <div>
-            <div className="flex items-center justify-between">
-              <h4 className="font-semibold text-xs text-[#1B2B4B] dark:text-white">
-                {t("settings.paydayRules.presets.custom.name")}
-              </h4>
-              {activePreset === "CUSTOM" ? (
-                <span className="text-[11px] font-bold text-[#2563eb] dark:text-blue-400">
-                  ✓ Active
-                </span>
-              ) : (
-                <span className="text-[10px] font-medium text-slate-400">
-                  {t("settings.paydayRules.customiseToActivate")}
-                </span>
-              )}
+        {/* 4th Preset Card: Custom Rules (rendered only if customAllocationRules is enabled) */}
+        {hasCustomAllocationRules && (
+          <div
+            className={`text-left p-4 rounded-xl border transition-all flex flex-col justify-between gap-2 ${
+              activePreset === "CUSTOM"
+                ? "border-[#2563eb] bg-blue-50/50 dark:bg-blue-950/20 shadow-xs ring-1 ring-[#2563eb]"
+                : "border-slate-200 dark:border-slate-800 bg-white/40 dark:bg-zinc-800/40"
+            }`}
+          >
+            <div>
+              <div className="flex items-center justify-between">
+                <h4 className="font-semibold text-xs text-[#1B2B4B] dark:text-white">
+                  {t("settings.paydayRules.presets.custom.name")}
+                </h4>
+                {activePreset === "CUSTOM" ? (
+                  <span className="text-[11px] font-bold text-[#2563eb] dark:text-blue-400">
+                    ✓ Active
+                  </span>
+                ) : (
+                  <span className="text-[10px] font-medium text-slate-400">
+                    {t("settings.paydayRules.customiseToActivate")}
+                  </span>
+                )}
+              </div>
+              <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1 leading-relaxed">
+                {t("settings.paydayRules.presets.custom.description")}
+              </p>
             </div>
-            <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1 leading-relaxed">
-              {t("settings.paydayRules.presets.custom.description")}
-            </p>
           </div>
-        </div>
+        )}
       </div>
 
       {/* Dynamic Confirmation Dialog on Preset Switch */}

@@ -29,6 +29,8 @@
     "db:migrate": "pnpm --filter @money-matters/db migrate",
     "db:migrate:prod": "pnpm --filter @money-matters/db migrate:prod",
     "app:set-flag": "pnpm --filter @money-matters/db app:set-flag",
+    "app:set-flag:prod": "pnpm --filter @money-matters/db app:set-flag:prod",
+    "app:set-flag:all": "pnpm --filter @money-matters/db app:set-flag:all",
     "mobile:build:preview": "pnpm --filter @money-matters/mobile build:preview",
     "mobile:build:prod": "pnpm --filter @money-matters/mobile build:prod",
     "mobile:build:submit": "pnpm --filter @money-matters/mobile build:submit"

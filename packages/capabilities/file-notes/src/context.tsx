@@ -1,9 +1,15 @@
 import React, { createContext, useContext } from 'react';
 import type { FileNoteDto, CreatePreSignedUrlInput, CreateFileNoteInput, UpdateFileNoteCommentInput } from '@money-matters/types';
 
+export type ClientFileNoteDto = Omit<FileNoteDto, 'createdAt' | 'updatedAt' | 'archivedAt'> & {
+  createdAt: string | Date;
+  updatedAt: string | Date;
+  archivedAt: string | Date | null;
+};
+
 export interface FileNotesService {
   useListQuery: (input: { entityType: 'ENVELOPE' | 'BANK_ACCOUNT'; entityId: string }) => {
-    data: FileNoteDto[] | undefined;
+    data: ClientFileNoteDto[] | undefined;
     isFetching: boolean;
     refetch: () => void;
   };
@@ -13,11 +19,11 @@ export interface FileNotesService {
     isPending: boolean;
   };
   useCreateMutation: () => {
-    mutateAsync: (input: CreateFileNoteInput) => Promise<FileNoteDto>;
+    mutateAsync: (input: CreateFileNoteInput) => Promise<ClientFileNoteDto>;
     isPending: boolean;
   };
   useUpdateCommentMutation: () => {
-    mutateAsync: (input: UpdateFileNoteCommentInput) => Promise<FileNoteDto>;
+    mutateAsync: (input: UpdateFileNoteCommentInput) => Promise<ClientFileNoteDto>;
     isPending: boolean;
   };
   useArchiveMutation: () => {

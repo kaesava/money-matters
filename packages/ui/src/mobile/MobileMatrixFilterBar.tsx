@@ -10,6 +10,7 @@ export interface MobileMatrixFilterBarProps {
   onScopeChange: (scope: 'ALL' | 'SHARED' | 'PRIVATE') => void;
   showFullHorizon: boolean;
   onHorizonChange: (full: boolean) => void;
+  showScopeFilter?: boolean;
 }
 
 export function MobileMatrixFilterBar({
@@ -19,6 +20,7 @@ export function MobileMatrixFilterBar({
   onScopeChange,
   showFullHorizon,
   onHorizonChange,
+  showScopeFilter = true,
 }: MobileMatrixFilterBarProps) {
   return (
     <View style={styles.container}>
@@ -51,35 +53,37 @@ export function MobileMatrixFilterBar({
           </TouchableOpacity>
         </View>
 
-        <View style={styles.divider} />
+        {showScopeFilter && <View style={styles.divider} />}
 
         {/* Scope Filter Group */}
-        <View style={styles.filterGroup}>
-          <TouchableOpacity
-            style={[styles.pill, scopeFilter === 'ALL' && styles.pillActive]}
-            onPress={() => onScopeChange('ALL')}
-          >
-            <Text style={[styles.pillText, scopeFilter === 'ALL' && styles.pillTextActive]}>
-              {t('common.all')}
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.pill, scopeFilter === 'SHARED' && styles.pillActive]}
-            onPress={() => onScopeChange('SHARED')}
-          >
-            <Text style={[styles.pillText, scopeFilter === 'SHARED' && styles.pillTextActive]}>
-              {t('common.shared')}
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.pill, scopeFilter === 'PRIVATE' && styles.pillActive]}
-            onPress={() => onScopeChange('PRIVATE')}
-          >
-            <Text style={[styles.pillText, scopeFilter === 'PRIVATE' && styles.pillTextActive]}>
-              {t('common.private')}
-            </Text>
-          </TouchableOpacity>
-        </View>
+        {showScopeFilter && (
+          <View style={styles.filterGroup}>
+            <TouchableOpacity
+              style={[styles.pill, scopeFilter === 'ALL' && styles.pillActive]}
+              onPress={() => onScopeChange('ALL')}
+            >
+              <Text style={[styles.pillText, scopeFilter === 'ALL' && styles.pillTextActive]}>
+                {t('common.all')}
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.pill, scopeFilter === 'SHARED' && styles.pillActive]}
+              onPress={() => onScopeChange('SHARED')}
+            >
+              <Text style={[styles.pillText, scopeFilter === 'SHARED' && styles.pillTextActive]}>
+                {t('common.shared')}
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.pill, scopeFilter === 'PRIVATE' && styles.pillActive]}
+              onPress={() => onScopeChange('PRIVATE')}
+            >
+              <Text style={[styles.pillText, scopeFilter === 'PRIVATE' && styles.pillTextActive]}>
+                {t('common.private')}
+              </Text>
+            </TouchableOpacity>
+          </View>
+        )}
 
         <View style={styles.divider} />
 

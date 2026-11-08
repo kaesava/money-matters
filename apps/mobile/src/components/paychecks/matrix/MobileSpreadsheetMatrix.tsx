@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { View, ScrollView, StyleSheet } from 'react-native';
 import { DESIGN_TOKENS, MobileMatrixFilterBar } from '@money-matters/ui/mobile';
+import { useAppFeatures } from '../../../context/useAppFeatures';
 import { MobileMatrixFrozenColumn, MobileMatrixCategoryItem, MobileMatrixGroupData } from './MobileMatrixFrozenColumn';
 import { MobileMatrixScrollableGrid } from './MobileMatrixScrollableGrid';
 import type { MobileMatrixColumnData } from './MobileMatrixPaydayColumnHeader';
@@ -32,6 +33,7 @@ export const MobileSpreadsheetMatrix: React.FC<MobileSpreadsheetMatrixProps> = (
   onDelete,
   onOpenCategoryDrawer,
 }) => {
+  const { hasPrivateMode } = useAppFeatures();
   const [showFull12, setShowFull12] = useState(false);
   const [statusFilter, setStatusFilter] = useState<'ALL' | 'PENDING' | 'CONFIRMED'>('ALL');
   const [scopeFilter, setScopeFilter] = useState<'ALL' | 'SHARED' | 'PRIVATE'>('ALL');
@@ -91,6 +93,7 @@ export const MobileSpreadsheetMatrix: React.FC<MobileSpreadsheetMatrixProps> = (
         onScopeChange={setScopeFilter}
         showFullHorizon={showFull12}
         onHorizonChange={() => setShowFull12((prev) => !prev)}
+        showScopeFilter={hasPrivateMode}
       />
 
       {/* Spreadsheet Table Container */}

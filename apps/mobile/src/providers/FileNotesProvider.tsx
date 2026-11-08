@@ -10,7 +10,7 @@ export function MobileFileNotesProvider({ children }: { children: React.ReactNod
 
   const service: FileNotesService = useMemo(
     () => ({
-      useListQuery: (input) => {
+      useListQuery: (input: { entityType: 'ENVELOPE' | 'BANK_ACCOUNT'; entityId: string }) => {
         const query = trpc.fileNotes.list.useQuery(input, {
           enabled: Boolean(input.entityId),
         });

@@ -3,6 +3,7 @@
 import React, { useRef, useState, useEffect } from 'react';
 import { Plus, ChevronDown, ArrowUpRight, ArrowDownLeft, ArrowLeftRight, Sparkles } from 'lucide-react';
 import { t } from '@money-matters/i18n';
+import { useAppFeatures } from '../../../hooks/useAppFeatures';
 
 export interface DashboardActionStripProps {
   readonly onOpenQuickExpense: () => void;
@@ -19,6 +20,7 @@ export const DashboardActionStrip: React.FC<DashboardActionStripProps> = ({
   onOpenAffordCheck,
   onOpenAskPenny: _onOpenAskPenny,
 }) => {
+  const { hasSimulation } = useAppFeatures();
   const [isOpen, setIsOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
@@ -122,15 +124,17 @@ export const DashboardActionStrip: React.FC<DashboardActionStripProps> = ({
           )}
         </div>
 
-        <button
-          type="button"
-          data-tour="afford-check"
-          onClick={onOpenAffordCheck}
-          className="px-3.5 py-2 h-9 bg-white dark:bg-zinc-900 hover:bg-slate-50 dark:hover:bg-zinc-800/80 border border-slate-300/80 dark:border-zinc-700 text-[#1B2B4B] dark:text-zinc-100 font-extrabold text-xs rounded-xl transition-all shadow-xs flex items-center gap-1.5 cursor-pointer shrink-0"
-        >
-          <Sparkles className="w-3.5 h-3.5 text-[#2563eb] shrink-0" />
-          <span>{t('canIAfford.title')}</span>
-        </button>
+        {hasSimulation && (
+          <button
+            type="button"
+            data-tour="afford-check"
+            onClick={onOpenAffordCheck}
+            className="px-3.5 py-2 h-9 bg-white dark:bg-zinc-900 hover:bg-slate-50 dark:hover:bg-zinc-800/80 border border-slate-300/80 dark:border-zinc-700 text-[#1B2B4B] dark:text-zinc-100 font-extrabold text-xs rounded-xl transition-all shadow-xs flex items-center gap-1.5 cursor-pointer shrink-0"
+          >
+            <Sparkles className="w-3.5 h-3.5 text-[#2563eb] shrink-0" />
+            <span>{t('canIAfford.title')}</span>
+          </button>
+        )}
       </div>
     </div>
   );

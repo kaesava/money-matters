@@ -5,7 +5,8 @@ export function handlePennyPrefillNavigation(
   prefill: Extract<AssistantResult, { type: "prefill" }>,
   router: AppRouterInstance,
   setQuickExpenseData: (data: QuickActionInitialData | undefined) => void,
-  setQuickExpenseOpen: (open: boolean) => void
+  setQuickExpenseOpen: (open: boolean) => void,
+  hasSimulation = true
 ): void {
   if (prefill.target === "add-transaction" || prefill.target === "mark-paid") {
     const amountStr = prefill.params?.amount ? String(prefill.params.amount) : "";
@@ -28,8 +29,10 @@ export function handlePennyPrefillNavigation(
     });
     setQuickExpenseOpen(true);
   } else if (prefill.target === "afford-check") {
-    const amountParam = prefill.params?.amount ? `?amount=${prefill.params.amount}` : "";
-    router.push(`/dashboard/afford-check${amountParam}`);
+    if (hasSimulation) {
+      const amountParam = prefill.params?.amount ? `?amount=${prefill.params.amount}` : "";
+      router.push(`/dashboard/afford-check${amountParam}`);
+    }
   } else if (prefill.target === "create-bill" || prefill.target === "create-income") {
     router.push("/dashboard/income-and-bills");
   } else if (prefill.target === "history-filter") {

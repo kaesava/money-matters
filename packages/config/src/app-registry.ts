@@ -24,6 +24,8 @@ export interface AppConfig {
     aiAssistant: boolean;
     privateMode: boolean;
     fileNotes: boolean;
+    simulation: boolean;
+    customAllocationRules: boolean;
   };
 }
 
@@ -44,6 +46,8 @@ const REGISTRY: Record<string, AppConfig> = {
       aiAssistant: true,
       privateMode: true,
       fileNotes: true,
+      simulation: true,
+      customAllocationRules: true,
     },
   },
 };

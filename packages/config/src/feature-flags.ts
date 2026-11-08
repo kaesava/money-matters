@@ -74,6 +74,20 @@ export const FEATURE_FLAGS = {
     tenantScopable: true,
     killSwitchEnabled: false,
   },
+  simulation: {
+    key: "simulation",
+    owner: "product",
+    expiresAt: "never",
+    tenantScopable: true,
+    killSwitchEnabled: false,
+  },
+  customAllocationRules: {
+    key: "customAllocationRules",
+    owner: "product",
+    expiresAt: "never",
+    tenantScopable: true,
+    killSwitchEnabled: false,
+  },
 } as const;
 
 

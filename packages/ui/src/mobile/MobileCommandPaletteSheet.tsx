@@ -37,6 +37,7 @@ export interface MobileCommandPaletteSheetProps {
   onSelectEvent?: (event: SearchResultEvent) => void;
   onSelectTransaction?: (transaction: SearchResultTransaction) => void;
   onViewAllTransactions?: (query: string) => void;
+  hasSimulation?: boolean;
 }
 
 const SUGGESTED_CHIPS = [
@@ -58,6 +59,7 @@ export const MobileCommandPaletteSheet: React.FC<MobileCommandPaletteSheetProps>
   onAskPenny,
   onNavigatePrefill,
   remainingCalls,
+  hasSimulation = true,
   onSelectAccount,
   onSelectEnvelope,
   onSelectEvent,
@@ -536,7 +538,7 @@ export const MobileCommandPaletteSheet: React.FC<MobileCommandPaletteSheetProps>
                 {t("assistant.suggestedTitle")}
               </Text>
               <View style={styles.chipsRow}>
-                {SUGGESTED_CHIPS.map((chipKey) => {
+                {SUGGESTED_CHIPS.filter((chipKey) => hasSimulation || chipKey !== "assistant.chips.canAfford").map((chipKey) => {
                   const label = t(chipKey);
                   return (
                     <TouchableOpacity

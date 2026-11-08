@@ -1,10 +1,11 @@
-import React, { createContext, useContext, useState, useEffect, useCallback, useRef, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useMemo, useRef, ReactNode } from 'react';
 import { useRouter, useSegments, type Href } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import { trpc } from '../lib/trpc';
 import { usePostHog } from 'posthog-react-native';
 import { useMobileToast } from '@money-matters/ui/mobile';
 import { t } from '@money-matters/i18n';
+import { useAppFeatures } from './useAppFeatures';
 import {
   MobileProductTourSheet,
   MobileTourStepConfig,
@@ -103,6 +104,11 @@ export function MobileProductTourProvider({ children }: { children: ReactNode })
   const [targetRects, setTargetRects] = useState<Record<string, TargetLayoutRect | null>>({});
   const hasDismissedRef = useRef(false);
 
+  const { hasSimulation } = useAppFeatures();
+  const tourSteps = useMemo(() => {
+    return MOBILE_TOUR_STEPS.filter((s) => s.id !== 'afford-check' || hasSimulation);
+  }, [hasSimulation]);
+
   const registerTourTarget = useCallback((id: string, rect: TargetLayoutRect | null) => {
     setTargetRects((prev) => ({ ...prev, [id]: rect }));
   }, []);
@@ -200,37 +206,37 @@ export function MobileProductTourProvider({ children }: { children: ReactNode })
 
   const handleNext = useCallback(() => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
-    if (currentStep < MOBILE_TOUR_STEPS.length) {
+    if (currentStep < tourSteps.length) {
       const next = currentStep + 1;
       setCurrentStep(next);
       posthog.capture('tour_step_viewed', { step: next });
-      const targetStep = MOBILE_TOUR_STEPS[next - 1];
+      const targetStep = tourSteps[next - 1];
       if (targetStep) {
         router.replace(targetStep.route as Href);
       }
     } else {
       completeTour();
     }
-  }, [currentStep, completeTour, posthog, router]);
+  }, [currentStep, completeTour, posthog, router, tourSteps]);
 
   const handleBack = useCallback(() => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
     if (currentStep > 1) {
       const prev = currentStep - 1;
       setCurrentStep(prev);
-      const targetStep = MOBILE_TOUR_STEPS[prev - 1];
+      const targetStep = tourSteps[prev - 1];
       if (targetStep) {
         router.replace(targetStep.route as Href);
       }
     }
-  }, [currentStep, router]);
+  }, [currentStep, router, tourSteps]);
 
-  const activeStepDef = MOBILE_TOUR_STEPS[currentStep - 1];
+  const activeStepDef = tourSteps[currentStep - 1];
   const activeTargetRect = activeStepDef ? targetRects[activeStepDef.id] ?? null : null;
   const stepConfig: MobileTourStepConfig | null = activeStepDef
     ? {
         step: currentStep,
-        totalSteps: MOBILE_TOUR_STEPS.length,
+        totalSteps: tourSteps.length,
         titleKey: activeStepDef.titleKey,
         descKey: activeStepDef.descKey,
         badgeKey: activeStepDef.badgeKey,
@@ -258,7 +264,7 @@ export function MobileProductTourProvider({ children }: { children: ReactNode })
           onNext={handleNext}
           onBack={handleBack}
           onSkip={skipTour}
-          isLastStep={currentStep === MOBILE_TOUR_STEPS.length}
+          isLastStep={currentStep === tourSteps.length}
         />
       ) : null}
     </ProductTourContext.Provider>

@@ -7,6 +7,7 @@ import {
 } from "@money-matters/ui/mobile";
 import { t } from "@money-matters/i18n";
 import { trpc } from "../lib/trpc";
+import { useAppFeatures } from "../context/useAppFeatures";
 import { EnvelopeFormFields } from "./envelopes/form/EnvelopeFormFields";
 import { EnvelopeFormFooter } from "./envelopes/form/EnvelopeFormFooter";
 import { useMobileEnvelopeFormState } from "./envelopes/form/useMobileEnvelopeFormState";
@@ -83,6 +84,7 @@ export function EnvelopeFormModal({
   initialMode = "ALL",
 }: EnvelopeFormModalProps) {
   const categoryToEdit = envelopeToEdit ?? legacyCategoryToEdit;
+  const { hasPrivateMode } = useAppFeatures();
   const toast = useMobileToast();
   const utils = trpc.useUtils();
 
@@ -288,7 +290,7 @@ export function EnvelopeFormModal({
 
   const bankOptions = bankAccounts.map((acc) => ({
     key: acc.id,
-    label: `${acc.name} ${acc.isPrivate ? t("categories.privateBadge") : t("categories.householdBadge")}`,
+    label: `${acc.name}${hasPrivateMode ? ` ${acc.isPrivate ? t("categories.privateBadge") : t("categories.householdBadge")}` : ''}`,
   }));
 
   const isBankDisabled = isEdit || type === "EVERYDAY";

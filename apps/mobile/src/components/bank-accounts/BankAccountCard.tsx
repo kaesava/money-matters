@@ -1,6 +1,7 @@
 import React from 'react';
 import { TouchableOpacity, StyleSheet } from 'react-native';
 import { DESIGN_TOKENS } from '@money-matters/ui/mobile';
+import { useAppFeatures } from '../../context/useAppFeatures';
 import { LinkedPoolItem } from './LinkedPoolsModalSheet';
 import { BankAccountCardHeader } from './BankAccountCardHeader';
 import { BankAccountAlignmentRow } from './BankAccountAlignmentRow';
@@ -24,6 +25,7 @@ export interface BankAccountCardProps {
   onPressAlign: () => void;
   onPressPool: (poolId: string) => void;
   onPressMorePools: () => void;
+  onPressNotes?: () => void;
 }
 
 export function BankAccountCard({
@@ -33,7 +35,9 @@ export function BankAccountCard({
   onPressAlign,
   onPressPool,
   onPressMorePools,
+  onPressNotes,
 }: BankAccountCardProps) {
+  const { hasPrivateMode } = useAppFeatures();
   const actualBal = parseFloat(account.lastKnownBalance || '0');
   const buffer = parseFloat(account.unbudgetedBuffer || '0');
   const availBal = Math.max(0, actualBal - buffer);
@@ -60,10 +64,11 @@ export function BankAccountCard({
         name={account.name}
         bankProvider={account.bankProvider}
         accountType={account.accountType}
-        isPrivate={account.isPrivate}
+        isPrivate={hasPrivateMode && account.isPrivate}
         availBal={availBal}
         actualBal={actualBal}
         buffer={buffer}
+        onPressNotes={onPressNotes}
       />
 
       <BankAccountAlignmentRow

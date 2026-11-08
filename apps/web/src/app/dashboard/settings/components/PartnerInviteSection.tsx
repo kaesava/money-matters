@@ -4,6 +4,7 @@ import React, { useState } from "react";
 import { t } from "@money-matters/i18n";
 import { trpc } from "../../../../lib/trpc";
 import { useSubscriptionStatus } from "../../../../hooks/useSubscriptionStatus";
+import { useAppFeatures } from "../../../../hooks/useAppFeatures";
 import { useToast, ConfirmDialog } from "@money-matters/ui/web";
 import { TypedConfirmDialog } from "@money-matters/ui/web";
 import { MembersList, type HouseholdMemberItem } from "./MembersList";
@@ -12,6 +13,7 @@ import { InviteMemberCard } from "./InviteMemberCard";
 export function PartnerInviteSection() {
   const toast = useToast();
   const utils = trpc.useUtils();
+  const { hasPartnerInvites } = useAppFeatures();
   const [partnerEmail, setPartnerEmail] = useState("");
   const [partnerInviting, setPartnerInviting] = useState(false);
   const [inviteSuccessMsg, setInviteSuccessMsg] = useState<string | null>(null);
@@ -123,15 +125,17 @@ export function PartnerInviteSection() {
         onInitiateChangeRole={handleInitiateChangeRole}
       />
 
-      <InviteMemberCard
-        isOwner={isOwner}
-        isTrialExpired={isTrialExpired}
-        partnerEmail={partnerEmail}
-        setPartnerEmail={setPartnerEmail}
-        partnerInviting={partnerInviting}
-        onInviteMember={handleInviteMember}
-        inviteSuccessMsg={inviteSuccessMsg}
-      />
+      {hasPartnerInvites && (
+        <InviteMemberCard
+          isOwner={isOwner}
+          isTrialExpired={isTrialExpired}
+          partnerEmail={partnerEmail}
+          setPartnerEmail={setPartnerEmail}
+          partnerInviting={partnerInviting}
+          onInviteMember={handleInviteMember}
+          inviteSuccessMsg={inviteSuccessMsg}
+        />
+      )}
 
       <TypedConfirmDialog
         isOpen={Boolean(memberToRemove)}

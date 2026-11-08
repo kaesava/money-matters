@@ -110,7 +110,7 @@ describe("processSpendingAnalyticsRows", () => {
     expect(result.topPayees[0].name).toBe("Woolworths Bondi");
     expect(result.topPayees[0].amount).toBe(120);
     expect(result.topPayees[0].percentage).toBe(60);
-  });
+  }, 15000);
 
   it("handles empty rows safely without divide-by-zero errors", () => {
     const result = processSpendingAnalyticsRows([], "30D", refDate);

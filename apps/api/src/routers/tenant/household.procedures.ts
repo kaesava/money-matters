@@ -1,5 +1,5 @@
 import { tenantProcedure, authenticatedProcedure, ownerProcedure, privateOwnerProcedure, privateTenantProcedure, requiresWriteAccess } from '../../trpc/trpc.js';
-import { tenants, tenantUsers, users, bankAccounts, envelopes, tenantUserPreferences } from "@money-matters/db";
+import { tenants, tenantUsers, users, bankAccounts, envelopes, tenantUserPreferences, apps } from "@money-matters/db";
 import { and, eq, sql, inArray } from "drizzle-orm";
 import { inngest } from '../../inngest/client.js';
 import { logAuditEvent, sendEmail } from '@money-matters/core';
@@ -10,8 +10,9 @@ import {
   leaveTenantHandler,
   updateHouseholdMemberRoleHandler,
 } from "@money-matters/capability-tenant";
-import { UpdateHouseholdMemberRoleCommand } from "@money-matters/types";
+import { UpdateHouseholdMemberRoleCommand, DEFAULT_APP_FEATURE_FLAGS } from "@money-matters/types";
 import { clearEdgeContextCache } from '../../trpc/edge-context.js';
+import { TRPCError } from '@trpc/server';
 import { z } from 'zod';
 import { posthog } from '../../lib/posthog.js';
 
@@ -79,6 +80,21 @@ export const householdProcedures = {
     .input(z.object({ email: z.string().email() }).strict())
     .mutation(async ({ input, ctx }) => {
       requiresWriteAccess(ctx);
+
+      const [appRecord] = await ctx.db
+        .select({ featureFlags: apps.featureFlags })
+        .from(apps)
+        .where(eq(apps.id, ctx.appId!))
+        .limit(1);
+
+      const flags = appRecord?.featureFlags || DEFAULT_APP_FEATURE_FLAGS;
+      if (!flags.privateMode) {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "Partner invitations are disabled for this application.",
+        });
+      }
+
       const handler = invitePartnerHandler(ctx.db);
       const result = await handler(input, ctx.tenantId!, ctx.userId!);
 

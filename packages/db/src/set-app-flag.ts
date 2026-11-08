@@ -1,22 +1,20 @@
 import { Client } from "@neondatabase/serverless";
 import dotenv from "dotenv";
+import fs from "fs";
+import path from "path";
+import { fileURLToPath } from "url";
 
-dotenv.config({ path: "../../.env" });
-dotenv.config();
-
-const DATABASE_URL = process.env.DATABASE_URL;
-if (!DATABASE_URL) {
-  console.error("❌ DATABASE_URL is not defined in environment.");
-  process.exit(1);
-}
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const args = process.argv.slice(2);
 const flagArg = args.find((a) => a.startsWith("--flag="))?.split("=")[1];
 const valueArg = args.find((a) => a.startsWith("--value="))?.split("=")[1];
 const appSlug = args.find((a) => a.startsWith("--app="))?.split("=")[1] || "money-matters";
+const envTarget = (args.find((a) => a.startsWith("--env="))?.split("=")[1] || "dev").toLowerCase();
 
 if (!flagArg || valueArg === undefined) {
-  console.log("Usage: pnpm app:set-flag --flag=<flagName> --value=<true|false|number> [--app=<slug>]");
+  console.log("Usage: pnpm app:set-flag --flag=<flagName> --value=<true|false|number> [--env=dev|prod|all] [--app=<slug>]");
   process.exit(1);
 }
 
@@ -25,8 +23,23 @@ if (valueArg === "true") parsedValue = true;
 else if (valueArg === "false") parsedValue = false;
 else if (!isNaN(Number(valueArg))) parsedValue = Number(valueArg);
 
-async function main() {
-  const client = new Client(DATABASE_URL);
+function getDbUrlForEnv(target: "dev" | "prod"): string {
+  const envFile = target === "prod" ? "../../../.env" : "../../../.env.development";
+  const fullPath = path.resolve(__dirname, envFile);
+  if (fs.existsSync(fullPath)) {
+    const envConfig = dotenv.parse(fs.readFileSync(fullPath));
+    if (envConfig.DATABASE_URL) return envConfig.DATABASE_URL;
+  }
+  return process.env.DATABASE_URL || "";
+}
+
+async function updateFlagOnDb(dbUrl: string, targetLabel: string) {
+  if (!dbUrl) {
+    console.error(`❌ [${targetLabel}] DATABASE_URL could not be found.`);
+    return;
+  }
+
+  const client = new Client(dbUrl);
   await client.connect();
 
   try {
@@ -44,13 +57,28 @@ async function main() {
     );
 
     if (res.rows.length === 0) {
-      console.error(`❌ App with slug '${appSlug}' not found.`);
+      console.error(`❌ [${targetLabel}] App with slug '${appSlug}' not found.`);
       process.exit(1);
     }
 
-    console.log(`✅ Updated app flag '${flagArg}' to ${JSON.stringify(parsedValue)} on app '${appSlug}':`, res.rows[0].feature_flags);
+    console.log(`✅ [${targetLabel}] Updated app flag '${flagArg}' to ${JSON.stringify(parsedValue)} on app '${appSlug}':`, res.rows[0].feature_flags);
   } finally {
     await client.end();
+  }
+}
+
+async function main() {
+  if (envTarget === "all") {
+    const devUrl = getDbUrlForEnv("dev");
+    const prodUrl = getDbUrlForEnv("prod");
+    await updateFlagOnDb(devUrl, "DEV");
+    await updateFlagOnDb(prodUrl, "PROD");
+  } else if (envTarget === "prod") {
+    const prodUrl = getDbUrlForEnv("prod");
+    await updateFlagOnDb(prodUrl, "PROD");
+  } else {
+    const devUrl = getDbUrlForEnv("dev");
+    await updateFlagOnDb(devUrl, "DEV");
   }
 }
 

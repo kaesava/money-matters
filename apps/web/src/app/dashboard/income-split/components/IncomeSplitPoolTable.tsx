@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import { FileText, Trash2 } from "lucide-react";
 import { t } from "@money-matters/i18n";
+import { useAppFeatures } from "../../../../hooks/useAppFeatures";
 import { useLocale } from "../../../../providers/LocaleProvider";
 
 interface AllocationLineItem {
@@ -59,6 +60,7 @@ export function IncomeSplitPoolTable({
   onOpenPoolDrawer,
 }: IncomeSplitPoolTableProps) {
   const { fmt, fmtDate } = useLocale();
+  const { hasPrivateMode } = useAppFeatures();
   // Collapsed state for each group (default: none collapsed)
   const [collapsedGroups, setCollapsedGroups] = useState<Record<string, boolean>>({});
   const [openReasoningPools, setOpenReasoningPools] = useState<Record<string, boolean>>({});
@@ -165,7 +167,7 @@ export function IncomeSplitPoolTable({
                                         {l.bucketName}
                                       </span>
                                     )}
-                                    {poolObj?.isPrivate && (
+                                    {hasPrivateMode && poolObj?.isPrivate && (
                                       <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-md bg-purple-50 text-purple-700 dark:bg-purple-950/60 dark:text-purple-300 border border-purple-200 dark:border-purple-800">
                                         {t("categories.privateBadge")}
                                       </span>
@@ -262,7 +264,7 @@ export function IncomeSplitPoolTable({
                                       {l.bucketName}
                                     </div>
                                   )}
-                                  {poolObj?.isPrivate && (
+                                  {hasPrivateMode && poolObj?.isPrivate && (
                                     <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-md bg-purple-50 text-purple-700 dark:bg-purple-950/60 dark:text-purple-300 border border-purple-200 dark:border-purple-800">
                                       {t("categories.privateBadge")}
                                     </span>
