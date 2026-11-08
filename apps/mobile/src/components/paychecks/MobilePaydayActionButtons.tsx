@@ -37,30 +37,6 @@ export function MobilePaydayActionButtons({
 
   return (
     <View style={styles.actionContainer}>
-      {/* If Dirty: Save Draft and Discard Edits */}
-      {isDirty && (
-        <View style={styles.dualRow}>
-          <TouchableOpacity
-            activeOpacity={0.85}
-            onPress={onSaveChanges || onLockSplit}
-            disabled={isDeficit || submitting}
-            style={[styles.primaryActionBtn, (isDeficit || submitting) && styles.disabledBtn]}
-          >
-            <Feather name="lock" size={14} color="#FFFFFF" />
-            <Text style={styles.btnText}>{t('paydayDrawer.saveIncomeSplit')}</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            activeOpacity={0.85}
-            onPress={onDiscardEdits}
-            disabled={submitting}
-            style={[styles.secondaryActionBtn, submitting && styles.disabledBtn]}
-          >
-            <Feather name="rotate-ccw" size={14} color="#FFFFFF" />
-            <Text style={styles.btnText}>{t('paydayDrawer.discardEdits')}</Text>
-          </TouchableOpacity>
-        </View>
-      )}
-
       {/* Reset to Recommended: button shown when isLocked or isDirty */}
       {(isLocked || isDirty) && (
         <TouchableOpacity
@@ -84,6 +60,30 @@ export function MobilePaydayActionButtons({
         <Feather name="check-circle" size={15} color="#FFFFFF" />
         <Text style={styles.confirmBtnText}>{t('paydayDrawer.confirmIncomeSplit')}</Text>
       </TouchableOpacity>
+
+      {/* Row 2: Discard Edits and Save Draft in this order */}
+      {isDirty && (
+        <View style={styles.dualRow}>
+          <TouchableOpacity
+            activeOpacity={0.85}
+            onPress={onDiscardEdits}
+            disabled={submitting}
+            style={[styles.secondaryActionBtn, submitting && styles.disabledBtn]}
+          >
+            <Feather name="rotate-ccw" size={14} color="#FFFFFF" />
+            <Text style={styles.btnText}>{t('paydayDrawer.discardEdits')}</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            activeOpacity={0.85}
+            onPress={onSaveChanges || onLockSplit}
+            disabled={isDeficit || submitting}
+            style={[styles.primaryActionBtn, (isDeficit || submitting) && styles.disabledBtn]}
+          >
+            <Feather name="lock" size={14} color="#FFFFFF" />
+            <Text style={styles.btnText}>{t('paydayDrawer.saveIncomeSplit')}</Text>
+          </TouchableOpacity>
+        </View>
+      )}
     </View>
   );
 }

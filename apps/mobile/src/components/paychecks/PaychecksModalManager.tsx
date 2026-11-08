@@ -4,7 +4,7 @@ import { t } from '@money-matters/i18n';
 import { trpc } from '../../lib/trpc';
 import { IncomeExpenseFormModal, SourceToEdit } from '../IncomeExpenseFormModal';
 import { MarkPaidModal, MarkPaidEvent } from '../MarkPaidModal';
-import { EventOverrideModal } from '../EventOverrideModal';
+import { EventOverrideModal, EventToOverride } from '../EventOverrideModal';
 import { MobileTransferModal, TransferEventData } from './MobileTransferModal';
 import {
   MobileCategoryDetailSheet,
@@ -24,15 +24,10 @@ export interface PaychecksModalManagerProps {
   markPaidEvent: MarkPaidEvent | null;
   onCloseMarkPaid: () => void;
   overrideModalVisible: boolean;
-  eventToOverride: {
-    id: string;
-    eventType: 'INCOME' | 'EXPENSE';
-    name: string;
-    expectedDate: string;
-    expectedAmount: string;
-  } | null;
+  eventToOverride: EventToOverride | null;
   onCloseOverride: () => void;
   onDeleteOverride?: (event: { id: string; eventType: 'INCOME' | 'EXPENSE'; name: string }) => void;
+  onNavigateToSchedule?: (type: 'INCOME' | 'EXPENSE', id: string) => void;
   transferModalVisible: boolean;
   activeTransfer: TransferEventData | null;
   pools: { id: string; name: string; envelopeType?: string; poolType?: string; currentBalance?: string | number | null; isPrivate?: boolean | null }[];
@@ -68,6 +63,7 @@ export function PaychecksModalManager({
   eventToOverride,
   onCloseOverride,
   onDeleteOverride,
+  onNavigateToSchedule,
   transferModalVisible,
   activeTransfer,
   pools,
@@ -117,6 +113,7 @@ export function PaychecksModalManager({
         eventToEdit={eventToOverride}
         onClose={onCloseOverride}
         onSuccess={refetchAll}
+        onNavigateToSchedule={onNavigateToSchedule}
         onDelete={(evt) => {
           if (onDeleteOverride) {
             onDeleteOverride(evt);

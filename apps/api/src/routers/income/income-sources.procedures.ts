@@ -52,13 +52,33 @@ export const incomeSourcesProcedures = {
 
       if (!input.isRecurring) {
         const eventDate = input.startDate || await getTenantLocalDateString(ctx.db, ctx.tenantId!);
+        const [source] = await ctx.db
+          .insert(incomeSources)
+          .values({
+            name: input.name,
+            amount: input.amount,
+            receivingAccountId: input.receivingAccountId || null,
+            rrule: null,
+            startDate: eventDate,
+            endDate: null,
+            contributionMode: input.contributionMode || "FULL",
+            contributionValue: input.contributionValue || null,
+            tenantId: ctx.tenantId!,
+            appId: ctx.appId!,
+            createdBy: ctx.userId!,
+            updatedBy: ctx.userId!,
+          })
+          .returning();
+
         const [insertedEvent] = await ctx.db
           .insert(incomeEvents)
           .values({
-            incomeSourceId: null,
+            incomeSourceId: source.id,
             name: input.name,
             expectedDate: eventDate,
+            actualDate: eventDate,
             expectedAmount: input.amount,
+            actualAmount: input.amount,
             status: "PENDING" as const,
             tenantId: ctx.tenantId!,
             appId: ctx.appId!,
@@ -68,7 +88,7 @@ export const incomeSourcesProcedures = {
           .returning();
 
         return {
-          id: insertedEvent.id,
+          id: source.id,
           name: input.name,
           amount: input.amount,
           receivingAccountId: input.receivingAccountId || null,
@@ -375,6 +395,7 @@ export const incomeSourcesProcedures = {
         );
 
       return rows.filter((r) => {
+        if (r.receivingAccountId && r.bankAccountIsPrivate === null) return false;
         if (r.bankAccountIsPrivate && r.bankAccountUserId !== ctx.userId) return false;
         return true;
       });

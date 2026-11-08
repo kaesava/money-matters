@@ -4,6 +4,7 @@ import { MarkPaidEvent } from '../../MarkPaidModal';
 import { TransferEventData } from '../MobileTransferModal';
 import { MobileCategoryDetailItem } from '@money-matters/ui/mobile';
 import { BurstSourceItem } from '../MobileBurstModal';
+import { EventToOverride } from '../../EventOverrideModal';
 
 export function usePaychecksModalController() {
   const [formModalVisible, setFormModalVisible] = useState(false);
@@ -11,13 +12,7 @@ export function usePaychecksModalController() {
   const [sourceToEdit, setSourceToEdit] = useState<SourceToEdit | null>(null);
 
   const [overrideModalVisible, setOverrideModalVisible] = useState(false);
-  const [eventToOverride, setEventToOverride] = useState<{
-    id: string;
-    eventType: 'INCOME' | 'EXPENSE';
-    name: string;
-    expectedDate: string;
-    expectedAmount: string;
-  } | null>(null);
+  const [eventToOverride, setEventToOverride] = useState<EventToOverride | null>(null);
   const [markPaidEvent, setMarkPaidEvent] = useState<MarkPaidEvent | null>(null);
 
   const [transferModalVisible, setTransferModalVisible] = useState(false);

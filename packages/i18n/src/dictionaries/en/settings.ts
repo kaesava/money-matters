@@ -166,10 +166,10 @@ export const settings = {
     },
     "paydayRules": {
       "title": "Payday Rules",
-      "description": "Control how income cascades across your bills, everyday spending, and savings goals.",
+      "description": "Control how income is allocated across your bills, everyday spending, and savings goals.",
       "activePresetLabel": "Active Strategy",
       "activeBadge": "Active",
-      "customizeButton": "Customize Rules",
+      "customizeButton": "Customise Rules",
       "resetToRecommended": "Reset to Recommended",
       "resetConfirmTitle": "Reset to Recommended Rules",
       "resetConfirmMessage": "Are you sure you want to restore the standard Balanced rules? Any custom order or rule blocks will be replaced.",

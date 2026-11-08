@@ -81,7 +81,9 @@ export const dashboard = {
       "upcomingIncome": "Upcoming Income",
       "upcomingIncomeWithCount": "Upcoming Income ({count})",
       "noUpcoming": "No upcoming paydays scheduled.",
-      "twelveMonthSplit": "12-Month View",
+      "upcomingEventsLink": "Upcoming Events →",
+      "twelveMonthPlanLink": "12-Month Plan →",
+      "twelveMonthSplit": "12-Month Plan",
       "nextPaydayBadge": "Next Payday",
       "allocatePayday": "Allocate Payday",
       "savedBadge": "Locked"

@@ -57,6 +57,35 @@ export async function seedDatabase(connectionString: string, envLabel: string) {
 
   await cleanupTables(db, isProd, [userId, snehaUserId, raehanUserId, testerUserId]);
 
+  try {
+    await db.execute(sql`
+      TRUNCATE TABLE 
+        transaction_ledger,
+        allocation_plan_lines,
+        allocation_plans,
+        allocation_strategy_steps,
+        allocation_strategies,
+        transfer_events,
+        expense_events,
+        income_events,
+        income_sources,
+        envelopes,
+        bank_accounts,
+        device_tokens,
+        billing_invoices,
+        ai_usage,
+        processed_webhooks,
+        tenant_user_preferences,
+        user_preferences,
+        tenant_users,
+        early_access_subscribers,
+        tenants
+      CASCADE
+    `);
+  } catch (err) {
+    console.log("Domain table truncation notice:", err instanceof Error ? err.message : err);
+  }
+
   const now = new Date("2026-09-13T09:00:00Z");
 
   // Ensure App Exists

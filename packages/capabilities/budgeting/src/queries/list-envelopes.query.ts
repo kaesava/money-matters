@@ -47,6 +47,11 @@ export async function listEnvelopesQuery(
 
   const visibleEnvelopes = userId
     ? dbEnvelopes.filter((e) => {
+        // If linked to a bank account that was hidden by RLS, it belongs to another user's private account
+        if (e.bankAccountId && e.bankAccountIsPrivate === null) {
+          return false;
+        }
+
         const isPrivate = Boolean(e.isPrivate || e.bankAccountIsPrivate);
         if (!isPrivate) return true;
         const ownerId = e.userId || e.bankAccountUserId;

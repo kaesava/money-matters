@@ -17,7 +17,11 @@ import { QuickExpenseModal, QuickActionType } from '../../../components/QuickExp
 
 export default function RecurringSchedulesScreen() {
   const router = useRouter();
-  const searchParams = useLocalSearchParams<{ returnTo?: string }>();
+  const searchParams = useLocalSearchParams<{
+    returnTo?: string;
+    editIncomeId?: string;
+    editBillId?: string;
+  }>();
 
   const [formModalVisible, setFormModalVisible] = useState(false);
   const [formMode, setFormMode] = useState<'INCOME' | 'EXPENSE'>('INCOME');
@@ -57,6 +61,43 @@ export default function RecurringSchedulesScreen() {
     isLoadingExpense,
     refetchAll,
   } = usePaychecksData();
+
+  React.useEffect(() => {
+    if (searchParams.editIncomeId && incomeSources.length > 0) {
+      const src = incomeSources.find((s) => s.id === searchParams.editIncomeId);
+      if (src) {
+        setFormMode('INCOME');
+        setSourceToEdit(src);
+        setFormModalVisible(true);
+      }
+    }
+  }, [searchParams.editIncomeId, incomeSources]);
+
+  React.useEffect(() => {
+    if (searchParams.editBillId && (expenseSources.length > 0 || pools.length > 0)) {
+      const source = expenseSources.find((e) => e.id === searchParams.editBillId || e.envelopeId === searchParams.editBillId);
+      const targetPool = pools.find((p) => p.id === searchParams.editBillId || (source && p.id === source.envelopeId));
+      if (source || targetPool) {
+        const resolvedType = targetPool?.envelopeType || 'SCHEDULED_BILL';
+        setPoolToEdit({
+          id: targetPool?.id || source?.envelopeId || source?.id || searchParams.editBillId,
+          name: targetPool?.name || source?.name || '',
+          type: resolvedType,
+          poolType: resolvedType,
+          envelopeType: resolvedType,
+          bankAccountId: targetPool?.bankAccountId,
+          monthlyAmount: source?.amount || targetPool?.monthlyAmount,
+          enteredAmount: source?.amount || targetPool?.enteredAmount,
+          budgetFrequency: targetPool?.budgetFrequency || 'MONTHLY',
+          rrule: source?.rrule || targetPool?.rrule || undefined,
+          startDate: source?.startDate ? String(source.startDate) : targetPool?.startDate ? String(targetPool.startDate) : undefined,
+          endDate: targetPool?.endDate ? String(targetPool.endDate) : undefined,
+          hasScheduledEvents: (source as { hasScheduledEvents?: boolean; generateEvents?: boolean })?.generateEvents ?? (source as { hasScheduledEvents?: boolean })?.hasScheduledEvents ?? targetPool?.hasScheduledEvents,
+        });
+        setCategoryModalVisible(true);
+      }
+    }
+  }, [searchParams.editBillId, expenseSources, pools]);
 
   const handleOpenBurstModal = (
     source: IncomeSourceItem | ExpenseSourceItem,

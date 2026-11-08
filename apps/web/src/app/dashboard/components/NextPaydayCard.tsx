@@ -70,14 +70,21 @@ export const NextPaydayCard: React.FC<NextPaydayCardProps> = ({
             {t('dashboard.nextPay.upcomingIncomeWithCount', { count: upcomingIncomes.length })}
           </h2>
         </div>
-        {upcomingIncomes.length > 3 && (
+        <div className="flex items-center gap-2.5">
           <Link
-            href="/dashboard/income-split"
+            href="/dashboard/income-and-bills?tab=events"
             className="text-xs font-bold text-blue-600 hover:text-blue-700 transition-colors"
           >
-            {t('dashboard.nextPay.twelveMonthSplit')} →
+            {t('dashboard.nextPay.upcomingEventsLink')}
           </Link>
-        )}
+          <span className="text-gray-300 text-xs">·</span>
+          <Link
+            href="/dashboard/income-and-bills?tab=matrix"
+            className="text-xs font-bold text-blue-600 hover:text-blue-700 transition-colors"
+          >
+            {t('dashboard.nextPay.twelveMonthPlanLink')}
+          </Link>
+        </div>
       </div>
 
       <div className="space-y-3">
@@ -114,7 +121,11 @@ export const NextPaydayCard: React.FC<NextPaydayCardProps> = ({
           return (
             <div
               key={income.id}
-              className="bg-emerald-50/40 border border-emerald-200/60 rounded-xl p-3 flex items-center justify-between gap-3 hover:bg-emerald-50/70 transition-colors"
+              className={`border rounded-xl p-3 flex items-center justify-between gap-3 transition-colors ${
+                isOverdue
+                  ? "bg-rose-50/40 border-rose-200/60 hover:bg-rose-50/70"
+                  : "bg-emerald-50/40 border-emerald-200/60 hover:bg-emerald-50/70"
+              }`}
             >
               <div className="space-y-0.5 min-w-0">
                 <div className="flex items-center gap-1.5 flex-wrap">
@@ -149,18 +160,10 @@ export const NextPaydayCard: React.FC<NextPaydayCardProps> = ({
                 <button
                   type="button"
                   onClick={() => handleSplitClick(income.id)}
-                  className={`text-xs font-bold transition-all px-2.5 py-1.5 rounded-lg cursor-pointer ${
-                    diffDays === 0 || isSaved
-                      ? 'bg-[#2563eb] text-white hover:bg-blue-700 shadow-xs'
-                      : 'text-[#2563eb] hover:underline hover:bg-blue-50 dark:hover:bg-zinc-800'
-                  }`}
+                  className="text-xs font-bold text-[#2563eb] hover:text-blue-700 bg-blue-50 hover:bg-blue-100 border border-blue-200 transition-colors px-2.5 py-1.5 rounded-lg cursor-pointer"
                   title={t('dashboard.nextPay.reviewSplits')}
                 >
-                  {diffDays === 0
-                    ? `⚡ ${t("dashboard.nextPay.allocatePayday")}`
-                    : isSaved
-                    ? `✓ ${t("dashboard.nextPay.allocatePayday")}`
-                    : t("dashboard.nextPay.allocatePayday")}
+                  {t("dashboard.nextPay.allocatePayday")}
                 </button>
                 {onDeleteIncome && (
                   <button

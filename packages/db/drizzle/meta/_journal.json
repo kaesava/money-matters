@@ -323,6 +323,13 @@
       "when": 1784218494251,
       "tag": "0046_allocation_strategies_and_contribution_mode",
       "breakpoints": true
+    },
+    {
+      "idx": 46,
+      "version": "7",
+      "when": 1784228494251,
+      "tag": "0047_bulletproof_stealth_privacy_rls",
+      "breakpoints": true
     }
   ]
 }

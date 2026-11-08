@@ -18,6 +18,9 @@ export interface EventToOverride {
   name: string;
   expectedDate: string;
   expectedAmount: string;
+  incomeSourceId?: string | null;
+  envelopeId?: string | null;
+  poolId?: string | null;
 }
 
 interface EventOverrideModalProps {
@@ -26,9 +29,17 @@ interface EventOverrideModalProps {
   onClose: () => void;
   onSuccess?: () => void;
   onDelete?: (event: EventToOverride) => void;
+  onNavigateToSchedule?: (type: 'INCOME' | 'EXPENSE', id: string) => void;
 }
 
-export function EventOverrideModal({ visible, eventToEdit, onClose, onSuccess, onDelete }: EventOverrideModalProps) {
+export function EventOverrideModal({
+  visible,
+  eventToEdit,
+  onClose,
+  onSuccess,
+  onDelete,
+  onNavigateToSchedule,
+}: EventOverrideModalProps) {
   const toast = useMobileToast();
   const [expectedDate, setExpectedDate] = useState('');
   const [expectedAmount, setExpectedAmount] = useState('');
@@ -120,6 +131,51 @@ export function EventOverrideModal({ visible, eventToEdit, onClose, onSuccess, o
     >
       <FormErrorBanner message={errorMsg} />
 
+      {Boolean(eventToEdit?.incomeSourceId) && Boolean(onNavigateToSchedule) && (
+        <View style={styles.noticeContainer}>
+          <Text style={styles.noticeText}>
+            {t('modals.eventOverride.singleEventNotice')}
+          </Text>
+          <TouchableOpacity
+            onPress={() => {
+              if (eventToEdit?.incomeSourceId) {
+                onClose();
+                onNavigateToSchedule?.('INCOME', eventToEdit.incomeSourceId);
+              }
+            }}
+            activeOpacity={0.7}
+            style={styles.noticeLinkBtn}
+          >
+            <Text style={styles.noticeLinkText}>
+              {t('modals.eventOverride.editIncomeScheduleLink')}
+            </Text>
+          </TouchableOpacity>
+        </View>
+      )}
+
+      {Boolean(!eventToEdit?.incomeSourceId && (eventToEdit?.envelopeId || eventToEdit?.poolId)) && Boolean(onNavigateToSchedule) && (
+        <View style={styles.noticeContainer}>
+          <Text style={styles.noticeText}>
+            {t('modals.eventOverride.singleEventNotice')}
+          </Text>
+          <TouchableOpacity
+            onPress={() => {
+              const targetId = eventToEdit?.envelopeId || eventToEdit?.poolId;
+              if (targetId) {
+                onClose();
+                onNavigateToSchedule?.('EXPENSE', targetId);
+              }
+            }}
+            activeOpacity={0.7}
+            style={styles.noticeLinkBtn}
+          >
+            <Text style={styles.noticeLinkText}>
+              {t('modals.eventOverride.editBillScheduleLink')}
+            </Text>
+          </TouchableOpacity>
+        </View>
+      )}
+
       <MobileDatePickerField
         label={t('common.date')}
         value={expectedDate}
@@ -171,4 +227,26 @@ const styles = StyleSheet.create({
     minWidth: 100,
   },
   submitBtnText: { color: D.colors.onAccent, fontSize: 14, fontWeight: '700' },
+  noticeContainer: {
+    backgroundColor: D.colors.accentLight,
+    borderColor: D.colors.accentBorder,
+    borderWidth: 1,
+    borderRadius: D.radius.md,
+    padding: 10,
+    marginBottom: 12,
+    gap: 4,
+  },
+  noticeText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: D.colors.primary,
+  },
+  noticeLinkBtn: {
+    marginTop: 2,
+  },
+  noticeLinkText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: D.colors.accent,
+  },
 });

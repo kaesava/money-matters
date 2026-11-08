@@ -292,7 +292,10 @@ export const envelopes = {
       "overrideDate": "Date",
       "nameLabel": "Event Name",
       "namePlaceholder": "Enter event name",
-      "submit": "Save Changes"
+      "submit": "Save Changes",
+      "singleEventNotice": "You are editing a single occurrence.",
+      "editIncomeScheduleLink": "Edit recurring income schedule →",
+      "editBillScheduleLink": "Edit recurring bill schedule →"
     },
     "incomeExpenseForm": {
       "receivingBankAccount": "Receiving Bank Account",

@@ -69,6 +69,7 @@ export const incomeEventsProcedures = {
           bankAccountId: incomeSources.receivingAccountId,
           bankAccountIsPrivate: bankAccounts.isPrivate,
           bankAccountUserId: bankAccounts.userId,
+          createdBy: incomeEvents.createdBy,
         })
         .from(incomeEvents)
         .leftJoin(incomeSources, eq(incomeEvents.incomeSourceId, incomeSources.id))
@@ -83,7 +84,9 @@ export const incomeEventsProcedures = {
         .orderBy(asc(incomeEvents.expectedDate));
 
       const visibleEvents = events.filter((e) => {
+        if (e.bankAccountId && e.bankAccountIsPrivate === null) return false;
         if (e.bankAccountIsPrivate && e.bankAccountUserId !== ctx.userId) return false;
+        if (!e.incomeSourceId && e.createdBy && e.createdBy !== ctx.userId) return false;
         return true;
       });
 

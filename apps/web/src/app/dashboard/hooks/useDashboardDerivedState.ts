@@ -129,7 +129,7 @@ export function useDashboardDerivedState({
 
           return {
             id: e.id,
-            name: e.sourceName || "Paycheck Deposit",
+            name: (e as unknown as { name?: string }).name || e.sourceName || "Paycheck Deposit",
             amount: parseFloat(e.expectedAmount),
             expectedDate: e.expectedDate,
             bankAccountId: e.bankAccountId ?? null,

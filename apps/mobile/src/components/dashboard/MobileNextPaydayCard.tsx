@@ -94,18 +94,23 @@ export function MobileNextPaydayCard({
           </Text>
         </View>
 
-        {upcomingIncomes.length > 3 && (
-          <View style={styles.headerLinksWrap}>
-            <TouchableOpacity
-              onPress={() => router.push('/(app)/income-split' as Href)}
-              style={styles.showMoreBtn}
-              activeOpacity={0.7}
-            >
-              <Text style={styles.showMoreText}>{t('dashboard.nextPay.twelveMonthSplit')}</Text>
-              <Feather name="chevron-right" size={14} color={DESIGN_TOKENS.colors.accent} />
-            </TouchableOpacity>
-          </View>
-        )}
+        <View style={styles.headerLinksWrap}>
+          <TouchableOpacity
+            onPress={() => router.push('/(app)/paychecks' as Href)}
+            style={styles.showMoreBtn}
+            activeOpacity={0.7}
+          >
+            <Text style={styles.showMoreText}>{t('dashboard.nextPay.upcomingEventsLink')}</Text>
+          </TouchableOpacity>
+          <Text style={styles.linkSeparator}>·</Text>
+          <TouchableOpacity
+            onPress={() => router.push('/(app)/income-split' as Href)}
+            style={styles.showMoreBtn}
+            activeOpacity={0.7}
+          >
+            <Text style={styles.showMoreText}>{t('dashboard.nextPay.twelveMonthPlanLink')}</Text>
+          </TouchableOpacity>
+        </View>
       </View>
 
       {upcomingIncomes.length === 0 ? (
@@ -181,6 +186,11 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '700',
     color: DESIGN_TOKENS.colors.accent,
+  },
+  linkSeparator: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: DESIGN_TOKENS.colors.slate[400],
   },
   emptyContainer: {
     paddingVertical: 14,

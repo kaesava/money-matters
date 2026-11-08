@@ -65,14 +65,14 @@ export const incomeBills = {
     "householdContribution": {
       "title": "Household Contribution",
       "allSharedNote": "All income is allocated across shared household envelopes.",
-      "modeLabel": "Contribution Mode",
+      "modeLabel": "Contribution",
       "full": "100% to Household Envelopes",
       "percentage": "Percentage Share",
       "percentagePlaceholder": "50",
       "percentageSuffix": "%",
-      "fixedAmount": "Fixed Dollar Amount",
+      "fixedAmount": "Fixed Amount",
       "remainderNote": "The remaining portion will be automatically allocated to your personal envelopes.",
-      "percentageInvalid": "Percentage must be between 1 and 100",
+      "percentageInvalid": "Percentage must be between 0 and 100",
       "amountInvalid": "Amount must be a valid positive number"
     }
   },

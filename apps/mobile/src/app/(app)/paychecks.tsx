@@ -164,6 +164,8 @@ export default function IncomeAndBillsScreen() {
                 name: fullExpense.name || 'Expense',
                 expectedDate: fullExpense.expectedDate,
                 expectedAmount: fullExpense.expectedAmount,
+                envelopeId: fullExpense.envelopeId,
+                poolId: fullExpense.envelopeId,
               });
               modals.setOverrideModalVisible(true);
             }
@@ -177,6 +179,7 @@ export default function IncomeAndBillsScreen() {
                 name: fullIncome.name || 'Income',
                 expectedDate: fullIncome.expectedDate,
                 expectedAmount: fullIncome.expectedAmount,
+                incomeSourceId: fullIncome.incomeSourceId,
               });
               modals.setOverrideModalVisible(true);
             }
@@ -198,6 +201,17 @@ export default function IncomeAndBillsScreen() {
         overrideModalVisible={modals.overrideModalVisible}
         eventToOverride={modals.eventToOverride}
         onCloseOverride={() => modals.setOverrideModalVisible(false)}
+        onNavigateToSchedule={(type, id) => {
+          if (type === 'INCOME') {
+            router.push(
+              `/(app)/paychecks/schedules?editIncomeId=${id}&returnTo=${encodeURIComponent('/(app)/paychecks')}` as Href
+            );
+          } else {
+            router.push(
+              `/(app)/paychecks/schedules?editBillId=${id}&returnTo=${encodeURIComponent('/(app)/paychecks')}` as Href
+            );
+          }
+        }}
         transferModalVisible={modals.transferModalVisible}
         activeTransfer={modals.activeTransfer}
         pools={pools.map((p) => ({

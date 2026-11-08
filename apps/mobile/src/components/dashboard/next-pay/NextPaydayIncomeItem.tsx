@@ -25,7 +25,7 @@ export const NextPaydayIncomeItem: React.FC<NextPaydayIncomeItemProps> = ({
   const isSaved = item.isSaved || item.status === 'DRAFT' || item.status === 'SAVED';
 
   return (
-    <View style={styles.incomeItemCard}>
+    <View style={[styles.incomeItemCard, isOverdue && styles.incomeItemCardOverdue]}>
       <View style={styles.incomeInfo}>
         <View style={styles.incomeTopRow}>
           <Text style={styles.incomeName} numberOfLines={1}>
@@ -41,7 +41,7 @@ export const NextPaydayIncomeItem: React.FC<NextPaydayIncomeItemProps> = ({
           {isSaved && (
             <View style={styles.savedBadge}>
               <Text style={styles.savedBadgeText}>
-                🔒 {t('dashboard.nextPay.savedBadge')}
+                {t('dashboard.nextPay.savedBadge')}
               </Text>
             </View>
           )}
@@ -65,24 +65,12 @@ export const NextPaydayIncomeItem: React.FC<NextPaydayIncomeItemProps> = ({
 
       <View style={styles.actionColumn}>
         <TouchableOpacity
-          style={[
-            styles.splitBtn,
-            (daysAwayText === t('dashboard.hero.dueToday') || isSaved) && styles.splitBtnActive,
-          ]}
+          style={styles.splitBtn}
           onPress={() => onPressRunSplit(item.id)}
           activeOpacity={0.8}
         >
-          <Text
-            style={[
-              styles.splitBtnText,
-              (daysAwayText === t('dashboard.hero.dueToday') || isSaved) && styles.splitBtnTextActive,
-            ]}
-          >
-            {daysAwayText === t('dashboard.hero.dueToday')
-              ? `⚡ ${t('dashboard.nextPay.allocatePayday')}`
-              : isSaved
-              ? `✓ ${t('dashboard.nextPay.allocatePayday')}`
-              : t('dashboard.nextPay.allocatePayday')}
+          <Text style={styles.splitBtnText}>
+            {t('dashboard.nextPay.allocatePayday')}
           </Text>
         </TouchableOpacity>
 
@@ -109,6 +97,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     gap: 8,
+  },
+  incomeItemCardOverdue: {
+    backgroundColor: DESIGN_TOKENS.colors.criticalLight,
+    borderColor: DESIGN_TOKENS.colors.criticalBorder,
   },
   incomeInfo: {
     flex: 1,
@@ -189,17 +181,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 5,
   },
-  splitBtnActive: {
-    backgroundColor: DESIGN_TOKENS.colors.sereneBlue,
-    borderColor: DESIGN_TOKENS.colors.sereneBlue,
-  },
   splitBtnText: {
     fontSize: 11,
     fontWeight: '800',
     color: DESIGN_TOKENS.colors.accent,
-  },
-  splitBtnTextActive: {
-    color: '#ffffff',
   },
   deleteBtn: {
     paddingHorizontal: 6,

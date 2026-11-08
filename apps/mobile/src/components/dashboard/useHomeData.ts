@@ -128,7 +128,7 @@ export function useHomeData(token?: string) {
           : null;
         return {
           id: e.id,
-          name: e.sourceName || t('dashboard.title'),
+          name: (e as unknown as { name?: string }).name || e.sourceName || t('dashboard.title'),
           amount: parseFloat(e.expectedAmount),
           expectedDate: e.expectedDate,
           status: e.status,

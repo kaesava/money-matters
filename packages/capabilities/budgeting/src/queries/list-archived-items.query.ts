@@ -15,6 +15,7 @@ export async function listArchivedItemsQuery(
         itemType: sql<string>`'ENVELOPE'`,
         subtitle: envelopes.envelopeType,
         archivedAt: envelopes.archivedAt,
+        bankAccountId: envelopes.bankAccountId,
         isPrivate: envelopes.isPrivate,
         userId: envelopes.userId,
         bankAccountIsPrivate: bankAccounts.isPrivate,
@@ -36,6 +37,7 @@ export async function listArchivedItemsQuery(
         itemType: sql<string>`'INCOME_SOURCE'`,
         subtitle: incomeSources.amount,
         archivedAt: incomeSources.archivedAt,
+        receivingAccountId: incomeSources.receivingAccountId,
         isPrivate: bankAccounts.isPrivate,
         userId: sql<string | null>`NULL`,
         bankAccountIsPrivate: bankAccounts.isPrivate,
@@ -59,6 +61,8 @@ export async function listArchivedItemsQuery(
         archivedAt: bankAccounts.archivedAt,
         isPrivate: bankAccounts.isPrivate,
         userId: bankAccounts.userId,
+        bankAccountId: bankAccounts.id,
+        receivingAccountId: sql<string | null>`NULL`,
         bankAccountIsPrivate: bankAccounts.isPrivate,
         bankAccountUserId: bankAccounts.userId,
       })
@@ -72,9 +76,24 @@ export async function listArchivedItemsQuery(
       ),
   ]);
 
-  const filterVisible = <T extends { isPrivate?: boolean | null; userId?: string | null; bankAccountIsPrivate?: boolean | null; bankAccountUserId?: string | null }>(items: T[]): T[] => {
+  const filterVisible = <
+    T extends {
+      isPrivate?: boolean | null;
+      userId?: string | null;
+      bankAccountId?: string | null;
+      receivingAccountId?: string | null;
+      bankAccountIsPrivate?: boolean | null;
+      bankAccountUserId?: string | null;
+    }
+  >(items: T[]): T[] => {
     if (!userId) return items;
     return items.filter((item) => {
+      // If linked to a bank account that was hidden by RLS (id is set, but joined bank account is null), it belongs to another user's private account
+      const linkedAccountId = item.bankAccountId || item.receivingAccountId;
+      if (linkedAccountId && item.bankAccountIsPrivate === null) {
+        return false;
+      }
+
       const isPrivate = Boolean(item.isPrivate || item.bankAccountIsPrivate);
       if (!isPrivate) return true;
       const ownerId = item.userId || item.bankAccountUserId;

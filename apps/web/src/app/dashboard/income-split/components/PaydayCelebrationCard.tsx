@@ -95,10 +95,51 @@ export function PaydayCelebrationCard({
         </div>
 
         {!isConfirmed && (
-          <div className="shrink-0 flex items-center gap-2.5 flex-wrap">
-            {/* If Dirty: show Save Draft and Discard Edits */}
+          <div className="shrink-0 flex flex-col items-end gap-2.5">
+            {/* Row 1: Reset to Recommended and Confirm & Apply */}
+            <div className="flex items-center gap-2.5 justify-end flex-wrap">
+              {(isLocked || isDirty) && (
+                <button
+                  type="button"
+                  onClick={onUnlockAndRecalculate || onRecalculate}
+                  disabled={submitting}
+                  className="bg-white/10 hover:bg-white/20 active:bg-white/25 text-white font-bold text-xs rounded-xl px-4 py-2.5 border border-white/20 shadow-xs cursor-pointer transition-all disabled:opacity-50"
+                >
+                  {t("paydayDrawer.resetToRecommended")}
+                </button>
+              )}
+
+              <div className="flex items-center gap-1">
+                <Button
+                  type="button"
+                  variant="primary"
+                  onClick={onConfirm}
+                  loading={submitting}
+                  disabled={isDeficit || submitting || isFutureDate}
+                  style={{ backgroundColor: "#22c55e", color: "#ffffff" }}
+                  className="px-6 py-2.5 hover:bg-emerald-600 disabled:opacity-50 disabled:cursor-not-allowed text-white font-extrabold text-sm rounded-xl shadow-lg shadow-emerald-950/30 cursor-pointer flex items-center gap-2"
+                >
+                  <CheckCircle2 className="w-4 h-4 stroke-[2.5]" />
+                  <span>{t("paydayDrawer.confirmIncomeSplit")}</span>
+                </Button>
+                {isFutureDate && (
+                  <InfoTooltip content={t("paydayDrawer.futureConfirmDisabledTooltip")} />
+                )}
+              </div>
+            </div>
+
+            {/* Row 2: Discard Edits and Save Draft in this order (right aligned under Row 1) */}
             {isDirty && (
-              <>
+              <div className="flex items-center gap-2.5 justify-end">
+                <button
+                  type="button"
+                  onClick={onDiscardEdits}
+                  disabled={submitting}
+                  className="text-xs font-semibold text-blue-200 hover:text-white underline cursor-pointer transition-colors px-2 py-2"
+                >
+                  {t("paydayDrawer.discardEdits")}
+                </button>
+
                 <Button
                   type="button"
                   variant="primary"
@@ -109,48 +150,8 @@ export function PaydayCelebrationCard({
                 >
                   <span>{t("paydayDrawer.saveIncomeSplit")}</span>
                 </Button>
-
-                <button
-                  type="button"
-                  onClick={onDiscardEdits}
-                  disabled={submitting}
-                  className="text-xs font-semibold text-blue-200 hover:text-white underline cursor-pointer transition-colors px-2 py-2"
-                >
-                  {t("paydayDrawer.discardEdits")}
-                </button>
-              </>
+              </div>
             )}
-
-            {/* Reset to Recommended: button less conspicuous than Confirm & Apply */}
-            {(isLocked || isDirty) && (
-              <button
-                type="button"
-                onClick={onUnlockAndRecalculate || onRecalculate}
-                disabled={submitting}
-                className="bg-white/10 hover:bg-white/20 active:bg-white/25 text-white font-bold text-xs rounded-xl px-4 py-2.5 border border-white/20 shadow-xs cursor-pointer transition-all disabled:opacity-50"
-              >
-                {t("paydayDrawer.resetToRecommended")}
-              </button>
-            )}
-
-            {/* Confirm & Apply (primary action) */}
-            <div className="flex items-center gap-1">
-              <Button
-                type="button"
-                variant="primary"
-                onClick={onConfirm}
-                loading={submitting}
-                disabled={isDeficit || submitting || isFutureDate}
-                style={{ backgroundColor: "#22c55e", color: "#ffffff" }}
-                className="px-6 py-2.5 hover:bg-emerald-600 disabled:opacity-50 disabled:cursor-not-allowed text-white font-extrabold text-sm rounded-xl shadow-lg shadow-emerald-950/30 cursor-pointer flex items-center gap-2"
-              >
-                <CheckCircle2 className="w-4 h-4 stroke-[2.5]" />
-                <span>{t("paydayDrawer.confirmIncomeSplit")}</span>
-              </Button>
-              {isFutureDate && (
-                <InfoTooltip content={t("paydayDrawer.futureConfirmDisabledTooltip")} />
-              )}
-            </div>
           </div>
         )}
       </div>

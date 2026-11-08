@@ -1,6 +1,8 @@
 "use client";
 
 import React, { useState, useEffect, useMemo } from "react";
+import { useRouter } from "next/navigation";
+import { Info } from "lucide-react";
 import {
   ModalDialog,
   Input,
@@ -27,6 +29,7 @@ export function EditUpcomingEventModal({
   event,
   onSuccess,
 }: EditUpcomingEventModalProps) {
+  const router = useRouter();
   const toast = useToast();
   const utils = trpc.useUtils();
 
@@ -121,6 +124,48 @@ export function EditUpcomingEventModal({
     >
       <form onSubmit={handleSave} className="space-y-4">
         <FormErrorBanner message={errorMsg} />
+
+        {Boolean(event.incomeSourceId) && (
+          <div className="p-3 bg-blue-50/70 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-900 rounded-xl text-xs text-blue-900 dark:text-blue-200 space-y-1">
+            <div className="flex items-start gap-1.5 font-medium">
+              <Info className="w-4 h-4 text-blue-600 dark:text-blue-400 shrink-0 mt-0.5" />
+              <span>{t("modals.eventOverride.singleEventNotice")}</span>
+            </div>
+            <div>
+              <button
+                type="button"
+                onClick={() => {
+                  onClose();
+                  router.push(`/dashboard/income-and-bills?tab=streams&editIncomeId=${event.incomeSourceId}`);
+                }}
+                className="font-bold text-[#2563eb] hover:underline cursor-pointer inline-flex items-center gap-1 ml-5.5"
+              >
+                <span>{t("modals.eventOverride.editIncomeScheduleLink")}</span>
+              </button>
+            </div>
+          </div>
+        )}
+
+        {Boolean(!event.incomeSourceId && (event.poolId || event.categoryId)) && (
+          <div className="p-3 bg-blue-50/70 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-900 rounded-xl text-xs text-blue-900 dark:text-blue-200 space-y-1">
+            <div className="flex items-start gap-1.5 font-medium">
+              <Info className="w-4 h-4 text-blue-600 dark:text-blue-400 shrink-0 mt-0.5" />
+              <span>{t("modals.eventOverride.singleEventNotice")}</span>
+            </div>
+            <div>
+              <button
+                type="button"
+                onClick={() => {
+                  onClose();
+                  router.push(`/dashboard/income-and-bills?tab=streams&editBillId=${event.poolId || event.categoryId}`);
+                }}
+                className="font-bold text-[#2563eb] hover:underline cursor-pointer inline-flex items-center gap-1 ml-5.5"
+              >
+                <span>{t("modals.eventOverride.editBillScheduleLink")}</span>
+              </button>
+            </div>
+          </div>
+        )}
 
         <Input
           label={t("modals.eventOverride.nameLabel")}

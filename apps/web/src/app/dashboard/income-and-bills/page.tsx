@@ -64,6 +64,9 @@ function IncomeAndBillsContent() {
     };
   }, [overflowMenuOpen]);
 
+  const editIncomeId = searchParams.get("editIncomeId");
+  const editBillId = searchParams.get("editBillId");
+
   React.useEffect(() => {
     if (rawTab) {
       const upper = rawTab.toUpperCase() as PlanTab;
@@ -105,6 +108,45 @@ function IncomeAndBillsContent() {
   const incomeEvents = useMemo(() => incomeEventsQuery.data || [], [incomeEventsQuery.data]);
   const expenseEvents = useMemo(() => expenseEventsQuery.data || [], [expenseEventsQuery.data]);
   const transferEvents = useMemo(() => transferEventsQuery.data || [], [transferEventsQuery.data]);
+
+  useEffect(() => {
+    if (editIncomeId && incomeSources.length > 0) {
+      const src = incomeSources.find((s) => s.id === editIncomeId);
+      if (src) {
+        setIncomeToEdit({
+          ...src,
+          receivingAccountId: src.receivingAccountId || undefined,
+        });
+        setIsIncomeModalOpen(true);
+      }
+    }
+  }, [editIncomeId, incomeSources]);
+
+  useEffect(() => {
+    if (editBillId && (billSchedules.length > 0 || pools.length > 0)) {
+      const cat = billSchedules.find((b) => b.id === editBillId || b.envelopeId === editBillId);
+      const targetPool = pools.find((p) => p.id === editBillId || (cat && p.id === cat.envelopeId));
+      if (cat || targetPool) {
+        const resolvedEnvelopeType = cat?.envelopeType || targetPool?.envelopeType || "SCHEDULED_BILL";
+        setEnvelopeToEdit({
+          id: targetPool?.id || cat?.envelopeId || cat?.id || editBillId,
+          name: targetPool?.name || cat?.envelopeName || cat?.name || "",
+          bankAccountId: targetPool?.bankAccountId,
+          monthlyAmount: targetPool?.monthlyAmount || cat?.amount,
+          enteredAmount: targetPool?.enteredAmount || cat?.amount,
+          budgetFrequency: (cat?.budgetFrequency as "WEEKLY" | "FORTNIGHTLY" | "MONTHLY" | "ANNUALLY") || targetPool?.budgetFrequency || "MONTHLY",
+          startDate: cat?.startDate || targetPool?.startDate,
+          endDate: cat?.endDate || targetPool?.endDate,
+          rrule: cat?.rrule || targetPool?.rrule,
+          envelopeType: resolvedEnvelopeType,
+          poolType: resolvedEnvelopeType,
+          type: resolvedEnvelopeType,
+          hasScheduledEvents: cat?.hasScheduledEvents ?? targetPool?.hasScheduledEvents,
+        });
+        setIsEnvelopeModalOpen(true);
+      }
+    }
+  }, [editBillId, billSchedules, pools]);
 
   const savedIncomeEventIds = useMemo(() => {
     const set = new Set<string>();
@@ -319,12 +361,15 @@ function IncomeAndBillsContent() {
             savedIncomeEventIds={savedIncomeEventIds}
             incomeEvents={incomeEvents.map((e) => {
               const src = incomeSources.find((s) => s.id === e.incomeSourceId);
-              const acct = bankAccounts.find((b) => b.id === src?.receivingAccountId);
+              const receivingAccountId = src?.receivingAccountId || (e as unknown as { receivingAccountId?: string; bankAccountId?: string }).receivingAccountId || (e as unknown as { bankAccountId?: string }).bankAccountId;
+              const acct = bankAccounts.find((b) => b.id === receivingAccountId);
+              const resolvedAccountName = acct?.name || (e as unknown as { bankAccountName?: string }).bankAccountName;
               return {
                 ...e,
-                accountId: acct?.id,
+                incomeSourceId: e.incomeSourceId,
+                accountId: acct?.id || receivingAccountId,
                 name: (e as unknown as { name?: string }).name || e.sourceName || "Income Deposit",
-                accountName: acct?.name || "Bank Account",
+                accountName: resolvedAccountName || "Bank Account",
                 isPrivate: acct?.isPrivate || false,
               };
             })}
