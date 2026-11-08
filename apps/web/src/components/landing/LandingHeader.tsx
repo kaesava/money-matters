@@ -12,10 +12,8 @@ export interface LandingHeaderProps {
 }
 
 const NAV_ITEMS = [
-  { id: "why-us", labelKey: "landing.navWhyUs" as const },
-  { id: "how-it-works", labelKey: "landing.navHowItWorks" as const },
-  { id: "simulator", labelKey: "landing.navSimulator" as const },
-  { id: "advantages", labelKey: "landing.navAdvantages" as const },
+  { id: "features", labelKey: "landing.navFeatures" as const },
+  { id: "simulator", labelKey: "landing.navCalculator" as const },
   { id: "pricing", labelKey: "landing.navPricing" as const },
   { id: "faq", labelKey: "landing.navFaq" as const },
 ];

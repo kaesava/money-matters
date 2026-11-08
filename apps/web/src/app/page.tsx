@@ -5,16 +5,12 @@ import { useSearchParams } from "next/navigation";
 import { trpc } from "../lib/trpc";
 import { useToast } from "@money-matters/ui/web";
 import { t } from "@money-matters/i18n";
-import { PaycheckSimulator } from "../components/PaycheckSimulator";
-
 import { AuthModal } from "../components/landing/AuthModal";
 import { EarlyAccessModal } from "../components/landing/EarlyAccessModal";
 import { LandingHeader } from "../components/landing/LandingHeader";
 import { LandingHero } from "../components/landing/LandingHero";
-import { ProblemSection } from "../components/landing/ProblemSection";
-import { HowItWorksSection } from "../components/landing/HowItWorksSection";
-import { EnvelopesSection } from "../components/landing/EnvelopesSection";
-import { AdvantagesSection } from "../components/landing/AdvantagesSection";
+import { ProductFeaturesGrid } from "../components/landing/ProductFeaturesGrid";
+import { InteractivePaydayEngine } from "../components/landing/InteractivePaydayEngine";
 import { PricingSection } from "../components/landing/PricingSection";
 import { TrustSection } from "../components/landing/TrustSection";
 import { FaqSection } from "../components/landing/FaqSection";
@@ -101,15 +97,8 @@ export default function Home() {
 
       <LandingHeader onAuthClick={handleOpenAuth} />
       <LandingHero onAuthClick={handleOpenAuth} />
-      <EnvelopesSection />
-      <ProblemSection />
-      <HowItWorksSection />
-
-      <div id="simulator" className="scroll-mt-14">
-        <PaycheckSimulator />
-      </div>
-
-      <AdvantagesSection />
+      <ProductFeaturesGrid />
+      <InteractivePaydayEngine onAuthClick={handleOpenAuth} />
       <PricingSection onAuthClick={handleOpenAuth} />
       <TrustSection />
       <FaqSection />
@@ -117,3 +106,4 @@ export default function Home() {
     </div>
   );
 }
+
