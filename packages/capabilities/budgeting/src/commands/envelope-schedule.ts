@@ -1,4 +1,4 @@
-import { expenseEvents, DbOrTx } from "@money-matters/db";
+import { expenseEvents, envelopes, DbOrTx } from "@money-matters/db";
 import { and, eq } from "drizzle-orm";
 import { generateBurstDates } from "../engine/burst-engine.js";
 
@@ -30,9 +30,10 @@ export async function burstEnvelopeEvents(
     appId: string;
     userId: string;
     timeZone?: string;
+    afterDateStr?: string | null;
   }
 ): Promise<number> {
-  const dates = generateBurstDates(params.rrule, params.startDate, params.endDate, 12);
+  const dates = generateBurstDates(params.rrule, params.startDate, params.endDate, 12, 1000, params.afterDateStr);
   if (dates.length === 0) return 0;
   const tz = params.timeZone || "Australia/Sydney";
 
@@ -50,6 +51,17 @@ export async function burstEnvelopeEvents(
   }));
 
   await tx.insert(expenseEvents).values(eventsToInsert);
+
+  const lastDate = eventsToInsert[eventsToInsert.length - 1].expectedDate;
+  await tx
+    .update(envelopes)
+    .set({
+      lastBurstDate: lastDate,
+      updatedAt: new Date(),
+      updatedBy: params.userId,
+    })
+    .where(eq(envelopes.id, params.envelopeId));
+
   return eventsToInsert.length;
 }
 

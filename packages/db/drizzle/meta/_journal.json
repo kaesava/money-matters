@@ -344,6 +344,13 @@
       "when": 1784248494251,
       "tag": "0049_allocation_strategies_personal_scope",
       "breakpoints": true
+    },
+    {
+      "idx": 49,
+      "version": "7",
+      "when": 1784258494251,
+      "tag": "0050_add_last_burst_date",
+      "breakpoints": true
     }
   ]
 }

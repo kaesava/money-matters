@@ -22,7 +22,8 @@ export function generateBurstDates(
   startDateStr: string,
   endDateStr?: string | null,
   monthsAhead = 12,
-  maxOccurrences = 1000
+  maxOccurrences = 1000,
+  afterDateStr?: string | null
 ): Date[] {
   const dates: Date[] = [];
   const start = new Date(startDateStr);
@@ -40,6 +41,14 @@ export function generateBurstDates(
     }
   }
 
+  // If afterDateStr is provided and already at or past the limitDate, return empty
+  if (afterDateStr) {
+    const after = new Date(afterDateStr);
+    if (!isNaN(after.getTime()) && after >= limitDate) {
+      return dates;
+    }
+  }
+
   try {
     const options = RRule.parseString(rruleStr);
     options.dtstart = start;
@@ -47,11 +56,28 @@ export function generateBurstDates(
 
     const rule = new RRule(options);
 
-    // Generate occurrences starting from dtstart up to limitDate
-    // We add true as the 3rd argument to `between` to ensure it's inclusive of `start` and `limitDate`.
-    const generated = rule.between(start, limitDate, true);
+    let searchStart = start;
+    if (afterDateStr) {
+      const after = new Date(afterDateStr);
+      if (!isNaN(after.getTime()) && after > start) {
+        searchStart = after;
+      }
+    }
 
-    return generated.slice(0, maxOccurrences);
+    // Generate occurrences between searchStart and limitDate
+    const generated = rule.between(searchStart, limitDate, true);
+
+    const filtered = afterDateStr
+      ? generated.filter((d) => {
+          const y = d.getUTCFullYear();
+          const m = String(d.getUTCMonth() + 1).padStart(2, "0");
+          const day = String(d.getUTCDate()).padStart(2, "0");
+          const dUtcStr = `${y}-${m}-${day}`;
+          return dUtcStr > afterDateStr;
+        })
+      : generated;
+
+    return filtered.slice(0, maxOccurrences);
   } catch (e) {
     // Fallback if rrule string parsing fails (should not happen for valid generated rrules)
     console.error("Failed to parse rrule", e);

@@ -14,7 +14,8 @@ export async function maintainRollingWindowCommand({
   appId: string;
   userId: string;
 }) {
-  let newEventsCount = 0;
+  let incomeEventsCreated = 0;
+  let expenseEventsCreated = 0;
 
   const [tenantRecord] = await db
     .select({ timezone: tenants.timezone })
@@ -25,7 +26,7 @@ export async function maintainRollingWindowCommand({
   const getLocalDateString = (d: Date = new Date()) => getTenantDateString(d, { timezone: tenantTz });
   const todayStr = getLocalDateString();
 
-  // 1. Sync Income Sources
+  // 1. Incrementally Burst Active Income Schedules
   const incomes = await db
     .select()
     .from(incomeSources)
@@ -33,51 +34,60 @@ export async function maintainRollingWindowCommand({
       and(
         eq(incomeSources.tenantId, tenantId),
         eq(incomeSources.appId, appId),
-        sql`${incomeSources.archivedAt} IS NULL`
+        sql`${incomeSources.archivedAt} IS NULL`,
+        sql`${incomeSources.rrule} IS NOT NULL`
       )
     );
 
   for (const source of incomes) {
     if (!source.rrule) continue;
-
-    const existingEvents = await db
-      .select({ expectedDate: incomeEvents.expectedDate })
-      .from(incomeEvents)
-      .where(eq(incomeEvents.incomeSourceId, source.id));
-
-    const existingDates = new Set(existingEvents.map((e) => e.expectedDate));
     const startDate = source.startDate || todayStr;
-    const horizonDates = generateBurstDates(source.rrule, startDate, source.endDate, 12);
+    const dates = generateBurstDates(
+      source.rrule,
+      startDate,
+      source.endDate,
+      12,
+      1000,
+      source.lastBurstDate
+    );
 
-    const datesToInsert = horizonDates.filter((d) => {
-      const dStr = getLocalDateString(d);
-      return !existingDates.has(dStr);
-    });
+    if (dates.length > 0) {
+      const eventsToInsert = dates.map((d) => {
+        const dateStr = getLocalDateString(d);
+        return {
+          incomeSourceId: source.id,
+          name: source.name,
+          expectedDate: dateStr,
+          actualDate: dateStr,
+          expectedAmount: source.amount,
+          actualAmount: source.amount,
+          contributionMode: source.contributionMode || ("FULL" as const),
+          contributionValue: source.contributionValue || null,
+          status: "PENDING" as const,
+          tenantId,
+          appId,
+          createdBy: userId,
+          updatedBy: userId,
+        };
+      });
 
-    if (datesToInsert.length > 0) {
-      await db.insert(incomeEvents).values(
-        datesToInsert.map((d) => {
-          const dateStr = getLocalDateString(d);
-          return {
-            incomeSourceId: source.id,
-            name: source.name,
-            expectedDate: dateStr,
-            actualDate: dateStr,
-            expectedAmount: source.amount,
-            actualAmount: source.amount,
-            status: "PENDING" as const,
-            tenantId,
-            appId,
-            createdBy: userId,
-            updatedBy: userId,
-          };
+      await db.insert(incomeEvents).values(eventsToInsert);
+
+      const maxDate = eventsToInsert[eventsToInsert.length - 1].expectedDate;
+      await db
+        .update(incomeSources)
+        .set({
+          lastBurstDate: maxDate,
+          updatedAt: new Date(),
+          updatedBy: userId,
         })
-      );
-      newEventsCount += datesToInsert.length;
+        .where(eq(incomeSources.id, source.id));
+
+      incomeEventsCreated += eventsToInsert.length;
     }
   }
 
-  // 2. Sync Scheduled Bill Envelopes
+  // 2. Incrementally Burst Active Scheduled Bill Envelopes (where generateEvents is true)
   const billEnvelopes = await db
     .select()
     .from(envelopes)
@@ -97,47 +107,53 @@ export async function maintainRollingWindowCommand({
     const amountVal = env.enteredAmount || env.monthlyAmount || "0.00";
     if (parseFloat(amountVal) <= 0) continue;
 
-    const existingEvents = await db
-      .select({ expectedDate: expenseEvents.expectedDate })
-      .from(expenseEvents)
-      .where(
-        and(
-          eq(expenseEvents.envelopeId, env.id),
-          eq(expenseEvents.tenantId, tenantId),
-          eq(expenseEvents.appId, appId)
-        )
-      );
-
-    const existingDates = new Set(existingEvents.map((e) => e.expectedDate));
     const startDate = env.startDate || todayStr;
-    const horizonDates = generateBurstDates(env.rrule, startDate, env.endDate, 12);
+    const dates = generateBurstDates(
+      env.rrule,
+      startDate,
+      env.endDate,
+      12,
+      1000,
+      env.lastBurstDate
+    );
 
-    const datesToInsert = horizonDates.filter((d) => {
-      const dStr = getLocalDateString(d);
-      return !existingDates.has(dStr);
-    });
+    if (dates.length > 0) {
+      const eventsToInsert = dates.map((d) => {
+        const dateStr = getLocalDateString(d);
+        return {
+          envelopeId: env.id,
+          name: env.name,
+          expectedDate: dateStr,
+          expectedAmount: amountVal,
+          isScheduled: true,
+          status: "PENDING" as const,
+          tenantId,
+          appId,
+          createdBy: userId,
+          updatedBy: userId,
+        };
+      });
 
-    if (datesToInsert.length > 0) {
-      await db.insert(expenseEvents).values(
-        datesToInsert.map((d) => {
-          const dateStr = getLocalDateString(d);
-          return {
-            envelopeId: env.id,
-            name: env.name,
-            expectedDate: dateStr,
-            expectedAmount: amountVal,
-            isScheduled: true,
-            status: "PENDING" as const,
-            tenantId,
-            appId,
-            createdBy: userId,
-            updatedBy: userId,
-          };
+      await db.insert(expenseEvents).values(eventsToInsert);
+
+      const maxDate = eventsToInsert[eventsToInsert.length - 1].expectedDate;
+      await db
+        .update(envelopes)
+        .set({
+          lastBurstDate: maxDate,
+          updatedAt: new Date(),
+          updatedBy: userId,
         })
-      );
-      newEventsCount += datesToInsert.length;
+        .where(eq(envelopes.id, env.id));
+
+      expenseEventsCreated += eventsToInsert.length;
     }
   }
 
-  return { success: true, newEventsCount };
+  return {
+    success: true,
+    newEventsCount: incomeEventsCreated + expenseEventsCreated,
+    incomeEventsCreated,
+    expenseEventsCreated,
+  };
 }

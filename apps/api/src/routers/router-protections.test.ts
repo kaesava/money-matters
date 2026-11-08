@@ -23,6 +23,7 @@ describe("Router protections & procedure sanity checks", () => {
     expect(budgetingRouter.archivePool).toBeDefined();
     expect(budgetingRouter.listPools).toBeDefined();
     expect(budgetingRouter.moveMoney).toBeDefined();
+    expect(budgetingRouter.burstUpcomingEvents).toBeDefined();
   });
 
   it("exports transfersRouter with required transfer procedures", () => {

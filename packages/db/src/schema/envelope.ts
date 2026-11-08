@@ -1,4 +1,4 @@
-import { pgTable, uuid, varchar, numeric, boolean, pgEnum, integer, index } from "drizzle-orm/pg-core";
+import { pgTable, uuid, varchar, numeric, boolean, pgEnum, integer, index, date } from "drizzle-orm/pg-core";
 import { tenantAndTimestamps } from "./base.js";
 import { bankAccounts } from "./bank_account.js";
 
@@ -47,6 +47,7 @@ export const envelopes = pgTable(
     emoji: varchar("emoji", { length: 16 }),
     colorKey: varchar("color_key", { length: 30 }),
     orderIndex: integer("order_index").notNull().default(0),
+    lastBurstDate: date("last_burst_date"),
 
     ...tenantAndTimestamps,
   },

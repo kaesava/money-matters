@@ -212,6 +212,7 @@
 | `emoji` | varchar | Yes | Visual envelope emoji icon |
 | `colorKey` | varchar | Yes | Visual envelope theme color key |
 | `orderIndex` | integer | - | Domain column |
+| `lastBurstDate` | date | Yes | Furthest event date generated during previous recurrence burst |
 | `tenantId` | uuid | No | Tenant Foreign Key (RLS isolation) |
 | `appId` | varchar | No | Application ID |
 | `createdAt` | timestamp | No | Creation timestamp |
@@ -259,6 +260,7 @@
 | `endDate` | date | - | Domain column |
 | `contributionMode` | incomeContributionModeEnum | - | Contribution mode for shared vs private allocation |
 | `contributionValue` | numeric | - | Contribution percentage or fixed dollar amount |
+| `lastBurstDate` | date | Yes | Furthest event date generated during previous recurrence burst |
 | `tenantId` | uuid | No | Tenant Foreign Key (RLS isolation) |
 | `appId` | varchar | No | Application ID |
 | `createdAt` | timestamp | No | Creation timestamp |

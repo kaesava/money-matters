@@ -218,11 +218,19 @@ export async function updateEnvelopeCommand(
       // Clean up all pending scheduled events
       if (wasScheduled || hasExistingScheduledEvents) {
         await clearScheduledEnvelopeEvents(tx, envelopeId, tenantId, appId);
+        await tx
+          .update(envelopes)
+          .set({ lastBurstDate: null, updatedAt: new Date(), updatedBy: userId })
+          .where(eq(envelopes.id, envelopeId));
       }
     } else if (effectiveGenerateEvents === false) {
       // 2. Scheduled bill with auto-generation disabled:
       // Clear all existing pending scheduled events
       await clearScheduledEnvelopeEvents(tx, envelopeId, tenantId, appId);
+      await tx
+        .update(envelopes)
+        .set({ lastBurstDate: null, updatedAt: new Date(), updatedBy: userId })
+        .where(eq(envelopes.id, envelopeId));
     } else {
       // 3. Scheduled bill with auto-generation enabled
       const shouldBurstFresh =

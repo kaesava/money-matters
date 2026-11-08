@@ -20,6 +20,7 @@ export const incomeSources = pgTable("income_sources", {
   endDate: date("end_date"),
   contributionMode: incomeContributionModeEnum("contribution_mode").notNull().default("FULL"),
   contributionValue: numeric("contribution_value", { precision: 12, scale: 2 }),
+  lastBurstDate: date("last_burst_date"),
   ...tenantAndTimestamps,
 });
 

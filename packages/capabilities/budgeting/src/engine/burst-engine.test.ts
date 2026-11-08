@@ -51,4 +51,49 @@ describe('Recurrence Burst Date Engine', () => {
     expect(dates24.length).toBeGreaterThanOrEqual(24);
     expect(dates24.length).toBeLessThanOrEqual(26);
   });
+
+  it('supports incremental bursts with afterDateStr strictly excluding prior occurrences', () => {
+    const fmtAest = (d: Date) => new Intl.DateTimeFormat('en-CA', { timeZone: 'Australia/Sydney' }).format(d);
+    const startDate = '2026-01-01';
+    const allDates = generateBurstDates('FREQ=MONTHLY', startDate, null, 12);
+    expect(allDates.length).toBeGreaterThan(6);
+
+    const fifthDateStr = fmtAest(allDates[4]);
+    // Incremental burst using 5th date as afterDateStr
+    const incrementalDates = generateBurstDates('FREQ=MONTHLY', startDate, null, 12, 1000, fifthDateStr);
+
+    expect(incrementalDates.length).toBe(allDates.length - 5);
+    for (const d of incrementalDates) {
+      expect(fmtAest(d) > fifthDateStr).toBe(true);
+    }
+    // Verify first incremental date is the 6th date
+    expect(fmtAest(incrementalDates[0])).toBe(fmtAest(allDates[5]));
+  });
+
+  it('preserves bi-weekly phase alignment in incremental burst', () => {
+    const fmtAest = (d: Date) => new Intl.DateTimeFormat('en-CA', { timeZone: 'Australia/Sydney' }).format(d);
+    const startDate = '2026-01-01'; // Thursday
+    const fullFortnightly = generateBurstDates('FREQ=WEEKLY;INTERVAL=2', startDate, null, 6);
+    expect(fullFortnightly.length).toBeGreaterThan(4);
+
+    const thirdDateStr = fmtAest(fullFortnightly[2]);
+    const incrementalFortnightly = generateBurstDates(
+      'FREQ=WEEKLY;INTERVAL=2',
+      startDate,
+      null,
+      6,
+      1000,
+      thirdDateStr
+    );
+
+    expect(incrementalFortnightly.length).toBe(fullFortnightly.length - 3);
+    expect(fmtAest(incrementalFortnightly[0])).toBe(fmtAest(fullFortnightly[3]));
+  });
+
+  it('returns empty array when afterDateStr meets or exceeds limitDate', () => {
+    const now = new Date();
+    const futureDate = new Date(now.getFullYear(), now.getMonth() + 13, 1).toISOString().slice(0, 10);
+    const dates = generateBurstDates('FREQ=MONTHLY', '2026-01-01', null, 12, 1000, futureDate);
+    expect(dates).toHaveLength(0);
+  });
 });

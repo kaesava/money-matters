@@ -42,6 +42,29 @@ export default function AppLayout() {
   });
 
   const utils = trpc.useUtils();
+  const burstUpcomingEvents = trpc.burstUpcomingEvents.useMutation();
+  const lastBurstTenantId = React.useRef<string | null>(null);
+
+  // Auto-burst rolling window of scheduled bills and income on authenticated tenant entry
+  React.useEffect(() => {
+    const activeTenantId = getActiveTenantId() || tenantStatusQuery.data?.tenantId;
+    if (session?.user && activeTenantId && lastBurstTenantId.current !== activeTenantId) {
+      lastBurstTenantId.current = activeTenantId;
+      burstUpcomingEvents.mutate(undefined, {
+        onSuccess: (res) => {
+          if (res?.newEventsCount && res.newEventsCount > 0) {
+            utils.listIncomeEvents.invalidate();
+            utils.listExpenseEvents.invalidate();
+            utils.listPools.invalidate();
+          }
+        },
+        onError: (err) => {
+          console.warn('[AppLayout] burstUpcomingEvents failed:', err);
+        },
+      });
+    }
+  }, [session?.user, tenantStatusQuery.data?.tenantId, burstUpcomingEvents, utils]);
+
   React.useEffect(() => {
     if (userTenantsQuery.data && userTenantsQuery.data.length > 0) {
       const currentActive = getActiveTenantId();

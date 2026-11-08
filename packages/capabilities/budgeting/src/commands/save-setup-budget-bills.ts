@@ -1,4 +1,4 @@
-import { DbOrTx, expenseEvents } from "@money-matters/db";
+import { DbOrTx, expenseEvents, envelopes } from "@money-matters/db";
 import { and, eq, sql } from "drizzle-orm";
 import {
   EnvelopeScheduleCandidate,
@@ -59,7 +59,26 @@ export async function processSetupScheduledBills(
 
   if (candidates.length > 0) {
     const { eventsToInsert } = buildEnvelopeEventPayloads(candidates, tenantId, appId, userId, now, timeZone);
-    return await insertEnvelopeEventsBulk(tx, eventsToInsert);
+    const count = await insertEnvelopeEventsBulk(tx, eventsToInsert);
+
+    if (eventsToInsert.length > 0) {
+      const maxDateByEnvelope = new Map<string, string>();
+      for (const ev of eventsToInsert) {
+        if (!ev.envelopeId || !ev.expectedDate) continue;
+        const cur = maxDateByEnvelope.get(ev.envelopeId);
+        if (!cur || ev.expectedDate > cur) {
+          maxDateByEnvelope.set(ev.envelopeId, ev.expectedDate);
+        }
+      }
+      for (const [envelopeId, maxDate] of maxDateByEnvelope.entries()) {
+        await tx
+          .update(envelopes)
+          .set({ lastBurstDate: maxDate, updatedAt: now, updatedBy: userId })
+          .where(eq(envelopes.id, envelopeId));
+      }
+    }
+
+    return count;
   }
 
   return 0;

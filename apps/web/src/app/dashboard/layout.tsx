@@ -49,6 +49,27 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const tenantsQuery = trpc.listUserTenants.useQuery(undefined, { enabled: !!session?.user });
   const { status: subStatus, isLoading: isSubLoading } = useSubscriptionStatus();
 
+  const burstUpcomingEvents = trpc.burstUpcomingEvents.useMutation();
+  const lastBurstTenantId = React.useRef<string | null>(null);
+
+  // Auto-burst rolling window of scheduled bills and income on authenticated tenant entry
+  useEffect(() => {
+    const activeTenantId = tenantStatusQuery.data?.tenantId;
+    if (session?.user && hasTenant && activeTenantId && lastBurstTenantId.current !== activeTenantId) {
+      lastBurstTenantId.current = activeTenantId;
+      burstUpcomingEvents.mutate(undefined, {
+        onSuccess: (res) => {
+          if (res?.newEventsCount && res.newEventsCount > 0) {
+            utils.listIncomeEvents.invalidate();
+            utils.listExpenseEvents.invalidate();
+            utils.listPools.invalidate();
+            utils.listBankAccountsWithExpected.invalidate();
+          }
+        },
+      });
+    }
+  }, [session?.user, hasTenant, tenantStatusQuery.data?.tenantId, burstUpcomingEvents, utils]);
+
   // Expired Trial Guard: redirect to /dashboard/settings?tab=account-data when trial has ended
   useEffect(() => {
     if (!isSubLoading && subStatus?.isTrialExpired) {

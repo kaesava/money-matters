@@ -11,6 +11,7 @@ import {
   getProjectedPoolBalancesQuery,
   saveSetupBudgetHandler,
   getHomeSummaryQuery,
+  maintainRollingWindowCommand,
 } from "@money-matters/capability-budgeting";
 import {
   CreateEnvelopeCommand,
@@ -151,5 +152,16 @@ export const budgetingRouter = {
   getHomeSummary: privateTenantProcedure
     .query(async ({ ctx }) => {
       return await getHomeSummaryQuery(ctx.tenantId!, ctx.appId!, ctx.userId!, ctx.db);
+    }),
+
+  burstUpcomingEvents: privateTenantProcedure
+    .mutation(async ({ ctx }) => {
+      requiresWriteAccess(ctx);
+      return await maintainRollingWindowCommand({
+        db: ctx.db,
+        tenantId: ctx.tenantId!,
+        appId: ctx.appId!,
+        userId: ctx.userId!,
+      });
     }),
 };

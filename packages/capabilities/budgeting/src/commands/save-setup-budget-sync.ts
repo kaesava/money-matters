@@ -1,4 +1,4 @@
-import { DbOrTx, expenseEvents, incomeEvents } from "@money-matters/db";
+import { DbOrTx, expenseEvents, incomeEvents, envelopes, incomeSources } from "@money-matters/db";
 import { and, eq, inArray, sql } from "drizzle-orm";
 import { generateBurstDates } from "../engine/burst-engine.js";
 
@@ -55,26 +55,32 @@ export async function synchronizeUpdatedIncomeEvents(
 
     const dates = generateBurstDates(params.rrule, params.startDate, null, 12);
     if (dates.length > 0) {
-      await tx.insert(incomeEvents).values(
-        dates.map((d) => {
-          const dateStr = new Intl.DateTimeFormat("en-CA", { timeZone: "Australia/Sydney" }).format(d);
-          return {
-            tenantId: params.tenantId,
-            appId: params.appId,
-            incomeSourceId: sourceId,
-            name: params.name,
-            expectedDate: dateStr,
-            actualDate: dateStr,
-            expectedAmount: params.amount,
-            actualAmount: params.amount,
-            status: "PENDING" as const,
-            createdAt: params.now,
-            createdBy: params.userId,
-            updatedAt: params.now,
-            updatedBy: params.userId,
-          };
-        })
-      );
+      const eventPayloads = dates.map((d) => {
+        const dateStr = new Intl.DateTimeFormat("en-CA", { timeZone: "Australia/Sydney" }).format(d);
+        return {
+          tenantId: params.tenantId,
+          appId: params.appId,
+          incomeSourceId: sourceId,
+          name: params.name,
+          expectedDate: dateStr,
+          actualDate: dateStr,
+          expectedAmount: params.amount,
+          actualAmount: params.amount,
+          status: "PENDING" as const,
+          createdAt: params.now,
+          createdBy: params.userId,
+          updatedAt: params.now,
+          updatedBy: params.userId,
+        };
+      });
+
+      await tx.insert(incomeEvents).values(eventPayloads);
+
+      const maxDate = eventPayloads[eventPayloads.length - 1].expectedDate;
+      await tx
+        .update(incomeSources)
+        .set({ lastBurstDate: maxDate, updatedAt: params.now, updatedBy: params.userId })
+        .where(eq(incomeSources.id, sourceId));
     }
   } else if (nameOrAmountChanged) {
     await tx
@@ -114,23 +120,34 @@ export async function synchronizeUpdatedEnvelopeEvents(
     if (shouldBurst && parseFloat(params.amount) > 0) {
       const dates = generateBurstDates(params.rrule, params.startDate, null, 12);
       if (dates.length > 0) {
-        await tx.insert(expenseEvents).values(
-          dates.map((d) => ({
-            tenantId: params.tenantId,
-            appId: params.appId,
-            envelopeId,
-            name: params.name,
-            expectedDate: new Intl.DateTimeFormat("en-CA", { timeZone: tz }).format(d),
-            expectedAmount: params.amount,
-            isScheduled: true,
-            status: "PENDING" as const,
-            createdAt: params.now,
-            createdBy: params.userId,
-            updatedAt: params.now,
-            updatedBy: params.userId,
-          }))
-        );
+        const eventPayloads = dates.map((d) => ({
+          tenantId: params.tenantId,
+          appId: params.appId,
+          envelopeId,
+          name: params.name,
+          expectedDate: new Intl.DateTimeFormat("en-CA", { timeZone: tz }).format(d),
+          expectedAmount: params.amount,
+          isScheduled: true,
+          status: "PENDING" as const,
+          createdAt: params.now,
+          createdBy: params.userId,
+          updatedAt: params.now,
+          updatedBy: params.userId,
+        }));
+
+        await tx.insert(expenseEvents).values(eventPayloads);
+
+        const maxDate = eventPayloads[eventPayloads.length - 1].expectedDate;
+        await tx
+          .update(envelopes)
+          .set({ lastBurstDate: maxDate, updatedAt: params.now, updatedBy: params.userId })
+          .where(eq(envelopes.id, envelopeId));
       }
+    } else {
+      await tx
+        .update(envelopes)
+        .set({ lastBurstDate: null, updatedAt: params.now, updatedBy: params.userId })
+        .where(eq(envelopes.id, envelopeId));
     }
   } else if (nameOrAmountChanged) {
     await tx

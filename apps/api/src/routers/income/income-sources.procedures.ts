@@ -163,6 +163,13 @@ export const incomeSourcesProcedures = {
             )
           ).returning();
           firstEventId = insertedEvents[0]?.id ?? null;
+          const lastDate = insertedEvents[insertedEvents.length - 1]?.expectedDate;
+          if (lastDate) {
+            await ctx.db
+              .update(incomeSources)
+              .set({ lastBurstDate: lastDate, updatedAt: new Date(), updatedBy: ctx.userId! })
+              .where(eq(incomeSources.id, source.id));
+          }
         }
       }
 
@@ -349,25 +356,27 @@ export const incomeSourcesProcedures = {
           .where(inArray(incomeEvents.id, unperformedEvents.map((e) => e.id)));
       }
 
+      let newLastBurstDate: string | undefined = undefined;
+
       if (rrule) {
         const dates = generateBurstDates(rrule, newStartDate, newEndDate, 12);
         if (dates.length > 0) {
-          await ctx.db.insert(incomeEvents).values(
-            await Promise.all(
-              dates.map(async (d) => ({
-                incomeSourceId: source.id,
-                expectedDate: await getTenantLocalDateString(ctx.db, ctx.tenantId!, d),
-                expectedAmount: newAmount,
-                contributionMode: targetMode || "FULL",
-                contributionValue: targetValue || null,
-                status: "PENDING" as const,
-                tenantId: ctx.tenantId!,
-                appId: ctx.appId!,
-                createdBy: ctx.userId!,
-                updatedBy: ctx.userId!,
-              }))
-            )
+          const eventPayloads = await Promise.all(
+            dates.map(async (d) => ({
+              incomeSourceId: source.id,
+              expectedDate: await getTenantLocalDateString(ctx.db, ctx.tenantId!, d),
+              expectedAmount: newAmount,
+              contributionMode: targetMode || "FULL",
+              contributionValue: targetValue || null,
+              status: "PENDING" as const,
+              tenantId: ctx.tenantId!,
+              appId: ctx.appId!,
+              createdBy: ctx.userId!,
+              updatedBy: ctx.userId!,
+            }))
           );
+          await ctx.db.insert(incomeEvents).values(eventPayloads);
+          newLastBurstDate = eventPayloads[eventPayloads.length - 1].expectedDate;
         }
       }
 
@@ -380,6 +389,7 @@ export const incomeSourcesProcedures = {
           rrule,
           startDate: newStartDate,
           endDate: newEndDate,
+          ...(newLastBurstDate !== undefined ? { lastBurstDate: newLastBurstDate } : {}),
           ...(input.data.contributionMode !== undefined ? { contributionMode: input.data.contributionMode } : {}),
           ...(input.data.contributionValue !== undefined ? { contributionValue: input.data.contributionValue } : {}),
           updatedAt: new Date(),

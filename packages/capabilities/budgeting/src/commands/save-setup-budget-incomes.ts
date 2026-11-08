@@ -149,6 +149,24 @@ export async function processSetupIncomes(
     }
 
     const { eventsToInsert } = buildIncomeEventPayloads(newIncomeCandidates, existingDatesBySource, tenantId, appId, userId, now);
-    await insertIncomeEventsBulk(tx, eventsToInsert);
+    if (eventsToInsert.length > 0) {
+      await insertIncomeEventsBulk(tx, eventsToInsert);
+
+      const maxDateBySource = new Map<string, string>();
+      for (const ev of eventsToInsert) {
+        if (!ev.incomeSourceId || !ev.expectedDate) continue;
+        const cur = maxDateBySource.get(ev.incomeSourceId);
+        if (!cur || ev.expectedDate > cur) {
+          maxDateBySource.set(ev.incomeSourceId, ev.expectedDate);
+        }
+      }
+
+      for (const [sourceId, maxDate] of maxDateBySource.entries()) {
+        await tx
+          .update(incomeSources)
+          .set({ lastBurstDate: maxDate, updatedAt: now, updatedBy: userId })
+          .where(eq(incomeSources.id, sourceId));
+      }
+    }
   }
 }

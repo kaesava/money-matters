@@ -4,7 +4,7 @@ import { updateEnvelopeCommand } from "./update-envelope.command.js";
 import { overrideEventCommand } from "./override-event.command.js";
 import { maintainRollingWindowCommand } from "./maintain-rolling-window.command.js";
 import { restoreItemCommand } from "./restore-item.command.js";
-import { envelopes, expenseEvents, tenants } from "@money-matters/db";
+import { envelopes, expenseEvents, incomeSources, tenants } from "@money-matters/db";
 import type { DbOrTx } from "@money-matters/db";
 
 describe("Envelope Lifecycle & Event Sync", () => {
@@ -291,5 +291,73 @@ describe("Envelope Lifecycle & Event Sync", () => {
 
     await restoreItemCommand("env-opted-out", "ENVELOPE", tenantId, appId, userId, mockDb);
     expect(insertedEvents).toBe(false);
+  });
+
+  it("maintainRollingWindowCommand incrementally bursts only occurrences strictly after lastBurstDate", async () => {
+    let insertedExpensePayloads: any[] = [];
+    let updatedEnvelopePayload: any = null;
+
+    const mockDb = {
+      select: vi.fn().mockReturnValue({
+        from: vi.fn().mockImplementation((table: any) => ({
+          where: vi.fn().mockImplementation(() => {
+            if (table === tenants) {
+              return { limit: vi.fn().mockResolvedValue([{ timezone: "Australia/Sydney" }]) };
+            }
+            if (table === incomeSources) {
+              return Promise.resolve([]);
+            }
+            if (table === envelopes) {
+              return Promise.resolve([
+                {
+                  id: "env-incremental",
+                  name: "Internet Bill",
+                  envelopeType: "SCHEDULED_BILL",
+                  generateEvents: true,
+                  rrule: "FREQ=MONTHLY;INTERVAL=1",
+                  startDate: "2026-01-01",
+                  enteredAmount: "80.00",
+                  monthlyAmount: "80.00",
+                  // Already burst up to 6 months in the future from 2026-01-01
+                  lastBurstDate: "2026-06-01",
+                },
+              ]);
+            }
+            return Promise.resolve([]);
+          }),
+        })),
+      }),
+      insert: vi.fn().mockImplementation(() => ({
+        values: vi.fn().mockImplementation((payloads: any[]) => {
+          insertedExpensePayloads = payloads;
+          return Promise.resolve(payloads);
+        }),
+      })),
+      update: vi.fn().mockReturnValue({
+        set: vi.fn().mockImplementation((payload: any) => {
+          updatedEnvelopePayload = payload;
+          return {
+            where: vi.fn().mockResolvedValue([]),
+          };
+        }),
+      }),
+    } as unknown as DbOrTx;
+
+    const res = await maintainRollingWindowCommand({
+      db: mockDb,
+      tenantId,
+      appId,
+      userId,
+    });
+
+    expect(res.success).toBe(true);
+    expect(res.expenseEventsCreated).toBeGreaterThan(0);
+    // All inserted events must have expectedDate > 2026-06-01
+    for (const ev of insertedExpensePayloads) {
+      expect(ev.expectedDate > "2026-06-01").toBe(true);
+    }
+    // Verify lastBurstDate on envelope is advanced
+    expect(updatedEnvelopePayload).toBeDefined();
+    expect(updatedEnvelopePayload.lastBurstDate > "2026-06-01").toBe(true);
   });
 });
