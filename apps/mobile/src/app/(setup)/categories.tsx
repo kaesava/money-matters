@@ -288,13 +288,15 @@ export default function SetupCategoriesScreen() {
                   name: draft.name,
                   type: draft.type,
                   envelopeType: draft.envelopeType,
+                  fundingMode: draft.fundingMode,
+                  isPriority: draft.isPriority ?? Boolean(draft.isEssential || draft.isCommitted),
                   monthlyAud: num,
                   startDate: draft.startDate,
                   endDate: draft.endDate,
                   rrule: draft.rrule,
                   budgetFrequency: draft.budgetFrequency,
                   generateEvents: draft.generateEvents,
-                  icon: draft.type === 'REGULAR' ? '📌' : '🛒',
+                  icon: draft.type === 'REGULAR' || draft.type === 'BILL' ? '📌' : '🛒',
                 },
               ];
             });

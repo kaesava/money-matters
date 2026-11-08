@@ -23,6 +23,7 @@ export const transactions = {
     "noTransactionsFound": "No history found",
     "date": "Date",
     "type": "Type",
+    "flowType": "Flow Type",
     "details": "Details",
     "types": {
       "expense": "Expense",
@@ -56,6 +57,7 @@ export const transactions = {
       "totalAmount": "Total Amount"
     },
     "title": "History",
+    "viewReports": "View Reports",
     "reporting": {
       "overviewTitle": "Spending Overview",
       "overviewSubtitle": "Spend & Cashflow breakdown",

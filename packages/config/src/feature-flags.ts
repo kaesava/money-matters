@@ -88,6 +88,13 @@ export const FEATURE_FLAGS = {
     tenantScopable: true,
     killSwitchEnabled: false,
   },
+  reports: {
+    key: "reports",
+    owner: "product",
+    expiresAt: "never",
+    tenantScopable: true,
+    killSwitchEnabled: false,
+  },
 } as const;
 
 

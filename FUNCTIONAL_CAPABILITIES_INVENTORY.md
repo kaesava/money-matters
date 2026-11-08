@@ -303,6 +303,21 @@
 
 ---
 
+## 15A. Visual Analytics & Reports (`/dashboard/reports`, `/(app)/reports`)
+
+* **Feature Entitlement**: Guarded by the `reports` app feature flag (defaults to `true`; unauthorized access returns `TRPCError FORBIDDEN`).
+* `[W/M Parity]`: Dedicated visual analytics interface cleanly separated from ledger tables.
+* **Tab 1: Spending & Cash Flow**:
+  * Timeframe pills (`30D`, `90D`, `1Y`).
+  * Search filter, Envelope picker, Bank account picker, and Flow Type filter (`All`, `Expenses Only`, `Income Only`, `Transfers Only`).
+  * Visualizations: Cash flow bar trends (inflow vs outflow), 3-horizon timeframe comparisons, and envelope spending donut distributions.
+* **Tab 2: Payday Plans**:
+  * Timeframe pills (`30D`, `90D`, `1Y`), search filter, and receiving Bank Account picker.
+  * Visualizations: Payday plan flow trends, allocation horizon comparisons, and total ring-fenced funds summaries.
+* `[W vs M Diff]`: Web provides rich desktop layout with responsive grid charts; Mobile provides scrollable card views with `<MobileSpendingOverviewCard>` and bottom filter sheets.
+
+---
+
 ## 16. Settings — My Details (Profile & Preferences)
 
 * **Read-Only Default Mode**: Renders in clean read-only mode by default to prevent accidental edits; explicit "Edit" button enters edit mode with "Save" and "Cancel" (with dirty discard confirm).

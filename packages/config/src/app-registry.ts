@@ -26,6 +26,7 @@ export interface AppConfig {
     fileNotes: boolean;
     simulation: boolean;
     customAllocationRules: boolean;
+    reports: boolean;
   };
 }
 
@@ -48,6 +49,7 @@ const REGISTRY: Record<string, AppConfig> = {
       fileNotes: true,
       simulation: true,
       customAllocationRules: true,
+      reports: true,
     },
   },
 };

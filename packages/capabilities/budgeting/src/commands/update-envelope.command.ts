@@ -124,30 +124,46 @@ export async function updateEnvelopeCommand(
         .where(and(...clearConditions));
     }
 
-    const effectiveEnvelopeType = input.envelopeType ?? existing.envelopeType;
-    const isNowScheduled = effectiveEnvelopeType === "SCHEDULED_BILL";
+    const { fundingMode, isPriority, ...restInput } = input;
+
+    const rawEnvelopeType = restInput.envelopeType ?? existing.envelopeType;
+    const effectiveFundingMode = fundingMode ?? (
+      existing.envelopeType === "SCHEDULED_BILL" ? "RECURRING" :
+      existing.envelopeType === "FLEXIBLE_BILL" ? "TARGET_BALANCE" :
+      existing.envelopeType === "TARGET_GOAL" ? "TARGET_BALANCE" :
+      existing.envelopeType === "ONGOING_GOAL" ? "RECURRING" : undefined
+    );
+
+    const effectiveDbEnvelopeType =
+      rawEnvelopeType === "BILL"
+        ? (effectiveFundingMode === "RECURRING" ? "SCHEDULED_BILL" : "FLEXIBLE_BILL")
+        : rawEnvelopeType === "GOAL"
+        ? ((restInput.goalMode ?? existing.goalMode) === "TARGET_DATE" ? "TARGET_GOAL" : "ONGOING_GOAL")
+        : rawEnvelopeType;
+
+    const isNowScheduled = effectiveDbEnvelopeType === "SCHEDULED_BILL";
     const wasScheduled = existing.envelopeType === "SCHEDULED_BILL";
 
-    const budgetFrequency = input.budgetFrequency ?? existing.budgetFrequency;
-    const isTargetGoal = effectiveEnvelopeType === "TARGET_GOAL";
-    const isOngoingGoal = effectiveEnvelopeType === "ONGOING_GOAL";
+    const budgetFrequency = restInput.budgetFrequency ?? existing.budgetFrequency;
+    const isTargetGoal = effectiveDbEnvelopeType === "TARGET_GOAL";
+    const isOngoingGoal = effectiveDbEnvelopeType === "ONGOING_GOAL";
 
     let rrule: string | null = null;
     let startDate: string | null = null;
     let endDate: string | null = null;
 
     if (isNowScheduled) {
-      rrule = input.rrule ?? (input.budgetFrequency ? deriveRruleFromFrequency(budgetFrequency) : existing.rrule);
-      startDate = input.startDate ?? (existing.startDate || computeDefaultStartDate());
-      endDate = input.endDate !== undefined ? input.endDate : existing.endDate;
+      rrule = restInput.rrule ?? (restInput.budgetFrequency ? deriveRruleFromFrequency(budgetFrequency) : existing.rrule);
+      startDate = restInput.startDate ?? (existing.startDate || computeDefaultStartDate());
+      endDate = restInput.endDate !== undefined ? restInput.endDate : existing.endDate;
     } else if (isOngoingGoal) {
-      rrule = input.rrule ?? (input.budgetFrequency ? deriveRruleFromFrequency(budgetFrequency) : existing.rrule);
-      startDate = input.startDate !== undefined ? input.startDate : existing.startDate;
-      endDate = input.endDate !== undefined ? input.endDate : existing.endDate;
+      rrule = restInput.rrule ?? (restInput.budgetFrequency ? deriveRruleFromFrequency(budgetFrequency) : existing.rrule);
+      startDate = restInput.startDate !== undefined ? restInput.startDate : existing.startDate;
+      endDate = restInput.endDate !== undefined ? restInput.endDate : existing.endDate;
     } else if (isTargetGoal) {
       rrule = null;
       startDate = null;
-      endDate = input.endDate !== undefined ? input.endDate : existing.endDate;
+      endDate = restInput.endDate !== undefined ? restInput.endDate : existing.endDate;
     } else {
       // FLEXIBLE_BILL or EVERYDAY
       rrule = null;
@@ -159,14 +175,16 @@ export async function updateEnvelopeCommand(
       throw new Error("End date cannot be earlier than start date.");
     }
 
-    const effectiveGenerateEvents = input.generateEvents !== undefined ? input.generateEvents : existing.generateEvents;
+    const effectiveGenerateEvents = restInput.generateEvents !== undefined ? restInput.generateEvents : existing.generateEvents;
 
     const [updated] = await tx
       .update(envelopes)
       .set({
-        ...input,
-        envelopeType: effectiveEnvelopeType,
-        safetyBufferFloor: input.safetyBufferFloor !== undefined ? input.safetyBufferFloor || "0.00" : undefined,
+        ...restInput,
+        envelopeType: effectiveDbEnvelopeType,
+        isEssential: isPriority !== undefined ? isPriority : restInput.isEssential,
+        isCommitted: isPriority !== undefined ? isPriority : restInput.isCommitted,
+        safetyBufferFloor: restInput.safetyBufferFloor !== undefined ? restInput.safetyBufferFloor || "0.00" : undefined,
         startDate,
         endDate,
         rrule,

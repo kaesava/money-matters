@@ -34,6 +34,8 @@ export interface EnvelopeItem {
   healthStatus?: string | null;
   isSurplusTarget?: boolean | null;
   hasScheduledEvents?: boolean | null;
+  fundingMode?: "TARGET_BALANCE" | "RECURRING" | null;
+  isPriority?: boolean | null;
   isEssential?: boolean | null;
   isCommitted?: boolean | null;
   isPrivate?: boolean | null;
@@ -41,8 +43,9 @@ export interface EnvelopeItem {
 
 export interface EnvelopeDraftPayload {
   name: string;
-  type: "GOAL" | "REGULAR" | "EVERYDAY";
-  envelopeType: "EVERYDAY" | "SCHEDULED_BILL" | "FLEXIBLE_BILL" | "TARGET_GOAL" | "ONGOING_GOAL";
+  type: "GOAL" | "REGULAR" | "EVERYDAY" | "BILL";
+  envelopeType: "EVERYDAY" | "BILL" | "GOAL" | "SCHEDULED_BILL" | "FLEXIBLE_BILL" | "TARGET_GOAL" | "ONGOING_GOAL";
+  fundingMode?: "TARGET_BALANCE" | "RECURRING";
   monthlyAmount?: string;
   enteredAmount?: string;
   targetAmount?: string;
@@ -52,6 +55,7 @@ export interface EnvelopeDraftPayload {
   rrule?: string;
   goalMode?: "TARGET_DATE" | "ONGOING";
   isSurplusTarget?: boolean;
+  isPriority?: boolean;
   isEssential?: boolean;
   isCommitted?: boolean;
   bankAccountId?: string;
@@ -127,6 +131,8 @@ export function EnvelopeFormModal({
     setBankAccountId,
     isSurplusTarget,
     setIsSurplusTarget,
+    isPriority,
+    setIsPriority,
     isEssential,
     setIsEssential,
     isCommitted,
@@ -355,6 +361,8 @@ export function EnvelopeFormModal({
         isTargetDateInPast={isTargetDateInPast}
         isSurplusTarget={isSurplusTarget}
         setIsSurplusTarget={setIsSurplusTarget}
+        isPriority={isPriority}
+        setIsPriority={setIsPriority}
         isEssential={isEssential}
         setIsEssential={setIsEssential}
         isCommitted={isCommitted}

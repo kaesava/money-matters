@@ -206,6 +206,7 @@ export default function AppLayout() {
         />
 
         {/* Hidden push routes — not in tab bar */}
+        <Tabs.Screen name="reports" options={{ href: null }} />
         <Tabs.Screen name="income-split" options={{ href: null }} />
         <Tabs.Screen name="upcoming" options={{ href: null }} />
         <Tabs.Screen name="settings" options={{ href: null }} />

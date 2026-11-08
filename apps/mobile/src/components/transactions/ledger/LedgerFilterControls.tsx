@@ -17,6 +17,7 @@ export interface LedgerFilterControlsProps {
   matchedBankName?: string;
   onClearPool: () => void;
   onClearBank: () => void;
+  onOpenReports?: () => void;
 }
 
 export function LedgerFilterControls({
@@ -32,6 +33,7 @@ export function LedgerFilterControls({
   matchedBankName,
   onClearPool,
   onClearBank,
+  onOpenReports,
 }: LedgerFilterControlsProps) {
   return (
     <View style={styles.lockedHeader}>
@@ -59,6 +61,16 @@ export function LedgerFilterControls({
             {activeCount > 0 ? ` (${activeCount})` : ''}
           </Text>
         </TouchableOpacity>
+
+        {onOpenReports && (
+          <TouchableOpacity
+            onPress={onOpenReports}
+            style={styles.csvBtn}
+            activeOpacity={0.7}
+          >
+            <Feather name="bar-chart-2" size={14} color={DESIGN_TOKENS.colors.sereneBlue} />
+          </TouchableOpacity>
+        )}
 
         <TouchableOpacity
           onPress={onExportCsv}

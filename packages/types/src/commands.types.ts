@@ -51,11 +51,14 @@ export const CreateEnvelopeCommand = z.object({
   name: z.string().min(1, "Envelope name is required"),
   envelopeType: z.enum([
     "EVERYDAY",
+    "BILL",
+    "GOAL",
     "SCHEDULED_BILL",
     "FLEXIBLE_BILL",
     "TARGET_GOAL",
     "ONGOING_GOAL",
   ]),
+  fundingMode: z.enum(["TARGET_BALANCE", "RECURRING"]).optional().nullable(),
   bankAccountId: z.string().uuid("Please select a bank account"),
   safetyBufferFloor: z.string().regex(/^(\d{1,12}(\.\d{1,2})?)?$/, { message: "Safety buffer must be a valid positive number" }).optional().nullable(),
   monthlyAmount: z.string().regex(/^(\d{1,12}(\.\d{1,2})?)?$/, { message: "Target amount must be a valid positive number" }).optional().nullable(),
@@ -66,6 +69,7 @@ export const CreateEnvelopeCommand = z.object({
   rrule: z.string().optional().nullable(),
   goalMode: z.enum(["TARGET_DATE", "ONGOING"]).optional().default("TARGET_DATE"),
   targetAmount: z.string().regex(/^(\d{1,12}(\.\d{1,2})?)?$/, { message: "Target amount must be a valid positive number" }).optional().nullable(),
+  isPriority: z.boolean().default(false).optional(),
   isEssential: z.boolean().default(false).optional(),
   isCommitted: z.boolean().default(false).optional(),
   isSurplusTarget: z.boolean().default(false).optional(),
@@ -75,7 +79,7 @@ export const CreateEnvelopeCommand = z.object({
   orderIndex: z.number().int().default(0).optional(),
   generateEvents: z.boolean().optional(),
 }).strict().superRefine((data, ctx) => {
-  if (data.envelopeType === "TARGET_GOAL" || data.envelopeType === "ONGOING_GOAL") {
+  if (data.envelopeType === "GOAL" || data.envelopeType === "TARGET_GOAL" || data.envelopeType === "ONGOING_GOAL") {
     const hasAmount = (data.targetAmount && parseFloat(data.targetAmount) > 0) || (data.enteredAmount && parseFloat(data.enteredAmount) > 0);
     if (!hasAmount) {
       ctx.addIssue({
@@ -84,7 +88,7 @@ export const CreateEnvelopeCommand = z.object({
         path: ["targetAmount"],
       });
     }
-    if (data.envelopeType === "TARGET_GOAL" && !data.endDate) {
+    if ((data.envelopeType === "TARGET_GOAL" || (data.envelopeType === "GOAL" && data.fundingMode === "TARGET_BALANCE" && data.goalMode === "TARGET_DATE")) && !data.endDate) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         message: "Completion date is required for Target Date Goal envelopes",
@@ -96,7 +100,16 @@ export const CreateEnvelopeCommand = z.object({
 
 export const UpdateEnvelopeCommand = z.object({
   name: z.string().min(1, "Envelope name is required").optional(),
-  envelopeType: z.enum(["EVERYDAY", "SCHEDULED_BILL", "FLEXIBLE_BILL", "TARGET_GOAL", "ONGOING_GOAL"]).optional(),
+  envelopeType: z.enum([
+    "EVERYDAY",
+    "BILL",
+    "GOAL",
+    "SCHEDULED_BILL",
+    "FLEXIBLE_BILL",
+    "TARGET_GOAL",
+    "ONGOING_GOAL",
+  ]).optional(),
+  fundingMode: z.enum(["TARGET_BALANCE", "RECURRING"]).optional().nullable(),
   bankAccountId: z.string().uuid("Please select a bank account").optional(),
   safetyBufferFloor: z.string().regex(/^(\d{1,12}(\.\d{1,2})?)?$/, { message: "Safety buffer must be a valid positive number" }).optional().nullable(),
   monthlyAmount: z.string().regex(/^(\d{1,12}(\.\d{1,2})?)?$/, { message: "Target amount must be a valid positive number" }).optional().nullable(),
@@ -107,6 +120,7 @@ export const UpdateEnvelopeCommand = z.object({
   rrule: z.string().optional().nullable(),
   goalMode: z.enum(["TARGET_DATE", "ONGOING"]).optional(),
   targetAmount: z.string().regex(/^(\d{1,12}(\.\d{1,2})?)?$/, { message: "Target amount must be a valid positive number" }).optional().nullable(),
+  isPriority: z.boolean().optional(),
   isEssential: z.boolean().optional(),
   isCommitted: z.boolean().optional(),
   isSurplusTarget: z.boolean().optional(),
@@ -337,11 +351,14 @@ export const SaveSetupBudgetCommand = z.object({
     name: z.string().min(1).max(100),
     envelopeType: z.enum([
       "EVERYDAY",
+      "BILL",
+      "GOAL",
       "SCHEDULED_BILL",
       "FLEXIBLE_BILL",
       "TARGET_GOAL",
       "ONGOING_GOAL",
     ]),
+    fundingMode: z.enum(["TARGET_BALANCE", "RECURRING"]).optional().nullable(),
     goalMode: z.enum(["TARGET_DATE", "ONGOING"]).optional(),
     targetAmount: z.string().regex(/^(\d{1,12}(\.\d{1,2})?)?$/).optional().nullable(),
     monthlyAmount: z.string().regex(/^(\d{1,12}(\.\d{1,2})?)?$/).optional().nullable(),
@@ -352,6 +369,7 @@ export const SaveSetupBudgetCommand = z.object({
     rrule: z.string().optional().nullable(),
     safetyBufferFloor: z.string().regex(/^(\d{1,12}(\.\d{1,2})?)?$/).optional().nullable(),
     isSurplusTarget: z.boolean().default(false),
+    isPriority: z.boolean().optional(),
     isCommitted: z.boolean().default(false),
     isEssential: z.boolean().default(false),
     isPrivate: z.boolean().default(false),

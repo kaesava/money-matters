@@ -4,8 +4,14 @@ import { BaseSchema } from "./tenant.types.js";
 export const EnvelopeHealthStatusSchema = z.enum(["GREEN", "AMBER", "RED"]);
 export type EnvelopeHealthStatus = z.infer<typeof EnvelopeHealthStatusSchema>;
 
+export const FundingModeSchema = z.enum(["TARGET_BALANCE", "RECURRING"]);
+export type FundingMode = z.infer<typeof FundingModeSchema>;
+export const FundingModeEnum = FundingModeSchema;
+
 export const EnvelopeTypeSchema = z.enum([
   "EVERYDAY",
+  "BILL",
+  "GOAL",
   "SCHEDULED_BILL",
   "FLEXIBLE_BILL",
   "TARGET_GOAL",
@@ -25,6 +31,7 @@ export const EnvelopeSchema = BaseSchema.extend({
   tenantId: z.string().uuid(),
   name: z.string().min(1),
   envelopeType: EnvelopeTypeSchema,
+  fundingMode: FundingModeSchema.nullable().optional(),
   bankAccountId: z.string().uuid(),
   safetyBufferFloor: z.string().nullable().optional(),
   monthlyAmount: z.string().nullable().optional(),
@@ -35,6 +42,7 @@ export const EnvelopeSchema = BaseSchema.extend({
   rrule: z.string().nullable().optional(),
   goalMode: GoalModeSchema.default("TARGET_DATE").optional(),
   targetAmount: z.string().nullable().optional(),
+  isPriority: z.boolean().default(false),
   isEssential: z.boolean().default(false),
   isCommitted: z.boolean().default(false),
   isSurplusTarget: z.boolean().default(false),
@@ -50,6 +58,7 @@ export const EnvelopeListItemDtoSchema = z.object({
   id: z.string().uuid(),
   name: z.string(),
   envelopeType: EnvelopeTypeSchema,
+  fundingMode: FundingModeSchema.nullable().optional(),
   bankAccountId: z.string().uuid().nullable(),
   bankAccountName: z.string().nullable(),
   safetyBufferFloor: z.string().nullable(),
@@ -61,6 +70,7 @@ export const EnvelopeListItemDtoSchema = z.object({
   rrule: z.string().nullable(),
   goalMode: GoalModeSchema.nullable().optional(),
   targetAmount: z.string().nullable(),
+  isPriority: z.boolean().optional(),
   isEssential: z.boolean(),
   isCommitted: z.boolean(),
   isSurplusTarget: z.boolean(),

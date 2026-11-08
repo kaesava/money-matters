@@ -77,7 +77,7 @@ describe("Bank Reconciliation & Mapping Rules", () => {
             }
             return Promise.resolve([
               { id: "env-1", envelopeType: "EVERYDAY", bankAccountId: "acc-1" },
-              { id: "env-2", envelopeType: "SCHEDULED_BILL", bankAccountId: "acc-1" },
+              { id: "env-2", envelopeType: "BILL", bankAccountId: "acc-1" },
             ]);
           },
         }),

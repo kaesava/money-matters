@@ -61,39 +61,42 @@ export function useSetupCategoriesSubmission() {
           const budgetFreq: 'WEEKLY' | 'FORTNIGHTLY' | 'MONTHLY' | 'QUARTERLY' | 'ANNUALLY' =
             rawFreq === 'YEARLY' ? 'ANNUALLY' : (rawFreq as 'WEEKLY' | 'FORTNIGHTLY' | 'MONTHLY' | 'QUARTERLY' | 'ANNUALLY') || 'MONTHLY';
           const isEveryday = c.type === 'EVERYDAY';
-          const resolvedEnvelopeType = isEveryday
-            ? ('EVERYDAY' as const)
+          const envelopeType: 'EVERYDAY' | 'BILL' | 'GOAL' = isEveryday ? 'EVERYDAY' : 'BILL';
+          const fundingMode: 'TARGET_BALANCE' | 'RECURRING' | undefined = isEveryday
+            ? undefined
             : c.envelopeType === 'FLEXIBLE_BILL'
-            ? ('FLEXIBLE_BILL' as const)
-            : ('SCHEDULED_BILL' as const);
-          const isBill = resolvedEnvelopeType === 'SCHEDULED_BILL' || resolvedEnvelopeType === 'FLEXIBLE_BILL';
+            ? 'TARGET_BALANCE'
+            : 'RECURRING';
           const catId = 'id' in c && typeof c.id === 'string' && !c.id.startsWith('temp-') ? c.id : undefined;
           const matchedPool = (catId ? existingPools.find((p) => p.id === catId) : undefined) ||
-            existingPools.find((p) => p.envelopeType === resolvedEnvelopeType && p.name.trim().toLowerCase() === c.name.trim().toLowerCase());
+            existingPools.find((p) => (p.envelopeType === envelopeType || p.envelopeType === 'BILL' || p.envelopeType === 'SCHEDULED_BILL' || p.envelopeType === 'FLEXIBLE_BILL') && p.name.trim().toLowerCase() === c.name.trim().toLowerCase());
           const resolvedEnvId = catId || matchedPool?.id;
           return {
             id: resolvedEnvId,
             bankAccountId: matchedPool?.bankAccountId || primaryBankAccountId,
             isPrivate: matchedPool?.isPrivate ?? false,
             name: c.name,
-            envelopeType: resolvedEnvelopeType,
+            envelopeType,
+            fundingMode,
             monthlyAmount: (c.monthlyAud || 0).toFixed(2),
             enteredAmount: (c.monthlyAud || 0).toFixed(2),
-            budgetFrequency: resolvedEnvelopeType === 'FLEXIBLE_BILL' ? ('MONTHLY' as const) : budgetFreq,
+            budgetFrequency: fundingMode === 'TARGET_BALANCE' ? ('MONTHLY' as const) : budgetFreq,
             startDate: c.startDate || matchedPool?.startDate,
             endDate: c.endDate || matchedPool?.endDate,
             rrule: c.rrule || matchedPool?.rrule,
-            generateEvents: c.generateEvents ?? true,
-            isEssential: isBill,
+            generateEvents: fundingMode === 'RECURRING' ? (c.generateEvents ?? true) : false,
+            isPriority: !isEveryday,
+            isEssential: !isEveryday,
             orderIndex: idx,
           };
         }),
         ...goals.map((g, idx) => {
           const goalId = g.id?.startsWith('g-') ? undefined : g.id;
           const matchedPool = (goalId ? existingPools.find((p) => p.id === goalId) : undefined) ||
-            existingPools.find((p) => (p.envelopeType === 'ONGOING_GOAL' || p.envelopeType === 'TARGET_GOAL') && p.name.trim().toLowerCase() === g.name.trim().toLowerCase());
+            existingPools.find((p) => (p.envelopeType === 'GOAL' || p.envelopeType === 'ONGOING_GOAL' || p.envelopeType === 'TARGET_GOAL') && p.name.trim().toLowerCase() === g.name.trim().toLowerCase());
           const resolvedGoalId = goalId || matchedPool?.id;
           const isOngoing = g.goalMode === 'ONGOING' || (!g.dueDate && g.budgetFrequency);
+          const fundingMode: 'TARGET_BALANCE' | 'RECURRING' = isOngoing ? 'RECURRING' : 'TARGET_BALANCE';
           const rawAmt = g.enteredAmount !== undefined && g.enteredAmount !== null
             ? g.enteredAmount
             : (g.monthlyAmount || g.targetAmount || 0);
@@ -111,7 +114,8 @@ export function useSetupCategoriesSubmission() {
             id: resolvedGoalId,
             bankAccountId: matchedPool?.bankAccountId || primaryBankAccountId,
             name: g.name,
-            envelopeType: (isOngoing ? 'ONGOING_GOAL' : 'TARGET_GOAL') as 'ONGOING_GOAL' | 'TARGET_GOAL',
+            envelopeType: 'GOAL' as const,
+            fundingMode,
             goalMode: g.goalMode ?? (g.dueDate ? 'TARGET_DATE' : 'ONGOING'),
             targetAmount: (isOngoing
               ? (g.targetAmount !== undefined && g.targetAmount !== null && g.targetAmount > 0
@@ -128,6 +132,7 @@ export function useSetupCategoriesSubmission() {
             startDate: g.startDate,
             rrule: g.rrule,
             isSurplusTarget: idx === effectiveSurplusIndex,
+            isPriority: true,
             isCommitted: true,
             isPrivate: matchedPool?.isPrivate ?? Boolean(g.isPrivate),
             orderIndex: nonGoalCategories.length + idx,

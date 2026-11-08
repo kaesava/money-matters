@@ -1,5 +1,5 @@
 import { privateTenantProcedure, requiresWriteAccess } from '../../trpc/trpc.js';
-import { allocationPlans, allocationPlanLines, envelopes, incomeEvents, incomeSources, bankAccounts } from "@money-matters/db";
+import { allocationPlans, allocationPlanLines, envelopes, incomeEvents, incomeSources, bankAccounts, apps } from "@money-matters/db";
 import { and, eq, sql, desc, inArray } from "drizzle-orm";
 import { posthog } from '../../lib/posthog.js';
 import {
@@ -11,7 +11,9 @@ import {
 import {
   ConfirmPaydayCommand,
   GetIncomeSplitAnalyticsQuerySchema,
+  DEFAULT_APP_FEATURE_FLAGS,
 } from "@money-matters/types";
+import { TRPCError } from '@trpc/server';
 import { z } from 'zod';
 
 export const paydayExecutionProcedures = {
@@ -222,6 +224,20 @@ export const paydayExecutionProcedures = {
   getIncomeSplitAnalytics: privateTenantProcedure
     .input(GetIncomeSplitAnalyticsQuerySchema)
     .query(async ({ input, ctx }) => {
+      const [appRecord] = await ctx.db
+        .select({ featureFlags: apps.featureFlags })
+        .from(apps)
+        .where(eq(apps.id, ctx.appId!))
+        .limit(1);
+
+      const flags = appRecord?.featureFlags || DEFAULT_APP_FEATURE_FLAGS;
+      if (!flags.reports) {
+        throw new TRPCError({
+          code: 'FORBIDDEN',
+          message: 'Reports feature is disabled for this application.',
+        });
+      }
+
       return await getIncomeSplitAnalyticsQuery(
         ctx.tenantId!,
         ctx.appId!,

@@ -1,4 +1,6 @@
-export type EnvelopeType = "EVERYDAY" | "SCHEDULED_BILL" | "FLEXIBLE_BILL" | "TARGET_GOAL" | "ONGOING_GOAL";
+import { EnvelopeType, FundingMode } from "@money-matters/types";
+
+export type { EnvelopeType, FundingMode };
 
 export interface EnvelopeSummaryItem {
   id: string;
@@ -6,6 +8,8 @@ export interface EnvelopeSummaryItem {
   type?: "REGULAR" | "GOAL" | "EVERYDAY" | EnvelopeType;
   poolType?: "REGULAR" | "GOAL" | "EVERYDAY" | EnvelopeType;
   envelopeType: EnvelopeType;
+  fundingMode?: FundingMode | null;
+  isPriority?: boolean | null;
   bankAccountId?: string | null;
   bankAccountName?: string | null;
   isPrivate?: boolean | null;

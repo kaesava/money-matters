@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { EnvelopeType, FundingMode } from "./envelope.types.js";
 
 export const HousingTypeSchema = z.enum(["OWN_MORTGAGE", "OWN_OUTRIGHT", "RENT_SOLO", "RENT_SHARE"]);
 export type HousingType = z.infer<typeof HousingTypeSchema>;
@@ -84,12 +85,15 @@ export type QuizAnswers = z.infer<typeof QuizAnswersSchema>;
 export interface EstimatedCategoryItem {
   id?: string;
   name: string;
-  type: "REGULAR" | "GOAL" | "EVERYDAY";
-  envelopeType?: "SCHEDULED_BILL" | "FLEXIBLE_BILL" | "EVERYDAY" | "TARGET_GOAL" | "ONGOING_GOAL";
+  type: "REGULAR" | "GOAL" | "EVERYDAY" | "BILL";
+  envelopeType?: EnvelopeType;
+  fundingMode?: FundingMode | null;
+  isPriority?: boolean;
   monthlyAud: number;
   icon?: string;
   colour?: string;
   rationale?: string;
+  isEssential?: boolean;
   isCommitted?: boolean;
   startDate?: string | null;
   endDate?: string | null;

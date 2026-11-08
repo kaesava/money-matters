@@ -794,6 +794,17 @@ This section provides the authoritative, exhaustive breakdown of every functiona
   - Historical allocation runs with Income Source, Bank Account, Payday Date, Split Execution Date, and Total Amount.
   - Clicking any run opens `<SlideOverAllocationDrawer>` (web) or `<MobilePaydayAllocationDetailModal>` (mobile) displaying read-only pool breakdowns and ledger notes.
 
+### 12.15A Visual Analytics & Reports (`/dashboard/reports`, `/(app)/reports`)
+* **Feature Entitlement**: Guarded by the `reports` app feature flag (defaults to `true`; unauthorized requests return `TRPCError FORBIDDEN`).
+* **Design & Layout**: High-density dedicated analytics screen moving visualization charts out of the History ledger tables.
+* **Tab 1: Spending & Cash Flow**:
+  - Interactive timeframe pills (`30D`, `90D`, `1Y`).
+  - Search input, Envelope filter picker, Bank Account picker, and Flow Type segmented filter chips (`All`, `Expenses Only`, `Income Only`, `Transfers Only`).
+  - Visual charts: Cash flow bar trends (inflows vs outflows), 3-horizon timeframe comparisons, and categorical envelope donut distributions.
+* **Tab 2: Payday Plans**:
+  - Timeframe selector (`30D`, `90D`, `1Y`), search input, and receiving Bank Account selector.
+  - Visual charts: Payday allocation velocity, historical allocation distribution, and total ring-fenced funds overview.
+
 ### 12.16 Settings — My Details (Profile & Preferences)
 * **Read-Only Default Mode**: Renders in clean read-only mode by default to prevent accidental edits; explicit "Edit" button enters edit mode with "Save" and "Cancel" (with dirty discard confirm).
 * **Fields & Validation**:

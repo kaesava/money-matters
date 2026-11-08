@@ -32,6 +32,7 @@ export function useMobileEnvelopeFormState({
   const [goalStartDate, setGoalStartDate] = useState("");
   const [bankAccountId, setBankAccountId] = useState("");
   const [isSurplusTarget, setIsSurplusTarget] = useState(false);
+  const [isPriority, setIsPriority] = useState(false);
   const [isEssential, setIsEssential] = useState(false);
   const [isCommitted, setIsCommitted] = useState(false);
   const [generateEvents, setGenerateEvents] = useState(true);
@@ -46,12 +47,13 @@ export function useMobileEnvelopeFormState({
           ? "EVERYDAY"
           : rawEnvelopeType === "TARGET_GOAL" ||
             rawEnvelopeType === "ONGOING_GOAL" ||
+            rawEnvelopeType === "GOAL" ||
             rawEnvelopeType.includes("GOAL")
           ? "GOAL"
           : "REGULAR";
       setType(resolvedType);
       const resolvedBillMode: "SCHEDULED_BILL" | "FLEXIBLE_BILL" =
-        rawEnvelopeType === "FLEXIBLE_BILL" ? "FLEXIBLE_BILL" : "SCHEDULED_BILL";
+        rawEnvelopeType === "FLEXIBLE_BILL" || categoryToEdit.fundingMode === "TARGET_BALANCE" ? "FLEXIBLE_BILL" : "SCHEDULED_BILL";
       setBillMode(resolvedBillMode);
       setBankAccountId(categoryToEdit.bankAccountId ?? "");
       setSafetyBufferFloor(categoryToEdit.safetyBufferFloor ?? "");
@@ -59,7 +61,7 @@ export function useMobileEnvelopeFormState({
       const rawDate = categoryToEdit.endDate || categoryToEdit.targetDate || "";
       setTargetDate(rawDate ? formatIsoDate(rawDate) : "");
       const resolvedGoalMode: "TARGET_DATE" | "ONGOING" =
-        categoryToEdit.goalMode === "ONGOING" || rawEnvelopeType === "ONGOING_GOAL"
+        categoryToEdit.goalMode === "ONGOING" || rawEnvelopeType === "ONGOING_GOAL" || categoryToEdit.fundingMode === "RECURRING"
           ? "ONGOING"
           : "TARGET_DATE";
       setGoalMode(resolvedGoalMode);
@@ -69,9 +71,11 @@ export function useMobileEnvelopeFormState({
       const rawStartDate = categoryToEdit.startDate || "";
       setGoalStartDate(rawStartDate ? formatIsoDate(rawStartDate) : "");
       setIsSurplusTarget(categoryToEdit.isSurplusTarget ?? false);
-      setIsEssential(categoryToEdit.isEssential ?? false);
-      setIsCommitted(categoryToEdit.isCommitted ?? false);
-      const isInitialScheduled = rawEnvelopeType === "SCHEDULED_BILL";
+      const initialPriority = categoryToEdit.isPriority ?? Boolean(categoryToEdit.isEssential || categoryToEdit.isCommitted);
+      setIsPriority(initialPriority);
+      setIsEssential(categoryToEdit.isEssential ?? initialPriority);
+      setIsCommitted(categoryToEdit.isCommitted ?? initialPriority);
+      const isInitialScheduled = rawEnvelopeType === "SCHEDULED_BILL" || (rawEnvelopeType === "BILL" && categoryToEdit.fundingMode === "RECURRING");
       setGenerateEvents(categoryToEdit.hasScheduledEvents ?? isInitialScheduled);
     } else {
       setName("");
@@ -86,6 +90,7 @@ export function useMobileEnvelopeFormState({
       setInterval(1);
       setGoalStartDate(new Intl.DateTimeFormat("en-CA").format(new Date()));
       setIsSurplusTarget(false);
+      setIsPriority(false);
       setIsEssential(false);
       setIsCommitted(false);
       setGenerateEvents(true);
@@ -164,8 +169,9 @@ export function useMobileEnvelopeFormState({
     const rawDate = categoryToEdit.endDate || categoryToEdit.targetDate || "";
     const initialDate = rawDate ? formatIsoDate(rawDate) : "";
     const initialSurplus = categoryToEdit.isSurplusTarget ?? false;
-    const initialEssential = categoryToEdit.isEssential ?? false;
-    const initialCommitted = categoryToEdit.isCommitted ?? false;
+    const initialPriority = categoryToEdit.isPriority ?? Boolean(categoryToEdit.isEssential || categoryToEdit.isCommitted);
+    const initialEssential = categoryToEdit.isEssential ?? initialPriority;
+    const initialCommitted = categoryToEdit.isCommitted ?? initialPriority;
     const rawEnvelopeType =
       categoryToEdit.envelopeType || categoryToEdit.poolType || categoryToEdit.type || "REGULAR";
     const initialGoalMode: "TARGET_DATE" | "ONGOING" =
@@ -181,6 +187,7 @@ export function useMobileEnvelopeFormState({
 
     if (name.trim() !== initialName) return true;
     if (isSurplusTarget !== initialSurplus) return true;
+    if (isPriority !== initialPriority) return true;
 
     if (type === "EVERYDAY") {
       return safetyBufferFloor.trim() !== initialFloor;
@@ -231,6 +238,7 @@ export function useMobileEnvelopeFormState({
     interval,
     goalStartDate,
     isSurplusTarget,
+    isPriority,
     isEssential,
     isCommitted,
     type,
@@ -247,7 +255,7 @@ export function useMobileEnvelopeFormState({
     if (!isEdit || !categoryToEdit) return true;
     const isInitialScheduled =
       (categoryToEdit.envelopeType || categoryToEdit.poolType || categoryToEdit.type || "REGULAR") ===
-      "SCHEDULED_BILL";
+      "SCHEDULED_BILL" || (categoryToEdit.envelopeType === "BILL" && categoryToEdit.fundingMode === "RECURRING");
     return categoryToEdit.hasScheduledEvents ?? isInitialScheduled;
   }, [isEdit, categoryToEdit]);
 
@@ -291,20 +299,24 @@ export function useMobileEnvelopeFormState({
     const enteredAmountVal =
       isScheduledBill || isFlexibleBill || isOngoingGoal ? parseFloat(targetAmount).toFixed(2) : undefined;
 
-    const envelopeType: "EVERYDAY" | "SCHEDULED_BILL" | "FLEXIBLE_BILL" | "TARGET_GOAL" | "ONGOING_GOAL" =
+    const canonicalEnvelopeType: "EVERYDAY" | "BILL" | "GOAL" =
+      type === "EVERYDAY" ? "EVERYDAY" : type === "GOAL" ? "GOAL" : "BILL";
+
+    const fundingMode: "TARGET_BALANCE" | "RECURRING" | undefined =
       type === "EVERYDAY"
-        ? "EVERYDAY"
+        ? undefined
         : type === "GOAL"
         ? goalMode === "ONGOING"
-          ? "ONGOING_GOAL"
-          : "TARGET_GOAL"
+          ? "RECURRING"
+          : "TARGET_BALANCE"
         : billMode === "FLEXIBLE_BILL"
-        ? "FLEXIBLE_BILL"
-        : "SCHEDULED_BILL";
+        ? "TARGET_BALANCE"
+        : "RECURRING";
 
     return {
       name: name.trim(),
-      envelopeType,
+      envelopeType: canonicalEnvelopeType,
+      fundingMode,
       safetyBufferFloor: type === "EVERYDAY" ? safetyBufferFloor || "0.00" : undefined,
       targetAmount: finalTargetAmount,
       monthlyAmount: isFlexibleBill
@@ -319,9 +331,10 @@ export function useMobileEnvelopeFormState({
       rrule: isScheduledBill || isOngoingGoal ? rruleString || undefined : undefined,
       goalMode: type === "GOAL" ? goalMode : undefined,
       isSurplusTarget: type !== "EVERYDAY" ? isSurplusTarget : undefined,
-      isEssential: type === "REGULAR" ? isEssential : undefined,
-      isCommitted: type === "GOAL" ? isCommitted : undefined,
-      generateEvents: isScheduledBill ? generateEvents : undefined,
+      isPriority: type !== "EVERYDAY" ? isPriority : false,
+      isEssential: type === "REGULAR" ? isPriority : undefined,
+      isCommitted: type === "GOAL" ? isPriority : undefined,
+      generateEvents: isScheduledBill ? generateEvents : false,
     };
   };
 
@@ -354,6 +367,8 @@ export function useMobileEnvelopeFormState({
     setBankAccountId,
     isSurplusTarget,
     setIsSurplusTarget,
+    isPriority,
+    setIsPriority,
     isEssential,
     setIsEssential,
     isCommitted,

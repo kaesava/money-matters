@@ -1,12 +1,13 @@
 import { envelopes, bankAccounts, expenseEvents, DbOrTx, getEnvelopeBalancesMap } from "@money-matters/db";
 import { eq, and, sql } from "drizzle-orm";
+import { EnvelopeListItemDto, FundingMode } from "@money-matters/types";
 
 export async function listEnvelopesQuery(
   tenantId: string,
   appId: string,
   dbClient: DbOrTx,
   userId?: string
-) {
+): Promise<EnvelopeListItemDto[]> {
   // 1. Fetch envelopes joined with bankAccounts for stealth privacy
   const envelopeFilters = [
     eq(envelopes.tenantId, tenantId),
@@ -117,10 +118,21 @@ export async function listEnvelopesQuery(
       healthStatus = currentBalance >= 0 ? "GREEN" : "RED";
     }
 
+    const isBill = env.envelopeType === "SCHEDULED_BILL" || env.envelopeType === "FLEXIBLE_BILL";
+    const isGoal = env.envelopeType === "TARGET_GOAL" || env.envelopeType === "ONGOING_GOAL";
+    const fundingMode: FundingMode | null = isBill
+      ? (env.envelopeType === "SCHEDULED_BILL" ? "RECURRING" : "TARGET_BALANCE")
+      : isGoal
+      ? (env.envelopeType === "TARGET_GOAL" || env.goalMode === "TARGET_DATE" ? "TARGET_BALANCE" : "RECURRING")
+      : null;
+    const isPriority = Boolean(env.isEssential || env.isCommitted);
+
     return {
       id: env.id,
       name: env.name,
       envelopeType: env.envelopeType,
+      fundingMode,
+      isPriority,
       bankAccountId: env.bankAccountId,
       bankAccountName: env.bankAccountName || null,
       safetyBufferFloor: env.safetyBufferFloor,

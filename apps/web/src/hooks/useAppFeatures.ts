@@ -18,6 +18,7 @@ export function useAppFeatures() {
     hasFileNotes: Boolean(features.fileNotes),
     hasSimulation: Boolean(features.simulation),
     hasCustomAllocationRules: Boolean(features.customAllocationRules),
+    hasReports: Boolean(features.reports),
     features,
     isLoading: query.isLoading,
   };

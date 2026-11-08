@@ -13,7 +13,11 @@ import {
   SearchTransactionsQuery,
   ListEnvelopeTransactionsQuery,
   GetSpendingAnalyticsQuery,
+  DEFAULT_APP_FEATURE_FLAGS,
 } from "@money-matters/types";
+import { apps } from "@money-matters/db";
+import { eq } from "drizzle-orm";
+import { TRPCError } from "@trpc/server";
 
 export const transactionsRouter = {
   recordExpense: privateTenantProcedure
@@ -84,6 +88,20 @@ export const transactionsRouter = {
   getSpendingAnalytics: privateTenantProcedure
     .input(GetSpendingAnalyticsQuery)
     .query(async ({ input, ctx }) => {
+      const [appRecord] = await ctx.db
+        .select({ featureFlags: apps.featureFlags })
+        .from(apps)
+        .where(eq(apps.id, ctx.appId!))
+        .limit(1);
+
+      const flags = appRecord?.featureFlags || DEFAULT_APP_FEATURE_FLAGS;
+      if (!flags.reports) {
+        throw new TRPCError({
+          code: 'FORBIDDEN',
+          message: 'Reports feature is disabled for this application.',
+        });
+      }
+
       return await getSpendingAnalyticsQuery(
         ctx.tenantId!,
         ctx.appId!,

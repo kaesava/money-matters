@@ -31,7 +31,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const utils = trpc.useUtils();
   const { isGlobalError, clearGlobalError, lastErrorMessage } = useNetworkStatus();
   const { data: session, isPending } = authClient.useSession();
-  const { hasAiAssistant, hasSimulation } = useAppFeatures();
+  const { hasAiAssistant, hasSimulation, hasReports } = useAppFeatures();
   const [isExchanging, setIsExchanging] = useState(false);
 
   const tenantStatusQuery = trpc.getTenantStatus.useQuery(undefined, {
@@ -311,6 +311,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   const isAuthenticating = mounted && new URLSearchParams(window.location.search).has("neon_auth_session_verifier");
 
+  const navItems = React.useMemo(
+    () => NAV_ITEMS.filter((item) => item.key !== "reports" || hasReports),
+    [hasReports]
+  );
+
   if (!mounted || isPending || isAuthenticating || isExchanging) {
     return (
       <div
@@ -330,7 +335,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     ? session.user.name.split(" ").map((w) => w[0]).join("").toUpperCase().slice(0, 2)
     : "?";
 
-  const activeItem = NAV_ITEMS.find((item) =>
+  const activeItem = navItems.find((item) =>
     item.href === "/dashboard"
       ? pathname === "/dashboard"
       : pathname.startsWith(item.href)
@@ -342,7 +347,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     <SidebarContent
       sidebarCollapsed={sidebarCollapsed}
       hasMultipleTenants={hasMultipleTenants}
-      navItems={NAV_ITEMS}
+      navItems={navItems}
       pathname={pathname}
       setMobileMenuOpen={setMobileMenuOpen}
       sessionUser={session?.user}

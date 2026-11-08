@@ -11,8 +11,10 @@ interface PoolSummaryCardProps {
     name: string;
     envelopeType?: string;
     poolType?: string;
+    fundingMode?: "TARGET_BALANCE" | "RECURRING" | null;
     currentBalance?: number | string | null;
     isSurplusTarget?: boolean | null;
+    isPriority?: boolean | null;
     isEssential?: boolean | null;
     isCommitted?: boolean | null;
   };
@@ -29,7 +31,18 @@ export function PoolSummaryCard({
   onDrawDown,
   onOpenNotes,
 }: PoolSummaryCardProps) {
-  const badgeText = pool.envelopeType === 'SCHEDULED_BILL'
+  const isBill = pool.envelopeType === 'BILL' || pool.envelopeType === 'SCHEDULED_BILL' || pool.envelopeType === 'FLEXIBLE_BILL';
+  const isGoal = pool.envelopeType === 'GOAL' || pool.envelopeType === 'TARGET_GOAL' || pool.envelopeType === 'ONGOING_GOAL' || pool.poolType === 'GOAL';
+  const isEveryday = pool.envelopeType === 'EVERYDAY' || pool.poolType === 'EVERYDAY';
+  const isPriority = Boolean(pool.isPriority || pool.isEssential || pool.isCommitted);
+
+  const badgeText = isEveryday
+    ? t('categories.everydayBadge')
+    : pool.fundingMode === 'TARGET_BALANCE'
+    ? t('categories.targetBalanceBadge')
+    : pool.fundingMode === 'RECURRING'
+    ? t('categories.recurringBadge')
+    : pool.envelopeType === 'SCHEDULED_BILL'
     ? t('categories.scheduledBillBadge')
     : pool.envelopeType === 'FLEXIBLE_BILL'
     ? t('categories.flexibleBillBadge')
@@ -37,8 +50,6 @@ export function PoolSummaryCard({
     ? t('categories.targetDateGoalBadge')
     : pool.envelopeType === 'ONGOING_GOAL'
     ? t('categories.ongoingGoalBadge')
-    : pool.envelopeType === 'EVERYDAY' || pool.poolType === 'EVERYDAY'
-    ? t('categories.everydayBadge')
     : pool.poolType === 'GOAL'
     ? t('poolTypes.goals')
     : t('poolTypes.bills');
@@ -50,42 +61,27 @@ export function PoolSummaryCard({
           <View style={styles.tagsRow}>
             <View style={[
               styles.badgeWrap,
-              pool.envelopeType === 'SCHEDULED_BILL'
+              isBill
                 ? styles.scheduledBillBadge
-                : pool.envelopeType === 'FLEXIBLE_BILL'
-                ? styles.flexibleBillBadge
-                : pool.envelopeType === 'TARGET_GOAL'
+                : isGoal
                 ? styles.targetGoalBadge
-                : pool.envelopeType === 'ONGOING_GOAL'
-                ? styles.ongoingGoalBadge
                 : styles.everydayBadge
             ]}>
               <Text style={[
                 styles.poolTypeTag,
-                pool.envelopeType === 'SCHEDULED_BILL'
+                isBill
                   ? styles.scheduledBillBadgeText
-                  : pool.envelopeType === 'FLEXIBLE_BILL'
-                  ? styles.flexibleBillBadgeText
-                  : pool.envelopeType === 'TARGET_GOAL'
+                  : isGoal
                   ? styles.targetGoalBadgeText
-                  : pool.envelopeType === 'ONGOING_GOAL'
-                  ? styles.ongoingGoalBadgeText
                   : styles.everydayBadgeText
               ]}>
                 {badgeText}
               </Text>
             </View>
-            {Boolean(pool.isEssential) && (pool.envelopeType === 'SCHEDULED_BILL' || pool.envelopeType === 'FLEXIBLE_BILL') && (
+            {isPriority && !isEveryday && (
               <View style={[styles.badgeWrap, styles.essentialBadge]}>
                 <Text style={[styles.poolTypeTag, styles.essentialBadgeText]}>
-                  {t('categories.essentialBadge')}
-                </Text>
-              </View>
-            )}
-            {Boolean(pool.isCommitted) && (pool.envelopeType === 'TARGET_GOAL' || pool.envelopeType === 'ONGOING_GOAL') && (
-              <View style={[styles.badgeWrap, styles.committedBadge]}>
-                <Text style={[styles.poolTypeTag, styles.committedBadgeText]}>
-                  {t('categories.committedBadge')}
+                  {t('categories.priorityBadge')}
                 </Text>
               </View>
             )}

@@ -202,10 +202,12 @@
 | `startDate` | varchar | - | Domain column |
 | `endDate` | varchar | - | Domain column |
 | `rrule` | varchar | - | Domain column |
-| `goalMode` | goalModeEnum | - | Domain column |
+| `goalMode` | goalModeEnum | Yes | Target date vs ongoing goal mode (persisted compatibility) |
+| `fundingMode` | fundingModeEnum | Yes | Funding mode: TARGET_BALANCE or RECURRING |
 | `targetAmount` | numeric | - | Domain column |
-| `isEssential` | boolean | - | Domain column |
-| `isCommitted` | boolean | - | Domain column |
+| `isPriority` | boolean | No | Priority flag for allocation waterfalls |
+| `isEssential` | boolean | No | Essential bill flag (persisted compatibility) |
+| `isCommitted` | boolean | No | Committed goal flag (persisted compatibility) |
 | `isSurplusTarget` | boolean | - | Domain column |
 | `isPrivate` | boolean | - | Domain column |
 | `generateEvents` | boolean | No | Controls auto-generation of upcoming scheduled expense events |

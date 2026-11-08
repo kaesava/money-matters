@@ -11,6 +11,7 @@ interface IncomeSplitsHeaderControlsProps {
   onOpenFilterSheet: () => void;
   onExportCsv: () => void;
   canExport: boolean;
+  onOpenReports?: () => void;
 }
 
 export function IncomeSplitsHeaderControls({
@@ -20,6 +21,7 @@ export function IncomeSplitsHeaderControls({
   onOpenFilterSheet,
   onExportCsv,
   canExport,
+  onOpenReports,
 }: IncomeSplitsHeaderControlsProps) {
   return (
     <View style={styles.lockedHeader}>
@@ -47,6 +49,16 @@ export function IncomeSplitsHeaderControls({
             {activeCount > 0 ? ` (${activeCount})` : ''}
           </Text>
         </TouchableOpacity>
+
+        {onOpenReports && (
+          <TouchableOpacity
+            onPress={onOpenReports}
+            style={styles.csvBtn}
+            activeOpacity={0.7}
+          >
+            <Feather name="bar-chart-2" size={14} color={DESIGN_TOKENS.colors.sereneBlue} />
+          </TouchableOpacity>
+        )}
 
         <TouchableOpacity
           onPress={onExportCsv}

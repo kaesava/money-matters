@@ -33,6 +33,7 @@ export interface EnvelopeFormFieldsProps {
   bankAccountId: string; setBankAccountId: (v: string) => void;
   bankDisabled?: boolean;
   isSurplusTarget: boolean; setIsSurplusTarget: (v: boolean) => void;
+  isPriority?: boolean; setIsPriority?: (v: boolean) => void;
   isEssential?: boolean; setIsEssential?: (v: boolean) => void;
   isCommitted?: boolean; setIsCommitted?: (v: boolean) => void;
   isEdit: boolean;
@@ -80,6 +81,8 @@ export const EnvelopeFormFields: React.FC<EnvelopeFormFieldsProps> = ({
   bankDisabled = false,
   isSurplusTarget,
   setIsSurplusTarget,
+  isPriority,
+  setIsPriority,
   isEssential = false,
   setIsEssential,
   isCommitted = false,
@@ -176,14 +179,17 @@ export const EnvelopeFormFields: React.FC<EnvelopeFormFieldsProps> = ({
             />
           )}
 
-          {setIsEssential && (
+          {(setIsPriority || setIsEssential) && (
             <View style={styles.checkboxContainer}>
               <MobileCheckbox
-                checked={Boolean(isEssential)}
-                onChange={setIsEssential}
-                label={t('categories.essentialBillLabel')}
+                checked={Boolean(isPriority !== undefined ? isPriority : isEssential)}
+                onChange={(checked) => {
+                  setIsPriority?.(checked);
+                  setIsEssential?.(checked);
+                }}
+                label={t('categories.priorityEnvelopeLabel')}
               />
-              <Text style={styles.checkboxHint}>{t('categories.essentialBillHint')}</Text>
+              <Text style={styles.checkboxHint}>{t('categories.priorityBillHint')}</Text>
             </View>
           )}
 
@@ -229,14 +235,17 @@ export const EnvelopeFormFields: React.FC<EnvelopeFormFieldsProps> = ({
             calculatedMonthly={calculatedMonthly}
           />
 
-          {setIsCommitted && (
+          {(setIsPriority || setIsCommitted) && (
             <View style={styles.checkboxContainer}>
               <MobileCheckbox
-                checked={Boolean(isCommitted)}
-                onChange={setIsCommitted}
-                label={t('categories.committedGoalLabel')}
+                checked={Boolean(isPriority !== undefined ? isPriority : isCommitted)}
+                onChange={(checked) => {
+                  setIsPriority?.(checked);
+                  setIsCommitted?.(checked);
+                }}
+                label={t('categories.priorityEnvelopeLabel')}
               />
-              <Text style={styles.checkboxHint}>{t('categories.committedGoalHint')}</Text>
+              <Text style={styles.checkboxHint}>{t('categories.priorityGoalHint')}</Text>
             </View>
           )}
         </View>

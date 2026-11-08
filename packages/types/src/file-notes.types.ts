@@ -9,6 +9,7 @@ export const AppFeatureFlagsSchema = z.object({
   fileNotesMaxFileMb: z.number().int().positive(),
   simulation: z.boolean(),
   customAllocationRules: z.boolean(),
+  reports: z.boolean(),
 }).strict();
 
 export type AppFeatureFlags = z.infer<typeof AppFeatureFlagsSchema>;
@@ -21,6 +22,7 @@ export const DEFAULT_APP_FEATURE_FLAGS: AppFeatureFlags = {
   fileNotesMaxFileMb: 10,
   simulation: true,
   customAllocationRules: true,
+  reports: true,
 };
 
 export const StorageQuotaDto = z.object({

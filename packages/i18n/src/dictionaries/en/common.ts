@@ -100,6 +100,7 @@ export const common = {
     "incomeExpenses": "Plan",
     "settings": "Settings",
     "transactions": "History",
+    "reports": "Reports",
     "history": "History"
   },
   "actions": {

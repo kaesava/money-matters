@@ -1,6 +1,7 @@
 import React from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { BarChart3 } from "lucide-react";
 import { t } from "@money-matters/i18n";
 import {
   SearchInput,
@@ -8,10 +9,10 @@ import {
   ResizableTh,
   SkeletonTable,
   RecordFilterBadge,
-  SpendingOverviewCard,
 } from "@money-matters/ui/web";
 import { SlideOverAllocationDrawer } from "../../../../components/web/SlideOverAllocationDrawer";
 import { useHistoryPaydayData } from "../hooks/useHistoryPaydayData";
+import { useAppFeatures } from "../../../../hooks/useAppFeatures";
 
 interface PaydayAllocationsTabProps {
   bankAccounts: Array<{ id: string; name: string }>;
@@ -25,12 +26,11 @@ export function PaydayAllocationsTab({
   isActive,
 }: PaydayAllocationsTabProps) {
   const router = useRouter();
+  const { hasReports } = useAppFeatures();
 
   const {
     planSearchQuery,
     setPlanSearchQuery,
-    planTimeframe,
-    setPlanTimeframe,
     selectedBankFilter,
     setSelectedBankFilter,
     planSortColumn,
@@ -45,10 +45,8 @@ export function PaydayAllocationsTab({
     planWidths,
     onPlanMouseDown,
     paydayPlansQuery,
-    incomeSplitAnalyticsQuery,
     uniqueBankAccounts,
     matchedBankAccount,
-    incomeSplitLabels,
     sortedPaydayPlans,
     paginatedPaydayPlans,
     planTotalPages,
@@ -63,17 +61,6 @@ export function PaydayAllocationsTab({
 
   return (
     <div className="space-y-6">
-      {/* Income Splits Reporting Visualizations */}
-      <SpendingOverviewCard
-        analytics={incomeSplitAnalyticsQuery.data}
-        isLoading={incomeSplitAnalyticsQuery.isLoading}
-        timeframe={planTimeframe}
-        onTimeframeChange={setPlanTimeframe}
-        formatCurrency={(amt) => fmt(amt)}
-        labels={incomeSplitLabels}
-        showPayeesWhenFiltered={false}
-      />
-
       {/* Controls Bar */}
       <div className="flex flex-col sm:flex-row items-center justify-between gap-3 p-3 bg-slate-50 border border-zinc-200/80 rounded-2xl">
         <div className="flex flex-col sm:flex-row items-center gap-3 flex-1 w-full">
@@ -99,14 +86,26 @@ export function PaydayAllocationsTab({
           </select>
         </div>
 
-        <button
-          type="button"
-          onClick={handleExportAuditCSV}
-          disabled={sortedPaydayPlans.length === 0}
-          className="px-4 py-2 rounded-xl text-xs font-bold bg-white text-zinc-700 hover:bg-zinc-100 border border-zinc-200 transition-all flex items-center gap-1.5 shadow-xs disabled:opacity-50"
-        >
-          <span>{t("transactions.exportAuditCSV")}</span>
-        </button>
+        <div className="flex items-center gap-2">
+          {hasReports && (
+            <Link
+              href="/dashboard/reports?tab=payday-plans"
+              className="px-3.5 py-2 rounded-xl text-xs font-bold bg-white text-zinc-700 hover:bg-zinc-100 border border-zinc-200 transition-all flex items-center gap-1.5 shadow-xs"
+            >
+              <BarChart3 className="w-3.5 h-3.5 text-[#2563eb]" />
+              <span>{t("transactions.viewReports")}</span>
+            </Link>
+          )}
+
+          <button
+            type="button"
+            onClick={handleExportAuditCSV}
+            disabled={sortedPaydayPlans.length === 0}
+            className="px-4 py-2 rounded-xl text-xs font-bold bg-white text-zinc-700 hover:bg-zinc-100 border border-zinc-200 transition-all flex items-center gap-1.5 shadow-xs disabled:opacity-50"
+          >
+            <span>{t("transactions.exportAuditCSV")}</span>
+          </button>
+        </div>
       </div>
 
       {bankAccountIdParam && (

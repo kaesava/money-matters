@@ -1,6 +1,7 @@
 import React from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { BarChart3 } from "lucide-react";
 import { t } from "@money-matters/i18n";
 import {
   SearchInput,
@@ -9,8 +10,8 @@ import {
   SkeletonTable,
   PoolPicker,
   RecordFilterBadge,
-  SpendingOverviewCard,
 } from "@money-matters/ui/web";
+import { useAppFeatures } from "../../../../hooks/useAppFeatures";
 import {
   useHistoryTransactionsData,
   getTransactionTypeLabel,
@@ -42,6 +43,7 @@ export function TransactionsTab({
   isActive,
 }: TransactionsTabProps) {
   const router = useRouter();
+  const { hasReports } = useAppFeatures();
 
   const {
     filterType,
@@ -57,11 +59,8 @@ export function TransactionsTab({
     setPage,
     pageSize,
     setPageSize,
-    timeframe,
-    setTimeframe,
     widths,
     onMouseDown,
-    spendingAnalyticsQuery,
     transactionsQuery,
     matchedPool,
     matchedBankAccount,
@@ -82,15 +81,6 @@ export function TransactionsTab({
 
   return (
     <div data-tour="history-ledger" className="space-y-6">
-      {/* Spending Overview Reporting Visualizations */}
-      <SpendingOverviewCard
-        analytics={spendingAnalyticsQuery.data}
-        isLoading={spendingAnalyticsQuery.isLoading}
-        timeframe={timeframe}
-        onTimeframeChange={setTimeframe}
-        formatCurrency={(amt) => fmt(amt)}
-      />
-
       {/* Controls Bar & Segmented Filter */}
       <div className="flex flex-col sm:flex-row items-center justify-between gap-3 p-3 bg-slate-50 border border-zinc-200/80 rounded-2xl">
         <div className="flex flex-col sm:flex-row items-center gap-3 flex-1 w-full">
@@ -146,14 +136,26 @@ export function TransactionsTab({
           </div>
         </div>
 
-        <button
-          type="button"
-          onClick={handleExportCSV}
-          disabled={sortedTransactions.length === 0}
-          className="px-4 py-2 rounded-xl text-xs font-bold bg-white text-zinc-700 hover:bg-zinc-100 border border-zinc-200 transition-all flex items-center gap-1.5 shadow-xs disabled:opacity-50"
-        >
-          <span>{t("transactions.csvExport")}</span>
-        </button>
+        <div className="flex items-center gap-2">
+          {hasReports && (
+            <Link
+              href="/dashboard/reports?tab=spending"
+              className="px-3.5 py-2 rounded-xl text-xs font-bold bg-white text-zinc-700 hover:bg-zinc-100 border border-zinc-200 transition-all flex items-center gap-1.5 shadow-xs"
+            >
+              <BarChart3 className="w-3.5 h-3.5 text-[#2563eb]" />
+              <span>{t("transactions.viewReports")}</span>
+            </Link>
+          )}
+
+          <button
+            type="button"
+            onClick={handleExportCSV}
+            disabled={sortedTransactions.length === 0}
+            className="px-4 py-2 rounded-xl text-xs font-bold bg-white text-zinc-700 hover:bg-zinc-100 border border-zinc-200 transition-all flex items-center gap-1.5 shadow-xs disabled:opacity-50"
+          >
+            <span>{t("transactions.csvExport")}</span>
+          </button>
+        </div>
       </div>
 
       {(poolIdParam || categoryIdParam || bankAccountIdParam) && (

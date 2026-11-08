@@ -16,12 +16,13 @@ import {
   SortDir,
   PlanSortField,
 } from '../../components/transactions/hooks/useTransactionsFilter';
-import { SpendingTimeframe } from '@money-matters/types';
+import { useAppFeatures } from '../../context/useAppFeatures';
 
 type HistoryTab = 'LEDGER' | 'PAYDAYS';
 
 export default function TransactionsScreen() {
   const router = useRouter();
+  const { hasReports } = useAppFeatures();
   const params = useLocalSearchParams<{
     tab?: string;
     search?: string;
@@ -54,46 +55,10 @@ export default function TransactionsScreen() {
   const [planSortDir, setPlanSortDir] = useState<SortDir>('desc');
   const [planPage, setPlanPage] = useState(1);
   const [planPageSize, setPlanPageSize] = useState(15);
-  const [timeframe, setTimeframe] = useState<SpendingTimeframe>('90D');
-  const [planTimeframe, setPlanTimeframe] = useState<SpendingTimeframe>('90D');
-  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState(searchQuery);
-  const [debouncedPlanSearchQuery, setDebouncedPlanSearchQuery] = useState(planSearchQuery);
-
-  React.useEffect(() => {
-    const handler = setTimeout(() => {
-      setDebouncedSearchQuery(searchQuery);
-    }, 300);
-    return () => clearTimeout(handler);
-  }, [searchQuery]);
-
-  React.useEffect(() => {
-    const handler = setTimeout(() => {
-      setDebouncedPlanSearchQuery(planSearchQuery);
-    }, 300);
-    return () => clearTimeout(handler);
-  }, [planSearchQuery]);
 
   const transactionsQuery = trpc.listTransactions.useQuery(
     { limit: 500 },
     { enabled: !!session?.user }
-  );
-  const spendingAnalyticsQuery = trpc.getSpendingAnalytics.useQuery(
-    {
-      timeframe,
-      envelopeId: selectedPoolId !== 'ALL' ? selectedPoolId : undefined,
-      bankAccountId: selectedBankAccountId !== 'ALL' ? selectedBankAccountId : undefined,
-      searchQuery: debouncedSearchQuery.trim().length >= 2 ? debouncedSearchQuery.trim() : undefined,
-      flowType: flowFilter,
-    },
-    { enabled: !!session?.user && activeTab === 'LEDGER' }
-  );
-  const incomeSplitAnalyticsQuery = trpc.getIncomeSplitAnalytics.useQuery(
-    {
-      timeframe: planTimeframe,
-      bankAccountId: selectedPlanBankId !== 'ALL' ? selectedPlanBankId : undefined,
-      searchQuery: debouncedPlanSearchQuery.trim().length >= 2 ? debouncedPlanSearchQuery.trim() : undefined,
-    },
-    { enabled: !!session?.user && activeTab === 'PAYDAYS' }
   );
   const poolsQuery = trpc.listPools.useQuery(undefined, { enabled: !!session?.user });
   const bankAccountsQuery = trpc.listBankAccounts.useQuery(undefined, {
@@ -113,8 +78,6 @@ export default function TransactionsScreen() {
     setRefreshing(true);
     await Promise.all([
       transactionsQuery.refetch(),
-      spendingAnalyticsQuery.refetch(),
-      incomeSplitAnalyticsQuery.refetch(),
       poolsQuery.refetch(),
       bankAccountsQuery.refetch(),
       allPlansQuery.refetch(),
@@ -185,10 +148,7 @@ export default function TransactionsScreen() {
             bankAccounts={bankAccounts}
             onExportCsv={() => exportLedgerCsv(sortedTransactions)}
             onNavigateToPool={(pId) => router.push(`/(app)/envelopes?poolId=${pId}` as Href)}
-            spendingAnalytics={spendingAnalyticsQuery.data}
-            isAnalyticsLoading={spendingAnalyticsQuery.isLoading}
-            timeframe={timeframe}
-            onTimeframeChange={setTimeframe}
+            onOpenReports={hasReports ? () => router.push('/(app)/reports' as Href) : undefined}
           />
         ) : (
           <IncomeSplitsTab
@@ -213,10 +173,7 @@ export default function TransactionsScreen() {
             onPageSizeChange={setPlanPageSize}
             bankAccounts={bankAccounts}
             onExportCsv={() => exportPlansCsv(sortedPlans)}
-            incomeSplitAnalytics={incomeSplitAnalyticsQuery.data}
-            isAnalyticsLoading={incomeSplitAnalyticsQuery.isLoading}
-            timeframe={planTimeframe}
-            onTimeframeChange={setPlanTimeframe}
+            onOpenReports={hasReports ? () => router.push('/(app)/reports' as Href) : undefined}
           />
         )}
       </View>
