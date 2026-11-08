@@ -22,6 +22,7 @@ interface PoolRecord {
   monthlyAmount?: string | number | null;
   targetAmount?: string | number | null;
   endDate?: string | null;
+  isPrivate?: boolean | null;
 }
 
 export interface IncomeSplitPoolTableProps {
@@ -164,6 +165,11 @@ export function IncomeSplitPoolTable({
                                         {l.bucketName}
                                       </span>
                                     )}
+                                    {poolObj?.isPrivate && (
+                                      <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-md bg-purple-50 text-purple-700 dark:bg-purple-950/60 dark:text-purple-300 border border-purple-200 dark:border-purple-800">
+                                        {t("categories.privateBadge")}
+                                      </span>
+                                    )}
                                     <span className="text-[10px] font-semibold px-2 py-0.5 rounded-md bg-emerald-100 dark:bg-emerald-900/60 text-emerald-800 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
                                       {t("paydayDrawer.autoSurplusBadge")}
                                     </span>
@@ -255,6 +261,11 @@ export function IncomeSplitPoolTable({
                                     <div className="font-semibold text-sm text-[#1B2B4B] dark:text-white">
                                       {l.bucketName}
                                     </div>
+                                  )}
+                                  {poolObj?.isPrivate && (
+                                    <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-md bg-purple-50 text-purple-700 dark:bg-purple-950/60 dark:text-purple-300 border border-purple-200 dark:border-purple-800">
+                                      {t("categories.privateBadge")}
+                                    </span>
                                   )}
                                   {group.type === "EVERYDAY" && !isReadOnly && currentBal > 0 && (
                                     <button

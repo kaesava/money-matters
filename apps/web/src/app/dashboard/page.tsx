@@ -183,26 +183,20 @@ export default function DashboardPage() {
 
   const handleConfirmReconcile = async (
     splits: Array<{ poolId: string; adjustment: string }>,
+    actualBalance: string,
     reason?: string
   ) => {
     if (!reconcileState) return;
-    const diff = Number(
-      (
-        Math.max(0, reconcileState.newBalance - reconcileState.unbudgetedBuffer) -
-        reconcileState.expectedBalance
-      ).toFixed(2)
-    );
+    const actualBalNum = Math.max(0, parseFloat(actualBalance) || 0);
 
-    if (Math.abs(diff) > 0.009 && splits.length > 0) {
-      await reconcileMut.mutateAsync({
-        accountId: reconcileState.accountId,
-        actualBalance: reconcileState.newBalance.toFixed(2),
-        clientIdempotencyToken: crypto.randomUUID(),
-        splits,
-        note: reason?.trim() || undefined,
-      });
-      toast.success(t("toasts.saved"));
-    }
+    await reconcileMut.mutateAsync({
+      accountId: reconcileState.accountId,
+      actualBalance: actualBalNum.toFixed(2),
+      clientIdempotencyToken: crypto.randomUUID(),
+      splits,
+      note: reason?.trim() || undefined,
+    });
+    toast.success(t("toasts.saved"));
 
     utils.listPools.invalidate();
     utils.listTransactions.invalidate();

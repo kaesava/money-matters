@@ -8,7 +8,10 @@ import {
   invitePartnerHandler,
   acceptInviteHandler,
   leaveTenantHandler,
+  updateHouseholdMemberRoleHandler,
 } from "@money-matters/capability-tenant";
+import { UpdateHouseholdMemberRoleCommand } from "@money-matters/types";
+import { clearEdgeContextCache } from '../../trpc/edge-context.js';
 import { z } from 'zod';
 import { posthog } from '../../lib/posthog.js';
 
@@ -193,13 +196,17 @@ export const householdProcedures = {
       const otherMembers = dbMembers.filter((m) => m.userId !== ctx.userId && m.role !== "OWNER");
       const leaveWarning = resolveLeaveWarning(myMember, otherMembers, partnerMember, tenant?.name ?? "Household");
       const deleteWarning = resolveDeleteWarning(partnerMember, otherMembers.length);
+      const acceptedOwners = dbMembers.filter((m) => m.role === "OWNER" && m.inviteStatus === "ACCEPTED");
+      const isSoleOwner = myMember?.role === "OWNER" && acceptedOwners.length <= 1;
 
       return {
         householdId: ctx.tenantId!,
+        currentUserId: ctx.userId!,
         householdName: tenant?.name ?? "Household",
         userRole: myMember?.role ?? "MEMBER",
         isOwner: myMember?.role === "OWNER",
-        isSoleOwner: myMember?.role === "OWNER" && dbMembers.length <= 1,
+        isSoleOwner,
+        ownerCount: acceptedOwners.length,
         memberCount: dbMembers.length,
         partnerEmail: partnerMember?.inviteEmail ?? partnerMember?.email ?? null,
         country: tenant?.country ?? "AU",
@@ -338,5 +345,15 @@ export const householdProcedures = {
         .where(eq(tenants.id, ctx.tenantId!));
 
       return { success: true };
+    }),
+
+  updateHouseholdMemberRole: privateOwnerProcedure
+    .input(UpdateHouseholdMemberRoleCommand)
+    .mutation(async ({ ctx, input }) => {
+      requiresWriteAccess(ctx);
+      const handler = updateHouseholdMemberRoleHandler(ctx.db);
+      const result = await handler(input, ctx.tenantId!, ctx.userId!);
+      clearEdgeContextCache();
+      return result;
     }),
 };

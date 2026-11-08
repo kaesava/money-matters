@@ -145,6 +145,7 @@ describe("paycheck cascade allocation engine", () => {
         id: "rent-bill",
         name: "Rent Bill",
         type: "REGULAR",
+        isEssential: true,
         monthlyAmount: 2600, // 2600 * 12 / 26 = 1200 needed per paycheck
         currentBalance: 0,
       },

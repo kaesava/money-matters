@@ -19,6 +19,8 @@ export const ReconciliationMetrics: React.FC<ReconciliationMetricsProps> = ({
   absVariance,
   isSurplus,
 }) => {
+  const isZeroVariance = Math.abs(variance) < 0.009;
+
   return (
     <View style={styles.container}>
       <View style={styles.metricsGrid}>
@@ -34,18 +36,10 @@ export const ReconciliationMetrics: React.FC<ReconciliationMetricsProps> = ({
 
         <View style={styles.metricCard}>
           <Text style={styles.metricLabel}>{t('bankAccounts.reconcile.difference')}</Text>
-          <Text style={[styles.metricVal, isSurplus ? styles.textSurplus : styles.textShortfall]}>
-            {isSurplus ? `+${formatMobileCurrency(variance)}` : `-${formatMobileCurrency(absVariance)}`}
+          <Text style={[styles.metricVal, isZeroVariance ? styles.textBalanced : isSurplus ? styles.textSurplus : styles.textShortfall]}>
+            {isZeroVariance ? 'Balanced ✓' : isSurplus ? `+${formatMobileCurrency(variance)}` : `-${formatMobileCurrency(absVariance)}`}
           </Text>
         </View>
-      </View>
-
-      <View style={[styles.noticeCard, isSurplus ? styles.noticeSurplus : styles.noticeShortfall]}>
-        <Text style={[styles.noticeText, isSurplus ? styles.noticeTextSurplus : styles.noticeTextShortfall]}>
-          {isSurplus
-            ? t('bankAccounts.reconcile.surplusNotice', { amount: formatMobileCurrency(absVariance) })
-            : t('bankAccounts.reconcile.shortfallNotice', { amount: formatMobileCurrency(absVariance) })}
-        </Text>
       </View>
     </View>
   );
@@ -85,6 +79,9 @@ const styles = StyleSheet.create({
   },
   textShortfall: {
     color: DESIGN_TOKENS.colors.warningDark,
+  },
+  textBalanced: {
+    color: DESIGN_TOKENS.colors.successDark,
   },
   noticeCard: {
     padding: 12,

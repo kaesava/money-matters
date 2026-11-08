@@ -1,7 +1,7 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import React, { useState, useEffect, useMemo, Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { t } from "@money-matters/i18n";
 import {
   Button,
@@ -9,8 +9,6 @@ import {
   ConfirmDialog,
   InfoTooltip,
   GenericSelectField,
-  AmountField,
-  Input,
 } from "@money-matters/ui/web";
 import { trpc } from "../../../../lib/trpc";
 import { AllocationStepType } from "@money-matters/types";
@@ -23,12 +21,22 @@ interface EditableStep {
   config?: Record<string, unknown> | null;
 }
 
-export default function AllocationRulesPage() {
+function AllocationRulesContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const scope = searchParams.get("scope") === "personal" ? "personal" : "household";
+  const isPersonal = scope === "personal";
+
   const toast = useToast();
   const utils = trpc.useUtils();
 
-  const strategyQuery = trpc.getActiveAllocationStrategy.useQuery();
+  const govQuery = trpc.getHouseholdGovernanceInfo.useQuery();
+  const isOwner = govQuery.data?.isOwner ?? true;
+  const canEdit = isPersonal || isOwner;
+
+  const strategyQuery = trpc.getActiveAllocationStrategy.useQuery({
+    isPrivate: isPersonal,
+  });
   const envelopesQuery = trpc.listPools.useQuery();
   const updateStepsMut = trpc.updateAllocationStrategySteps.useMutation();
   const applyPresetMut = trpc.applyAllocationPreset.useMutation();
@@ -40,8 +48,11 @@ export default function AllocationRulesPage() {
   const [showDiscardConfirm, setShowDiscardConfirm] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
-  // Filter envelopes to only shared envelopes (shared strategy cannot leak or target private envelopes)
-  const sharedEnvelopes = (envelopesQuery.data || []).filter((e) => !e.isPrivate);
+  // Eligible envelopes for surplus sweep target based on scope
+  const eligibleEnvelopes = useMemo(() => {
+    const list = envelopesQuery.data || [];
+    return isPersonal ? list.filter((e) => e.isPrivate) : list.filter((e) => !e.isPrivate);
+  }, [envelopesQuery.data, isPersonal]);
 
   useEffect(() => {
     if (strategyQuery.data?.steps) {
@@ -65,7 +76,6 @@ export default function AllocationRulesPage() {
       const b = initialSteps[i];
       if (a.stepType !== b.stepType) return true;
       if (a.targetEnvelopeId !== b.targetEnvelopeId) return true;
-      if (JSON.stringify(a.config) !== JSON.stringify(b.config)) return true;
     }
     return false;
   };
@@ -84,27 +94,9 @@ export default function AllocationRulesPage() {
     setIsDirty(checkIfDirty(reindexed));
   };
 
-  const handleUpdateStepConfig = (index: number, updates: Partial<EditableStep>) => {
+  const handleUpdateSurplusTarget = (index: number, targetEnvelopeId: string | null) => {
     const next = [...steps];
-    next[index] = { ...next[index], ...updates };
-    setSteps(next);
-    setIsDirty(checkIfDirty(next));
-  };
-
-  const handleRemoveStep = (index: number) => {
-    const next = steps.filter((_, idx) => idx !== index).map((s, idx) => ({ ...s, orderIndex: idx }));
-    setSteps(next);
-    setIsDirty(checkIfDirty(next));
-  };
-
-  const handleAddRule = (stepType: AllocationStepType) => {
-    const newStep: EditableStep = {
-      orderIndex: steps.length,
-      stepType,
-      targetEnvelopeId: sharedEnvelopes[0]?.id || null,
-      config: stepType === "FIXED_AMOUNT" ? { amount: 100 } : stepType === "PERCENTAGE_SPLIT" ? { percentage: 20 } : null,
-    };
-    const next = [...steps, newStep];
+    next[index] = { ...next[index], targetEnvelopeId };
     setSteps(next);
     setIsDirty(checkIfDirty(next));
   };
@@ -134,7 +126,10 @@ export default function AllocationRulesPage() {
 
   const handleResetToRecommended = async () => {
     try {
-      await applyPresetMut.mutateAsync({ presetKey: "BALANCED" });
+      await applyPresetMut.mutateAsync({
+        presetKey: "BALANCED",
+        isPrivate: isPersonal,
+      });
       await utils.getActiveAllocationStrategy.invalidate();
       toast.success(t("settings.paydayRules.saveSuccess"));
       setShowResetConfirm(false);
@@ -167,34 +162,46 @@ export default function AllocationRulesPage() {
           </button>
           <div className="flex items-center gap-2">
             <h1 className="text-xl font-bold text-[#1B2B4B] dark:text-white">
-              {t("settings.paydayRules.pageTitle")}
+              {isPersonal
+                ? t("settings.paydayRules.tabs.personal")
+                : t("settings.paydayRules.pageTitle")}
             </h1>
             <InfoTooltip content={t("settings.paydayRules.pageSubtitle")} />
           </div>
         </div>
 
         <div className="flex items-center gap-2">
-          <Button
-            variant="secondary"
-            onClick={() => setShowResetConfirm(true)}
-            className="text-xs h-9 cursor-pointer"
-          >
-            {t("settings.paydayRules.resetToRecommended")}
-          </Button>
+          {canEdit && (
+            <Button
+              variant="secondary"
+              onClick={() => setShowResetConfirm(true)}
+              className="text-xs h-9 cursor-pointer"
+            >
+              {t("settings.paydayRules.resetToRecommended")}
+            </Button>
+          )}
 
-          <Button
-            variant="primary"
-            onClick={handleSave}
-            disabled={!isDirty || submitting}
-            loading={submitting}
-            className="text-xs h-9 cursor-pointer"
-          >
-            {t("settings.paydayRules.saveChanges")}
-          </Button>
+          {canEdit && (
+            <Button
+              variant="primary"
+              onClick={handleSave}
+              disabled={!isDirty || submitting}
+              loading={submitting}
+              className="text-xs h-9 cursor-pointer"
+            >
+              {t("settings.paydayRules.saveChanges")}
+            </Button>
+          )}
         </div>
       </div>
 
-      {/* Rules Stack */}
+      {!canEdit && (
+        <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl text-xs text-amber-800">
+          {t("settings.paydayRules.onlyOwnerCanChange")}
+        </div>
+      )}
+
+      {/* 7 Streamlined Rules Stack */}
       <div className="space-y-3">
         {steps.map((step, index) => {
           const isFirst = index === 0;
@@ -225,106 +232,53 @@ export default function AllocationRulesPage() {
                     {stepDesc}
                   </p>
 
-                  {/* Config controls for configurable step types */}
-                  {(step.stepType === "FIXED_AMOUNT" || step.stepType === "PERCENTAGE_SPLIT" || step.stepType === "SURPLUS_SWEEP") && (
-                    <div className="pt-2 flex items-center gap-3 flex-wrap">
-                      <div className="w-52">
-                        <GenericSelectField
-                          label={t("settings.paydayRules.targetEnvelopeLabel")}
-                          value={step.targetEnvelopeId || ""}
-                          options={sharedEnvelopes.map((env) => ({
+                  {/* Envelope selector specifically for SURPLUS_SWEEP */}
+                  {step.stepType === "SURPLUS_SWEEP" && (
+                    <div className="pt-2 w-64">
+                      <GenericSelectField
+                        label={t("settings.paydayRules.targetEnvelopeLabel")}
+                        value={step.targetEnvelopeId || ""}
+                        options={[
+                          { value: "", label: t("categories.mainPool") },
+                          ...eligibleEnvelopes.map((env) => ({
                             value: env.id,
                             label: env.name,
-                          }))}
-                          onChange={(val) => handleUpdateStepConfig(index, { targetEnvelopeId: val })}
-                        />
-                      </div>
-
-                      {step.stepType === "FIXED_AMOUNT" && (
-                        <div className="w-36">
-                          <AmountField
-                            label={t("settings.paydayRules.amountLabel")}
-                            value={String(step.config?.amount ?? "100")}
-                            onChange={(val) =>
-                              handleUpdateStepConfig(index, {
-                                config: { ...step.config, amount: parseFloat(val) || 0 },
-                              })
-                            }
-                          />
-                        </div>
-                      )}
-
-                      {step.stepType === "PERCENTAGE_SPLIT" && (
-                        <div className="w-28">
-                          <Input
-                            label={t("settings.paydayRules.percentageLabel")}
-                            type="number"
-                            value={String(step.config?.percentage ?? "20")}
-                            onChange={(e) =>
-                              handleUpdateStepConfig(index, {
-                                config: { ...step.config, percentage: parseFloat(e.target.value) || 0 },
-                              })
-                            }
-                          />
-                        </div>
-                      )}
+                          })),
+                        ]}
+                        disabled={!canEdit}
+                        onChange={(val) => handleUpdateSurplusTarget(index, val || null)}
+                      />
                     </div>
                   )}
                 </div>
               </div>
 
-              {/* Action Buttons */}
-              <div className="flex items-center gap-1.5 self-end sm:self-center shrink-0">
-                <button
-                  type="button"
-                  disabled={isFirst}
-                  onClick={() => handleMove(index, "UP")}
-                  aria-label={t("settings.paydayRules.moveUp")}
-                  className="w-8 h-8 rounded-lg border border-slate-200 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-zinc-800 disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center text-xs text-slate-600 dark:text-slate-300 transition-colors cursor-pointer"
-                >
-                  ↑
-                </button>
-                <button
-                  type="button"
-                  disabled={isLast}
-                  onClick={() => handleMove(index, "DOWN")}
-                  aria-label={t("settings.paydayRules.moveDown")}
-                  className="w-8 h-8 rounded-lg border border-slate-200 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-zinc-800 disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center text-xs text-slate-600 dark:text-slate-300 transition-colors cursor-pointer"
-                >
-                  ↓
-                </button>
-                {(step.stepType === "FIXED_AMOUNT" || step.stepType === "PERCENTAGE_SPLIT") && (
+              {/* Action Buttons for Reordering */}
+              {canEdit && (
+                <div className="flex items-center gap-1.5 self-end sm:self-center shrink-0">
                   <button
                     type="button"
-                    onClick={() => handleRemoveStep(index)}
-                    aria-label={t("settings.paydayRules.removeRule")}
-                    className="w-8 h-8 rounded-lg border border-rose-200 dark:border-rose-900/60 hover:bg-rose-50 dark:hover:bg-rose-950/40 text-rose-600 flex items-center justify-center text-xs transition-colors cursor-pointer"
+                    disabled={isFirst}
+                    onClick={() => handleMove(index, "UP")}
+                    aria-label={t("settings.paydayRules.moveUp")}
+                    className="w-8 h-8 rounded-lg border border-slate-200 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-zinc-800 disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center text-xs text-slate-600 dark:text-slate-300 transition-colors cursor-pointer"
                   >
-                    ✕
+                    ↑
                   </button>
-                )}
-              </div>
+                  <button
+                    type="button"
+                    disabled={isLast}
+                    onClick={() => handleMove(index, "DOWN")}
+                    aria-label={t("settings.paydayRules.moveDown")}
+                    className="w-8 h-8 rounded-lg border border-slate-200 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-zinc-800 disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center text-xs text-slate-600 dark:text-slate-300 transition-colors cursor-pointer"
+                  >
+                    ↓
+                  </button>
+                </div>
+              )}
             </div>
           );
         })}
-      </div>
-
-      {/* Add Custom Rule Dropdown/Buttons */}
-      <div className="flex items-center gap-3 pt-2">
-        <button
-          type="button"
-          onClick={() => handleAddRule("FIXED_AMOUNT")}
-          className="px-3.5 py-2 rounded-xl text-xs font-semibold border border-dashed border-slate-300 dark:border-slate-700 hover:border-[#2563eb] text-slate-700 dark:text-slate-300 hover:text-[#2563eb] transition-colors cursor-pointer"
-        >
-          + {t("settings.paydayRules.stepTypes.FIXED_AMOUNT")}
-        </button>
-        <button
-          type="button"
-          onClick={() => handleAddRule("PERCENTAGE_SPLIT")}
-          className="px-3.5 py-2 rounded-xl text-xs font-semibold border border-dashed border-slate-300 dark:border-slate-700 hover:border-[#2563eb] text-slate-700 dark:text-slate-300 hover:text-[#2563eb] transition-colors cursor-pointer"
-        >
-          + {t("settings.paydayRules.stepTypes.PERCENTAGE_SPLIT")}
-        </button>
       </div>
 
       {/* Reset Confirmation Dialog */}
@@ -358,5 +312,13 @@ export default function AllocationRulesPage() {
         />
       )}
     </div>
+  );
+}
+
+export default function AllocationRulesPage() {
+  return (
+    <Suspense fallback={<div className="p-8 text-center text-xs text-slate-400">{t("common.loading")}</div>}>
+      <AllocationRulesContent />
+    </Suspense>
   );
 }

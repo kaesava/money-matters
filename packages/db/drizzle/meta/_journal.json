@@ -337,6 +337,13 @@
       "when": 1784238494251,
       "tag": "0048_income_events_contribution_mode",
       "breakpoints": true
+    },
+    {
+      "idx": 48,
+      "version": "7",
+      "when": 1784248494251,
+      "tag": "0049_allocation_strategies_personal_scope",
+      "breakpoints": true
     }
   ]
 }

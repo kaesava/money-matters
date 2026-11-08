@@ -246,21 +246,22 @@ export function useBankAccountsList() {
     });
   };
 
-  const handleConfirmReconcile = async (splits: Array<{ poolId: string; adjustment: string }>, reason?: string) => {
+  const handleConfirmReconcile = async (
+    splits: Array<{ poolId: string; adjustment: string }>,
+    actualBalance: string,
+    reason?: string
+  ) => {
     if (!reconcileState) return;
-    const { account, newBalance, expectedBalance, unbudgetedBuffer = 0 } = reconcileState;
-    const availableToBudget = Math.max(0, newBalance - unbudgetedBuffer);
-    const diff = Number((availableToBudget - expectedBalance).toFixed(2));
+    const { account } = reconcileState;
+    const actualBalNum = Math.max(0, parseFloat(actualBalance) || 0);
 
-    if (Math.abs(diff) > 0.009 && splits.length > 0) {
-      await reconcileMut.mutateAsync({
-        accountId: account.id,
-        actualBalance: newBalance.toFixed(2),
-        clientIdempotencyToken: crypto.randomUUID(),
-        splits,
-        note: reason?.trim() || undefined,
-      });
-    }
+    await reconcileMut.mutateAsync({
+      accountId: account.id,
+      actualBalance: actualBalNum.toFixed(2),
+      clientIdempotencyToken: crypto.randomUUID(),
+      splits,
+      note: reason?.trim() || undefined,
+    });
 
     utils.listPools.invalidate();
     await bankAccountsQuery.refetch();

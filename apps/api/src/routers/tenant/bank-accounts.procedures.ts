@@ -143,7 +143,7 @@ export const bankAccountsProcedures = {
           z.object({
             envelopeId: z.string().uuid().optional(),
             poolId: z.string().uuid().optional(),
-            adjustment: z.string(),
+            adjustment: z.string().regex(/^-?\d+(\.\d{1,2})?$/),
           }).strict()
         ),
       }).strict()

@@ -8,37 +8,46 @@ export async function applyAllocationPresetCommand(
   appId: string,
   userId: string,
   presetKey: "BALANCED" | "BILLS_FORTRESS" | "PAY_YOURSELF_FIRST",
-  dbClient: DbOrTx
+  dbClient: DbOrTx,
+  isPrivate = false
 ) {
   const preset = CANONICAL_ALLOCATION_PRESETS[presetKey];
   if (!preset) {
     throw new Error(`Invalid preset key: ${presetKey}`);
   }
 
+  const conditions = [
+    eq(allocationStrategies.tenantId, tenantId),
+    eq(allocationStrategies.appId, appId),
+    eq(allocationStrategies.isDefault, true),
+    eq(allocationStrategies.isPrivate, isPrivate),
+    sql`${allocationStrategies.archivedAt} IS NULL`,
+  ];
+  if (isPrivate && userId) {
+    conditions.push(eq(allocationStrategies.userId, userId));
+  }
+
   let [strategy] = await dbClient
     .select()
     .from(allocationStrategies)
-    .where(
-      and(
-        eq(allocationStrategies.tenantId, tenantId),
-        eq(allocationStrategies.appId, appId),
-        eq(allocationStrategies.isDefault, true),
-        sql`${allocationStrategies.archivedAt} IS NULL`
-      )
-    )
+    .where(and(...conditions))
     .limit(1);
 
   if (!strategy) {
-    strategy = await seedDefaultAllocationStrategy(tenantId, appId, userId, dbClient);
+    strategy = await seedDefaultAllocationStrategy(tenantId, appId, userId, dbClient, isPrivate);
   }
 
   return await dbClient.transaction(async (tx) => {
     // 1. Update strategy presetKey
+    const presetName = isPrivate
+      ? presetKey === "BALANCED" ? "Personal Balanced" : presetKey === "BILLS_FORTRESS" ? "Personal Bills Fortress" : "Personal Pay Yourself First"
+      : presetKey === "BALANCED" ? "Standard Balanced" : presetKey === "BILLS_FORTRESS" ? "Bills Fortress" : "Pay Yourself First";
+
     const [updatedStrategy] = await tx
       .update(allocationStrategies)
       .set({
         presetKey,
-        name: presetKey === "BALANCED" ? "Standard Balanced" : presetKey === "BILLS_FORTRESS" ? "Bills Fortress" : "Pay Yourself First",
+        name: presetName,
         updatedAt: new Date(),
         updatedBy: userId,
       })

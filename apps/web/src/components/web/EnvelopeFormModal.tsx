@@ -56,6 +56,12 @@ export function EnvelopeFormModal({
   const rawAccounts = bankAccountsQuery.data;
   const bankAccounts = useMemo(() => passedBankAccounts ?? rawAccounts ?? [], [passedBankAccounts, rawAccounts]);
 
+  const poolsQuery = trpc.listPools.useQuery(undefined, { enabled: isOpen && !isDraftMode });
+  const otherPrivateEnvelopes = useMemo(() => {
+    return (poolsQuery.data || []).filter((p) => p.isPrivate && p.id !== categoryToEdit?.id);
+  }, [poolsQuery.data, categoryToEdit?.id]);
+  const isLastPrivateEnvelope = Boolean(categoryToEdit?.isPrivate && otherPrivateEnvelopes.length === 0);
+
   const createPoolMut = trpc.createPool.useMutation();
   const updatePoolMut = trpc.updatePool.useMutation();
   const archivePoolMut = trpc.archivePool.useMutation();
@@ -304,7 +310,11 @@ export function EnvelopeFormModal({
         onClose={() => setShowArchiveConfirm(false)}
         onConfirm={confirmArchive}
         title={initialMode === "BILL_SCHEDULE" ? t("categories.archiveBillSchedule") : t("categories.archivePool")}
-        description={t("categories.archivePoolConfirm", { name: categoryToEdit?.name || "" })}
+        description={
+          isLastPrivateEnvelope
+            ? t("categories.archiveLastPrivatePoolConfirm", { name: categoryToEdit?.name || "" })
+            : t("categories.archivePoolConfirm", { name: categoryToEdit?.name || "" })
+        }
         confirmLabel={initialMode === "BILL_SCHEDULE" ? t("categories.archiveBillSchedule") : t("categories.archivePool")}
         variant="danger"
         isLoading={submitting}

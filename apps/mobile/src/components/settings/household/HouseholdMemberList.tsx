@@ -17,13 +17,17 @@ export interface MemberItem {
 export interface HouseholdMemberListProps {
   membersList: MemberItem[];
   isOwner: boolean;
+  isSoleOwner?: boolean;
   onPressRemove: (member: MemberItem) => void;
+  onChangeRole?: (member: MemberItem, newRole: "OWNER" | "MEMBER") => void;
 }
 
 export function HouseholdMemberList({
   membersList,
   isOwner,
+  isSoleOwner,
   onPressRemove,
+  onChangeRole,
 }: HouseholdMemberListProps) {
   return (
     <View style={styles.card}>
@@ -59,7 +63,24 @@ export function HouseholdMemberList({
                   <View style={styles.memberMeta}>
                     <View style={styles.nameBadgeRow}>
                       <Text style={styles.memberName}>{m.name}</Text>
-                      {m.isOwner ? (
+                      {isOwner && onChangeRole && !(m.isPending || m.inviteStatus === 'PENDING') ? (
+                        isSoleOwner && m.isOwner ? (
+                          <View style={styles.ownerBadge}>
+                            <Text style={styles.ownerBadgeText}>
+                              {t('settings.members.roleOwner')}
+                            </Text>
+                          </View>
+                        ) : (
+                          <TouchableOpacity
+                            onPress={() => onChangeRole(m, m.isOwner ? 'MEMBER' : 'OWNER')}
+                            style={m.isOwner ? styles.ownerBadge : styles.memberBadge}
+                          >
+                            <Text style={m.isOwner ? styles.ownerBadgeText : styles.memberBadgeText}>
+                              {m.isOwner ? t('settings.members.roleOwner') : t('settings.members.roleMember')} ▾
+                            </Text>
+                          </TouchableOpacity>
+                        )
+                      ) : m.isOwner ? (
                         <View style={styles.ownerBadge}>
                           <Text style={styles.ownerBadgeText}>
                             {t('settings.members.roleOwner')}

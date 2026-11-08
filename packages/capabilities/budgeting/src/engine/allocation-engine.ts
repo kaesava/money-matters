@@ -70,6 +70,7 @@ export interface AllocationEngineInput {
   contributionMode?: "FULL" | "PERCENTAGE" | "FIXED_AMOUNT";
   contributionValue?: number | string | null;
   strategySteps?: AllocationStrategyStepItem[];
+  personalStrategySteps?: AllocationStrategyStepItem[];
   runwayDays?: number;
   buckets: EngineBucket[];
   paycheckDate: Date;
@@ -143,8 +144,6 @@ export function runAllocationEngine(input: AllocationEngineInput): AllocationEng
 
   const defaultSteps: AllocationStrategyStepItem[] = [
     { stepType: "IMMEDIATE_BILLS" },
-    { stepType: "DEFICIT_REPAIR" },
-    { stepType: "BILLS_SAFETY_FLOOR" },
     { stepType: "EVERYDAY_ALLOWANCE" },
     { stepType: "ESSENTIAL_BILLS" },
     { stepType: "COMMITTED_GOALS" },
@@ -153,9 +152,17 @@ export function runAllocationEngine(input: AllocationEngineInput): AllocationEng
     { stepType: "SURPLUS_SWEEP" },
   ];
 
-  const stepsToExecute = input.strategySteps && input.strategySteps.length > 0 ? input.strategySteps : defaultSteps;
+  const sharedSteps = input.strategySteps && input.strategySteps.length > 0 ? input.strategySteps : defaultSteps;
+  const personalSteps = input.personalStrategySteps && input.personalStrategySteps.length > 0
+    ? input.personalStrategySteps
+    : sharedSteps;
 
-  const executePipeline = (availableCents: number, targetBuckets: EngineBucket[], isPrivateScope: boolean) => {
+  const executePipeline = (
+    availableCents: number,
+    targetBuckets: EngineBucket[],
+    isPrivateScope: boolean,
+    stepsToRun: AllocationStrategyStepItem[]
+  ) => {
     const isBucketEligible = (b: EngineBucket) => {
       if (isPrivateScope) {
         if (!b.isPrivate) return false;
@@ -179,7 +186,7 @@ export function runAllocationEngine(input: AllocationEngineInput): AllocationEng
       isBucketEligible,
     };
 
-    for (const step of stepsToExecute) {
+    for (const step of stepsToRun) {
       if (ctx.remainingCents <= 0 && step.stepType !== "SURPLUS_SWEEP") continue;
 
       const billBuckets = targetBuckets.filter(isBillsBucket);
@@ -246,7 +253,7 @@ export function runAllocationEngine(input: AllocationEngineInput): AllocationEng
 
   // 1. Run Shared Allocation
   const sharedBuckets = input.buckets.filter((b) => !b.isPrivate);
-  const leftoverSharedCents = executePipeline(sharedCents, sharedBuckets, false);
+  const leftoverSharedCents = executePipeline(sharedCents, sharedBuckets, false, sharedSteps);
 
   // 2. Run Private Allocation (if private funds exist and earner owns private envelopes)
   let leftoverPrivateCents = 0;
@@ -267,8 +274,8 @@ export function runAllocationEngine(input: AllocationEngineInput): AllocationEng
       const curBal = runningBalances.get(privateTarget.id) ?? 0;
       runningBalances.set(privateTarget.id, curBal + privateCents);
     } else if (earnerPrivateBuckets.length > 1) {
-      // Multiple private envelopes: run the recipe across the earner's private envelopes
-      leftoverPrivateCents = executePipeline(privateCents, earnerPrivateBuckets, true);
+      // Multiple private envelopes: run the personal recipe across the earner's private envelopes
+      leftoverPrivateCents = executePipeline(privateCents, earnerPrivateBuckets, true, personalSteps);
     } else {
       leftoverPrivateCents = privateCents;
     }

@@ -174,8 +174,12 @@ export function IncomeFormModal({ isOpen, onClose, sourceToEdit }: IncomeFormMod
     }
     if (hasPrivateEnvelopes && contributionMode === "FIXED_AMOUNT") {
       const fix = parseFloat(cleanAmount(contributionValue));
+      const expAmt = parseFloat(cleanAmount(amount));
       if (isNaN(fix) || fix <= 0) {
         return setErrorMsg(t("incomeBillsTabs.householdContribution.amountInvalid"));
+      }
+      if (fix > expAmt) {
+        return setErrorMsg(t("incomeBillsTabs.householdContribution.fixedCannotExceedExpected"));
       }
     }
 
@@ -186,14 +190,47 @@ export function IncomeFormModal({ isOpen, onClose, sourceToEdit }: IncomeFormMod
     await executeSave();
   };
 
-  const isDirty = Boolean(
-    name.trim() ||
-    amount.trim() ||
-    (hasPrivateEnvelopes && (
-      contributionMode !== (sourceToEdit?.contributionMode || "FULL") ||
-      contributionValue !== (sourceToEdit?.contributionValue ? String(sourceToEdit.contributionValue) : "")
-    ))
-  );
+  const isDirty = useMemo(() => {
+    if (isEdit && sourceToEdit) {
+      const initialParsed = parseRecurrenceRule(sourceToEdit.rrule);
+      const initialStartDate = sourceToEdit.startDate ? toTenantDateString(sourceToEdit.startDate) : "";
+      const initialEndDate = sourceToEdit.endDate ? toTenantDateString(sourceToEdit.endDate) : "";
+      const currentStart = startDate || "";
+      const currentEnd = endDate || "";
+      const initialContributionValue = sourceToEdit.contributionValue ? String(sourceToEdit.contributionValue) : "";
+
+      return (
+        name.trim() !== (sourceToEdit.name || "").trim() ||
+        cleanAmount(amount) !== cleanAmount(sourceToEdit.amount || "") ||
+        receivingAccountId !== (sourceToEdit.receivingAccountId || "") ||
+        (hasPrivateEnvelopes && (
+          contributionMode !== (sourceToEdit.contributionMode || "FULL") ||
+          contributionValue !== initialContributionValue
+        )) ||
+        isRecurring !== (initialParsed.isRecurring || !!sourceToEdit.startDate) ||
+        frequency !== initialParsed.frequency ||
+        interval !== initialParsed.interval ||
+        currentStart !== initialStartDate ||
+        currentEnd !== initialEndDate
+      );
+    }
+    return Boolean(name.trim() || amount.trim() || (hasPrivateEnvelopes && contributionValue.trim()));
+  }, [
+    isEdit,
+    sourceToEdit,
+    name,
+    amount,
+    receivingAccountId,
+    hasPrivateEnvelopes,
+    contributionMode,
+    contributionValue,
+    isRecurring,
+    frequency,
+    interval,
+    startDate,
+    endDate,
+    toTenantDateString,
+  ]);
   const isValid = Boolean(name.trim() && amount && parseFloat(amount) > 0);
 
   if (!isOpen) return null;

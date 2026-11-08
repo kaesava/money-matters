@@ -109,6 +109,9 @@ export const envelopes = {
     "mainPool": "Main envelope",
     "scheduledBillBadge": "Scheduled Bill",
     "flexibleBillBadge": "Flexible Bill",
+    "essentialBadge": "Essential",
+    "committedBadge": "Non-Negotiable",
+    "archiveLastPrivatePoolConfirm": "Archiving this will remove your last private envelope. All active income schedules and upcoming paydays will be reset to 100% household contribution.",
     "targetDateGoalBadge": "Target Goal",
     "ongoingGoalBadge": "Ongoing Goal",
     "everydayBadge": "Everyday",
@@ -258,7 +261,7 @@ export const envelopes = {
       "keepEditing": "Keep Editing"
     },
     "reconciliation": {
-      "title": "Bank Account Balance Alignment",
+      "title": "Sync Balance",
       "subtitle": "Match {name} with your budget envelopes"
     },
     "crossBankTransfer": {

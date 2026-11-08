@@ -258,13 +258,13 @@ test.describe("Screen-by-Screen Features & Settings E2E Suite", () => {
     test('12.1 1-Click Bank Account Balance Alignment Modal Audit (`ReconciliationModal`)', async ({ page }) => {
       await page.goto('/dashboard/bank-accounts');
 
-      // Look for alignment trigger buttons (Align Surplus / Align Shortfall / Reconcile)
-      const alignBtn = page.locator('button:has-text("Align Surplus"), button:has-text("Align Shortfall"), button:has-text("Align")').first();
+      // Look for alignment trigger buttons (Sync Balance / Align Surplus / Align Shortfall)
+      const alignBtn = page.locator('button:has-text("Sync Balance"), button:has-text("Align Surplus"), button:has-text("Align Shortfall"), button:has-text("Align")').first();
       if (await alignBtn.isVisible()) {
         await alignBtn.click();
 
         // Verify ReconciliationModal renders
-        const modal = page.locator('[role="dialog"]').filter({ hasText: /Alignment|Reconcil|Variance/i }).first();
+        const modal = page.locator('[role="dialog"]').filter({ hasText: /Sync Balance|Alignment|Reconcil|Variance/i }).first();
         if (await modal.isVisible()) {
           await expect(modal).toBeVisible();
 

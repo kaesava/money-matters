@@ -89,14 +89,8 @@ export async function updateEnvelopeCommand(
       : null;
 
     const willBeSurplusTarget = input.isSurplusTarget !== undefined ? input.isSurplusTarget : existing.isSurplusTarget;
-    if (willBeSurplusTarget && effectiveIsPrivate) {
-      throw new Error("A private envelope cannot be designated as the household Surplus Sweep Target.");
-    }
-    if (willBeSurplusTarget && targetAccount?.isPrivate) {
-      throw new Error("Surplus Sweep Target envelope cannot be linked to a private bank account.");
-    }
 
-    if (input.isSurplusTarget === false && existing.isSurplusTarget) {
+    if (input.isSurplusTarget === false && existing.isSurplusTarget && !effectiveIsPrivate) {
       const otherSurplusTargets = await tx
         .select({ id: envelopes.id })
         .from(envelopes)
@@ -114,16 +108,19 @@ export async function updateEnvelopeCommand(
     }
 
     if (input.isSurplusTarget === true) {
+      const clearConditions = [
+        eq(envelopes.tenantId, tenantId),
+        eq(envelopes.appId, appId),
+        eq(envelopes.isSurplusTarget, true),
+        eq(envelopes.isPrivate, effectiveIsPrivate),
+      ];
+      if (effectiveIsPrivate && userId) {
+        clearConditions.push(eq(envelopes.userId, userId));
+      }
       await tx
         .update(envelopes)
         .set({ isSurplusTarget: false })
-        .where(
-          and(
-            eq(envelopes.tenantId, tenantId),
-            eq(envelopes.appId, appId),
-            eq(envelopes.isSurplusTarget, true)
-          )
-        );
+        .where(and(...clearConditions));
     }
 
     const effectiveEnvelopeType = input.envelopeType ?? existing.envelopeType;

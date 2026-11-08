@@ -32,22 +32,21 @@ export async function createEnvelopeCommand(
 
     const isPrivate = Boolean(targetAccount.isPrivate || input.isPrivate);
 
-    if (input.isSurplusTarget === true && isPrivate) {
-      throw new Error("A private envelope cannot be designated as the household Surplus Sweep Target.");
-    }
-
-    // 2. Clear previous surplus target if this one is designated
+    // 2. Clear previous surplus target in the same scope if this one is designated
     if (input.isSurplusTarget === true) {
+      const clearConditions = [
+        eq(envelopes.tenantId, tenantId),
+        eq(envelopes.appId, appId),
+        eq(envelopes.isSurplusTarget, true),
+        eq(envelopes.isPrivate, isPrivate),
+      ];
+      if (isPrivate && userId) {
+        clearConditions.push(eq(envelopes.userId, userId));
+      }
       await tx
         .update(envelopes)
         .set({ isSurplusTarget: false })
-        .where(
-          and(
-            eq(envelopes.tenantId, tenantId),
-            eq(envelopes.appId, appId),
-            eq(envelopes.isSurplusTarget, true)
-          )
-        );
+        .where(and(...clearConditions));
     }
 
     const isScheduled = input.envelopeType === "SCHEDULED_BILL";

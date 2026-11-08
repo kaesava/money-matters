@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { View, StyleSheet } from 'react-native';
-import { useMobileToast, TypedConfirmDialog } from '@money-matters/ui/mobile';
+import { useMobileToast, TypedConfirmDialog, MobileConfirmDialog } from '@money-matters/ui/mobile';
 import { t } from '@money-matters/i18n';
 import { trpc } from '../../lib/trpc';
 import { HouseholdMemberList, MemberItem } from './household/HouseholdMemberList';
@@ -15,13 +15,18 @@ export function HouseholdPartnerInviteSection() {
 
   // Member removal state
   const [memberToRemove, setMemberToRemove] = useState<MemberItem | null>(null);
+  const [selfDemoteTarget, setSelfDemoteTarget] = useState<MemberItem | null>(null);
+  const [isUpdatingRole, setIsUpdatingRole] = useState(false);
 
   const govQuery = trpc.getHouseholdGovernanceInfo.useQuery();
   const inviteMutation = trpc.invitePartner.useMutation();
   const removeMemberMutation = trpc.removeHouseholdMember.useMutation();
+  const updateRoleMutation = trpc.updateHouseholdMemberRole.useMutation();
 
   const gov = govQuery.data;
   const isOwner = gov?.isOwner ?? false;
+  const isSoleOwner = gov?.isSoleOwner ?? false;
+  const currentUserId = gov?.currentUserId ?? null;
   const membersList = (gov?.membersList ?? []) as MemberItem[];
 
   const handleInvitePartner = async () => {
@@ -68,12 +73,53 @@ export function HouseholdPartnerInviteSection() {
     }
   };
 
+  const executeRoleChange = async (member: MemberItem, newRole: "OWNER" | "MEMBER") => {
+    setIsUpdatingRole(true);
+    try {
+      await updateRoleMutation.mutateAsync({
+        memberId: member.id,
+        targetUserId: member.userId || undefined,
+        newRole,
+      });
+      toast.success(
+        t('settings.members.changeRoleSuccess', {
+          role: t(`settings.members.role${newRole === 'OWNER' ? 'Owner' : 'Member'}`),
+          name: member.name,
+        }),
+        t('common.success')
+      );
+      await Promise.all([
+        utils.getHouseholdGovernanceInfo.invalidate(),
+        utils.getActiveAllocationStrategy.invalidate(),
+      ]);
+    } catch (err) {
+      toast.error(
+        err instanceof Error ? err.message : t('settings.members.changeRoleFailed'),
+        t('common.error')
+      );
+    } finally {
+      setIsUpdatingRole(false);
+      setSelfDemoteTarget(null);
+    }
+  };
+
+  const handleChangeRole = (member: MemberItem, newRole: "OWNER" | "MEMBER") => {
+    const isSelf = currentUserId && member.userId === currentUserId;
+    if (isSelf && newRole === 'MEMBER') {
+      setSelfDemoteTarget(member);
+      return;
+    }
+    executeRoleChange(member, newRole);
+  };
+
   return (
     <View style={styles.container}>
       <HouseholdMemberList
         membersList={membersList}
         isOwner={isOwner}
+        isSoleOwner={isSoleOwner}
         onPressRemove={(m) => setMemberToRemove(m)}
+        onChangeRole={handleChangeRole}
       />
 
       <PartnerInviteForm
@@ -101,6 +147,18 @@ export function HouseholdPartnerInviteSection() {
         })}
         confirmButtonText={t('settings.members.removeAction')}
         variant="danger"
+      />
+
+      <MobileConfirmDialog
+        visible={Boolean(selfDemoteTarget)}
+        onCancel={() => setSelfDemoteTarget(null)}
+        onConfirm={() => selfDemoteTarget && executeRoleChange(selfDemoteTarget, "MEMBER")}
+        title={t('settings.members.demoteSelfTitle')}
+        message={t('settings.members.demoteSelfConfirm')}
+        confirmLabel={t('settings.members.demoteSelfConfirmButton')}
+        cancelLabel={t('common.cancel')}
+        isDestructive={true}
+        isLoading={isUpdatingRole}
       />
     </View>
   );

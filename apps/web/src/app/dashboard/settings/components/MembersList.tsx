@@ -10,6 +10,7 @@ export interface HouseholdMemberItem {
   userId?: string | null;
   name: string;
   email: string;
+  role?: string | null;
   avatarUrl?: string | null;
   isOwner?: boolean;
   isPending?: boolean;
@@ -19,10 +20,20 @@ export interface HouseholdMemberItem {
 interface MembersListProps {
   members: HouseholdMemberItem[];
   isOwner: boolean;
+  isSoleOwner?: boolean;
+  currentUserId?: string | null;
   onInitiateRemove: (member: HouseholdMemberItem) => void;
+  onInitiateChangeRole?: (member: HouseholdMemberItem, newRole: "OWNER" | "MEMBER") => void;
 }
 
-export function MembersList({ members, isOwner, onInitiateRemove }: MembersListProps) {
+export function MembersList({
+  members,
+  isOwner,
+  isSoleOwner,
+  currentUserId: _currentUserId,
+  onInitiateRemove,
+  onInitiateChangeRole,
+}: MembersListProps) {
   return (
     <section className="p-6 bg-white border border-slate-200 rounded-2xl shadow-xs space-y-4">
       <div className="flex items-center gap-2">
@@ -45,6 +56,8 @@ export function MembersList({ members, isOwner, onInitiateRemove }: MembersListP
                   .toUpperCase()
                   .slice(0, 2)
               : "?";
+
+            const isThisMemberSoleOwner = Boolean(isSoleOwner && m.isOwner);
 
             return (
               <div
@@ -69,7 +82,26 @@ export function MembersList({ members, isOwner, onInitiateRemove }: MembersListP
                   <div>
                     <div className="flex items-center gap-1.5 flex-wrap">
                       <span className="text-xs font-bold text-[#1B2B4B]">{m.name}</span>
-                      {m.isOwner ? (
+                      {isOwner && onInitiateChangeRole && !(m.isPending || m.inviteStatus === "PENDING") ? (
+                        isThisMemberSoleOwner ? (
+                          <div className="flex items-center gap-1">
+                            <span className="px-2 py-0.5 text-[10px] font-black uppercase tracking-wider bg-blue-100 text-[#2563eb] rounded-md">
+                              {t("settings.members.roleOwner")}
+                            </span>
+                            <InfoTooltip content={t("settings.members.soleOwnerRestricted")} />
+                          </div>
+                        ) : (
+                          <select
+                            value={m.isOwner ? "OWNER" : "MEMBER"}
+                            onChange={(e) => onInitiateChangeRole(m, e.target.value as "OWNER" | "MEMBER")}
+                            aria-label={t("settings.members.roleSelectorLabel")}
+                            className="text-[10px] font-bold py-0.5 px-2 rounded-md border border-slate-200 bg-white text-[#1B2B4B] focus:outline-none focus:ring-1 focus:ring-[#2563eb] cursor-pointer"
+                          >
+                            <option value="OWNER">{t("settings.members.roleOwner")}</option>
+                            <option value="MEMBER">{t("settings.members.roleMember")}</option>
+                          </select>
+                        )
+                      ) : m.isOwner ? (
                         <span className="px-2 py-0.5 text-[10px] font-black uppercase tracking-wider bg-blue-100 text-[#2563eb] rounded-md">
                           {t("settings.members.roleOwner")}
                         </span>

@@ -1,25 +1,47 @@
 "use client";
 
-import React from "react";
+import React, { useState, useMemo } from "react";
 import Link from "next/link";
 import { t } from "@money-matters/i18n";
-import { useToast, ConfirmDialog } from "@money-matters/ui/web";
+import { useToast, ConfirmDialog, InfoTooltip } from "@money-matters/ui/web";
 import { trpc } from "../../../../lib/trpc";
 
 export function AllocationStrategySection() {
   const toast = useToast();
   const utils = trpc.useUtils();
 
-  const strategyQuery = trpc.getActiveAllocationStrategy.useQuery();
+  const [activeTab, setActiveTab] = useState<"household" | "personal">("household");
+
+  const govQuery = trpc.getHouseholdGovernanceInfo.useQuery();
+  const envelopesQuery = trpc.listPools.useQuery();
+  const isOwner = govQuery.data?.isOwner ?? true;
+
+  const hasPrivateEnvelopes = useMemo(
+    () => (envelopesQuery.data || []).some((e) => e.isPrivate),
+    [envelopesQuery.data]
+  );
+
+  const isPersonalScope = activeTab === "personal";
+
+  const strategyQuery = trpc.getActiveAllocationStrategy.useQuery({
+    isPrivate: isPersonalScope,
+  });
   const applyPresetMut = trpc.applyAllocationPreset.useMutation();
 
-  const [confirmPreset, setConfirmPreset] = React.useState<"BALANCED" | "BILLS_FORTRESS" | "PAY_YOURSELF_FIRST" | null>(null);
+  const [confirmPreset, setConfirmPreset] = useState<
+    "BALANCED" | "BILLS_FORTRESS" | "PAY_YOURSELF_FIRST" | null
+  >(null);
 
   const activePreset = strategyQuery.data?.presetKey || "BALANCED";
 
-  const handleApplyPreset = async (presetKey: "BALANCED" | "BILLS_FORTRESS" | "PAY_YOURSELF_FIRST") => {
+  const handleApplyPreset = async (
+    presetKey: "BALANCED" | "BILLS_FORTRESS" | "PAY_YOURSELF_FIRST"
+  ) => {
     try {
-      await applyPresetMut.mutateAsync({ presetKey });
+      await applyPresetMut.mutateAsync({
+        presetKey,
+        isPrivate: isPersonalScope,
+      });
       await utils.getActiveAllocationStrategy.invalidate();
       toast.success(t("settings.paydayRules.saveSuccess"));
     } catch (err: unknown) {
@@ -51,48 +73,102 @@ export function AllocationStrategySection() {
     },
   ];
 
+  const canEdit = isPersonalScope || isOwner;
+
+  const confirmPresetName = confirmPreset
+    ? t(
+        confirmPreset === "BILLS_FORTRESS"
+          ? "settings.paydayRules.presets.billsFortress.name"
+          : confirmPreset === "PAY_YOURSELF_FIRST"
+          ? "settings.paydayRules.presets.payYourselfFirst.name"
+          : "settings.paydayRules.presets.balanced.name"
+      )
+    : "";
+
   return (
     <div className="bg-white/80 dark:bg-zinc-900/80 backdrop-blur-md rounded-2xl border border-zinc-200 dark:border-zinc-800 shadow-sm p-6 space-y-5">
+      {/* Scope Sub-Tabs when user has Private Envelopes */}
+      {hasPrivateEnvelopes && (
+        <div className="flex items-center gap-2 border-b border-zinc-200 dark:border-zinc-800 pb-3">
+          <button
+            type="button"
+            onClick={() => setActiveTab("household")}
+            className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-colors cursor-pointer ${
+              activeTab === "household"
+                ? "bg-[#1B2B4B] text-white"
+                : "text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-zinc-800"
+            }`}
+          >
+            {t("settings.paydayRules.tabs.household")}
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab("personal")}
+            className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-colors cursor-pointer ${
+              activeTab === "personal"
+                ? "bg-[#1B2B4B] text-white"
+                : "text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-zinc-800"
+            }`}
+          >
+            {t("settings.paydayRules.tabs.personal")}
+          </button>
+        </div>
+      )}
+
+      {/* Header (Pill tag removed) */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
           <div className="flex items-center gap-2.5">
             <h3 className="font-bold text-[#1B2B4B] dark:text-white text-base">
-              {t("settings.paydayRules.title")}
+              {isPersonalScope
+                ? t("settings.paydayRules.tabs.personal")
+                : t("settings.paydayRules.title")}
             </h3>
-            <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-blue-100 text-blue-800 dark:bg-blue-900/60 dark:text-blue-300">
-              {activePreset === "CUSTOM"
-                ? t("settings.paydayRules.presets.custom.name")
-                : t(`settings.paydayRules.presets.${activePreset === "BILLS_FORTRESS" ? "billsFortress" : activePreset === "PAY_YOURSELF_FIRST" ? "payYourselfFirst" : "balanced"}.name`)}
-            </span>
+            {!canEdit && (
+              <InfoTooltip content={t("settings.paydayRules.onlyOwnerCanChange")} />
+            )}
           </div>
           <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
             {t("settings.paydayRules.description")}
           </p>
         </div>
 
-        <Link
-          href="/dashboard/settings/allocation-rules"
-          className="inline-flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold text-[#2563eb] bg-blue-50 hover:bg-blue-100 dark:bg-blue-950/40 dark:hover:bg-blue-900/60 dark:text-blue-400 transition-colors shrink-0"
-        >
-          <span>⚙️</span>
-          <span>{t("settings.paydayRules.customizeButton")}</span>
-        </Link>
+        {canEdit ? (
+          <Link
+            href={`/dashboard/settings/allocation-rules?scope=${activeTab}`}
+            className="inline-flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold text-[#2563eb] bg-blue-50 hover:bg-blue-100 dark:bg-blue-950/40 dark:hover:bg-blue-900/60 dark:text-blue-400 transition-colors shrink-0 cursor-pointer"
+          >
+            <span>⚙️</span>
+            <span>{t("settings.paydayRules.customizeButton")}</span>
+          </Link>
+        ) : (
+          <span
+            className="inline-flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold text-slate-400 bg-slate-100 dark:bg-zinc-800 dark:text-slate-500 cursor-not-allowed shrink-0"
+            title={t("settings.paydayRules.onlyOwnerCanChange")}
+          >
+            <span>⚙️</span>
+            <span>{t("settings.paydayRules.customizeButton")}</span>
+          </span>
+        )}
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-3 pt-2">
+      {/* 4 Presets Grid: Balanced, Bills Fortress, Pay Yourself First, Custom */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-3 pt-2">
         {presetsList.map((p) => {
           const isSelected = activePreset === p.key;
           return (
             <button
               key={p.key}
               type="button"
-              disabled={applyPresetMut.isPending}
+              disabled={!canEdit || applyPresetMut.isPending}
               onClick={() => {
-                if (!isSelected) {
+                if (canEdit && !isSelected) {
                   setConfirmPreset(p.key);
                 }
               }}
-              className={`text-left p-4 rounded-xl border transition-all cursor-pointer flex flex-col justify-between gap-2 ${
+              className={`text-left p-4 rounded-xl border transition-all flex flex-col justify-between gap-2 ${
+                !canEdit ? "opacity-75 cursor-not-allowed" : "cursor-pointer"
+              } ${
                 isSelected
                   ? "border-[#2563eb] bg-blue-50/50 dark:bg-blue-950/20 shadow-xs ring-1 ring-[#2563eb]"
                   : "border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700 bg-white/40 dark:bg-zinc-800/40"
@@ -116,14 +192,50 @@ export function AllocationStrategySection() {
             </button>
           );
         })}
+
+        {/* 4th Preset Card: Custom Rules */}
+        <div
+          className={`text-left p-4 rounded-xl border transition-all flex flex-col justify-between gap-2 ${
+            activePreset === "CUSTOM"
+              ? "border-[#2563eb] bg-blue-50/50 dark:bg-blue-950/20 shadow-xs ring-1 ring-[#2563eb]"
+              : "border-slate-200 dark:border-slate-800 bg-white/40 dark:bg-zinc-800/40"
+          }`}
+        >
+          <div>
+            <div className="flex items-center justify-between">
+              <h4 className="font-semibold text-xs text-[#1B2B4B] dark:text-white">
+                {t("settings.paydayRules.presets.custom.name")}
+              </h4>
+              {activePreset === "CUSTOM" ? (
+                <span className="text-[11px] font-bold text-[#2563eb] dark:text-blue-400">
+                  ✓ Active
+                </span>
+              ) : (
+                <span className="text-[10px] font-medium text-slate-400">
+                  {t("settings.paydayRules.customiseToActivate")}
+                </span>
+              )}
+            </div>
+            <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1 leading-relaxed">
+              {t("settings.paydayRules.presets.custom.description")}
+            </p>
+          </div>
+        </div>
       </div>
 
+      {/* Dynamic Confirmation Dialog on Preset Switch */}
       {confirmPreset && (
         <ConfirmDialog
           isOpen={!!confirmPreset}
-          title={t("settings.paydayRules.resetConfirmTitle")}
-          description={t("settings.paydayRules.resetConfirmMessage")}
-          confirmLabel={t("common.confirm")}
+          title={t("settings.paydayRules.switchPresetConfirmTitle", {
+            presetName: confirmPresetName,
+          })}
+          description={t("settings.paydayRules.switchPresetConfirmMessage", {
+            presetName: confirmPresetName,
+          })}
+          confirmLabel={t("settings.paydayRules.switchPresetAction", {
+            presetName: confirmPresetName,
+          })}
           cancelLabel={t("common.cancel")}
           variant="primary"
           onConfirm={() => handleApplyPreset(confirmPreset)}

@@ -30,6 +30,8 @@ interface UseEnvelopesTableDataParams {
     endDate?: string | null;
     safetyBufferFloor?: string | null;
     goalMode?: string | null;
+    isEssential?: boolean | null;
+    isCommitted?: boolean | null;
     isSurplusTarget?: boolean | null;
     hasScheduledEvents?: boolean | null;
     generateEvents?: boolean | null;
@@ -262,6 +264,8 @@ export function useEnvelopesTableData({
         targetDate: p.endDate,
         safetyBufferFloor: p.safetyBufferFloor,
         goalMode: p.goalMode as "TARGET_DATE" | "ONGOING" | undefined,
+        isEssential: p.isEssential ?? false,
+        isCommitted: p.isCommitted ?? false,
         isSurplusTarget: p.isSurplusTarget,
         hasScheduledEvents: p.hasScheduledEvents,
         generateEvents: p.generateEvents ?? true,
@@ -275,6 +279,8 @@ export function useEnvelopesTableData({
         bankAccountId: p.bankAccountId,
         bankAccountName: p.bankAccountName || null,
         isPrivate: p.isPrivate,
+        isEssential: p.isEssential ?? false,
+        isCommitted: p.isCommitted ?? false,
         currentBalance: currentBal,
         targetAmount: targetAmountNum,
         endDate: p.endDate || null,

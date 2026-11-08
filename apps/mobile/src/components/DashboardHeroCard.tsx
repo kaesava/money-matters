@@ -55,19 +55,7 @@ export const DashboardHeroCard: React.FC<DashboardHeroCardProps> = ({
       : Math.max(1, daysInMonth - currentDay);
 
   const effectiveSafeToSpend = safeToSpend !== undefined ? safeToSpend : everydayBalance;
-  const dailySpendable = passedDailyPace !== undefined ? passedDailyPace : Math.max(0, effectiveSafeToSpend / effectiveDays);
-  const targetDailyBudget =
-    everydayMonthlyBudget > 0 ? (everydayMonthlyBudget * 12) / 365 : 0;
-
   const isBillsRisk = !isAwaitingFirstPayday && billsShortfall > 0;
-  const isPacingTight = paceStatus
-    ? paceStatus === "BEHIND" || paceStatus === "CRITICAL"
-    : !isBillsRisk && !isAwaitingFirstPayday && targetDailyBudget > 0 && dailySpendable < targetDailyBudget * 0.8;
-
-  const progressPercent = Math.min(
-    100,
-    Math.max(5, (dailySpendable / (targetDailyBudget || 1)) * 100)
-  );
 
   return (
     <View style={styles.container}>
@@ -76,12 +64,9 @@ export const DashboardHeroCard: React.FC<DashboardHeroCardProps> = ({
         safeToSpend={effectiveSafeToSpend}
         everydayMonthlyBudget={everydayMonthlyBudget}
         safetyBufferFloor={safetyBufferFloor}
-        dailySpendable={dailySpendable}
         effectiveDays={effectiveDays}
         daysUntilPayday={daysUntilPayday}
-        progressPercent={progressPercent}
         isBillsRisk={isBillsRisk}
-        isPacingTight={isPacingTight}
         isAwaitingFirstPayday={isAwaitingFirstPayday}
         onEverydayPress={onEverydayPress}
         onAlignBalance={onAlignEverydayBalance}

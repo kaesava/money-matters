@@ -22,6 +22,8 @@ interface PoolItemCardProps {
     enteredAmount?: string | null;
     monthlyAmount?: string | null;
     isSurplusTarget?: boolean | null;
+    isEssential?: boolean | null;
+    isCommitted?: boolean | null;
   };
 }
 
@@ -84,6 +86,20 @@ export function PoolItemCard({
                     : styles.everydayBadgeText
                 ]}>
                   {subTypeBadge}
+                </Text>
+              </View>
+            )}
+            {Boolean(pool.isEssential) && (pool.envelopeType === 'SCHEDULED_BILL' || pool.envelopeType === 'FLEXIBLE_BILL') && (
+              <View style={[styles.subTypeBadge, styles.essentialBadge]}>
+                <Text style={[styles.subTypeBadgeText, styles.essentialBadgeText]}>
+                  {t('categories.essentialBadge')}
+                </Text>
+              </View>
+            )}
+            {Boolean(pool.isCommitted) && (pool.envelopeType === 'TARGET_GOAL' || pool.envelopeType === 'ONGOING_GOAL') && (
+              <View style={[styles.subTypeBadge, styles.committedBadge]}>
+                <Text style={[styles.subTypeBadgeText, styles.committedBadgeText]}>
+                  {t('categories.committedBadge')}
                 </Text>
               </View>
             )}
@@ -163,6 +179,10 @@ const styles = StyleSheet.create({
   ongoingGoalBadgeText: { color: '#0F766E' },
   everydayBadge: { backgroundColor: '#FAF5FF', borderColor: '#E9D5FF' },
   everydayBadgeText: { color: '#7E22CE' },
+  essentialBadge: { backgroundColor: '#FEF3C7', borderColor: '#FDE68A' },
+  essentialBadgeText: { color: '#B45309' },
+  committedBadge: { backgroundColor: '#EEF2FF', borderColor: '#C7D2FE' },
+  committedBadgeText: { color: '#4338CA' },
   surplusBadge: { backgroundColor: '#ECFDF5', paddingHorizontal: 6, paddingVertical: 1, borderRadius: 6 },
   surplusBadgeText: { fontSize: 9, fontWeight: '700', color: '#047857' },
   bankBadgeWrap: { marginTop: 3 },

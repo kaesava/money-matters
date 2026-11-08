@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator } from 'react-native';
+import React, { useState, useMemo } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { useRouter, Href } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
 import { t } from '@money-matters/i18n';
@@ -11,28 +11,26 @@ export function MobileAllocationStrategySection() {
   const toast = useMobileToast();
   const utils = trpc.useUtils();
 
-  const strategyQuery = trpc.getActiveAllocationStrategy.useQuery();
+  const [activeTab, setActiveTab] = useState<'household' | 'personal'>('household');
+
+  const govQuery = trpc.getHouseholdGovernanceInfo.useQuery();
+  const envelopesQuery = trpc.listPools.useQuery();
+  const isOwner = govQuery.data?.isOwner ?? true;
+
+  const hasPrivateEnvelopes = useMemo(
+    () => (envelopesQuery.data || []).some((e) => e.isPrivate),
+    [envelopesQuery.data]
+  );
+
+  const isPersonalScope = activeTab === 'personal';
+  const canEdit = isPersonalScope || isOwner;
+
+  const strategyQuery = trpc.getActiveAllocationStrategy.useQuery({
+    isPrivate: isPersonalScope,
+  });
   const applyPresetMut = trpc.applyAllocationPreset.useMutation();
 
   const activePreset = strategyQuery.data?.presetKey || 'BALANCED';
-
-  const handleApplyPreset = (presetKey: 'BALANCED' | 'BILLS_FORTRESS' | 'PAY_YOURSELF_FIRST') => {
-    showMobileConfirm({
-      title: t('settings.paydayRules.resetConfirmTitle'),
-      message: t('settings.paydayRules.resetConfirmMessage'),
-      confirmText: t('common.confirm'),
-      cancelText: t('common.cancel'),
-      onConfirm: async () => {
-        try {
-          await applyPresetMut.mutateAsync({ presetKey });
-          await utils.getActiveAllocationStrategy.invalidate();
-          toast.success(t('settings.paydayRules.saveSuccess'));
-        } catch (err) {
-          toast.error(err instanceof Error ? err.message : t('common.errorTryAgain'));
-        }
-      },
-    });
-  };
 
   const presetsList: Array<{
     key: 'BALANCED' | 'BILLS_FORTRESS' | 'PAY_YOURSELF_FIRST';
@@ -56,52 +54,112 @@ export function MobileAllocationStrategySection() {
     },
   ];
 
-  const activePresetLabel =
-    activePreset === 'CUSTOM'
-      ? t('settings.paydayRules.presets.custom.name')
-      : activePreset === 'BILLS_FORTRESS'
-      ? t('settings.paydayRules.presets.billsFortress.name')
-      : activePreset === 'PAY_YOURSELF_FIRST'
-      ? t('settings.paydayRules.presets.payYourselfFirst.name')
-      : t('settings.paydayRules.presets.balanced.name');
+  const handleApplyPreset = (presetKey: 'BALANCED' | 'BILLS_FORTRESS' | 'PAY_YOURSELF_FIRST') => {
+    if (!canEdit) {
+      toast.error(t('settings.paydayRules.onlyOwnerCanChange'));
+      return;
+    }
+    const presetName = t(
+      presetKey === 'BILLS_FORTRESS'
+        ? 'settings.paydayRules.presets.billsFortress.name'
+        : presetKey === 'PAY_YOURSELF_FIRST'
+        ? 'settings.paydayRules.presets.payYourselfFirst.name'
+        : 'settings.paydayRules.presets.balanced.name'
+    );
+
+    showMobileConfirm({
+      title: t('settings.paydayRules.switchPresetConfirmTitle', { presetName }),
+      message: t('settings.paydayRules.switchPresetConfirmMessage', { presetName }),
+      confirmText: t('settings.paydayRules.switchPresetAction', { presetName }),
+      cancelText: t('common.cancel'),
+      onConfirm: async () => {
+        try {
+          await applyPresetMut.mutateAsync({
+            presetKey,
+            isPrivate: isPersonalScope,
+          });
+          await utils.getActiveAllocationStrategy.invalidate();
+          toast.success(t('settings.paydayRules.saveSuccess'));
+        } catch (err) {
+          toast.error(err instanceof Error ? err.message : t('common.errorTryAgain'));
+        }
+      },
+    });
+  };
 
   return (
     <View style={styles.card}>
+      {/* Sub-tabs if user has private envelopes */}
+      {hasPrivateEnvelopes && (
+        <View style={styles.tabsRow}>
+          <TouchableOpacity
+            style={[styles.tabBtn, activeTab === 'household' && styles.tabBtnActive]}
+            onPress={() => setActiveTab('household')}
+          >
+            <Text style={[styles.tabBtnText, activeTab === 'household' && styles.tabBtnTextActive]}>
+              {t('settings.paydayRules.tabs.household')}
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.tabBtn, activeTab === 'personal' && styles.tabBtnActive]}
+            onPress={() => setActiveTab('personal')}
+          >
+            <Text style={[styles.tabBtnText, activeTab === 'personal' && styles.tabBtnTextActive]}>
+              {t('settings.paydayRules.tabs.personal')}
+            </Text>
+          </TouchableOpacity>
+        </View>
+      )}
+
+      {/* Header (Pill tag removed) */}
       <View style={styles.headerRow}>
         <View style={styles.titleContainer}>
-          <View style={styles.badgeRow}>
-            <Text style={styles.title}>{t('settings.paydayRules.title')}</Text>
-            <View style={styles.badge}>
-              <Text style={styles.badgeText}>{activePresetLabel}</Text>
-            </View>
-          </View>
+          <Text style={styles.title}>
+            {isPersonalScope
+              ? t('settings.paydayRules.tabs.personal')
+              : t('settings.paydayRules.title')}
+          </Text>
           <Text style={styles.subtitle}>{t('settings.paydayRules.description')}</Text>
         </View>
 
-        <TouchableOpacity
-          style={styles.customizeBtn}
-          onPress={() => router.push('/(app)/settings/allocation-rules' as Href)}
-          activeOpacity={0.7}
-        >
-          <Feather name="sliders" size={14} color={DESIGN_TOKENS.colors.sereneBlue} />
-          <Text style={styles.customizeBtnText}>{t('settings.paydayRules.customizeButton')}</Text>
-        </TouchableOpacity>
+        {canEdit ? (
+          <TouchableOpacity
+            style={styles.customizeBtn}
+            onPress={() => router.push(`/(app)/settings/allocation-rules?scope=${activeTab}` as Href)}
+            activeOpacity={0.7}
+          >
+            <Feather name="sliders" size={14} color={DESIGN_TOKENS.colors.sereneBlue} />
+            <Text style={styles.customizeBtnText}>{t('settings.paydayRules.customizeButton')}</Text>
+          </TouchableOpacity>
+        ) : (
+          <View style={[styles.customizeBtn, styles.customizeBtnDisabled]}>
+            <Feather name="sliders" size={14} color={DESIGN_TOKENS.colors.slate[400]} />
+            <Text style={[styles.customizeBtnText, styles.customizeBtnTextDisabled]}>
+              {t('settings.paydayRules.customizeButton')}
+            </Text>
+          </View>
+        )}
       </View>
 
+      {/* 4 Presets Grid */}
       <View style={styles.presetsContainer}>
         {presetsList.map((p) => {
           const isSelected = activePreset === p.key;
           return (
             <TouchableOpacity
               key={p.key}
-              style={[styles.presetCard, isSelected && styles.presetCardSelected]}
+              style={[
+                styles.presetCard,
+                isSelected && styles.presetCardSelected,
+                !canEdit && styles.presetCardDisabled,
+              ]}
               onPress={() => {
                 if (!isSelected) {
                   handleApplyPreset(p.key);
                 }
               }}
-              activeOpacity={0.7}
-              disabled={applyPresetMut.isPending}
+              activeOpacity={canEdit ? 0.7 : 1}
+              disabled={!canEdit || applyPresetMut.isPending}
             >
               <View style={styles.presetHeader}>
                 <Text style={[styles.presetName, isSelected && styles.presetNameSelected]}>
@@ -120,6 +178,35 @@ export function MobileAllocationStrategySection() {
             </TouchableOpacity>
           );
         })}
+
+        {/* 4th Preset Card: Custom Rules */}
+        <View
+          style={[
+            styles.presetCard,
+            activePreset === 'CUSTOM' && styles.presetCardSelected,
+          ]}
+        >
+          <View style={styles.presetHeader}>
+            <Text style={[styles.presetName, activePreset === 'CUSTOM' && styles.presetNameSelected]}>
+              {t('settings.paydayRules.presets.custom.name')}
+            </Text>
+            {activePreset === 'CUSTOM' ? (
+              <View style={styles.activeCheckRow}>
+                <Feather name="check" size={12} color={DESIGN_TOKENS.colors.sereneBlue} />
+                <Text style={styles.activeCheckText}>
+                  {t('settings.paydayRules.activeBadge')}
+                </Text>
+              </View>
+            ) : (
+              <Text style={styles.customiseHintText}>
+                {t('settings.paydayRules.customiseToActivate')}
+              </Text>
+            )}
+          </View>
+          <Text style={styles.presetDesc}>
+            {t('settings.paydayRules.presets.custom.description')}
+          </Text>
+        </View>
       </View>
     </View>
   );
@@ -134,35 +221,40 @@ const styles = StyleSheet.create({
     borderColor: DESIGN_TOKENS.colors.slate[200],
     gap: 16,
   },
+  tabsRow: {
+    flexDirection: 'row',
+    gap: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: DESIGN_TOKENS.colors.slate[200],
+    paddingBottom: 12,
+  },
+  tabBtn: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 8,
+    backgroundColor: DESIGN_TOKENS.colors.slate[100],
+  },
+  tabBtnActive: {
+    backgroundColor: '#1B2B4B',
+  },
+  tabBtnText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: DESIGN_TOKENS.colors.slate[600],
+  },
+  tabBtnTextActive: {
+    color: '#FFFFFF',
+  },
   headerRow: {
     gap: 12,
   },
   titleContainer: {
     gap: 4,
   },
-  badgeRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    flexWrap: 'wrap',
-  },
   title: {
     fontSize: 15,
     fontWeight: '700',
     color: DESIGN_TOKENS.colors.textPrimary,
-  },
-  badge: {
-    backgroundColor: '#EFF6FF',
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#BFDBFE',
-  },
-  badgeText: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: DESIGN_TOKENS.colors.sereneBlue,
   },
   subtitle: {
     fontSize: 12,
@@ -181,10 +273,17 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#DBEAFE',
   },
+  customizeBtnDisabled: {
+    backgroundColor: DESIGN_TOKENS.colors.slate[100],
+    borderColor: DESIGN_TOKENS.colors.slate[200],
+  },
   customizeBtnText: {
     fontSize: 12,
     fontWeight: '700',
     color: DESIGN_TOKENS.colors.sereneBlue,
+  },
+  customizeBtnTextDisabled: {
+    color: DESIGN_TOKENS.colors.slate[400],
   },
   presetsContainer: {
     gap: 10,
@@ -200,6 +299,9 @@ const styles = StyleSheet.create({
   presetCardSelected: {
     backgroundColor: '#EFF6FF',
     borderColor: DESIGN_TOKENS.colors.sereneBlue,
+  },
+  presetCardDisabled: {
+    opacity: 0.75,
   },
   presetHeader: {
     flexDirection: 'row',
@@ -223,6 +325,11 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: '700',
     color: DESIGN_TOKENS.colors.sereneBlue,
+  },
+  customiseHintText: {
+    fontSize: 10,
+    fontWeight: '500',
+    color: DESIGN_TOKENS.colors.slate[400],
   },
   presetDesc: {
     fontSize: 11,

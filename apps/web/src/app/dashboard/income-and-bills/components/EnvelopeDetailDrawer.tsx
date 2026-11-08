@@ -156,6 +156,16 @@ export function EnvelopeDetailDrawer({
                         : t("categories.everydayBadge")}
                     </span>
                   )}
+                  {Boolean(targetPool?.isEssential) && (targetPool?.envelopeType === "SCHEDULED_BILL" || targetPool?.envelopeType === "FLEXIBLE_BILL") && (
+                    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold tracking-wide uppercase bg-amber-50 text-amber-700 border border-amber-200 dark:bg-amber-950/60 dark:text-amber-300 dark:border-amber-800">
+                      {t("categories.essentialBadge")}
+                    </span>
+                  )}
+                  {Boolean(targetPool?.isCommitted) && (targetPool?.envelopeType === "TARGET_GOAL" || targetPool?.envelopeType === "ONGOING_GOAL") && (
+                    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold tracking-wide uppercase bg-indigo-50 text-indigo-700 border border-indigo-200 dark:bg-indigo-950/60 dark:text-indigo-300 dark:border-indigo-800">
+                      {t("categories.committedBadge")}
+                    </span>
+                  )}
                   {onEditPool && targetPool && (
                     <button
                       type="button"
@@ -170,6 +180,8 @@ export function EnvelopeDetailDrawer({
                           bankAccountId: targetPool.bankAccountId,
                           bankAccountName: targetPool.bankAccountName,
                           isPrivate: targetPool.isPrivate,
+                          isEssential: targetPool.isEssential,
+                          isCommitted: targetPool.isCommitted,
                           targetAmount: targetPool.targetAmount ? String(targetPool.targetAmount) : null,
                           enteredAmount: targetPool.enteredAmount ? String(targetPool.enteredAmount) : null,
                           monthlyAmount: targetPool.monthlyAmount ? String(targetPool.monthlyAmount) : null,

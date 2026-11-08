@@ -27,6 +27,14 @@ export function useBankAccountForm(
   const [nameError, setNameError] = useState('');
   const [generalError, setGeneralError] = useState('');
 
+  const accountsQuery = trpc.listBankAccountsWithExpected.useQuery(undefined, { enabled: visible });
+  const otherPrivateAccounts = (accountsQuery.data || []).filter(
+    (a) => a.isPrivate && a.id !== accountToEdit?.id
+  );
+  const isLastPrivateAccount = Boolean(
+    accountToEdit?.isPrivate && otherPrivateAccounts.length === 0
+  );
+
   const poolsQuery = trpc.listPools.useQuery(undefined, { enabled: visible });
   const allPools = poolsQuery.data || [];
   const linkedPools = isEdit && accountToEdit
@@ -129,9 +137,13 @@ export function useBankAccountForm(
 
   const handleArchive = () => {
     if (!accountToEdit) return;
+    const confirmMessage = isLastPrivateAccount
+      ? t('settings.bankAccountForm.archiveConfirmLastPrivateBody', { name: accountToEdit.name })
+      : t('settings.bankAccounts.deleteConfirmBody', { name: accountToEdit.name });
+
     showMobileConfirm({
       title: t('settings.bankAccounts.deleteConfirmTitle'),
-      message: t('settings.bankAccounts.deleteConfirmBody', { name: accountToEdit.name }),
+      message: confirmMessage,
       confirmText: t('common.archive'),
       isDestructive: true,
       onConfirm: async () => {

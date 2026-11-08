@@ -7,5 +7,6 @@
 
 export * from "./handlers/tenant.js";
 export * from "./handlers/bank-account.js";
+export * from "./handlers/member-roles.js";
 export * from "./export-data.js";
 export * from "./delete-account.js";

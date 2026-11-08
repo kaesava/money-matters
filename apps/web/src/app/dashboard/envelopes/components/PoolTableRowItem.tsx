@@ -97,6 +97,18 @@ export function PoolTableRowItem({
             </span>
           )}
 
+          {Boolean(pool.isEssential || pool.rawPool.isEssential) && (pool.envelopeType === "SCHEDULED_BILL" || pool.envelopeType === "FLEXIBLE_BILL") && (
+            <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-bold tracking-wide uppercase bg-amber-50 text-amber-700 border border-amber-200">
+              {t("categories.essentialBadge")}
+            </span>
+          )}
+
+          {Boolean(pool.isCommitted || pool.rawPool.isCommitted) && (pool.envelopeType === "TARGET_GOAL" || pool.envelopeType === "ONGOING_GOAL") && (
+            <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-bold tracking-wide uppercase bg-indigo-50 text-indigo-700 border border-indigo-200">
+              {t("categories.committedBadge")}
+            </span>
+          )}
+
           {pool.rawPool.isSurplusTarget && (
             <span className="inline-flex items-center gap-1">
               <span className="text-sm">

@@ -35,8 +35,8 @@ export const BentoPoolsSection: React.FC<BentoPoolsSectionProps> = ({
   billsMonthlyBudget = 0,
   daysUntilPayday,
   safeToSpend,
-  dailyPace: passedDailyPace,
-  paceStatus,
+  dailyPace: _passedDailyPace,
+  paceStatus: _paceStatus,
   isAwaitingFirstPayday = false,
   billsShortfall,
   billsDue14DaysCount,
@@ -58,13 +58,7 @@ export const BentoPoolsSection: React.FC<BentoPoolsSectionProps> = ({
     : Math.max(1, daysInMonth - currentDay);
 
   const effectiveSafeToSpend = safeToSpend !== undefined ? safeToSpend : everydayBalance;
-  const dailySpendable = passedDailyPace !== undefined ? passedDailyPace : Math.max(0, effectiveSafeToSpend / effectiveDays);
-  const targetDailyBudget = everydayMonthlyBudget > 0 ? (everydayMonthlyBudget * 12) / 365 : 0;
-
   const isBillsRisk = !isAwaitingFirstPayday && billsShortfall > 0;
-  const isPacingTight = paceStatus
-    ? paceStatus === "BEHIND" || paceStatus === "CRITICAL"
-    : !isBillsRisk && !isAwaitingFirstPayday && targetDailyBudget > 0 && dailySpendable < targetDailyBudget * 0.8;
 
   return (
     <div className="space-y-4">
@@ -86,15 +80,7 @@ export const BentoPoolsSection: React.FC<BentoPoolsSectionProps> = ({
                 <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-rose-100 text-rose-700 border border-rose-200">
                   {t('dashboard.hero.atRisk')}
                 </span>
-              ) : isPacingTight ? (
-                <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 border border-amber-200">
-                  {t('dashboard.hero.pacingTightenedBadge')}
-                </span>
-              ) : (
-                <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-200">
-                  {t('dashboard.hero.trackingOnTrack')}
-                </span>
-              )}
+              ) : null}
             </div>
 
             <div>
@@ -128,24 +114,18 @@ export const BentoPoolsSection: React.FC<BentoPoolsSectionProps> = ({
             </div>
           </div>
 
-          {/* Pacing Bar & Buffer Protection */}
-          <div className="space-y-2 pt-4 mt-auto border-t border-gray-100 dark:border-zinc-800">
-            <div className="flex justify-between items-center text-[10px] font-bold text-gray-400 uppercase tracking-wider">
-              <span>{t('dashboard.hero.everydayAllowanceCycle', { amount: format(everydayMonthlyBudget) })}</span>
-              {safetyBufferFloor > 0 && (
-                <span className="text-emerald-600 dark:text-emerald-400 font-extrabold normal-case">
-                  🛡️ {t('dashboard.hero.bufferProtected', { amount: format(safetyBufferFloor) })}
-                </span>
-              )}
-            </div>
-            <div className="relative h-2 bg-gray-100 dark:bg-zinc-800 rounded-full overflow-visible">
-              <div
-                className={`h-full rounded-full transition-all duration-300 ${
-                  isBillsRisk ? 'bg-rose-500' : isPacingTight ? 'bg-amber-500' : 'bg-emerald-500'
-                }`}
-                style={{ width: `${Math.min(100, Math.max(5, (dailySpendable / (targetDailyBudget || 1)) * 100))}%` }}
-              />
-            </div>
+          {/* Target Allowance & Buffer Protection */}
+          <div className="flex justify-between items-center pt-4 mt-auto border-t border-gray-100 dark:border-zinc-800 text-xs text-gray-500">
+            <span>
+              {everydayMonthlyBudget > 0
+                ? t('dashboard.hero.everydayAllowanceCycle', { amount: format(everydayMonthlyBudget) })
+                : null}
+            </span>
+            {safetyBufferFloor > 0 && (
+              <span className="text-emerald-600 dark:text-emerald-400 font-extrabold normal-case">
+                🛡️ {t('dashboard.hero.bufferProtected', { amount: format(safetyBufferFloor) })}
+              </span>
+            )}
           </div>
         </div>
 

@@ -35,6 +35,7 @@ export interface EnvelopeItem {
   hasScheduledEvents?: boolean | null;
   isEssential?: boolean | null;
   isCommitted?: boolean | null;
+  isPrivate?: boolean | null;
 }
 
 export interface EnvelopeDraftPayload {
@@ -90,6 +91,10 @@ export function EnvelopeFormModal({
     enabled: visible && !isDraftMode,
   });
   const bankAccounts = passedBankAccounts ?? bankAccountsQuery.data ?? [];
+
+  const poolsQuery = trpc.listPools.useQuery(undefined, { enabled: visible && !isDraftMode });
+  const otherPrivateEnvelopes = (poolsQuery.data || []).filter((p) => p.isPrivate && p.id !== categoryToEdit?.id);
+  const isLastPrivateEnvelope = Boolean(categoryToEdit?.isPrivate && otherPrivateEnvelopes.length === 0);
 
   const {
     isEdit,
@@ -253,9 +258,13 @@ export function EnvelopeFormModal({
     if (!categoryToEdit) return;
     const archiveLabel =
       initialMode === "BILL_SCHEDULE" ? t("categories.archiveBillSchedule") : t("categories.archivePool");
+    const confirmMessage = isLastPrivateEnvelope
+      ? t("categories.archiveLastPrivatePoolConfirm")
+      : t("categories.archivePoolConfirm", { name: categoryToEdit.name });
+
     showMobileConfirm({
       title: archiveLabel,
-      message: t("categories.archivePoolConfirm", { name: categoryToEdit.name }),
+      message: confirmMessage,
       confirmText: archiveLabel,
       isDestructive: true,
       onConfirm: () => {

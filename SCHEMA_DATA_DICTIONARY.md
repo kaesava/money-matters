@@ -49,6 +49,8 @@
 | `presetKey` | varchar | - | Canonical preset key or CUSTOM |
 | `description` | text | - | Plain-English strategy explanation |
 | `isDefault` | boolean | - | Flag indicating active strategy for tenant |
+| `isPrivate` | boolean | No | True if strategy applies to private personal envelopes |
+| `userId` | uuid | Yes | Owner User ID for private personal strategy |
 | `tenantId` | uuid | No | Tenant Foreign Key (RLS isolation) |
 | `appId` | varchar | No | Application ID |
 | `createdAt` | timestamp | No | Creation timestamp |

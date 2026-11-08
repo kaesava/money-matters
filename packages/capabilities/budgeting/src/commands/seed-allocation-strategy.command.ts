@@ -6,19 +6,24 @@ export async function seedDefaultAllocationStrategy(
   tenantId: string,
   appId: string,
   userId: string,
-  dbClient: DbOrTx
+  dbClient: DbOrTx,
+  isPrivate = false
 ) {
+  const conditions = [
+    eq(allocationStrategies.tenantId, tenantId),
+    eq(allocationStrategies.appId, appId),
+    eq(allocationStrategies.isPrivate, isPrivate),
+    sql`${allocationStrategies.archivedAt} IS NULL`,
+  ];
+  if (isPrivate && userId) {
+    conditions.push(eq(allocationStrategies.userId, userId));
+  }
+
   // Check if active strategy already exists
   const [existing] = await dbClient
     .select()
     .from(allocationStrategies)
-    .where(
-      and(
-        eq(allocationStrategies.tenantId, tenantId),
-        eq(allocationStrategies.appId, appId),
-        sql`${allocationStrategies.archivedAt} IS NULL`
-      )
-    )
+    .where(and(...conditions))
     .limit(1);
 
   if (existing) {
@@ -30,10 +35,14 @@ export async function seedDefaultAllocationStrategy(
     .values({
       tenantId,
       appId,
-      name: "Standard Balanced",
+      name: isPrivate ? "Personal Balanced" : "Standard Balanced",
       presetKey: "BALANCED",
-      description: "Bills due soon and everyday living are protected first, followed by upcoming bills and savings goals.",
+      description: isPrivate
+        ? "Personal bills due soon and personal spending are protected first, followed by private savings goals."
+        : "Bills due soon and everyday living are protected first, followed by upcoming bills and savings goals.",
       isDefault: true,
+      isPrivate,
+      userId: isPrivate ? userId : null,
       createdBy: userId,
       updatedBy: userId,
     })

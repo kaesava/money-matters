@@ -82,6 +82,40 @@ export function createBankAccountHandler(db: DbOrTx) {
       })
       .returning();
 
+    // Auto-seed a single "Personal Spending" Everyday envelope when a user creates their first Private Bank Account
+    if (input.isPrivate) {
+      const existingPrivateEveryday = await db
+        .select({ id: envelopes.id })
+        .from(envelopes)
+        .where(
+          and(
+            eq(envelopes.tenantId, tenantId),
+            eq(envelopes.appId, appId),
+            eq(envelopes.isPrivate, true),
+            eq(envelopes.userId, userId),
+            eq(envelopes.envelopeType, "EVERYDAY"),
+            sql`${envelopes.archivedAt} IS NULL`
+          )
+        )
+        .limit(1);
+
+      if (existingPrivateEveryday.length === 0) {
+        await db.insert(envelopes).values({
+          tenantId,
+          appId,
+          bankAccountId: bankAccount.id,
+          name: "Personal Spending",
+          envelopeType: "EVERYDAY",
+          monthlyAmount: "0.00",
+          isPrivate: true,
+          userId,
+          orderIndex: 0,
+          createdBy: userId,
+          updatedBy: userId,
+        });
+      }
+    }
+
     return bankAccount;
   };
 }

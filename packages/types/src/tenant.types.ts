@@ -83,6 +83,13 @@ export const TenantMemberSchema = BaseSchema.extend({
 
 export type TenantMemberType = z.infer<typeof TenantMemberSchema>;
 
+export const UpdateHouseholdMemberRoleCommand = z.object({
+  memberId: z.string().uuid().optional(),
+  targetUserId: z.string().uuid().optional(),
+  newRole: z.enum(["OWNER", "MEMBER"]),
+}).strict();
+export type UpdateHouseholdMemberRoleCommandType = z.infer<typeof UpdateHouseholdMemberRoleCommand>;
+
 /**
  * Schema for tenant member UI preferences and localization settings.
  */

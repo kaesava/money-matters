@@ -11,36 +11,21 @@
 * As you build code, you decide whether you want to run pnpm typecheck/lint/test/test coverage/i8ln-check/install/ and any other scripts/checks as you complete changes. However, at the end, ensure pnpm validate:prod runs successfully. Once successful, commit code, but ask me before pushing the code.
 
 
-I'm testing the web app in dev (localhost)
+Manual Verification
+Test Owner changing role of another user from Member to Owner, and back to Member.
+Test sole Owner attempting to demote themselves: verify blocked with clear guidance.
+Test multi-owner household: Owner demoting themselves: verify confirmation modal, and verify they immediately lose Owner privileges upon confirmation.
+Test preset switching in Settings > Household with dynamic confirmation modals.
+Verify Household Owner can change Household Rules, and Member sees read-only view.
+Verify user with private envelopes sees "Personal Rules" tab and can customize independently.
+Verify user creating first private bank account automatically gets a "Personal Spending" envelope.
+Verify opening and immediately closing Income Schedule edit modal does NOT prompt discard warning.
+Verify Fixed Amount contribution cannot exceed expected income.
+Verify isEssential and isCommitted checkboxes persist correctly on reopen.
+Verify Essential and Non-Negotiable badges display properly across tables and drawers.
+Verify archiving last private bank account warns the user and resets income contributions to 100% shared.
+Verify Allocate Payday screen presents all envelopes in a single unified table with personal badges and correct calculations.
 
-There are tons of bugs. Review the code to ensure completeness, accuracy, aggressive removal of redundant code, etc. Ensure alignment with functional objectives. Here are some bugs I identified. Fix them, but you do your own critical and thorough analysis to pick up anything else.
-
-# Settings > Household
-
-* Remove the Payday Rules tag.
-* I'm thinking of this flow. The user has the three presets and a fourth "Custom" preset. When the user changes presets, it asks the user for confirmation - but we need to re-word it. Currently, it says "Are you sure you want to restore the standard Balanced rules? Any custom order or rule blocks will be replaced.". I was not clicking the Balanced Rules. Also, should we check that they actually customised 
-* Currently, it gives an error when I hit Confirm: "Something went wrong...". Fix
-* If the user clicks a preset and accepts the confirmation, and then "Customise button", it opens the "/settings/allocation-rules" screen with the preset rules as the starting point. There, if the user does not make any changes, then the original preset stays. If the user makes any changes and saves, then the "Custom" preset gets slected. In other words, we don't allow the user to modify a preset, we just allow them to select it, or to use as a starting point but it creates the custom rulset. They can only have one custom ruleset. When they save changes, the "Custom" button is selected.
-* If the user had previously selected a preset, then "Custom" is read-only. They need to select a preset and Customise and save.
-* If the user had previosly selected a custom, then "Custome" is selected. They can select another preset or customise the Custom.
-
-# /settings/allocation-rules
-* I'm confused. I see the rules like "Fixed amount to Envelope" and "Percentage Share". I don't want rules at this granularity. I think we should focus on the order of funding envelopes more generically - like (and this is just an example) fund everyday envelope (noting there is only one such shared envelope) to 100%, then non-negotiable priority bills until next payday, non-negotiatble goals, then low priority scheduled bills, etc. I thought that was what the rules were doing? Review critically. Recommend.
-
-# Income Schedules
-* When I click on an Income schedule to Edit it and immediately close the modal with no changes, it asks if I want to discard - check the isDirty settings.
-
-# Income Schedules - Create/Edit
-* Set the Household Contribution to 100% and don't show it if the user does not have any private Envelopes (Envelopes linked to Private Bank Accounts).
-* in the Household Contribution > Fixed Amount field, do not allow an amount greater than the Expected Amount. Ensure that the Housedhold contribution fields are exploded too, so they are available in events.
-* This feature (Household Contribution) should also be available when creating one-off income events either through the Quick Actions or "+ One-off Income" button from the Plan > Schedules screen. It should also be available when Editing an Income Event from the Upcoming Events screen, and the income allocation calculation must adapt to it (in Auto mode).
-
-# Envelopes
-* When I marked a Bill as Essential or a Goal as Non-negotiable and saved, when I came back to it, it was not marked.
-* Also find a simple non-intrusive way of showing Non-Negotiable (only if non-negotiable) or Essential (only if Essential) in Envelope List and Envelope detail drawer for example as a tag.
-
-# Archiving of Private Bank Account or Envelopes
-* If the user attempts to archive the last Private Billing Account or the last Envelope linked to a Private Billing Account, in the confirmation, add the warning that all active Income schedules and events will have their Household contributions reset to 100% fund shared Envelopes. Then ensure all income schedules, burst income schedule events and one-off income schedule events (except confirmed ones) have the Contribution set to 100% to Household Envelopes. Think through unacrhiving implications of Bank Accounts, Income Schedules and Income Schedules too - restore but set Household contribution to 100% fund shared Envelopes if there are active private envelopes (i.e., envelopes not linked to private bank accounts). If you have a better way (simpler) to manage 
 
 /grill-me if needed
 

@@ -30,6 +30,7 @@ export interface DashboardModalsProps {
   onCloseReconcile: () => void;
   onConfirmReconcile: (
     splits: Array<{ poolId: string; adjustment: string }>,
+    actualBalance: string,
     reason?: string
   ) => Promise<void>;
   onOpenTransferModal: () => void;
@@ -97,7 +98,7 @@ export function DashboardModals({
           onClose={onCloseReconcile}
           accountName={reconcileState.accountName}
           expectedBalance={reconcileState.expectedBalance}
-          newBalance={reconcileState.newBalance}
+          initialActualBalance={reconcileState.newBalance}
           unbudgetedBuffer={reconcileState.unbudgetedBuffer}
           pools={reconcileState.pools}
           onConfirm={onConfirmReconcile}

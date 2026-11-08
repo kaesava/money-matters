@@ -116,7 +116,10 @@ export async function previewAllocationQuery(
 
   const { mapEnvelopeToEngineBucket } = await import("../engine/envelope-engine-mapper.js");
   const { getActiveAllocationStrategyQuery } = await import("./get-active-allocation-strategy.query.js");
-  const activeStrategy = await getActiveAllocationStrategyQuery(tenantId, appId, userId, dbClient);
+  const activeStrategy = await getActiveAllocationStrategyQuery(tenantId, appId, userId, dbClient, false);
+  const personalStrategy = incomeUserId
+    ? await getActiveAllocationStrategyQuery(tenantId, appId, incomeUserId, dbClient, true)
+    : null;
 
   const engineBuckets: EngineBucket[] = dbEnvelopes.map((env) =>
     mapEnvelopeToEngineBucket(env, balancesMap[env.id] || 0)
@@ -129,6 +132,11 @@ export async function previewAllocationQuery(
     contributionMode: event?.contributionMode || "FULL",
     contributionValue: event?.contributionValue ? parseFloat(event.contributionValue) : null,
     strategySteps: activeStrategy?.steps?.map((s) => ({
+      stepType: s.stepType,
+      targetEnvelopeId: s.targetEnvelopeId,
+      config: s.config as Record<string, unknown> | null,
+    })),
+    personalStrategySteps: personalStrategy?.steps?.map((s) => ({
       stepType: s.stepType,
       targetEnvelopeId: s.targetEnvelopeId,
       config: s.config as Record<string, unknown> | null,

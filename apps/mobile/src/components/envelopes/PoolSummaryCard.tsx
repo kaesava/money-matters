@@ -13,6 +13,8 @@ interface PoolSummaryCardProps {
     poolType?: string;
     currentBalance?: number | string | null;
     isSurplusTarget?: boolean | null;
+    isEssential?: boolean | null;
+    isCommitted?: boolean | null;
   };
   bankAccountName?: string | null;
   onEdit: () => void;
@@ -71,6 +73,20 @@ export function PoolSummaryCard({
                 {badgeText}
               </Text>
             </View>
+            {Boolean(pool.isEssential) && (pool.envelopeType === 'SCHEDULED_BILL' || pool.envelopeType === 'FLEXIBLE_BILL') && (
+              <View style={[styles.badgeWrap, styles.essentialBadge]}>
+                <Text style={[styles.poolTypeTag, styles.essentialBadgeText]}>
+                  {t('categories.essentialBadge')}
+                </Text>
+              </View>
+            )}
+            {Boolean(pool.isCommitted) && (pool.envelopeType === 'TARGET_GOAL' || pool.envelopeType === 'ONGOING_GOAL') && (
+              <View style={[styles.badgeWrap, styles.committedBadge]}>
+                <Text style={[styles.poolTypeTag, styles.committedBadgeText]}>
+                  {t('categories.committedBadge')}
+                </Text>
+              </View>
+            )}
             {pool.isSurplusTarget && (
               <View style={styles.surplusPill}>
                 <Text style={styles.surplusPillText}>{t('categories.surplusBadgeText')}</Text>
@@ -145,6 +161,10 @@ const styles = StyleSheet.create({
   ongoingGoalBadgeText: { color: '#0F766E' },
   everydayBadge: { backgroundColor: '#FAF5FF', borderColor: '#E9D5FF' },
   everydayBadgeText: { color: '#7E22CE' },
+  essentialBadge: { backgroundColor: '#FEF3C7', borderColor: '#FDE68A' },
+  essentialBadgeText: { color: '#B45309' },
+  committedBadge: { backgroundColor: '#EEF2FF', borderColor: '#C7D2FE' },
+  committedBadgeText: { color: '#4338CA' },
   surplusPill: { backgroundColor: DESIGN_TOKENS.colors.successLight, paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6 },
   surplusPillText: { fontSize: 10, fontWeight: '700', color: DESIGN_TOKENS.colors.successDark },
   name: { fontSize: 18, fontWeight: '900', color: DESIGN_TOKENS.colors.primary },

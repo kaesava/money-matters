@@ -6,35 +6,33 @@ export async function getActiveAllocationStrategyQuery(
   tenantId: string,
   appId: string,
   userId: string | undefined,
-  dbClient: DbOrTx
+  dbClient: DbOrTx,
+  isPrivate = false
 ) {
+  const conditions = [
+    eq(allocationStrategies.tenantId, tenantId),
+    eq(allocationStrategies.appId, appId),
+    eq(allocationStrategies.isDefault, true),
+    eq(allocationStrategies.isPrivate, isPrivate),
+    sql`${allocationStrategies.archivedAt} IS NULL`,
+  ];
+  if (isPrivate && userId) {
+    conditions.push(eq(allocationStrategies.userId, userId));
+  }
+
   let [strategy] = await dbClient
     .select()
     .from(allocationStrategies)
-    .where(
-      and(
-        eq(allocationStrategies.tenantId, tenantId),
-        eq(allocationStrategies.appId, appId),
-        eq(allocationStrategies.isDefault, true),
-        sql`${allocationStrategies.archivedAt} IS NULL`
-      )
-    )
+    .where(and(...conditions))
     .limit(1);
 
   if (!strategy) {
     // Fallback: seed on demand if not present
-    await seedDefaultAllocationStrategy(tenantId, appId, userId || "system", dbClient);
+    await seedDefaultAllocationStrategy(tenantId, appId, userId || "system", dbClient, isPrivate);
     const [seeded] = await dbClient
       .select()
       .from(allocationStrategies)
-      .where(
-        and(
-          eq(allocationStrategies.tenantId, tenantId),
-          eq(allocationStrategies.appId, appId),
-          eq(allocationStrategies.isDefault, true),
-          sql`${allocationStrategies.archivedAt} IS NULL`
-        )
-      )
+      .where(and(...conditions))
       .limit(1);
     strategy = seeded;
   }

@@ -148,32 +148,42 @@ export function BankAccountsSection() {
       />
 
       {/* Add / Edit Account Modal */}
-      {list.isModalOpen && (
-        <BankAccountFormModal
-          isOpen={list.isModalOpen}
-          editingAccount={list.editingAccount}
-          accName={list.accName}
-          setAccName={list.setAccName}
-          accBankProvider={list.accBankProvider}
-          setAccBankProvider={list.setAccBankProvider}
-          accAccountType={list.accAccountType}
-          setAccAccountType={list.setAccAccountType}
-          accBalance={list.accBalance}
-          setAccBalance={list.setAccBalance}
-          accBuffer={list.accBuffer}
-          setAccBuffer={list.setAccBuffer}
-          accIsPrivate={list.accIsPrivate}
-          setAccIsPrivate={list.setAccIsPrivate}
-          isTrialExpired={list.isTrialExpired}
-          isSaving={list.isSaving}
-          bankOptions={BANK_OPTIONS}
-          onClose={list.closeModal}
-          onSubmit={list.handleSaveAccount}
-          fmtMoney={fmtMoney}
-          onArchive={list.editingAccount ? () => list.handleArchiveAccount(list.editingAccount!) : undefined}
-          errorMsg={list.errorMsg}
-        />
-      )}
+      {list.isModalOpen && (() => {
+        const otherPrivateAccounts = list.accounts.filter(
+          (a) => a.isPrivate && a.id !== list.editingAccount?.id
+        );
+        const isLastPrivateAccount = Boolean(
+          list.editingAccount?.isPrivate && otherPrivateAccounts.length === 0
+        );
+
+        return (
+          <BankAccountFormModal
+            isOpen={list.isModalOpen}
+            editingAccount={list.editingAccount}
+            accName={list.accName}
+            setAccName={list.setAccName}
+            accBankProvider={list.accBankProvider}
+            setAccBankProvider={list.setAccBankProvider}
+            accAccountType={list.accAccountType}
+            setAccAccountType={list.setAccAccountType}
+            accBalance={list.accBalance}
+            setAccBalance={list.setAccBalance}
+            accBuffer={list.accBuffer}
+            setAccBuffer={list.setAccBuffer}
+            accIsPrivate={list.accIsPrivate}
+            setAccIsPrivate={list.setAccIsPrivate}
+            isTrialExpired={list.isTrialExpired}
+            isSaving={list.isSaving}
+            bankOptions={BANK_OPTIONS}
+            onClose={list.closeModal}
+            onSubmit={list.handleSaveAccount}
+            fmtMoney={fmtMoney}
+            onArchive={list.editingAccount ? () => list.handleArchiveAccount(list.editingAccount!) : undefined}
+            isLastPrivateAccount={isLastPrivateAccount}
+            errorMsg={list.errorMsg}
+          />
+        );
+      })()}
 
       {/* Reconciliation Modal */}
       {list.reconcileState && (
@@ -182,7 +192,7 @@ export function BankAccountsSection() {
           onClose={() => list.setReconcileState(null)}
           accountName={list.reconcileState.account.name}
           expectedBalance={list.reconcileState.expectedBalance}
-          newBalance={list.reconcileState.newBalance}
+          initialActualBalance={list.reconcileState.newBalance}
           unbudgetedBuffer={list.reconcileState.unbudgetedBuffer ?? 0}
           pools={list.reconcileState.linkedPools}
           onConfirm={list.handleConfirmReconcile}

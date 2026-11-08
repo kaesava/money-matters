@@ -39,12 +39,15 @@ export const AllocationStrategySchema = BaseSchema.extend({
   presetKey: AllocationPresetKeyEnum,
   description: z.string().nullable().optional(),
   isDefault: z.boolean().default(true),
+  isPrivate: z.boolean().default(false),
+  userId: z.string().uuid().nullable().optional(),
   steps: z.array(AllocationStrategyStepSchema).optional(),
 }).strict();
 export type AllocationStrategyType = z.infer<typeof AllocationStrategySchema>;
 
 export const ApplyAllocationPresetCommand = z.object({
   presetKey: z.enum(["BALANCED", "BILLS_FORTRESS", "PAY_YOURSELF_FIRST"]),
+  isPrivate: z.boolean().optional(),
 }).strict();
 export type ApplyAllocationPresetCommandType = z.infer<typeof ApplyAllocationPresetCommand>;
 

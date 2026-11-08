@@ -22,8 +22,6 @@ export const CANONICAL_ALLOCATION_PRESETS: Record<
     descriptionKey: "settings.paydayRules.presets.balanced.description",
     steps: [
       { stepType: "IMMEDIATE_BILLS" },
-      { stepType: "DEFICIT_REPAIR" },
-      { stepType: "BILLS_SAFETY_FLOOR" },
       { stepType: "EVERYDAY_ALLOWANCE" },
       { stepType: "ESSENTIAL_BILLS" },
       { stepType: "COMMITTED_GOALS" },
@@ -38,8 +36,6 @@ export const CANONICAL_ALLOCATION_PRESETS: Record<
     descriptionKey: "settings.paydayRules.presets.billsFortress.description",
     steps: [
       { stepType: "IMMEDIATE_BILLS" },
-      { stepType: "DEFICIT_REPAIR" },
-      { stepType: "BILLS_SAFETY_FLOOR" },
       { stepType: "ESSENTIAL_BILLS" },
       { stepType: "FLEXIBLE_BILLS" },
       { stepType: "EVERYDAY_ALLOWANCE" },
@@ -54,9 +50,7 @@ export const CANONICAL_ALLOCATION_PRESETS: Record<
     descriptionKey: "settings.paydayRules.presets.payYourselfFirst.description",
     steps: [
       { stepType: "IMMEDIATE_BILLS" },
-      { stepType: "DEFICIT_REPAIR" },
       { stepType: "COMMITTED_GOALS" },
-      { stepType: "BILLS_SAFETY_FLOOR" },
       { stepType: "EVERYDAY_ALLOWANCE" },
       { stepType: "ESSENTIAL_BILLS" },
       { stepType: "STANDARD_GOALS" },

@@ -21,6 +21,7 @@ export interface EnvelopeSummaryItem {
   safetyBufferFloor?: string | null;
   goalMode?: "TARGET_DATE" | "ONGOING" | null;
   isEssential?: boolean | null;
+  isCommitted?: boolean | null;
   isSurplusTarget?: boolean | null;
   userId?: string | null;
   progressPercentage?: number;
@@ -52,6 +53,8 @@ export interface PoolTableRow {
   bankAccountId?: string | null;
   bankAccountName?: string | null;
   isPrivate?: boolean | null;
+  isEssential?: boolean | null;
+  isCommitted?: boolean | null;
   currentBalance: number;
   targetAmount: number | null;
   targetDate: string | null;

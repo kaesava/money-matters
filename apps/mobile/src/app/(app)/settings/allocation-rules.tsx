@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   View,
   Text,
@@ -6,16 +6,13 @@ import {
   TouchableOpacity,
   ScrollView,
   ActivityIndicator,
-  Modal,
 } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
 import { t } from '@money-matters/i18n';
 import {
   DESIGN_TOKENS,
   MobileButton,
-  MobileInput,
-  AmountInput,
   FormLabel,
   showMobileConfirm,
   useMobileToast,
@@ -34,10 +31,18 @@ interface EditableStep {
 
 export default function MobileAllocationRulesScreen() {
   const router = useRouter();
+  const params = useLocalSearchParams<{ scope?: string }>();
+  const isPersonal = params.scope === 'personal';
   const toast = useMobileToast();
   const utils = trpc.useUtils();
 
-  const strategyQuery = trpc.getActiveAllocationStrategy.useQuery();
+  const govQuery = trpc.getHouseholdGovernanceInfo.useQuery();
+  const isOwner = govQuery.data?.isOwner ?? true;
+  const canEdit = isPersonal || isOwner;
+
+  const strategyQuery = trpc.getActiveAllocationStrategy.useQuery({
+    isPrivate: isPersonal,
+  });
   const envelopesQuery = trpc.listPools.useQuery();
   const updateStepsMut = trpc.updateAllocationStrategySteps.useMutation();
   const applyPresetMut = trpc.applyAllocationPreset.useMutation();
@@ -46,9 +51,11 @@ export default function MobileAllocationRulesScreen() {
   const [initialSteps, setInitialSteps] = useState<EditableStep[]>([]);
   const [isDirty, setIsDirty] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-  const [showAddModal, setShowAddModal] = useState(false);
 
-  const sharedEnvelopes = (envelopesQuery.data || []).filter((e) => !e.isPrivate);
+  const eligibleEnvelopes = useMemo(() => {
+    const list = envelopesQuery.data || [];
+    return isPersonal ? list.filter((e) => e.isPrivate) : list.filter((e) => !e.isPrivate);
+  }, [envelopesQuery.data, isPersonal]);
 
   useEffect(() => {
     if (strategyQuery.data?.steps) {
@@ -72,7 +79,6 @@ export default function MobileAllocationRulesScreen() {
       const b = initialSteps[i];
       if (a.stepType !== b.stepType) return true;
       if (a.targetEnvelopeId !== b.targetEnvelopeId) return true;
-      if (JSON.stringify(a.config) !== JSON.stringify(b.config)) return true;
     }
     return false;
   };
@@ -91,35 +97,11 @@ export default function MobileAllocationRulesScreen() {
     setIsDirty(checkIfDirty(reindexed));
   };
 
-  const handleUpdateStepConfig = (index: number, updates: Partial<EditableStep>) => {
+  const handleUpdateSurplusTarget = (index: number, targetEnvelopeId: string | null) => {
     const next = [...steps];
-    next[index] = { ...next[index], ...updates };
+    next[index] = { ...next[index], targetEnvelopeId };
     setSteps(next);
     setIsDirty(checkIfDirty(next));
-  };
-
-  const handleRemoveStep = (index: number) => {
-    const next = steps.filter((_, idx) => idx !== index).map((s, idx) => ({ ...s, orderIndex: idx }));
-    setSteps(next);
-    setIsDirty(checkIfDirty(next));
-  };
-
-  const handleAddStep = (stepType: AllocationStepType) => {
-    const newStep: EditableStep = {
-      orderIndex: steps.length,
-      stepType,
-      targetEnvelopeId: sharedEnvelopes[0]?.id || null,
-      config:
-        stepType === 'FIXED_AMOUNT'
-          ? { amount: '100.00' }
-          : stepType === 'PERCENTAGE_SPLIT'
-          ? { percentage: 20 }
-          : null,
-    };
-    const next = [...steps, newStep];
-    setSteps(next);
-    setIsDirty(checkIfDirty(next));
-    setShowAddModal(false);
   };
 
   const handleResetToRecommended = () => {
@@ -130,9 +112,13 @@ export default function MobileAllocationRulesScreen() {
       cancelText: t('common.cancel'),
       onConfirm: async () => {
         try {
-          await applyPresetMut.mutateAsync({ presetKey: 'BALANCED' });
+          await applyPresetMut.mutateAsync({
+            presetKey: 'BALANCED',
+            isPrivate: isPersonal,
+          });
           await utils.getActiveAllocationStrategy.invalidate();
           toast.success(t('settings.paydayRules.saveSuccess'));
+          setIsDirty(false);
         } catch (err) {
           toast.error(err instanceof Error ? err.message : t('common.errorTryAgain'));
         }
@@ -180,13 +166,6 @@ export default function MobileAllocationRulesScreen() {
     }
   };
 
-  const availableStepTypes: AllocationStepType[] = [
-    'FIXED_AMOUNT',
-    'PERCENTAGE_SPLIT',
-    'COMMITTED_GOALS',
-    'STANDARD_GOALS',
-  ];
-
   if (strategyQuery.isLoading) {
     return (
       <AppScreenWrapper
@@ -201,9 +180,13 @@ export default function MobileAllocationRulesScreen() {
     );
   }
 
+  const pageTitle = isPersonal
+    ? t('settings.paydayRules.tabs.personal')
+    : t('settings.paydayRules.pageTitle');
+
   return (
     <AppScreenWrapper
-      title={t('settings.paydayRules.title')}
+      title={pageTitle}
       showBack={true}
       onBackPress={handleBackPress}
       scrollable={true}
@@ -214,24 +197,33 @@ export default function MobileAllocationRulesScreen() {
           <Text style={styles.bannerSubtitle}>
             {t('settings.paydayRules.pageSubtitle')}
           </Text>
-          <TouchableOpacity
-            style={styles.resetBtn}
-            onPress={handleResetToRecommended}
-            activeOpacity={0.7}
-          >
-            <Feather name="rotate-ccw" size={13} color={DESIGN_TOKENS.colors.sereneBlue} />
-            <Text style={styles.resetBtnText}>
-              {t('settings.paydayRules.resetToRecommended')}
-            </Text>
-          </TouchableOpacity>
+          {canEdit && (
+            <TouchableOpacity
+              style={styles.resetBtn}
+              onPress={handleResetToRecommended}
+              activeOpacity={0.7}
+            >
+              <Feather name="rotate-ccw" size={13} color={DESIGN_TOKENS.colors.sereneBlue} />
+              <Text style={styles.resetBtnText}>
+                {t('settings.paydayRules.resetToRecommended')}
+              </Text>
+            </TouchableOpacity>
+          )}
         </View>
+
+        {!canEdit && (
+          <View style={styles.readOnlyBanner}>
+            <Text style={styles.readOnlyBannerText}>
+              {t('settings.paydayRules.onlyOwnerCanChange')}
+            </Text>
+          </View>
+        )}
 
         {/* Steps List */}
         <View style={styles.stepsContainer}>
           {steps.map((step, index) => {
             const isFirst = index === 0;
             const isLast = index === steps.length - 1;
-            const isCustom = step.stepType === 'FIXED_AMOUNT' || step.stepType === 'PERCENTAGE_SPLIT';
 
             return (
               <View key={`${step.stepType}-${index}`} style={styles.stepCard}>
@@ -250,96 +242,79 @@ export default function MobileAllocationRulesScreen() {
                     </View>
                   </View>
 
-                  <View style={styles.stepActionButtons}>
-                    <TouchableOpacity
-                      disabled={isFirst}
-                      onPress={() => handleMove(index, 'UP')}
-                      style={[styles.moveBtn, isFirst && styles.moveBtnDisabled]}
-                    >
-                      <Feather
-                        name="chevron-up"
-                        size={16}
-                        color={isFirst ? DESIGN_TOKENS.colors.slate[300] : DESIGN_TOKENS.colors.slate[700]}
-                      />
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                      disabled={isLast}
-                      onPress={() => handleMove(index, 'DOWN')}
-                      style={[styles.moveBtn, isLast && styles.moveBtnDisabled]}
-                    >
-                      <Feather
-                        name="chevron-down"
-                        size={16}
-                        color={isLast ? DESIGN_TOKENS.colors.slate[300] : DESIGN_TOKENS.colors.slate[700]}
-                      />
-                    </TouchableOpacity>
-                    {isCustom && (
+                  {canEdit && (
+                    <View style={styles.stepActionButtons}>
                       <TouchableOpacity
-                        onPress={() => handleRemoveStep(index)}
-                        style={styles.deleteBtn}
+                        disabled={isFirst}
+                        onPress={() => handleMove(index, 'UP')}
+                        style={[styles.moveBtn, isFirst && styles.moveBtnDisabled]}
+                        accessibilityLabel={t('settings.paydayRules.moveUp')}
                       >
-                        <Feather name="trash-2" size={14} color="#EF4444" />
+                        <Feather
+                          name="chevron-up"
+                          size={16}
+                          color={isFirst ? DESIGN_TOKENS.colors.slate[300] : DESIGN_TOKENS.colors.slate[700]}
+                        />
                       </TouchableOpacity>
-                    )}
-                  </View>
+                      <TouchableOpacity
+                        disabled={isLast}
+                        onPress={() => handleMove(index, 'DOWN')}
+                        style={[styles.moveBtn, isLast && styles.moveBtnDisabled]}
+                        accessibilityLabel={t('settings.paydayRules.moveDown')}
+                      >
+                        <Feather
+                          name="chevron-down"
+                          size={16}
+                          color={isLast ? DESIGN_TOKENS.colors.slate[300] : DESIGN_TOKENS.colors.slate[700]}
+                        />
+                      </TouchableOpacity>
+                    </View>
+                  )}
                 </View>
 
-                {/* Optional Configuration inputs for Fixed and Percentage steps */}
-                {isCustom && (
+                {/* Target envelope selector specifically for SURPLUS_SWEEP */}
+                {step.stepType === 'SURPLUS_SWEEP' && (
                   <View style={styles.configContainer}>
-                    <View style={styles.configField}>
-                      <FormLabel>{t('settings.paydayRules.targetEnvelopeLabel')}</FormLabel>
-                      <View style={styles.envelopePillsRow}>
-                        {sharedEnvelopes.map((env) => {
-                          const isEnvSelected = (step.targetEnvelopeId || sharedEnvelopes[0]?.id) === env.id;
-                          return (
-                            <TouchableOpacity
-                              key={env.id}
-                              style={[styles.envelopePill, isEnvSelected && styles.envelopePillSelected]}
-                              onPress={() => handleUpdateStepConfig(index, { targetEnvelopeId: env.id })}
+                    <FormLabel>{t('settings.paydayRules.targetEnvelopeLabel')}</FormLabel>
+                    <View style={styles.envelopePillsRow}>
+                      <TouchableOpacity
+                        style={[
+                          styles.envelopePill,
+                          !step.targetEnvelopeId && styles.envelopePillSelected,
+                        ]}
+                        disabled={!canEdit}
+                        onPress={() => handleUpdateSurplusTarget(index, null)}
+                      >
+                        <Text
+                          style={[
+                            styles.envelopePillText,
+                            !step.targetEnvelopeId && styles.envelopePillTextSelected,
+                          ]}
+                        >
+                          {t('categories.mainPool')}
+                        </Text>
+                      </TouchableOpacity>
+                      {eligibleEnvelopes.map((env) => {
+                        const isEnvSelected = step.targetEnvelopeId === env.id;
+                        return (
+                          <TouchableOpacity
+                            key={env.id}
+                            style={[styles.envelopePill, isEnvSelected && styles.envelopePillSelected]}
+                            disabled={!canEdit}
+                            onPress={() => handleUpdateSurplusTarget(index, env.id)}
+                          >
+                            <Text
+                              style={[
+                                styles.envelopePillText,
+                                isEnvSelected && styles.envelopePillTextSelected,
+                              ]}
                             >
-                              <Text
-                                style={[
-                                  styles.envelopePillText,
-                                  isEnvSelected && styles.envelopePillTextSelected,
-                                ]}
-                              >
-                                {env.name}
-                              </Text>
-                            </TouchableOpacity>
-                          );
-                        })}
-                      </View>
+                              {env.name}
+                            </Text>
+                          </TouchableOpacity>
+                        );
+                      })}
                     </View>
-
-                    {step.stepType === 'FIXED_AMOUNT' && (
-                      <View style={styles.configField}>
-                        <AmountInput
-                          label={t('settings.paydayRules.amountLabel')}
-                          value={String((step.config?.amount as string) || '100.00')}
-                          onChangeText={(val) =>
-                            handleUpdateStepConfig(index, {
-                              config: { ...step.config, amount: val },
-                            })
-                          }
-                        />
-                      </View>
-                    )}
-
-                    {step.stepType === 'PERCENTAGE_SPLIT' && (
-                      <View style={styles.configField}>
-                        <MobileInput
-                          label={t('settings.paydayRules.percentageLabel')}
-                          keyboardType="numeric"
-                          value={String((step.config?.percentage as number) || 20)}
-                          onChangeText={(val) =>
-                            handleUpdateStepConfig(index, {
-                              config: { ...step.config, percentage: Number(val) || 0 },
-                            })
-                          }
-                        />
-                      </View>
-                    )}
                   </View>
                 )}
               </View>
@@ -347,64 +322,19 @@ export default function MobileAllocationRulesScreen() {
           })}
         </View>
 
-        {/* Add Rule Button */}
-        <TouchableOpacity
-          style={styles.addRuleBtn}
-          onPress={() => setShowAddModal(true)}
-          activeOpacity={0.7}
-        >
-          <Feather name="plus" size={16} color={DESIGN_TOKENS.colors.sereneBlue} />
-          <Text style={styles.addRuleBtnText}>{t('settings.paydayRules.addRuleButton')}</Text>
-        </TouchableOpacity>
-
         {/* Bottom Save Action */}
-        <View style={styles.footerContainer}>
-          <MobileButton
-            title={t('settings.paydayRules.saveChanges')}
-            variant="primary"
-            loading={submitting}
-            disabled={!isDirty || submitting}
-            onPress={handleSave}
-          />
-        </View>
-      </View>
-
-      {/* Add Custom Step Modal */}
-      <Modal
-        visible={showAddModal}
-        transparent={true}
-        animationType="fade"
-        onRequestClose={() => setShowAddModal(false)}
-      >
-        <View style={styles.modalBackdrop}>
-          <View style={styles.modalContent}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>{t('settings.paydayRules.addRuleButton')}</Text>
-              <TouchableOpacity onPress={() => setShowAddModal(false)}>
-                <Feather name="x" size={20} color={DESIGN_TOKENS.colors.slate[500]} />
-              </TouchableOpacity>
-            </View>
-
-            <View style={styles.modalOptionsList}>
-              {availableStepTypes.map((typeKey) => (
-                <TouchableOpacity
-                  key={typeKey}
-                  style={styles.modalOptionCard}
-                  onPress={() => handleAddStep(typeKey)}
-                  activeOpacity={0.7}
-                >
-                  <Text style={styles.modalOptionTitle}>
-                    {t(`settings.paydayRules.stepTypes.${typeKey}` as Parameters<typeof t>[0])}
-                  </Text>
-                  <Text style={styles.modalOptionDesc}>
-                    {t(`settings.paydayRules.stepDescriptions.${typeKey}` as Parameters<typeof t>[0])}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </View>
+        {canEdit && (
+          <View style={styles.footerContainer}>
+            <MobileButton
+              title={t('settings.paydayRules.saveChanges')}
+              variant="primary"
+              loading={submitting}
+              disabled={!isDirty || submitting}
+              onPress={handleSave}
+            />
           </View>
-        </View>
-      </Modal>
+        )}
+      </View>
     </AppScreenWrapper>
   );
 }
@@ -508,22 +438,23 @@ const styles = StyleSheet.create({
   moveBtnDisabled: {
     opacity: 0.4,
   },
-  deleteBtn: {
-    width: 28,
-    height: 28,
-    borderRadius: 8,
-    backgroundColor: '#FEE2E2',
-    alignItems: 'center',
-    justifyContent: 'center',
+  readOnlyBanner: {
+    padding: 12,
+    backgroundColor: '#FEF3C7',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#FDE68A',
+  },
+  readOnlyBannerText: {
+    fontSize: 12,
+    color: '#92400E',
+    lineHeight: 18,
   },
   configContainer: {
     paddingTop: 10,
     borderTopWidth: 1,
     borderTopColor: DESIGN_TOKENS.colors.slate[100],
-    gap: 10,
-  },
-  configField: {
-    gap: 6,
+    gap: 8,
   },
   envelopePillsRow: {
     flexDirection: 'row',
@@ -550,70 +481,8 @@ const styles = StyleSheet.create({
   envelopePillTextSelected: {
     color: DESIGN_TOKENS.colors.sereneBlue,
   },
-  addRuleBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    padding: 14,
-    borderRadius: 14,
-    borderWidth: 1.5,
-    borderStyle: 'dashed',
-    borderColor: '#93C5FD',
-    backgroundColor: '#EFF6FF',
-  },
-  addRuleBtnText: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: DESIGN_TOKENS.colors.sereneBlue,
-  },
   footerContainer: {
     paddingTop: 8,
     paddingBottom: 24,
-  },
-  modalBackdrop: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 20,
-  },
-  modalContent: {
-    width: '100%',
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    padding: 18,
-    gap: 14,
-  },
-  modalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  modalTitle: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: DESIGN_TOKENS.colors.textPrimary,
-  },
-  modalOptionsList: {
-    gap: 10,
-  },
-  modalOptionCard: {
-    padding: 12,
-    borderRadius: 10,
-    backgroundColor: '#F8FAFC',
-    borderWidth: 1,
-    borderColor: DESIGN_TOKENS.colors.slate[200],
-    gap: 4,
-  },
-  modalOptionTitle: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: DESIGN_TOKENS.colors.textPrimary,
-  },
-  modalOptionDesc: {
-    fontSize: 11,
-    color: DESIGN_TOKENS.colors.slate[500],
-    lineHeight: 15,
   },
 });

@@ -40,24 +40,57 @@ export function runStep1ImmediateBills(
   billBuckets: EngineBucket[],
   envImmediateExpensesMap: Map<string, number>
 ): void {
-  const sorted = [...billBuckets].sort((a, b) => (a.isEssential && !b.isEssential ? -1 : 1));
-  for (const b of sorted) {
+  const eligibleBills = billBuckets.filter((b) => ctx.isBucketEligible(b));
+  const billDemands: Array<{ bucket: EngineBucket; dueCents: number; shortfall: number }> = [];
+  let totalShortfall = 0;
+
+  for (const b of eligibleBills) {
     const dueCents = envImmediateExpensesMap.get(b.id) ?? 0;
     if (dueCents <= 0) continue;
     const curBal = Math.max(0, ctx.runningBalances.get(b.id) ?? toCents(b.currentBalance));
     const shortfall = Math.max(0, dueCents - curBal);
-    if (shortfall <= 0) continue;
+    if (shortfall > 0) {
+      billDemands.push({ bucket: b, dueCents, shortfall });
+      totalShortfall += shortfall;
+    }
+  }
 
-    const sym = ctx.currencySymbol;
-    const allocCents = Math.min(ctx.remainingCents, shortfall);
-    const reasoning =
-      allocCents < shortfall
-        ? `Immediate bill coverage (${sym}${toDollars(dueCents).toFixed(2)} due within cycle + ${ctx.bufferDays}d buffer): ${sym}${toDollars(allocCents).toFixed(2)} allocated (${sym}${toDollars(shortfall - allocCents).toFixed(2)} shortfall).`
-        : `Immediate bill coverage (${sym}${toDollars(dueCents).toFixed(2)} due within cycle + ${ctx.bufferDays}d buffer): ${sym}${toDollars(allocCents).toFixed(2)} allocated.`;
+  if (billDemands.length === 0 || totalShortfall <= 0 || ctx.remainingCents <= 0) return;
 
-    const alloc = allocate(ctx, b, shortfall, reasoning);
-    if (alloc > 0) {
-      ctx.priorBillAllocated.set(b.id, (ctx.priorBillAllocated.get(b.id) ?? 0) + alloc);
+  const sym = ctx.currencySymbol;
+  if (ctx.remainingCents >= totalShortfall) {
+    for (const item of billDemands) {
+      const reasoning = `Immediate bill coverage (${sym}${toDollars(item.dueCents).toFixed(2)} due within cycle + ${ctx.bufferDays}d buffer): ${sym}${toDollars(item.shortfall).toFixed(2)} allocated.`;
+      const alloc = allocate(ctx, item.bucket, item.shortfall, reasoning);
+      if (alloc > 0) {
+        ctx.priorBillAllocated.set(item.bucket.id, (ctx.priorBillAllocated.get(item.bucket.id) ?? 0) + alloc);
+      }
+    }
+  } else {
+    // Proportional fair-share distribution
+    const available = ctx.remainingCents;
+    let distributed = 0;
+    const allocations: Array<{ item: typeof billDemands[0]; alloc: number }> = [];
+
+    for (const item of billDemands) {
+      const share = Math.floor((available * item.shortfall) / totalShortfall);
+      allocations.push({ item, alloc: share });
+      distributed += share;
+    }
+
+    let remainder = available - distributed;
+    allocations.sort((a, b) => b.item.shortfall - a.item.shortfall);
+    for (let i = 0; i < allocations.length && remainder > 0; i++) {
+      allocations[i].alloc += 1;
+      remainder -= 1;
+    }
+
+    for (const { item, alloc } of allocations) {
+      const reasoning = `Immediate bill coverage (${sym}${toDollars(item.dueCents).toFixed(2)} due within cycle + ${ctx.bufferDays}d buffer): ${sym}${toDollars(alloc).toFixed(2)} allocated (${sym}${toDollars(item.shortfall - alloc).toFixed(2)} shortfall).`;
+      const actual = allocate(ctx, item.bucket, alloc, reasoning);
+      if (actual > 0) {
+        ctx.priorBillAllocated.set(item.bucket.id, (ctx.priorBillAllocated.get(item.bucket.id) ?? 0) + actual);
+      }
     }
   }
 }
@@ -135,8 +168,15 @@ export function runStep5ProRataBills(
   futureExpenses: UpcomingExpenseItem[],
   paycheckDate: Date
 ): void {
-  const sym = ctx.currencySymbol;
-  for (const b of billBuckets) {
+  const eligibleBills = billBuckets.filter((b) => ctx.isBucketEligible(b));
+  const billDemands: Array<{
+    bucket: EngineBucket;
+    monthlyCents: number;
+    additional: number;
+  }> = [];
+  let totalDemand = 0;
+
+  for (const b of eligibleBills) {
     const monthlyCents = toCents(b.monthlyAmount ?? b.targetAmount ?? 0);
     const baseCycleCents = Math.round(monthlyCents * ctx.cycleFactor);
 
@@ -157,18 +197,57 @@ export function runStep5ProRataBills(
     const targetCents = Math.max(baseCycleCents, forwardPaceCents);
     const priorAlloc = ctx.priorBillAllocated.get(b.id) ?? 0;
     const additional = Math.max(0, targetCents - priorAlloc);
-
     if (additional > 0) {
-      const prefix = ctx.isIrregular ? `[${ctx.regularCycleDays}d runway] ` : "";
-      const alloc = allocate(
+      billDemands.push({ bucket: b, monthlyCents, additional });
+      totalDemand += additional;
+    }
+  }
+
+  if (billDemands.length === 0) return;
+
+  const sym = ctx.currencySymbol;
+  const prefix = ctx.isIrregular ? `[${ctx.regularCycleDays}d runway] ` : "";
+
+  if (ctx.remainingCents >= totalDemand) {
+    for (const item of billDemands) {
+      allocate(
         ctx,
-        b,
-        additional,
-        `${prefix}Pro-rata bill allocation (${sym}${toDollars(monthlyCents).toFixed(2)}/mo): ${sym}${toDollars(Math.min(ctx.remainingCents, additional)).toFixed(2)} allocated.`
+        item.bucket,
+        item.additional,
+        `${prefix}Pro-rata bill allocation (${sym}${toDollars(item.monthlyCents).toFixed(2)}/mo): ${sym}${toDollars(item.additional).toFixed(2)} allocated.`
       );
-      if (alloc === 0) {
-        ctx.linesMap.get(b.id)?.reasonings.push(`Pro-rata bill target (${sym}${toDollars(monthlyCents).toFixed(2)}/mo): ${sym}0 allocated (insufficient income).`);
-      }
+    }
+  } else if (ctx.remainingCents > 0) {
+    const available = ctx.remainingCents;
+    let distributed = 0;
+    const allocations: Array<{ item: typeof billDemands[0]; alloc: number }> = [];
+
+    for (const item of billDemands) {
+      const share = Math.floor((available * item.additional) / totalDemand);
+      allocations.push({ item, alloc: share });
+      distributed += share;
+    }
+
+    let remainder = available - distributed;
+    allocations.sort((a, b) => b.item.additional - a.item.additional);
+    for (let i = 0; i < allocations.length && remainder > 0; i++) {
+      allocations[i].alloc += 1;
+      remainder -= 1;
+    }
+
+    for (const { item, alloc } of allocations) {
+      allocate(
+        ctx,
+        item.bucket,
+        alloc,
+        `${prefix}Pro-rata bill allocation (${sym}${toDollars(item.monthlyCents).toFixed(2)}/mo): ${sym}${toDollars(alloc).toFixed(2)} allocated (${sym}${toDollars(item.additional - alloc).toFixed(2)} shortfall).`
+      );
+    }
+  } else {
+    for (const item of billDemands) {
+      ctx.linesMap.get(item.bucket.id)?.reasonings.push(
+        `Pro-rata bill target (${sym}${toDollars(item.monthlyCents).toFixed(2)}/mo): ${sym}0 allocated (insufficient income).`
+      );
     }
   }
 }
@@ -179,14 +258,16 @@ export function runStep6Goals(
   paycheckDate: Date,
   baseNextCutoffTime: number
 ): void {
+  const eligibleGoals = goals.filter((b) => ctx.isBucketEligible(b));
+  const goalDemands: Array<{
+    bucket: EngineBucket;
+    needed: number;
+    description: string;
+  }> = [];
+  let totalDemand = 0;
   const sym = ctx.currencySymbol;
-  const sorted = [...goals].sort((a, b) => {
-    if (!a.targetDate) return 1;
-    if (!b.targetDate) return -1;
-    return new Date(a.targetDate).getTime() - new Date(b.targetDate).getTime();
-  });
 
-  for (const b of sorted) {
+  for (const b of eligibleGoals) {
     const rawTarget = b.targetAmount ?? b.monthlyAmount ?? b.enteredAmount ?? 0;
     const targetCents = toCents(rawTarget);
     const curBal = Math.max(0, ctx.runningBalances.get(b.id) ?? toCents(b.currentBalance));
@@ -197,15 +278,12 @@ export function runStep6Goals(
       const ongoingCents = toCents(ongoingMonthly);
       const needed = Math.round(ongoingCents * ctx.cycleFactor);
       if (needed > 0) {
-        const alloc = allocate(
-          ctx,
-          b,
+        goalDemands.push({
+          bucket: b,
           needed,
-          `Ongoing goal contribution (${sym}${toDollars(ongoingCents).toFixed(2)}/mo): ${sym}${toDollars(Math.min(ctx.remainingCents, needed)).toFixed(2)} allocated.`
-        );
-        if (alloc === 0) {
-          ctx.linesMap.get(b.id)?.reasonings.push(`Ongoing goal contribution: ${sym}0 allocated (insufficient income).`);
-        }
+          description: `Ongoing goal contribution (${sym}${toDollars(ongoingCents).toFixed(2)}/mo)`,
+        });
+        totalDemand += needed;
       }
       continue;
     }
@@ -226,15 +304,57 @@ export function runStep6Goals(
     }
 
     if (needed > 0) {
-      const alloc = allocate(
-        ctx,
-        b,
+      goalDemands.push({
+        bucket: b,
         needed,
-        `Target ${sym}${toDollars(targetCents).toFixed(2)} by ${b.targetDate ?? "12-mo"}: ${sym}${toDollars(Math.min(ctx.remainingCents, needed)).toFixed(2)} allocated.`
+        description: `Target ${sym}${toDollars(targetCents).toFixed(2)} by ${b.targetDate ?? "12-mo"}`,
+      });
+      totalDemand += needed;
+    }
+  }
+
+  if (goalDemands.length === 0) return;
+
+  if (ctx.remainingCents >= totalDemand) {
+    for (const item of goalDemands) {
+      allocate(
+        ctx,
+        item.bucket,
+        item.needed,
+        `${item.description}: ${sym}${toDollars(item.needed).toFixed(2)} allocated.`
       );
-      if (alloc === 0) {
-        ctx.linesMap.get(b.id)?.reasonings.push(`Goal target: ${sym}0 allocated (insufficient income).`);
-      }
+    }
+  } else if (ctx.remainingCents > 0) {
+    const available = ctx.remainingCents;
+    let distributed = 0;
+    const allocations: Array<{ item: typeof goalDemands[0]; alloc: number }> = [];
+
+    for (const item of goalDemands) {
+      const share = Math.floor((available * item.needed) / totalDemand);
+      allocations.push({ item, alloc: share });
+      distributed += share;
+    }
+
+    let remainder = available - distributed;
+    allocations.sort((a, b) => b.item.needed - a.item.needed);
+    for (let i = 0; i < allocations.length && remainder > 0; i++) {
+      allocations[i].alloc += 1;
+      remainder -= 1;
+    }
+
+    for (const { item, alloc } of allocations) {
+      allocate(
+        ctx,
+        item.bucket,
+        alloc,
+        `${item.description}: ${sym}${toDollars(alloc).toFixed(2)} allocated (${sym}${toDollars(item.needed - alloc).toFixed(2)} shortfall).`
+      );
+    }
+  } else {
+    for (const item of goalDemands) {
+      ctx.linesMap.get(item.bucket.id)?.reasonings.push(
+        `${item.description}: ${sym}0 allocated (insufficient income).`
+      );
     }
   }
 }

@@ -35,8 +35,9 @@ export interface BankAccountFormModalProps {
   readonly bankOptions: Array<{ key: BankName; label: string; logoBg: string; textColor: string }>;
   readonly onClose: () => void;
   readonly onSubmit: (e: React.FormEvent) => void;
-  readonly fmtMoney: (val: number | string | undefined) => string;
   readonly onArchive?: () => void;
+  readonly isLastPrivateAccount?: boolean;
+  readonly fmtMoney: (amount: number | string) => string;
   readonly errorMsg?: string | null;
   readonly pools?: unknown[];
   readonly selectedPoolIds?: string[];
@@ -66,6 +67,7 @@ export function BankAccountFormModal({
   onSubmit,
   fmtMoney,
   onArchive,
+  isLastPrivateAccount,
   errorMsg,
 }: BankAccountFormModalProps) {
   const { currency, currencySymbol, minorUnits } = useLocale();
@@ -235,7 +237,7 @@ export function BankAccountFormModal({
               <InfoTooltip content={t("settings.bankAccountForm.availableTooltip")} />
             </div>
             <span className={`font-mono text-sm font-black ${isBufferInvalid ? "text-rose-600" : "text-emerald-700"}`}>
-              {fmtMoney(available)}
+              {fmtMoney ? fmtMoney(available) : `${currencySymbol}${available.toFixed(minorUnits)}`}
             </span>
           </div>
         </div>
@@ -306,7 +308,11 @@ export function BankAccountFormModal({
             onClose();
           }}
           title={t("settings.bankAccountForm.archiveConfirmTitle")}
-          description={t("settings.bankAccountForm.archiveConfirmBody", { name: editingAccount?.name || "" })}
+          description={
+            isLastPrivateAccount
+              ? t("settings.bankAccountForm.archiveConfirmLastPrivateBody", { name: editingAccount?.name || "" })
+              : t("settings.bankAccountForm.archiveConfirmBody", { name: editingAccount?.name || "" })
+          }
           confirmLabel={t("settings.bankAccountForm.archiveAccountCta")}
           variant="danger"
         />
