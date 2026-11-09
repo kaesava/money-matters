@@ -171,8 +171,7 @@ export function usePaycheckStudioMutations({
             expectedDate: selectedDate,
           });
 
-          const payload = buildConfirmPayload(linesMap, reasoningMap, sweepPool, sweepPoolRemainder, lines);
-          await confirmPaydayMut.mutateAsync({
+          const res = await confirmPaydayMut.mutateAsync({
             incomeEventId: id!,
             actualAmount: numericActual.toFixed(2),
             markAsReceivedToday: false,
@@ -188,7 +187,7 @@ export function usePaycheckStudioMutations({
             utils.getMonthlySummary.invalidate(),
           ]);
 
-          if (onConfirmSuccess) onConfirmSuccess();
+          if (onConfirmSuccess) onConfirmSuccess(res?.celebration?.targetsHit);
         } catch (err) {
           toast.error(err instanceof Error ? err.message : t('paydayDrawer.confirmSplitFailed'));
         } finally {

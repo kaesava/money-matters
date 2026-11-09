@@ -12,6 +12,8 @@ export interface EnvelopeDraftPayload {
   name: string;
   type: "EVERYDAY" | "REGULAR" | "GOAL";
   envelopeType: "EVERYDAY" | "SCHEDULED_BILL" | "FLEXIBLE_BILL" | "TARGET_GOAL" | "ONGOING_GOAL";
+  fundingMode?: "TARGET_BALANCE" | "RECURRING";
+  isPriority?: boolean;
   monthlyAmount?: string;
   enteredAmount?: string;
   targetAmount?: string;

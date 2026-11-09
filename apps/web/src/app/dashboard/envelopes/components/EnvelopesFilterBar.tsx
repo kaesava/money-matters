@@ -39,13 +39,13 @@ export function EnvelopesFilterBar({
 
         <div className="flex items-center gap-2 shrink-0">
           <div className="flex items-center bg-white p-1 rounded-xl border border-zinc-200">
-            {(["ALL", "EVERYDAY", "REGULAR", "GOAL"] as const).map((fType) => (
+            {(["ALL", "EVERYDAY", "BILL", "GOAL"] as const).map((fType) => (
               <button
                 key={fType}
                 type="button"
                 onClick={() => onTypeFilterChange(fType)}
                 className={`px-3 py-1 text-xs font-bold rounded-lg transition-all cursor-pointer ${
-                  typeFilter === fType
+                  typeFilter === fType || (fType === "BILL" && (typeFilter as string) === "REGULAR")
                     ? "bg-[#2563eb] text-white shadow-xs"
                     : "text-zinc-500 hover:text-zinc-800"
                 }`}
@@ -54,7 +54,7 @@ export function EnvelopesFilterBar({
                   ? t("common.all")
                   : fType === "EVERYDAY"
                   ? t("poolTypes.everyday")
-                  : fType === "REGULAR"
+                  : fType === "BILL"
                   ? t("poolTypes.bills")
                   : t("poolTypes.goals")}
               </button>

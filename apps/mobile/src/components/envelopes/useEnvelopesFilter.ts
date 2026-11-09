@@ -49,7 +49,7 @@ export function useEnvelopesFilter({
         const pType =
           p.envelopeType === 'EVERYDAY'
             ? 'EVERYDAY'
-            : p.envelopeType === 'TARGET_GOAL' || p.envelopeType === 'ONGOING_GOAL'
+            : p.envelopeType === 'TARGET_GOAL' || p.envelopeType === 'ONGOING_GOAL' || p.envelopeType === 'GOAL'
             ? 'GOAL'
             : 'REGULAR';
         if (typeFilter !== 'ALL' && pType !== typeFilter) return false;

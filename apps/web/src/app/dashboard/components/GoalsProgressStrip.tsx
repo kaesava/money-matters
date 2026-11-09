@@ -35,169 +35,196 @@ export const GoalsProgressStrip: React.FC<GoalsProgressStripProps> = ({
 }) => {
   const { fmt } = useLocale();
   const format = formatCurrency ?? fmt;
+
   const totalGoals = goalCategories?.length ?? 0;
-  const onTrackGoals = (goalCategories ?? []).filter(
-    (g) => g.healthStatus === 'GREEN' || !g.healthStatus
-  ).length;
 
-  const processedGoals = useMemo(() => {
-    if (!goalCategories || goalCategories.length === 0) return [];
-    const nowTime = new Date().getTime();
+  const {
+    totalAccumulatedSavings,
+    targetDateGoalsCount,
+    recurringGoalsCount,
+    totalMilestoneBalance,
+    totalMilestoneTarget,
+    milestonePct,
+    monthlyRecurringPace,
+    onTrackGoals,
+  } = useMemo(() => {
+    let accSavings = 0;
+    let targetCount = 0;
+    let recurringCount = 0;
+    let milestoneBal = 0;
+    let milestoneTgt = 0;
+    let recurringPace = 0;
+    let onTrack = 0;
 
-    return goalCategories.map((g) => {
-      const isOngoing = g.goalMode === 'ONGOING';
-      const bal = parseFloat(String(g.currentBalance || '0'));
-      const target = parseFloat(String(g.targetAmount || g.schedule?.targetAmount || '0'));
-      const fundedPct = isOngoing ? 100 : (target > 0 ? Math.min(100, Math.round((bal / target) * 100)) : 0);
+    for (const g of goalCategories ?? []) {
+      const bal = parseFloat(String(g.currentBalance || '0')) || 0;
+      accSavings += bal;
 
-      let timeElapsedPct: number | null = null;
-      let isOverdue = false;
-
-      const resolvedTargetDate = g.endDate || g.targetDate;
-      if (!isOngoing && resolvedTargetDate) {
-        const targetTime = new Date(resolvedTargetDate).getTime();
-        const createdTime = g.createdAt
-          ? new Date(g.createdAt).getTime()
-          : targetTime - 90 * 24 * 60 * 60 * 1000;
-        const totalDuration = Math.max(1, targetTime - createdTime);
-        const elapsedDuration = Math.max(0, nowTime - createdTime);
-        timeElapsedPct = Math.min(100, Math.max(0, Math.round((elapsedDuration / totalDuration) * 100)));
-        isOverdue = nowTime > targetTime && fundedPct < 100;
+      const isRecurring = g.goalMode === 'ONGOING';
+      if (isRecurring) {
+        recurringCount += 1;
+        const rawAmt = parseFloat(String(g.targetAmount || g.enteredAmount || '0')) || 0;
+        const freq = g.budgetFrequency;
+        if (freq === 'WEEKLY') {
+          recurringPace += (rawAmt * 52) / 12;
+        } else if (freq === 'FORTNIGHTLY') {
+          recurringPace += (rawAmt * 26) / 12;
+        } else if (freq === 'ANNUALLY') {
+          recurringPace += rawAmt / 12;
+        } else {
+          recurringPace += rawAmt;
+        }
+      } else {
+        targetCount += 1;
+        const tgt = parseFloat(String(g.targetAmount || g.schedule?.targetAmount || '0')) || 0;
+        milestoneBal += bal;
+        milestoneTgt += tgt;
       }
 
-      return {
-        ...g,
-        isOngoing,
-        balanceNum: bal,
-        targetNum: target,
-        fundedPct,
-        timeElapsedPct,
-        isOverdue,
-      };
-    });
+      if (g.healthStatus === 'GREEN' || !g.healthStatus) {
+        onTrack += 1;
+      }
+    }
+
+    const mPct = milestoneTgt > 0 ? Math.min(100, Math.round((milestoneBal / milestoneTgt) * 100)) : 0;
+
+    return {
+      totalAccumulatedSavings: accSavings,
+      targetDateGoalsCount: targetCount,
+      recurringGoalsCount: recurringCount,
+      totalMilestoneBalance: milestoneBal,
+      totalMilestoneTarget: milestoneTgt,
+      milestonePct: mPct,
+      monthlyRecurringPace: recurringPace,
+      onTrackGoals: onTrack,
+    };
   }, [goalCategories]);
 
-  // Sort by attention priority: Overdue first, then RED, then AMBER / behind pace, then lowest funded %
-  const topAttentionGoals = useMemo(() => {
-    const getScore = (g: (typeof processedGoals)[0]) => {
-      if (g.isOverdue) return 1000;
-      if (g.healthStatus === 'RED') return 500;
-      if (g.healthStatus === 'AMBER') return 300;
-      if (g.timeElapsedPct !== null && g.fundedPct < g.timeElapsedPct * 0.8) return 200;
-      return 100 - g.fundedPct;
-    };
+  const allOnTrack = totalGoals > 0 && onTrackGoals === totalGoals;
 
-    return [...processedGoals].sort((a, b) => getScore(b) - getScore(a)).slice(0, 2);
-  }, [processedGoals]);
-
-  if (!goalCategories || goalCategories.length === 0) return null;
-
-  return (
-    <div className="bg-white dark:bg-zinc-900 border border-zinc-200/80 dark:border-zinc-800 rounded-2xl p-5 shadow-xs space-y-4 h-full flex flex-col justify-between">
-      <div className="space-y-3">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-          <div className="flex items-center gap-2">
-            <h3 className="text-sm font-extrabold text-[#1B2B4B] dark:text-zinc-100">
-              {t('dashboard.goals.title')}
-            </h3>
-            <span className="text-xs font-semibold text-gray-500 bg-gray-100 dark:bg-zinc-800 dark:text-zinc-400 px-2 py-0.5 rounded-full">
-              {onTrackGoals === totalGoals
-                ? t('dashboard.goals.allOnTrack', { total: totalGoals })
-                : t('dashboard.goals.onTrack', { count: onTrackGoals, total: totalGoals })}
-            </span>
-          </div>
-
+  if (totalGoals === 0) {
+    return (
+      <div className="bg-white dark:bg-zinc-900 border border-zinc-200/80 dark:border-zinc-800 rounded-2xl p-5 shadow-xs flex flex-col justify-between h-full">
+        <div className="flex items-center justify-between gap-2">
+          <h3 className="text-[11px] font-extrabold uppercase tracking-widest text-slate-500 dark:text-zinc-400">
+            {t('dashboard.goals.cardTitle')}
+          </h3>
           <Link
             href="/dashboard/envelopes?type=GOAL"
-            className="text-xs font-bold text-blue-600 hover:text-blue-700 transition-colors self-start sm:self-auto"
+            className="text-xs font-bold text-blue-600 dark:text-blue-400 hover:text-blue-700 transition-colors"
           >
             {t('dashboard.goals.viewAll')} →
           </Link>
         </div>
 
-        {/* Top 2 goals requiring attention */}
-        <div className="flex flex-col gap-3">
-          {topAttentionGoals.map((goal) => {
-            const isCompleted = goal.fundedPct >= 100;
-            const isLagging = goal.timeElapsedPct !== null && goal.fundedPct < goal.timeElapsedPct * 0.8;
-            const isJustBehind = goal.timeElapsedPct !== null && goal.fundedPct < goal.timeElapsedPct && !isLagging;
-            const isOnTrack = goal.timeElapsedPct !== null ? goal.fundedPct >= goal.timeElapsedPct : goal.fundedPct >= 50;
-
-            const barColor = isCompleted
-              ? 'bg-emerald-500'
-              : goal.isOverdue || isLagging
-              ? 'bg-rose-500'
-              : isJustBehind
-              ? 'bg-amber-500'
-              : isOnTrack
-              ? 'bg-emerald-500'
-              : 'bg-blue-500';
-
-            return (
-              <div
-                key={goal.id}
-                className="bg-slate-50/70 dark:bg-zinc-800/40 border border-slate-200/70 dark:border-zinc-800 rounded-xl p-3 space-y-2 hover:border-slate-300 dark:hover:border-zinc-700 transition-colors"
-              >
-                <div className="flex justify-between items-center text-xs">
-                  <span className="font-bold text-gray-800 dark:text-zinc-200 truncate">{goal.name}</span>
-                  {goal.isOngoing ? (
-                    <span className="text-[10px] font-bold text-blue-600 bg-blue-50 dark:bg-blue-950/40 px-2 py-0.5 rounded-full">
-                      {goal.budgetFrequency || t('categories.frequencyMonthly')}
-                    </span>
-                  ) : (
-                    <span className="font-mono text-gray-600 dark:text-zinc-400 font-semibold">{goal.fundedPct}%</span>
-                  )}
-                </div>
-
-                {/* Progress Bar / Ongoing Stream Indicator */}
-                <div className="relative h-2.5 bg-gray-200 dark:bg-zinc-700 rounded-full overflow-hidden">
-                  <div
-                    className={`h-full transition-all duration-300 ${barColor}`}
-                    style={{ width: `${goal.fundedPct}%` }}
-                  />
-                  {!goal.isOngoing && goal.timeElapsedPct !== null && goal.timeElapsedPct > 0 && goal.timeElapsedPct < 100 && (
-                    <div
-                      className="absolute top-0 bottom-0 w-1 bg-slate-800 dark:bg-white rounded-full z-10 -ml-0.5 shadow-xs pointer-events-none"
-                      style={{ left: `${goal.timeElapsedPct}%` }}
-                      title={t('dashboard.goals.pacingTarget', {
-                        percent: goal.timeElapsedPct,
-                      })}
-                    />
-                  )}
-                </div>
-
-                <div className="flex justify-between items-center text-[11px] font-mono text-gray-500 dark:text-zinc-400">
-                  {goal.isOngoing ? (
-                    <span>
-                      {format(goal.balanceNum)} accumulated · {format(goal.targetNum)}/mo
-                    </span>
-                  ) : (
-                    <span>
-                      {format(goal.balanceNum)} {goal.targetNum > 0 && `/ ${format(goal.targetNum)}`}
-                    </span>
-                  )}
-                  {goal.isOverdue ? (
-                    <span className="text-rose-600 font-bold font-sans">{t('common.overdue')}</span>
-                  ) : goal.isOngoing ? (
-                    <span className="text-emerald-600 font-sans font-semibold">
-                      {t('dashboard.goals.onTrackBadge')}
-                    </span>
-                  ) : goal.timeElapsedPct !== null ? (
-                    <span
-                      className={`font-sans font-semibold ${
-                        isOnTrack ? 'text-emerald-600' : isJustBehind ? 'text-amber-600' : 'text-rose-600'
-                      }`}
-                    >
-                      {isOnTrack ? t('dashboard.goals.onTrackBadge') : isJustBehind ? t('dashboard.goals.justBehind') : t('dashboard.goals.lagging')} {t('dashboard.goals.pace', { percent: goal.timeElapsedPct })}
-                    </span>
-                  ) : (
-                    <span>{t('dashboard.goals.funded', { percent: goal.fundedPct })}</span>
-                  )}
-                </div>
-              </div>
-            );
-          })}
+        <div className="my-auto py-3 space-y-1">
+          <div className="text-xs font-medium text-slate-500 dark:text-zinc-400">
+            {t('dashboard.goals.totalSavedInvested')}
+          </div>
+          <div className="font-mono tabular-nums text-3xl font-extrabold text-[#1B2B4B] dark:text-zinc-100">
+            {format(0)}
+          </div>
+          <p className="text-xs text-slate-400 dark:text-zinc-500 pt-1">
+            {t('dashboard.goals.noGoalsSubtitle')}
+          </p>
         </div>
+
+        <div className="pt-3 border-t border-slate-100 dark:border-zinc-800 flex justify-between items-center text-xs">
+          <Link
+            href="/dashboard/envelopes?type=GOAL"
+            className="font-bold text-blue-600 dark:text-blue-400 hover:underline"
+          >
+            {t('dashboard.goals.addGoalAction')} →
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="bg-white dark:bg-zinc-900 border border-zinc-200/80 dark:border-zinc-800 rounded-2xl p-5 shadow-xs flex flex-col justify-between h-full space-y-4">
+      {/* Header */}
+      <div className="flex items-center justify-between gap-2">
+        <div className="flex items-center gap-2">
+          <h3 className="text-[11px] font-extrabold uppercase tracking-widest text-slate-500 dark:text-zinc-400">
+            {t('dashboard.goals.cardTitle')}
+          </h3>
+          <span
+            className={`text-[11px] font-bold px-2 py-0.5 rounded-full border ${
+              allOnTrack
+                ? 'text-emerald-700 bg-emerald-50 dark:bg-emerald-950/40 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800/50'
+                : 'text-amber-700 bg-amber-50 dark:bg-amber-950/40 dark:text-amber-400 border-amber-200 dark:border-amber-800/50'
+            }`}
+          >
+            {allOnTrack
+              ? t('dashboard.goals.allOnTrack', { total: totalGoals })
+              : t('dashboard.goals.onTrack', { count: onTrackGoals, total: totalGoals })}
+          </span>
+        </div>
+
+        <Link
+          href="/dashboard/envelopes?type=GOAL"
+          className="text-xs font-bold text-blue-600 dark:text-blue-400 hover:text-blue-700 transition-colors"
+        >
+          {t('dashboard.goals.viewAll')} →
+        </Link>
+      </div>
+
+      {/* Middle Hero + Dual Mode Summary */}
+      <div className="my-auto py-1 space-y-4">
+        <div>
+          <div className="text-xs font-medium text-slate-500 dark:text-zinc-400">
+            {t('dashboard.goals.totalSavedInvested')}
+          </div>
+          <div className="font-mono tabular-nums text-3xl font-extrabold text-[#1B2B4B] dark:text-zinc-100 tracking-tight">
+            {format(totalAccumulatedSavings)}
+          </div>
+        </div>
+
+        {/* Target Milestone Progress */}
+        {targetDateGoalsCount > 0 && (
+          <div className="space-y-1.5">
+            <div className="flex justify-between items-center text-xs">
+              <span className="font-semibold text-slate-600 dark:text-zinc-300">
+                {t('dashboard.goals.title')}
+              </span>
+              <span className="font-mono tabular-nums text-xs text-slate-500 dark:text-zinc-400">
+                {t('dashboard.goals.milestonesFunded', {
+                  funded: format(totalMilestoneBalance),
+                  target: format(totalMilestoneTarget),
+                  percent: milestonePct,
+                })}
+              </span>
+            </div>
+            <div className="relative h-2 bg-slate-100 dark:bg-zinc-800 rounded-full overflow-hidden">
+              <div
+                className="h-full bg-blue-600 dark:bg-blue-500 rounded-full transition-all duration-300"
+                style={{ width: `${milestonePct}%` }}
+              />
+            </div>
+          </div>
+        )}
+
+        {/* Recurring Ongoing Pace */}
+        {recurringGoalsCount > 0 && (
+          <div className="flex items-center justify-between text-xs pt-2 border-t border-slate-100 dark:border-zinc-800/80">
+            <span className="font-semibold text-slate-600 dark:text-zinc-300">
+              {t('dashboard.goals.ongoingPill')}
+            </span>
+            <span className="font-mono tabular-nums font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/30 px-2 py-0.5 rounded-md">
+              {t('dashboard.goals.recurringPace', { amount: format(monthlyRecurringPace) })}
+            </span>
+          </div>
+        )}
+      </div>
+
+      {/* Footer Breakdown */}
+      <div className="pt-3 border-t border-slate-100 dark:border-zinc-800 text-[11px] font-medium text-slate-400 dark:text-zinc-500">
+        {t('dashboard.goals.goalBreakdown', {
+          total: totalGoals,
+          targetCount: targetDateGoalsCount,
+          recurringCount: recurringGoalsCount,
+        })}
       </div>
     </div>
   );

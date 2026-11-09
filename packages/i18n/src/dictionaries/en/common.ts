@@ -171,6 +171,7 @@ export const common = {
     "transferCompleted": "Transfer completed",
     "transferDeleted": "Transfer deleted",
     "expenseMarkedPaid": "Expense marked as spent.",
+    "expenseMarkedPaidAllClear": "🎉 All clear! No bills due until next payday.",
     "expenseDeleted": "Expense deleted.",
     "earlyAccessRegistered": "Thank you! We've registered your email and will notify you as soon as Money Matters goes live."
   },

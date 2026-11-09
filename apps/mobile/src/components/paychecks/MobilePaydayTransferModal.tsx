@@ -4,6 +4,7 @@ import {
   DESIGN_TOKENS,
   MobileModalDialog,
   MobileButton,
+  MobileCelebrationBanner,
 } from '@money-matters/ui/mobile';
 import { t } from '@money-matters/i18n';
 import { RollupRetainedCard } from './rollup/RollupRetainedCard';
@@ -30,6 +31,7 @@ export interface MobileBankTransferAccount {
 export interface MobilePaydayTransferModalProps {
   isOpen: boolean;
   onClose: () => void;
+  celebrationTargetsHit?: import('@money-matters/types').TargetCelebrationItem[];
   receivingAccountId?: string | null;
   pools: MobileBankTransferPool[];
   linesMap: Record<string, string>;
@@ -41,6 +43,7 @@ export interface MobilePaydayTransferModalProps {
 export const MobilePaydayTransferModal: React.FC<MobilePaydayTransferModalProps> = ({
   isOpen,
   onClose,
+  celebrationTargetsHit,
   receivingAccountId,
   pools,
   linesMap,
@@ -102,6 +105,9 @@ export const MobilePaydayTransferModal: React.FC<MobilePaydayTransferModalProps>
       }
     >
       <View style={styles.content}>
+        {celebrationTargetsHit && celebrationTargetsHit.length > 0 && (
+          <MobileCelebrationBanner targetsHit={celebrationTargetsHit} />
+        )}
         {totalTransfers === 0 && retainedItems.length === 0 ? (
           <View style={styles.emptyContainer}>
             <Text style={styles.emptyText}>{t('cards.paydayTransfer.allRetainedDescription')}</Text>

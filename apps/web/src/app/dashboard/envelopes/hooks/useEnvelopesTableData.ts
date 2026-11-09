@@ -4,10 +4,11 @@ import { useState, useMemo, useEffect } from "react";
 import { t } from "@money-matters/i18n";
 import type { EnvelopeSummaryItem, PoolTableRow, EnvelopeType } from "../types";
 
-export type PoolTypeFilter = "ALL" | "EVERYDAY" | "REGULAR" | "GOAL";
+export type PoolTypeFilter = "ALL" | "EVERYDAY" | "BILL" | "GOAL" | "REGULAR";
 
 export const POOL_TYPE_ORDER: Record<string, number> = {
   EVERYDAY: 0,
+  BILL: 1,
   REGULAR: 1,
   GOAL: 2,
 };
@@ -138,8 +139,8 @@ export function useEnvelopesTableData({
     const nextPaydayDate = pendingPaydays[0] || null;
 
     return rawPools.map((p) => {
-      const isGoal = p.envelopeType === "TARGET_GOAL" || p.envelopeType === "ONGOING_GOAL";
-      const _isBill = p.envelopeType === "SCHEDULED_BILL" || p.envelopeType === "FLEXIBLE_BILL";
+      const isGoal = p.envelopeType === "TARGET_GOAL" || p.envelopeType === "ONGOING_GOAL" || p.envelopeType === "GOAL";
+      const _isBill = p.envelopeType === "SCHEDULED_BILL" || p.envelopeType === "FLEXIBLE_BILL" || p.envelopeType === "BILL";
       const isEveryday = p.envelopeType === "EVERYDAY";
 
       const targetAmountNum =
@@ -248,8 +249,8 @@ export function useEnvelopesTableData({
         id: p.id,
         name: p.name,
         envelopeType: p.envelopeType as EnvelopeType,
-        type: isEveryday ? "EVERYDAY" : isGoal ? "GOAL" : "REGULAR",
-        poolType: isEveryday ? "EVERYDAY" : isGoal ? "GOAL" : "REGULAR",
+        type: isEveryday ? "EVERYDAY" : isGoal ? "GOAL" : "BILL",
+        poolType: isEveryday ? "EVERYDAY" : isGoal ? "GOAL" : "BILL",
         bankAccountId: p.bankAccountId,
         bankAccountName: p.bankAccountName || null,
         isPrivate: p.isPrivate,
@@ -275,7 +276,7 @@ export function useEnvelopesTableData({
         id: p.id,
         name: p.name,
         envelopeType: p.envelopeType as EnvelopeType,
-        poolType: isEveryday ? "EVERYDAY" : isGoal ? "GOAL" : "REGULAR",
+        poolType: isEveryday ? "EVERYDAY" : isGoal ? "GOAL" : "BILL",
         bankAccountId: p.bankAccountId,
         bankAccountName: p.bankAccountName || null,
         isPrivate: p.isPrivate,
@@ -314,8 +315,11 @@ export function useEnvelopesTableData({
       if (poolIdParam && matchedPool && row.id !== poolIdParam) {
         return false;
       }
-      if (typeFilter !== "ALL" && row.poolType !== typeFilter) {
-        return false;
+      if (typeFilter !== "ALL") {
+        const effectiveFilter = typeFilter === "REGULAR" ? "BILL" : typeFilter;
+        if (row.poolType !== effectiveFilter) {
+          return false;
+        }
       }
       if (privacyFilter === "SHARED" && row.isPrivate) {
         return false;

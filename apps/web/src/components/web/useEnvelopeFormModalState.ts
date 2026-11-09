@@ -342,9 +342,24 @@ export function useEnvelopeFormModalState({
         ? "FLEXIBLE_BILL"
         : "SCHEDULED_BILL";
 
+    const fundingMode: "TARGET_BALANCE" | "RECURRING" | undefined =
+      type === "EVERYDAY"
+        ? undefined
+        : type === "GOAL"
+        ? goalMode === "ONGOING"
+          ? "RECURRING"
+          : "TARGET_BALANCE"
+        : billMode === "FLEXIBLE_BILL"
+        ? "TARGET_BALANCE"
+        : "RECURRING";
+
+    const isPriorityVal = Boolean(isEssential || isCommitted);
+
     return {
       name: name.trim(),
       envelopeType,
+      fundingMode,
+      isPriority: isPriorityVal,
       safetyBufferFloor: type === "EVERYDAY" ? safetyBufferFloor || "0.00" : undefined,
       targetAmount: finalTargetAmount,
       monthlyAmount: isFlexibleBill

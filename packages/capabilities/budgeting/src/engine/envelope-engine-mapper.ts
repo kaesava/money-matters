@@ -3,7 +3,7 @@ import { EngineBucket, BucketType } from "./allocation-engine.js";
 
 export function isBillsBucket(b: { type?: string; envelopeType?: EnvelopeType }): boolean {
   const t = b.type || b.envelopeType;
-  return t === "SCHEDULED_BILL" || t === "FLEXIBLE_BILL" || t === "REGULAR";
+  return t === "SCHEDULED_BILL" || t === "FLEXIBLE_BILL" || t === "REGULAR" || t === "BILL";
 }
 
 export function isGoalBucket(b: { type?: string; envelopeType?: EnvelopeType }): boolean {
@@ -20,6 +20,7 @@ export interface RawDbEnvelope {
   id: string;
   name: string;
   envelopeType: EnvelopeType;
+  isPriority?: boolean | null;
   isEssential?: boolean | null;
   isCommitted?: boolean | null;
   isSurplusTarget?: boolean | null;
@@ -46,8 +47,8 @@ export function mapEnvelopeToEngineBucket(env: RawDbEnvelope, currentBalance: nu
     name: env.name,
     type: env.envelopeType as BucketType,
     envelopeType: env.envelopeType,
-    isEssential: Boolean(env.isEssential),
-    isCommitted: Boolean(env.isCommitted),
+    isEssential: Boolean(env.isPriority ?? env.isEssential),
+    isCommitted: Boolean(env.isPriority ?? env.isCommitted),
     isSurplusTarget: Boolean(env.isSurplusTarget),
     monthlyAmount: parseNum(env.monthlyAmount),
     targetAmount: parseNum(env.targetAmount),

@@ -156,4 +156,6 @@ export { MobileAiUsageCard } from './MobileAiUsageCard';
 export { MobileAskSheet } from './MobileAskSheet';
 export { MobileCommandPaletteSheet } from './MobileCommandPaletteSheet';
 export type { MobileCommandPaletteSheetProps } from './MobileCommandPaletteSheet';
+export { MobileCelebrationBanner } from './MobileCelebrationBanner';
+export type { MobileCelebrationBannerProps } from './MobileCelebrationBanner';
 export * from './notifications/index';

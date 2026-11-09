@@ -3,7 +3,8 @@
 import React, { useState, useMemo } from "react";
 import Link from "next/link";
 import { t } from "@money-matters/i18n";
-import { ModalDialog, Button } from "@money-matters/ui/web";
+import { ModalDialog, Button, CelebrationBanner } from "@money-matters/ui/web";
+import type { TargetCelebrationItem } from "@money-matters/types";
 import { useLocale } from "../../../../providers/LocaleProvider";
 import { DestinationTransferItem, DestinationTransferGroup } from "./DestinationTransferItem";
 
@@ -33,6 +34,7 @@ export interface PaydayTransferModalProps {
   readonly sweepPoolId?: string;
   readonly sweepPoolRemainder: number;
   readonly bankAccounts: BankTransferAccount[];
+  readonly celebrationTargetsHit?: readonly TargetCelebrationItem[];
 }
 
 export function PaydayTransferModal({
@@ -44,6 +46,7 @@ export function PaydayTransferModal({
   sweepPoolId,
   sweepPoolRemainder,
   bankAccounts,
+  celebrationTargetsHit,
 }: PaydayTransferModalProps) {
   const { fmt, minorUnits } = useLocale();
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
@@ -118,6 +121,9 @@ export function PaydayTransferModal({
       maxWidth="max-w-xl"
     >
       <div className="space-y-4 pt-1">
+        {celebrationTargetsHit && celebrationTargetsHit.length > 0 && (
+          <CelebrationBanner targetsHit={celebrationTargetsHit} formatCurrency={fmt} />
+        )}
         <p className="text-xs text-zinc-500 dark:text-zinc-400 font-medium leading-relaxed">
           {externalTransfers.length > 0
             ? t("cards.paydayTransfer.rollupDescription")

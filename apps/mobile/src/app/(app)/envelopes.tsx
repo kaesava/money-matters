@@ -135,7 +135,7 @@ export default function PoolsScreen() {
             />
             <PoolGroupSection
               title={t('categories.billsPoolsUpper')}
-              pools={filteredPools.filter((p) => p.envelopeType === 'SCHEDULED_BILL' || p.envelopeType === 'FLEXIBLE_BILL')}
+              pools={filteredPools.filter((p) => p.envelopeType === 'SCHEDULED_BILL' || p.envelopeType === 'FLEXIBLE_BILL' || p.envelopeType === 'BILL')}
               isCollapsed={!!collapsedTypes['REGULAR']}
               onToggleCollapse={() => toggleTypeCollapse('REGULAR')}
               bankAccounts={bankAccounts}
@@ -147,7 +147,7 @@ export default function PoolsScreen() {
             />
             <PoolGroupSection
               title={t('categories.goalsUpper')}
-              pools={filteredPools.filter((p) => p.envelopeType === 'TARGET_GOAL' || p.envelopeType === 'ONGOING_GOAL')}
+              pools={filteredPools.filter((p) => p.envelopeType === 'TARGET_GOAL' || p.envelopeType === 'ONGOING_GOAL' || p.envelopeType === 'GOAL')}
               isCollapsed={!!collapsedTypes['GOAL']}
               onToggleCollapse={() => toggleTypeCollapse('GOAL')}
               bankAccounts={bankAccounts}

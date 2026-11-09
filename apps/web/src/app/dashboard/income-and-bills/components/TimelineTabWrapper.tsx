@@ -58,7 +58,12 @@ export function TimelineTabWrapper({
               date: date || undefined,
               note: `Paid on ${date}`,
             });
-            toast.success(t("toasts.expenseMarkedPaid"));
+            const remainingCount = expenseEvents.filter((e) => e.id !== eventId && e.status !== "CONFIRMED").length;
+            if (remainingCount === 0) {
+              toast.success(t("toasts.expenseMarkedPaidAllClear"));
+            } else {
+              toast.success(t("toasts.expenseMarkedPaid"));
+            }
             await utils.listExpenseEvents.invalidate();
             await utils.listPools.invalidate();
             await utils.listTransactions.invalidate();

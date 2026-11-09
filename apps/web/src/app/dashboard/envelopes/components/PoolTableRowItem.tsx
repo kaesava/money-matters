@@ -58,6 +58,10 @@ export function PoolTableRowItem({
       ? t("categories.targetDateGoalBadge")
       : pool.envelopeType === "ONGOING_GOAL"
       ? t("categories.ongoingGoalBadge")
+      : pool.envelopeType === "BILL"
+      ? (pool.rawPool.fundingMode === "TARGET_BALANCE" || pool.rawPool.rrule ? t("categories.scheduledBillBadge") : t("categories.flexibleBillBadge"))
+      : pool.envelopeType === "GOAL"
+      ? (pool.rawPool.fundingMode === "RECURRING" || pool.rawPool.goalMode === "ONGOING" ? t("categories.ongoingGoalBadge") : t("categories.targetDateGoalBadge"))
       : pool.envelopeType === "EVERYDAY" || pool.poolType === "EVERYDAY"
       ? t("categories.everydayBadge")
       : null;
@@ -84,13 +88,13 @@ export function PoolTableRowItem({
           {subTypeBadge && (
             <span
               className={`inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-bold tracking-wide uppercase ${
-                pool.envelopeType === "SCHEDULED_BILL"
+                pool.envelopeType === "SCHEDULED_BILL" || (pool.envelopeType === "BILL" && (pool.rawPool.fundingMode === "TARGET_BALANCE" || Boolean(pool.rawPool.rrule)))
                   ? "bg-blue-50 text-blue-700 border border-blue-200"
-                  : pool.envelopeType === "FLEXIBLE_BILL"
+                  : pool.envelopeType === "FLEXIBLE_BILL" || pool.envelopeType === "BILL"
                   ? "bg-sky-50 text-sky-700 border border-sky-200"
-                  : pool.envelopeType === "TARGET_GOAL"
+                  : pool.envelopeType === "TARGET_GOAL" || (pool.envelopeType === "GOAL" && pool.rawPool.fundingMode !== "RECURRING" && pool.rawPool.goalMode !== "ONGOING")
                   ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
-                  : pool.envelopeType === "ONGOING_GOAL"
+                  : pool.envelopeType === "ONGOING_GOAL" || pool.envelopeType === "GOAL"
                   ? "bg-teal-50 text-teal-700 border border-teal-200"
                   : "bg-purple-50 text-purple-700 border border-purple-200"
               }`}
@@ -99,13 +103,13 @@ export function PoolTableRowItem({
             </span>
           )}
 
-          {Boolean(pool.isEssential || pool.rawPool.isEssential) && (pool.envelopeType === "SCHEDULED_BILL" || pool.envelopeType === "FLEXIBLE_BILL") && (
+          {Boolean(pool.isEssential || pool.rawPool.isEssential || pool.rawPool.isPriority) && (pool.envelopeType === "SCHEDULED_BILL" || pool.envelopeType === "FLEXIBLE_BILL" || pool.envelopeType === "BILL") && (
             <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-bold tracking-wide uppercase bg-amber-50 text-amber-700 border border-amber-200">
               {t("categories.essentialBadge")}
             </span>
           )}
 
-          {Boolean(pool.isCommitted || pool.rawPool.isCommitted) && (pool.envelopeType === "TARGET_GOAL" || pool.envelopeType === "ONGOING_GOAL") && (
+          {Boolean(pool.isCommitted || pool.rawPool.isCommitted || pool.rawPool.isPriority) && (pool.envelopeType === "TARGET_GOAL" || pool.envelopeType === "ONGOING_GOAL" || pool.envelopeType === "GOAL") && (
             <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-bold tracking-wide uppercase bg-indigo-50 text-indigo-700 border border-indigo-200">
               {t("categories.committedBadge")}
             </span>

@@ -30,6 +30,7 @@ export const envelopes = {
     "selectPoolOrCategory": "Select a Envelope or Category",
     "selectPool": "Select a Envelope",
     "typeRegular": "Bill",
+    "typeBill": "Bill",
     "typeGoal": "Goal",
     "typeEveryday": "Everyday",
     "targetAmountLabel": "Target amount",

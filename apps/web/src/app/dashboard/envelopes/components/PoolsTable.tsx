@@ -7,6 +7,8 @@ import { useLocale } from "../../../../providers/LocaleProvider";
 import { PoolTableRow } from "../types";
 import { PoolTableRowItem } from "./PoolTableRowItem";
 
+import type { PoolTypeFilter } from "../hooks/useEnvelopesTableData";
+
 export interface PoolsTableProps {
   pools: PoolTableRow[];
   page: number;
@@ -21,11 +23,11 @@ export interface PoolsTableProps {
   onEditPool: (pool: PoolTableRow["rawPool"]) => void;
   onDrawDown?: (pool: PoolTableRow["rawPool"]) => void;
   onOpenCategoryDrawer?: (pool: PoolTableRow) => void;
-  onAddPool?: (poolType?: "EVERYDAY" | "REGULAR" | "GOAL") => void;
+  onAddPool?: (poolType?: "EVERYDAY" | "BILL" | "GOAL" | "REGULAR") => void;
   fmtMoney: (val: number | null | undefined) => string;
   isLoading?: boolean;
   searchQuery?: string;
-  typeFilter?: "ALL" | "EVERYDAY" | "REGULAR" | "GOAL";
+  typeFilter?: PoolTypeFilter;
   isProjectionMode?: boolean;
 }
 

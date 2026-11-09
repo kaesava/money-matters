@@ -97,7 +97,12 @@ export default function DashboardPage() {
       date,
       note: `${item.name} (Paid on ${date})`,
     });
-    toast.success(t("toasts.expenseMarkedPaid"));
+    const remainingCount = attentionItems.filter((i) => i.id !== item.id && i.type === "EXPENSE").length;
+    if (remainingCount === 0) {
+      toast.success(t("toasts.expenseMarkedPaidAllClear"));
+    } else {
+      toast.success(t("toasts.expenseMarkedPaid"));
+    }
     posthog.capture("bill_paid");
   };
 

@@ -2,6 +2,7 @@ import { envelopes, allocationPlans, allocationPlanLines, transactionLedger, inc
 import { eq, and, sql } from "drizzle-orm";
 import { runAllocationEngine, EngineBucket } from "../engine/allocation-engine.js";
 import { getTenantDateString } from "@money-matters/core";
+import { TargetCelebrationItem } from "@money-matters/types";
 
 export function parseRruleFrequencyDays(rrule?: string | null): number {
   if (!rrule) return 14;
@@ -287,7 +288,72 @@ export async function runAllocationCommand(
       .where(eq(incomeEvents.id, incomeEventId));
   }
 
-    const plan = { ...insertedPlan, isFuturePlanned };
+  // Celebration detection across all combinations of goals and bills
+  const targetsHit: TargetCelebrationItem[] = [];
+  if (!isFuturePlanned) {
+    for (let i = 0; i < finalLinesToInsert.length; i++) {
+      const line = finalLinesToInsert[i];
+      const confirmedVal = parseFloat(line.confirmedAmount);
+      if (confirmedVal <= 0) continue;
+
+      const env = dbEnvelopes.find((e) => e.id === line.envelopeId);
+      if (!env) continue;
+
+      const preBal = balancesMap[env.id] || 0;
+      const postBal = preBal + confirmedVal;
+      const isGoal = (env.envelopeType as string) === "GOAL" || env.envelopeType === "TARGET_GOAL" || env.envelopeType === "ONGOING_GOAL";
+      const isOngoingGoal = env.envelopeType === "ONGOING_GOAL" || env.goalMode === "ONGOING";
+
+      if (env.isSurplusTarget) {
+        targetsHit.push({
+          id: env.id,
+          name: env.name,
+          type: "SURPLUS_SWEPT",
+          amount: confirmedVal,
+        });
+      } else if (isGoal) {
+        const targetVal = env.targetAmount ? parseFloat(env.targetAmount) : 0;
+        if (!isOngoingGoal && targetVal > 0 && preBal < targetVal && postBal >= targetVal) {
+          targetsHit.push({
+            id: env.id,
+            name: env.name,
+            type: "GOAL_TARGET_MET",
+            amount: postBal,
+            targetAmount: targetVal,
+          });
+        } else if (isOngoingGoal) {
+          targetsHit.push({
+            id: env.id,
+            name: env.name,
+            type: "RECURRING_GOAL_FUNDED",
+            amount: confirmedVal,
+            targetAmount: targetVal > 0 ? targetVal : undefined,
+          });
+        }
+      }
+    }
+
+    const billLines = finalLinesToInsert.filter((l) => {
+      const env = dbEnvelopes.find((e) => e.id === l.envelopeId);
+      return env && ((env.envelopeType as string) === "BILL" || env.envelopeType === "SCHEDULED_BILL" || env.envelopeType === "FLEXIBLE_BILL");
+    });
+    if (billLines.length > 0) {
+      const totalBillsAllocated = billLines.reduce((acc, l) => acc + (parseFloat(l.confirmedAmount) || 0), 0);
+      if (totalBillsAllocated > 0) {
+        targetsHit.push({
+          id: "bills-ring-fenced",
+          name: "Upcoming Bills Ring-Fenced",
+          type: "BILLS_COVERED",
+          amount: totalBillsAllocated,
+        });
+      }
+    }
+  }
+
+    const plan = { ...insertedPlan, isFuturePlanned, celebration: { targetsHit } };
     return plan;
-  })) as typeof allocationPlans.$inferSelect & { isFuturePlanned: boolean };
+  })) as typeof allocationPlans.$inferSelect & {
+    isFuturePlanned: boolean;
+    celebration: { targetsHit: TargetCelebrationItem[] };
+  };
 }

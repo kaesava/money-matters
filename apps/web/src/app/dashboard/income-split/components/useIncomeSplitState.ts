@@ -75,6 +75,7 @@ export function useIncomeSplitState({
   const [isPoolModalOpen, setIsPoolModalOpen] = useState(false);
   const [showTableDetails, setShowTableDetails] = useState(false);
   const [showTransferModal, setShowTransferModal] = useState(false);
+  const [celebrationTargets, setCelebrationTargets] = useState<import("@money-matters/types").TargetCelebrationItem[]>([]);
   const [showExitDialog, setShowExitDialog] = useState(false);
 
   const applyPreviewData = useCallback((pData: PaydayPreviewData) => {
@@ -228,6 +229,7 @@ export function useIncomeSplitState({
     setShowRecalculateConfirm,
     setShowExitDialog,
     setShowTransferModal,
+    setCelebrationTargets,
     returnTo,
     previewData: previewQuery.data,
     applyPreviewData,
@@ -274,28 +276,28 @@ export function useIncomeSplitState({
   const billsAllocated = lines
     .filter((l) => {
       const et = pools.find((p) => p.id === l.bucketId)?.envelopeType;
-      return et === "SCHEDULED_BILL" || et === "FLEXIBLE_BILL";
+      return et === "BILL" || et === "SCHEDULED_BILL" || et === "FLEXIBLE_BILL";
     })
     .reduce((sum, l) => sum + (parseFloat(linesMap[l.bucketId] ?? l.proposedAmount.toString()) || 0), 0);
 
   const goalsAllocated = lines
     .filter((l) => {
       const et = pools.find((p) => p.id === l.bucketId)?.envelopeType;
-      return et === "TARGET_GOAL" || et === "ONGOING_GOAL";
+      return et === "GOAL" || et === "TARGET_GOAL" || et === "ONGOING_GOAL";
     })
     .reduce((sum, l) => sum + (parseFloat(linesMap[l.bucketId] ?? l.proposedAmount.toString()) || 0), 0);
 
   const groupedLines = useMemo(() => {
-    const groups: Array<{ type: "EVERYDAY" | "REGULAR" | "GOAL"; label: string; items: AllocationLineItem[] }> = [
+    const groups: Array<{ type: "EVERYDAY" | "BILL" | "GOAL" | "REGULAR"; label: string; items: AllocationLineItem[] }> = [
       { type: "EVERYDAY", label: t("paydayDrawer.everydayPools"), items: [] },
-      { type: "REGULAR", label: t("paydayDrawer.billsPools"), items: [] },
+      { type: "BILL", label: t("paydayDrawer.billsPools"), items: [] },
       { type: "GOAL", label: t("paydayDrawer.goalsPools"), items: [] },
     ];
     for (const l of lines) {
       const p = pools.find((pool) => pool.id === l.bucketId);
       const et = p?.envelopeType;
       if (et === "EVERYDAY") groups[0].items.push(l);
-      else if (et === "TARGET_GOAL" || et === "ONGOING_GOAL") groups[2].items.push(l);
+      else if (et === "GOAL" || et === "TARGET_GOAL" || et === "ONGOING_GOAL") groups[2].items.push(l);
       else groups[1].items.push(l);
     }
     return groups.filter((g) => g.items.length > 0);
@@ -349,6 +351,7 @@ export function useIncomeSplitState({
     setShowTableDetails,
     showTransferModal,
     setShowTransferModal,
+    celebrationTargets,
     handleLineAmountChange,
     handleLineReasoningChange,
     attemptExit,

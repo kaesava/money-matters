@@ -29,6 +29,7 @@ export function useMarkPaidForm(
   const [generalError, setGeneralError] = useState('');
 
   const { data: pools = [] } = trpc.listPools.useQuery(undefined, { enabled: visible });
+  const { data: expenseEvents = [] } = trpc.listExpenseEvents.useQuery(undefined, { enabled: visible });
   const overrideMut = trpc.overrideEvent.useMutation();
   const moveMoneyMut = trpc.moveMoney.useMutation();
   const recordExpenseMut = trpc.recordExpense.useMutation();
@@ -174,8 +175,13 @@ export function useMarkPaidForm(
       utils.listExpenseEvents.invalidate();
       utils.listTransactions.invalidate();
       utils.getMonthlySummary.invalidate();
+      const remainingCount = expenseEvents.filter((e) => e.id !== event.id && !e.isPaid && !e.archivedAt).length;
       triggerHaptic('success');
-      toast.success(t('toasts.expenseMarkedPaid'));
+      if (remainingCount === 0) {
+        toast.success(t('toasts.expenseMarkedPaidAllClear'));
+      } else {
+        toast.success(t('toasts.expenseMarkedPaid'));
+      }
       onSuccess?.();
       onClose();
     } catch (err) {

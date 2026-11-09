@@ -46,6 +46,13 @@ export const dashboard = {
     },
     "goals": {
       "title": "Goals",
+      "cardTitle": "Goals & Savings",
+      "totalSavedInvested": "Total Saved & Invested",
+      "milestonesFunded": "{funded} of {target} ({percent}%)",
+      "recurringPace": "{amount}/mo recurring pace",
+      "goalBreakdown": "{total} Goals · {targetCount} Target Date, {recurringCount} Recurring",
+      "noGoalsSubtitle": "Create a goal to start building your savings.",
+      "addGoalAction": "+ Add Goal",
       "onTrack": "{count} of {total} on track",
       "allOnTrack": "All {total} goals on track",
       "viewAll": "View All Goals",

@@ -86,3 +86,13 @@ export const EnvelopeListItemDtoSchema = z.object({
 }).strict();
 
 export type EnvelopeListItemDto = z.infer<typeof EnvelopeListItemDtoSchema>;
+
+export const TargetCelebrationItemSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  type: z.enum(["GOAL_TARGET_MET", "RECURRING_GOAL_FUNDED", "BILLS_COVERED", "SURPLUS_SWEPT"]),
+  amount: z.number(),
+  targetAmount: z.number().optional(),
+}).strict();
+
+export type TargetCelebrationItem = z.infer<typeof TargetCelebrationItemSchema>;

@@ -53,7 +53,7 @@ export async function createEnvelopeCommand(
       input.envelopeType === "BILL"
         ? (input.fundingMode === "RECURRING" ? "SCHEDULED_BILL" : "FLEXIBLE_BILL")
         : input.envelopeType === "GOAL"
-        ? (input.goalMode === "TARGET_DATE" ? "TARGET_GOAL" : "ONGOING_GOAL")
+        ? (input.fundingMode === "RECURRING" || input.goalMode === "ONGOING" ? "ONGOING_GOAL" : "TARGET_GOAL")
         : input.envelopeType;
 
     const isScheduled = effectiveDbEnvelopeType === "SCHEDULED_BILL";

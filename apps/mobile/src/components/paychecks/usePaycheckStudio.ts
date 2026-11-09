@@ -31,6 +31,7 @@ export function usePaycheckStudio(id: string | undefined, returnTo?: string) {
   const [isSavedPlan, setIsSavedPlan] = useState(false);
   const [isConfirmedPlan, setIsConfirmedPlan] = useState(false);
   const [showTransferModal, setShowTransferModal] = useState(false);
+  const [celebrationTargets, setCelebrationTargets] = useState<import('@money-matters/types').TargetCelebrationItem[]>([]);
   const [showExitDialog, setShowExitDialog] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
@@ -159,7 +160,10 @@ export function usePaycheckStudio(id: string | undefined, returnTo?: string) {
     initialLinesMap, initialReasoningMap, isSavedPlan, isReadOnly, previewQuery, sweepPool,
     sweepPoolRemainder, numericActual, isDeficit, lines,
     submitting, setSubmitting, setIsSavedPlan,
-    onConfirmSuccess: () => setShowTransferModal(true),
+    onConfirmSuccess: (targetsHit) => {
+      if (targetsHit) setCelebrationTargets(targetsHit);
+      setShowTransferModal(true);
+    },
     onApplyFreshData: applyFreshData,
     onSaveSuccess: () => {
       const effectiveMap = { ...linesMap };
@@ -216,7 +220,7 @@ export function usePaycheckStudio(id: string | undefined, returnTo?: string) {
       const env = pools.find((pool) => pool.id === l.bucketId);
       const et = env?.envelopeType || 'SCHEDULED_BILL';
       if (et === 'EVERYDAY') groups[0].items.push(l);
-      else if (et === 'TARGET_GOAL' || et === 'ONGOING_GOAL') groups[2].items.push(l);
+      else if (et === 'TARGET_GOAL' || et === 'ONGOING_GOAL' || et === 'GOAL') groups[2].items.push(l);
       else groups[1].items.push(l);
     }
     return groups.filter((g) => g.items.length > 0);
@@ -241,6 +245,7 @@ export function usePaycheckStudio(id: string | undefined, returnTo?: string) {
     handleConfirmSplit: mutations.handleConfirmSplit,
     handleLineAmountChange, handleLineReasoningChange,
     showTransferModal, setShowTransferModal,
+    celebrationTargets,
     showExitDialog, setShowExitDialog,
     handleDiscardAndExit,
   };

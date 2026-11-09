@@ -11,6 +11,7 @@ import { UnsavedSplitExitDialog } from "./UnsavedSplitExitDialog";
 export interface IncomeSplitModalsProps {
   showTransferModal: boolean;
   onCloseTransferModal: () => void;
+  celebrationTargets?: import("@money-matters/types").TargetCelebrationItem[];
   receivingAccountId?: string | null;
   pools: Array<{
     id: string;
@@ -49,6 +50,7 @@ export interface IncomeSplitModalsProps {
 export function IncomeSplitModals({
   showTransferModal,
   onCloseTransferModal,
+  celebrationTargets,
   receivingAccountId,
   pools,
   linesMap,
@@ -84,6 +86,7 @@ export function IncomeSplitModals({
       <PaydayTransferModal
         isOpen={showTransferModal}
         onClose={onCloseTransferModal}
+        celebrationTargetsHit={celebrationTargets}
         receivingAccountId={receivingAccountId}
         pools={pools}
         linesMap={linesMap}

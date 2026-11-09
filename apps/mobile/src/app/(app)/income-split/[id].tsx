@@ -41,6 +41,7 @@ export default function IncomeSplitStudioScreen() {
     handleDeleteIncome, handleSaveSplit, handleConfirmSplit,
     handleLineAmountChange, handleLineReasoningChange,
     showTransferModal, setShowTransferModal,
+    celebrationTargets,
     showExitDialog, setShowExitDialog,
     handleDiscardAndExit,
   } = usePaycheckStudio(id, returnTo);
@@ -148,6 +149,7 @@ export default function IncomeSplitStudioScreen() {
         <MobilePaydayTransferModal
           isOpen={showTransferModal}
           onClose={handleCloseTransferModal}
+          celebrationTargetsHit={celebrationTargets}
           receivingAccountId={receivingAccountId}
           pools={pools}
           linesMap={linesMap}

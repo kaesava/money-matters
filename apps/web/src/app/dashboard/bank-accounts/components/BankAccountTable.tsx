@@ -317,7 +317,7 @@ export function BankAccountTable({
                         )}
                         {(() => {
                           const isEveryday = p.poolType === "EVERYDAY";
-                          const isBill = p.poolType === "REGULAR" || p.poolType === "SCHEDULED_BILL" || p.poolType === "FLEXIBLE_BILL";
+                          const isBill = p.poolType === "REGULAR" || p.poolType === "BILL" || p.poolType === "SCHEDULED_BILL" || p.poolType === "FLEXIBLE_BILL";
                           return (
                             <span className={`text-[9px] font-black px-1.5 py-0.5 rounded-md ${
                               isEveryday ? "bg-emerald-50 text-emerald-700" : isBill ? "bg-blue-50 text-[#2563eb]" : "bg-indigo-50 text-indigo-700"

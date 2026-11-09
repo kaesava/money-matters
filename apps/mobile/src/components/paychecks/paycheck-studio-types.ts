@@ -60,7 +60,7 @@ export interface UsePaycheckStudioMutationsParams {
   submitting: boolean;
   setSubmitting: (v: boolean) => void;
   isDeficit: boolean;
-  onConfirmSuccess?: () => void;
+  onConfirmSuccess?: (targetsHit?: import('@money-matters/types').TargetCelebrationItem[]) => void;
   onApplyFreshData?: (data: PaycheckStudioPreviewData) => void;
   onSaveSuccess?: () => void;
 }
@@ -117,8 +117,10 @@ export function calculateAllocatedTotals(
     const val = parseFloat(linesMap[l.bucketId] ?? l.proposedAmount.toString()) || 0;
     if (et === 'EVERYDAY') {
       everydayAllocated += val;
-    } else if (et === 'TARGET_GOAL' || et === 'ONGOING_GOAL') {
+    } else if (et === 'TARGET_GOAL' || et === 'ONGOING_GOAL' || et === 'GOAL') {
       goalsAllocated += val;
+    } else if (et === 'SCHEDULED_BILL' || et === 'FLEXIBLE_BILL' || et === 'BILL') {
+      billsAllocated += val;
     } else {
       billsAllocated += val;
     }

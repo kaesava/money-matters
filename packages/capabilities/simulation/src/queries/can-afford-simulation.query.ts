@@ -183,10 +183,10 @@ export async function canAffordSimulationQuery(
 
   const everydayEnvelopes = visibleEnvelopes.filter((e) => e.envelopeType === "EVERYDAY");
   const billsEnvelopes = visibleEnvelopes.filter(
-    (e) => e.envelopeType === "SCHEDULED_BILL" || e.envelopeType === "FLEXIBLE_BILL"
+    (e) => (e.envelopeType as string) === "BILL" || e.envelopeType === "SCHEDULED_BILL" || e.envelopeType === "FLEXIBLE_BILL"
   );
   const goalEnvelopes = visibleEnvelopes.filter(
-    (e) => e.envelopeType === "TARGET_GOAL" || e.envelopeType === "ONGOING_GOAL"
+    (e) => (e.envelopeType as string) === "GOAL" || e.envelopeType === "TARGET_GOAL" || e.envelopeType === "ONGOING_GOAL"
   );
 
 

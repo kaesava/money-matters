@@ -52,7 +52,7 @@ export function SetupCategoryRow({
   };
 
   const displayVal = convertFromMonthly(cat.monthlyAud, freq);
-  const isBill = cat.type === 'REGULAR';
+  const isBill = cat.type === 'REGULAR' || cat.type === 'BILL';
   const isFlexible = cat.envelopeType === 'FLEXIBLE_BILL';
   const isSpecial =
     cat.envelopeType === 'EVERYDAY' ||

@@ -35,6 +35,7 @@ export interface UseIncomeSplitActionsParams {
   setShowRecalculateConfirm: (show: boolean) => void;
   setShowExitDialog: (show: boolean) => void;
   setShowTransferModal: (show: boolean) => void;
+  setCelebrationTargets?: (targets: import("@money-matters/types").TargetCelebrationItem[]) => void;
   returnTo: string;
   previewData?: PaydayPreviewData | null;
   applyPreviewData: (data: PaydayPreviewData) => void;
@@ -72,6 +73,7 @@ export function useIncomeSplitActions({
   setShowRecalculateConfirm,
   setShowExitDialog,
   setShowTransferModal,
+  setCelebrationTargets,
   returnTo,
   previewData,
   applyPreviewData,
@@ -247,12 +249,16 @@ export function useIncomeSplitActions({
         };
       });
 
-      await confirmPaydayMut.mutateAsync({
+      const res = await confirmPaydayMut.mutateAsync({
         incomeEventId,
         actualAmount: numericActual.toFixed(2),
         markAsReceivedToday: false,
         lines: payload,
       });
+
+      if (res?.celebration?.targetsHit && setCelebrationTargets) {
+        setCelebrationTargets(res.celebration.targetsHit);
+      }
 
       toast.success(t("paydayDrawer.confirmSuccess"));
       await utils.listIncomeEvents.invalidate();

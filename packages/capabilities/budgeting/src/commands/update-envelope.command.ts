@@ -138,7 +138,7 @@ export async function updateEnvelopeCommand(
       rawEnvelopeType === "BILL"
         ? (effectiveFundingMode === "RECURRING" ? "SCHEDULED_BILL" : "FLEXIBLE_BILL")
         : rawEnvelopeType === "GOAL"
-        ? ((restInput.goalMode ?? existing.goalMode) === "TARGET_DATE" ? "TARGET_GOAL" : "ONGOING_GOAL")
+        ? (effectiveFundingMode === "RECURRING" || (restInput.goalMode ?? existing.goalMode) === "ONGOING" ? "ONGOING_GOAL" : "TARGET_GOAL")
         : rawEnvelopeType;
 
     const isNowScheduled = effectiveDbEnvelopeType === "SCHEDULED_BILL";

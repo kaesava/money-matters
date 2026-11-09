@@ -28,7 +28,7 @@ interface PoolRecord {
 
 export interface IncomeSplitPoolTableProps {
   readonly groups: Array<{
-    type: "EVERYDAY" | "REGULAR" | "GOAL";
+    type: "EVERYDAY" | "BILL" | "GOAL" | "REGULAR";
     label: string;
     items: AllocationLineItem[];
   }>;

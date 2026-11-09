@@ -70,6 +70,7 @@ export function IncomeSplitScreen({
     setShowTableDetails,
     showTransferModal,
     setShowTransferModal,
+    celebrationTargets,
     handleLineAmountChange,
     handleLineReasoningChange,
     attemptExit,
@@ -178,6 +179,7 @@ export function IncomeSplitScreen({
           setShowTransferModal(false);
           attemptExit();
         }}
+        celebrationTargets={celebrationTargets}
         receivingAccountId={receivingAccountId}
         pools={pools}
         linesMap={linesMap}
