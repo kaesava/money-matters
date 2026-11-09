@@ -4,11 +4,15 @@ import { bankAccounts } from "./bank_account.js";
 
 export const envelopeTypeEnum = pgEnum("envelope_type_enum", [
   "EVERYDAY",
+  "BILL",
+  "GOAL",
   "SCHEDULED_BILL",
   "FLEXIBLE_BILL",
   "TARGET_GOAL",
   "ONGOING_GOAL",
 ]);
+
+export const fundingModeEnum = pgEnum("funding_mode_enum", ["TARGET_BALANCE", "RECURRING"]);
 
 export const goalModeEnum = pgEnum("goal_mode_enum", ["TARGET_DATE", "ONGOING"]);
 
@@ -26,6 +30,7 @@ export const envelopes = pgTable(
     safetyBufferFloor: numeric("safety_buffer_floor", { precision: 12, scale: 2 }).default("0.00"),
 
     // Recurring & Target Fields
+    fundingMode: fundingModeEnum("funding_mode").default("TARGET_BALANCE"),
     monthlyAmount: numeric("monthly_amount", { precision: 12, scale: 2 }),
     enteredAmount: numeric("entered_amount", { precision: 12, scale: 2 }),
     budgetFrequency: varchar("budget_frequency", { length: 50 }).default("MONTHLY"),
@@ -38,6 +43,7 @@ export const envelopes = pgTable(
     targetAmount: numeric("target_amount", { precision: 12, scale: 2 }),
 
     // Flags & Meta
+    isPriority: boolean("is_priority").notNull().default(false),
     isEssential: boolean("is_essential").notNull().default(false),
     isCommitted: boolean("is_committed").notNull().default(false),
     isSurplusTarget: boolean("is_surplus_target").notNull().default(false),

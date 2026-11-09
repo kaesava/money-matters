@@ -4,6 +4,7 @@ import {
   HorizonBreakdownDTO,
   TopOutflowPoolDTO,
   MonthlyCashFlowPointDTO,
+  EnvelopeType,
 } from "@money-matters/types";
 import {
   initializeBuckets,
@@ -20,7 +21,7 @@ export interface ProcessedLine {
   planId: string;
   envelopeId: string;
   envelopeName: string;
-  envelopeType: "EVERYDAY" | "SCHEDULED_BILL" | "FLEXIBLE_BILL" | "TARGET_GOAL" | "ONGOING_GOAL";
+  envelopeType: EnvelopeType;
   amount: number;
 }
 
@@ -38,7 +39,7 @@ export interface RawLineInput {
   proposedAmount: string;
   confirmedAmount: string | null;
   envelopeName: string | null;
-  envelopeType: "EVERYDAY" | "SCHEDULED_BILL" | "FLEXIBLE_BILL" | "TARGET_GOAL" | "ONGOING_GOAL" | null;
+  envelopeType: EnvelopeType | null;
 }
 
 export function parsePlanDate(raw: { actualDate: string | null; expectedDate: string | null; createdAt: Date }): Date {
@@ -146,6 +147,7 @@ export function computeHorizonBreakdown(lines: ProcessedLine[]): HorizonBreakdow
     if (line.envelopeType === "EVERYDAY") {
       everyday += line.amount;
     } else if (
+      line.envelopeType === "BILL" ||
       line.envelopeType === "SCHEDULED_BILL" ||
       line.envelopeType === "FLEXIBLE_BILL" ||
       (line.envelopeType as string) === "REGULAR"

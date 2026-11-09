@@ -50,7 +50,12 @@ export async function burstIncomeEvents(
     };
   });
 
-  await tx.insert(incomeEvents).values(eventsToInsert);
+  const insertQuery = tx.insert(incomeEvents).values(eventsToInsert);
+  if ("onConflictDoNothing" in insertQuery && typeof (insertQuery as { onConflictDoNothing?: unknown }).onConflictDoNothing === "function") {
+    await (insertQuery as { onConflictDoNothing: () => Promise<unknown> }).onConflictDoNothing();
+  } else {
+    await insertQuery;
+  }
 
   const lastDate = eventsToInsert[eventsToInsert.length - 1].expectedDate;
   await tx

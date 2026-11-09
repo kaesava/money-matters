@@ -31,7 +31,9 @@ export async function listEnvelopesQuery(
         endDate: envelopes.endDate,
         rrule: envelopes.rrule,
         goalMode: envelopes.goalMode,
+        fundingMode: envelopes.fundingMode,
         targetAmount: envelopes.targetAmount,
+        isPriority: envelopes.isPriority,
         isEssential: envelopes.isEssential,
         isCommitted: envelopes.isCommitted,
         isSurplusTarget: envelopes.isSurplusTarget,
@@ -134,11 +136,11 @@ export async function listEnvelopesQuery(
     }
 
     const fundingMode: FundingMode | null = isBill
-      ? (env.envelopeType === "FLEXIBLE_BILL" ? "TARGET_BALANCE" : "RECURRING")
+      ? (env.fundingMode ? env.fundingMode : (env.envelopeType === "FLEXIBLE_BILL" ? "TARGET_BALANCE" : "RECURRING"))
       : isGoal
-      ? (env.envelopeType === "ONGOING_GOAL" || env.goalMode === "ONGOING" ? "RECURRING" : "TARGET_BALANCE")
+      ? (env.fundingMode ? env.fundingMode : (env.envelopeType === "ONGOING_GOAL" || env.goalMode === "ONGOING" ? "RECURRING" : "TARGET_BALANCE"))
       : null;
-    const isPriority = Boolean(env.isEssential || env.isCommitted);
+    const isPriority = Boolean(env.isPriority || env.isEssential || env.isCommitted);
 
     return {
       id: env.id,

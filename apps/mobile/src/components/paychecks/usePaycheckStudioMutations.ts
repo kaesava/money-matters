@@ -171,6 +171,7 @@ export function usePaycheckStudioMutations({
             expectedDate: selectedDate,
           });
 
+          const payload = buildConfirmPayload(linesMap, reasoningMap, sweepPool, sweepPoolRemainder, lines);
           const res = await confirmPaydayMut.mutateAsync({
             incomeEventId: id!,
             actualAmount: numericActual.toFixed(2),

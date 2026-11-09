@@ -175,7 +175,7 @@ export function useMarkPaidForm(
       utils.listExpenseEvents.invalidate();
       utils.listTransactions.invalidate();
       utils.getMonthlySummary.invalidate();
-      const remainingCount = expenseEvents.filter((e) => e.id !== event.id && !e.isPaid && !e.archivedAt).length;
+      const remainingCount = expenseEvents.filter((e) => e.id !== event.id && e.status !== 'CONFIRMED').length;
       triggerHaptic('success');
       if (remainingCount === 0) {
         toast.success(t('toasts.expenseMarkedPaidAllClear'));

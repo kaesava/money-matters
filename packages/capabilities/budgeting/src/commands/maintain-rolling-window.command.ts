@@ -1,5 +1,5 @@
 import { DbOrTx, incomeSources, envelopes, tenants } from "@money-matters/db";
-import { and, eq, sql } from "drizzle-orm";
+import { and, eq, or, sql } from "drizzle-orm";
 import { getTenantDateString } from "@money-matters/core";
 import { burstEnvelopeEvents } from "./envelope-schedule.js";
 import { burstIncomeEvents } from "./income-schedule.js";
@@ -42,9 +42,9 @@ export async function maintainRollingWindowCommand({
         eq(incomeSources.appId, appId),
         sql`${incomeSources.archivedAt} IS NULL`,
         sql`${incomeSources.rrule} IS NOT NULL`,
-        sql`(${incomeSources.endDate} IS NULL OR ${incomeSources.endDate} >= ${todayStr})`,
+        sql`(${incomeSources.endDate} IS NULL OR ${incomeSources.endDate} >= ${todayStr}::date)`,
         sql`(${incomeSources.endDate} IS NULL OR ${incomeSources.lastBurstDate} IS NULL OR ${incomeSources.lastBurstDate} < ${incomeSources.endDate})`,
-        sql`(${incomeSources.lastBurstDate} IS NULL OR ${incomeSources.lastBurstDate} < ${horizonCutoffStr})`
+        sql`(${incomeSources.lastBurstDate} IS NULL OR ${incomeSources.lastBurstDate} < ${horizonCutoffStr}::date)`
       )
     );
 
@@ -78,13 +78,16 @@ export async function maintainRollingWindowCommand({
       and(
         eq(envelopes.tenantId, tenantId),
         eq(envelopes.appId, appId),
-        eq(envelopes.envelopeType, "SCHEDULED_BILL"),
+        or(
+          eq(envelopes.envelopeType, "SCHEDULED_BILL"),
+          and(eq(envelopes.envelopeType, "BILL"), eq(envelopes.fundingMode, "RECURRING"))
+        )!,
         eq(envelopes.generateEvents, true),
         sql`${envelopes.archivedAt} IS NULL`,
         sql`${envelopes.rrule} IS NOT NULL`,
-        sql`(${envelopes.endDate} IS NULL OR ${envelopes.endDate} >= ${todayStr})`,
+        sql`(${envelopes.endDate} IS NULL OR ${envelopes.endDate} >= ${todayStr}::date)`,
         sql`(${envelopes.endDate} IS NULL OR ${envelopes.lastBurstDate} IS NULL OR ${envelopes.lastBurstDate} < ${envelopes.endDate})`,
-        sql`(${envelopes.lastBurstDate} IS NULL OR ${envelopes.lastBurstDate} < ${horizonCutoffStr})`
+        sql`(${envelopes.lastBurstDate} IS NULL OR ${envelopes.lastBurstDate} < ${horizonCutoffStr}::date)`
       )
     );
 

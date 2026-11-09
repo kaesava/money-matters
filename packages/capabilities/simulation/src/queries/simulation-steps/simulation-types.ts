@@ -3,12 +3,13 @@ import type {
   ProjectionEngineBucket,
   ProjectionIncomeEvent,
   ProjectionExpenseEvent,
+  EnvelopeType,
 } from "@money-matters/types";
 
 export interface SimulationEnvelopeItem {
   id: string;
   name: string;
-  envelopeType: "EVERYDAY" | "SCHEDULED_BILL" | "FLEXIBLE_BILL" | "TARGET_GOAL" | "ONGOING_GOAL";
+  envelopeType: EnvelopeType;
   bankAccountId: string | null;
   safetyBufferFloor: string | null;
   goalMode: "TARGET_DATE" | "ONGOING" | null;

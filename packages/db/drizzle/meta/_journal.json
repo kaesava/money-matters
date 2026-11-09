@@ -372,6 +372,13 @@
       "when": 1784288494251,
       "tag": "0053_unified_two_mode_funding_architecture",
       "breakpoints": true
+    },
+    {
+      "idx": 53,
+      "version": "7",
+      "when": 1784298494251,
+      "tag": "0054_restore_envelope_compatibility_columns",
+      "breakpoints": true
     }
   ]
 }

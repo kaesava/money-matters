@@ -50,7 +50,12 @@ export async function burstEnvelopeEvents(
     updatedBy: params.userId,
   }));
 
-  await tx.insert(expenseEvents).values(eventsToInsert);
+  const insertQuery = tx.insert(expenseEvents).values(eventsToInsert);
+  if ("onConflictDoNothing" in insertQuery && typeof (insertQuery as { onConflictDoNothing?: unknown }).onConflictDoNothing === "function") {
+    await (insertQuery as { onConflictDoNothing: () => Promise<unknown> }).onConflictDoNothing();
+  } else {
+    await insertQuery;
+  }
 
   const lastDate = eventsToInsert[eventsToInsert.length - 1].expectedDate;
   await tx
