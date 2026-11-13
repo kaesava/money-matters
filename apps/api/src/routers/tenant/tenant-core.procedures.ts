@@ -89,7 +89,10 @@ export const tenantCoreProcedures = {
         tenantId: ctx.tenantId,
         setupCompleted,
         setupStatus,
-        features: appRecord?.featureFlags || DEFAULT_APP_FEATURE_FLAGS,
+        features: {
+          ...DEFAULT_APP_FEATURE_FLAGS,
+          ...(appRecord?.featureFlags ?? {}),
+        },
       };
     }),
 

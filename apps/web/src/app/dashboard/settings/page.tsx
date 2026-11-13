@@ -1,9 +1,11 @@
 "use client";
 
 import React, { useState, Suspense } from "react";
+import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
+import { SlidersHorizontal } from "lucide-react";
 import { t } from "@money-matters/i18n";
-import { Tabs, ConfirmDialog, useToast } from "@money-matters/ui/web";
+import { Tabs, ConfirmDialog, Button, useToast } from "@money-matters/ui/web";
 import { authClient } from "../../../lib/auth";
 import posthog from "../../../lib/posthog-client";
 import { trpc } from "../../../lib/trpc";
@@ -159,6 +161,22 @@ function SettingsPageContent() {
 
       <div className={activeTab === "account-data" ? "space-y-6" : "hidden"}>
         <SubscriptionSection status={status} />
+        <div className="bg-white/75 dark:bg-zinc-900/75 backdrop-blur-md rounded-2xl border border-slate-200/80 dark:border-zinc-800 p-6 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="space-y-1">
+            <h3 className="text-sm font-bold text-[#1B2B4B] dark:text-white flex items-center gap-2">
+              <SlidersHorizontal className="w-4 h-4 text-[#2563eb]" />
+              <span>{t("setup.recalibrateTitle")}</span>
+            </h3>
+            <p className="text-xs text-slate-500 dark:text-slate-400 max-w-xl leading-relaxed">
+              {t("setup.recalibrateSubtitle")}
+            </p>
+          </div>
+          <Link href="/setup?mode=rerun" className="shrink-0 self-start sm:self-center">
+            <Button variant="secondary" className="text-xs h-9 cursor-pointer">
+              {t("setup.recalibrateTitle")}
+            </Button>
+          </Link>
+        </div>
         <PrivacySection />
       </div>
 

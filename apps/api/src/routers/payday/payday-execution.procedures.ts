@@ -53,9 +53,21 @@ export const paydayExecutionProcedures = {
     }),
 
   previewPayday: privateTenantProcedure
-    .input(z.object({ incomeEventId: z.string().uuid() }).strict())
+    .input(
+      z.object({
+        incomeEventId: z.string().uuid(),
+        overrideAmount: z.number().min(0).optional(),
+      }).strict()
+    )
     .query(async ({ input, ctx }) => {
-      return await previewPaydayQuery(input.incomeEventId, ctx.tenantId!, ctx.appId!, ctx.db, ctx.userId!);
+      return await previewPaydayQuery(
+        input.incomeEventId,
+        ctx.tenantId!,
+        ctx.appId!,
+        ctx.db,
+        ctx.userId!,
+        input.overrideAmount
+      );
     }),
 
   confirmPayday: privateTenantProcedure

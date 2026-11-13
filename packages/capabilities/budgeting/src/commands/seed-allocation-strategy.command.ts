@@ -12,6 +12,7 @@ export async function seedDefaultAllocationStrategy(
   const conditions = [
     eq(allocationStrategies.tenantId, tenantId),
     eq(allocationStrategies.appId, appId),
+    eq(allocationStrategies.isDefault, true),
     eq(allocationStrategies.isPrivate, isPrivate),
     sql`${allocationStrategies.archivedAt} IS NULL`,
   ];

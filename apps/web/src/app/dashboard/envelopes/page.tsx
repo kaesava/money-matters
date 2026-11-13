@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { MoreVertical, ArrowDownCircle, ArrowUpCircle, ArrowRightLeft, TrendingUp, X } from "lucide-react";
+import { MoreVertical, ArrowDownCircle, ArrowUpCircle, ArrowRightLeft, TrendingUp, SlidersHorizontal, X } from "lucide-react";
 import { useToast, ConfirmDialog, RecordFilterBadge } from "@money-matters/ui/web";
 import { t } from "@money-matters/i18n";
 
@@ -225,6 +225,14 @@ function PoolsPageContent() {
                   <span>{t("categories.actions.moveMoney")}</span>
                 </button>
                 <div className="h-px bg-zinc-100 dark:bg-zinc-800 my-1" />
+                <Link
+                  href="/setup?mode=rerun"
+                  onClick={() => setOverflowMenuOpen(false)}
+                  className="w-full px-3.5 py-2 text-left text-xs font-semibold text-zinc-700 dark:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800 flex items-center gap-2.5 transition-colors cursor-pointer"
+                >
+                  <SlidersHorizontal className="w-4 h-4 text-[#2563eb]" />
+                  <span>{t("categories.recalibrateBudget")}</span>
+                </Link>
                 <button
                   type="button"
                   onClick={() => {

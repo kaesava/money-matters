@@ -44,10 +44,16 @@ export function AllocationStrategySection() {
         presetKey,
         isPrivate: isPersonalScope,
       });
-      await utils.getActiveAllocationStrategy.invalidate();
+      await Promise.all([
+        utils.getActiveAllocationStrategy.invalidate(),
+        utils.previewPayday.invalidate(),
+        utils.getMatrixProjectionData.invalidate(),
+        utils.listAllAllocationPlans.invalidate(),
+        utils.getHomeSummary.invalidate(),
+      ]);
       toast.success(t("settings.paydayRules.saveSuccess"));
     } catch (err: unknown) {
-      toast.error(err instanceof Error ? err.message : "Failed to apply preset.");
+      toast.error(err instanceof Error ? err.message : t("common.errorTryAgain"));
     } finally {
       setConfirmPreset(null);
     }
@@ -185,7 +191,7 @@ export function AllocationStrategySection() {
                   </h4>
                   {isSelected && (
                     <span className="text-[11px] font-bold text-[#2563eb] dark:text-blue-400">
-                      ✓ Active
+                      ✓ {t("settings.paydayRules.activeBadge")}
                     </span>
                   )}
                 </div>
@@ -213,7 +219,7 @@ export function AllocationStrategySection() {
                 </h4>
                 {activePreset === "CUSTOM" ? (
                   <span className="text-[11px] font-bold text-[#2563eb] dark:text-blue-400">
-                    ✓ Active
+                    ✓ {t("settings.paydayRules.activeBadge")}
                   </span>
                 ) : (
                   <span className="text-[10px] font-medium text-slate-400">

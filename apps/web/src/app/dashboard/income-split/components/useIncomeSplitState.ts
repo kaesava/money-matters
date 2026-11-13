@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo, useCallback } from "react";
+import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { t } from "@money-matters/i18n";
 import { trpc } from "../../../../lib/trpc";
@@ -40,6 +40,7 @@ export function useIncomeSplitState({
   returnTo?: string;
 }) {
   const router = useRouter();
+  const utils = trpc.useUtils();
   const { userTimezone, timezone } = useLocale();
   const activeTz = userTimezone || timezone || "Australia/Sydney";
 
@@ -77,11 +78,15 @@ export function useIncomeSplitState({
   const [showTransferModal, setShowTransferModal] = useState(false);
   const [celebrationTargets, setCelebrationTargets] = useState<import("@money-matters/types").TargetCelebrationItem[]>([]);
   const [showExitDialog, setShowExitDialog] = useState(false);
+  const [draftLines, setDraftLines] = useState<AllocationLineItem[] | null>(null);
+  const lastAutoAmountRef = useRef<number | null>(null);
 
   const applyPreviewData = useCallback((pData: PaydayPreviewData) => {
     setSourceName(pData.incomeEventName || "Paycheck");
     const amt = String(pData.actualAmount ?? pData.expectedAmount);
     setActualAmount(amt);
+    lastAutoAmountRef.current = parseFloat(amt) || 0;
+    setDraftLines(null);
     setSelectedDate(pData.expectedDate || "");
 
     const initMap: Record<string, string> = {};
@@ -109,6 +114,7 @@ export function useIncomeSplitState({
   }, [previewQuery.data, applyPreviewData]);
 
   const lines: AllocationLineItem[] = useMemo(() => {
+    if (draftLines) return draftLines;
     if (!previewQuery.data) return [];
     return previewQuery.data.lines.map((l) => ({
       bucketId: l.envelopeId,
@@ -116,7 +122,7 @@ export function useIncomeSplitState({
       proposedAmount: l.savedAmount ?? l.proposedAmount,
       reasoning: l.reasoning ?? "",
     }));
-  }, [previewQuery.data]);
+  }, [draftLines, previewQuery.data]);
   const numericActual = parseFloat(actualAmount) || 0;
 
   const receivingAccountId = previewQuery.data?.receivingAccountId;
@@ -186,6 +192,39 @@ export function useIncomeSplitState({
       setReasoningMap((prev) => ({ ...prev, [bucketId]: "" }));
     }
   };
+
+  const handleActualAmountBlur = useCallback(async () => {
+    if (!incomeEventId || isSavedPlan || isConfirmedPlan || isConfirmedPlan) return;
+    if (lastAutoAmountRef.current !== null && Math.abs(numericActual - lastAutoAmountRef.current) <= 0.009) {
+      return;
+    }
+    try {
+      const fresh = await utils.previewPayday.fetch(
+        { incomeEventId, overrideAmount: numericActual },
+        { staleTime: 0 }
+      );
+      if (!fresh) return;
+      const nextMap: Record<string, string> = {};
+      const nextReasoning: Record<string, string> = {};
+      const nextLines: AllocationLineItem[] = fresh.lines.map((l) => {
+        const val = l.savedAmount ?? l.proposedAmount;
+        nextMap[l.envelopeId] = val.toFixed(2);
+        if (l.reasoning && val > 0) nextReasoning[l.envelopeId] = l.reasoning;
+        return {
+          bucketId: l.envelopeId,
+          bucketName: l.envelopeName,
+          proposedAmount: val,
+          reasoning: l.reasoning ?? "",
+        };
+      });
+      setLinesMap(nextMap);
+      setReasoningMap(nextReasoning);
+      setDraftLines(nextLines);
+      lastAutoAmountRef.current = numericActual;
+    } catch {
+      // Keep user-edited amount; explicit Recalculate or Save remains available
+    }
+  }, [incomeEventId, isSavedPlan, isConfirmedPlan, numericActual, utils.previewPayday]);
 
   const handleLineReasoningChange = (bucketId: string, reasoning: string) => {
     const currentVal = bucketId === sweepPool?.id ? sweepPoolRemainder : parseFloat(linesMap[bucketId] ?? "0") || 0;
@@ -353,6 +392,7 @@ export function useIncomeSplitState({
     setShowTransferModal,
     celebrationTargets,
     handleLineAmountChange,
+    handleActualAmountBlur,
     handleLineReasoningChange,
     attemptExit,
     handleDiscardAndExit,

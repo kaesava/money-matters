@@ -62,8 +62,13 @@ export async function updateAllocationStrategyStepsCommand(
         )
       );
 
+    // Pin SURPLUS_SWEEP as the final step so it never starves downstream steps
+    const nonSweepSteps = steps.filter((s) => s.stepType !== "SURPLUS_SWEEP");
+    const sweepSteps = steps.filter((s) => s.stepType === "SURPLUS_SWEEP");
+    const orderedSteps = [...nonSweepSteps, ...sweepSteps];
+
     // Insert new steps in bulk
-    const rowsToInsert = steps.map((s, idx) => ({
+    const rowsToInsert = orderedSteps.map((s, idx) => ({
       tenantId,
       appId,
       strategyId,

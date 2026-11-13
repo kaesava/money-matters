@@ -80,7 +80,13 @@ export function MobileAllocationStrategySection() {
             presetKey,
             isPrivate: isPersonalScope,
           });
-          await utils.getActiveAllocationStrategy.invalidate();
+          await Promise.all([
+            utils.getActiveAllocationStrategy.invalidate(),
+            utils.previewPayday.invalidate(),
+            utils.getMatrixProjectionData.invalidate(),
+            utils.listAllAllocationPlans.invalidate(),
+            utils.getHomeSummary.invalidate(),
+          ]);
           toast.success(t('settings.paydayRules.saveSuccess'));
         } catch (err) {
           toast.error(err instanceof Error ? err.message : t('common.errorTryAgain'));

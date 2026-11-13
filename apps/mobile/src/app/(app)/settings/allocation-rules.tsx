@@ -99,6 +99,12 @@ export default function MobileAllocationRulesScreen() {
   const handleMove = (index: number, direction: 'UP' | 'DOWN') => {
     const targetIndex = direction === 'UP' ? index - 1 : index + 1;
     if (targetIndex < 0 || targetIndex >= steps.length) return;
+    if (
+      steps[index]?.stepType === 'SURPLUS_SWEEP' ||
+      steps[targetIndex]?.stepType === 'SURPLUS_SWEEP'
+    ) {
+      return;
+    }
 
     const next = [...steps];
     const item = next[index];
@@ -129,7 +135,13 @@ export default function MobileAllocationRulesScreen() {
             presetKey: 'BALANCED',
             isPrivate: isPersonal,
           });
-          await utils.getActiveAllocationStrategy.invalidate();
+          await Promise.all([
+            utils.getActiveAllocationStrategy.invalidate(),
+            utils.previewPayday.invalidate(),
+            utils.getMatrixProjectionData.invalidate(),
+            utils.listAllAllocationPlans.invalidate(),
+            utils.getHomeSummary.invalidate(),
+          ]);
           toast.success(t('settings.paydayRules.saveSuccess'));
           setIsDirty(false);
         } catch (err) {
@@ -152,7 +164,13 @@ export default function MobileAllocationRulesScreen() {
           config: s.config || null,
         })),
       });
-      await utils.getActiveAllocationStrategy.invalidate();
+      await Promise.all([
+        utils.getActiveAllocationStrategy.invalidate(),
+        utils.previewPayday.invalidate(),
+        utils.getMatrixProjectionData.invalidate(),
+        utils.listAllAllocationPlans.invalidate(),
+        utils.getHomeSummary.invalidate(),
+      ]);
       setIsDirty(false);
       toast.success(t('settings.paydayRules.saveSuccess'));
     } catch (err) {
@@ -240,7 +258,9 @@ export default function MobileAllocationRulesScreen() {
         <View style={styles.stepsContainer}>
           {steps.map((step, index) => {
             const isFirst = index === 0;
-            const isLast = index === steps.length - 1;
+            const isSweep = step.stepType === 'SURPLUS_SWEEP';
+            const isBeforeSweep = steps[index + 1]?.stepType === 'SURPLUS_SWEEP';
+            const isLastMovable = index === steps.length - 1 || isBeforeSweep;
 
             return (
               <View key={`${step.stepType}-${index}`} style={styles.stepCard}>
@@ -259,7 +279,7 @@ export default function MobileAllocationRulesScreen() {
                     </View>
                   </View>
 
-                  {canEdit && (
+                  {canEdit && !isSweep && (
                     <View style={styles.stepActionButtons}>
                       <TouchableOpacity
                         disabled={isFirst}
@@ -274,15 +294,15 @@ export default function MobileAllocationRulesScreen() {
                         />
                       </TouchableOpacity>
                       <TouchableOpacity
-                        disabled={isLast}
+                        disabled={isLastMovable}
                         onPress={() => handleMove(index, 'DOWN')}
-                        style={[styles.moveBtn, isLast && styles.moveBtnDisabled]}
+                        style={[styles.moveBtn, isLastMovable && styles.moveBtnDisabled]}
                         accessibilityLabel={t('settings.paydayRules.moveDown')}
                       >
                         <Feather
                           name="chevron-down"
                           size={16}
-                          color={isLast ? DESIGN_TOKENS.colors.slate[300] : DESIGN_TOKENS.colors.slate[700]}
+                          color={isLastMovable ? DESIGN_TOKENS.colors.slate[300] : DESIGN_TOKENS.colors.slate[700]}
                         />
                       </TouchableOpacity>
                     </View>

@@ -30,7 +30,7 @@ export default function IncomeSplitStudioScreen() {
   const [showTableDetails, setShowTableDetails] = useState(false);
 
   const {
-    session, isLoading, previewData, pools, bankAccounts,
+    session, isLoading, isError, previewData, pools, bankAccounts,
     sourceName, setSourceName, actualAmount, setActualAmount,
     selectedDate, setSelectedDate, linesMap, reasoningMap,
     isSavedPlan, isConfirmedPlan, isReadOnly, isFutureDate,
@@ -39,7 +39,7 @@ export default function IncomeSplitStudioScreen() {
     submitting, attemptExit, handleRecalculateTrigger,
     handleResetAllEdits,
     handleDeleteIncome, handleSaveSplit, handleConfirmSplit,
-    handleLineAmountChange, handleLineReasoningChange,
+    handleLineAmountChange, handleActualAmountBlur, handleLineReasoningChange,
     showTransferModal, setShowTransferModal,
     celebrationTargets,
     showExitDialog, setShowExitDialog,
@@ -53,6 +53,19 @@ export default function IncomeSplitStudioScreen() {
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color={DESIGN_TOKENS.colors.sereneBlue} />
         <Text style={styles.loadingText}>{t('common.loading')}</Text>
+      </View>
+    );
+  }
+
+  if (isError || !previewData) {
+    return (
+      <View style={styles.loadingContainer}>
+        <Text style={styles.loadingText}>{t('common.errorTryAgain')}</Text>
+        <TouchableOpacity onPress={attemptExit} activeOpacity={0.7}>
+          <Text style={[styles.loadingText, { color: DESIGN_TOKENS.colors.sereneBlue }]}>
+            {t('common.back')}
+          </Text>
+        </TouchableOpacity>
       </View>
     );
   }
@@ -86,6 +99,7 @@ export default function IncomeSplitStudioScreen() {
             onSourceNameChange={setSourceName}
             actualAmount={actualAmount}
             onActualAmountChange={setActualAmount}
+            onActualAmountBlur={handleActualAmountBlur}
             selectedDate={selectedDate}
             onSelectedDateChange={setSelectedDate}
             isReadOnly={isReadOnly}

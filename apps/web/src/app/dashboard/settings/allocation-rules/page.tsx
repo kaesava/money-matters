@@ -92,6 +92,12 @@ function AllocationRulesContent() {
   const handleMove = (index: number, direction: "UP" | "DOWN") => {
     const targetIndex = direction === "UP" ? index - 1 : index + 1;
     if (targetIndex < 0 || targetIndex >= steps.length) return;
+    if (
+      steps[index]?.stepType === "SURPLUS_SWEEP" ||
+      steps[targetIndex]?.stepType === "SURPLUS_SWEEP"
+    ) {
+      return;
+    }
 
     const next = [...steps];
     const item = next[index];
@@ -123,11 +129,17 @@ function AllocationRulesContent() {
           config: s.config || null,
         })),
       });
-      await utils.getActiveAllocationStrategy.invalidate();
+      await Promise.all([
+        utils.getActiveAllocationStrategy.invalidate(),
+        utils.previewPayday.invalidate(),
+        utils.getMatrixProjectionData.invalidate(),
+        utils.listAllAllocationPlans.invalidate(),
+        utils.getHomeSummary.invalidate(),
+      ]);
       toast.success(t("settings.paydayRules.saveSuccess"));
       setIsDirty(false);
     } catch (err: unknown) {
-      toast.error(err instanceof Error ? err.message : "Failed to save payday rules.");
+      toast.error(err instanceof Error ? err.message : t("common.errorTryAgain"));
     } finally {
       setSubmitting(false);
     }
@@ -139,12 +151,18 @@ function AllocationRulesContent() {
         presetKey: "BALANCED",
         isPrivate: isPersonal,
       });
-      await utils.getActiveAllocationStrategy.invalidate();
+      await Promise.all([
+        utils.getActiveAllocationStrategy.invalidate(),
+        utils.previewPayday.invalidate(),
+        utils.getMatrixProjectionData.invalidate(),
+        utils.listAllAllocationPlans.invalidate(),
+        utils.getHomeSummary.invalidate(),
+      ]);
       toast.success(t("settings.paydayRules.saveSuccess"));
       setShowResetConfirm(false);
       setIsDirty(false);
     } catch (err: unknown) {
-      toast.error(err instanceof Error ? err.message : "Failed to reset rules.");
+      toast.error(err instanceof Error ? err.message : t("common.errorTryAgain"));
     }
   };
 
@@ -218,7 +236,9 @@ function AllocationRulesContent() {
       <div className="space-y-3">
         {steps.map((step, index) => {
           const isFirst = index === 0;
-          const isLast = index === steps.length - 1;
+          const isSweep = step.stepType === "SURPLUS_SWEEP";
+          const isBeforeSweep = steps[index + 1]?.stepType === "SURPLUS_SWEEP";
+          const isLastMovable = index === steps.length - 1 || isBeforeSweep;
           const stepName = t(`settings.paydayRules.stepTypes.${step.stepType}`);
           const stepDesc = t(`settings.paydayRules.stepDescriptions.${step.stepType}`);
 
@@ -236,9 +256,6 @@ function AllocationRulesContent() {
                   <div className="flex items-center gap-2 flex-wrap">
                     <span className="font-semibold text-sm text-[#1B2B4B] dark:text-white">
                       {stepName}
-                    </span>
-                    <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-slate-100 dark:bg-zinc-800 text-slate-600 dark:text-slate-400">
-                      Step {index + 1}
                     </span>
                   </div>
                   <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
@@ -266,8 +283,8 @@ function AllocationRulesContent() {
                 </div>
               </div>
 
-              {/* Action Buttons for Reordering */}
-              {canEdit && (
+              {/* Action Buttons for Reordering (SURPLUS_SWEEP is pinned as the final step) */}
+              {canEdit && !isSweep && (
                 <div className="flex items-center gap-1.5 self-end sm:self-center shrink-0">
                   <button
                     type="button"
@@ -280,7 +297,7 @@ function AllocationRulesContent() {
                   </button>
                   <button
                     type="button"
-                    disabled={isLast}
+                    disabled={isLastMovable}
                     onClick={() => handleMove(index, "DOWN")}
                     aria-label={t("settings.paydayRules.moveDown")}
                     className="w-8 h-8 rounded-lg border border-slate-200 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-zinc-800 disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center text-xs text-slate-600 dark:text-slate-300 transition-colors cursor-pointer"

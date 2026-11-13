@@ -10,6 +10,7 @@ export interface IncomeEventInlineCardProps {
   readonly onSourceNameChange: (name: string) => void;
   readonly actualAmount: string;
   readonly onActualAmountChange: (amount: string) => void;
+  readonly onActualAmountBlur?: () => void;
   readonly selectedDate: string;
   readonly onSelectedDateChange: (date: string) => void;
   readonly isReadOnly: boolean;
@@ -22,6 +23,7 @@ export function IncomeEventInlineCard({
   onSourceNameChange,
   actualAmount,
   onActualAmountChange,
+  onActualAmountBlur,
   selectedDate,
   onSelectedDateChange,
   isReadOnly,
@@ -61,6 +63,7 @@ export function IncomeEventInlineCard({
               value={actualAmount}
               disabled={isReadOnly}
               onChange={onActualAmountChange}
+              onBlur={onActualAmountBlur}
             />
           </div>
 

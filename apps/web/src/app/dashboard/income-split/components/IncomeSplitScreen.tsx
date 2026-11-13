@@ -72,6 +72,7 @@ export function IncomeSplitScreen({
     setShowTransferModal,
     celebrationTargets,
     handleLineAmountChange,
+    handleActualAmountBlur,
     handleLineReasoningChange,
     attemptExit,
     handleDiscardAndExit,
@@ -94,6 +95,23 @@ export function IncomeSplitScreen({
     );
   }
 
+  if (previewQuery.isError || !previewQuery.data) {
+    return (
+      <div className="max-w-xl mx-auto mt-16 p-6 bg-white dark:bg-zinc-900 border border-rose-200 dark:border-rose-900/50 rounded-2xl text-center space-y-4">
+        <p className="text-sm font-semibold text-rose-600 dark:text-rose-400">
+          {t("common.errorTryAgain")}
+        </p>
+        <button
+          type="button"
+          onClick={attemptExit}
+          className="px-4 py-2 rounded-xl bg-slate-100 dark:bg-zinc-800 text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-200 dark:hover:bg-zinc-700 transition-colors cursor-pointer"
+        >
+          {t("common.back")}
+        </button>
+      </div>
+    );
+  }
+
   return (
     <div className="flex flex-col gap-6 max-w-7xl mx-auto pb-16 animate-in fade-in duration-200">
       <IncomeEventInlineCard
@@ -101,6 +119,7 @@ export function IncomeSplitScreen({
         onSourceNameChange={setSourceName}
         actualAmount={actualAmount}
         onActualAmountChange={setActualAmount}
+        onActualAmountBlur={handleActualAmountBlur}
         selectedDate={selectedDate}
         onSelectedDateChange={setSelectedDate}
         isReadOnly={isReadOnly}

@@ -25,7 +25,8 @@ export async function previewPaydayQuery(
   tenantId: string,
   appId: string,
   dbClient: DbOrTx,
-  userId?: string
+  userId?: string,
+  overrideAmount?: number
 ) {
   const [targetEvent] = await dbClient
     .select({
@@ -33,6 +34,7 @@ export async function previewPaydayQuery(
       expectedDate: incomeEvents.expectedDate,
       expectedAmount: incomeEvents.expectedAmount,
       actualAmount: incomeEvents.actualAmount,
+      status: incomeEvents.status,
       name: sql`COALESCE(NULLIF(${incomeEvents.name}, ''), ${incomeSources.name}, 'Paycheck')`,
       receivingAccountId: incomeSources.receivingAccountId,
       incomeType: incomeSources.incomeType,
@@ -68,16 +70,18 @@ export async function previewPaydayQuery(
     tenantId,
     appId,
     dbClient,
-    userId
+    userId,
+    overrideAmount
   );
 }
 
 export async function previewPaydayForEvent(
-  targetEvent: { id: string; expectedDate: string; expectedAmount: string; actualAmount?: string | null; name?: string | null; receivingAccountId?: string | null; incomeType?: "SALARIED" | "IRREGULAR" | null },
+  targetEvent: { id: string; expectedDate: string; expectedAmount: string; actualAmount?: string | null; status?: string | null; name?: string | null; receivingAccountId?: string | null; incomeType?: "SALARIED" | "IRREGULAR" | null },
   tenantId: string,
   appId: string,
   dbClient: DbOrTx,
-  userId?: string
+  userId?: string,
+  overrideAmount?: number
 ) {
   const [savedPlan] = await dbClient
     .select({
@@ -124,7 +128,22 @@ export async function previewPaydayForEvent(
       );
   }
 
-  const effectiveAmount = parseFloat(targetEvent.actualAmount || targetEvent.expectedAmount);
+  const parsedActual =
+    targetEvent.actualAmount !== null && targetEvent.actualAmount !== undefined
+      ? parseFloat(targetEvent.actualAmount)
+      : null;
+  const parsedExpected = parseFloat(targetEvent.expectedAmount);
+  const resolvedActual =
+    targetEvent.status === "CONFIRMED"
+      ? parsedActual
+      : parsedActual !== null && parsedActual > 0
+      ? parsedActual
+      : null;
+  const baseAmount = resolvedActual ?? parsedExpected;
+  const effectiveAmount =
+    overrideAmount !== undefined && Number.isFinite(overrideAmount) && overrideAmount >= 0
+      ? overrideAmount
+      : baseAmount;
   const baselinePreview = await previewAllocationQuery(
     tenantId,
     appId,
@@ -156,8 +175,8 @@ export async function previewPaydayForEvent(
     incomeEventId: targetEvent.id,
     incomeEventName: targetEvent.name || "Paycheck",
     expectedDate: targetEvent.expectedDate,
-    expectedAmount: parseFloat(targetEvent.expectedAmount),
-    actualAmount: targetEvent.actualAmount ? parseFloat(targetEvent.actualAmount) : null,
+    expectedAmount: parsedExpected,
+    actualAmount: resolvedActual,
     receivingAccountId: targetEvent.receivingAccountId || null,
     hasSavedPlan: Boolean(savedPlan),
     planStatus: savedPlan?.status || "NONE",

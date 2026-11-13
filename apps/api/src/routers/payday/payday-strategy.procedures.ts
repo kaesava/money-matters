@@ -61,7 +61,10 @@ export const paydayStrategyProcedures = {
         .where(eq(apps.id, ctx.appId!))
         .limit(1);
 
-      const flags = appRecord?.featureFlags || DEFAULT_APP_FEATURE_FLAGS;
+      const flags = {
+        ...DEFAULT_APP_FEATURE_FLAGS,
+        ...(appRecord?.featureFlags ?? {}),
+      };
       if (!flags.customAllocationRules) {
         throw new TRPCError({
           code: "FORBIDDEN",

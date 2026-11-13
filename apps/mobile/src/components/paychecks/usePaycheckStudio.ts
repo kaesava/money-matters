@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { useRouter, type Href } from 'expo-router';
 import { trpc } from '../../lib/trpc';
 import { authClient } from '../../lib/auth';
@@ -12,6 +12,7 @@ import { PaycheckStudioPreviewData, calculateAllocatedTotals } from './paycheck-
 export function usePaycheckStudio(id: string | undefined, returnTo?: string) {
   const toast = useMobileToast();
   const router = useRouter();
+  const utils = trpc.useUtils();
   const { data: session } = authClient.useSession();
 
   const poolsQuery = trpc.listPools.useQuery(undefined, { enabled: !!session?.user });
@@ -34,6 +35,8 @@ export function usePaycheckStudio(id: string | undefined, returnTo?: string) {
   const [celebrationTargets, setCelebrationTargets] = useState<import('@money-matters/types').TargetCelebrationItem[]>([]);
   const [showExitDialog, setShowExitDialog] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [draftLines, setDraftLines] = useState<AllocationLineItem[] | null>(null);
+  const lastAutoAmountRef = useRef<number | null>(null);
 
   const todayStr = useMemo(() => formatIsoDate(new Date()), []);
 
@@ -42,6 +45,8 @@ export function usePaycheckStudio(id: string | undefined, returnTo?: string) {
     const amt = String(pData.actualAmount ?? pData.expectedAmount ?? '0.00');
     setActualAmount(amt);
     setInitialAmount(amt);
+    lastAutoAmountRef.current = parseFloat(amt) || 0;
+    setDraftLines(null);
     setSelectedDate(formatIsoDate(pData.expectedDate || new Date()));
 
     const initMap: Record<string, string> = {};
@@ -66,6 +71,7 @@ export function usePaycheckStudio(id: string | undefined, returnTo?: string) {
   }, [previewQuery.data, applyFreshData]);
 
   const lines = useMemo(() => {
+    if (draftLines) return draftLines;
     if (!previewQuery.data) return [];
     return previewQuery.data.lines.map((l) => ({
       bucketId: l.envelopeId,
@@ -73,7 +79,7 @@ export function usePaycheckStudio(id: string | undefined, returnTo?: string) {
       proposedAmount: l.savedAmount ?? l.proposedAmount,
       reasoning: l.reasoning ?? '',
     }));
-  }, [previewQuery.data]);
+  }, [draftLines, previewQuery.data]);
 
   const numericActual = parseFloat(actualAmount) || 0;
   const isReadOnly = isConfirmedPlan;
@@ -133,6 +139,39 @@ export function usePaycheckStudio(id: string | undefined, returnTo?: string) {
     setLinesMap((prev) => ({ ...prev, [bucketId]: cleaned }));
     if ((parseFloat(cleaned) || 0) <= 0) setReasoningMap((prev) => ({ ...prev, [bucketId]: '' }));
   };
+
+  const handleActualAmountBlur = useCallback(async () => {
+    if (!id || isSavedPlan || isConfirmedPlan) return;
+    if (lastAutoAmountRef.current !== null && Math.abs(numericActual - lastAutoAmountRef.current) <= 0.009) {
+      return;
+    }
+    try {
+      const fresh = await utils.previewPayday.fetch(
+        { incomeEventId: id, overrideAmount: numericActual },
+        { staleTime: 0 }
+      );
+      if (!fresh) return;
+      const nextMap: Record<string, string> = {};
+      const nextReasoning: Record<string, string> = {};
+      const nextLines: AllocationLineItem[] = fresh.lines.map((l) => {
+        const val = l.savedAmount ?? l.proposedAmount;
+        nextMap[l.envelopeId] = val.toFixed(2);
+        if (l.reasoning && val > 0) nextReasoning[l.envelopeId] = l.reasoning;
+        return {
+          bucketId: l.envelopeId,
+          bucketName: l.envelopeName,
+          proposedAmount: val,
+          reasoning: l.reasoning ?? '',
+        };
+      });
+      setLinesMap(nextMap);
+      setReasoningMap(nextReasoning);
+      setDraftLines(nextLines);
+      lastAutoAmountRef.current = numericActual;
+    } catch {
+      // Keep user-edited amount; explicit Recalculate or Save remains available
+    }
+  }, [id, isSavedPlan, isConfirmedPlan, numericActual, utils.previewPayday]);
 
   const handleLineReasoningChange = (bucketId: string, reasoning: string) => {
     const currentVal = bucketId === sweepPool?.id ? sweepPoolRemainder : parseFloat(linesMap[bucketId] ?? '0') || 0;
@@ -229,6 +268,7 @@ export function usePaycheckStudio(id: string | undefined, returnTo?: string) {
   return {
     session,
     isLoading: previewQuery.isLoading || poolsQuery.isLoading || bankAccountsQuery.isLoading,
+    isError: previewQuery.isError,
     previewData: previewQuery.data,
     pools, bankAccounts, sourceName, setSourceName,
     actualAmount, setActualAmount, initialAmount,
@@ -243,7 +283,7 @@ export function usePaycheckStudio(id: string | undefined, returnTo?: string) {
     handleDeleteIncome: mutations.handleDeleteIncome,
     handleSaveSplit: mutations.handleSaveSplit,
     handleConfirmSplit: mutations.handleConfirmSplit,
-    handleLineAmountChange, handleLineReasoningChange,
+    handleLineAmountChange, handleActualAmountBlur, handleLineReasoningChange,
     showTransferModal, setShowTransferModal,
     celebrationTargets,
     showExitDialog, setShowExitDialog,

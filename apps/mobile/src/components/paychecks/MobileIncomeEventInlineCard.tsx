@@ -14,6 +14,7 @@ export interface MobileIncomeEventInlineCardProps {
   onSourceNameChange: (name: string) => void;
   actualAmount: string;
   onActualAmountChange: (amount: string) => void;
+  onActualAmountBlur?: () => void;
   selectedDate: string;
   onSelectedDateChange: (date: string) => void;
   isReadOnly: boolean;
@@ -26,6 +27,7 @@ export const MobileIncomeEventInlineCard: React.FC<MobileIncomeEventInlineCardPr
   onSourceNameChange,
   actualAmount,
   onActualAmountChange,
+  onActualAmountBlur,
   selectedDate,
   onSelectedDateChange,
   isReadOnly,
@@ -59,6 +61,7 @@ export const MobileIncomeEventInlineCard: React.FC<MobileIncomeEventInlineCardPr
             value={actualAmount}
             editable={!isReadOnly}
             onChangeText={onActualAmountChange}
+            onBlur={onActualAmountBlur}
           />
 
           <MobileDatePickerField

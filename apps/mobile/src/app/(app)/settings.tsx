@@ -183,6 +183,21 @@ export default function SettingsScreen() {
             <View style={styles.tabSection}>
               <SubscriptionPlanSection />
 
+              <View style={styles.recalibrateCard}>
+                <View style={styles.recalibrateHeader}>
+                  <Feather name="sliders" size={16} color={DESIGN_TOKENS.colors.sereneBlue} />
+                  <Text style={styles.recalibrateTitle}>{t('setup.recalibrateTitle')}</Text>
+                </View>
+                <Text style={styles.recalibrateSubtitle}>{t('setup.recalibrateSubtitle')}</Text>
+                <TouchableOpacity
+                  style={styles.recalibrateBtn}
+                  onPress={() => router.push({ pathname: '/(setup)/income', params: { mode: 'rerun' } } as Href)}
+                  activeOpacity={0.8}
+                >
+                  <Text style={styles.recalibrateBtnText}>{t('setup.recalibrateTitle')}</Text>
+                </TouchableOpacity>
+              </View>
+
               <PrivacyGovernanceSection />
             </View>
           )}
@@ -253,6 +268,43 @@ const styles = StyleSheet.create({
   },
   tabSection: {
     gap: 14,
+  },
+  recalibrateCard: {
+    backgroundColor: DESIGN_TOKENS.colors.surface,
+    borderRadius: DESIGN_TOKENS.radius.lg,
+    borderWidth: 1,
+    borderColor: DESIGN_TOKENS.colors.slate[200],
+    padding: 16,
+    gap: 10,
+  },
+  recalibrateHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  recalibrateTitle: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: DESIGN_TOKENS.colors.primary,
+  },
+  recalibrateSubtitle: {
+    fontSize: 12,
+    color: DESIGN_TOKENS.colors.slate[500],
+    lineHeight: 17,
+  },
+  recalibrateBtn: {
+    alignSelf: 'flex-start',
+    backgroundColor: DESIGN_TOKENS.colors.slate[50],
+    borderWidth: 1,
+    borderColor: DESIGN_TOKENS.colors.slate[300],
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 10,
+  },
+  recalibrateBtnText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: DESIGN_TOKENS.colors.primary,
   },
   tabsWrapper: {
     width: '100%',
