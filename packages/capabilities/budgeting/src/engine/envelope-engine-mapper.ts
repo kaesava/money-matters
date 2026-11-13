@@ -1,14 +1,14 @@
-import { EnvelopeType } from "@money-matters/types";
+import { EnvelopeType, FundingMode } from "@money-matters/types";
 import { EngineBucket, BucketType } from "./allocation-engine.js";
 
 export function isBillsBucket(b: { type?: string; envelopeType?: EnvelopeType }): boolean {
   const t = b.type || b.envelopeType;
-  return t === "SCHEDULED_BILL" || t === "FLEXIBLE_BILL" || t === "REGULAR" || t === "BILL";
+  return t === "BILL";
 }
 
 export function isGoalBucket(b: { type?: string; envelopeType?: EnvelopeType }): boolean {
   const t = b.type || b.envelopeType;
-  return t === "TARGET_GOAL" || t === "ONGOING_GOAL" || t === "GOAL";
+  return t === "GOAL";
 }
 
 export function isEverydayBucket(b: { type?: string; envelopeType?: EnvelopeType }): boolean {
@@ -20,14 +20,13 @@ export interface RawDbEnvelope {
   id: string;
   name: string;
   envelopeType: EnvelopeType;
+  fundingMode?: FundingMode | null;
   isPriority?: boolean | null;
-  isEssential?: boolean | null;
-  isCommitted?: boolean | null;
   isSurplusTarget?: boolean | null;
   monthlyAmount?: string | number | null;
+  enteredAmount?: string | number | null;
   targetAmount?: string | number | null;
   safetyBufferFloor?: string | number | null;
-  goalMode?: "TARGET_DATE" | "ONGOING" | null;
   endDate?: string | null;
   isPrivate?: boolean | null;
   userId?: string | null;
@@ -40,23 +39,24 @@ export function mapEnvelopeToEngineBucket(env: RawDbEnvelope, currentBalance: nu
     return isNaN(n) ? null : n;
   };
 
-  const defaultGoalMode = env.envelopeType === "TARGET_GOAL" ? "TARGET_DATE" : "ONGOING";
+  const fundingMode = env.fundingMode ?? (env.envelopeType === "GOAL" ? "TARGET_BALANCE" : "RECURRING");
 
   return {
     id: env.id,
     name: env.name,
     type: env.envelopeType as BucketType,
     envelopeType: env.envelopeType,
-    isEssential: Boolean(env.isPriority ?? env.isEssential),
-    isCommitted: Boolean(env.isPriority ?? env.isCommitted),
+    fundingMode,
+    isPriority: Boolean(env.isPriority),
     isSurplusTarget: Boolean(env.isSurplusTarget),
     monthlyAmount: parseNum(env.monthlyAmount),
+    enteredAmount: parseNum(env.enteredAmount),
     targetAmount: parseNum(env.targetAmount),
     safetyBufferFloor: parseNum(env.safetyBufferFloor) ?? 0,
-    goalMode: env.goalMode ?? defaultGoalMode,
     targetDate: env.endDate || null,
     currentBalance,
     isPrivate: Boolean(env.isPrivate),
     userId: env.userId ?? undefined,
   };
 }
+

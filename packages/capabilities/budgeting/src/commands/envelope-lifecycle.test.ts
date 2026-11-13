@@ -29,7 +29,7 @@ describe("Envelope Lifecycle & Event Sync", () => {
           }
           return {
             returning: vi.fn().mockResolvedValue([
-              { id: "env-1", name: "Gym Membership", envelopeType: "SCHEDULED_BILL", generateEvents: true },
+              { id: "env-1", name: "Gym Membership", envelopeType: "BILL", fundingMode: "RECURRING", generateEvents: true },
             ]),
           };
         }),
@@ -45,11 +45,12 @@ describe("Envelope Lifecycle & Event Sync", () => {
     await createEnvelopeCommand(
       {
         name: "Gym Membership",
-        envelopeType: "SCHEDULED_BILL",
+        envelopeType: "BILL",
+        fundingMode: "RECURRING",
         bankAccountId: "bank-1",
         enteredAmount: "50.00",
         budgetFrequency: "MONTHLY",
-        generateEvents: true, goalMode: "TARGET_DATE",
+        generateEvents: true,
       },
       tenantId,
       appId,
@@ -77,7 +78,7 @@ describe("Envelope Lifecycle & Event Sync", () => {
           }
           return {
             returning: vi.fn().mockResolvedValue([
-              { id: "env-2", name: "Spotify", envelopeType: "SCHEDULED_BILL", generateEvents: false },
+              { id: "env-2", name: "Spotify", envelopeType: "BILL", fundingMode: "RECURRING", generateEvents: false },
             ]),
           };
         }),
@@ -93,11 +94,12 @@ describe("Envelope Lifecycle & Event Sync", () => {
     await createEnvelopeCommand(
       {
         name: "Spotify",
-        envelopeType: "SCHEDULED_BILL",
+        envelopeType: "BILL",
+        fundingMode: "RECURRING",
         bankAccountId: "bank-1",
         enteredAmount: "15.00",
         budgetFrequency: "MONTHLY",
-        generateEvents: false, goalMode: "TARGET_DATE",
+        generateEvents: false,
       },
       tenantId,
       appId,
@@ -108,7 +110,7 @@ describe("Envelope Lifecycle & Event Sync", () => {
     expect(insertedEvents.length).toBe(0);
   });
 
-  it("updateEnvelopeCommand clears pending events when converted to FLEXIBLE_BILL", async () => {
+  it("updateEnvelopeCommand clears pending events when converted to TARGET_BALANCE fundingMode", async () => {
     let deletedEvents = false;
     const mockDb = {
       select: vi.fn().mockReturnValue({
@@ -117,9 +119,10 @@ describe("Envelope Lifecycle & Event Sync", () => {
             {
               id: "env-1",
               name: "Power",
-              envelopeType: "SCHEDULED_BILL",
+              envelopeType: "BILL",
+              fundingMode: "RECURRING",
               isPrivate: false,
-              generateEvents: true, goalMode: "TARGET_DATE",
+              generateEvents: true,
             },
           ]),
         }),
@@ -128,7 +131,7 @@ describe("Envelope Lifecycle & Event Sync", () => {
         set: vi.fn().mockReturnValue({
           where: vi.fn().mockReturnValue({
             returning: vi.fn().mockResolvedValue([
-              { id: "env-1", name: "Power", envelopeType: "FLEXIBLE_BILL", generateEvents: true },
+              { id: "env-1", name: "Power", envelopeType: "BILL", fundingMode: "TARGET_BALANCE", generateEvents: true },
             ]),
           }),
         }),
@@ -145,7 +148,7 @@ describe("Envelope Lifecycle & Event Sync", () => {
     await updateEnvelopeCommand(
       "env-1",
       {
-        envelopeType: "FLEXIBLE_BILL",
+        fundingMode: "TARGET_BALANCE",
       },
       tenantId,
       appId,
@@ -273,8 +276,9 @@ describe("Envelope Lifecycle & Event Sync", () => {
               {
                 id: "env-opted-out",
                 name: "Opted Out Bill",
-                envelopeType: "SCHEDULED_BILL",
-                generateEvents: false, goalMode: "TARGET_DATE",
+                envelopeType: "BILL",
+                fundingMode: "RECURRING",
+                generateEvents: false,
                 rrule: "FREQ=MONTHLY;INTERVAL=1",
                 startDate: "2026-11-01",
                 monthlyAmount: "50.00",
@@ -312,7 +316,8 @@ describe("Envelope Lifecycle & Event Sync", () => {
                 {
                   id: "env-incremental",
                   name: "Internet Bill",
-                  envelopeType: "SCHEDULED_BILL",
+                  envelopeType: "BILL",
+                  fundingMode: "RECURRING",
                   generateEvents: true,
                   rrule: "FREQ=MONTHLY;INTERVAL=1",
                   startDate: "2026-01-01",
@@ -392,9 +397,9 @@ describe("Envelope Lifecycle & Event Sync", () => {
               {
                 id: "env-past-restore",
                 name: "Old Gym Membership",
-                envelopeType: "SCHEDULED_BILL",
+                envelopeType: "BILL",
+                fundingMode: "RECURRING",
                 generateEvents: true,
-                goalMode: "TARGET_DATE",
                 rrule: "FREQ=MONTHLY;INTERVAL=1",
                 startDate: pastStartDate,
                 monthlyAmount: "50.00",
@@ -440,11 +445,11 @@ describe("Envelope Lifecycle & Event Sync", () => {
               {
                 id: "env-update-past",
                 name: "Past Rent",
-                envelopeType: "SCHEDULED_BILL",
+                envelopeType: "BILL",
+                fundingMode: "RECURRING",
                 budgetFrequency: "MONTHLY",
                 isPrivate: false,
                 generateEvents: true,
-                goalMode: "TARGET_DATE",
                 startDate: pastStartDate,
                 rrule: "FREQ=MONTHLY;INTERVAL=1",
                 enteredAmount: "500.00",
@@ -461,7 +466,8 @@ describe("Envelope Lifecycle & Event Sync", () => {
               {
                 id: "env-update-past",
                 name: "Past Rent Updated",
-                envelopeType: "SCHEDULED_BILL",
+                envelopeType: "BILL",
+                fundingMode: "RECURRING",
                 budgetFrequency: "FORTNIGHTLY",
                 isPrivate: false,
                 generateEvents: true,

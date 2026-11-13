@@ -31,7 +31,8 @@ export function useSetupGoalsState({
       icon: "shield",
       targetAmount: 10000,
       enteredAmount: 300,
-      goalMode: "ONGOING",
+      fundingMode: "RECURRING",
+      isPriority: true,
       budgetFrequency: "MONTHLY",
     },
     {
@@ -40,7 +41,8 @@ export function useSetupGoalsState({
       monthlyAmount: 250,
       icon: "plane",
       targetAmount: 3000,
-      goalMode: "TARGET_DATE",
+      fundingMode: "TARGET_BALANCE",
+      isPriority: true,
       dueDate: new Intl.DateTimeFormat("en-CA").format(
         new Date(Date.now() + 365 * 24 * 60 * 60 * 1000)
       ),
@@ -59,7 +61,7 @@ export function useSetupGoalsState({
     if (id.startsWith("g-")) return;
     const target = goals.find((g) => g.id === id);
     if (!target) return;
-    const isOngoing = target.goalMode === "ONGOING";
+    const isOngoing = target.fundingMode === "RECURRING";
     const amtStr = String(isOngoing ? target.monthlyAmount || target.targetAmount || 0 : target.targetAmount || 0);
     await updatePoolMut.mutateAsync({
       poolId: id,
@@ -70,7 +72,8 @@ export function useSetupGoalsState({
         enteredAmount: target.enteredAmount ? String(target.enteredAmount) : amtStr,
         budgetFrequency: target.budgetFrequency || "MONTHLY",
         endDate: isOngoing ? null : target.dueDate || null,
-        goalMode: target.goalMode,
+        fundingMode: target.fundingMode,
+        isPriority: target.isPriority ?? true,
       },
     });
     setDirtyGoalIds((prev) => {

@@ -78,15 +78,13 @@ export async function maintainRollingWindowCommand({
       and(
         eq(envelopes.tenantId, tenantId),
         eq(envelopes.appId, appId),
-        or(
-          eq(envelopes.envelopeType, "SCHEDULED_BILL"),
-          and(eq(envelopes.envelopeType, "BILL"), eq(envelopes.fundingMode, "RECURRING"))
-        )!,
+        eq(envelopes.envelopeType, "BILL"),
+        eq(envelopes.fundingMode, "RECURRING"),
         eq(envelopes.generateEvents, true),
         sql`${envelopes.archivedAt} IS NULL`,
         sql`${envelopes.rrule} IS NOT NULL`,
-        sql`(${envelopes.endDate} IS NULL OR ${envelopes.endDate} >= ${todayStr}::date)`,
-        sql`(${envelopes.endDate} IS NULL OR ${envelopes.lastBurstDate} IS NULL OR ${envelopes.lastBurstDate} < ${envelopes.endDate})`,
+        sql`(${envelopes.endDate} IS NULL OR ${envelopes.endDate}::date >= ${todayStr}::date)`,
+        sql`(${envelopes.endDate} IS NULL OR ${envelopes.lastBurstDate} IS NULL OR ${envelopes.lastBurstDate} < ${envelopes.endDate}::date)`,
         sql`(${envelopes.lastBurstDate} IS NULL OR ${envelopes.lastBurstDate} < ${horizonCutoffStr}::date)`
       )
     );

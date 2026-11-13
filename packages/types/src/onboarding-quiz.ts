@@ -85,16 +85,14 @@ export type QuizAnswers = z.infer<typeof QuizAnswersSchema>;
 export interface EstimatedCategoryItem {
   id?: string;
   name: string;
-  type: "REGULAR" | "GOAL" | "EVERYDAY" | "BILL";
+  type: EnvelopeType;
   envelopeType?: EnvelopeType;
-  fundingMode?: FundingMode | null;
+  fundingMode?: FundingMode;
   isPriority?: boolean;
   monthlyAud: number;
   icon?: string;
   colour?: string;
   rationale?: string;
-  isEssential?: boolean;
-  isCommitted?: boolean;
   startDate?: string | null;
   endDate?: string | null;
   rrule?: string | null;
@@ -129,19 +127,19 @@ export function calculateQuizEstimates(answers: QuizAnswers): EstimationResult {
     const monthlyEverydayTotal = monthlyGroceries + monthlyDining + monthlyPersonal;
 
     if (answers.housingType !== "OWN_OUTRIGHT") {
-      regularBills.push({ name: answers.housingType.startsWith("OWN") ? "Mortgage Payment" : "Rent", type: "REGULAR", envelopeType: "SCHEDULED_BILL", monthlyAud: 0, icon: "home" });
+      regularBills.push({ name: answers.housingType.startsWith("OWN") ? "Mortgage Payment" : "Rent", type: "BILL", envelopeType: "BILL", fundingMode: "RECURRING", isPriority: true, monthlyAud: 0, icon: "home" });
     }
-    regularBills.push({ name: "Utilities", type: "REGULAR", envelopeType: "SCHEDULED_BILL", monthlyAud: 0, icon: "zap" });
-    regularBills.push({ name: "Home Internet", type: "REGULAR", envelopeType: "SCHEDULED_BILL", monthlyAud: 0, icon: "wifi" });
+    regularBills.push({ name: "Utilities", type: "BILL", envelopeType: "BILL", fundingMode: "RECURRING", isPriority: true, monthlyAud: 0, icon: "zap" });
+    regularBills.push({ name: "Home Internet", type: "BILL", envelopeType: "BILL", fundingMode: "RECURRING", isPriority: true, monthlyAud: 0, icon: "wifi" });
     if (answers.hasCars) {
-      regularBills.push({ name: "Vehicle & Transport", type: "REGULAR", envelopeType: "SCHEDULED_BILL", monthlyAud: 0, icon: "car" });
+      regularBills.push({ name: "Vehicle & Transport", type: "BILL", envelopeType: "BILL", fundingMode: "RECURRING", isPriority: true, monthlyAud: 0, icon: "car" });
     }
     if (answers.activeDebtMonthlyRepayment > 0) {
-      regularBills.push({ name: "Active Debt Repayments", type: "REGULAR", envelopeType: "FLEXIBLE_BILL", monthlyAud: answers.activeDebtMonthlyRepayment, icon: "credit-card" });
+      regularBills.push({ name: "Active Debt Repayments", type: "BILL", envelopeType: "BILL", fundingMode: "TARGET_BALANCE", isPriority: true, monthlyAud: answers.activeDebtMonthlyRepayment, icon: "credit-card" });
     }
-    goalSinkingFunds.push({ name: "Emergency Buffer Fund", type: "GOAL", envelopeType: "TARGET_GOAL", monthlyAud: 0, icon: "shield", isCommitted: true });
+    goalSinkingFunds.push({ name: "Emergency Buffer Fund", type: "GOAL", envelopeType: "GOAL", fundingMode: "TARGET_BALANCE", isPriority: true, monthlyAud: 0, icon: "shield" });
 
-    everydayCategories.push({ name: "Everyday Spending", type: "EVERYDAY", envelopeType: "EVERYDAY", monthlyAud: monthlyEverydayTotal, icon: "wallet" });
+    everydayCategories.push({ name: "Everyday Spending", type: "EVERYDAY", envelopeType: "EVERYDAY", fundingMode: "TARGET_BALANCE", isPriority: true, monthlyAud: monthlyEverydayTotal, icon: "wallet" });
 
     let totalMonthlyIncome = 0;
     answers.incomes.forEach((inc) => {
@@ -158,13 +156,13 @@ export function calculateQuizEstimates(answers: QuizAnswers): EstimationResult {
       regularBills,
       goalSinkingFunds,
       everydayCategories,
-      everydayPool: { name: "Everyday Spending Pool", type: "EVERYDAY", monthlyAud: monthlyEverydayTotal, icon: "wallet" },
+      everydayPool: { name: "Everyday Spending Pool", type: "EVERYDAY", envelopeType: "EVERYDAY", fundingMode: "TARGET_BALANCE", isPriority: true, monthlyAud: monthlyEverydayTotal, icon: "wallet" },
       totalMonthlyIncomeAud: Math.round(totalMonthlyIncome),
       totalMonthlyAllocatedAud: Math.round(totalRegular + totalGoal + monthlyEverydayTotal),
     };
   }
 
-  // --- 1. HOUSING & UTILITIES (REGULAR) ---
+  // --- 1. HOUSING & UTILITIES (BILL) ---
   let rentMortgageAmount = 2750;
   if (answers.housingType === "RENT_SHARE") rentMortgageAmount = 1375;
   if (answers.housingType === "OWN_MORTGAGE") rentMortgageAmount = 3500;
@@ -173,8 +171,10 @@ export function calculateQuizEstimates(answers: QuizAnswers): EstimationResult {
   if (rentMortgageAmount > 0) {
     regularBills.push({
       name: answers.housingType.startsWith("OWN") ? "Mortgage Payment" : "Rent",
-      type: "REGULAR",
-      envelopeType: "SCHEDULED_BILL",
+      type: "BILL",
+      envelopeType: "BILL",
+      fundingMode: "RECURRING",
+      isPriority: true,
       monthlyAud: rentMortgageAmount,
       icon: "🏡",
       rationale: answers.housingType.startsWith("OWN")
@@ -184,18 +184,18 @@ export function calculateQuizEstimates(answers: QuizAnswers): EstimationResult {
   }
 
   const utilitiesAmount = answers.housingType === "RENT_SHARE" ? 140 : answers.housingType.startsWith("OWN") ? 320 : 280;
-  regularBills.push({ name: "Utilities (Electricity, Gas, Water)", type: "REGULAR", envelopeType: "SCHEDULED_BILL", monthlyAud: utilitiesAmount, icon: "⚡", rationale: "ABS Energy Utility Benchmark based on household occupancy." });
+  regularBills.push({ name: "Utilities (Electricity, Gas, Water)", type: "BILL", envelopeType: "BILL", fundingMode: "RECURRING", isPriority: true, monthlyAud: utilitiesAmount, icon: "⚡", rationale: "ABS Energy Utility Benchmark based on household occupancy." });
 
   const homeInsuranceAmount = answers.housingType.startsWith("OWN") ? 180 : 50;
-  regularBills.push({ name: "Home & Contents Insurance", type: "REGULAR", envelopeType: "SCHEDULED_BILL", monthlyAud: homeInsuranceAmount, icon: "🛡️", rationale: "Australian insurance cost index for property protection." });
+  regularBills.push({ name: "Home & Contents Insurance", type: "BILL", envelopeType: "BILL", fundingMode: "RECURRING", isPriority: true, monthlyAud: homeInsuranceAmount, icon: "🛡️", rationale: "Australian insurance cost index for property protection." });
 
   if (answers.housingType.startsWith("OWN")) {
-    regularBills.push({ name: "Council Rates", type: "REGULAR", envelopeType: "SCHEDULED_BILL", monthlyAud: 225, icon: "🏛️", rationale: "Standard Australian local government council rate benchmark." });
+    regularBills.push({ name: "Council Rates", type: "BILL", envelopeType: "BILL", fundingMode: "RECURRING", isPriority: true, monthlyAud: 225, icon: "🏛️", rationale: "Standard Australian local government council rate benchmark." });
   }
 
-  regularBills.push({ name: "Home Internet", type: "REGULAR", envelopeType: "SCHEDULED_BILL", monthlyAud: 80, icon: "📡", rationale: "NBN 50/20 Australian broadband plan benchmark." });
+  regularBills.push({ name: "Home Internet", type: "BILL", envelopeType: "BILL", fundingMode: "RECURRING", isPriority: true, monthlyAud: 80, icon: "📡", rationale: "NBN 50/20 Australian broadband plan benchmark." });
 
-  // --- 2. TRANSPORT (REGULAR & GOAL - PER VEHICLE) ---
+  // --- 2. TRANSPORT (BILL - PER VEHICLE) ---
   let carMaintGoalExtra = 0;
   if (answers.hasCars && answers.vehicles.length > 0) {
     answers.vehicles.forEach((veh, idx) => {
@@ -206,8 +206,10 @@ export function calculateQuizEstimates(answers: QuizAnswers): EstimationResult {
 
       regularBills.push({
         name: `${veh.name || `Vehicle ${idx + 1}`} Rego, Insurance & Fuel`,
-        type: "REGULAR",
-        envelopeType: "SCHEDULED_BILL",
+        type: "BILL",
+        envelopeType: "BILL",
+        fundingMode: "RECURRING",
+        isPriority: true,
         monthlyAud: carMonthly,
         icon: "🚗",
         rationale: `RACQ Transport Cost Benchmark for vehicle size (${veh.size || "Standard"}) and fuel usage.`,
@@ -217,21 +219,23 @@ export function calculateQuizEstimates(answers: QuizAnswers): EstimationResult {
   }
 
   if (answers.usePublicTransport) {
-    regularBills.push({ name: "Public Transport", type: "REGULAR", envelopeType: "SCHEDULED_BILL", monthlyAud: 150, icon: "🚌", rationale: "State transit commuter pass benchmark." });
+    regularBills.push({ name: "Public Transport", type: "BILL", envelopeType: "BILL", fundingMode: "RECURRING", isPriority: true, monthlyAud: 150, icon: "🚌", rationale: "State transit commuter pass benchmark." });
   }
   if (answers.useRideshare) {
-    regularBills.push({ name: "Rideshare / Taxi", type: "REGULAR", envelopeType: "SCHEDULED_BILL", monthlyAud: 100, icon: "🚕", rationale: "Estimated monthly rideshare & taxi usage." });
+    regularBills.push({ name: "Rideshare / Taxi", type: "BILL", envelopeType: "BILL", fundingMode: "RECURRING", isPriority: false, monthlyAud: 100, icon: "🚕", rationale: "Estimated monthly rideshare & taxi usage." });
   }
 
-  // --- 3. FAMILY UNIT (REGULAR - PER CHILD) ---
+  // --- 3. FAMILY UNIT (BILL - PER CHILD) ---
   if (answers.hasKids && answers.children.length > 0) {
     answers.children.forEach((child, idx) => {
       const childLabel = child.name || `Child ${idx + 1}`;
       if (child.stage === "CHILDCARE") {
         regularBills.push({
           name: `${childLabel} - Childcare & Early Learning`,
-          type: "REGULAR",
-          envelopeType: "SCHEDULED_BILL",
+          type: "BILL",
+          envelopeType: "BILL",
+          fundingMode: "RECURRING",
+          isPriority: true,
           monthlyAud: 1200,
           icon: "👶",
           rationale: "Australian Department of Education benchmark for subsidized early learning.",
@@ -243,8 +247,10 @@ export function calculateQuizEstimates(answers: QuizAnswers): EstimationResult {
 
         regularBills.push({
           name: `${childLabel} - School Fees & Tuition`,
-          type: "REGULAR",
-          envelopeType: "SCHEDULED_BILL",
+          type: "BILL",
+          envelopeType: "BILL",
+          fundingMode: "RECURRING",
+          isPriority: true,
           monthlyAud: fee,
           icon: "🎓",
           rationale: `Australian school fee benchmark for ${child.type || "Public"} education.`,
@@ -253,8 +259,10 @@ export function calculateQuizEstimates(answers: QuizAnswers): EstimationResult {
 
       regularBills.push({
         name: `${childLabel} - Extracurricular & Sports`,
-        type: "REGULAR",
-        envelopeType: "SCHEDULED_BILL",
+        type: "BILL",
+        envelopeType: "BILL",
+        fundingMode: "RECURRING",
+        isPriority: false,
         monthlyAud: 150,
         icon: "⚽",
         rationale: "Community sports club registration and activity allowance.",
@@ -262,49 +270,51 @@ export function calculateQuizEstimates(answers: QuizAnswers): EstimationResult {
     });
   }
 
-  // --- 4. HEALTH & WELLBEING (REGULAR) ---
+  // --- 4. HEALTH & WELLBEING (BILL) ---
   if (answers.hasPrivateHealth) {
     const kidsCount = answers.hasKids ? answers.children.length : 0;
     const healthAud = kidsCount === 0 ? 180 : kidsCount <= 2 ? 350 : 480;
     regularBills.push({
       name: "Private Health Insurance",
-      type: "REGULAR",
-      envelopeType: "SCHEDULED_BILL",
+      type: "BILL",
+      envelopeType: "BILL",
+      fundingMode: "RECURRING",
+      isPriority: true,
       monthlyAud: healthAud,
       icon: "🏥",
       rationale: "Combined Hospital & Extras Australian private health cover benchmark based on family composition.",
     });
   }
-  regularBills.push({ name: "Out-of-Pocket Medical & Pharmacy", type: "REGULAR", envelopeType: "FLEXIBLE_BILL", monthlyAud: 100, icon: "💊", rationale: "PBS pharmacy and Medicare out-of-pocket medical benchmark." });
+  regularBills.push({ name: "Out-of-Pocket Medical & Pharmacy", type: "BILL", envelopeType: "BILL", fundingMode: "TARGET_BALANCE", isPriority: true, monthlyAud: 100, icon: "💊", rationale: "PBS pharmacy and Medicare out-of-pocket medical benchmark." });
   if (answers.hasGym) {
-    regularBills.push({ name: "Gym & Fitness Membership", type: "REGULAR", envelopeType: "SCHEDULED_BILL", monthlyAud: 80, icon: "💪", rationale: "Average Australian health club membership rates." });
+    regularBills.push({ name: "Gym & Fitness Membership", type: "BILL", envelopeType: "BILL", fundingMode: "RECURRING", isPriority: false, monthlyAud: 80, icon: "💪", rationale: "Average Australian health club membership rates." });
   }
 
-  // --- 5. PETS, DEBT & OBLIGATIONS (REGULAR) ---
+  // --- 5. PETS, DEBT & OBLIGATIONS (BILL) ---
   if (answers.hasPets && answers.petsCount > 0) {
-    regularBills.push({ name: "Pet Food, Vet & Insurance", type: "REGULAR", envelopeType: "FLEXIBLE_BILL", monthlyAud: 120 * answers.petsCount, icon: "🐾", rationale: `RSPCA pet ownership benchmark for ${answers.petsCount} pet(s).` });
+    regularBills.push({ name: "Pet Food, Vet & Insurance", type: "BILL", envelopeType: "BILL", fundingMode: "TARGET_BALANCE", isPriority: false, monthlyAud: 120 * answers.petsCount, icon: "🐾", rationale: `RSPCA pet ownership benchmark for ${answers.petsCount} pet(s).` });
   }
   if (answers.activeDebtMonthlyRepayment > 0) {
-    regularBills.push({ name: "Active Debt Repayments", type: "REGULAR", envelopeType: "FLEXIBLE_BILL", monthlyAud: answers.activeDebtMonthlyRepayment, icon: "💳", rationale: "Based on your active debt repayment answer." });
+    regularBills.push({ name: "Active Debt Repayments", type: "BILL", envelopeType: "BILL", fundingMode: "TARGET_BALANCE", isPriority: true, monthlyAud: answers.activeDebtMonthlyRepayment, icon: "💳", rationale: "Based on your active debt repayment answer." });
   }
   if (answers.givesCharity) {
-    regularBills.push({ name: "Charity & Donations", type: "REGULAR", envelopeType: "FLEXIBLE_BILL", monthlyAud: 50, icon: "❤️", rationale: "Tax-deductible charitable contribution allowance." });
+    regularBills.push({ name: "Charity & Donations", type: "BILL", envelopeType: "BILL", fundingMode: "TARGET_BALANCE", isPriority: false, monthlyAud: 50, icon: "❤️", rationale: "Tax-deductible charitable contribution allowance." });
   }
   if (answers.familySupportMonthlyAmount > 0) {
-    regularBills.push({ name: "Family Financial Support", type: "REGULAR", envelopeType: "FLEXIBLE_BILL", monthlyAud: answers.familySupportMonthlyAmount, icon: "🤝", rationale: "Based on your financial support answer." });
+    regularBills.push({ name: "Family Financial Support", type: "BILL", envelopeType: "BILL", fundingMode: "TARGET_BALANCE", isPriority: true, monthlyAud: answers.familySupportMonthlyAmount, icon: "🤝", rationale: "Based on your financial support answer." });
   }
 
   // --- 6. GOAL SINKING FUNDS ---
-  goalSinkingFunds.push({ name: "Holidays & Travel Fund", type: "GOAL", envelopeType: "TARGET_GOAL", monthlyAud: 300, icon: "✈️", rationale: "Annual domestic/international family travel sinking fund." });
-  goalSinkingFunds.push({ name: "Gifts & Celebrations Fund", type: "GOAL", envelopeType: "TARGET_GOAL", monthlyAud: 150, icon: "🎁", rationale: "Birthdays, Christmas, and anniversary gifts sinking fund." });
+  goalSinkingFunds.push({ name: "Holidays & Travel Fund", type: "GOAL", envelopeType: "GOAL", fundingMode: "TARGET_BALANCE", isPriority: false, monthlyAud: 300, icon: "✈️", rationale: "Annual domestic/international family travel sinking fund." });
+  goalSinkingFunds.push({ name: "Gifts & Celebrations Fund", type: "GOAL", envelopeType: "GOAL", fundingMode: "TARGET_BALANCE", isPriority: false, monthlyAud: 150, icon: "🎁", rationale: "Birthdays, Christmas, and anniversary gifts sinking fund." });
 
   let maintTotal = carMaintGoalExtra;
   if (answers.housingType.startsWith("OWN")) maintTotal += 150;
   if (maintTotal > 0) {
-    goalSinkingFunds.push({ name: "Vehicle & Home Maintenance", type: "GOAL", envelopeType: "ONGOING_GOAL", monthlyAud: maintTotal, icon: "🛠️", rationale: "Emergency repair & scheduled maintenance buffer for property and vehicles." });
+    goalSinkingFunds.push({ name: "Vehicle & Home Maintenance", type: "GOAL", envelopeType: "GOAL", fundingMode: "RECURRING", isPriority: false, monthlyAud: maintTotal, icon: "🛠️", rationale: "Emergency repair & scheduled maintenance buffer for property and vehicles." });
   }
 
-  goalSinkingFunds.push({ name: "Emergency Buffer Fund", type: "GOAL", envelopeType: "TARGET_GOAL", monthlyAud: 250, icon: "🆘", isCommitted: true, rationale: "Serene Finance 3-Month Safety Buffer target ($10,000 balance)." });
+  goalSinkingFunds.push({ name: "Emergency Buffer Fund", type: "GOAL", envelopeType: "GOAL", fundingMode: "TARGET_BALANCE", isPriority: true, monthlyAud: 250, icon: "🆘", rationale: "Serene Finance 3-Month Safety Buffer target ($10,000 balance)." });
 
   // --- 7. EVERYDAY BREAKDOWN (GROCERIES, DINING, PERSONAL, PETROL/INCIDENTAL) ---
   const weeklyG = answers.weeklyGroceries;
@@ -322,6 +332,8 @@ export function calculateQuizEstimates(answers: QuizAnswers): EstimationResult {
     name: "Everyday Spending",
     type: "EVERYDAY",
     envelopeType: "EVERYDAY",
+    fundingMode: "TARGET_BALANCE",
+    isPriority: true,
     monthlyAud: monthlyEverydayTotal,
     icon: "💳",
     rationale: "Combined daily expenses (groceries, dining, personal, incidentals) for friction-free spending.",
@@ -331,6 +343,8 @@ export function calculateQuizEstimates(answers: QuizAnswers): EstimationResult {
     name: "Everyday Spending",
     type: "EVERYDAY",
     envelopeType: "EVERYDAY",
+    fundingMode: "TARGET_BALANCE",
+    isPriority: true,
     monthlyAud: monthlyEverydayTotal,
     icon: "💳",
   };
@@ -363,7 +377,8 @@ export const UserGoalItemSchema = z.object({
   name: z.string().min(1),
   monthlyAmount: z.number().nonnegative(),
   icon: z.string().default("target"),
-  goalMode: z.enum(["TARGET_DATE", "ONGOING"]).optional().default("TARGET_DATE"),
+  fundingMode: z.enum(["TARGET_BALANCE", "RECURRING"]).optional().default("TARGET_BALANCE"),
+  isPriority: z.boolean().optional().default(false),
   targetAmount: z.number().nonnegative().optional().nullable(),
   dueDate: z.string().optional().nullable(),
   enteredAmount: z.number().nonnegative().optional().nullable(),
@@ -373,3 +388,4 @@ export const UserGoalItemSchema = z.object({
   isPrivate: z.boolean().optional(),
 });
 export type UserGoalItem = z.infer<typeof UserGoalItemSchema>;
+

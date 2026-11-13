@@ -28,7 +28,7 @@ interface PoolRecord {
 
 export interface IncomeSplitPoolTableProps {
   readonly groups: Array<{
-    type: "EVERYDAY" | "BILL" | "GOAL" | "REGULAR";
+    type: "EVERYDAY" | "BILL" | "GOAL";
     label: string;
     items: AllocationLineItem[];
   }>;
@@ -233,7 +233,7 @@ export function IncomeSplitPoolTable({
                         }
 
                         // Non-Sweep Rows (Bills, Goals, Discretionary Everyday)
-                        const targetDisplay = group.type === "REGULAR"
+                        const targetDisplay = group.type === "BILL"
                           ? (targetNum > 0 ? `${fmt(targetNum)}${t("paydayDrawer.perMonth")}` : "—")
                           : (targetNum > 0 ? (
                               <div>

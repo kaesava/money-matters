@@ -61,7 +61,7 @@ export async function getMonthlySummaryQuery(
     const bal = balancesMap[env.id] || 0;
     if (env.envelopeType === "EVERYDAY") {
       everydayRemaining += bal;
-    } else if (env.envelopeType === "SCHEDULED_BILL" || env.envelopeType === "FLEXIBLE_BILL") {
+    } else if (env.envelopeType === "BILL") {
       billsRemaining += bal;
     }
   }
@@ -117,7 +117,7 @@ export async function getMonthlySummaryQuery(
       if (tx.transactionType === "INCOME_SPLIT" || tx.transactionType === "INCOME_DIRECT") {
         totalIncome += val;
       }
-      if (envType === "TARGET_GOAL" || envType === "ONGOING_GOAL") {
+      if (envType === "GOAL") {
         totalSaved += val;
       }
     } else if (tx.flowType === "DEBIT") {

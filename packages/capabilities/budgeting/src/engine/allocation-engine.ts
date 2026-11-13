@@ -1,4 +1,4 @@
-import { EnvelopeType, AllocationStepType } from "@money-matters/types";
+import { EnvelopeType, FundingMode, AllocationStepType } from "@money-matters/types";
 import { isBillsBucket, isGoalBucket, isEverydayBucket } from "./envelope-engine-mapper.js";
 import { toCents, toDollars, calculateCycleFactor } from "./allocation-engine-utils.js";
 import {
@@ -17,7 +17,7 @@ import {
 
 export { isBillsBucket, isGoalBucket, isEverydayBucket };
 
-export type BucketType = EnvelopeType | "REGULAR" | "GOAL";
+export type BucketType = EnvelopeType;
 
 export interface UpcomingExpenseItem {
   id?: string;
@@ -27,7 +27,7 @@ export interface UpcomingExpenseItem {
   name?: string;
   amount: number;
   dueDate: string;
-  isEssential?: boolean;
+  isPriority?: boolean;
 }
 
 export interface EngineBucket {
@@ -35,20 +35,20 @@ export interface EngineBucket {
   name: string;
   type: BucketType;
   envelopeType?: EnvelopeType;
+  fundingMode?: FundingMode;
   userId?: string;
   isPrivate?: boolean;
-  isEssential?: boolean;
-  isCommitted?: boolean;
+  isPriority?: boolean;
   isSurplusTarget?: boolean;
   monthlyAmount?: number | null;
   enteredAmount?: number | null;
   targetAmount?: number | null;
   safetyBufferFloor?: number | null;
-  goalMode?: "TARGET_DATE" | "ONGOING" | null;
   targetDate?: string | null;
   dueDate?: string | null;
   currentBalance: number;
 }
+
 
 export interface AllocationLine {
   bucketId: string;
@@ -145,9 +145,9 @@ export function runAllocationEngine(input: AllocationEngineInput): AllocationEng
   const defaultSteps: AllocationStrategyStepItem[] = [
     { stepType: "IMMEDIATE_BILLS" },
     { stepType: "EVERYDAY_ALLOWANCE" },
-    { stepType: "ESSENTIAL_BILLS" },
-    { stepType: "COMMITTED_GOALS" },
-    { stepType: "FLEXIBLE_BILLS" },
+    { stepType: "PRIORITY_BILLS" },
+    { stepType: "PRIORITY_GOALS" },
+    { stepType: "STANDARD_BILLS" },
     { stepType: "STANDARD_GOALS" },
     { stepType: "SURPLUS_SWEEP" },
   ];
@@ -206,31 +206,31 @@ export function runAllocationEngine(input: AllocationEngineInput): AllocationEng
         case "EVERYDAY_ALLOWANCE":
           runStep4EverydayAllowance(ctx, everydayBuckets);
           break;
-        case "ESSENTIAL_BILLS": {
-          const essentialBills = billBuckets.filter((b) => b.isEssential);
-          runStep5ProRataBills(ctx, essentialBills, futureExpenses, input.paycheckDate);
+        case "PRIORITY_BILLS": {
+          const priorityBills = billBuckets.filter((b) => b.isPriority);
+          runStep5ProRataBills(ctx, priorityBills, futureExpenses, input.paycheckDate);
           break;
         }
-        case "FLEXIBLE_BILLS": {
-          const standardBills = billBuckets.filter((b) => !b.isEssential);
+        case "STANDARD_BILLS": {
+          const standardBills = billBuckets.filter((b) => !b.isPriority);
           runStep5ProRataBills(ctx, standardBills, futureExpenses, input.paycheckDate);
           break;
         }
         case "PRO_RATA_BILLS": {
-          const essentialBills = billBuckets.filter((b) => b.isEssential);
-          const standardBills = billBuckets.filter((b) => !b.isEssential);
-          runStep5ProRataBills(ctx, essentialBills, futureExpenses, input.paycheckDate);
+          const priorityBills = billBuckets.filter((b) => b.isPriority);
+          const standardBills = billBuckets.filter((b) => !b.isPriority);
+          runStep5ProRataBills(ctx, priorityBills, futureExpenses, input.paycheckDate);
           runStep5ProRataBills(ctx, standardBills, futureExpenses, input.paycheckDate);
           break;
         }
-        case "COMMITTED_GOALS": {
-          const committedGoals = goalBuckets.filter((b) => b.isCommitted);
-          runStep6Goals(ctx, committedGoals, input.paycheckDate, baseNextCutoffTime);
+        case "PRIORITY_GOALS": {
+          const priorityGoals = goalBuckets.filter((b) => b.isPriority);
+          runStep6Goals(ctx, priorityGoals, input.paycheckDate, baseNextCutoffTime);
           break;
         }
         case "STANDARD_GOALS": {
-          const uncommittedGoals = goalBuckets.filter((b) => !b.isCommitted && !b.isSurplusTarget);
-          runStep6Goals(ctx, uncommittedGoals, input.paycheckDate, baseNextCutoffTime);
+          const standardGoals = goalBuckets.filter((b) => !b.isPriority && !b.isSurplusTarget);
+          runStep6Goals(ctx, standardGoals, input.paycheckDate, baseNextCutoffTime);
           break;
         }
         case "FIXED_AMOUNT": {
@@ -290,7 +290,7 @@ export function runAllocationEngine(input: AllocationEngineInput): AllocationEng
 
   const isInsufficient = lines.some((l) => {
     const bucket = input.buckets.find((b) => b.id === l.bucketId);
-    if (!bucket || (!bucket.isEssential && !bucket.isCommitted && !isBillsBucket(bucket))) return false;
+    if (!bucket || (!bucket.isPriority && !isBillsBucket(bucket))) return false;
     const monthlyTarget = toCents(bucket.monthlyAmount ?? bucket.targetAmount ?? 0);
     return l.proposedAmount === 0 && monthlyTarget > 0;
   });

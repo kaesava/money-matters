@@ -31,7 +31,7 @@ export function GoalDelayCard({ goalDelays }: GoalDelayCardProps) {
                 <span className="font-semibold text-slate-900 dark:text-slate-100 text-sm">
                   {goal.goalName}
                 </span>
-                {goal.isCommitted ? (
+                {goal.isPriority ? (
                   <span className="inline-flex items-center gap-1 text-[11px] font-medium px-2 py-0.5 rounded-full bg-amber-100 dark:bg-amber-900/60 text-amber-800 dark:text-amber-300">
                     <ShieldAlert className="w-3 h-3" />
                     {t('canIAfford.goalDelayedCommittedBadge')}

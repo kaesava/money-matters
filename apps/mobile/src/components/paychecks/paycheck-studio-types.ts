@@ -117,10 +117,8 @@ export function calculateAllocatedTotals(
     const val = parseFloat(linesMap[l.bucketId] ?? l.proposedAmount.toString()) || 0;
     if (et === 'EVERYDAY') {
       everydayAllocated += val;
-    } else if (et === 'TARGET_GOAL' || et === 'ONGOING_GOAL' || et === 'GOAL') {
+    } else if (et === 'GOAL') {
       goalsAllocated += val;
-    } else if (et === 'SCHEDULED_BILL' || et === 'FLEXIBLE_BILL' || et === 'BILL') {
-      billsAllocated += val;
     } else {
       billsAllocated += val;
     }

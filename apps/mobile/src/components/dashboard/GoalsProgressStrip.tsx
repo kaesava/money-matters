@@ -12,7 +12,7 @@ export interface GoalItem {
   currentBalance: number | string;
   targetAmount?: string | number | null;
   targetDate?: string | null;
-  goalMode?: 'TARGET_DATE' | 'ONGOING' | string | null;
+  fundingMode?: 'TARGET_BALANCE' | 'RECURRING' | string | null;
   enteredAmount?: string | null;
   budgetFrequency?: 'WEEKLY' | 'FORTNIGHTLY' | 'MONTHLY' | 'ANNUALLY' | string | null;
   progressPercentage?: number;
@@ -51,7 +51,7 @@ export function GoalsProgressStrip({ goals }: GoalsProgressStripProps) {
       const bal = typeof g.currentBalance === 'number' ? g.currentBalance : parseFloat(String(g.currentBalance || '0')) || 0;
       accSavings += bal;
 
-      const isRecurring = g.goalMode === 'ONGOING';
+      const isRecurring = g.fundingMode === 'RECURRING';
       if (isRecurring) {
         recurringCount += 1;
         const rawAmt = parseFloat(String(g.targetAmount || g.enteredAmount || '0')) || 0;

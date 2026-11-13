@@ -20,7 +20,7 @@ interface SetupReviewCategoryListProps {
   onRemoveCategory: (name: string) => void;
   convertToMonthly: (amount: number, freq: "WEEKLY" | "FORTNIGHTLY" | "MONTHLY" | "QUARTERLY" | "YEARLY") => number;
   convertFromMonthly: (monthlyAmount: number, freq: "WEEKLY" | "FORTNIGHTLY" | "MONTHLY" | "QUARTERLY" | "YEARLY") => number;
-  onToggleBillType?: (name: string, newType: "SCHEDULED_BILL" | "FLEXIBLE_BILL") => void;
+  onToggleBillType?: (name: string, newType: "RECURRING" | "TARGET_BALANCE") => void;
   onEditCategory?: (category: EstimatedCategoryItem) => void;
   isRerun?: boolean;
   children?: React.ReactNode;
@@ -62,8 +62,8 @@ export function SetupReviewCategoryList({
         {categories.map((cat) => {
           const freq = categoryFrequencies[cat.name] || "MONTHLY";
           const displayVal = convertFromMonthly(cat.monthlyAud, freq);
-          const isBill = cat.type === "REGULAR" || cat.type === "BILL";
-          const isFlexible = cat.envelopeType === "FLEXIBLE_BILL";
+          const isBill = cat.type === "BILL";
+          const isFlexible = cat.fundingMode === "TARGET_BALANCE";
           const isSpecial =
             cat.envelopeType === "EVERYDAY" ||
             cat.type === "EVERYDAY" ||
@@ -81,14 +81,14 @@ export function SetupReviewCategoryList({
                 {isBill && onToggleBillType && (
                   <button
                     type="button"
-                    onClick={() => onToggleBillType(cat.name, isFlexible ? "SCHEDULED_BILL" : "FLEXIBLE_BILL")}
+                    onClick={() => onToggleBillType(cat.name, isFlexible ? "RECURRING" : "TARGET_BALANCE")}
                     className={`text-[10px] font-bold px-2 py-0.5 rounded-full border transition-all cursor-pointer shrink-0 ${
                       isFlexible
                         ? "bg-slate-100 text-slate-700 border-slate-300 hover:bg-slate-200"
                         : "bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100"
                     }`}
                   >
-                    {isFlexible ? "Flexible" : "Scheduled"}
+                    {isFlexible ? t("categories.flexibleBillBadge") : t("categories.scheduledBillBadge")}
                   </button>
                 )}
               </div>

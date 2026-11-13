@@ -35,7 +35,8 @@ export async function processSetupScheduledBills(
   const candidates: EnvelopeScheduleCandidate[] = [];
 
   for (const envInput of envelopesInput) {
-    if (envInput.envelopeType !== "SCHEDULED_BILL" || envInput.generateEvents === false) continue;
+    const isRecurringBill = envInput.envelopeType === "BILL" && (envInput.fundingMode === "RECURRING" || envInput.fundingMode === undefined);
+    if (!isRecurringBill || envInput.generateEvents === false) continue;
 
     const amountVal = envInput.enteredAmount || envInput.monthlyAmount || "0.00";
     if (parseFloat(amountVal) <= 0) continue;

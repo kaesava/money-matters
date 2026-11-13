@@ -49,14 +49,10 @@ export async function createEnvelopeCommand(
         .where(and(...clearConditions));
     }
 
-    const effectiveDbEnvelopeType =
-      input.envelopeType === "BILL"
-        ? (input.fundingMode === "RECURRING" ? "SCHEDULED_BILL" : "FLEXIBLE_BILL")
-        : input.envelopeType === "GOAL"
-        ? (input.fundingMode === "RECURRING" || input.goalMode === "ONGOING" ? "ONGOING_GOAL" : "TARGET_GOAL")
-        : input.envelopeType;
+    const fundingMode = input.fundingMode ?? (input.envelopeType === "GOAL" ? "TARGET_BALANCE" : "RECURRING");
+    const isPriority = input.isPriority ?? false;
 
-    const isScheduled = effectiveDbEnvelopeType === "SCHEDULED_BILL";
+    const isScheduled = input.envelopeType === "BILL" && fundingMode === "RECURRING";
     const rrule = isScheduled
       ? input.rrule || deriveRruleFromFrequency(input.budgetFrequency)
       : input.rrule || null;
@@ -73,7 +69,9 @@ export async function createEnvelopeCommand(
       .insert(envelopes)
       .values({
         name: input.name,
-        envelopeType: effectiveDbEnvelopeType,
+        envelopeType: input.envelopeType,
+        fundingMode,
+        isPriority,
         bankAccountId: input.bankAccountId,
         safetyBufferFloor: input.safetyBufferFloor || "0.00",
         monthlyAmount: input.monthlyAmount || null,
@@ -82,10 +80,7 @@ export async function createEnvelopeCommand(
         startDate,
         endDate,
         rrule,
-        goalMode: input.goalMode ?? (effectiveDbEnvelopeType === "TARGET_GOAL" ? "TARGET_DATE" : "ONGOING"),
         targetAmount: input.targetAmount || null,
-        isEssential: input.isPriority ?? input.isEssential ?? false,
-        isCommitted: input.isPriority ?? input.isCommitted ?? false,
         isSurplusTarget: input.isSurplusTarget ?? false,
         isPrivate,
         generateEvents: input.generateEvents ?? true,

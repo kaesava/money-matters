@@ -8,9 +8,9 @@ export interface EnvelopeModalItem {
   id: string;
   poolId?: string;
   name: string;
-  type?: "EVERYDAY" | "REGULAR" | "GOAL" | string;
-  poolType?: "EVERYDAY" | "REGULAR" | "GOAL" | string;
+  type?: "EVERYDAY" | "BILL" | "GOAL" | string;
   envelopeType?: string;
+  fundingMode?: "TARGET_BALANCE" | "RECURRING" | null;
   bankAccountId?: string | null;
   isPrivate?: boolean | null;
   monthlyAmount?: string | null;
@@ -18,15 +18,13 @@ export interface EnvelopeModalItem {
   targetAmount?: string | null;
   endDate?: string | null;
   targetDate?: string | null;
-  goalMode?: "TARGET_DATE" | "ONGOING" | null;
   enteredAmount?: string | null;
   budgetFrequency?: "WEEKLY" | "FORTNIGHTLY" | "MONTHLY" | "ANNUALLY" | string | null;
   startDate?: string | null;
   rrule?: string | null;
   isSurplusTarget?: boolean | null;
   hasScheduledEvents?: boolean | null;
-  isEssential?: boolean | null;
-  isCommitted?: boolean | null;
+  isPriority?: boolean | null;
 }
 
 export interface UseEnvelopeFormModalStateParams {
@@ -43,19 +41,17 @@ export function useEnvelopeFormModalState({
   const isEdit = Boolean(categoryToEdit?.id);
 
   const [name, setName] = useState("");
-  const [type, setType] = useState<"EVERYDAY" | "REGULAR" | "GOAL">("REGULAR");
-  const [billMode, setBillMode] = useState<"SCHEDULED_BILL" | "FLEXIBLE_BILL">("SCHEDULED_BILL");
+  const [type, setType] = useState<"EVERYDAY" | "BILL" | "GOAL">("BILL");
+  const [fundingMode, setFundingMode] = useState<"RECURRING" | "TARGET_BALANCE">("RECURRING");
   const [bankAccountId, setBankAccountId] = useState("");
   const [safetyBufferFloor, setSafetyBufferFloor] = useState("");
   const [targetAmount, setTargetAmount] = useState("");
   const [targetDate, setTargetDate] = useState("");
-  const [goalMode, setGoalMode] = useState<"TARGET_DATE" | "ONGOING">("TARGET_DATE");
   const [frequency, setFrequency] = useState<RecurrenceFrequency>("MONTHLY");
   const [interval, setInterval] = useState<number>(1);
   const [goalStartDate, setGoalStartDate] = useState("");
   const [isSurplusTarget, setIsSurplusTarget] = useState(false);
-  const [isEssential, setIsEssential] = useState(false);
-  const [isCommitted, setIsCommitted] = useState(false);
+  const [isPriority, setIsPriority] = useState(false);
   const [generateEvents, setGenerateEvents] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
@@ -65,15 +61,16 @@ export function useEnvelopeFormModalState({
   useEffect(() => {
     if (categoryToEdit) {
       setName(categoryToEdit.name || "");
-      const rawType = categoryToEdit.envelopeType || categoryToEdit.poolType || categoryToEdit.type || "REGULAR";
-      const resolvedType: "EVERYDAY" | "REGULAR" | "GOAL" =
-        rawType === "EVERYDAY"
-          ? "EVERYDAY"
-          : rawType === "TARGET_GOAL" || rawType === "ONGOING_GOAL" || rawType.includes("GOAL")
-          ? "GOAL"
-          : "REGULAR";
+      const rawType = categoryToEdit.envelopeType || categoryToEdit.type || "BILL";
+      const resolvedType: "EVERYDAY" | "BILL" | "GOAL" =
+        rawType === "EVERYDAY" ? "EVERYDAY" : rawType === "GOAL" ? "GOAL" : "BILL";
       setType(resolvedType);
-      setBillMode(rawType === "FLEXIBLE_BILL" ? "FLEXIBLE_BILL" : "SCHEDULED_BILL");
+
+      const resolvedFundingMode: "RECURRING" | "TARGET_BALANCE" =
+        categoryToEdit.fundingMode ??
+        (resolvedType === "GOAL" ? "TARGET_BALANCE" : "RECURRING");
+      setFundingMode(resolvedFundingMode);
+
       setBankAccountId(categoryToEdit.bankAccountId || "");
       setSafetyBufferFloor(categoryToEdit.safetyBufferFloor || "");
       setTargetAmount(
@@ -81,34 +78,28 @@ export function useEnvelopeFormModalState({
       );
       const rawDate = categoryToEdit.endDate || categoryToEdit.targetDate || "";
       setTargetDate(rawDate ? rawDate.split("T")[0] : "");
-      setGoalMode(categoryToEdit.goalMode === "ONGOING" || rawType === "ONGOING_GOAL" ? "ONGOING" : "TARGET_DATE");
       const parsedRecurrence = parseRecurrenceRule(categoryToEdit.rrule, categoryToEdit.budgetFrequency);
       setFrequency(parsedRecurrence.frequency);
       setInterval(parsedRecurrence.interval);
       const rawStartDate = categoryToEdit.startDate || "";
       setGoalStartDate(rawStartDate ? rawStartDate.split("T")[0] : "");
       setIsSurplusTarget(categoryToEdit.isSurplusTarget ?? false);
-      setIsEssential(categoryToEdit.isEssential ?? false);
-      setIsCommitted(categoryToEdit.isCommitted ?? false);
-      const isInitialScheduled =
-        (categoryToEdit.envelopeType || categoryToEdit.poolType || categoryToEdit.type || "REGULAR") ===
-        "SCHEDULED_BILL";
+      setIsPriority(categoryToEdit.isPriority ?? false);
+      const isInitialScheduled = resolvedType === "BILL" && resolvedFundingMode === "RECURRING";
       setGenerateEvents(categoryToEdit.hasScheduledEvents ?? isInitialScheduled);
     } else {
       setName("");
-      setType("REGULAR");
-      setBillMode("SCHEDULED_BILL");
+      setType("BILL");
+      setFundingMode("RECURRING");
       setBankAccountId(bankAccounts[0]?.id || "");
       setSafetyBufferFloor("");
       setTargetAmount("");
       setTargetDate("");
-      setGoalMode("TARGET_DATE");
       setFrequency("MONTHLY");
       setInterval(1);
       setGoalStartDate(new Intl.DateTimeFormat("en-CA").format(new Date()));
       setIsSurplusTarget(false);
-      setIsEssential(false);
-      setIsCommitted(false);
+      setIsPriority(false);
       setGenerateEvents(true);
     }
     setErrorMsg(null);
@@ -116,7 +107,7 @@ export function useEnvelopeFormModalState({
 
   useEffect(() => {
     if (!isEdit && bankAccounts.length > 0) {
-      if (type === "REGULAR" || type === "EVERYDAY") {
+      if (type === "BILL" || type === "EVERYDAY") {
         setBankAccountId(bankAccounts[0]?.id || "");
       }
     }
@@ -135,25 +126,24 @@ export function useEnvelopeFormModalState({
   }, [targetAmount, frequency, interval]);
 
   const rruleString = useMemo(() => {
-    const isScheduledBill = type === "REGULAR" && billMode === "SCHEDULED_BILL";
-    const isOngoingGoal = type === "GOAL" && goalMode === "ONGOING";
-    if (!isScheduledBill && !isOngoingGoal) return null;
+    const isRecurring = (type === "BILL" || type === "GOAL") && fundingMode === "RECURRING";
+    if (!isRecurring) return null;
     return buildRecurrenceRule(frequency, interval);
-  }, [type, billMode, goalMode, frequency, interval]);
+  }, [type, fundingMode, frequency, interval]);
 
   const isValid = useMemo(() => {
     if (!name.trim()) return false;
     if (!isEdit && !bankAccountId) return false;
     if (type === "GOAL") {
       if (!targetAmount || parseFloat(targetAmount) <= 0) return false;
-      if (goalMode === "TARGET_DATE" && !targetDate) return false;
+      if (fundingMode === "TARGET_BALANCE" && !targetDate) return false;
     }
-    if (type === "REGULAR") {
+    if (type === "BILL") {
       if (!targetAmount || parseFloat(targetAmount) <= 0) return false;
-      if (billMode === "SCHEDULED_BILL" && !goalStartDate) return false;
+      if (fundingMode === "RECURRING" && !goalStartDate) return false;
     }
     return true;
-  }, [name, isEdit, bankAccountId, type, billMode, targetAmount, goalMode, targetDate, goalStartDate]);
+  }, [name, isEdit, bankAccountId, type, fundingMode, targetAmount, targetDate, goalStartDate]);
 
   const isDirty = useMemo(() => {
     if (!isEdit) {
@@ -164,22 +154,21 @@ export function useEnvelopeFormModalState({
           targetAmount.trim() ||
           targetDate ||
           isSurplusTarget ||
-          isEssential ||
-          isCommitted ||
-          type !== "REGULAR" ||
-          billMode !== "SCHEDULED_BILL" ||
-          goalMode !== "TARGET_DATE" ||
+          isPriority ||
+          type !== "BILL" ||
+          fundingMode !== "RECURRING" ||
           frequency !== "MONTHLY" ||
           interval !== 1 ||
-          (billMode === "SCHEDULED_BILL" && !generateEvents)
+          (type === "BILL" && fundingMode === "RECURRING" && !generateEvents)
       );
     }
     if (!categoryToEdit) return false;
     const initialName = (categoryToEdit.name || "").trim();
-    const rawType = categoryToEdit.envelopeType || categoryToEdit.poolType || categoryToEdit.type || "REGULAR";
-    const initialBillMode = rawType === "FLEXIBLE_BILL" ? "FLEXIBLE_BILL" : "SCHEDULED_BILL";
-    const initialGoalMode =
-      categoryToEdit.goalMode === "ONGOING" || rawType === "ONGOING_GOAL" ? "ONGOING" : "TARGET_DATE";
+    const rawType = categoryToEdit.envelopeType || categoryToEdit.type || "BILL";
+    const initialType: "EVERYDAY" | "BILL" | "GOAL" =
+      rawType === "EVERYDAY" ? "EVERYDAY" : rawType === "GOAL" ? "GOAL" : "BILL";
+    const initialFundingMode: "RECURRING" | "TARGET_BALANCE" =
+      categoryToEdit.fundingMode ?? (initialType === "GOAL" ? "TARGET_BALANCE" : "RECURRING");
     const initialFloor = (categoryToEdit.safetyBufferFloor || "").trim();
     const initialTarget = (
       categoryToEdit.enteredAmount ||
@@ -195,22 +184,22 @@ export function useEnvelopeFormModalState({
     const rawStartDate = categoryToEdit.startDate || "";
     const initialStartDate = rawStartDate ? rawStartDate.split("T")[0] : "";
     const initialSurplus = categoryToEdit.isSurplusTarget ?? false;
-    const initialEssential = categoryToEdit.isEssential ?? false;
-    const initialCommitted = categoryToEdit.isCommitted ?? false;
-    const initialGenerate = categoryToEdit.hasScheduledEvents ?? (initialBillMode === "SCHEDULED_BILL");
+    const initialPriority = categoryToEdit.isPriority ?? false;
+    const initialGenerate = categoryToEdit.hasScheduledEvents ?? (initialType === "BILL" && initialFundingMode === "RECURRING");
 
     if (name.trim() !== initialName) return true;
     if (isSurplusTarget !== initialSurplus) return true;
+    if (isPriority !== initialPriority) return true;
+    if (type !== initialType) return true;
+    if (fundingMode !== initialFundingMode) return true;
 
     if (type === "EVERYDAY") {
       return safetyBufferFloor.trim() !== initialFloor;
     }
 
-    if (type === "REGULAR") {
-      if (isEssential !== initialEssential) return true;
-      if (billMode !== initialBillMode) return true;
+    if (type === "BILL") {
       if (targetAmount.trim() !== initialTarget) return true;
-      if (billMode === "SCHEDULED_BILL") {
+      if (fundingMode === "RECURRING") {
         if (frequency !== initialFreq) return true;
         if (interval !== initialInterval) return true;
         if (goalStartDate !== initialStartDate) return true;
@@ -221,13 +210,11 @@ export function useEnvelopeFormModalState({
     }
 
     if (type === "GOAL") {
-      if (isCommitted !== initialCommitted) return true;
-      if (goalMode !== initialGoalMode) return true;
       if (targetAmount.trim() !== initialTarget) return true;
-      if (goalMode === "TARGET_DATE") {
+      if (fundingMode === "TARGET_BALANCE") {
         return targetDate !== initialDate;
       }
-      if (goalMode === "ONGOING") {
+      if (fundingMode === "RECURRING") {
         if (frequency !== initialFreq) return true;
         if (interval !== initialInterval) return true;
         if (goalStartDate !== initialStartDate) return true;
@@ -241,16 +228,14 @@ export function useEnvelopeFormModalState({
     isEdit,
     categoryToEdit,
     name,
-    billMode,
     bankAccountId,
     safetyBufferFloor,
     targetAmount,
     targetDate,
-    goalMode,
+    fundingMode,
     frequency,
     interval,
-    isEssential,
-    isCommitted,
+    isPriority,
     goalStartDate,
     isSurplusTarget,
     type,
@@ -259,14 +244,13 @@ export function useEnvelopeFormModalState({
 
   const todayStr = useMemo(() => new Intl.DateTimeFormat("en-CA").format(new Date()), []);
   const isTargetDateInPast = useMemo(() => {
-    return Boolean(type === "GOAL" && goalMode === "TARGET_DATE" && targetDate && targetDate < todayStr);
-  }, [type, goalMode, targetDate, todayStr]);
+    return Boolean(type === "GOAL" && fundingMode === "TARGET_BALANCE" && targetDate && targetDate < todayStr);
+  }, [type, fundingMode, targetDate, todayStr]);
 
   const initialGenerateEvents = useMemo(() => {
     if (!isEdit || !categoryToEdit) return true;
-    const isInitialScheduled =
-      (categoryToEdit.envelopeType || categoryToEdit.poolType || categoryToEdit.type || "REGULAR") ===
-      "SCHEDULED_BILL";
+    const rawType = categoryToEdit.envelopeType || categoryToEdit.type || "BILL";
+    const isInitialScheduled = rawType === "BILL" && categoryToEdit.fundingMode === "RECURRING";
     return categoryToEdit.hasScheduledEvents ?? isInitialScheduled;
   }, [isEdit, categoryToEdit]);
 
@@ -275,14 +259,14 @@ export function useEnvelopeFormModalState({
     if (!isEdit && !bankAccountId) return t("categories.bankAccountRequired");
     if (type === "GOAL") {
       if (!targetAmount || parseFloat(targetAmount) <= 0) return t("categories.goalAmountRequired");
-      if (goalMode === "TARGET_DATE" && !targetDate) return t("categories.goalDateRequired");
-      if (goalMode === "ONGOING" && goalStartDate && targetDate && targetDate < goalStartDate) {
+      if (fundingMode === "TARGET_BALANCE" && !targetDate) return t("categories.goalDateRequired");
+      if (fundingMode === "RECURRING" && goalStartDate && targetDate && targetDate < goalStartDate) {
         return t("categories.endDateBeforeStartDate");
       }
     }
-    if (type === "REGULAR") {
+    if (type === "BILL") {
       if (!targetAmount || parseFloat(targetAmount) <= 0) return t("categories.billAmountRequired");
-      if (billMode === "SCHEDULED_BILL") {
+      if (fundingMode === "RECURRING") {
         if (!goalStartDate) return t("categories.billStartDateRequired");
         if (targetDate && targetDate < goalStartDate) {
           return t("categories.endDateBeforeStartDate");
@@ -294,8 +278,11 @@ export function useEnvelopeFormModalState({
 
   const isScheduleRuleChanged = useMemo(() => {
     if (!isEdit || !categoryToEdit) return false;
-    const rawType = categoryToEdit.envelopeType || categoryToEdit.poolType || categoryToEdit.type || "REGULAR";
-    const initialBillMode = rawType === "FLEXIBLE_BILL" ? "FLEXIBLE_BILL" : "SCHEDULED_BILL";
+    const rawType = categoryToEdit.envelopeType || categoryToEdit.type || "BILL";
+    const initialType =
+      rawType === "EVERYDAY" ? "EVERYDAY" : rawType === "GOAL" ? "GOAL" : "BILL";
+    const initialFundingMode: "RECURRING" | "TARGET_BALANCE" =
+      categoryToEdit.fundingMode ?? (initialType === "GOAL" ? "TARGET_BALANCE" : "RECURRING");
     const parsedInitialRecurrence = parseRecurrenceRule(categoryToEdit.rrule, categoryToEdit.budgetFrequency);
     const initialFreq = parsedInitialRecurrence.frequency;
     const initialInterval = parsedInitialRecurrence.interval;
@@ -303,13 +290,13 @@ export function useEnvelopeFormModalState({
     const initialStartDate = rawStartDate ? rawStartDate.split("T")[0] : "";
     const rawDate = categoryToEdit.endDate || categoryToEdit.targetDate || "";
     const initialDate = rawDate ? rawDate.split("T")[0] : "";
-    const initialGenerate = categoryToEdit.hasScheduledEvents ?? (initialBillMode === "SCHEDULED_BILL");
+    const initialGenerate = categoryToEdit.hasScheduledEvents ?? (initialType === "BILL" && initialFundingMode === "RECURRING");
 
-    const isCurrentScheduled = type === "REGULAR" && billMode === "SCHEDULED_BILL";
-    const wasScheduled = initialBillMode === "SCHEDULED_BILL";
+    const isCurrentScheduled = type === "BILL" && fundingMode === "RECURRING";
+    const wasScheduled = initialType === "BILL" && initialFundingMode === "RECURRING";
 
-    if (type === "REGULAR" && (isCurrentScheduled || wasScheduled)) {
-      if (billMode !== initialBillMode) return true;
+    if (type === "BILL" && (isCurrentScheduled || wasScheduled)) {
+      if (fundingMode !== initialFundingMode) return true;
       if (frequency !== initialFreq) return true;
       if (interval !== initialInterval) return true;
       if ((goalStartDate || "") !== initialStartDate) return true;
@@ -317,66 +304,39 @@ export function useEnvelopeFormModalState({
       if (generateEvents !== initialGenerate) return true;
     }
     return false;
-  }, [isEdit, categoryToEdit, type, billMode, frequency, interval, goalStartDate, targetDate, generateEvents]);
+  }, [isEdit, categoryToEdit, type, fundingMode, frequency, interval, goalStartDate, targetDate, generateEvents]);
 
   const buildPayload = () => {
-    const isScheduledBill = type === "REGULAR" && billMode === "SCHEDULED_BILL";
-    const isFlexibleBill = type === "REGULAR" && billMode === "FLEXIBLE_BILL";
-    const isOngoingGoal = type === "GOAL" && goalMode === "ONGOING";
-    const isTargetGoal = type === "GOAL" && goalMode === "TARGET_DATE";
+    const isRecurringBill = type === "BILL" && fundingMode === "RECURRING";
+    const isTargetBalanceBill = type === "BILL" && fundingMode === "TARGET_BALANCE";
+    const isRecurringGoal = type === "GOAL" && fundingMode === "RECURRING";
+    const isTargetGoal = type === "GOAL" && fundingMode === "TARGET_BALANCE";
 
     const finalTargetAmount =
-      isTargetGoal || isFlexibleBill ? parseFloat(targetAmount).toFixed(2) : undefined;
+      isTargetGoal || isTargetBalanceBill ? parseFloat(targetAmount).toFixed(2) : undefined;
 
     const enteredAmountVal =
-      isScheduledBill || isFlexibleBill || isOngoingGoal ? parseFloat(targetAmount).toFixed(2) : undefined;
-
-    const envelopeType: "EVERYDAY" | "SCHEDULED_BILL" | "FLEXIBLE_BILL" | "TARGET_GOAL" | "ONGOING_GOAL" =
-      type === "EVERYDAY"
-        ? "EVERYDAY"
-        : type === "GOAL"
-        ? goalMode === "ONGOING"
-          ? "ONGOING_GOAL"
-          : "TARGET_GOAL"
-        : billMode === "FLEXIBLE_BILL"
-        ? "FLEXIBLE_BILL"
-        : "SCHEDULED_BILL";
-
-    const fundingMode: "TARGET_BALANCE" | "RECURRING" | undefined =
-      type === "EVERYDAY"
-        ? undefined
-        : type === "GOAL"
-        ? goalMode === "ONGOING"
-          ? "RECURRING"
-          : "TARGET_BALANCE"
-        : billMode === "FLEXIBLE_BILL"
-        ? "TARGET_BALANCE"
-        : "RECURRING";
-
-    const isPriorityVal = Boolean(isEssential || isCommitted);
+      isRecurringBill || isTargetBalanceBill || isRecurringGoal ? parseFloat(targetAmount).toFixed(2) : undefined;
 
     return {
       name: name.trim(),
-      envelopeType,
-      fundingMode,
-      isPriority: isPriorityVal,
+      envelopeType: type,
+      fundingMode: type === "EVERYDAY" ? undefined : fundingMode,
+      isPriority,
       safetyBufferFloor: type === "EVERYDAY" ? safetyBufferFloor || "0.00" : undefined,
       targetAmount: finalTargetAmount,
-      monthlyAmount: isFlexibleBill
+      monthlyAmount: isTargetBalanceBill
         ? finalTargetAmount
-        : isScheduledBill || isOngoingGoal
+        : isRecurringBill || isRecurringGoal
         ? calculatedMonthly
         : undefined,
       enteredAmount: enteredAmountVal,
-      endDate: (isTargetGoal || isScheduledBill || isOngoingGoal) ? (targetDate || undefined) : undefined,
-      budgetFrequency: isScheduledBill || isOngoingGoal ? frequency : isFlexibleBill ? ("MONTHLY" as const) : undefined,
-      startDate: isScheduledBill || isOngoingGoal ? goalStartDate || undefined : undefined,
-      rrule: isScheduledBill || isOngoingGoal ? rruleString || undefined : undefined,
-      goalMode: type === "GOAL" ? goalMode : undefined,
+      endDate: (isTargetGoal || isRecurringBill || isRecurringGoal) ? (targetDate || undefined) : undefined,
+      budgetFrequency: isRecurringBill || isRecurringGoal ? frequency : isTargetBalanceBill ? ("MONTHLY" as const) : undefined,
+      startDate: isRecurringBill || isRecurringGoal ? goalStartDate || undefined : undefined,
+      rrule: isRecurringBill || isRecurringGoal ? rruleString || undefined : undefined,
       isSurplusTarget: type !== "EVERYDAY" ? isSurplusTarget : undefined,
-      isEssential: type === "REGULAR" ? isEssential : undefined,
-      isCommitted: type === "GOAL" ? isCommitted : undefined,
-      generateEvents: isScheduledBill ? generateEvents : undefined,
+      generateEvents: isRecurringBill ? generateEvents : undefined,
     };
   };
 
@@ -386,8 +346,8 @@ export function useEnvelopeFormModalState({
     setName,
     type,
     setType,
-    billMode,
-    setBillMode,
+    fundingMode,
+    setFundingMode,
     bankAccountId,
     setBankAccountId,
     safetyBufferFloor,
@@ -397,8 +357,6 @@ export function useEnvelopeFormModalState({
     targetDate,
     setTargetDate,
     isTargetDateInPast,
-    goalMode,
-    setGoalMode,
     frequency,
     setFrequency,
     interval,
@@ -407,10 +365,8 @@ export function useEnvelopeFormModalState({
     setGoalStartDate,
     isSurplusTarget,
     setIsSurplusTarget,
-    isEssential,
-    setIsEssential,
-    isCommitted,
-    setIsCommitted,
+    isPriority,
+    setIsPriority,
     generateEvents,
     setGenerateEvents,
     submitting,

@@ -8,7 +8,7 @@ export interface MobileEnvelopeOption {
   name: string;
   poolType?: string;
   envelopeType?: string;
-  goalMode?: string;
+  fundingMode?: string | null;
   isPrivate?: boolean | null;
   currentBalance?: string | number;
   categories?: Array<{ id: string; name: string }>;

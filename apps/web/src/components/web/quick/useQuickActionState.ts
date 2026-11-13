@@ -59,7 +59,7 @@ export function useQuickActionState(
     const poolsList = rawPools ?? [];
 
     return poolsList
-      .filter((p) => isIncome || isTransfer || p.envelopeType === "SCHEDULED_BILL" || p.envelopeType === "FLEXIBLE_BILL" || p.envelopeType === "TARGET_GOAL" || p.envelopeType === "ONGOING_GOAL")
+      .filter((p) => isIncome || isTransfer || p.envelopeType === "BILL" || p.envelopeType === "GOAL")
       .map((p) => {
         return {
           ...p,

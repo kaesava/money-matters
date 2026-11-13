@@ -10,7 +10,7 @@ interface PoolGroupSectionItem {
   name: string;
   envelopeType?: string | null;
   poolType?: string | null;
-  goalMode?: string | null;
+  fundingMode?: 'TARGET_BALANCE' | 'RECURRING' | null;
   budgetFrequency?: string | null;
   currentBalance?: number | string | null;
   targetAmount?: string | null;
@@ -29,8 +29,8 @@ interface PoolGroupSectionProps {
   isCollapsed: boolean;
   onToggleCollapse: () => void;
   bankAccounts: BankAccountItem[];
-  groupType?: 'EVERYDAY' | 'REGULAR' | 'GOAL';
-  onAddPool?: (type: 'EVERYDAY' | 'REGULAR' | 'GOAL') => void;
+  groupType?: 'EVERYDAY' | 'BILL' | 'GOAL';
+  onAddPool?: (type: 'EVERYDAY' | 'BILL' | 'GOAL') => void;
 }
 
 export function PoolGroupSection({
@@ -68,7 +68,7 @@ export function PoolGroupSection({
             style={styles.addBtn}
             hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
             accessibilityLabel={
-              groupType === 'REGULAR'
+              groupType === 'BILL'
                 ? t('categories.createBillEnvelopeTooltip')
                 : t('categories.createGoalEnvelopeTooltip')
             }

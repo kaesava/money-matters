@@ -66,11 +66,11 @@ export function MarkPaidModal({
 
   const poolType = currentPool?.envelopeType;
   const formattedPoolType = poolType === 'EVERYDAY'
-    ? 'Everyday'
-    : (poolType === 'SCHEDULED_BILL' || poolType === 'FLEXIBLE_BILL')
-    ? 'Bills'
-    : 'Goal';
-  const formattedPoolName = currentPool?.name || 'Envelope';
+    ? t('categories.everydayBadge')
+    : poolType === 'BILL'
+    ? t('categories.billBadge')
+    : t('categories.goalBadge');
+  const formattedPoolName = currentPool?.name || t('categories.mainPool');
 
   return (
     <MobileModalDialog

@@ -14,6 +14,7 @@ export interface ScheduleSummaryOptions {
   startDate?: string | null;
   endDate?: string | null;
   envelopeType?: string | null;
+  fundingMode?: string | null;
   locale?: string;
   timeZone?: string;
 }
@@ -98,8 +99,8 @@ export function formatScheduleSummary(
   options: ScheduleSummaryOptions,
   dateFormatter?: (d: string | Date | number | null | undefined) => string
 ): string {
-  const { rrule, startDate, endDate, envelopeType } = options;
-  if (envelopeType === "FLEXIBLE_BILL") {
+  const { rrule, startDate, endDate, fundingMode } = options;
+  if (fundingMode === "TARGET_BALANCE") {
     return t("categories.drawdownAsNeeded");
   }
 

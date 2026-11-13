@@ -45,7 +45,7 @@ export function ReconciliationPoolRow({
 
   const badgeStyle = isEveryday
     ? styles.badgeEveryday
-    : pool.poolType === 'REGULAR'
+    : pool.poolType === 'BILL'
     ? styles.badgeBills
     : styles.badgeGoals;
 
@@ -68,7 +68,7 @@ export function ReconciliationPoolRow({
             <Text style={styles.typeText}>
               {pool.poolType === 'EVERYDAY'
                 ? t('poolTypes.everyday')
-                : pool.poolType === 'REGULAR'
+                : pool.poolType === 'BILL'
                 ? t('poolTypes.bills')
                 : t('poolTypes.goals')}
             </Text>

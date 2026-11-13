@@ -11,8 +11,8 @@ import { t } from '@money-matters/i18n';
 import { EnvelopeRecurrenceFields } from './EnvelopeRecurrenceFields';
 
 export interface EnvelopeGoalFieldsProps {
-  goalMode?: 'TARGET_DATE' | 'ONGOING';
-  setGoalMode?: (v: 'TARGET_DATE' | 'ONGOING') => void;
+  fundingMode?: 'TARGET_BALANCE' | 'RECURRING';
+  setFundingMode?: (v: 'TARGET_BALANCE' | 'RECURRING') => void;
   targetAmount: string;
   setTargetAmount: (v: string) => void;
   targetDate: string;
@@ -30,8 +30,8 @@ export interface EnvelopeGoalFieldsProps {
 }
 
 export const EnvelopeGoalFields: React.FC<EnvelopeGoalFieldsProps> = ({
-  goalMode = 'TARGET_DATE',
-  setGoalMode,
+  fundingMode = 'TARGET_BALANCE',
+  setFundingMode,
   targetAmount,
   setTargetAmount,
   targetDate,
@@ -49,11 +49,11 @@ export const EnvelopeGoalFields: React.FC<EnvelopeGoalFieldsProps> = ({
 }) => {
   return (
     <>
-      {setGoalMode && (
-        <MobileGoalModeToggle value={goalMode} onChange={setGoalMode} />
+      {setFundingMode && (
+        <MobileGoalModeToggle value={fundingMode} onChange={setFundingMode} />
       )}
 
-      {goalMode === 'TARGET_DATE' ? (
+      {fundingMode === 'TARGET_BALANCE' ? (
         <View style={styles.goalInputsCol}>
           <AmountInput
             label={t('categories.targetAmountLabel')}

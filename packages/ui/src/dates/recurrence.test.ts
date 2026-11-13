@@ -84,8 +84,8 @@ describe("recurrence utils", () => {
   describe("formatScheduleSummary", () => {
     const mockFmt = (d: unknown) => String(d);
 
-    it("formats flexible bill", () => {
-      expect(formatScheduleSummary({ envelopeType: "FLEXIBLE_BILL" })).toBe("Drawdown as needed");
+    it("formats flexible target balance bill", () => {
+      expect(formatScheduleSummary({ envelopeType: "BILL", fundingMode: "TARGET_BALANCE" })).toBe("Drawdown as needed");
     });
 
     it("formats monthly with interval 2", () => {

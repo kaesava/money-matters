@@ -50,16 +50,19 @@ describe('Command Schemas Validation', () => {
   it('validates CreateEnvelopeCommand and UpdateEnvelopeCommand', () => {
     const envCmd = CreateEnvelopeCommand.parse({
       name: 'Joint Bills',
-      envelopeType: 'SCHEDULED_BILL',
+      envelopeType: 'BILL',
+      fundingMode: 'RECURRING',
+      isPriority: true,
       bankAccountId: '11111111-1111-4111-8111-111111111111',
     });
-    expect(envCmd.envelopeType).toBe('SCHEDULED_BILL');
+    expect(envCmd.envelopeType).toBe('BILL');
+    expect(envCmd.fundingMode).toBe('RECURRING');
 
     const updateEnv = UpdateEnvelopeCommand.parse({
-      isCommitted: true,
+      isPriority: true,
       targetAmount: '300.00',
     });
-    expect(updateEnv.isCommitted).toBe(true);
+    expect(updateEnv.isPriority).toBe(true);
   });
 
   it('validates CreateIncomeSourceCommand and UpdateIncomeSourceCommand', () => {
@@ -208,7 +211,7 @@ describe('Command Schemas Validation', () => {
       ],
       envelopes: [
         { name: 'Everyday Spending', envelopeType: 'EVERYDAY', monthlyAmount: '800.00' },
-        { name: 'Groceries', envelopeType: 'FLEXIBLE_BILL', monthlyAmount: '600.00' },
+        { name: 'Groceries', envelopeType: 'BILL', fundingMode: 'TARGET_BALANCE', monthlyAmount: '600.00' },
       ],
       archivedEnvelopeIds: [],
     });

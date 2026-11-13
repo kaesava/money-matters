@@ -115,8 +115,8 @@ export function useHomeData(token?: string) {
 
   const billsBalance = parseFloat(summaryQuery.data?.billsRemaining || '0');
   const billsMonthlyBudget = pools
-    .filter((c) => c.envelopeType === 'SCHEDULED_BILL' || c.envelopeType === 'FLEXIBLE_BILL')
-    .reduce((sum, c) => sum + parseFloat(c.targetAmount || '0'), 0);
+    .filter((c) => c.envelopeType === 'BILL')
+    .reduce((sum, c) => sum + parseFloat(c.monthlyAmount || c.targetAmount || '0'), 0);
 
   const upcomingIncomeList: MobileIncomeItem[] = useMemo(() => {
     return (incomeEventsQuery.data ?? [])
@@ -206,9 +206,9 @@ export function useHomeData(token?: string) {
     });
   }, [expenseEventsQuery.data, transferEventsQuery.data, pools, todayObj, todayStr]);
 
-  const goalsList = pools.filter((p) => p.envelopeType === 'TARGET_GOAL' || p.envelopeType === 'ONGOING_GOAL');
+  const goalsList = pools.filter((p) => p.envelopeType === 'GOAL');
   const everydayPool = pools.find((p) => p.envelopeType === 'EVERYDAY');
-  const billsPool = pools.find((p) => p.envelopeType === 'SCHEDULED_BILL' || p.envelopeType === 'FLEXIBLE_BILL');
+  const billsPool = pools.find((p) => p.envelopeType === 'BILL');
 
   return {
     session,

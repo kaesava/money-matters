@@ -7,7 +7,7 @@ import { formatMobileCurrency } from '../../lib/format';
 export interface MobileGoalPresetConfig {
   name: string;
   nameKey: string;
-  mode: 'TARGET_DATE' | 'ONGOING';
+  fundingMode: 'TARGET_BALANCE' | 'RECURRING';
   icon: string;
   defaultTarget: number;
   defaultMonths?: number;
@@ -17,7 +17,7 @@ export const PRESET_GOALS: MobileGoalPresetConfig[] = [
   {
     name: 'Annual Family Holiday',
     nameKey: 'setup.goals.presetHoliday',
-    mode: 'TARGET_DATE',
+    fundingMode: 'TARGET_BALANCE',
     icon: 'plane',
     defaultTarget: 5000,
     defaultMonths: 12,
@@ -25,7 +25,7 @@ export const PRESET_GOALS: MobileGoalPresetConfig[] = [
   {
     name: 'Car / Vehicle',
     nameKey: 'setup.goals.presetVehicle',
-    mode: 'TARGET_DATE',
+    fundingMode: 'TARGET_BALANCE',
     icon: 'car',
     defaultTarget: 15000,
     defaultMonths: 24,
@@ -33,7 +33,7 @@ export const PRESET_GOALS: MobileGoalPresetConfig[] = [
   {
     name: 'Tech Upgrade',
     nameKey: 'setup.goals.presetTech',
-    mode: 'TARGET_DATE',
+    fundingMode: 'TARGET_BALANCE',
     icon: 'laptop',
     defaultTarget: 1500,
     defaultMonths: 6,
@@ -41,21 +41,21 @@ export const PRESET_GOALS: MobileGoalPresetConfig[] = [
   {
     name: 'Emergency Reserve',
     nameKey: 'setup.goals.presetEmergency',
-    mode: 'ONGOING',
+    fundingMode: 'RECURRING',
     icon: 'shield',
     defaultTarget: 300,
   },
   {
     name: 'Education Fund',
     nameKey: 'setup.goals.presetEducation',
-    mode: 'ONGOING',
+    fundingMode: 'RECURRING',
     icon: 'book',
     defaultTarget: 200,
   },
   {
     name: 'Wealth Building',
     nameKey: 'setup.goals.presetWealth',
-    mode: 'ONGOING',
+    fundingMode: 'RECURRING',
     icon: 'trending-up',
     defaultTarget: 400,
   },
@@ -78,7 +78,7 @@ export function SetupGoalsPresetsGrid({
       <View style={styles.presetsGrid}>
         {PRESET_GOALS.map((preset) => {
           const active = isPresetActive(preset.name);
-          const isOngoing = preset.mode === 'ONGOING';
+          const isOngoing = preset.fundingMode === 'RECURRING';
           const displayLabel = t(preset.nameKey as unknown as Parameters<typeof t>[0]);
           const targetAmt = isAud ? preset.defaultTarget : 0;
 

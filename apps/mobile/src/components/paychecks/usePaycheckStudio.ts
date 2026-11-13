@@ -211,16 +211,16 @@ export function usePaycheckStudio(id: string | undefined, returnTo?: string) {
   );
 
   const groupedLines = useMemo(() => {
-    const groups: Array<{ type: 'EVERYDAY' | 'REGULAR' | 'GOAL'; label: string; items: AllocationLineItem[] }> = [
+    const groups: Array<{ type: 'EVERYDAY' | 'BILL' | 'GOAL'; label: string; items: AllocationLineItem[] }> = [
       { type: 'EVERYDAY', label: t('paydayDrawer.everydayPools'), items: [] },
-      { type: 'REGULAR', label: t('paydayDrawer.billsPools'), items: [] },
+      { type: 'BILL', label: t('paydayDrawer.billsPools'), items: [] },
       { type: 'GOAL', label: t('paydayDrawer.goalsPools'), items: [] },
     ];
     for (const l of lines) {
       const env = pools.find((pool) => pool.id === l.bucketId);
-      const et = env?.envelopeType || 'SCHEDULED_BILL';
+      const et = env?.envelopeType || 'BILL';
       if (et === 'EVERYDAY') groups[0].items.push(l);
-      else if (et === 'TARGET_GOAL' || et === 'ONGOING_GOAL' || et === 'GOAL') groups[2].items.push(l);
+      else if (et === 'GOAL') groups[2].items.push(l);
       else groups[1].items.push(l);
     }
     return groups.filter((g) => g.items.length > 0);

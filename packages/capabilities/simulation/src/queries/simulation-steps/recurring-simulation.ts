@@ -41,8 +41,10 @@ export function simulateRecurringCommitment(
   const phantomBucket: ProjectionEngineBucket = {
     id: `__phantom_recurring__`,
     name: itemName ?? "New Recurring Commitment",
-    type: "REGULAR",
-    isCommitted: false,
+    type: "BILL",
+    envelopeType: "BILL",
+    fundingMode: "RECURRING",
+    isPriority: false,
     isSurplusTarget: false,
     monthlyAmount,
     targetAmount: null,
@@ -180,7 +182,7 @@ export function simulateRecurringCommitment(
   const goalDelays: Array<{
     goalId: string;
     goalName: string;
-    isCommitted: boolean;
+    isPriority: boolean;
     originalTargetDate: string | null;
     newTargetDate: string | null;
     delayDays: number;
@@ -195,7 +197,7 @@ export function simulateRecurringCommitment(
     if (balanceDrop <= 0.01) continue;
 
     const poolMonthlyContrib =
-      pool.goalMode === "ONGOING"
+      pool.fundingMode === "RECURRING"
         ? parseFloat(pool.targetAmount)
         : (pool.monthlyAmount ? parseFloat(pool.monthlyAmount) : parseFloat(pool.targetAmount) / 12);
     const dailyContrib = poolMonthlyContrib > 0 ? poolMonthlyContrib / 30 : 1;
@@ -211,7 +213,7 @@ export function simulateRecurringCommitment(
     goalDelays.push({
       goalId: pool.id,
       goalName: pool.name,
-      isCommitted: pool.isCommitted ?? false,
+      isPriority: pool.isPriority ?? false,
       originalTargetDate: pool.endDate,
       newTargetDate: newDateStr,
       delayDays,
@@ -231,7 +233,7 @@ export function simulateRecurringCommitment(
         `${goalDelays.length} savings goal(s) will absorb this by adjusting target dates:`,
         ...goalDelays.map(
           (g) =>
-            `"${g.goalName}" (${g.isCommitted ? "committed target" : "flexible goal"}): pushed back by ~${g.delayDays} days.`
+            `"${g.goalName}" (${g.isPriority ? "priority target" : "standard goal"}): pushed back by ~${g.delayDays} days.`
         ),
         ...(startAdvice ? [startAdvice] : []),
       ],

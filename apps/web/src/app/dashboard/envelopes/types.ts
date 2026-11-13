@@ -5,8 +5,8 @@ export type { EnvelopeType, FundingMode };
 export interface EnvelopeSummaryItem {
   id: string;
   name: string;
-  type?: "REGULAR" | "GOAL" | "EVERYDAY" | EnvelopeType;
-  poolType?: "REGULAR" | "GOAL" | "EVERYDAY" | EnvelopeType;
+  type?: EnvelopeType;
+  poolType?: EnvelopeType;
   envelopeType: EnvelopeType;
   fundingMode?: FundingMode | null;
   isPriority?: boolean | null;
@@ -23,9 +23,6 @@ export interface EnvelopeSummaryItem {
   targetDate?: string | null;
   endDate?: string | null;
   safetyBufferFloor?: string | null;
-  goalMode?: "TARGET_DATE" | "ONGOING" | null;
-  isEssential?: boolean | null;
-  isCommitted?: boolean | null;
   isSurplusTarget?: boolean | null;
   userId?: string | null;
   progressPercentage?: number;
@@ -43,7 +40,7 @@ export interface CategoryItem {
   monthlyAmount?: string | null;
   enteredAmount?: string | null;
   budgetFrequency?: string | null;
-  isEssential?: boolean;
+  isPriority?: boolean;
   monthlySpent?: number;
   hasHistory?: boolean;
   hasUpcomingExpenses?: boolean;
@@ -52,13 +49,13 @@ export interface CategoryItem {
 export interface PoolTableRow {
   id: string;
   name: string;
-  poolType?: "EVERYDAY" | "REGULAR" | "GOAL" | EnvelopeType;
+  poolType?: EnvelopeType;
   envelopeType: EnvelopeType;
+  fundingMode?: FundingMode | null;
+  isPriority?: boolean | null;
   bankAccountId?: string | null;
   bankAccountName?: string | null;
   isPrivate?: boolean | null;
-  isEssential?: boolean | null;
-  isCommitted?: boolean | null;
   currentBalance: number;
   targetAmount: number | null;
   targetDate: string | null;

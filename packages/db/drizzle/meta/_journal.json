@@ -379,6 +379,13 @@
       "when": 1784298494251,
       "tag": "0054_restore_envelope_compatibility_columns",
       "breakpoints": true
+    },
+    {
+      "idx": 54,
+      "version": "7",
+      "when": 1784308494251,
+      "tag": "0055_canonical_two_mode_envelopes",
+      "breakpoints": true
     }
   ]
 }

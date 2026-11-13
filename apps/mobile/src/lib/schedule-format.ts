@@ -14,9 +14,10 @@ export function formatScheduleDetail(
   startDate?: string | null,
   locale?: string,
   timeZone?: string,
-  envelopeType?: string | null
+  envelopeType?: string | null,
+  fundingMode?: string | null
 ): ScheduleDetail {
-  if (envelopeType === 'FLEXIBLE_BILL') {
+  if (fundingMode === 'TARGET_BALANCE') {
     return {
       isRecurring: false,
       badgeText: t('categories.billModeFlexible'),

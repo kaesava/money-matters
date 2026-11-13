@@ -30,12 +30,9 @@ export async function listEnvelopesQuery(
         startDate: envelopes.startDate,
         endDate: envelopes.endDate,
         rrule: envelopes.rrule,
-        goalMode: envelopes.goalMode,
         fundingMode: envelopes.fundingMode,
         targetAmount: envelopes.targetAmount,
         isPriority: envelopes.isPriority,
-        isEssential: envelopes.isEssential,
-        isCommitted: envelopes.isCommitted,
         isSurplusTarget: envelopes.isSurplusTarget,
         isPrivate: envelopes.isPrivate,
         generateEvents: envelopes.generateEvents,
@@ -103,14 +100,14 @@ export async function listEnvelopesQuery(
     let healthStatus: "GREEN" | "AMBER" | "RED" = "GREEN";
     let progressPercentage = 0;
 
-    const isBill = (env.envelopeType as string) === "BILL" || env.envelopeType === "SCHEDULED_BILL" || env.envelopeType === "FLEXIBLE_BILL";
-    const isGoal = (env.envelopeType as string) === "GOAL" || env.envelopeType === "TARGET_GOAL" || env.envelopeType === "ONGOING_GOAL";
+    const isBill = env.envelopeType === "BILL";
+    const isGoal = env.envelopeType === "GOAL";
     const isEveryday = env.envelopeType === "EVERYDAY";
 
     if (currentBalance < 0) {
       healthStatus = "RED";
     } else if (isGoal) {
-      if (env.envelopeType === "ONGOING_GOAL" || env.goalMode === "ONGOING" || (!env.endDate && env.budgetFrequency)) {
+      if (env.fundingMode === "RECURRING" || (!env.endDate && env.budgetFrequency)) {
         progressPercentage = currentBalance > 0 ? 100 : 0;
         healthStatus = "GREEN";
       } else {
@@ -135,12 +132,8 @@ export async function listEnvelopesQuery(
       healthStatus = currentBalance >= 0 ? "GREEN" : "RED";
     }
 
-    const fundingMode: FundingMode | null = isBill
-      ? (env.fundingMode ? env.fundingMode : (env.envelopeType === "FLEXIBLE_BILL" ? "TARGET_BALANCE" : "RECURRING"))
-      : isGoal
-      ? (env.fundingMode ? env.fundingMode : (env.envelopeType === "ONGOING_GOAL" || env.goalMode === "ONGOING" ? "RECURRING" : "TARGET_BALANCE"))
-      : null;
-    const isPriority = Boolean(env.isPriority || env.isEssential || env.isCommitted);
+    const fundingMode: FundingMode | null = env.fundingMode ?? (isBill ? "RECURRING" : isGoal ? "TARGET_BALANCE" : null);
+    const isPriority = Boolean(env.isPriority);
 
     return {
       id: env.id,
@@ -157,10 +150,7 @@ export async function listEnvelopesQuery(
       startDate: env.startDate,
       endDate: env.endDate,
       rrule: env.rrule,
-      goalMode: env.goalMode,
       targetAmount: env.targetAmount,
-      isEssential: env.isEssential,
-      isCommitted: env.isCommitted,
       isSurplusTarget: env.isSurplusTarget,
       isPrivate: env.isPrivate,
       userId: env.userId,

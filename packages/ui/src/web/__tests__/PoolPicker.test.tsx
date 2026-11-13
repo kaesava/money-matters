@@ -25,21 +25,21 @@ describe("PoolPicker", () => {
 
   describe("getEnvelopeBadgeInfo", () => {
     it("maps all envelope types to their respective labels and tagKeys", () => {
-      expect(getEnvelopeBadgeInfo({ envelopeType: "SCHEDULED_BILL" })).toEqual({
-        label: "Scheduled Bill",
-        tagKey: "SCHEDULED_BILL",
+      expect(getEnvelopeBadgeInfo({ envelopeType: "BILL", fundingMode: "RECURRING" })).toEqual({
+        label: "Recurring",
+        tagKey: "BILL",
       });
-      expect(getEnvelopeBadgeInfo({ envelopeType: "FLEXIBLE_BILL" })).toEqual({
-        label: "Flexible Bill",
-        tagKey: "FLEXIBLE_BILL",
+      expect(getEnvelopeBadgeInfo({ envelopeType: "BILL", fundingMode: "TARGET_BALANCE" })).toEqual({
+        label: "Target Balance",
+        tagKey: "BILL",
       });
-      expect(getEnvelopeBadgeInfo({ envelopeType: "TARGET_GOAL" })).toEqual({
-        label: "Target Goal",
-        tagKey: "TARGET_GOAL",
+      expect(getEnvelopeBadgeInfo({ envelopeType: "GOAL", fundingMode: "TARGET_BALANCE" })).toEqual({
+        label: "Target Balance",
+        tagKey: "GOAL",
       });
-      expect(getEnvelopeBadgeInfo({ envelopeType: "ONGOING_GOAL" })).toEqual({
-        label: "Ongoing Goal",
-        tagKey: "ONGOING_GOAL",
+      expect(getEnvelopeBadgeInfo({ envelopeType: "GOAL", fundingMode: "RECURRING" })).toEqual({
+        label: "Recurring",
+        tagKey: "GOAL",
       });
       expect(getEnvelopeBadgeInfo({ envelopeType: "EVERYDAY" })).toEqual({
         label: "Everyday",
@@ -51,9 +51,9 @@ describe("PoolPicker", () => {
   describe("filterPools", () => {
     const samplePools: PoolOption[] = [
       { id: "1", name: "Everyday Spending", envelopeType: "EVERYDAY", currentBalance: 300 },
-      { id: "2", name: "Electricity Bill", envelopeType: "SCHEDULED_BILL", currentBalance: 150 },
-      { id: "3", name: "Holiday Fund", envelopeType: "TARGET_GOAL", currentBalance: 2000 },
-      { id: "4", name: "Vet Visits", envelopeType: "FLEXIBLE_BILL", currentBalance: 50 },
+      { id: "2", name: "Electricity Bill", envelopeType: "BILL", fundingMode: "RECURRING", currentBalance: 150 },
+      { id: "3", name: "Holiday Fund", envelopeType: "GOAL", fundingMode: "TARGET_BALANCE", currentBalance: 2000 },
+      { id: "4", name: "Vet Visits", envelopeType: "BILL", fundingMode: "TARGET_BALANCE", currentBalance: 50 },
     ];
 
     it("returns all pools when query is empty", () => {
@@ -66,9 +66,9 @@ describe("PoolPicker", () => {
       expect(filteredByName).toHaveLength(1);
       expect(filteredByName[0]?.name).toBe("Holiday Fund");
 
-      const filteredByBadge = filterPools(samplePools, "flexible", false);
-      expect(filteredByBadge).toHaveLength(1);
-      expect(filteredByBadge[0]?.name).toBe("Vet Visits");
+      const filteredByBadge = filterPools(samplePools, "target balance", false);
+      expect(filteredByBadge).toHaveLength(2);
+      expect(filteredByBadge.map((p) => p.name)).toEqual(["Holiday Fund", "Vet Visits"]);
     });
 
     it("filters child categories when allowCategorySelection is true", () => {
@@ -76,7 +76,8 @@ describe("PoolPicker", () => {
         {
           id: "p1",
           name: "Utilities",
-          envelopeType: "SCHEDULED_BILL",
+          envelopeType: "BILL",
+          fundingMode: "RECURRING",
           categories: [
             { id: "c1", name: "Water" },
             { id: "c2", name: "Gas" },

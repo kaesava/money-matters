@@ -128,10 +128,12 @@ export default function PoolDetailScreen() {
           name: pool.name,
           type: pool.envelopeType === 'EVERYDAY'
             ? 'EVERYDAY'
-            : pool.envelopeType === 'SCHEDULED_BILL' || pool.envelopeType === 'FLEXIBLE_BILL'
-            ? 'REGULAR'
+            : pool.envelopeType === 'BILL'
+            ? 'BILL'
             : 'GOAL',
           envelopeType: pool.envelopeType,
+          fundingMode: pool.fundingMode,
+          isPriority: pool.isPriority,
           poolType: pool.envelopeType,
           targetAmount: pool.targetAmount,
           enteredAmount: pool.enteredAmount,
@@ -139,7 +141,6 @@ export default function PoolDetailScreen() {
           budgetFrequency: pool.budgetFrequency as 'WEEKLY' | 'FORTNIGHTLY' | 'MONTHLY' | 'ANNUALLY' | null,
           startDate: pool.startDate,
           rrule: pool.rrule,
-          goalMode: pool.goalMode,
           endDate: pool.endDate,
           bankAccountId: pool.bankAccountId,
           safetyBufferFloor: pool.safetyBufferFloor,

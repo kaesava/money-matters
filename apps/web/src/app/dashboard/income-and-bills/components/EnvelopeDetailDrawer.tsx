@@ -122,7 +122,7 @@ export function EnvelopeDetailDrawer({
   if (!isOpen) return null;
 
   const currentBal = targetPool ? parseFloat(String(targetPool.currentBalance || "0")) : 0;
-  const _isGoalPool = targetPool?.envelopeType === "TARGET_GOAL" || targetPool?.envelopeType === "ONGOING_GOAL";
+  const _isGoalPool = targetPool?.envelopeType === "GOAL";
 
   const resolvedTabs = [
     { id: "expenses" as const, label: `${t("categoryDrawer.tabs.upcomingExpenses")} (${effectiveEvents.length})` },
@@ -149,25 +149,20 @@ export function EnvelopeDetailDrawer({
                   </span>
                   {targetPool && (
                     <span className="text-[10px] font-extrabold uppercase px-2 py-0.5 rounded bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 border border-zinc-200 dark:border-zinc-700">
-                      {targetPool.envelopeType === "SCHEDULED_BILL"
-                        ? t("categories.scheduledBillBadge")
-                        : targetPool.envelopeType === "FLEXIBLE_BILL"
-                        ? t("categories.flexibleBillBadge")
-                        : targetPool.envelopeType === "TARGET_GOAL"
-                        ? t("categories.targetDateGoalBadge")
-                        : targetPool.envelopeType === "ONGOING_GOAL"
-                        ? t("categories.ongoingGoalBadge")
+                      {targetPool.envelopeType === "BILL"
+                        ? (targetPool.fundingMode === "RECURRING"
+                            ? t("categories.scheduledBillBadge")
+                            : t("categories.flexibleBillBadge"))
+                        : targetPool.envelopeType === "GOAL"
+                        ? (targetPool.fundingMode === "RECURRING"
+                            ? t("categories.ongoingGoalBadge")
+                            : t("categories.targetDateGoalBadge"))
                         : t("categories.everydayBadge")}
                     </span>
                   )}
-                  {Boolean(targetPool?.isEssential) && (targetPool?.envelopeType === "SCHEDULED_BILL" || targetPool?.envelopeType === "FLEXIBLE_BILL") && (
+                  {Boolean(targetPool?.isPriority) && targetPool?.envelopeType !== "EVERYDAY" && (
                     <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold tracking-wide uppercase bg-amber-50 text-amber-700 border border-amber-200 dark:bg-amber-950/60 dark:text-amber-300 dark:border-amber-800">
-                      {t("categories.essentialBadge")}
-                    </span>
-                  )}
-                  {Boolean(targetPool?.isCommitted) && (targetPool?.envelopeType === "TARGET_GOAL" || targetPool?.envelopeType === "ONGOING_GOAL") && (
-                    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold tracking-wide uppercase bg-indigo-50 text-indigo-700 border border-indigo-200 dark:bg-indigo-950/60 dark:text-indigo-300 dark:border-indigo-800">
-                      {t("categories.committedBadge")}
+                      {t("categories.priorityBadge")}
                     </span>
                   )}
                   {onEditPool && targetPool && (
@@ -178,14 +173,12 @@ export function EnvelopeDetailDrawer({
                           id: targetPool.id,
                           name: targetPool.name,
                           envelopeType: targetPool.envelopeType,
-                          type: targetPool.envelopeType,
-                          poolType: targetPool.envelopeType,
+                          fundingMode: targetPool.fundingMode,
+                          isPriority: targetPool.isPriority,
                           currentBalance: String(targetPool.currentBalance ?? "0.00"),
                           bankAccountId: targetPool.bankAccountId,
                           bankAccountName: targetPool.bankAccountName,
                           isPrivate: targetPool.isPrivate,
-                          isEssential: targetPool.isEssential,
-                          isCommitted: targetPool.isCommitted,
                           targetAmount: targetPool.targetAmount ? String(targetPool.targetAmount) : null,
                           enteredAmount: targetPool.enteredAmount ? String(targetPool.enteredAmount) : null,
                           monthlyAmount: targetPool.monthlyAmount ? String(targetPool.monthlyAmount) : null,
@@ -193,7 +186,6 @@ export function EnvelopeDetailDrawer({
                           startDate: targetPool.startDate,
                           endDate: targetPool.endDate,
                           rrule: targetPool.rrule,
-                          goalMode: targetPool.goalMode,
                           isSurplusTarget: targetPool.isSurplusTarget,
                         });
                       }}
@@ -278,14 +270,12 @@ export function EnvelopeDetailDrawer({
                 </span>
                 <span className="text-sm font-black font-mono text-zinc-700 dark:text-zinc-300">
                   {(() => {
-                    if (targetPool?.envelopeType === "SCHEDULED_BILL" || targetPool?.envelopeType === "ONGOING_GOAL") {
-                      const entered = targetPool.enteredAmount ? parseFloat(String(targetPool.enteredAmount)) : null;
-                      const monthlyEquivalent = targetPool.monthlyAmount ? parseFloat(String(targetPool.monthlyAmount)) : null;
+                    const isRecurring = targetPool?.fundingMode === "RECURRING";
+                    if (isRecurring) {
+                      const entered = targetPool?.enteredAmount ? parseFloat(String(targetPool.enteredAmount)) : null;
+                      const monthlyEquivalent = targetPool?.monthlyAmount ? parseFloat(String(targetPool.monthlyAmount)) : null;
                       const amt = entered ?? monthlyEquivalent ?? targetAmt;
                       return amt ? fmt(amt) : "—";
-                    }
-                    if (targetPool?.envelopeType === "TARGET_GOAL" || targetPool?.envelopeType === "FLEXIBLE_BILL") {
-                      return targetAmt ? fmt(targetAmt) : "—";
                     }
                     return targetAmt ? fmt(targetAmt) : "—";
                   })()}
@@ -295,18 +285,18 @@ export function EnvelopeDetailDrawer({
               {/* Row 2, Col 2: Recurrence / Target Date */}
               <div>
                 <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block">
-                  {targetPool?.envelopeType === "TARGET_GOAL"
+                  {targetPool?.envelopeType === "GOAL" && targetPool?.fundingMode !== "RECURRING"
                     ? t("categoryDrawer.targetDate")
                     : t("categoryDrawer.recurrence")}
                 </span>
                 <span className="text-sm font-black font-mono text-zinc-700 dark:text-zinc-300">
-                  {targetPool?.envelopeType === "TARGET_GOAL"
+                  {targetPool?.envelopeType === "GOAL" && targetPool?.fundingMode !== "RECURRING"
                     ? targetPool?.endDate
                       ? fmtDate(targetPool.endDate)
                       : "—"
-                    : targetPool?.envelopeType === "FLEXIBLE_BILL"
+                    : targetPool?.fundingMode === "TARGET_BALANCE"
                     ? t("categories.frequencyMonthly")
-                    : targetPool?.envelopeType === "SCHEDULED_BILL" || targetPool?.envelopeType === "ONGOING_GOAL"
+                    : targetPool?.fundingMode === "RECURRING"
                     ? formatRecurrenceLabel(targetPool.rrule, targetPool.budgetFrequency)
                     : "—"}
                 </span>

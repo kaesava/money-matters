@@ -4,6 +4,7 @@ import React, { useState } from "react";
 import { t } from "@money-matters/i18n";
 import { EstimatedCategoryItem } from "@money-matters/types";
 import { InfoTooltip, Button } from "@money-matters/ui/web";
+import { useLocale } from "../../../providers/LocaleProvider";
 import { UserGoalItem } from "./SetupGoalsStep";
 import { SetupReviewSummaryCards } from "./SetupReviewSummaryCards";
 import { SetupReviewCategoryList } from "./SetupReviewCategoryList";
@@ -32,7 +33,7 @@ interface SetupCategoriesStepProps {
   onBack: () => void;
   onFinish: () => void;
   onSimulatePayday?: () => void;
-  onToggleBillType?: (name: string, newType: "SCHEDULED_BILL" | "FLEXIBLE_BILL") => void;
+  onToggleBillType?: (name: string, newType: "RECURRING" | "TARGET_BALANCE") => void;
   onEditCategory?: (category: EstimatedCategoryItem) => void;
   isRerun?: boolean;
 }
@@ -62,6 +63,7 @@ export function SetupCategoriesStep({
   onEditCategory,
   isRerun = false,
 }: SetupCategoriesStepProps) {
+  const { currencySymbol } = useLocale();
   const [warningMsg, setWarningMsg] = useState<string | null>(null);
   const [everydayOpen, setEverydayOpen] = useState(false);
   const [billsOpen, setBillsOpen] = useState(false);
@@ -121,7 +123,7 @@ export function SetupCategoriesStep({
             </div>
             <div className="flex items-center gap-2.5">
               <span className="text-xs font-bold font-mono text-[#2563eb] bg-blue-50 px-2.5 py-1 rounded-md border border-blue-200">
-                ${totalEverydayMonthly.toFixed(2)}/mo
+                {currencySymbol}{totalEverydayMonthly.toFixed(2)}/mo
               </span>
               <span className="text-xs font-bold text-zinc-400">{everydayOpen ? "▲" : "▼"}</span>
             </div>
@@ -165,7 +167,7 @@ export function SetupCategoriesStep({
             </div>
             <div className="flex items-center gap-2.5">
               <span className="text-xs font-bold font-mono text-[#2563eb] bg-blue-50 px-2.5 py-1 rounded-md border border-blue-200">
-                ${totalRegularMonthly.toFixed(2)}/mo
+                {currencySymbol}{totalRegularMonthly.toFixed(2)}/mo
               </span>
               <span className="text-xs font-bold text-zinc-400">{billsOpen ? "▲" : "▼"}</span>
             </div>
@@ -211,7 +213,7 @@ export function SetupCategoriesStep({
             </div>
             <div className="flex items-center gap-2.5">
               <span className="text-xs font-bold font-mono text-teal-800 bg-teal-50 px-2.5 py-1 rounded-md border border-teal-200">
-                ${totalGoalMonthly.toFixed(2)}/mo
+                {currencySymbol}{totalGoalMonthly.toFixed(2)}/mo
               </span>
               <span className="text-xs font-bold text-zinc-400">{goalsOpen ? "▲" : "▼"}</span>
             </div>

@@ -6,15 +6,9 @@ export const envelopeTypeEnum = pgEnum("envelope_type_enum", [
   "EVERYDAY",
   "BILL",
   "GOAL",
-  "SCHEDULED_BILL",
-  "FLEXIBLE_BILL",
-  "TARGET_GOAL",
-  "ONGOING_GOAL",
 ]);
 
 export const fundingModeEnum = pgEnum("funding_mode_enum", ["TARGET_BALANCE", "RECURRING"]);
-
-export const goalModeEnum = pgEnum("goal_mode_enum", ["TARGET_DATE", "ONGOING"]);
 
 export const envelopes = pgTable(
   "envelopes",
@@ -38,14 +32,11 @@ export const envelopes = pgTable(
     endDate: varchar("end_date", { length: 50 }),
     rrule: varchar("rrule", { length: 255 }),
 
-    // Goals
-    goalMode: goalModeEnum("goal_mode").default("TARGET_DATE"),
+    // Goals & Balances
     targetAmount: numeric("target_amount", { precision: 12, scale: 2 }),
 
     // Flags & Meta
     isPriority: boolean("is_priority").notNull().default(false),
-    isEssential: boolean("is_essential").notNull().default(false),
-    isCommitted: boolean("is_committed").notNull().default(false),
     isSurplusTarget: boolean("is_surplus_target").notNull().default(false),
     isPrivate: boolean("is_private").notNull().default(false),
     generateEvents: boolean("generate_events").notNull().default(true),

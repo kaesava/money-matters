@@ -31,7 +31,7 @@ export default function PoolsScreen() {
 
   const [refreshing, setRefreshing] = useState(false);
   const [poolModalVisible, setPoolModalVisible] = useState(false);
-  const [defaultPoolType, setDefaultPoolType] = useState<'EVERYDAY' | 'REGULAR' | 'GOAL'>('REGULAR');
+  const [defaultPoolType, setDefaultPoolType] = useState<'EVERYDAY' | 'BILL' | 'GOAL'>('BILL');
   const [moveMoneyVisible, setMoveMoneyVisible] = useState(false);
   const [quickExpenseInitialType, setQuickExpenseInitialType] = useState<'DEBIT' | 'CREDIT' | 'TRANSFER'>('TRANSFER');
   const [overflowMenuVisible, setOverflowMenuVisible] = useState(false);
@@ -135,11 +135,11 @@ export default function PoolsScreen() {
             />
             <PoolGroupSection
               title={t('categories.billsPoolsUpper')}
-              pools={filteredPools.filter((p) => p.envelopeType === 'SCHEDULED_BILL' || p.envelopeType === 'FLEXIBLE_BILL' || p.envelopeType === 'BILL')}
-              isCollapsed={!!collapsedTypes['REGULAR']}
-              onToggleCollapse={() => toggleTypeCollapse('REGULAR')}
+              pools={filteredPools.filter((p) => p.envelopeType === 'BILL')}
+              isCollapsed={!!collapsedTypes['BILL']}
+              onToggleCollapse={() => toggleTypeCollapse('BILL')}
               bankAccounts={bankAccounts}
-              groupType="REGULAR"
+              groupType="BILL"
               onAddPool={(gType) => {
                 setDefaultPoolType(gType);
                 setPoolModalVisible(true);
@@ -147,7 +147,7 @@ export default function PoolsScreen() {
             />
             <PoolGroupSection
               title={t('categories.goalsUpper')}
-              pools={filteredPools.filter((p) => p.envelopeType === 'TARGET_GOAL' || p.envelopeType === 'ONGOING_GOAL' || p.envelopeType === 'GOAL')}
+              pools={filteredPools.filter((p) => p.envelopeType === 'GOAL')}
               isCollapsed={!!collapsedTypes['GOAL']}
               onToggleCollapse={() => toggleTypeCollapse('GOAL')}
               bankAccounts={bankAccounts}

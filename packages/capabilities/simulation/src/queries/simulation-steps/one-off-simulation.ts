@@ -102,7 +102,7 @@ export function simulateOneOffPurchase(
   // ── 3. SHORTFALL TODAY — CHECK SAVINGS GOALS & FUTURE PAYDAYS ─
   const shortfall = amount - effectiveSpendable;
 
-  const flexibleGoals = goalEnvelopes.filter((p) => !p.isCommitted && (envelopeBalancesMap[p.id] ?? 0) > 0);
+  const flexibleGoals = goalEnvelopes.filter((p) => !p.isPriority && (envelopeBalancesMap[p.id] ?? 0) > 0);
   flexibleGoals.sort((a, b) => (envelopeBalancesMap[b.id] ?? 0) - (envelopeBalancesMap[a.id] ?? 0));
   const candidateGoal = flexibleGoals[0] ?? null;
 
@@ -111,7 +111,7 @@ export function simulateOneOffPurchase(
     const goalBal = envelopeBalancesMap[candidateGoal.id] ?? 0;
     if (goalBal >= shortfall) {
       const poolMonthlyContrib =
-        candidateGoal.goalMode === "ONGOING"
+        candidateGoal.fundingMode === "RECURRING"
           ? parseFloat(candidateGoal.targetAmount || "0")
           : (candidateGoal.monthlyAmount ? parseFloat(candidateGoal.monthlyAmount) : (candidateGoal.targetAmount ? parseFloat(candidateGoal.targetAmount) / 12 : 0));
       const dailyContrib = poolMonthlyContrib > 0 ? poolMonthlyContrib / 30 : 1;

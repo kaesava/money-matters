@@ -65,18 +65,19 @@ export function useSetupWizardPrepopulation({
   // Pre-populate goal pools if in rerun mode
   useEffect(() => {
     if (!isRerun || !poolsQuery.data || poolsQuery.data.length === 0) return;
-    const goalPools = poolsQuery.data.filter((p) => p.envelopeType === 'TARGET_GOAL' || p.envelopeType === 'ONGOING_GOAL');
+    const goalPools = poolsQuery.data.filter((p) => p.envelopeType === 'GOAL');
     if (goalPools.length > 0) {
       setGoals(
         goalPools.map((g) => {
-          const isOngoing = g.envelopeType === 'ONGOING_GOAL' || g.goalMode === 'ONGOING';
+          const isOngoing = g.fundingMode === 'RECURRING';
           const targetAmt = parseFloat(g.targetAmount || '0');
           const monthlyAmt = g.monthlyAmount ? parseFloat(g.monthlyAmount) : 0;
           const enteredAmt = g.enteredAmount ? parseFloat(g.enteredAmount) : (monthlyAmt || targetAmt);
           return {
             id: g.id,
             name: g.name,
-            goalMode: isOngoing ? ('ONGOING' as const) : ('TARGET_DATE' as const),
+            fundingMode: isOngoing ? ('RECURRING' as const) : ('TARGET_BALANCE' as const),
+            isPriority: g.isPriority ?? true,
             monthlyAmount: isOngoing ? monthlyAmt : (monthlyAmt || (targetAmt > 0 ? Math.round(targetAmt / 12) : 0)),
             icon: 'target',
             targetAmount: targetAmt,
@@ -99,13 +100,15 @@ export function useSetupWizardPrepopulation({
   // Pre-populate existing categories/envelopes if in rerun mode
   useEffect(() => {
     if (!isRerun || !poolsQuery.data || poolsQuery.data.length === 0) return;
-    const nonGoalEnvelopes = poolsQuery.data.filter((p) => p.envelopeType !== 'TARGET_GOAL' && p.envelopeType !== 'ONGOING_GOAL');
+    const nonGoalEnvelopes = poolsQuery.data.filter((p) => p.envelopeType !== 'GOAL');
     setCustomCategories(
       nonGoalEnvelopes.map((c) => ({
         id: c.id,
         name: c.name,
-        type: (c.envelopeType === 'EVERYDAY' ? 'EVERYDAY' : 'REGULAR') as 'REGULAR' | 'GOAL' | 'EVERYDAY',
-        envelopeType: (c.envelopeType as 'SCHEDULED_BILL' | 'FLEXIBLE_BILL' | 'EVERYDAY') || (c.envelopeType === 'EVERYDAY' ? 'EVERYDAY' : 'SCHEDULED_BILL'),
+        type: (c.envelopeType === 'EVERYDAY' ? 'EVERYDAY' : 'BILL') as 'BILL' | 'GOAL' | 'EVERYDAY',
+        envelopeType: c.envelopeType,
+        fundingMode: c.fundingMode || (c.envelopeType === 'BILL' ? 'RECURRING' : 'TARGET_BALANCE'),
+        isPriority: c.isPriority ?? (c.envelopeType === 'BILL'),
         monthlyAud: parseFloat(c.monthlyAmount || c.targetAmount || '0'),
         icon: c.envelopeType === 'EVERYDAY' ? 'wallet' : 'pin',
       }))

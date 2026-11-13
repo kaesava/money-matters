@@ -89,15 +89,14 @@ export function useSetupWizardSubmission({
           const budgetFreq: "WEEKLY" | "FORTNIGHTLY" | "MONTHLY" | "QUARTERLY" | "ANNUALLY" =
             rawFreq === "YEARLY" ? "ANNUALLY" : (rawFreq as "WEEKLY" | "FORTNIGHTLY" | "MONTHLY" | "QUARTERLY" | "ANNUALLY") || "MONTHLY";
           const isEveryday = c.type === "EVERYDAY";
-          const resolvedEnvelopeType = isEveryday
-            ? ("EVERYDAY" as const)
-            : c.envelopeType === "FLEXIBLE_BILL"
-            ? ("FLEXIBLE_BILL" as const)
-            : ("SCHEDULED_BILL" as const);
-          const isBill = resolvedEnvelopeType === "SCHEDULED_BILL" || resolvedEnvelopeType === "FLEXIBLE_BILL";
+          const resolvedEnvelopeType: "EVERYDAY" | "BILL" = isEveryday ? "EVERYDAY" : "BILL";
+          const fundingMode: "TARGET_BALANCE" | "RECURRING" = isEveryday
+            ? "TARGET_BALANCE"
+            : (c.fundingMode || "RECURRING");
+          const isPriority = isEveryday ? false : (c.isPriority ?? true);
           const catId = "id" in c && typeof c.id === "string" && !c.id.startsWith("temp-") ? c.id : undefined;
           const matchedPool = (catId ? existingPools.find((p) => p.id === catId) : undefined) ||
-            existingPools.find((p) => p.envelopeType === resolvedEnvelopeType && p.name?.trim().toLowerCase() === c.name.trim().toLowerCase());
+            existingPools.find((p) => (p.envelopeType === resolvedEnvelopeType || p.name?.trim().toLowerCase() === c.name.trim().toLowerCase()));
           const resolvedEnvId = catId || matchedPool?.id;
           return {
             id: resolvedEnvId,
@@ -105,27 +104,29 @@ export function useSetupWizardSubmission({
             isPrivate: matchedPool?.isPrivate ?? false,
             name: c.name,
             envelopeType: resolvedEnvelopeType,
+            fundingMode,
+            isPriority,
             monthlyAmount: (c.monthlyAud || 0).toFixed(2),
             enteredAmount: (c.monthlyAud || 0).toFixed(2),
-            budgetFrequency: resolvedEnvelopeType === "FLEXIBLE_BILL" ? ("MONTHLY" as const) : budgetFreq,
+            budgetFrequency: fundingMode === "TARGET_BALANCE" ? ("MONTHLY" as const) : budgetFreq,
             startDate: c.startDate || matchedPool?.startDate,
             endDate: c.endDate || matchedPool?.endDate,
             rrule: c.rrule || matchedPool?.rrule,
             generateEvents: c.generateEvents ?? true,
-            isEssential: isBill,
             orderIndex: idx,
           };
         }),
         ...goals.map((g, idx) => {
           const goalId = g.id?.startsWith("g-") ? undefined : g.id;
           const matchedPool = (goalId ? existingPools.find((p) => p.id === goalId) : undefined) ||
-            existingPools.find((p) => (p.envelopeType === "ONGOING_GOAL" || p.envelopeType === "TARGET_GOAL") && p.name?.trim().toLowerCase() === g.name.trim().toLowerCase());
+            existingPools.find((p) => (p.envelopeType === "GOAL" || p.name?.trim().toLowerCase() === g.name.trim().toLowerCase()));
           const resolvedGoalId = goalId || matchedPool?.id;
-          const isOngoing = g.goalMode === "ONGOING" || (!g.dueDate && g.budgetFrequency);
+          const fundingMode: "TARGET_BALANCE" | "RECURRING" = g.fundingMode || (!g.dueDate && Boolean(g.budgetFrequency) ? "RECURRING" : "TARGET_BALANCE");
+          const isRecurring = fundingMode === "RECURRING";
           const rawAmt = g.enteredAmount !== undefined && g.enteredAmount !== null
             ? g.enteredAmount
             : (g.monthlyAmount || g.targetAmount || 0);
-          const computedMonthly = isOngoing
+          const computedMonthly = isRecurring
             ? (g.budgetFrequency === "WEEKLY"
                 ? (rawAmt * 52) / 12
                 : g.budgetFrequency === "FORTNIGHTLY"
@@ -139,24 +140,24 @@ export function useSetupWizardSubmission({
             id: resolvedGoalId,
             bankAccountId: matchedPool?.bankAccountId || primaryBankAccountId,
             name: g.name,
-            envelopeType: (isOngoing ? "ONGOING_GOAL" : "TARGET_GOAL") as "ONGOING_GOAL" | "TARGET_GOAL",
-            goalMode: g.goalMode ?? (g.dueDate ? "TARGET_DATE" : "ONGOING"),
-            targetAmount: (isOngoing
+            envelopeType: "GOAL" as const,
+            fundingMode,
+            targetAmount: (isRecurring
               ? (g.targetAmount !== undefined && g.targetAmount !== null && g.targetAmount > 0
                   ? g.targetAmount
                   : (g.enteredAmount || g.monthlyAmount || 0))
               : (g.targetAmount || g.monthlyAmount * 12 || 1000)
             ).toFixed(2),
             monthlyAmount: computedMonthly.toFixed(2),
-            endDate: isOngoing ? null : (g.dueDate || null),
+            endDate: isRecurring ? null : (g.dueDate || null),
             enteredAmount: (g.enteredAmount !== undefined && g.enteredAmount !== null)
               ? g.enteredAmount.toFixed(2)
               : (g.monthlyAmount ? g.monthlyAmount.toFixed(2) : undefined),
-            budgetFrequency: g.budgetFrequency || (isOngoing ? "MONTHLY" : undefined),
+            budgetFrequency: g.budgetFrequency || (isRecurring ? "MONTHLY" : undefined),
             startDate: g.startDate,
             rrule: g.rrule,
             isSurplusTarget: idx === effectiveSurplusIndex,
-            isCommitted: true,
+            isPriority: g.isPriority ?? true,
             isPrivate: matchedPool?.isPrivate ?? Boolean(g.isPrivate),
             orderIndex: nonGoalCategories.length + idx,
           };
@@ -189,7 +190,7 @@ export function useSetupWizardSubmission({
           { name: "Other Financial Institution (Everyday)", bankProvider: "Other", accountType: "EVERYDAY", lastKnownBalance: "1000.00", unbudgetedBuffer: "0.00", isPrivate: false }
         ],
         envelopes: envelopesPayload.length > 0 ? envelopesPayload : [
-          { name: "Everyday Spending", envelopeType: "EVERYDAY", bankAccountId: primaryBankAccountId, monthlyAmount: "1000.00", isEssential: true }
+          { name: "Everyday Spending", envelopeType: "EVERYDAY", bankAccountId: primaryBankAccountId, monthlyAmount: "1000.00", isPriority: false, fundingMode: "TARGET_BALANCE" }
         ],
         archivedEnvelopeIds: [...sweepQueue.map((s) => s.poolId), ...resolvedArchivedEnvelopeIds],
         archivedAccountIds: Array.from(archivedAccountIds),

@@ -20,7 +20,7 @@ interface BillSchedulesCardProps {
     endDate?: string | null;
     isPrivate?: boolean;
     budgetFrequency?: string | null;
-    isEssential?: boolean;
+    isPriority?: boolean;
     hasScheduledEvents?: boolean;
     generateEvents?: boolean;
   }>;
@@ -39,7 +39,7 @@ interface BillSchedulesCardProps {
     startDate?: string | null;
     endDate?: string | null;
     rrule?: string | null;
-    isEssential?: boolean;
+    isPriority?: boolean;
     hasScheduledEvents?: boolean;
     generateEvents?: boolean;
   }) => void;
@@ -167,7 +167,7 @@ export function BillSchedulesCard({
                                 startDate: b.startDate,
                                 endDate: b.endDate,
                                 rrule: b.rrule,
-                                isEssential: b.isEssential ?? false,
+                                isPriority: b.isPriority ?? false,
                                 hasScheduledEvents: b.hasScheduledEvents,
                                 generateEvents: b.generateEvents,
                               })

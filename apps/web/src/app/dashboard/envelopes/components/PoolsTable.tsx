@@ -23,7 +23,7 @@ export interface PoolsTableProps {
   onEditPool: (pool: PoolTableRow["rawPool"]) => void;
   onDrawDown?: (pool: PoolTableRow["rawPool"]) => void;
   onOpenCategoryDrawer?: (pool: PoolTableRow) => void;
-  onAddPool?: (poolType?: "EVERYDAY" | "BILL" | "GOAL" | "REGULAR") => void;
+  onAddPool?: (poolType?: "EVERYDAY" | "BILL" | "GOAL") => void;
   fmtMoney: (val: number | null | undefined) => string;
   isLoading?: boolean;
   searchQuery?: string;

@@ -2,14 +2,13 @@
 
 import { useState, useMemo, useEffect } from "react";
 import { t } from "@money-matters/i18n";
-import type { EnvelopeSummaryItem, PoolTableRow, EnvelopeType } from "../types";
+import type { EnvelopeSummaryItem, PoolTableRow, EnvelopeType, FundingMode } from "../types";
 
-export type PoolTypeFilter = "ALL" | "EVERYDAY" | "BILL" | "GOAL" | "REGULAR";
+export type PoolTypeFilter = "ALL" | "EVERYDAY" | "BILL" | "GOAL";
 
 export const POOL_TYPE_ORDER: Record<string, number> = {
   EVERYDAY: 0,
   BILL: 1,
-  REGULAR: 1,
   GOAL: 2,
 };
 
@@ -18,6 +17,8 @@ interface UseEnvelopesTableDataParams {
     id: string;
     name: string;
     envelopeType: string;
+    fundingMode?: string | null;
+    isPriority?: boolean | null;
     bankAccountId?: string | null;
     bankAccountName?: string | null;
     isPrivate?: boolean | null;
@@ -30,9 +31,6 @@ interface UseEnvelopesTableDataParams {
     rrule?: string | null;
     endDate?: string | null;
     safetyBufferFloor?: string | null;
-    goalMode?: string | null;
-    isEssential?: boolean | null;
-    isCommitted?: boolean | null;
     isSurplusTarget?: boolean | null;
     hasScheduledEvents?: boolean | null;
     generateEvents?: boolean | null;
@@ -139,16 +137,21 @@ export function useEnvelopesTableData({
     const nextPaydayDate = pendingPaydays[0] || null;
 
     return rawPools.map((p) => {
-      const isGoal = p.envelopeType === "TARGET_GOAL" || p.envelopeType === "ONGOING_GOAL" || p.envelopeType === "GOAL";
-      const _isBill = p.envelopeType === "SCHEDULED_BILL" || p.envelopeType === "FLEXIBLE_BILL" || p.envelopeType === "BILL";
+      const isGoal = p.envelopeType === "GOAL";
+      const isBill = p.envelopeType === "BILL";
       const isEveryday = p.envelopeType === "EVERYDAY";
 
+      const fundingMode: FundingMode =
+        (p.fundingMode as FundingMode) ?? (isGoal ? "TARGET_BALANCE" : "RECURRING");
+
+      const isPriority = p.isPriority ?? false;
+
       const targetAmountNum =
-        p.envelopeType === "SCHEDULED_BILL"
+        fundingMode === "RECURRING" && isBill
           ? (p.enteredAmount ? parseFloat(p.enteredAmount) : p.targetAmount ? parseFloat(p.targetAmount) : p.monthlyAmount ? parseFloat(p.monthlyAmount) : null)
-          : p.envelopeType === "ONGOING_GOAL"
+          : fundingMode === "RECURRING" && isGoal
           ? (p.enteredAmount ? parseFloat(p.enteredAmount) : p.monthlyAmount ? parseFloat(p.monthlyAmount) : p.targetAmount ? parseFloat(p.targetAmount) : null)
-          : p.envelopeType === "TARGET_GOAL"
+          : fundingMode === "TARGET_BALANCE" && isGoal
           ? (p.targetAmount ? parseFloat(p.targetAmount) : null)
           : (p.targetAmount ? parseFloat(p.targetAmount) : p.monthlyAmount ? parseFloat(p.monthlyAmount) : p.enteredAmount ? parseFloat(p.enteredAmount) : null);
 
@@ -161,7 +164,7 @@ export function useEnvelopesTableData({
       let progressPercentage: number | null = null;
       let balanceStatus: "INACTIVE" | "COVERED" | "PARTIAL" | "SHORTFALL" | "ON_TRACK" | undefined = undefined;
 
-      if (p.envelopeType === "SCHEDULED_BILL") {
+      if (isBill && fundingMode === "RECURRING") {
         if (p.startDate && todayISO < p.startDate) {
           balanceStatus = "INACTIVE";
           progressText = t("categories.statusInactive");
@@ -194,7 +197,7 @@ export function useEnvelopesTableData({
             }
           }
         }
-      } else if (p.envelopeType === "FLEXIBLE_BILL") {
+      } else if (isBill && fundingMode === "TARGET_BALANCE") {
         const flexTarget = p.monthlyAmount ? parseFloat(p.monthlyAmount) : (targetAmountNum || 0);
         if (flexTarget <= 0 || currentBal >= flexTarget) {
           balanceStatus = "COVERED";
@@ -206,7 +209,7 @@ export function useEnvelopesTableData({
           balanceStatus = "SHORTFALL";
           progressText = t("categories.statusShortfall");
         }
-      } else if (p.envelopeType === "ONGOING_GOAL") {
+      } else if (isGoal && fundingMode === "RECURRING") {
         const goalMonthly = p.monthlyAmount ? parseFloat(p.monthlyAmount) : (targetAmountNum || 0);
         if (goalMonthly <= 0 || currentBal >= goalMonthly) {
           balanceStatus = "COVERED";
@@ -219,7 +222,7 @@ export function useEnvelopesTableData({
           progressText = t("categories.statusShortfall");
         }
         progressPercentage = 100;
-      } else if (p.envelopeType === "TARGET_GOAL") {
+      } else if (isGoal && fundingMode === "TARGET_BALANCE") {
         const targetGoalAmt = targetAmountNum || 0;
         if (p.endDate && todayISO > p.endDate && currentBal < targetGoalAmt) {
           balanceStatus = "SHORTFALL";
@@ -245,12 +248,16 @@ export function useEnvelopesTableData({
         }
       }
 
+      const canonicalType: EnvelopeType = isEveryday ? "EVERYDAY" : isGoal ? "GOAL" : "BILL";
+
       const rawSummaryItem: EnvelopeSummaryItem = {
         id: p.id,
         name: p.name,
-        envelopeType: p.envelopeType as EnvelopeType,
-        type: isEveryday ? "EVERYDAY" : isGoal ? "GOAL" : "BILL",
-        poolType: isEveryday ? "EVERYDAY" : isGoal ? "GOAL" : "BILL",
+        envelopeType: canonicalType,
+        type: canonicalType,
+        poolType: canonicalType,
+        fundingMode: fundingMode as any,
+        isPriority,
         bankAccountId: p.bankAccountId,
         bankAccountName: p.bankAccountName || null,
         isPrivate: p.isPrivate,
@@ -264,9 +271,6 @@ export function useEnvelopesTableData({
         endDate: p.endDate,
         targetDate: p.endDate,
         safetyBufferFloor: p.safetyBufferFloor,
-        goalMode: p.goalMode as "TARGET_DATE" | "ONGOING" | undefined,
-        isEssential: p.isEssential ?? false,
-        isCommitted: p.isCommitted ?? false,
         isSurplusTarget: p.isSurplusTarget,
         hasScheduledEvents: p.hasScheduledEvents,
         generateEvents: p.generateEvents ?? true,
@@ -275,13 +279,13 @@ export function useEnvelopesTableData({
       return {
         id: p.id,
         name: p.name,
-        envelopeType: p.envelopeType as EnvelopeType,
-        poolType: isEveryday ? "EVERYDAY" : isGoal ? "GOAL" : "BILL",
+        envelopeType: canonicalType,
+        poolType: canonicalType,
+        fundingMode,
+        isPriority,
         bankAccountId: p.bankAccountId,
         bankAccountName: p.bankAccountName || null,
         isPrivate: p.isPrivate,
-        isEssential: p.isEssential ?? false,
-        isCommitted: p.isCommitted ?? false,
         currentBalance: currentBal,
         targetAmount: targetAmountNum,
         endDate: p.endDate || null,
@@ -316,8 +320,8 @@ export function useEnvelopesTableData({
         return false;
       }
       if (typeFilter !== "ALL") {
-        const effectiveFilter = typeFilter === "REGULAR" ? "BILL" : typeFilter;
-        if (row.poolType !== effectiveFilter) {
+        
+        if (row.poolType !== typeFilter) {
           return false;
         }
       }

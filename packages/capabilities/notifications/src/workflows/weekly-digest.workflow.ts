@@ -95,7 +95,7 @@ export function createWeeklyDigestWorkflow(inngest: Inngest) {
                   if (env.envelopeType === "EVERYDAY") {
                     everydayBal += bal;
                     everydayBuffer += parseFloat(env.safetyBufferFloor || "0");
-                  } else if (env.envelopeType === "SCHEDULED_BILL" || env.envelopeType === "FLEXIBLE_BILL") {
+                  } else if (env.envelopeType === "BILL") {
                     billsBal += bal;
                   }
                 }

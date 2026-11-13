@@ -171,12 +171,13 @@ export function createTenantHandler(db: DbOrTx) {
     const isAudCurrency = currency === "AUD";
     const defaultEnvelopes: Array<{
       name: string;
-      envelopeType: "EVERYDAY" | "ONGOING_GOAL";
+      envelopeType: "EVERYDAY" | "GOAL";
+      fundingMode: "TARGET_BALANCE" | "RECURRING";
       monthlyAmount: string;
       enteredAmount?: string;
       targetAmount?: string;
       budgetFrequency?: "MONTHLY";
-      isCommitted?: boolean;
+      isPriority?: boolean;
       isSurplusTarget?: boolean;
       isPrivate: boolean;
       orderIndex: number;
@@ -184,18 +185,21 @@ export function createTenantHandler(db: DbOrTx) {
       {
         name: "Everyday Spending",
         envelopeType: "EVERYDAY",
+        fundingMode: "TARGET_BALANCE",
         monthlyAmount: isAudCurrency ? "1000.00" : "0.00",
+        isPriority: true,
         isPrivate: false,
         orderIndex: 0,
       },
       {
         name: "Emergency Reserve",
-        envelopeType: "ONGOING_GOAL",
+        envelopeType: "GOAL",
+        fundingMode: "TARGET_BALANCE",
         targetAmount: isAudCurrency ? "10000.00" : "0.00",
         enteredAmount: isAudCurrency ? "300.00" : "0.00",
         monthlyAmount: isAudCurrency ? "300.00" : "0.00",
         budgetFrequency: "MONTHLY",
-        isCommitted: true,
+        isPriority: true,
         isSurplusTarget: true,
         isPrivate: false,
         orderIndex: 1,
@@ -209,12 +213,12 @@ export function createTenantHandler(db: DbOrTx) {
         bankAccountId: primaryAccount.id,
         name: e.name,
         envelopeType: e.envelopeType,
+        fundingMode: e.fundingMode,
         monthlyAmount: e.monthlyAmount,
         enteredAmount: e.enteredAmount ?? null,
         budgetFrequency: e.budgetFrequency ?? "MONTHLY",
         targetAmount: e.targetAmount ?? null,
-        isEssential: false,
-        isCommitted: e.isCommitted ?? false,
+        isPriority: e.isPriority ?? false,
         isSurplusTarget: e.isSurplusTarget ?? false,
         isPrivate: e.isPrivate,
         orderIndex: e.orderIndex,

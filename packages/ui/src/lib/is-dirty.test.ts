@@ -8,14 +8,14 @@ describe("isFormDirty & isSingleValueDirty Utility", () => {
       balance: "1000.00",
       buffer: "0.00",
       isPrivate: false,
-      selectedTypes: ["EVERYDAY", "REGULAR"],
+      selectedTypes: ["EVERYDAY", "BILL"],
     };
     const current = {
       name: "CBA Account",
       balance: "1000.00",
       buffer: "0.00",
       isPrivate: false,
-      selectedTypes: ["EVERYDAY", "REGULAR"],
+      selectedTypes: ["EVERYDAY", "BILL"],
     };
 
     expect(isFormDirty(initial, current)).toBe(false);
@@ -26,7 +26,7 @@ describe("isFormDirty & isSingleValueDirty Utility", () => {
       selectedTypes: ["EVERYDAY"],
     };
     const current = {
-      selectedTypes: ["EVERYDAY", "REGULAR"],
+      selectedTypes: ["EVERYDAY", "BILL"],
     };
 
     expect(isFormDirty(initial, current)).toBe(true);
@@ -34,10 +34,10 @@ describe("isFormDirty & isSingleValueDirty Utility", () => {
 
   it("should return false when array elements are identical regardless of order", () => {
     const initial = {
-      selectedTypes: ["EVERYDAY", "REGULAR"],
+      selectedTypes: ["EVERYDAY", "BILL"],
     };
     const current = {
-      selectedTypes: ["REGULAR", "EVERYDAY"],
+      selectedTypes: ["BILL", "EVERYDAY"],
     };
 
     expect(isFormDirty(initial, current)).toBe(false);

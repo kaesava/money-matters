@@ -79,9 +79,9 @@ describe("Bank Transfer Rollup Engine", () => {
 
   const pools: BankTransferPool[] = [
     { id: "p-everyday", name: "Everyday Spending", poolType: "EVERYDAY", bankAccountId: "acc-cba" },
-    { id: "p-rent", name: "Rent", poolType: "REGULAR", bankAccountId: "acc-up" },
-    { id: "p-power", name: "Electricity", poolType: "REGULAR", bankAccountId: "acc-up" },
-    { id: "p-internet", name: "NBN Internet", poolType: "REGULAR", bankAccountId: "acc-up" },
+    { id: "p-rent", name: "Rent", poolType: "BILL", bankAccountId: "acc-up" },
+    { id: "p-power", name: "Electricity", poolType: "BILL", bankAccountId: "acc-up" },
+    { id: "p-internet", name: "NBN Internet", poolType: "BILL", bankAccountId: "acc-up" },
     { id: "p-emergency", name: "Emergency Fund", poolType: "GOAL", bankAccountId: "acc-ing" },
     { id: "p-holiday", name: "Japan Holiday", poolType: "GOAL", bankAccountId: "acc-ing" },
     { id: "p-coffee", name: "Coffee Fund", poolType: "EVERYDAY", bankAccountId: "acc-cba" },

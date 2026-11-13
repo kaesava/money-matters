@@ -5,8 +5,8 @@ import { InfoTooltip } from './InfoTooltip';
 import { Calendar, Repeat } from 'lucide-react';
 
 export interface GoalModeToggleProps {
-  value: 'TARGET_DATE' | 'ONGOING';
-  onChange: (mode: 'TARGET_DATE' | 'ONGOING') => void;
+  value: 'TARGET_BALANCE' | 'RECURRING';
+  onChange: (mode: 'TARGET_BALANCE' | 'RECURRING') => void;
   disabled?: boolean;
 }
 
@@ -18,12 +18,12 @@ export function GoalModeToggle({
   return (
     <div className="flex flex-col gap-1.5">
       <div className="flex items-center gap-1.5">
-        <FormLabel className="!mb-0">{t('goalModes.modeLabel')}</FormLabel>
+        <FormLabel className="!mb-0">{t('categories.fundingModeLabel')}</FormLabel>
         <InfoTooltip
           content={
-            value === 'TARGET_DATE'
-              ? t('goalModes.targetDateDesc')
-              : t('goalModes.ongoingDesc')
+            value === 'TARGET_BALANCE'
+              ? t('categories.fundingModeTargetBalanceDesc')
+              : t('categories.fundingModeRecurringDesc')
           }
           align="left"
         />
@@ -32,28 +32,28 @@ export function GoalModeToggle({
         <button
           type="button"
           disabled={disabled}
-          onClick={() => onChange('TARGET_DATE')}
+          onClick={() => onChange('TARGET_BALANCE')}
           className={`flex items-center justify-center gap-2 py-2 px-3 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
-            value === 'TARGET_DATE'
+            value === 'TARGET_BALANCE'
               ? 'bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 shadow-xs'
               : 'text-slate-600 dark:text-slate-300 hover:text-slate-900'
           }`}
         >
           <Calendar className="w-4 h-4 shrink-0" />
-          <span>{t('goalModes.targetDate')}</span>
+          <span>{t('categories.fundingModeTargetBalance')}</span>
         </button>
         <button
           type="button"
           disabled={disabled}
-          onClick={() => onChange('ONGOING')}
+          onClick={() => onChange('RECURRING')}
           className={`flex items-center justify-center gap-2 py-2 px-3 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
-            value === 'ONGOING'
+            value === 'RECURRING'
               ? 'bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 shadow-xs'
               : 'text-slate-600 dark:text-slate-300 hover:text-slate-900'
           }`}
         >
           <Repeat className="w-4 h-4 shrink-0" />
-          <span>{t('goalModes.ongoing')}</span>
+          <span>{t('categories.fundingModeRecurring')}</span>
         </button>
       </div>
     </div>

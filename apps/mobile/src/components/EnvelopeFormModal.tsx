@@ -15,7 +15,7 @@ import { useMobileEnvelopeFormState } from "./envelopes/form/useMobileEnvelopeFo
 export interface EnvelopeItem {
   id: string;
   name: string;
-  type: "GOAL" | "REGULAR" | "EVERYDAY" | string;
+  type: "GOAL" | "BILL" | "EVERYDAY" | string;
   poolType?: string;
   envelopeType?: string;
   targetAmount?: string | null;
@@ -25,7 +25,6 @@ export interface EnvelopeItem {
   budgetFrequency?: RecurrenceFrequency | string | null;
   startDate?: string | null;
   rrule?: string | null;
-  goalMode?: "TARGET_DATE" | "ONGOING" | null;
   monthlyAmount?: string | null;
   everydayTargetKeepAmount?: string | null;
   bankAccountId?: string | null;
@@ -36,15 +35,13 @@ export interface EnvelopeItem {
   hasScheduledEvents?: boolean | null;
   fundingMode?: "TARGET_BALANCE" | "RECURRING" | null;
   isPriority?: boolean | null;
-  isEssential?: boolean | null;
-  isCommitted?: boolean | null;
   isPrivate?: boolean | null;
 }
 
 export interface EnvelopeDraftPayload {
   name: string;
-  type: "GOAL" | "REGULAR" | "EVERYDAY" | "BILL";
-  envelopeType: "EVERYDAY" | "BILL" | "GOAL" | "SCHEDULED_BILL" | "FLEXIBLE_BILL" | "TARGET_GOAL" | "ONGOING_GOAL";
+  type: "GOAL" | "BILL" | "EVERYDAY";
+  envelopeType: "EVERYDAY" | "BILL" | "GOAL";
   fundingMode?: "TARGET_BALANCE" | "RECURRING";
   monthlyAmount?: string;
   enteredAmount?: string;
@@ -53,11 +50,8 @@ export interface EnvelopeDraftPayload {
   budgetFrequency?: RecurrenceFrequency;
   startDate?: string;
   rrule?: string;
-  goalMode?: "TARGET_DATE" | "ONGOING";
   isSurplusTarget?: boolean;
   isPriority?: boolean;
-  isEssential?: boolean;
-  isCommitted?: boolean;
   bankAccountId?: string;
   generateEvents?: boolean;
 }
@@ -66,7 +60,7 @@ export interface EnvelopeFormModalProps {
   visible: boolean;
   envelopeToEdit?: EnvelopeItem | null;
   categoryToEdit?: EnvelopeItem | null;
-  defaultType?: "GOAL" | "REGULAR" | "EVERYDAY";
+  defaultType?: "GOAL" | "BILL" | "EVERYDAY";
   bankAccounts?: Array<{ id: string; name: string; isPrivate?: boolean | null }>;
   onSaveDraft?: (draft: EnvelopeDraftPayload) => void;
   onClose: () => void;
@@ -117,10 +111,8 @@ export function EnvelopeFormModal({
     targetDate,
     setTargetDate,
     isTargetDateInPast,
-    goalMode,
-    setGoalMode,
-    billMode,
-    setBillMode,
+    fundingMode,
+    setFundingMode,
     frequency,
     setFrequency,
     interval,
@@ -133,10 +125,6 @@ export function EnvelopeFormModal({
     setIsSurplusTarget,
     isPriority,
     setIsPriority,
-    isEssential,
-    setIsEssential,
-    isCommitted,
-    setIsCommitted,
     generateEvents,
     setGenerateEvents,
     calculatedMonthly,
@@ -208,17 +196,17 @@ export function EnvelopeFormModal({
         toast.error(t("categories.goalAmountRequired"));
         return false;
       }
-      if (goalMode === "TARGET_DATE" && !targetDate) {
+      if (fundingMode === "TARGET_BALANCE" && !targetDate) {
         toast.error(t("categories.goalDateRequired"));
         return false;
       }
     }
-    if (type === "REGULAR") {
+    if (type === "BILL") {
       if (!targetAmount || parseFloat(targetAmount) <= 0) {
         toast.error(t("categories.billAmountRequired"));
         return false;
       }
-      if (billMode === "SCHEDULED_BILL" && !goalStartDate) {
+      if (fundingMode === "RECURRING" && !goalStartDate) {
         toast.error(t("categories.billStartDateRequired"));
         return false;
       }
@@ -286,11 +274,11 @@ export function EnvelopeFormModal({
   const typeOptions = isEdit
     ? [
         { key: "EVERYDAY", label: t("categories.typeEveryday") },
-        { key: "REGULAR", label: t("categories.typeRegular") },
+        { key: "BILL", label: t("categories.typeBill") },
         { key: "GOAL", label: t("categories.typeGoal") },
       ]
     : [
-        { key: "REGULAR", label: t("categories.typeRegular") },
+        { key: "BILL", label: t("categories.typeBill") },
         { key: "GOAL", label: t("categories.typeGoal") },
       ];
 
@@ -342,10 +330,8 @@ export function EnvelopeFormModal({
         setTargetAmount={setTargetAmount}
         targetDate={targetDate}
         setTargetDate={setTargetDate}
-        goalMode={goalMode}
-        setGoalMode={setGoalMode}
-        billMode={billMode}
-        setBillMode={setBillMode}
+        fundingMode={fundingMode}
+        setFundingMode={setFundingMode}
         frequency={frequency}
         setFrequency={setFrequency}
         interval={interval}
@@ -363,10 +349,6 @@ export function EnvelopeFormModal({
         setIsSurplusTarget={setIsSurplusTarget}
         isPriority={isPriority}
         setIsPriority={setIsPriority}
-        isEssential={isEssential}
-        setIsEssential={setIsEssential}
-        isCommitted={isCommitted}
-        setIsCommitted={setIsCommitted}
         isEdit={isEdit}
         isSurplusDisabled={Boolean(isEdit && categoryToEdit?.isSurplusTarget)}
         hideTypeOptions={initialMode === "BILL_SCHEDULE"}

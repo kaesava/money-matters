@@ -8,8 +8,8 @@ describe("paycheck cascade allocation engine", () => {
       {
         id: "rent-id",
         name: "Rent / Mortgage",
-        type: "REGULAR",
-        isCommitted: false,
+        type: "BILL",
+        isPriority: false,
         monthlyAmount: 1200,
         targetAmount: null,
         targetDate: null,
@@ -19,7 +19,7 @@ describe("paycheck cascade allocation engine", () => {
         id: "holiday-committed-id",
         name: "Car Insurance",
         type: "GOAL",
-        isCommitted: true,
+        isPriority: true,
         monthlyAmount: null,
         targetAmount: 500,
         targetDate: new Date(Date.now() + 1000 * 60 * 60 * 24 * 60).toISOString(), // ~2 months out
@@ -29,7 +29,7 @@ describe("paycheck cascade allocation engine", () => {
         id: "uncommitted-id",
         name: "Holiday",
         type: "GOAL",
-        isCommitted: false,
+        isPriority: false,
         monthlyAmount: null,
         targetAmount: 1000,
         targetDate: null, // defaults to 12 months remaining
@@ -39,7 +39,7 @@ describe("paycheck cascade allocation engine", () => {
         id: "everyday-id",
         name: "Everyday Spending",
         type: "EVERYDAY",
-        isCommitted: false,
+        isPriority: false,
         isSurplusTarget: true,
         monthlyAmount: null,
         targetAmount: null,
@@ -58,7 +58,7 @@ describe("paycheck cascade allocation engine", () => {
 
     expect(result.status).toBe("OK");
     
-    // Prorated Rent (REGULAR): 1200 * 12 / 26 = 553.85
+    // Prorated Rent (BILL): 1200 * 12 / 26 = 553.85
     const rentLine = result.lines.find((l) => l.bucketId === "rent-id");
     expect(rentLine?.proposedAmount).toBe(553.85);
 
@@ -81,7 +81,7 @@ describe("paycheck cascade allocation engine", () => {
         id: "overspent-everyday",
         name: "Everyday Cash",
         type: "EVERYDAY",
-        isCommitted: false,
+        isPriority: false,
         monthlyAmount: null,
         targetAmount: 500,
         targetDate: null,
@@ -90,8 +90,8 @@ describe("paycheck cascade allocation engine", () => {
       {
         id: "rent-id",
         name: "Rent / Mortgage",
-        type: "REGULAR",
-        isCommitted: false,
+        type: "BILL",
+        isPriority: false,
         monthlyAmount: 1000,
         targetAmount: null,
         targetDate: null,
@@ -144,15 +144,15 @@ describe("paycheck cascade allocation engine", () => {
       {
         id: "rent-bill",
         name: "Rent Bill",
-        type: "REGULAR",
-        isEssential: true,
+        type: "BILL",
+        isPriority: true,
         monthlyAmount: 2600, // 2600 * 12 / 26 = 1200 needed per paycheck
         currentBalance: 0,
       },
       {
         id: "utility-bill",
         name: "Utility Bill",
-        type: "REGULAR",
+        type: "BILL",
         monthlyAmount: 260, // 120 needed per paycheck
         currentBalance: 0,
       },
@@ -184,7 +184,7 @@ describe("paycheck cascade allocation engine", () => {
       {
         id: "rent-bill",
         name: "Rent Bill",
-        type: "REGULAR",
+        type: "BILL",
         monthlyAmount: 1000,
         currentBalance: 0,
       },
@@ -207,8 +207,8 @@ describe("paycheck cascade allocation engine", () => {
       {
         id: "bills-pool",
         name: "Bills Pool",
-        type: "REGULAR",
-        isEssential: true,
+        type: "BILL",
+        isPriority: true,
         monthlyAmount: 2000,
         currentBalance: 200, // Has $200
       },
@@ -241,7 +241,7 @@ describe("paycheck cascade allocation engine", () => {
           name: "Rent",
           amount: 2000,
           dueDate: "2026-09-04",
-          isEssential: true,
+          isPriority: true,
         },
       ],
     });
@@ -262,8 +262,8 @@ describe("paycheck cascade allocation engine", () => {
       {
         id: "rent-pool",
         name: "Rent",
-        type: "REGULAR",
-        isEssential: true,
+        type: "BILL",
+        isPriority: true,
         monthlyAmount: 1000,
         currentBalance: 0,
       },
@@ -288,7 +288,7 @@ describe("paycheck cascade allocation engine", () => {
           name: "Rent",
           amount: 1000,
           dueDate: "2026-09-03",
-          isEssential: true,
+          isPriority: true,
         },
       ],
     });
@@ -307,7 +307,7 @@ describe("paycheck cascade allocation engine", () => {
       {
         id: "shared-bills",
         name: "Shared Rent",
-        type: "REGULAR",
+        type: "BILL",
         monthlyAmount: 1300,
         currentBalance: 0,
         isPrivate: false,
@@ -420,7 +420,7 @@ describe("paycheck cascade allocation engine", () => {
       {
         id: "urgent-bills",
         name: "Electric Bill",
-        type: "REGULAR",
+        type: "BILL",
         monthlyAmount: 260,
         currentBalance: 0,
       },
@@ -437,7 +437,7 @@ describe("paycheck cascade allocation engine", () => {
         targetAmount: 5000,
         monthlyAmount: 500,
         currentBalance: 0,
-        isCommitted: true,
+        isPriority: true,
       },
     ];
 

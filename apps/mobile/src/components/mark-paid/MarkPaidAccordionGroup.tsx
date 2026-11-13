@@ -28,7 +28,7 @@ export function MarkPaidAccordionGroup({
   onAmountChange,
 }: MarkPaidAccordionGroupProps) {
   const typeLabel =
-    typeKey === 'REGULAR'
+    typeKey === 'BILL'
       ? t('incomeBillsTabs.bills')
       : typeKey === 'EVERYDAY'
         ? t('incomeBillsTabs.everyday')

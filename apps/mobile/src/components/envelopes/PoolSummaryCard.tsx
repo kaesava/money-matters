@@ -15,8 +15,6 @@ interface PoolSummaryCardProps {
     currentBalance?: number | string | null;
     isSurplusTarget?: boolean | null;
     isPriority?: boolean | null;
-    isEssential?: boolean | null;
-    isCommitted?: boolean | null;
   };
   bankAccountName?: string | null;
   onEdit: () => void;
@@ -31,28 +29,20 @@ export function PoolSummaryCard({
   onDrawDown,
   onOpenNotes,
 }: PoolSummaryCardProps) {
-  const isBill = pool.envelopeType === 'BILL' || pool.envelopeType === 'SCHEDULED_BILL' || pool.envelopeType === 'FLEXIBLE_BILL';
-  const isGoal = pool.envelopeType === 'GOAL' || pool.envelopeType === 'TARGET_GOAL' || pool.envelopeType === 'ONGOING_GOAL' || pool.poolType === 'GOAL';
+  const isBill = pool.envelopeType === 'BILL';
+  const isGoal = pool.envelopeType === 'GOAL' || pool.poolType === 'GOAL';
   const isEveryday = pool.envelopeType === 'EVERYDAY' || pool.poolType === 'EVERYDAY';
-  const isPriority = Boolean(pool.isPriority || pool.isEssential || pool.isCommitted);
+  const isPriority = Boolean(pool.isPriority);
 
-  const badgeText = isEveryday
+  const fundingMode = pool.fundingMode || 'TARGET_BALANCE';
+
+  const badgeText = isBill
+    ? (fundingMode === 'RECURRING' ? t('categories.scheduledBillBadge') : t('categories.flexibleBillBadge'))
+    : isGoal
+    ? (fundingMode === 'RECURRING' ? t('categories.ongoingGoalBadge') : t('categories.targetDateGoalBadge'))
+    : isEveryday
     ? t('categories.everydayBadge')
-    : pool.fundingMode === 'TARGET_BALANCE'
-    ? t('categories.targetBalanceBadge')
-    : pool.fundingMode === 'RECURRING'
-    ? t('categories.recurringBadge')
-    : pool.envelopeType === 'SCHEDULED_BILL'
-    ? t('categories.scheduledBillBadge')
-    : pool.envelopeType === 'FLEXIBLE_BILL'
-    ? t('categories.flexibleBillBadge')
-    : pool.envelopeType === 'TARGET_GOAL'
-    ? t('categories.targetDateGoalBadge')
-    : pool.envelopeType === 'ONGOING_GOAL'
-    ? t('categories.ongoingGoalBadge')
-    : pool.poolType === 'GOAL'
-    ? t('poolTypes.goals')
-    : t('poolTypes.bills');
+    : null;
 
   return (
     <View style={styles.card}>

@@ -18,7 +18,7 @@ export function createAssistantIntentHandler(db: DbOrTx, appId: string): IntentH
         .where(
           and(
             eq(envelopes.tenantId, ctx.tenantId),
-            sql`${envelopes.envelopeType} IN ('TARGET_GOAL', 'ONGOING_GOAL')`,
+            eq(envelopes.envelopeType, "GOAL"),
             sql`${envelopes.archivedAt} IS NULL`
           )
         );

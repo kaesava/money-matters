@@ -1,4 +1,4 @@
-import type { EnvelopeType } from "./envelope.types.js";
+import type { EnvelopeType, FundingMode } from "./envelope.types.js";
 
 /**
  * Port interfaces for Cumulative Waterfall Projection Engine (IoC boundary)
@@ -6,17 +6,16 @@ import type { EnvelopeType } from "./envelope.types.js";
 export interface ProjectionEngineBucket {
   id: string;
   name: string;
-  type: EnvelopeType | "REGULAR" | "GOAL";
-  envelopeType?: string;
+  type: EnvelopeType;
+  envelopeType?: EnvelopeType;
+  fundingMode?: FundingMode;
   userId?: string;
   isPrivate?: boolean;
-  isEssential?: boolean;
-  isCommitted?: boolean;
+  isPriority?: boolean;
   isSurplusTarget?: boolean;
   monthlyAmount?: number | null;
   targetAmount?: number | null;
   safetyBufferFloor?: number | null;
-  goalMode?: "TARGET_DATE" | "ONGOING" | null;
   targetDate?: string | null;
   dueDate?: string | null;
   currentBalance: number;

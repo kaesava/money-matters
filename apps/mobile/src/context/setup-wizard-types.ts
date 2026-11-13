@@ -86,9 +86,9 @@ export interface SetupWizardContextValue {
   setRemovedCategoryNames: React.Dispatch<React.SetStateAction<Set<string>>>;
   amountOverrides: Record<string, number>;
   setAmountOverrides: React.Dispatch<React.SetStateAction<Record<string, number>>>;
-  billTypeOverrides: Record<string, 'SCHEDULED_BILL' | 'FLEXIBLE_BILL'>;
+  billTypeOverrides: Record<string, 'RECURRING' | 'TARGET_BALANCE'>;
   setBillTypeOverrides: React.Dispatch<
-    React.SetStateAction<Record<string, 'SCHEDULED_BILL' | 'FLEXIBLE_BILL'>>
+    React.SetStateAction<Record<string, 'RECURRING' | 'TARGET_BALANCE'>>
   >;
   categoryFrequencies: Record<string, 'WEEKLY' | 'FORTNIGHTLY' | 'MONTHLY' | 'QUARTERLY' | 'YEARLY'>;
   setCategoryFrequencies: React.Dispatch<

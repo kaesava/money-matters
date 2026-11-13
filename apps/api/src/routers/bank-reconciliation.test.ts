@@ -59,7 +59,7 @@ describe("Bank Reconciliation & Mapping Rules", () => {
     expect(insertedEnvelopes).toHaveLength(2);
     const envelopeTypes = insertedEnvelopes.map((p) => p.envelopeType);
     expect(envelopeTypes).toContain("EVERYDAY");
-    expect(envelopeTypes).toContain("ONGOING_GOAL");
+    expect(envelopeTypes).toContain("GOAL");
     expect(insertedEnvelopes.every((p) => p.bankAccountId === "acc-primary-123")).toBe(true);
   });
 

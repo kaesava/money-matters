@@ -12,7 +12,6 @@ interface PoolItemCardProps {
     name: string;
     envelopeType?: string | null;
     poolType?: string | null;
-    goalMode?: string | null;
     budgetFrequency?: string | null;
     rrule?: string | null;
     endDate?: string | null;
@@ -24,8 +23,6 @@ interface PoolItemCardProps {
     isSurplusTarget?: boolean | null;
     fundingMode?: "TARGET_BALANCE" | "RECURRING" | null;
     isPriority?: boolean | null;
-    isEssential?: boolean | null;
-    isCommitted?: boolean | null;
   };
 }
 
@@ -33,10 +30,10 @@ export function PoolItemCard({
   pool,
 }: PoolItemCardProps) {
   const router = useRouter();
-  const isBill = pool.envelopeType === 'BILL' || pool.envelopeType === 'SCHEDULED_BILL' || pool.envelopeType === 'FLEXIBLE_BILL';
-  const isGoal = pool.envelopeType === 'GOAL' || pool.envelopeType === 'TARGET_GOAL' || pool.envelopeType === 'ONGOING_GOAL' || pool.poolType === 'GOAL';
+  const isBill = pool.envelopeType === 'BILL';
+  const isGoal = pool.envelopeType === 'GOAL' || pool.poolType === 'GOAL';
   const isEveryday = pool.envelopeType === 'EVERYDAY' || pool.poolType === 'EVERYDAY';
-  const isPriority = Boolean(pool.isPriority || pool.isEssential || pool.isCommitted);
+  const isPriority = Boolean(pool.isPriority);
 
   const target = pool.targetAmount ? parseFloat(pool.targetAmount) : 0;
   const entered = pool.enteredAmount ? parseFloat(pool.enteredAmount) : 0;
@@ -44,20 +41,14 @@ export function PoolItemCard({
   const currentBal = typeof pool.currentBalance === 'number' ? pool.currentBalance : parseFloat(String(pool.currentBalance || 0));
   const pct = target > 0 ? Math.min(100, Math.round((currentBal / target) * 100)) : 0;
 
-  const subTypeBadge = isEveryday
+  const fundingMode = pool.fundingMode || 'TARGET_BALANCE';
+
+  const subTypeBadge = isBill
+    ? (fundingMode === 'RECURRING' ? t('categories.scheduledBillBadge') : t('categories.flexibleBillBadge'))
+    : isGoal
+    ? (fundingMode === 'RECURRING' ? t('categories.ongoingGoalBadge') : t('categories.targetDateGoalBadge'))
+    : isEveryday
     ? t('categories.everydayBadge')
-    : pool.fundingMode === 'TARGET_BALANCE'
-    ? t('categories.targetBalanceBadge')
-    : pool.fundingMode === 'RECURRING'
-    ? t('categories.recurringBadge')
-    : pool.envelopeType === 'SCHEDULED_BILL'
-    ? t('categories.scheduledBillBadge')
-    : pool.envelopeType === 'FLEXIBLE_BILL'
-    ? t('categories.flexibleBillBadge')
-    : pool.envelopeType === 'TARGET_GOAL'
-    ? t('categories.targetDateGoalBadge')
-    : pool.envelopeType === 'ONGOING_GOAL'
-    ? t('categories.ongoingGoalBadge')
     : null;
 
   return (
@@ -112,7 +103,7 @@ export function PoolItemCard({
             <Text style={styles.balNum}>{formatMobileCurrency(pool.currentBalance ?? 0)}</Text>
             <Text style={styles.balSub}>
               {isGoal
-                ? pool.goalMode === 'ONGOING' || pool.envelopeType === 'ONGOING_GOAL'
+                ? fundingMode === 'RECURRING'
                   ? (() => {
                       const freq = pool.budgetFrequency || 'MONTHLY';
                       const suffix = formatRecurrenceSuffix(pool.rrule, freq);
@@ -125,7 +116,7 @@ export function PoolItemCard({
                   : target > 0
                   ? `${pct}% of ${formatMobileCurrency(target)}`
                   : t('categories.noTarget')
-                : pool.envelopeType === 'SCHEDULED_BILL'
+                : pool.envelopeType === 'BILL' && fundingMode === 'RECURRING'
                 ? (() => {
                     const freq = pool.budgetFrequency || 'MONTHLY';
                     const suffix = formatRecurrenceSuffix(pool.rrule, freq);
@@ -141,7 +132,7 @@ export function PoolItemCard({
         </View>
       </TouchableOpacity>
 
-      {isGoal && target > 0 && pool.goalMode !== 'ONGOING' && pool.envelopeType !== 'ONGOING_GOAL' && (
+      {isGoal && target > 0 && fundingMode !== 'RECURRING' && (
         <View style={styles.progressTrack}>
           <View style={[styles.progressFill, { width: `${pct}%` }]} />
         </View>

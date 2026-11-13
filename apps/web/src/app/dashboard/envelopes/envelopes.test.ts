@@ -3,13 +3,13 @@ import { t } from "@money-matters/i18n";
 
 describe("Web UI Bucket categorization and health filtering", () => {
   const categories = [
-    { id: "1", name: "Rent", type: "REGULAR", healthStatus: "GREEN", currentBalance: "1200.00" },
+    { id: "1", name: "Rent", type: "BILL", healthStatus: "GREEN", currentBalance: "1200.00" },
     { id: "2", name: "Holiday", type: "GOAL", healthStatus: "AMBER", currentBalance: "400.00" },
     { id: "3", name: "Everyday", type: "EVERYDAY", healthStatus: "GREEN", currentBalance: "350.00" },
   ];
 
-  it("filters REGULAR, GOAL, and EVERYDAY buckets", () => {
-    const regular = categories.filter((c) => c.type === "REGULAR");
+  it("filters BILL, GOAL, and EVERYDAY buckets", () => {
+    const regular = categories.filter((c) => c.type === "BILL");
     const goal = categories.filter((c) => c.type === "GOAL");
     const everyday = categories.filter((c) => c.type === "EVERYDAY");
 

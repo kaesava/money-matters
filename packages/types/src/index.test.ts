@@ -94,13 +94,17 @@ describe('Domain Schemas Validation', () => {
     const envelope = EnvelopeSchema.parse({
       ...mockBase,
       name: 'Regular Bills',
-      envelopeType: 'SCHEDULED_BILL',
+      envelopeType: 'BILL',
+      fundingMode: 'RECURRING',
+      isPriority: true,
       bankAccountId: '55555555-5555-4555-8555-555555555555',
       monthlyAmount: '1200.00',
       enteredAmount: '1200.00',
       budgetFrequency: 'MONTHLY',
     });
-    expect(envelope.envelopeType).toBe('SCHEDULED_BILL');
+    expect(envelope.envelopeType).toBe('BILL');
+    expect(envelope.fundingMode).toBe('RECURRING');
+    expect(envelope.isPriority).toBe(true);
   });
 
   it('validates IncomeSourceSchema and IncomeSourceScheduleSchema', () => {

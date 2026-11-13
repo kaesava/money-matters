@@ -31,6 +31,7 @@ export interface MobileEnvelopeDetailSheetProps {
   poolId?: string | null;
   poolName: string;
   poolType?: string;
+  fundingMode?: string | null;
   currentBalance?: number | string | null;
   targetAmount?: number | string | null;
   enteredAmount?: number | string | null;
@@ -50,6 +51,7 @@ export function MobileEnvelopeDetailSheet({
   visible,
   poolName,
   poolType,
+  fundingMode,
   currentBalance,
   targetAmount,
   enteredAmount,
@@ -76,7 +78,7 @@ export function MobileEnvelopeDetailSheet({
   const targetNum = typeof targetAmount === 'number' ? targetAmount : parseFloat(String(targetAmount || '0'));
   const enteredNum = typeof enteredAmount === 'number' ? enteredAmount : parseFloat(String(enteredAmount || '0'));
   const monthlyNum = typeof monthlyAmount === 'number' ? monthlyAmount : parseFloat(String(monthlyAmount || '0'));
-  const isOngoing = poolType === 'ONGOING_GOAL' || poolType === 'SCHEDULED_BILL' || (!targetDate && Boolean(budgetFrequency));
+  const isOngoing = fundingMode === 'RECURRING' || (!targetDate && Boolean(budgetFrequency));
   const freqSuffix = formatRecurrenceSuffix(rrule, budgetFrequency);
 
   const tabs = [

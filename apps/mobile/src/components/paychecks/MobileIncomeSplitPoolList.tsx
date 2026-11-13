@@ -23,7 +23,7 @@ export interface PoolRecord {
 
 export interface MobileIncomeSplitPoolListProps {
   groups: Array<{
-    type: 'EVERYDAY' | 'REGULAR' | 'GOAL';
+    type: 'EVERYDAY' | 'BILL' | 'GOAL';
     label: string;
     items: AllocationLineItem[];
   }>;

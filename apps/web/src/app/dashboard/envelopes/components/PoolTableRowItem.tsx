@@ -49,22 +49,21 @@ export function PoolTableRowItem({
       document.removeEventListener("keydown", handleKeyDown);
     };
   }, [menuOpen]);
-  const subTypeBadge =
-    pool.envelopeType === "SCHEDULED_BILL"
-      ? t("categories.scheduledBillBadge")
-      : pool.envelopeType === "FLEXIBLE_BILL"
-      ? t("categories.flexibleBillBadge")
-      : pool.envelopeType === "TARGET_GOAL"
-      ? t("categories.targetDateGoalBadge")
-      : pool.envelopeType === "ONGOING_GOAL"
-      ? t("categories.ongoingGoalBadge")
-      : pool.envelopeType === "BILL"
-      ? (pool.rawPool.fundingMode === "TARGET_BALANCE" || pool.rawPool.rrule ? t("categories.scheduledBillBadge") : t("categories.flexibleBillBadge"))
-      : pool.envelopeType === "GOAL"
-      ? (pool.rawPool.fundingMode === "RECURRING" || pool.rawPool.goalMode === "ONGOING" ? t("categories.ongoingGoalBadge") : t("categories.targetDateGoalBadge"))
-      : pool.envelopeType === "EVERYDAY" || pool.poolType === "EVERYDAY"
-      ? t("categories.everydayBadge")
-      : null;
+  const isGoal = pool.envelopeType === "GOAL";
+  const isBill = pool.envelopeType === "BILL";
+  const isEveryday = pool.envelopeType === "EVERYDAY";
+
+  const fundingMode = pool.rawPool.fundingMode || (pool.envelopeType === "GOAL" ? "TARGET_BALANCE" : "RECURRING");
+
+  const subTypeBadge = isBill
+    ? (fundingMode === "RECURRING" ? t("categories.scheduledBillBadge") : t("categories.flexibleBillBadge"))
+    : isGoal
+    ? (fundingMode === "RECURRING" ? t("categories.ongoingGoalBadge") : t("categories.targetDateGoalBadge"))
+    : isEveryday
+    ? t("categories.everydayBadge")
+    : null;
+
+  const isPriority = Boolean(pool.isPriority || pool.rawPool.isPriority);
 
   return (
     <tr className="hover:bg-slate-50/80 transition-colors group/row">
@@ -88,13 +87,13 @@ export function PoolTableRowItem({
           {subTypeBadge && (
             <span
               className={`inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-bold tracking-wide uppercase ${
-                pool.envelopeType === "SCHEDULED_BILL" || (pool.envelopeType === "BILL" && (pool.rawPool.fundingMode === "TARGET_BALANCE" || Boolean(pool.rawPool.rrule)))
+                isBill && fundingMode === "RECURRING"
                   ? "bg-blue-50 text-blue-700 border border-blue-200"
-                  : pool.envelopeType === "FLEXIBLE_BILL" || pool.envelopeType === "BILL"
+                  : isBill
                   ? "bg-sky-50 text-sky-700 border border-sky-200"
-                  : pool.envelopeType === "TARGET_GOAL" || (pool.envelopeType === "GOAL" && pool.rawPool.fundingMode !== "RECURRING" && pool.rawPool.goalMode !== "ONGOING")
+                  : isGoal && fundingMode === "TARGET_BALANCE"
                   ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
-                  : pool.envelopeType === "ONGOING_GOAL" || pool.envelopeType === "GOAL"
+                  : isGoal
                   ? "bg-teal-50 text-teal-700 border border-teal-200"
                   : "bg-purple-50 text-purple-700 border border-purple-200"
               }`}
@@ -103,15 +102,9 @@ export function PoolTableRowItem({
             </span>
           )}
 
-          {Boolean(pool.isEssential || pool.rawPool.isEssential || pool.rawPool.isPriority) && (pool.envelopeType === "SCHEDULED_BILL" || pool.envelopeType === "FLEXIBLE_BILL" || pool.envelopeType === "BILL") && (
+          {isPriority && !isEveryday && (
             <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-bold tracking-wide uppercase bg-amber-50 text-amber-700 border border-amber-200">
-              {t("categories.essentialBadge")}
-            </span>
-          )}
-
-          {Boolean(pool.isCommitted || pool.rawPool.isCommitted || pool.rawPool.isPriority) && (pool.envelopeType === "TARGET_GOAL" || pool.envelopeType === "ONGOING_GOAL" || pool.envelopeType === "GOAL") && (
-            <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-bold tracking-wide uppercase bg-indigo-50 text-indigo-700 border border-indigo-200">
-              {t("categories.committedBadge")}
+              {t("categories.priorityBadge")}
             </span>
           )}
 
@@ -142,7 +135,7 @@ export function PoolTableRowItem({
             {fmtMoney(pool.currentBalance)}
           </span>
           {(() => {
-            if (pool.envelopeType === "TARGET_GOAL") {
+            if (pool.envelopeType === "GOAL" && pool.fundingMode === "TARGET_BALANCE") {
               const target = pool.targetAmount || 0;
               const pct = target > 0 ? Math.min(100, Math.round((pool.currentBalance / target) * 100)) : 0;
               return (
@@ -204,7 +197,7 @@ export function PoolTableRowItem({
             {fmtMoney(pool.targetAmount)}
           </span>
           <span className="text-[11px] font-medium text-zinc-500 font-mono">
-            {pool.envelopeType === "TARGET_GOAL" && pool.targetDate
+            {pool.envelopeType === "GOAL" && pool.fundingMode === "TARGET_BALANCE" && pool.targetDate
               ? t("categories.targetByDate", { date: fmtDate(pool.targetDate) })
               : pool.envelopeType === "EVERYDAY"
               ? t("categories.frequencyMonthly")

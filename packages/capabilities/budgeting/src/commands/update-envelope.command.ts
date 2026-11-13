@@ -127,26 +127,16 @@ export async function updateEnvelopeCommand(
     const { fundingMode, isPriority, ...restInput } = input;
 
     const rawEnvelopeType = restInput.envelopeType ?? existing.envelopeType;
-    const effectiveFundingMode = fundingMode ?? (
-      existing.envelopeType === "SCHEDULED_BILL" ? "RECURRING" :
-      existing.envelopeType === "FLEXIBLE_BILL" ? "TARGET_BALANCE" :
-      existing.envelopeType === "TARGET_GOAL" ? "TARGET_BALANCE" :
-      existing.envelopeType === "ONGOING_GOAL" ? "RECURRING" : undefined
-    );
+    const effectiveEnvelopeType = rawEnvelopeType ?? existing.envelopeType;
+    const effectiveFundingMode = fundingMode ?? existing.fundingMode ?? (effectiveEnvelopeType === "GOAL" ? "TARGET_BALANCE" : "RECURRING");
+    const effectiveIsPriority = isPriority !== undefined ? isPriority : existing.isPriority;
 
-    const effectiveDbEnvelopeType =
-      rawEnvelopeType === "BILL"
-        ? (effectiveFundingMode === "RECURRING" ? "SCHEDULED_BILL" : "FLEXIBLE_BILL")
-        : rawEnvelopeType === "GOAL"
-        ? (effectiveFundingMode === "RECURRING" || (restInput.goalMode ?? existing.goalMode) === "ONGOING" ? "ONGOING_GOAL" : "TARGET_GOAL")
-        : rawEnvelopeType;
-
-    const isNowScheduled = effectiveDbEnvelopeType === "SCHEDULED_BILL";
-    const wasScheduled = existing.envelopeType === "SCHEDULED_BILL";
+    const isNowScheduled = effectiveEnvelopeType === "BILL" && effectiveFundingMode === "RECURRING";
+    const wasScheduled = existing.envelopeType === "BILL" && existing.fundingMode === "RECURRING";
 
     const budgetFrequency = restInput.budgetFrequency ?? existing.budgetFrequency;
-    const isTargetGoal = effectiveDbEnvelopeType === "TARGET_GOAL";
-    const isOngoingGoal = effectiveDbEnvelopeType === "ONGOING_GOAL";
+    const isOngoingGoal = effectiveEnvelopeType === "GOAL" && effectiveFundingMode === "RECURRING";
+    const isTargetGoal = effectiveEnvelopeType === "GOAL" && effectiveFundingMode === "TARGET_BALANCE";
 
     let rrule: string | null = null;
     let startDate: string | null = null;
@@ -165,7 +155,7 @@ export async function updateEnvelopeCommand(
       startDate = null;
       endDate = restInput.endDate !== undefined ? restInput.endDate : existing.endDate;
     } else {
-      // FLEXIBLE_BILL or EVERYDAY
+      // TARGET_BALANCE BILL or EVERYDAY
       rrule = null;
       startDate = null;
       endDate = null;
@@ -181,9 +171,9 @@ export async function updateEnvelopeCommand(
       .update(envelopes)
       .set({
         ...restInput,
-        envelopeType: effectiveDbEnvelopeType,
-        isEssential: isPriority !== undefined ? isPriority : restInput.isEssential,
-        isCommitted: isPriority !== undefined ? isPriority : restInput.isCommitted,
+        envelopeType: effectiveEnvelopeType,
+        fundingMode: effectiveFundingMode,
+        isPriority: effectiveIsPriority,
         safetyBufferFloor: restInput.safetyBufferFloor !== undefined ? restInput.safetyBufferFloor || "0.00" : undefined,
         startDate,
         endDate,
@@ -233,7 +223,7 @@ export async function updateEnvelopeCommand(
     const hasExistingScheduledEvents = (pendingScheduled?.count ?? 0) > 0;
 
     if (!isNowScheduled) {
-      // 1. Envelope is no longer a scheduled bill (e.g. converted to FLEXIBLE_BILL or GOAL):
+      // 1. Envelope is no longer a recurring bill (e.g. converted to TARGET_BALANCE or GOAL):
       // Clean up all pending scheduled events
       if (wasScheduled || hasExistingScheduledEvents) {
         await clearScheduledEnvelopeEvents(tx, envelopeId, tenantId, appId);

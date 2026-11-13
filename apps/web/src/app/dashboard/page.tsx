@@ -268,7 +268,7 @@ export default function DashboardPage() {
               healthStatus: g.healthStatus || undefined,
               targetAmount: g.targetAmount,
               endDate: g.endDate,
-              goalMode: (g.goalMode as "TARGET_DATE" | "ONGOING") ?? undefined,
+              fundingMode: g.fundingMode === "RECURRING" || g.fundingMode === "TARGET_BALANCE" ? g.fundingMode : null,
               enteredAmount: g.enteredAmount,
               budgetFrequency: g.budgetFrequency,
               createdAt: g.createdAt,

@@ -14,8 +14,8 @@ describe("cumulative-projection engine", () => {
     {
       id: "pool-bills",
       name: "Rent & Housing Bills",
-      type: "REGULAR",
-      isCommitted: true,
+      type: "BILL",
+      isPriority: true,
       monthlyAmount: 1000,
       currentBalance: 100,
     },
@@ -123,7 +123,7 @@ describe("cumulative-projection engine", () => {
         {
           id: "pool-bills",
           name: "Rent & Housing Bills",
-          type: "REGULAR",
+          type: "BILL",
           monthlyAmount: 1000,
           currentBalance: 1400,
         },

@@ -17,14 +17,14 @@ interface CalculationsProps {
     icon?: string;
     targetAmount?: number | null;
     dueDate?: string | null;
-    goalMode?: "TARGET_DATE" | "ONGOING";
+    fundingMode?: "TARGET_BALANCE" | "RECURRING";
     enteredAmount?: number | null;
     budgetFrequency?: "WEEKLY" | "FORTNIGHTLY" | "MONTHLY" | "QUARTERLY" | "ANNUALLY";
   }>;
   customCategories: EstimatedCategoryItem[];
   removedCategoryNames: Set<string>;
   amountOverrides: Record<string, number>;
-  billTypeOverrides?: Record<string, "SCHEDULED_BILL" | "FLEXIBLE_BILL">;
+  billTypeOverrides?: Record<string, "RECURRING" | "TARGET_BALANCE">;
 }
 
 function getGoalMonthsDiff(targetDateStr?: string | null): number {
@@ -50,7 +50,7 @@ export function useSetupWizardCalculations({
     return goals
       .filter((g) => !removedCategoryNames.has(g.name))
       .map((g) => {
-        const isOngoing = g.goalMode === "ONGOING" || (!g.dueDate && g.budgetFrequency);
+        const isOngoing = g.fundingMode === "RECURRING" || (!g.dueDate && Boolean(g.budgetFrequency));
         const override = amountOverrides[g.name];
         let baseMonthly = 0;
         if (isOngoing) {
@@ -66,6 +66,8 @@ export function useSetupWizardCalculations({
           id: g.id,
           name: g.name,
           type: "GOAL" as const,
+          envelopeType: "GOAL" as const,
+          fundingMode: isOngoing ? ("RECURRING" as const) : ("TARGET_BALANCE" as const),
           monthlyAud: override !== undefined ? override : baseMonthly,
           icon: g.icon || "target",
         };
@@ -86,9 +88,11 @@ export function useSetupWizardCalculations({
       .map((cat) => {
         const override = amountOverrides[cat.name];
         const typeOverride = billTypeOverrides[cat.name];
+        const isEveryday = cat.type === "EVERYDAY";
         return {
           ...cat,
-          envelopeType: typeOverride || cat.envelopeType || (cat.type === "EVERYDAY" ? "EVERYDAY" : "SCHEDULED_BILL"),
+          envelopeType: isEveryday ? ("EVERYDAY" as const) : ("BILL" as const),
+          fundingMode: typeOverride || cat.fundingMode || (isEveryday ? ("TARGET_BALANCE" as const) : ("RECURRING" as const)),
           monthlyAud: override !== undefined ? override : cat.monthlyAud,
         };
       });
@@ -110,7 +114,7 @@ export function useSetupWizardCalculations({
     [activeCategories]
   );
   const activeRegular = useMemo(
-    () => activeCategories.filter((c) => c.type === "REGULAR"),
+    () => activeCategories.filter((c) => c.type === "BILL"),
     [activeCategories]
   );
 

@@ -11,9 +11,11 @@ export interface UserGoalItem {
   name: string;
   monthlyAmount: number;
   icon: string;
+  type?: "GOAL";
+  fundingMode?: "TARGET_BALANCE" | "RECURRING";
+  isPriority?: boolean;
   targetAmount?: number | null;
   dueDate?: string | null;
-  goalMode?: "TARGET_DATE" | "ONGOING";
   enteredAmount?: number | null;
   budgetFrequency?: "WEEKLY" | "FORTNIGHTLY" | "MONTHLY" | "QUARTERLY" | "ANNUALLY";
   startDate?: string | null;
@@ -58,7 +60,7 @@ export function SetupGoalsStep({
   const [customName, setCustomName] = useState("");
   const [customTarget, setCustomTarget] = useState(isAud ? "5000" : "0");
   const [customDate, setCustomDate] = useState("");
-  const [customType, setCustomType] = useState<"TARGET_DATE" | "ONGOING">("TARGET_DATE");
+  const [customType, setCustomType] = useState<"TARGET_BALANCE" | "RECURRING">("TARGET_BALANCE");
   const [customFrequency, setCustomFrequency] = useState<"WEEKLY" | "FORTNIGHTLY" | "MONTHLY" | "QUARTERLY" | "ANNUALLY">("MONTHLY");
   const [showUnsavedDraftDialog, setShowUnsavedDraftDialog] = useState(false);
 
@@ -70,14 +72,15 @@ export function SetupGoalsStep({
     if (existing) {
       onRemoveGoal(existing.id);
     } else {
-      const isOngoing = preset.mode === "ONGOING";
+      const isOngoing = preset.fundingMode === "RECURRING";
       const dueDate = isOngoing ? null : getFutureDate(preset.defaultMonths || 12);
       const targetVal = isAud ? preset.defaultTarget : 0;
       onAddGoal({
         name: preset.name,
         targetAmount: targetVal,
         dueDate,
-        goalMode: preset.mode,
+        fundingMode: preset.fundingMode,
+        isPriority: true,
         monthlyAmount: isOngoing ? targetVal : Math.round(targetVal / (preset.defaultMonths || 12)),
         icon: preset.icon,
       });
@@ -86,8 +89,8 @@ export function SetupGoalsStep({
 
   const handleAddCustom = () => {
     if (!customName.trim()) return;
-    const amountNum = parseFloat(customTarget) || (isAud ? (customType === "ONGOING" ? 250 : 1000) : 0);
-    if (customType === "ONGOING") {
+    const amountNum = parseFloat(customTarget) || (isAud ? (customType === "RECURRING" ? 250 : 1000) : 0);
+    if (customType === "RECURRING") {
       const monthly = customFrequency === "WEEKLY"
         ? Math.round((amountNum * 52) / 12)
         : customFrequency === "FORTNIGHTLY"
@@ -102,7 +105,8 @@ export function SetupGoalsStep({
         targetAmount: amountNum,
         enteredAmount: amountNum,
         dueDate: null,
-        goalMode: "ONGOING",
+        fundingMode: "RECURRING",
+        isPriority: true,
         monthlyAmount: monthly,
         budgetFrequency: customFrequency,
         icon: "target",
@@ -113,7 +117,8 @@ export function SetupGoalsStep({
         name: customName.trim(),
         targetAmount: amountNum,
         dueDate,
-        goalMode: "TARGET_DATE",
+        fundingMode: "TARGET_BALANCE",
+        isPriority: true,
         monthlyAmount: Math.round(amountNum / 12),
         icon: "target",
       });
@@ -132,7 +137,7 @@ export function SetupGoalsStep({
   };
 
   const isCustomPastDate =
-    customType === "TARGET_DATE" && customDate && new Date(customDate) < new Date(new Date().setHours(0, 0, 0, 0));
+    customType === "TARGET_BALANCE" && customDate && new Date(customDate) < new Date(new Date().setHours(0, 0, 0, 0));
 
   return (
     <div className="flex flex-col gap-6 animate-in fade-in duration-200">
@@ -180,11 +185,11 @@ export function SetupGoalsStep({
             <AmountField
               value={customTarget}
               onChange={setCustomTarget}
-              placeholder={customType === "ONGOING" ? t("setup.goals.recurringContributionLabel") : t("setup.goals.targetAmountLabel")}
+              placeholder={customType === "RECURRING" ? t("setup.goals.recurringContributionLabel") : t("setup.goals.targetAmountLabel")}
               allowNegative={false}
             />
           </div>
-          {customType === "ONGOING" && (
+          {customType === "RECURRING" && (
             <select
               value={customFrequency}
               onChange={(e) => setCustomFrequency(e.target.value as "WEEKLY" | "FORTNIGHTLY" | "MONTHLY" | "QUARTERLY" | "ANNUALLY")}
@@ -197,7 +202,7 @@ export function SetupGoalsStep({
               <option value="ANNUALLY">{t("categories.frequencyAnnually")}</option>
             </select>
           )}
-          {customType === "TARGET_DATE" && (
+          {customType === "TARGET_BALANCE" && (
             <input
               type="date"
               value={customDate}
@@ -214,7 +219,7 @@ export function SetupGoalsStep({
             + {t("common.add")}
           </button>
         </div>
-        {customType === "TARGET_DATE" && isCustomPastDate && (
+        {customType === "TARGET_BALANCE" && isCustomPastDate && (
           <p className="text-[11px] font-bold text-amber-800 bg-amber-50 p-2.5 rounded-xl border border-amber-200">
             {t("categories.goalPastDateWarning")}
           </p>

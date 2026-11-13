@@ -17,11 +17,11 @@ export async function listBillCoverageQuery(
   const tenantTz = tenantRecord?.timezone || "UTC";
   const todayStr = getTenantDateString(new Date(), { timezone: tenantTz });
 
-  // 1. Fetch SCHEDULED_BILL and FLEXIBLE_BILL envelopes with privacy filtering
+  // 1. Fetch BILL envelopes with privacy filtering
   const envFilters = [
     eq(envelopes.tenantId, tenantId),
     eq(envelopes.appId, appId),
-    sql`${envelopes.envelopeType} IN ('SCHEDULED_BILL', 'FLEXIBLE_BILL')`,
+    eq(envelopes.envelopeType, "BILL"),
     sql`${envelopes.archivedAt} IS NULL`,
   ];
 

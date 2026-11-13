@@ -29,7 +29,7 @@ export const GoalProgressStripCard: React.FC<GoalProgressStripCardProps> = ({
     barColor,
   } = calculateGoalPacing(item, nowTime);
 
-  const isOngoing = item.goalMode === 'ONGOING';
+  const isOngoing = item.fundingMode === 'RECURRING';
 
   return (
     <TouchableOpacity

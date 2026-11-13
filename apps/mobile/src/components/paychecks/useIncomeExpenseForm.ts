@@ -114,7 +114,7 @@ export function useIncomeExpenseForm(
     } else {
       setName('');
       setAmount('');
-      setPoolId(rawPools.find((p) => p.poolType === 'REGULAR')?.id || rawPools[0]?.id || '');
+      setPoolId(rawPools.find((p) => p.poolType === 'BILL')?.id || rawPools[0]?.id || '');
       setCategoryId(null);
       setReceivingAccountId(bankAccounts[0]?.id || '');
       setContributionMode('FULL');

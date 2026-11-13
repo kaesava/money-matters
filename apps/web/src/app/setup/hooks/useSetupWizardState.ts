@@ -90,11 +90,11 @@ export function useSetupWizardState() {
 
   const [customCategories, setCustomCategories] = useState<EstimatedCategoryItem[]>([]);
   const [customCatName, setCustomCatName] = useState("");
-  const [customCatType, setCustomCatType] = useState<"REGULAR" | "GOAL" | "EVERYDAY">("REGULAR");
+  const [customCatType, setCustomCatType] = useState<"BILL" | "GOAL" | "EVERYDAY">("BILL");
   const [customCatAmount, setCustomCatAmount] = useState("100");
   const [removedCategoryNames, setRemovedCategoryNames] = useState<Set<string>>(new Set());
   const [amountOverrides, setAmountOverrides] = useState<Record<string, number>>({});
-  const [billTypeOverrides, setBillTypeOverrides] = useState<Record<string, "SCHEDULED_BILL" | "FLEXIBLE_BILL">>({});
+  const [billTypeOverrides, setBillTypeOverrides] = useState<Record<string, "RECURRING" | "TARGET_BALANCE">>({});
   const [categoryFrequencies, setCategoryFrequencies] = useState<Record<string, "WEEKLY" | "FORTNIGHTLY" | "MONTHLY" | "QUARTERLY" | "YEARLY">>({});
 
   // Prepopulation query

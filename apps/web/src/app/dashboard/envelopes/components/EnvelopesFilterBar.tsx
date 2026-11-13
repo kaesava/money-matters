@@ -45,7 +45,7 @@ export function EnvelopesFilterBar({
                 type="button"
                 onClick={() => onTypeFilterChange(fType)}
                 className={`px-3 py-1 text-xs font-bold rounded-lg transition-all cursor-pointer ${
-                  typeFilter === fType || (fType === "BILL" && (typeFilter as string) === "REGULAR")
+                  typeFilter === fType
                     ? "bg-[#2563eb] text-white shadow-xs"
                     : "text-zinc-500 hover:text-zinc-800"
                 }`}

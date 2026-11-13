@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 
 export type PoolSortField = 'name' | 'currentBalance' | 'targetAmount';
-export type PoolTypeFilter = 'ALL' | 'EVERYDAY' | 'REGULAR' | 'GOAL';
+export type PoolTypeFilter = 'ALL' | 'EVERYDAY' | 'BILL' | 'GOAL';
 export type PrivacyFilter = 'ALL' | 'SHARED' | 'PRIVATE';
 
 export interface EnvelopeFilterablePool {
@@ -49,10 +49,11 @@ export function useEnvelopesFilter({
         const pType =
           p.envelopeType === 'EVERYDAY'
             ? 'EVERYDAY'
-            : p.envelopeType === 'TARGET_GOAL' || p.envelopeType === 'ONGOING_GOAL' || p.envelopeType === 'GOAL'
+            : p.envelopeType === 'GOAL'
             ? 'GOAL'
-            : 'REGULAR';
-        if (typeFilter !== 'ALL' && pType !== typeFilter) return false;
+            : 'BILL';
+        const effectiveTypeFilter = typeFilter === 'BILL' ? 'BILL' : typeFilter;
+        if (typeFilter !== 'ALL' && pType !== effectiveTypeFilter) return false;
         if (privacyFilter === 'SHARED' && p.isPrivate) return false;
         if (privacyFilter === 'PRIVATE' && !p.isPrivate) return false;
         if (!searchQuery.trim()) return true;

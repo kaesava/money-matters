@@ -177,8 +177,8 @@ export function processSpendingAnalyticsRows(
 
       const envType = r.envelopeType;
       if (envType === "EVERYDAY") everydayOutflow += amt;
-      else if (envType === "BILL" || envType === "SCHEDULED_BILL" || envType === "FLEXIBLE_BILL") billsOutflow += amt;
-      else if (envType === "GOAL" || envType === "TARGET_GOAL" || envType === "ONGOING_GOAL") goalsOutflow += amt;
+      else if (envType === "BILL") billsOutflow += amt;
+      else if (envType === "GOAL") goalsOutflow += amt;
       else everydayOutflow += amt;
 
       const envId = r.envelopeId;

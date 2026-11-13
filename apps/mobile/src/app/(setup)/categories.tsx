@@ -185,7 +185,8 @@ export default function SetupCategoriesScreen() {
                 id: cat.id || `temp-${cat.name}`,
                 name: cat.name,
                 type: cat.type,
-                envelopeType: cat.envelopeType || (cat.type === 'EVERYDAY' ? 'EVERYDAY' : 'SCHEDULED_BILL'),
+                envelopeType: cat.envelopeType || (cat.type === 'EVERYDAY' ? 'EVERYDAY' : 'BILL'),
+                fundingMode: cat.fundingMode || 'RECURRING',
                 monthlyAmount: String(cat.monthlyAud || '0'),
                 enteredAmount: String(cat.monthlyAud || '0'),
                 budgetFrequency: cat.budgetFrequency || categoryFrequencies[cat.name] || 'MONTHLY',
@@ -268,13 +269,14 @@ export default function SetupCategoriesScreen() {
                   name: draft.name,
                   targetAmount: parseFloat(draft.targetAmount || String(num)),
                   enteredAmount: parseFloat(draft.enteredAmount || String(num)),
-                  dueDate: draft.goalMode === 'ONGOING' ? null : draft.endDate || null,
-                  goalMode: draft.goalMode || 'TARGET_DATE',
+                  dueDate: draft.fundingMode === 'RECURRING' ? null : draft.endDate || null,
+                  fundingMode: draft.fundingMode || 'TARGET_BALANCE',
                   monthlyAmount: num,
                   budgetFrequency: draft.budgetFrequency || 'MONTHLY',
                   startDate: draft.startDate,
                   rrule: draft.rrule,
                   icon: 'target',
+                  isPriority: draft.isPriority ?? false,
                 },
               ];
             });
@@ -286,17 +288,17 @@ export default function SetupCategoriesScreen() {
                 {
                   id: envelopeToEditDraft?.id && !envelopeToEditDraft.id.startsWith('temp-') ? envelopeToEditDraft.id : undefined,
                   name: draft.name,
-                  type: draft.type,
+                  type: draft.envelopeType,
                   envelopeType: draft.envelopeType,
                   fundingMode: draft.fundingMode,
-                  isPriority: draft.isPriority ?? Boolean(draft.isEssential || draft.isCommitted),
+                  isPriority: draft.isPriority ?? true,
                   monthlyAud: num,
                   startDate: draft.startDate,
                   endDate: draft.endDate,
                   rrule: draft.rrule,
                   budgetFrequency: draft.budgetFrequency,
                   generateEvents: draft.generateEvents,
-                  icon: draft.type === 'REGULAR' || draft.type === 'BILL' ? '📌' : '🛒',
+                  icon: draft.type === 'BILL' ? '📌' : '🛒',
                 },
               ];
             });
@@ -310,10 +312,10 @@ export default function SetupCategoriesScreen() {
               ...prev,
               [draft.name]: num,
             }));
-            if (draft.envelopeType === 'SCHEDULED_BILL' || draft.envelopeType === 'FLEXIBLE_BILL') {
+            if (draft.fundingMode) {
               setBillTypeOverrides((prev) => ({
                 ...prev,
-                [draft.name]: draft.envelopeType as 'SCHEDULED_BILL' | 'FLEXIBLE_BILL',
+                [draft.name]: draft.fundingMode || 'RECURRING',
               }));
             }
           }

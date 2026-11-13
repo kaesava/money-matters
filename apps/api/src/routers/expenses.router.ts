@@ -20,7 +20,7 @@ export const expensesRouter = {
           budgetFrequency: envelopes.budgetFrequency,
           isPrivate: envelopes.isPrivate,
           userId: envelopes.userId,
-          isEssential: envelopes.isEssential,
+          isPriority: envelopes.isPriority,
           bankAccountId: envelopes.bankAccountId,
           bankAccountIsPrivate: bankAccounts.isPrivate,
           bankAccountUserId: bankAccounts.userId,
@@ -44,7 +44,8 @@ export const expensesRouter = {
           and(
             eq(envelopes.tenantId, ctx.tenantId!),
             eq(envelopes.appId, ctx.appId!),
-            eq(envelopes.envelopeType, "SCHEDULED_BILL"),
+            eq(envelopes.envelopeType, "BILL"),
+            eq(envelopes.fundingMode, "RECURRING"),
             sql`${envelopes.archivedAt} IS NULL`,
             sql`CAST(COALESCE(${envelopes.enteredAmount}, ${envelopes.monthlyAmount}, '0.00') AS numeric) > 0`
           )

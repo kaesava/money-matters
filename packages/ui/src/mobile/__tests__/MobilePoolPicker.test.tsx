@@ -40,7 +40,7 @@ describe('MobilePoolPicker', () => {
     {
       id: 'pool-2',
       name: 'Rent & Bills',
-      poolType: 'REGULAR',
+      poolType: 'BILL',
       currentBalance: 1200,
     },
     {

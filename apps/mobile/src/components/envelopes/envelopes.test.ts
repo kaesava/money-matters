@@ -10,21 +10,22 @@ describe("Mobile Envelope Badge & Parity Tests", () => {
     expect(t("categories.everydayBadge")).toBe("Everyday");
   });
 
-  it("maps envelopeType to expected badge text for mobile cards", () => {
-    function resolveBadge(envelopeType?: string | null, poolType?: string | null) {
-      if (envelopeType === "SCHEDULED_BILL") return t("categories.scheduledBillBadge");
-      if (envelopeType === "FLEXIBLE_BILL") return t("categories.flexibleBillBadge");
-      if (envelopeType === "TARGET_GOAL") return t("categories.targetDateGoalBadge");
-      if (envelopeType === "ONGOING_GOAL") return t("categories.ongoingGoalBadge");
-      if (envelopeType === "EVERYDAY" || poolType === "EVERYDAY") return t("categories.everydayBadge");
+  it("maps envelopeType and fundingMode to expected badge text for mobile cards", () => {
+    function resolveBadge(envelopeType?: string | null, fundingMode?: string | null) {
+      if (envelopeType === "BILL") {
+        return fundingMode === "RECURRING" ? t("categories.scheduledBillBadge") : t("categories.flexibleBillBadge");
+      }
+      if (envelopeType === "GOAL") {
+        return fundingMode === "RECURRING" ? t("categories.ongoingGoalBadge") : t("categories.targetDateGoalBadge");
+      }
+      if (envelopeType === "EVERYDAY") return t("categories.everydayBadge");
       return null;
     }
 
-    expect(resolveBadge("SCHEDULED_BILL")).toBe("Scheduled Bill");
-    expect(resolveBadge("FLEXIBLE_BILL")).toBe("Flexible Bill");
-    expect(resolveBadge("TARGET_GOAL")).toBe("Target Goal");
-    expect(resolveBadge("ONGOING_GOAL")).toBe("Ongoing Goal");
+    expect(resolveBadge("BILL", "RECURRING")).toBe("Scheduled Bill");
+    expect(resolveBadge("BILL", "TARGET_BALANCE")).toBe("Flexible Bill");
+    expect(resolveBadge("GOAL", "TARGET_BALANCE")).toBe("Target Goal");
+    expect(resolveBadge("GOAL", "RECURRING")).toBe("Ongoing Goal");
     expect(resolveBadge("EVERYDAY")).toBe("Everyday");
-    expect(resolveBadge(null, "EVERYDAY")).toBe("Everyday");
   });
 });

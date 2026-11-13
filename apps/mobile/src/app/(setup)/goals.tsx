@@ -36,7 +36,7 @@ export default function SetupGoalsScreen() {
   const [customTarget, setCustomTarget] = useState(isAud ? '5000' : '0');
   const [customDate, setCustomDate] = useState('');
   const [customFrequency, setCustomFrequency] = useState<'WEEKLY' | 'FORTNIGHTLY' | 'MONTHLY' | 'QUARTERLY' | 'ANNUALLY'>('MONTHLY');
-  const [customType, setCustomType] = useState<'TARGET_DATE' | 'ONGOING'>('TARGET_DATE');
+  const [customType, setCustomType] = useState<'TARGET_BALANCE' | 'RECURRING'>('TARGET_BALANCE');
 
   const tz = getMobileLocaleConfig().timezone;
 
@@ -48,7 +48,7 @@ export default function SetupGoalsScreen() {
     if (existing) {
       handleRemoveGoal(existing.id);
     } else {
-      const isOngoing = preset.mode === 'ONGOING';
+      const isOngoing = preset.fundingMode === 'RECURRING';
       const d = new Date();
       d.setMonth(d.getMonth() + (preset.defaultMonths || 12));
       const dueDate = isOngoing ? null : new Intl.DateTimeFormat('en-CA', { timeZone: tz }).format(d);
@@ -60,9 +60,10 @@ export default function SetupGoalsScreen() {
           name: preset.name,
           targetAmount: targetAmt,
           dueDate,
-          goalMode: preset.mode,
+          fundingMode: preset.fundingMode,
           monthlyAmount: isOngoing ? targetAmt : Math.round(targetAmt / (preset.defaultMonths || 12)),
           icon: preset.icon,
+          isPriority: false,
         },
       ]);
     }
@@ -70,9 +71,9 @@ export default function SetupGoalsScreen() {
 
   const handleAddCustom = () => {
     if (!customName.trim()) return;
-    const defaultCustomAmt = isAud ? (customType === 'ONGOING' ? 250 : 1000) : 0;
+    const defaultCustomAmt = isAud ? (customType === 'RECURRING' ? 250 : 1000) : 0;
     const amountNum = parseFloat(customTarget) || defaultCustomAmt;
-    if (customType === 'ONGOING') {
+    if (customType === 'RECURRING') {
       const monthly = customFrequency === 'WEEKLY'
         ? Math.round((amountNum * 52) / 12)
         : customFrequency === 'FORTNIGHTLY'
@@ -90,10 +91,11 @@ export default function SetupGoalsScreen() {
           targetAmount: amountNum,
           enteredAmount: amountNum,
           dueDate: null,
-          goalMode: 'ONGOING',
+          fundingMode: 'RECURRING',
           monthlyAmount: monthly,
           budgetFrequency: customFrequency,
           icon: 'target',
+          isPriority: false,
         },
       ]);
     } else {
@@ -110,15 +112,16 @@ export default function SetupGoalsScreen() {
           name: customName.trim(),
           targetAmount: amountNum,
           dueDate,
-          goalMode: 'TARGET_DATE',
+          fundingMode: 'TARGET_BALANCE',
           monthlyAmount: Math.round(amountNum / 12),
           icon: 'target',
+          isPriority: false,
         },
       ]);
     }
     setCustomName('');
     setCustomDate('');
-    setCustomTarget(customType === 'ONGOING' ? '250' : '5000');
+    setCustomTarget(customType === 'RECURRING' ? '250' : '5000');
   };
 
   const currentStep = isRerun ? 2 : 3;
@@ -195,7 +198,7 @@ export default function SetupGoalsScreen() {
         <View style={styles.toggleWrap}>
           <MobileGoalModeToggle value={customType} onChange={setCustomType} />
         </View>
-        {customType === 'ONGOING' && (
+        {customType === 'RECURRING' && (
           <View style={styles.freqSelectSection}>
             <Text style={styles.freqSectionLabel}>{t('categories.recurrence')}</Text>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.freqChipsRow}>
@@ -224,7 +227,7 @@ export default function SetupGoalsScreen() {
             </ScrollView>
           </View>
         )}
-        {customType === 'TARGET_DATE' && (
+        {customType === 'TARGET_BALANCE' && (
           <View style={styles.datePickerWrap}>
             <Text style={styles.fieldLabel}>{t('categories.targetDateLabel')}</Text>
             <MobileDatePickerField
@@ -237,7 +240,7 @@ export default function SetupGoalsScreen() {
         <View style={styles.customTargetRow}>
           <View style={styles.flexOne}>
             <AmountInput
-              label={customType === 'ONGOING' ? t('setup.goals.recurringContributionLabel') : t('setup.goals.targetAmountLabel')}
+              label={customType === 'RECURRING' ? t('setup.goals.recurringContributionLabel') : t('setup.goals.targetAmountLabel')}
               value={customTarget}
               onChangeText={setCustomTarget}
             />

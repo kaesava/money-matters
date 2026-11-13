@@ -15,7 +15,7 @@ This plan itemizes every screen, modal, drawer, and capability across the platfo
 | **7** | **Income & Bills: Streams & Sources CRUD** | Full CRUD for recurring Income Streams and Expense Bills with frequency (weekly, fortnightly, monthly, annually), bank account mapping, category link, start/end dates. | Add only; basic delete. | **Missing**: Full Edit mode in `IncomeExpenseFormModal.tsx` with recurrence rule configuration, bank account mapping, and end dates. |
 | **8** | **Income & Bills: Event Overrides & Bursts** | `EventOverrideModal` (date shift, amount adjustment, skip toggle, delete override), `SourceBurstDetailModal` (burst occurrences visual timeline). | Partial `EventOverrideModal` and `SourceBurstDetailModal`. | **Missing**: Full parity in event override options (skip occurrence vs edit amount) and visual burst inspection. |
 | **9** | **Categories & Pools: Detail & Activity** | `CategoryDetailDrawer` (stats, target vs saved progress, linked bank account, file notes, transaction activity ledger), `MoveMoneyModal`, `ReconciliationModal`. | Pool lists, basic `CategoryFormModal`, `MoveMoneyModal`. | **Missing**: Dedicated `CategoryDetailModal` (or drawer) with itemized category activity ledger, linked bills, and file notes. |
-| **10** | **Categories & Pools: Edit Form Parity** | `CategoryFormModal` supports creating/editing all 3 pool types (`EVERYDAY`, `REGULAR`, `GOAL`), target date for goals, bank account mapping, everyday keep allowance. | Basic `CategoryFormModal`. | **Missing**: Full Edit mode parity, target date picker for goals, bank account dropdown selector, rollover rules. |
+| **10** | **Categories & Pools: Edit Form Parity** | `CategoryFormModal` supports creating/editing all 3 pool types (`EVERYDAY`, `BILL`, `GOAL`), target date for goals, bank account mapping, everyday keep allowance. | Basic `CategoryFormModal`. | **Missing**: Full Edit mode parity, target date picker for goals, bank account dropdown selector, rollover rules. |
 | **11** | **History & Audit Ledger: MECE Consolidation** | 2-Tab History (`Transactions` ledger with paired transfer detection `Source ➔ Dest` + `Payday Allocations` audit log with `SlideOverAllocationDrawer`). | **MECE Violation**: `transactions.tsx` AND `settings/history.tsx` duplicate basic transaction lists; no Payday Allocations tab. | **Missing**: Consolidate into single 2-Tab History screen; add Payday Allocations history tab with `MobilePaydayAllocationDetailModal`. |
 | **12** | **Bank Accounts: Provider Branding & Management** | Table of Bank Accounts with Bank Provider branding (CBA, Westpac, ANZ, NAB, ING, Macquarie, Other), Statement Balance, Unbudgeted Buffer, Stealth Private toggle, Pool mappings. | Basic account list with inline add form. | **Missing**: Bank Provider picker & branded logos, Edit account modal, Unbudgeted buffer field, Stealth Private toggle, Transfer Conflict warning modal. |
 | **13** | **Bank Balance Alignment (1-Click)** | 1-Click Balance Alignment modal with unbudgeted buffer adjustment and real-time variance calculation. | Basic balance edit. | **Missing**: Dedicated `MobileReconciliationModal.tsx` for 1-click balance alignment. |
@@ -168,7 +168,7 @@ Elevate category management to full parity, adding dedicated category detail dra
 ### 4.2 Full Category Edit Mode Parity
 - **File**: `apps/mobile/src/components/CategoryFormModal.tsx`
 - **Features**:
-  - Full support for Create and Edit modes across `EVERYDAY`, `REGULAR`, and `GOAL`.
+  - Full support for Create and Edit modes across `EVERYDAY`, `BILL`, and `GOAL`.
   - Target Amount, Monthly Amount, Target Date picker (for Goals), Everyday Keep Allowance, Bank Account Link dropdown.
   - Real-time budget impact calculation preview.
 
@@ -190,7 +190,7 @@ Consolidate transaction views under the MECE principle into a unified 2-Tab Hist
 - **Features**:
   - **Tab 1: Transactions Ledger**:
     - Paired Transfer Detection: Group matching debit/credit transfers into a single `Source Pool ➔ Destination Pool` transfer row.
-    - Filter Bar: Search by note/category/amount, Filter by Flow (`ALL`, `DEBIT`, `CREDIT`, `TRANSFER`), Filter by Pool (`ALL`, `EVERYDAY`, `REGULAR`, `GOAL`).
+    - Filter Bar: Search by note/category/amount, Filter by Flow (`ALL`, `DEBIT`, `CREDIT`, `TRANSFER`), Filter by Pool (`ALL`, `EVERYDAY`, `BILL`, `GOAL`).
     - Sort By: Date, Description, Amount (Asc/Desc).
     - Mobile Pagination Bar (10, 25, 50 per page).
     - CSV Export via `Share.share` with timezone-formatted filename (`transactions_export_YYYY-MM-DD.csv`).

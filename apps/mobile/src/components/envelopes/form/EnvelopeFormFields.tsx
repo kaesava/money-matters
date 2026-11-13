@@ -19,12 +19,11 @@ import { EnvelopeGoalFields } from './EnvelopeGoalFields';
 export interface EnvelopeFormFieldsProps {
   name: string; setName: (v: string) => void;
   nameError: string; setNameError: (v: string) => void;
-  type: 'GOAL' | 'REGULAR' | 'EVERYDAY'; setType: (v: 'GOAL' | 'REGULAR' | 'EVERYDAY') => void;
+  type: 'GOAL' | 'BILL' | 'EVERYDAY'; setType: (v: 'GOAL' | 'BILL' | 'EVERYDAY') => void;
+  fundingMode?: 'TARGET_BALANCE' | 'RECURRING'; setFundingMode?: (v: 'TARGET_BALANCE' | 'RECURRING') => void;
   safetyBufferFloor: string; setSafetyBufferFloor: (v: string) => void;
   targetAmount: string; setTargetAmount: (v: string) => void;
   targetDate: string; setTargetDate: (v: string) => void;
-  goalMode?: 'TARGET_DATE' | 'ONGOING'; setGoalMode?: (v: 'TARGET_DATE' | 'ONGOING') => void;
-  billMode?: 'SCHEDULED_BILL' | 'FLEXIBLE_BILL'; setBillMode?: (v: 'SCHEDULED_BILL' | 'FLEXIBLE_BILL') => void;
   frequency?: RecurrenceFrequency; setFrequency?: (v: RecurrenceFrequency) => void;
   interval?: number; setInterval?: (v: number) => void;
   goalStartDate?: string; setGoalStartDate?: (v: string) => void;
@@ -34,8 +33,6 @@ export interface EnvelopeFormFieldsProps {
   bankDisabled?: boolean;
   isSurplusTarget: boolean; setIsSurplusTarget: (v: boolean) => void;
   isPriority?: boolean; setIsPriority?: (v: boolean) => void;
-  isEssential?: boolean; setIsEssential?: (v: boolean) => void;
-  isCommitted?: boolean; setIsCommitted?: (v: boolean) => void;
   isEdit: boolean;
   isSurplusDisabled: boolean;
   hideTypeOptions?: boolean;
@@ -57,16 +54,14 @@ export const EnvelopeFormFields: React.FC<EnvelopeFormFieldsProps> = ({
   setNameError,
   type,
   setType,
+  fundingMode = 'RECURRING',
+  setFundingMode,
   safetyBufferFloor,
   setSafetyBufferFloor,
   targetAmount,
   setTargetAmount,
   targetDate,
   setTargetDate,
-  goalMode = 'TARGET_DATE',
-  setGoalMode,
-  billMode = 'SCHEDULED_BILL',
-  setBillMode,
   frequency = 'MONTHLY',
   setFrequency,
   interval = 1,
@@ -83,10 +78,6 @@ export const EnvelopeFormFields: React.FC<EnvelopeFormFieldsProps> = ({
   setIsSurplusTarget,
   isPriority,
   setIsPriority,
-  isEssential = false,
-  setIsEssential,
-  isCommitted = false,
-  setIsCommitted,
   isEdit,
   isSurplusDisabled,
   hideTypeOptions = false,
@@ -120,7 +111,7 @@ export const EnvelopeFormFields: React.FC<EnvelopeFormFieldsProps> = ({
           <ChipSelect
             options={typeOptions}
             value={type}
-            onChange={(val) => setType(val as 'GOAL' | 'REGULAR' | 'EVERYDAY')}
+            onChange={(val) => setType(val as 'GOAL' | 'BILL' | 'EVERYDAY')}
             disabled={isEdit}
           />
         </View>
@@ -144,16 +135,16 @@ export const EnvelopeFormFields: React.FC<EnvelopeFormFieldsProps> = ({
         </View>
       )}
 
-      {type === 'REGULAR' && (
+      {(type === 'BILL') && (
         <View style={styles.billSection}>
-          {setBillMode && !hideBillModeToggle && (
+          {setFundingMode && !hideBillModeToggle && (
             <MobileBillModeToggle
-              value={billMode}
-              onChange={setBillMode}
+              value={fundingMode}
+              onChange={setFundingMode}
             />
           )}
 
-          {billMode === 'FLEXIBLE_BILL' ? (
+          {fundingMode === 'TARGET_BALANCE' ? (
             <AmountInput
               label={t('categories.flexibleTargetAmountLabel')}
               required
@@ -179,21 +170,18 @@ export const EnvelopeFormFields: React.FC<EnvelopeFormFieldsProps> = ({
             />
           )}
 
-          {(setIsPriority || setIsEssential) && (
+          {setIsPriority && (
             <View style={styles.checkboxContainer}>
               <MobileCheckbox
-                checked={Boolean(isPriority !== undefined ? isPriority : isEssential)}
-                onChange={(checked) => {
-                  setIsPriority?.(checked);
-                  setIsEssential?.(checked);
-                }}
+                checked={Boolean(isPriority)}
+                onChange={(checked) => setIsPriority(checked)}
                 label={t('categories.priorityEnvelopeLabel')}
               />
               <Text style={styles.checkboxHint}>{t('categories.priorityBillHint')}</Text>
             </View>
           )}
 
-          {billMode === 'SCHEDULED_BILL' && setGenerateEvents && (
+          {fundingMode === 'RECURRING' && setGenerateEvents && (
             <EnvelopeEventsToggleSection
               generateEvents={generateEvents}
               setGenerateEvents={setGenerateEvents}
@@ -217,8 +205,8 @@ export const EnvelopeFormFields: React.FC<EnvelopeFormFieldsProps> = ({
       {type === 'GOAL' && (
         <View style={styles.goalSection}>
           <EnvelopeGoalFields
-            goalMode={goalMode}
-            setGoalMode={setGoalMode}
+            fundingMode={fundingMode}
+            setFundingMode={setFundingMode}
             targetAmount={targetAmount}
             setTargetAmount={setTargetAmount}
             targetDate={targetDate}
@@ -235,14 +223,11 @@ export const EnvelopeFormFields: React.FC<EnvelopeFormFieldsProps> = ({
             calculatedMonthly={calculatedMonthly}
           />
 
-          {(setIsPriority || setIsCommitted) && (
+          {setIsPriority && (
             <View style={styles.checkboxContainer}>
               <MobileCheckbox
-                checked={Boolean(isPriority !== undefined ? isPriority : isCommitted)}
-                onChange={(checked) => {
-                  setIsPriority?.(checked);
-                  setIsCommitted?.(checked);
-                }}
+                checked={Boolean(isPriority)}
+                onChange={(checked) => setIsPriority(checked)}
                 label={t('categories.priorityEnvelopeLabel')}
               />
               <Text style={styles.checkboxHint}>{t('categories.priorityGoalHint')}</Text>

@@ -337,7 +337,7 @@ export const ReconciliationModal: React.FC<ReconciliationModalProps> = ({
                   ) : (
                     visiblePools.map((pool) => {
                       const val = adjustments[pool.id] ?? "0.00";
-                      const badgeStyle = pool.poolType === "EVERYDAY" ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300" : pool.poolType === "REGULAR" ? "bg-blue-50 text-[#2563eb] dark:bg-blue-950 dark:text-blue-300" : "bg-indigo-50 text-indigo-700 dark:bg-indigo-950 dark:text-indigo-300";
+                      const badgeStyle = pool.poolType === "EVERYDAY" ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300" : pool.poolType === "BILL" ? "bg-blue-50 text-[#2563eb] dark:bg-blue-950 dark:text-blue-300" : "bg-indigo-50 text-indigo-700 dark:bg-indigo-950 dark:text-indigo-300";
 
                       return (
                         <tr key={pool.id} className="hover:bg-slate-50/80 dark:hover:bg-zinc-800/50">
@@ -352,7 +352,7 @@ export const ReconciliationModal: React.FC<ReconciliationModalProps> = ({
                                 )}
                               </div>
                               <span className={`text-[9px] font-bold inline-block w-max mt-0.5 rounded px-1.5 py-0.2 ${badgeStyle}`}>
-                                {pool.poolType === "EVERYDAY" ? t("poolTypes.everyday") : pool.poolType === "REGULAR" ? t("poolTypes.bills") : t("poolTypes.goals")}
+                                {pool.poolType === "EVERYDAY" ? t("poolTypes.everyday") : pool.poolType === "BILL" ? t("poolTypes.bills") : t("poolTypes.goals")}
                               </span>
                             </div>
                           </td>

@@ -5,7 +5,7 @@ import { Feather } from '@expo/vector-icons';
 import { DESIGN_TOKENS } from '../tokens';
 
 interface MobileEnvelopeExplainerProps {
-  envelopeType?: 'EVERYDAY' | 'REGULAR' | 'GOAL';
+  envelopeType?: 'EVERYDAY' | 'BILL' | 'GOAL';
   compact?: boolean;
 }
 
@@ -24,7 +24,7 @@ export function MobileEnvelopeExplainer({
       borderColor: '#BFDBFE',
     },
     {
-      key: 'REGULAR' as const,
+      key: 'BILL' as const,
       title: t('envelopes.bills.title'),
       desc: t('envelopes.bills.description'),
       iconName: 'file-text' as const,

@@ -49,7 +49,7 @@
 
 ## Bank Account Mapping & Reconciliation
 
-- Categories map at category-type level (`REGULAR`, `GOAL`, `EVERYDAY`).
+- Categories map at category-type level (`BILL`, `GOAL`, `EVERYDAY`).
 - Transfer instructions calculate difference between Everyday top-up and target bill/goal buckets.
 - Reconciliation compares expected calculated balance against actual entered balance.
 
@@ -88,7 +88,7 @@ Review at 6 months post-launch. Gated by kill switch `feature.categoryLevelManag
 
 Allow a household to opt in to category-level balance tracking for Everyday and/or Bills:
 
-1. **Data Model (`packages/db`):** Add `tenant_pool_settings` table (`tenantId`, `appId`, `poolType: 'EVERYDAY' | 'REGULAR'`, `managementMode: 'POOL' | 'CATEGORY'`). Standard RLS and audit columns.
+1. **Data Model (`packages/db`):** Add `tenant_pool_settings` table (`tenantId`, `appId`, `poolType: 'EVERYDAY' | 'BILL'`, `managementMode: 'POOL' | 'CATEGORY'`). Standard RLS and audit columns.
 2. **Waterfall Engine (`packages/capabilities/budgeting`):** Step 2 (Bills) and Step 4 (Everyday) branch on `managementMode`. In category mode, top-ups split across individual categories by target amount rather than single pool bucket.
 3. **"Can We Afford This?" Engine (`packages/capabilities/transactions`):** In category mode, bill buffer checks evaluate individual envelope balances.
 4. **UI Surfaces (`apps/web`, `apps/mobile`):** Categories screen displays individual envelope balances instead of "Managed at pool level". Quick Expense and transaction logging debit/credit specific category envelopes.

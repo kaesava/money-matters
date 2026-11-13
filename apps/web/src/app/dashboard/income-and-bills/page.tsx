@@ -42,6 +42,8 @@ function IncomeAndBillsContent() {
     envelopeType?: string;
     poolType?: string;
     type?: string;
+    fundingMode?: "RECURRING" | "TARGET_BALANCE";
+    isPriority?: boolean;
     hasScheduledEvents?: boolean | null;
   } | null>(null);
 
@@ -127,7 +129,7 @@ function IncomeAndBillsContent() {
       const cat = billSchedules.find((b) => b.id === editBillId || b.envelopeId === editBillId);
       const targetPool = pools.find((p) => p.id === editBillId || (cat && p.id === cat.envelopeId));
       if (cat || targetPool) {
-        const resolvedEnvelopeType = cat?.envelopeType || targetPool?.envelopeType || "SCHEDULED_BILL";
+        const resolvedEnvelopeType = targetPool?.envelopeType || "BILL";
         setEnvelopeToEdit({
           id: targetPool?.id || cat?.envelopeId || cat?.id || editBillId,
           name: targetPool?.name || cat?.envelopeName || cat?.name || "",
@@ -139,8 +141,8 @@ function IncomeAndBillsContent() {
           endDate: cat?.endDate || targetPool?.endDate,
           rrule: cat?.rrule || targetPool?.rrule,
           envelopeType: resolvedEnvelopeType,
-          poolType: resolvedEnvelopeType,
-          type: resolvedEnvelopeType,
+          fundingMode: targetPool?.fundingMode || "RECURRING",
+          isPriority: targetPool?.isPriority ?? cat?.isPriority ?? false,
           hasScheduledEvents: cat?.hasScheduledEvents ?? targetPool?.hasScheduledEvents,
         });
         setIsEnvelopeModalOpen(true);
@@ -189,19 +191,19 @@ function IncomeAndBillsContent() {
 
   const matrixCategories = useMemo(() => {
     return pools.map((p) => {
-      const isGoal = p.envelopeType === "TARGET_GOAL" || p.envelopeType === "ONGOING_GOAL";
+      const isGoal = p.envelopeType === "GOAL";
       const isEveryday = p.envelopeType === "EVERYDAY";
-      const typeStr = isEveryday ? "EVERYDAY" : isGoal ? "GOAL" : "REGULAR";
+      const typeStr = isEveryday ? "EVERYDAY" : isGoal ? "GOAL" : "BILL";
       const monthlyAmt = p.monthlyAmount ? parseFloat(p.monthlyAmount) : p.targetAmount ? parseFloat(p.targetAmount) : null;
 
       return {
         id: p.id,
         name: p.name,
-        type: typeStr as "REGULAR" | "GOAL" | "EVERYDAY",
+        type: typeStr as "BILL" | "GOAL" | "EVERYDAY",
         currentBalance: parseFloat(String(p.currentBalance || "0")),
         monthlyAmount: monthlyAmt,
         targetAmount: p.targetAmount ? parseFloat(p.targetAmount) : null,
-        isCommitted: p.isCommitted ?? undefined,
+        isPriority: p.isPriority ?? undefined,
         isSurplusTarget: p.isSurplusTarget ?? undefined,
         isPrivate: p.isPrivate ?? undefined,
         endDate: p.endDate || null,
@@ -323,7 +325,7 @@ function IncomeAndBillsContent() {
                 poolName: b.envelopeName,
                 envelopeType: b.envelopeType,
                 budgetFrequency: b.budgetFrequency,
-                isEssential: b.isEssential,
+                isPriority: b.isPriority,
               }))}
               searchQuery={setupSearchQuery}
               scopeFilter={setupScopeFilter}
@@ -331,7 +333,7 @@ function IncomeAndBillsContent() {
               onAddOneOff={() => setQuickActionTab("DEBIT")}
               onEditCategory={(cat) => {
                 const targetPool = pools.find((p) => p.id === cat.id || p.id === cat.poolId);
-                const resolvedEnvelopeType = cat.envelopeType || targetPool?.envelopeType || "SCHEDULED_BILL";
+                const resolvedEnvelopeType = targetPool?.envelopeType || "BILL";
                 setEnvelopeToEdit({
                   id: cat.id,
                   name: cat.name,
@@ -343,8 +345,8 @@ function IncomeAndBillsContent() {
                   endDate: cat.endDate || targetPool?.endDate,
                   rrule: cat.rrule || targetPool?.rrule,
                   envelopeType: resolvedEnvelopeType,
-                  poolType: resolvedEnvelopeType,
-                  type: resolvedEnvelopeType,
+                  fundingMode: targetPool?.fundingMode || "RECURRING",
+                  isPriority: targetPool?.isPriority ?? false,
                   hasScheduledEvents: (cat as unknown as { hasScheduledEvents?: boolean }).hasScheduledEvents ?? targetPool?.hasScheduledEvents,
                 });
                 setIsEnvelopeModalOpen(true);

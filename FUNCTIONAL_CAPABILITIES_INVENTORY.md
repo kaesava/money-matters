@@ -187,7 +187,7 @@
 * `[M]`: Filterable pool card list with `PoolsFilterSheet`, category progress badges, and dedicated Pool Detail screen (`/(app)/pools/[id]`).
 
 ### Add & Edit Pool Modal (`<PoolFormModal>`)
-* **Fields**: Pool Name, Pool Type (`EVERYDAY`, `REGULAR`, `GOAL`), Linked Bank Account, Target Amount (for Goal pools), Target Date (for Goal pools), Surplus Target toggle (`isSurplusTarget`).
+* **Fields**: Pool Name, Pool Type (`EVERYDAY`, `BILL`, `GOAL`), Linked Bank Account, Target Amount (for Goal pools), Target Date (for Goal pools), Surplus Target toggle (`isSurplusTarget`).
 * **Immutable Linking Protection**: Bank Account link and Pool Type are strictly locked after creation to preserve ledger auditability.
 
 ### Archive & Restore Pool

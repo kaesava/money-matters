@@ -3,7 +3,7 @@ import { t } from '@money-matters/i18n';
 import { ShoppingBag, ReceiptText, Target } from 'lucide-react';
 
 interface EnvelopeExplainerProps {
-  envelopeType?: 'EVERYDAY' | 'REGULAR' | 'GOAL';
+  envelopeType?: 'EVERYDAY' | 'BILL' | 'GOAL';
   compact?: boolean;
   className?: string;
 }
@@ -22,7 +22,7 @@ export function EnvelopeExplainer({
       borderClass: 'border-blue-100 bg-blue-50/40 dark:border-blue-900/30 dark:bg-blue-950/20',
     },
     {
-      key: 'REGULAR' as const,
+      key: 'BILL' as const,
       title: t('envelopes.bills.title'),
       desc: t('envelopes.bills.description'),
       icon: <ReceiptText className="w-5 h-5 text-amber-600 shrink-0" />,

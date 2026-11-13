@@ -208,14 +208,10 @@ export function PoolPicker({
                 const badge = getEnvelopeBadgeInfo(pool);
 
                 const badgeClass =
-                  badge.tagKey === "SCHEDULED_BILL"
+                  badge.tagKey === "BILL"
                     ? "bg-blue-50 text-blue-700 border border-blue-200 dark:bg-blue-950/40 dark:text-blue-300 dark:border-blue-800"
-                    : badge.tagKey === "FLEXIBLE_BILL"
-                    ? "bg-sky-50 text-sky-700 border border-sky-200 dark:bg-sky-950/40 dark:text-sky-300 dark:border-sky-800"
-                    : badge.tagKey === "TARGET_GOAL"
+                    : badge.tagKey === "GOAL"
                     ? "bg-emerald-50 text-emerald-700 border border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800"
-                    : badge.tagKey === "ONGOING_GOAL"
-                    ? "bg-teal-50 text-teal-700 border border-teal-200 dark:bg-teal-950/40 dark:text-teal-300 dark:border-teal-800"
                     : "bg-purple-50 text-purple-700 border border-purple-200 dark:bg-purple-950/40 dark:text-purple-300 dark:border-purple-800";
 
                 return (

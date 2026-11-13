@@ -77,7 +77,7 @@ export function saveSetupBudgetHandler(dbClient: DbOrTx) {
         now
       );
 
-      // 4. Auto-create Scheduled Events for New SCHEDULED_BILL Envelopes
+      // 4. Auto-create Scheduled Events for New Recurring Bill Envelopes
       const createdEventsCount = await processSetupScheduledBills(
         tx,
         input.envelopes,

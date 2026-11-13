@@ -23,7 +23,9 @@ export type HomeSummaryAttentionItem = z.infer<typeof HomeSummaryAttentionItemSc
 export const HomeSummaryGoalItemSchema = z.object({
   id: z.string().uuid(),
   name: z.string(),
-  envelopeType: z.enum(["TARGET_GOAL", "ONGOING_GOAL"]),
+  envelopeType: z.literal("GOAL"),
+  fundingMode: z.enum(["TARGET_BALANCE", "RECURRING"]),
+  isPriority: z.boolean(),
   currentBalance: z.number(),
   targetAmount: z.number().nullable(),
   progressPercentage: z.number(),

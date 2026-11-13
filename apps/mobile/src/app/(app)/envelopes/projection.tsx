@@ -79,8 +79,8 @@ export default function PoolProjectionScreen() {
   };
 
   const everydayPools = pools.filter((p) => p.envelopeType === 'EVERYDAY');
-  const billsPools = pools.filter((p) => p.envelopeType === 'SCHEDULED_BILL' || p.envelopeType === 'FLEXIBLE_BILL');
-  const goalPools = pools.filter((p) => p.envelopeType === 'TARGET_GOAL' || p.envelopeType === 'ONGOING_GOAL');
+  const billsPools = pools.filter((p) => p.envelopeType === 'BILL');
+  const goalPools = pools.filter((p) => p.envelopeType === 'GOAL');
 
   return (
     <MobileScreenWrapper

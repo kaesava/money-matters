@@ -27,7 +27,7 @@ export function SetupGoalItemRow({
   onUpdateGoal,
   onRemoveGoal,
 }: SetupGoalItemRowProps) {
-  const isOngoing = goal.goalMode === "ONGOING";
+  const isOngoing = goal.fundingMode === "RECURRING";
   const months = isOngoing ? 1 : getMonthsDiff(goal.dueDate);
   const isPast = !isOngoing && goal.dueDate && new Date(goal.dueDate) < new Date(new Date().setHours(0, 0, 0, 0));
 

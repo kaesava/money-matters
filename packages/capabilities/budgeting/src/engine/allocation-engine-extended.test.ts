@@ -9,7 +9,7 @@ describe("paycheck cascade allocation engine - extended scenarios", () => {
         id: "holiday-goal",
         name: "Holiday Deposit",
         type: "GOAL",
-        isCommitted: true,
+        isPriority: true,
         targetAmount: 1000,
         targetDate: "2026-09-05", // Due in 4 days (before next pay on 2026-09-15)
         currentBalance: 200, // $800 gap
@@ -74,8 +74,8 @@ describe("paycheck cascade allocation engine - extended scenarios", () => {
       {
         id: "shared-rent",
         name: "Shared Rent",
-        type: "REGULAR",
-        isEssential: true,
+        type: "BILL",
+        isPriority: true,
         monthlyAmount: 1200,
         currentBalance: 0,
       },
@@ -120,8 +120,8 @@ describe("paycheck cascade allocation engine - extended scenarios", () => {
       {
         id: "rent-pool",
         name: "Rent",
-        type: "REGULAR",
-        isEssential: true,
+        type: "BILL",
+        isPriority: true,
         monthlyAmount: 1300, // 1300 * 12 / 26 = $600
         currentBalance: 0,
       },
@@ -136,7 +136,7 @@ describe("paycheck cascade allocation engine - extended scenarios", () => {
         id: "holiday-goal",
         name: "Japan Holiday",
         type: "GOAL",
-        isCommitted: true,
+        isPriority: true,
         targetAmount: 5000,
         targetDate: "2026-10-01",
         currentBalance: 0,
@@ -177,8 +177,8 @@ describe("paycheck cascade allocation engine - extended scenarios", () => {
       {
         id: "bills-pool",
         name: "Bills",
-        type: "REGULAR",
-        isEssential: true,
+        type: "BILL",
+        isPriority: true,
         monthlyAmount: 1000,
         currentBalance: 0,
       },
@@ -205,7 +205,7 @@ describe("paycheck cascade allocation engine - extended scenarios", () => {
           name: "Car Rego",
           amount: 450,
           dueDate: "2026-09-17",
-          isEssential: true,
+          isPriority: true,
         },
       ],
     });
@@ -222,8 +222,8 @@ describe("paycheck cascade allocation engine - extended scenarios", () => {
       {
         id: "bills-pool",
         name: "Bills",
-        type: "REGULAR",
-        isEssential: true,
+        type: "BILL",
+        isPriority: true,
         monthlyAmount: 1000,
         safetyBufferFloor: 300, // Wants a $300 cushion
         currentBalance: 50, // Only has $50 currently ($250 floor deficit)

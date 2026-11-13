@@ -49,7 +49,7 @@ export function EnvelopesFilterSheet({
       options: [
         { id: 'ALL', label: t('common.all') },
         { id: 'EVERYDAY', label: t('poolTypes.everyday') },
-        { id: 'REGULAR', label: t('poolTypes.bills') },
+        { id: 'BILL', label: t('poolTypes.bills') },
         { id: 'GOAL', label: t('poolTypes.goals') },
       ],
     },

@@ -144,7 +144,9 @@ export function useIncomeExpenseMutations({
         } else {
           await createEnvelopeMut.mutateAsync({
             name: params.name.trim(),
-            envelopeType: 'SCHEDULED_BILL',
+            envelopeType: 'BILL',
+            fundingMode: 'RECURRING',
+            isPriority: true,
             bankAccountId: params.poolId,
             targetAmount: formattedAmount,
             budgetFrequency: params.frequency || 'MONTHLY',

@@ -5,7 +5,7 @@ import { t } from "@money-matters/i18n";
 import { AmountField } from "@money-matters/ui/web";
 import type { CategoryOption } from "./MarkPaidModal";
 
-export type FilterBadge = "ALL" | "TARGET_GOAL" | "ONGOING_GOAL" | "FLEXIBLE_BILL" | "SCHEDULED_BILL";
+export type FilterBadge = "ALL" | "GOAL" | "BILL" | "EVERYDAY";
 
 export interface MarkPaidShortfallSectionProps {
   billName: string;
@@ -51,10 +51,9 @@ export function MarkPaidShortfallSection({
 
   const filterBadges: Array<{ id: FilterBadge; label: string }> = [
     { id: "ALL", label: t("common.all") },
-    { id: "TARGET_GOAL", label: t("categories.targetDateGoalBadge") },
-    { id: "ONGOING_GOAL", label: t("categories.ongoingGoalBadge") },
-    { id: "FLEXIBLE_BILL", label: t("categories.flexibleBillBadge") },
-    { id: "SCHEDULED_BILL", label: t("categories.scheduledBillBadge") },
+    { id: "GOAL", label: t("incomeBillsTabs.goals") },
+    { id: "BILL", label: t("incomeBillsTabs.bills") },
+    { id: "EVERYDAY", label: t("incomeBillsTabs.everyday") },
   ];
 
   const filteredPools = useMemo(() => {

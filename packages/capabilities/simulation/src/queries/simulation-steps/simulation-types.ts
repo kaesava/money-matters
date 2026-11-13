@@ -4,20 +4,21 @@ import type {
   ProjectionIncomeEvent,
   ProjectionExpenseEvent,
   EnvelopeType,
+  FundingMode,
 } from "@money-matters/types";
 
 export interface SimulationEnvelopeItem {
   id: string;
   name: string;
   envelopeType: EnvelopeType;
+  fundingMode: FundingMode | null;
   bankAccountId: string | null;
   safetyBufferFloor: string | null;
-  goalMode: "TARGET_DATE" | "ONGOING" | null;
   enteredAmount: string | null;
   monthlyAmount: string | null;
   targetAmount: string | null;
   endDate: string | null;
-  isCommitted: boolean | null;
+  isPriority: boolean | null;
   isSurplusTarget: boolean | null;
   isPrivate: boolean | null;
   userId: string | null;

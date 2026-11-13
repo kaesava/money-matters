@@ -85,14 +85,14 @@ export async function canAffordSimulationQuery(
           id: envelopes.id,
           name: envelopes.name,
           envelopeType: envelopes.envelopeType,
+          fundingMode: envelopes.fundingMode,
           bankAccountId: envelopes.bankAccountId,
           safetyBufferFloor: envelopes.safetyBufferFloor,
-          goalMode: envelopes.goalMode,
           enteredAmount: envelopes.enteredAmount,
           monthlyAmount: envelopes.monthlyAmount,
           targetAmount: envelopes.targetAmount,
           endDate: envelopes.endDate,
-          isCommitted: envelopes.isCommitted,
+          isPriority: envelopes.isPriority,
           isSurplusTarget: envelopes.isSurplusTarget,
           isPrivate: envelopes.isPrivate,
           userId: envelopes.userId,
@@ -182,12 +182,8 @@ export async function canAffordSimulationQuery(
   );
 
   const everydayEnvelopes = visibleEnvelopes.filter((e) => e.envelopeType === "EVERYDAY");
-  const billsEnvelopes = visibleEnvelopes.filter(
-    (e) => (e.envelopeType as string) === "BILL" || e.envelopeType === "SCHEDULED_BILL" || e.envelopeType === "FLEXIBLE_BILL"
-  );
-  const goalEnvelopes = visibleEnvelopes.filter(
-    (e) => (e.envelopeType as string) === "GOAL" || e.envelopeType === "TARGET_GOAL" || e.envelopeType === "ONGOING_GOAL"
-  );
+  const billsEnvelopes = visibleEnvelopes.filter((e) => e.envelopeType === "BILL");
+  const goalEnvelopes = visibleEnvelopes.filter((e) => e.envelopeType === "GOAL");
 
 
   // ── 3. COMPUTE CURRENT CASH AVAILABLE IN EVERYDAY ─────────────────────
@@ -265,14 +261,14 @@ export async function canAffordSimulationQuery(
       name: env.name,
       type: env.envelopeType,
       envelopeType: env.envelopeType,
-      isCommitted: env.isCommitted ?? false,
+      fundingMode: env.fundingMode ?? (env.envelopeType === "GOAL" ? "TARGET_BALANCE" : "RECURRING"),
+      isPriority: env.isPriority ?? false,
       isSurplusTarget: env.isSurplusTarget ?? false,
       monthlyAmount: rawMonthly ? parseFloat(rawMonthly) : null,
       targetAmount: env.targetAmount ? parseFloat(env.targetAmount) : null,
       safetyBufferFloor: env.safetyBufferFloor
         ? parseFloat(env.safetyBufferFloor)
         : null,
-      goalMode: env.goalMode ?? (env.envelopeType === "TARGET_GOAL" ? "TARGET_DATE" : "ONGOING"),
       targetDate: env.endDate ?? null,
       currentBalance: balance,
       isPrivate: env.isPrivate ?? false,

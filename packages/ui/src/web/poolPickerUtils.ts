@@ -3,9 +3,9 @@ import { t } from "@money-matters/i18n";
 export interface PoolOption {
   id: string;
   name: string;
-  poolType?: "EVERYDAY" | "REGULAR" | "GOAL" | string;
-  envelopeType?: "EVERYDAY" | "SCHEDULED_BILL" | "FLEXIBLE_BILL" | "TARGET_GOAL" | "ONGOING_GOAL" | string;
-  goalMode?: "TARGET_DATE" | "ONGOING" | string;
+  poolType?: "EVERYDAY" | "BILL" | "GOAL" | string;
+  envelopeType?: "EVERYDAY" | "BILL" | "GOAL" | string;
+  fundingMode?: "TARGET_BALANCE" | "RECURRING" | string;
   currentBalance?: number | string | null;
   balance?: number | string | null;
   isPrivate?: boolean;
@@ -30,7 +30,7 @@ export interface PoolPickerProps {
   error?: string;
 }
 
-export type EnvelopeBadgeKey = "EVERYDAY" | "SCHEDULED_BILL" | "FLEXIBLE_BILL" | "TARGET_GOAL" | "ONGOING_GOAL";
+export type EnvelopeBadgeKey = "EVERYDAY" | "BILL" | "GOAL";
 
 export interface EnvelopeBadgeInfo {
   label: string;
@@ -39,26 +39,29 @@ export interface EnvelopeBadgeInfo {
 
 export function getEnvelopeBadgeInfo(envelope: {
   envelopeType?: string | null;
+  fundingMode?: string | null;
   poolType?: string | null;
   type?: string | null;
-  goalMode?: string | null;
 }): EnvelopeBadgeInfo {
   const rawType = envelope.envelopeType || envelope.poolType || envelope.type || "";
+  const fundingMode = envelope.fundingMode;
 
   if (rawType === "EVERYDAY") {
     return { label: t("categories.everydayBadge"), tagKey: "EVERYDAY" };
   }
-  if (rawType === "FLEXIBLE_BILL") {
-    return { label: t("categories.flexibleBillBadge"), tagKey: "FLEXIBLE_BILL" };
+  if (rawType === "BILL") {
+    const isTargetBalance = fundingMode === "TARGET_BALANCE";
+    return {
+      label: isTargetBalance ? t("categories.targetBalanceBadge") : t("categories.recurringBadge"),
+      tagKey: "BILL",
+    };
   }
-  if (rawType === "SCHEDULED_BILL" || rawType === "REGULAR") {
-    return { label: t("categories.scheduledBillBadge"), tagKey: "SCHEDULED_BILL" };
-  }
-  if (rawType === "ONGOING_GOAL" || envelope.goalMode === "ONGOING") {
-    return { label: t("categories.ongoingGoalBadge"), tagKey: "ONGOING_GOAL" };
-  }
-  if (rawType === "TARGET_GOAL" || rawType === "GOAL" || rawType.includes("GOAL")) {
-    return { label: t("categories.targetDateGoalBadge"), tagKey: "TARGET_GOAL" };
+  if (rawType === "GOAL") {
+    const isRecurring = fundingMode === "RECURRING";
+    return {
+      label: isRecurring ? t("categories.recurringBadge") : t("categories.targetBalanceBadge"),
+      tagKey: "GOAL",
+    };
   }
   return { label: t("categories.everydayBadge"), tagKey: "EVERYDAY" };
 }

@@ -301,8 +301,8 @@ export async function runAllocationCommand(
 
       const preBal = balancesMap[env.id] || 0;
       const postBal = preBal + confirmedVal;
-      const isGoal = (env.envelopeType as string) === "GOAL" || env.envelopeType === "TARGET_GOAL" || env.envelopeType === "ONGOING_GOAL";
-      const isOngoingGoal = env.envelopeType === "ONGOING_GOAL" || env.goalMode === "ONGOING";
+      const isGoal = env.envelopeType === "GOAL";
+      const isOngoingGoal = isGoal && env.fundingMode === "RECURRING";
 
       if (env.isSurplusTarget) {
         targetsHit.push({
@@ -335,7 +335,7 @@ export async function runAllocationCommand(
 
     const billLines = finalLinesToInsert.filter((l) => {
       const env = dbEnvelopes.find((e) => e.id === l.envelopeId);
-      return env && ((env.envelopeType as string) === "BILL" || env.envelopeType === "SCHEDULED_BILL" || env.envelopeType === "FLEXIBLE_BILL");
+      return env && env.envelopeType === "BILL";
     });
     if (billLines.length > 0) {
       const totalBillsAllocated = billLines.reduce((acc, l) => acc + (parseFloat(l.confirmedAmount) || 0), 0);

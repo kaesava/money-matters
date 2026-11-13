@@ -29,7 +29,7 @@ export function GoalDelayCard({ goalDelays }: GoalDelayCardProps) {
                 <Text style={styles.goalName} numberOfLines={1}>
                   {goal.goalName}
                 </Text>
-                {goal.isCommitted ? (
+                {goal.isPriority ? (
                   <View style={styles.committedBadge}>
                     <Feather name="shield" size={10} color={DESIGN_TOKENS.colors.warningDark} />
                     <Text style={styles.committedBadgeText}>

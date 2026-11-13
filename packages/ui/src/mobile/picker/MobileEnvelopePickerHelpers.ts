@@ -14,14 +14,10 @@ export function formatPoolBalance(
 
 export function getBadgeStyle(tagKey: string) {
   switch (tagKey) {
-    case 'SCHEDULED_BILL':
+    case 'BILL':
       return { bg: '#EFF6FF', border: '#BFDBFE', text: '#1D4ED8' };
-    case 'FLEXIBLE_BILL':
-      return { bg: '#F0F9FF', border: '#BAE6FD', text: '#0369A1' };
-    case 'TARGET_GOAL':
+    case 'GOAL':
       return { bg: '#ECFDF5', border: '#A7F3D0', text: '#047857' };
-    case 'ONGOING_GOAL':
-      return { bg: '#F0FDFA', border: '#99F6E4', text: '#0F766E' };
     case 'EVERYDAY':
     default:
       return { bg: '#FAF5FF', border: '#E9D5FF', text: '#7E22CE' };
@@ -30,10 +26,22 @@ export function getBadgeStyle(tagKey: string) {
 
 export function getEnvelopeBadgeInfo(envelope: MobileEnvelopeOption) {
   const rawType = envelope.envelopeType || envelope.poolType || '';
+  const fundingMode = envelope.fundingMode;
+
   if (rawType === 'EVERYDAY') return { label: t('categories.everydayBadge'), tagKey: 'EVERYDAY' };
-  if (rawType === 'FLEXIBLE_BILL') return { label: t('categories.flexibleBillBadge'), tagKey: 'FLEXIBLE_BILL' };
-  if (rawType === 'SCHEDULED_BILL' || rawType === 'REGULAR') return { label: t('categories.scheduledBillBadge'), tagKey: 'SCHEDULED_BILL' };
-  if (rawType === 'ONGOING_GOAL' || envelope.goalMode === 'ONGOING') return { label: t('categories.ongoingGoalBadge'), tagKey: 'ONGOING_GOAL' };
-  if (rawType === 'TARGET_GOAL' || rawType === 'GOAL' || rawType.includes('GOAL')) return { label: t('categories.targetDateGoalBadge'), tagKey: 'TARGET_GOAL' };
+  if (rawType === 'BILL') {
+    const isTargetBalance = fundingMode === 'TARGET_BALANCE';
+    return {
+      label: isTargetBalance ? t('categories.targetBalanceBadge') : t('categories.recurringBadge'),
+      tagKey: 'BILL',
+    };
+  }
+  if (rawType === 'GOAL') {
+    const isRecurring = fundingMode === 'RECURRING';
+    return {
+      label: isRecurring ? t('categories.recurringBadge') : t('categories.targetBalanceBadge'),
+      tagKey: 'GOAL',
+    };
+  }
   return { label: t('categories.everydayBadge'), tagKey: 'EVERYDAY' };
 }

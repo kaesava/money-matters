@@ -55,7 +55,7 @@ export function SetupGoalCard({
   onUpdate,
   onRemove,
 }: SetupGoalCardProps) {
-  const isOngoing = goal.goalMode === 'ONGOING';
+  const isOngoing = goal.fundingMode === 'RECURRING';
   const months = isOngoing ? 1 : getMonthsDiff(goal.dueDate || '');
   const rawAmt = goal.enteredAmount !== undefined && goal.enteredAmount !== null ? goal.enteredAmount : (goal.monthlyAmount || 0);
   const freq = goal.budgetFrequency || 'MONTHLY';

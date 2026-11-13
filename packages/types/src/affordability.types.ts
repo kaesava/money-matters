@@ -17,7 +17,6 @@ export const GoalDelayImpactSchema = z.object({
   goalId: z.string().uuid(),
   goalName: z.string(),
   isPriority: z.boolean().default(false).optional(),
-  isCommitted: z.boolean().default(false).optional(),
   originalTargetDate: z.string().nullable(),
   newTargetDate: z.string().nullable(),
   delayDays: z.number().int(),

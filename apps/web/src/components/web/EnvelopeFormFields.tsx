@@ -16,10 +16,10 @@ import { EnvelopeSurplusTargetField } from './EnvelopeSurplusTargetField';
 export interface EnvelopeFormFieldsProps {
   name: string;
   setName: (val: string) => void;
-  type: 'EVERYDAY' | 'REGULAR' | 'GOAL';
-  setType: (val: 'EVERYDAY' | 'REGULAR' | 'GOAL') => void;
-  billMode?: 'SCHEDULED_BILL' | 'FLEXIBLE_BILL';
-  setBillMode?: (val: 'SCHEDULED_BILL' | 'FLEXIBLE_BILL') => void;
+  type: 'EVERYDAY' | 'BILL' | 'GOAL';
+  setType: (val: 'EVERYDAY' | 'BILL' | 'GOAL') => void;
+  fundingMode?: 'RECURRING' | 'TARGET_BALANCE';
+  setFundingMode?: (val: 'RECURRING' | 'TARGET_BALANCE') => void;
   bankAccountId: string;
   setBankAccountId: (val: string) => void;
   bankAccountDisabled?: boolean;
@@ -32,8 +32,6 @@ export interface EnvelopeFormFieldsProps {
   setTargetAmount: (val: string) => void;
   targetDate: string;
   setTargetDate: (val: string) => void;
-  goalMode: 'TARGET_DATE' | 'ONGOING';
-  setGoalMode: (val: 'TARGET_DATE' | 'ONGOING') => void;
   frequency?: 'WEEKLY' | 'FORTNIGHTLY' | 'MONTHLY' | 'QUARTERLY' | 'ANNUALLY';
   setFrequency?: (val: 'WEEKLY' | 'FORTNIGHTLY' | 'MONTHLY' | 'QUARTERLY' | 'ANNUALLY') => void;
   interval?: number;
@@ -44,10 +42,8 @@ export interface EnvelopeFormFieldsProps {
   isSurplusTarget: boolean;
   setIsSurplusTarget: (val: boolean) => void;
   isSurplusDisabled: boolean;
-  isEssential?: boolean;
-  setIsEssential?: (val: boolean) => void;
-  isCommitted?: boolean;
-  setIsCommitted?: (val: boolean) => void;
+  isPriority?: boolean;
+  setIsPriority?: (val: boolean) => void;
   generateEvents?: boolean;
   setGenerateEvents?: (val: boolean) => void;
   initialGenerateEvents?: boolean;
@@ -63,8 +59,6 @@ export function EnvelopeFormFields({
   setName,
   type,
   setType,
-  billMode = 'SCHEDULED_BILL',
-  setBillMode,
   bankAccountId,
   setBankAccountId,
   bankAccountDisabled,
@@ -77,8 +71,6 @@ export function EnvelopeFormFields({
   setTargetAmount,
   targetDate,
   setTargetDate,
-  goalMode,
-  setGoalMode,
   frequency = 'MONTHLY',
   setFrequency,
   interval = 1,
@@ -89,17 +81,29 @@ export function EnvelopeFormFields({
   isSurplusTarget,
   setIsSurplusTarget,
   isSurplusDisabled,
-  isEssential = false,
-  setIsEssential,
-  isCommitted = false,
-  setIsCommitted,
   generateEvents = true,
   setGenerateEvents,
   initialGenerateEvents = true,
   hasExistingScheduledEvents = false,
+  fundingMode = 'RECURRING',
+  setFundingMode,
+  isPriority = false,
+  setIsPriority,
   initialMode = 'ALL',
   isTargetDateInPast = false,
 }: CategoryFormFieldsProps) {
+  const isBill = type === 'BILL';
+  const effectiveFundingMode: 'RECURRING' | 'TARGET_BALANCE' = fundingMode;
+
+  const onFundingModeChange = (mode: 'RECURRING' | 'TARGET_BALANCE') => {
+    if (setFundingMode) setFundingMode(mode);
+  };
+
+  const effectivePriority = Boolean(isPriority);
+  const onPriorityChange = (val: boolean) => {
+    if (setIsPriority) setIsPriority(val);
+  };
+
   return (
     <>
       <Input
@@ -122,7 +126,7 @@ export function EnvelopeFormFields({
                   key={opt.value}
                   type="button"
                   disabled={isEdit}
-                  onClick={() => setType(opt.value as 'EVERYDAY' | 'REGULAR' | 'GOAL')}
+                  onClick={() => setType(opt.value as 'EVERYDAY' | 'BILL' | 'GOAL')}
                   className={`py-2 px-3.5 text-xs font-bold rounded-xl transition-all border ${
                     isSelected
                       ? 'bg-[#2563eb] text-white border-[#2563eb] shadow-xs'
@@ -152,16 +156,16 @@ export function EnvelopeFormFields({
         </div>
       )}
 
-      {type === 'REGULAR' && (
+      {isBill && (
         <div className="space-y-3">
-          {setBillMode && initialMode !== 'BILL_SCHEDULE' && (
+          {initialMode !== 'BILL_SCHEDULE' && (
             <BillModeToggle
-              value={billMode}
-              onChange={setBillMode}
+              value={effectiveFundingMode}
+              onChange={onFundingModeChange}
             />
           )}
 
-          {billMode === 'FLEXIBLE_BILL' ? (
+          {effectiveFundingMode === 'TARGET_BALANCE' ? (
             <AmountField
               label={t('categories.flexibleTargetAmountLabel')}
               required
@@ -187,24 +191,24 @@ export function EnvelopeFormFields({
             />
           )}
 
-          {setIsEssential && (
+          {Boolean(setIsPriority) && (
             <div className="pt-2">
               <label className="flex items-start gap-2 cursor-pointer">
                 <input
                   type="checkbox"
-                  checked={Boolean(isEssential)}
-                  onChange={(e) => setIsEssential(e.target.checked)}
+                  checked={effectivePriority}
+                  onChange={(e) => onPriorityChange(e.target.checked)}
                   className="w-4 h-4 mt-0.5 rounded text-[#2563eb] focus:ring-[#2563eb]"
                 />
                 <div className="flex flex-col">
-                  <span className="font-bold text-zinc-800">{t('categories.essentialBillLabel')}</span>
-                  <span className="text-[11px] text-zinc-500 font-normal">{t('categories.essentialBillHint')}</span>
+                  <span className="font-bold text-zinc-800">{t('categories.priorityEnvelopeLabel')}</span>
+                  <span className="text-[11px] text-zinc-500 font-normal">{t('categories.priorityBillHint')}</span>
                 </div>
               </label>
             </div>
           )}
 
-          {billMode === 'SCHEDULED_BILL' && setGenerateEvents && (
+          {effectiveFundingMode === 'RECURRING' && setGenerateEvents && (
             <EnvelopeEventsToggleSection
               generateEvents={generateEvents}
               setGenerateEvents={setGenerateEvents}
@@ -227,9 +231,9 @@ export function EnvelopeFormFields({
 
       {type === 'GOAL' && (
         <>
-          <GoalModeToggle value={goalMode} onChange={setGoalMode} />
+          <GoalModeToggle value={effectiveFundingMode} onChange={onFundingModeChange} />
 
-          {goalMode === 'TARGET_DATE' ? (
+          {effectiveFundingMode === 'TARGET_BALANCE' ? (
             <div className="space-y-2">
               <div className="grid grid-cols-2 gap-3 items-start">
                 <AmountField
@@ -270,18 +274,18 @@ export function EnvelopeFormFields({
             />
           )}
 
-          {setIsCommitted && (
+          {setIsPriority && (
             <div className="pt-2">
               <label className="flex items-start gap-2 cursor-pointer">
                 <input
                   type="checkbox"
-                  checked={Boolean(isCommitted)}
-                  onChange={(e) => setIsCommitted(e.target.checked)}
+                  checked={isPriority}
+                  onChange={(e) => setIsPriority(e.target.checked)}
                   className="w-4 h-4 mt-0.5 rounded text-[#2563eb] focus:ring-[#2563eb]"
                 />
                 <div className="flex flex-col">
-                  <span className="font-bold text-zinc-800">{t('categories.committedGoalLabel')}</span>
-                  <span className="text-[11px] text-zinc-500 font-normal">{t('categories.committedGoalHint')}</span>
+                  <span className="font-bold text-zinc-800">{t('categories.priorityEnvelopeLabel')}</span>
+                  <span className="text-[11px] text-zinc-500 font-normal">{t('categories.priorityGoalHint')}</span>
                 </div>
               </label>
             </div>

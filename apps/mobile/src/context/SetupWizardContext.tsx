@@ -128,20 +128,22 @@ export function SetupWizardProvider({ children: reactChildren }: { children: Rea
     {
       id: 'g-1',
       name: 'Emergency Reserve',
-      goalMode: 'ONGOING',
+      fundingMode: 'RECURRING',
       monthlyAmount: 300,
       icon: 'shield',
       targetAmount: 10000,
       budgetFrequency: 'MONTHLY',
+      isPriority: false,
     },
     {
       id: 'g-2',
       name: 'Annual Family Holiday',
-      goalMode: 'TARGET_DATE',
+      fundingMode: 'TARGET_BALANCE',
       monthlyAmount: 250,
       icon: 'plane',
       targetAmount: 3000,
       dueDate: formatIsoDate(new Date(Date.now() + 365 * 24 * 60 * 60 * 1000)),
+      isPriority: false,
     },
   ]);
 
@@ -149,7 +151,7 @@ export function SetupWizardProvider({ children: reactChildren }: { children: Rea
   const [removedCategoryNames, setRemovedCategoryNames] = useState<Set<string>>(new Set());
   const [amountOverrides, setAmountOverrides] = useState<Record<string, number>>({});
   const [billTypeOverrides, setBillTypeOverrides] = useState<
-    Record<string, 'SCHEDULED_BILL' | 'FLEXIBLE_BILL'>
+    Record<string, 'RECURRING' | 'TARGET_BALANCE'>
   >({});
   const [categoryFrequencies, setCategoryFrequencies] = useState<
     Record<string, 'WEEKLY' | 'FORTNIGHTLY' | 'MONTHLY' | 'QUARTERLY' | 'YEARLY'>
@@ -222,7 +224,7 @@ export function SetupWizardProvider({ children: reactChildren }: { children: Rea
     if (id.startsWith('g-')) return;
     const target = goals.find((g) => g.id === id);
     if (!target) return;
-    const isOngoing = target.goalMode === 'ONGOING';
+    const isOngoing = target.fundingMode === 'RECURRING';
     const amtStr = String(isOngoing ? target.monthlyAmount || target.targetAmount || 0 : target.targetAmount || 0);
     await updatePoolMut.mutateAsync({
       poolId: id,
@@ -233,7 +235,8 @@ export function SetupWizardProvider({ children: reactChildren }: { children: Rea
         enteredAmount: target.enteredAmount ? String(target.enteredAmount) : amtStr,
         budgetFrequency: target.budgetFrequency || 'MONTHLY',
         endDate: isOngoing ? null : target.dueDate || null,
-        goalMode: target.goalMode,
+        fundingMode: target.fundingMode || (isOngoing ? 'RECURRING' : 'TARGET_BALANCE'),
+        isPriority: target.isPriority ?? true,
       },
     });
     setDirtyGoalIds((prev) => {

@@ -276,19 +276,19 @@ export function useIncomeSplitState({
   const billsAllocated = lines
     .filter((l) => {
       const et = pools.find((p) => p.id === l.bucketId)?.envelopeType;
-      return et === "BILL" || et === "SCHEDULED_BILL" || et === "FLEXIBLE_BILL";
+      return et === "BILL";
     })
     .reduce((sum, l) => sum + (parseFloat(linesMap[l.bucketId] ?? l.proposedAmount.toString()) || 0), 0);
 
   const goalsAllocated = lines
     .filter((l) => {
       const et = pools.find((p) => p.id === l.bucketId)?.envelopeType;
-      return et === "GOAL" || et === "TARGET_GOAL" || et === "ONGOING_GOAL";
+      return et === "GOAL";
     })
     .reduce((sum, l) => sum + (parseFloat(linesMap[l.bucketId] ?? l.proposedAmount.toString()) || 0), 0);
 
   const groupedLines = useMemo(() => {
-    const groups: Array<{ type: "EVERYDAY" | "BILL" | "GOAL" | "REGULAR"; label: string; items: AllocationLineItem[] }> = [
+    const groups: Array<{ type: "EVERYDAY" | "BILL" | "GOAL"; label: string; items: AllocationLineItem[] }> = [
       { type: "EVERYDAY", label: t("paydayDrawer.everydayPools"), items: [] },
       { type: "BILL", label: t("paydayDrawer.billsPools"), items: [] },
       { type: "GOAL", label: t("paydayDrawer.goalsPools"), items: [] },
@@ -297,7 +297,7 @@ export function useIncomeSplitState({
       const p = pools.find((pool) => pool.id === l.bucketId);
       const et = p?.envelopeType;
       if (et === "EVERYDAY") groups[0].items.push(l);
-      else if (et === "GOAL" || et === "TARGET_GOAL" || et === "ONGOING_GOAL") groups[2].items.push(l);
+      else if (et === "GOAL") groups[2].items.push(l);
       else groups[1].items.push(l);
     }
     return groups.filter((g) => g.items.length > 0);

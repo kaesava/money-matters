@@ -10,7 +10,6 @@ export interface SaveSetupEnvelopeInput {
   name: string;
   envelopeType: EnvelopeType;
   fundingMode?: "TARGET_BALANCE" | "RECURRING" | null;
-  goalMode?: "TARGET_DATE" | "ONGOING";
   bankAccountId?: string | null;
   targetAmount?: string | null;
   monthlyAmount?: string | null;
@@ -22,8 +21,6 @@ export interface SaveSetupEnvelopeInput {
   safetyBufferFloor?: string | null;
   isSurplusTarget?: boolean;
   isPriority?: boolean;
-  isCommitted?: boolean;
-  isEssential?: boolean;
   isPrivate?: boolean;
   orderIndex?: number;
   generateEvents?: boolean;
@@ -64,7 +61,7 @@ export async function processSetupEnvelopes(
     );
     if (designatedSurplusIndex === -1) {
       designatedSurplusIndex = envelopesInput.findIndex(
-        (e) => !e.isPrivate && (e.envelopeType === "TARGET_GOAL" || e.envelopeType === "ONGOING_GOAL")
+        (e) => !e.isPrivate && e.envelopeType === "GOAL"
       );
     }
     if (designatedSurplusIndex === -1) {
@@ -174,12 +171,10 @@ export async function processSetupEnvelopes(
 
   for (let i = 0; i < envelopesInput.length; i++) {
     const envInput = envelopesInput[i];
-    const effectiveDbEnvelopeType =
-      envInput.envelopeType === "BILL"
-        ? (envInput.fundingMode === "RECURRING" ? "SCHEDULED_BILL" : "FLEXIBLE_BILL")
-        : envInput.envelopeType === "GOAL"
-        ? (envInput.goalMode === "TARGET_DATE" ? "TARGET_GOAL" : "ONGOING_GOAL")
-        : envInput.envelopeType;
+    const fundingMode =
+      envInput.fundingMode ??
+      (envInput.envelopeType === "GOAL" ? "TARGET_BALANCE" : "RECURRING");
+    const isPriority = envInput.isPriority ?? false;
 
     const matchedExisting =
       (envInput.id
@@ -188,9 +183,7 @@ export async function processSetupEnvelopes(
       existingEnvelopes.find(
         (e) =>
           !archivedEnvelopeIds.includes(e.id) &&
-          (e.envelopeType === effectiveDbEnvelopeType ||
-            (envInput.envelopeType === "BILL" && (e.envelopeType === "SCHEDULED_BILL" || e.envelopeType === "FLEXIBLE_BILL")) ||
-            (envInput.envelopeType === "GOAL" && (e.envelopeType === "TARGET_GOAL" || e.envelopeType === "ONGOING_GOAL"))) &&
+          e.envelopeType === envInput.envelopeType &&
           e.name.trim().toLowerCase() === envInput.name.trim().toLowerCase()
       );
 
@@ -199,7 +192,7 @@ export async function processSetupEnvelopes(
       envInput.bankAccountId ||
       (matchedExisting ? matchedExisting.bankAccountId : primaryBankAccountId);
 
-    const isScheduled = effectiveDbEnvelopeType === "SCHEDULED_BILL";
+    const isScheduled = envInput.envelopeType === "BILL" && fundingMode === "RECURRING";
     const rrule = isScheduled
       ? envInput.rrule || deriveRrule(envInput.budgetFrequency || "MONTHLY")
       : envInput.rrule || null;
@@ -209,7 +202,8 @@ export async function processSetupEnvelopes(
 
     if (matchedExisting) {
       const scheduleChanged =
-        (effectiveDbEnvelopeType !== matchedExisting.envelopeType) ||
+        (envInput.envelopeType !== matchedExisting.envelopeType) ||
+        (fundingMode !== matchedExisting.fundingMode) ||
         (envInput.budgetFrequency !== undefined && envInput.budgetFrequency !== matchedExisting.budgetFrequency) ||
         (envInput.startDate !== undefined && envInput.startDate !== matchedExisting.startDate) ||
         (envInput.endDate !== undefined && envInput.endDate !== matchedExisting.endDate) ||
@@ -225,8 +219,9 @@ export async function processSetupEnvelopes(
         .update(envelopes)
         .set({
           name: envInput.name,
-          envelopeType: effectiveDbEnvelopeType,
-          goalMode: envInput.goalMode ?? matchedExisting.goalMode,
+          envelopeType: envInput.envelopeType,
+          fundingMode,
+          isPriority: envInput.isPriority ?? matchedExisting.isPriority,
           targetAmount: envInput.targetAmount,
           monthlyAmount: envInput.monthlyAmount || matchedExisting.monthlyAmount,
           enteredAmount: envInput.enteredAmount !== undefined ? envInput.enteredAmount : matchedExisting.enteredAmount,
@@ -236,8 +231,6 @@ export async function processSetupEnvelopes(
           rrule,
           safetyBufferFloor: envInput.safetyBufferFloor || matchedExisting.safetyBufferFloor || "0.00",
           isSurplusTarget: envInput.isSurplusTarget ?? matchedExisting.isSurplusTarget,
-          isCommitted: envInput.isPriority ?? envInput.isCommitted ?? matchedExisting.isCommitted,
-          isEssential: envInput.isPriority ?? envInput.isEssential ?? matchedExisting.isEssential,
           isPrivate: envInput.isPrivate ?? matchedExisting.isPrivate,
           generateEvents: envInput.generateEvents !== undefined ? envInput.generateEvents : (matchedExisting.generateEvents ?? true),
           bankAccountId: resolvedBankAccountId || matchedExisting.bankAccountId,
@@ -248,7 +241,7 @@ export async function processSetupEnvelopes(
         .where(eq(envelopes.id, matchedExisting.id));
 
       const effectiveFreq = (envInput.budgetFrequency || matchedExisting.budgetFrequency || "MONTHLY") as "MONTHLY" | "WEEKLY" | "FORTNIGHTLY" | "ANNUALLY";
-      const isScheduledBill = effectiveDbEnvelopeType === "SCHEDULED_BILL" && envInput.generateEvents !== false;
+      const isScheduledBill = envInput.envelopeType === "BILL" && fundingMode === "RECURRING" && envInput.generateEvents !== false;
       await synchronizeUpdatedEnvelopeEvents(tx, matchedExisting.id, scheduleChanged, nameOrAmountChanged, {
         name: envInput.name,
         amount: amountVal,
@@ -268,32 +261,31 @@ export async function processSetupEnvelopes(
     } else {
       const newEnvId = randomUUID();
       await tx.insert(envelopes).values({
-          id: newEnvId,
-          tenantId,
-          appId,
-          bankAccountId: resolvedBankAccountId,
-          name: envInput.name,
-          envelopeType: effectiveDbEnvelopeType,
-          goalMode: envInput.goalMode ?? (effectiveDbEnvelopeType === "TARGET_GOAL" ? "TARGET_DATE" : "ONGOING"),
-          targetAmount: envInput.targetAmount || null,
-          monthlyAmount: envInput.monthlyAmount || null,
-          enteredAmount: envInput.enteredAmount || null,
-          budgetFrequency: envInput.budgetFrequency || "MONTHLY",
-          startDate,
-          endDate: envInput.endDate || null,
-          rrule,
-          safetyBufferFloor: envInput.safetyBufferFloor || "0.00",
-          isSurplusTarget: envInput.isSurplusTarget ?? false,
-          isCommitted: envInput.isPriority ?? envInput.isCommitted ?? false,
-          isEssential: envInput.isPriority ?? envInput.isEssential ?? false,
-          isPrivate: envInput.isPrivate ?? false,
-          generateEvents: envInput.generateEvents ?? true,
-          orderIndex: envInput.orderIndex ?? i,
-          createdAt: now,
-          createdBy: userId,
-          updatedAt: now,
-          updatedBy: userId,
-        });
+        id: newEnvId,
+        tenantId,
+        appId,
+        bankAccountId: resolvedBankAccountId,
+        name: envInput.name,
+        envelopeType: envInput.envelopeType,
+        fundingMode,
+        isPriority,
+        targetAmount: envInput.targetAmount || null,
+        monthlyAmount: envInput.monthlyAmount || null,
+        enteredAmount: envInput.enteredAmount || null,
+        budgetFrequency: envInput.budgetFrequency || "MONTHLY",
+        startDate,
+        endDate: envInput.endDate || null,
+        rrule,
+        safetyBufferFloor: envInput.safetyBufferFloor || "0.00",
+        isSurplusTarget: envInput.isSurplusTarget ?? false,
+        isPrivate: envInput.isPrivate ?? false,
+        generateEvents: envInput.generateEvents ?? true,
+        orderIndex: envInput.orderIndex ?? i,
+        createdAt: now,
+        createdBy: userId,
+        updatedAt: now,
+        updatedBy: userId,
+      });
 
       if (envInput.id) envelopeIdMap.set(envInput.id, newEnvId);
       envelopeIdMap.set(`name-${envInput.name}`, newEnvId);

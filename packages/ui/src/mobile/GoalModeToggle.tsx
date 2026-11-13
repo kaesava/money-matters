@@ -7,8 +7,8 @@ import FormLabel from './FormLabel';
 import InfoTooltip from './InfoTooltip';
 
 export interface MobileGoalModeToggleProps {
-  value: 'TARGET_DATE' | 'ONGOING';
-  onChange: (mode: 'TARGET_DATE' | 'ONGOING') => void;
+  value: 'TARGET_BALANCE' | 'RECURRING';
+  onChange: (mode: 'TARGET_BALANCE' | 'RECURRING') => void;
   disabled?: boolean;
 }
 
@@ -21,30 +21,30 @@ export function MobileGoalModeToggle({
     <View style={styles.container}>
       <View style={styles.labelRow}>
         <FormLabel containerStyle={styles.formLabelWrap}>
-          {t('goalModes.modeLabel')}
+          {t('categories.fundingModeLabel')}
         </FormLabel>
         <InfoTooltip
           content={
-            value === 'TARGET_DATE'
-              ? t('goalModes.targetDateDesc')
-              : t('goalModes.ongoingDesc')
+            value === 'TARGET_BALANCE'
+              ? t('categories.fundingModeTargetBalanceDesc')
+              : t('categories.fundingModeRecurringDesc')
           }
         />
       </View>
       <View style={styles.toggleRow}>
         <TouchableOpacity
           disabled={disabled}
-          onPress={() => onChange('TARGET_DATE')}
+          onPress={() => onChange('TARGET_BALANCE')}
           style={[
             styles.toggleBtn,
-            value === 'TARGET_DATE' && styles.activeToggleBtn,
+            value === 'TARGET_BALANCE' && styles.activeToggleBtn,
           ]}
         >
           <Feather
             name="calendar"
             size={14}
             color={
-              value === 'TARGET_DATE'
+              value === 'TARGET_BALANCE'
                 ? DESIGN_TOKENS.colors.sereneBlue
                 : DESIGN_TOKENS.colors.slate[600]
             }
@@ -52,25 +52,25 @@ export function MobileGoalModeToggle({
           <Text
             style={[
               styles.btnText,
-              value === 'TARGET_DATE' && styles.activeBtnText,
+              value === 'TARGET_BALANCE' && styles.activeBtnText,
             ]}
           >
-            {t('goalModes.targetDate')}
+            {t('categories.fundingModeTargetBalance')}
           </Text>
         </TouchableOpacity>
         <TouchableOpacity
           disabled={disabled}
-          onPress={() => onChange('ONGOING')}
+          onPress={() => onChange('RECURRING')}
           style={[
             styles.toggleBtn,
-            value === 'ONGOING' && styles.activeToggleBtn,
+            value === 'RECURRING' && styles.activeToggleBtn,
           ]}
         >
           <Feather
             name="repeat"
             size={14}
             color={
-              value === 'ONGOING'
+              value === 'RECURRING'
                 ? DESIGN_TOKENS.colors.sereneBlue
                 : DESIGN_TOKENS.colors.slate[600]
             }
@@ -78,10 +78,10 @@ export function MobileGoalModeToggle({
           <Text
             style={[
               styles.btnText,
-              value === 'ONGOING' && styles.activeBtnText,
+              value === 'RECURRING' && styles.activeBtnText,
             ]}
           >
-            {t('goalModes.ongoing')}
+            {t('categories.fundingModeRecurring')}
           </Text>
         </TouchableOpacity>
       </View>

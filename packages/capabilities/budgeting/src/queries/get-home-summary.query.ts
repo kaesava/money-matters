@@ -59,6 +59,8 @@ export async function getHomeSummaryQuery(
       safetyBufferFloor: envelopes.safetyBufferFloor,
       monthlyAmount: envelopes.monthlyAmount,
       targetAmount: envelopes.targetAmount,
+      fundingMode: envelopes.fundingMode,
+      isPriority: envelopes.isPriority,
       isPrivate: envelopes.isPrivate,
       userId: envelopes.userId,
       bankAccountUserId: bankAccounts.userId,
@@ -162,15 +164,17 @@ export async function getHomeSummaryQuery(
       everydayBalance += bal;
       everydayBudget += monthly || target;
       everydaySafetyBuffer += env.safetyBufferFloor ? parseFloat(env.safetyBufferFloor) : 0;
-    } else if (env.envelopeType === "SCHEDULED_BILL" || env.envelopeType === "FLEXIBLE_BILL") {
+    } else if (env.envelopeType === "BILL") {
       billsBalance += bal;
       billsBudget += monthly || target;
-    } else if (env.envelopeType === "TARGET_GOAL" || env.envelopeType === "ONGOING_GOAL") {
+    } else if (env.envelopeType === "GOAL") {
       const progress = target > 0 ? Math.min(100, Math.round((bal / target) * 100)) : (bal > 0 ? 100 : 0);
       goals.push({
         id: env.id,
         name: env.name,
-        envelopeType: env.envelopeType,
+        envelopeType: "GOAL",
+        fundingMode: (env.fundingMode === "RECURRING" ? "RECURRING" : "TARGET_BALANCE") as "TARGET_BALANCE" | "RECURRING",
+        isPriority: Boolean(env.isPriority),
         currentBalance: bal,
         targetAmount: target > 0 ? target : null,
         progressPercentage: progress,

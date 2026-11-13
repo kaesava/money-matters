@@ -5,10 +5,10 @@ describe('useSetupWizardCalculations logic', () => {
   it('correctly calculates totals in rerun mode isolating custom categories', () => {
     const customCategories = [
       { id: 'c1', name: 'Groceries', type: 'EVERYDAY' as const, monthlyAud: 800, icon: '🛒' },
-      { id: 'c2', name: 'Internet', type: 'REGULAR' as const, monthlyAud: 90, icon: '📌' },
+      { id: 'c2', name: 'Internet', type: 'BILL' as const, monthlyAud: 90, icon: '📌' },
     ];
     const goals = [
-      { id: 'c3', name: 'Car Fund', monthlyAmount: 200, targetAmount: 2400, goalMode: 'ONGOING' as const, icon: '🎯' },
+      { id: 'c3', name: 'Car Fund', monthlyAmount: 200, targetAmount: 2400, fundingMode: 'RECURRING' as const, icon: '🎯' },
     ];
 
     const result = computeSetupWizardCalculations({
@@ -49,7 +49,7 @@ describe('useSetupWizardCalculations logic', () => {
   it('respects amountOverrides and removedCategoryNames', () => {
     const customCategories = [
       { id: 'c1', name: 'Groceries', type: 'EVERYDAY' as const, monthlyAud: 800, icon: '🛒' },
-      { id: 'c2', name: 'Internet', type: 'REGULAR' as const, monthlyAud: 90, icon: '📌' },
+      { id: 'c2', name: 'Internet', type: 'BILL' as const, monthlyAud: 90, icon: '📌' },
     ];
 
     const result = computeSetupWizardCalculations({

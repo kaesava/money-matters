@@ -64,12 +64,10 @@ export function useSetupCategoriesSubmission() {
           const envelopeType: 'EVERYDAY' | 'BILL' | 'GOAL' = isEveryday ? 'EVERYDAY' : 'BILL';
           const fundingMode: 'TARGET_BALANCE' | 'RECURRING' | undefined = isEveryday
             ? undefined
-            : c.envelopeType === 'FLEXIBLE_BILL'
-            ? 'TARGET_BALANCE'
-            : 'RECURRING';
+            : c.fundingMode || 'RECURRING';
           const catId = 'id' in c && typeof c.id === 'string' && !c.id.startsWith('temp-') ? c.id : undefined;
           const matchedPool = (catId ? existingPools.find((p) => p.id === catId) : undefined) ||
-            existingPools.find((p) => (p.envelopeType === envelopeType || p.envelopeType === 'BILL' || p.envelopeType === 'SCHEDULED_BILL' || p.envelopeType === 'FLEXIBLE_BILL') && p.name.trim().toLowerCase() === c.name.trim().toLowerCase());
+            existingPools.find((p) => p.envelopeType === envelopeType && p.name.trim().toLowerCase() === c.name.trim().toLowerCase());
           const resolvedEnvId = catId || matchedPool?.id;
           return {
             id: resolvedEnvId,
@@ -86,17 +84,16 @@ export function useSetupCategoriesSubmission() {
             rrule: c.rrule || matchedPool?.rrule,
             generateEvents: fundingMode === 'RECURRING' ? (c.generateEvents ?? true) : false,
             isPriority: !isEveryday,
-            isEssential: !isEveryday,
             orderIndex: idx,
           };
         }),
         ...goals.map((g, idx) => {
           const goalId = g.id?.startsWith('g-') ? undefined : g.id;
           const matchedPool = (goalId ? existingPools.find((p) => p.id === goalId) : undefined) ||
-            existingPools.find((p) => (p.envelopeType === 'GOAL' || p.envelopeType === 'ONGOING_GOAL' || p.envelopeType === 'TARGET_GOAL') && p.name.trim().toLowerCase() === g.name.trim().toLowerCase());
+            existingPools.find((p) => p.envelopeType === 'GOAL' && p.name.trim().toLowerCase() === g.name.trim().toLowerCase());
           const resolvedGoalId = goalId || matchedPool?.id;
-          const isOngoing = g.goalMode === 'ONGOING' || (!g.dueDate && g.budgetFrequency);
-          const fundingMode: 'TARGET_BALANCE' | 'RECURRING' = isOngoing ? 'RECURRING' : 'TARGET_BALANCE';
+          const isOngoing = g.fundingMode === 'RECURRING' || (!g.dueDate && Boolean(g.budgetFrequency));
+          const fundingMode: 'TARGET_BALANCE' | 'RECURRING' = g.fundingMode || (isOngoing ? 'RECURRING' : 'TARGET_BALANCE');
           const rawAmt = g.enteredAmount !== undefined && g.enteredAmount !== null
             ? g.enteredAmount
             : (g.monthlyAmount || g.targetAmount || 0);
@@ -116,7 +113,6 @@ export function useSetupCategoriesSubmission() {
             name: g.name,
             envelopeType: 'GOAL' as const,
             fundingMode,
-            goalMode: g.goalMode ?? (g.dueDate ? 'TARGET_DATE' : 'ONGOING'),
             targetAmount: (isOngoing
               ? (g.targetAmount !== undefined && g.targetAmount !== null && g.targetAmount > 0
                   ? g.targetAmount
@@ -133,7 +129,6 @@ export function useSetupCategoriesSubmission() {
             rrule: g.rrule,
             isSurplusTarget: idx === effectiveSurplusIndex,
             isPriority: true,
-            isCommitted: true,
             isPrivate: matchedPool?.isPrivate ?? Boolean(g.isPrivate),
             orderIndex: nonGoalCategories.length + idx,
           };
@@ -168,7 +163,7 @@ export function useSetupCategoriesSubmission() {
           { name: 'Other Financial Institution (Everyday)', bankProvider: 'Other', accountType: 'EVERYDAY', lastKnownBalance: '1000.00', unbudgetedBuffer: '0.00', isPrivate: false },
         ],
         envelopes: envelopesPayload.length > 0 ? envelopesPayload : [
-          { name: 'Everyday Spending', envelopeType: 'EVERYDAY', bankAccountId: accountsPayload[0]?.id, monthlyAmount: '1000.00', isEssential: true },
+          { name: 'Everyday Spending', envelopeType: 'EVERYDAY', bankAccountId: accountsPayload[0]?.id, monthlyAmount: '1000.00', isPriority: false, fundingMode: 'TARGET_BALANCE' },
         ],
         archivedEnvelopeIds: [...sweepQueue.map((s) => s.poolId), ...resolvedArchivedEnvelopeIds],
         archivedAccountIds: Array.from(archivedAccountIds),

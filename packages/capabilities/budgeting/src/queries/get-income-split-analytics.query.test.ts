@@ -19,10 +19,10 @@ describe("Income Split Analytics Processors", () => {
   it("computes horizon breakdown correctly across everyday, bills, and goals", () => {
     const lines: ProcessedLine[] = [
       { planId: "p1", envelopeId: "e1", envelopeName: "Living", envelopeType: "EVERYDAY", amount: 1000 },
-      { planId: "p1", envelopeId: "e2", envelopeName: "Electricity", envelopeType: "SCHEDULED_BILL", amount: 500 },
-      { planId: "p1", envelopeId: "e3", envelopeName: "Groceries Extra", envelopeType: "FLEXIBLE_BILL", amount: 500 },
-      { planId: "p1", envelopeId: "e4", envelopeName: "Vacation", envelopeType: "TARGET_GOAL", amount: 500 },
-      { planId: "p1", envelopeId: "e5", envelopeName: "Emergency", envelopeType: "ONGOING_GOAL", amount: 500 },
+      { planId: "p1", envelopeId: "e2", envelopeName: "Electricity", envelopeType: "BILL", amount: 500 },
+      { planId: "p1", envelopeId: "e3", envelopeName: "Groceries Extra", envelopeType: "BILL", amount: 500 },
+      { planId: "p1", envelopeId: "e4", envelopeName: "Vacation", envelopeType: "GOAL", amount: 500 },
+      { planId: "p1", envelopeId: "e5", envelopeName: "Emergency", envelopeType: "GOAL", amount: 500 },
     ];
 
     const breakdown = computeHorizonBreakdown(lines);
@@ -43,7 +43,7 @@ describe("Income Split Analytics Processors", () => {
     ];
     const lines: ProcessedLine[] = [
       { planId: "p1", envelopeId: "sweep-env", envelopeName: "Living", envelopeType: "EVERYDAY", amount: 1200 },
-      { planId: "p1", envelopeId: "other-env", envelopeName: "Bills", envelopeType: "SCHEDULED_BILL", amount: 1800 },
+      { planId: "p1", envelopeId: "other-env", envelopeName: "Bills", envelopeType: "BILL", amount: 1800 },
       { planId: "p2", envelopeId: "sweep-env", envelopeName: "Living", envelopeType: "EVERYDAY", amount: 800 },
     ];
 
@@ -62,12 +62,12 @@ describe("Income Split Analytics Processors", () => {
   it("computes top allocation pools and aggregates remainder into otherPoolsAmount", () => {
     const lines: ProcessedLine[] = [
       { planId: "p1", envelopeId: "e1", envelopeName: "Env 1", envelopeType: "EVERYDAY", amount: 1000 },
-      { planId: "p1", envelopeId: "e2", envelopeName: "Env 2", envelopeType: "SCHEDULED_BILL", amount: 900 },
-      { planId: "p1", envelopeId: "e3", envelopeName: "Env 3", envelopeType: "SCHEDULED_BILL", amount: 800 },
-      { planId: "p1", envelopeId: "e4", envelopeName: "Env 4", envelopeType: "TARGET_GOAL", amount: 700 },
-      { planId: "p1", envelopeId: "e5", envelopeName: "Env 5", envelopeType: "TARGET_GOAL", amount: 600 },
-      { planId: "p1", envelopeId: "e6", envelopeName: "Env 6", envelopeType: "FLEXIBLE_BILL", amount: 500 },
-      { planId: "p1", envelopeId: "e7", envelopeName: "Env 7", envelopeType: "ONGOING_GOAL", amount: 400 },
+      { planId: "p1", envelopeId: "e2", envelopeName: "Env 2", envelopeType: "BILL", amount: 900 },
+      { planId: "p1", envelopeId: "e3", envelopeName: "Env 3", envelopeType: "BILL", amount: 800 },
+      { planId: "p1", envelopeId: "e4", envelopeName: "Env 4", envelopeType: "GOAL", amount: 700 },
+      { planId: "p1", envelopeId: "e5", envelopeName: "Env 5", envelopeType: "GOAL", amount: 600 },
+      { planId: "p1", envelopeId: "e6", envelopeName: "Env 6", envelopeType: "BILL", amount: 500 },
+      { planId: "p1", envelopeId: "e7", envelopeName: "Env 7", envelopeType: "GOAL", amount: 400 },
     ];
 
     const { topPools, otherPoolsAmount } = computeTopPools(lines, 4900);
@@ -112,7 +112,7 @@ describe("Income Split Analytics Processors", () => {
           proposedAmount: "3000",
           confirmedAmount: "3000",
           envelopeName: "Other Env",
-          envelopeType: "SCHEDULED_BILL",
+          envelopeType: "BILL",
         },
       ],
       defaultSweepId: "env-target",

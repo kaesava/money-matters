@@ -7,7 +7,7 @@ function createMockDb(
   mockPaychecks: any[],
   mockUpcomingBills: any[],
   mockEnvelopes: any[] = [
-    { id: "env-bills-1", name: "Regular Bills", envelopeType: "SCHEDULED_BILL", bankAccountId: "acc-1", isPrivate: false }
+    { id: "env-bills-1", name: "Regular Bills", envelopeType: "BILL", bankAccountId: "acc-1", isPrivate: false }
   ]
 ) {
   return {
@@ -55,7 +55,7 @@ describe("listBillCoverageQuery", () => {
     const mockPaychecks: any[] = [];
     const mockUpcomingBills: any[] = [];
     const mockEnvelopes = [
-      { id: "env-bills-1", name: "Netflix", envelopeType: "SCHEDULED_BILL", bankAccountId: "acc-1", isPrivate: false }
+      { id: "env-bills-1", name: "Netflix", envelopeType: "BILL", bankAccountId: "acc-1", isPrivate: false }
     ];
     const mockDb = createMockDb(mockTxs, mockPaychecks, mockUpcomingBills, mockEnvelopes);
 
@@ -71,7 +71,7 @@ describe("listBillCoverageQuery", () => {
 
   it("returns COVERED when bills balance is sufficient for upcoming bills", async () => {
     const mockEnvelopes = [
-      { id: "env-bills-1", name: "Power", envelopeType: "SCHEDULED_BILL", bankAccountId: "acc-1", isPrivate: false }
+      { id: "env-bills-1", name: "Power", envelopeType: "BILL", bankAccountId: "acc-1", isPrivate: false }
     ];
     const mockTxs = [
       { envelopeId: "env-bills-1", amount: "200.00", flowType: "CREDIT" },
@@ -97,7 +97,7 @@ describe("listBillCoverageQuery", () => {
 
   it("returns SHORT_BY when bills balance is insufficient for upcoming bills", async () => {
     const mockEnvelopes = [
-      { id: "env-bills-1", name: "Rent", envelopeType: "SCHEDULED_BILL", bankAccountId: "acc-1", isPrivate: false }
+      { id: "env-bills-1", name: "Rent", envelopeType: "BILL", bankAccountId: "acc-1", isPrivate: false }
     ];
     const mockTxs = [
       { envelopeId: "env-bills-1", amount: "100.00", flowType: "CREDIT" },

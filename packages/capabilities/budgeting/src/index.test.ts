@@ -4,15 +4,15 @@ import { generateBurstDates } from './engine/burst-engine';
 
 describe('budgeting capability', () => {
   it('calculates 5-step waterfall allocation correctly using runAllocationEngine', () => {
-    const buckets = [
-      { id: 'cat-1', name: 'Rent', type: 'REGULAR', targetAmount: 500, currentBalance: 100, isEssential: true },
+    const buckets: Parameters<typeof runAllocationEngine>[0]['buckets'] = [
+      { id: 'cat-1', name: 'Rent', type: 'BILL', targetAmount: 500, currentBalance: 100, isPriority: true },
       { id: 'cat-2', name: 'Groceries', type: 'EVERYDAY', targetAmount: 200, currentBalance: 50 },
       { id: 'cat-3', name: 'Emergency Fund', type: 'GOAL', targetAmount: 1000, currentBalance: 200 },
     ];
 
     const result = runAllocationEngine({
       incomeAmount: 800,
-      buckets: buckets as any,
+      buckets,
       paycheckDate: new Date(),
       paycheckFrequencyDays: 14,
     });

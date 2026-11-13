@@ -13,7 +13,7 @@ interface UseDashboardDerivedStateParams {
     safetyBufferFloor?: string | null;
     healthStatus?: string | null;
     endDate?: string | null;
-    goalMode?: string | null;
+    fundingMode?: string | null;
     enteredAmount?: string | null;
     budgetFrequency?: string | null;
     createdAt?: string | Date | null;
@@ -82,7 +82,7 @@ export function useDashboardDerivedState({
   todayStr,
 }: UseDashboardDerivedStateParams) {
   const goalCategories = useMemo(
-    () => pools.filter((p) => p.envelopeType === "TARGET_GOAL" || p.envelopeType === "ONGOING_GOAL"),
+    () => pools.filter((p) => p.envelopeType === "GOAL"),
     [pools]
   );
 
@@ -111,7 +111,7 @@ export function useDashboardDerivedState({
   const billsMonthlyBudget = useMemo(
     () =>
       pools
-        .filter((p) => p.envelopeType === "SCHEDULED_BILL" || p.envelopeType === "FLEXIBLE_BILL")
+        .filter((p) => p.envelopeType === "BILL")
         .reduce((sum, p) => sum + parseFloat(p.monthlyAmount || p.targetAmount || "0"), 0),
     [pools]
   );

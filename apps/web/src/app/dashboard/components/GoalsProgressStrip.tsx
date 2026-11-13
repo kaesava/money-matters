@@ -13,7 +13,7 @@ export interface GoalCategoryItem {
   readonly targetAmount?: string | number | null;
   readonly targetDate?: string | null;
   readonly endDate?: string | null;
-  readonly goalMode?: 'TARGET_DATE' | 'ONGOING' | null;
+  readonly fundingMode?: 'TARGET_BALANCE' | 'RECURRING' | null;
   readonly enteredAmount?: string | null;
   readonly budgetFrequency?: string | null;
   readonly createdAt?: string | Date | null;
@@ -60,7 +60,7 @@ export const GoalsProgressStrip: React.FC<GoalsProgressStripProps> = ({
       const bal = parseFloat(String(g.currentBalance || '0')) || 0;
       accSavings += bal;
 
-      const isRecurring = g.goalMode === 'ONGOING';
+      const isRecurring = g.fundingMode === 'RECURRING';
       if (isRecurring) {
         recurringCount += 1;
         const rawAmt = parseFloat(String(g.targetAmount || g.enteredAmount || '0')) || 0;

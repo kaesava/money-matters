@@ -25,7 +25,7 @@ describe("processSpendingAnalyticsRows", () => {
         recordedAt: new Date("2026-08-20T10:00:00Z"),
         envelopeId: "env-2",
         envelopeName: "Electricity",
-        envelopeType: "SCHEDULED_BILL" as const,
+        envelopeType: "BILL" as const,
         note: "Origin Energy",
       },
       {
@@ -36,7 +36,7 @@ describe("processSpendingAnalyticsRows", () => {
         recordedAt: new Date("2026-09-05T10:00:00Z"),
         envelopeId: "env-3",
         envelopeName: "Holiday Goal",
-        envelopeType: "TARGET_GOAL" as const,
+        envelopeType: "GOAL" as const,
         note: "Flight ticket",
       },
       {

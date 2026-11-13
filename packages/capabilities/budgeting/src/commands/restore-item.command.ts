@@ -90,7 +90,8 @@ export async function restoreItemCommand(
       for (const env of restoredEnvelopes) {
         const amountVal = env.enteredAmount || env.monthlyAmount || "0.00";
         if (
-          env.envelopeType === "SCHEDULED_BILL" &&
+          env.envelopeType === "BILL" &&
+          env.fundingMode === "RECURRING" &&
           env.generateEvents !== false &&
           env.rrule &&
           env.startDate &&
@@ -233,7 +234,8 @@ export async function restoreItemCommand(
     if (restored) {
       const amountVal = restored.enteredAmount || restored.monthlyAmount || "0.00";
       if (
-        restored.envelopeType === "SCHEDULED_BILL" &&
+        restored.envelopeType === "BILL" &&
+        restored.fundingMode === "RECURRING" &&
         restored.generateEvents !== false &&
         restored.rrule &&
         restored.startDate &&

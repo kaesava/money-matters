@@ -14,7 +14,7 @@ export interface CategoryData {
   currentBalance: number;
   monthlyAmount?: number | null;
   targetAmount?: number | null;
-  isCommitted?: boolean;
+  isPriority?: boolean;
   isSurplusTarget?: boolean;
   isPrivate?: boolean;
 }
@@ -66,7 +66,7 @@ export function useMatrixPlanData({
       currentBalance: 0,
       monthlyAmount: p.monthlyAmount ? parseFloat(p.monthlyAmount) : null,
       targetAmount: p.targetAmount ? parseFloat(p.targetAmount) : null,
-      isCommitted: Boolean(p.isCommitted),
+      isPriority: Boolean(p.isPriority),
       isSurplusTarget: Boolean(p.isSurplusTarget),
       isPrivate: Boolean(p.isPrivate),
     }));
@@ -186,7 +186,7 @@ export function useMatrixPlanData({
     }
 
     if (activeCategoryForDrawer.id === "pool_bills") {
-      const billsIds = new Set(categories.filter((c) => c.type === "REGULAR").map((c) => c.id));
+      const billsIds = new Set(categories.filter((c) => c.type === "BILL").map((c) => c.id));
       return expenseEvents
         .filter((e) => billsIds.has(e.categoryId))
         .map((e, idx) => ({

@@ -273,7 +273,7 @@ export function runStep6Goals(
     const curBal = Math.max(0, ctx.runningBalances.get(b.id) ?? toCents(b.currentBalance));
     const gap = Math.max(0, targetCents - curBal);
 
-    if (b.type === "ONGOING_GOAL" || b.goalMode === "ONGOING") {
+    if (b.fundingMode === "RECURRING") {
       const ongoingMonthly = b.monthlyAmount ?? b.enteredAmount ?? b.targetAmount ?? 0;
       const ongoingCents = toCents(ongoingMonthly);
       const needed = Math.round(ongoingCents * ctx.cycleFactor);
@@ -415,7 +415,7 @@ export function runStep7SurplusSweep(
     targetFromConfig ||
     buckets.find((b) => b.isSurplusTarget && ctx.isBucketEligible(b)) ||
     buckets.find((b) => !b.isPrivate && b.type === "EVERYDAY" && ctx.isBucketEligible(b)) ||
-    buckets.find((b) => !b.isPrivate && (b.type === "TARGET_GOAL" || b.type === "ONGOING_GOAL" || b.type === "GOAL") && ctx.isBucketEligible(b)) ||
+    buckets.find((b) => !b.isPrivate && b.type === "GOAL" && ctx.isBucketEligible(b)) ||
     buckets.find((b) => ctx.isBucketEligible(b));
 
   if (eligibleSurplus) {

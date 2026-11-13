@@ -5,8 +5,8 @@ import { InfoTooltip } from './InfoTooltip';
 import { Calendar, Sliders } from 'lucide-react';
 
 export interface BillModeToggleProps {
-  value: 'SCHEDULED_BILL' | 'FLEXIBLE_BILL';
-  onChange: (mode: 'SCHEDULED_BILL' | 'FLEXIBLE_BILL') => void;
+  value: 'RECURRING' | 'TARGET_BALANCE';
+  onChange: (mode: 'RECURRING' | 'TARGET_BALANCE') => void;
   disabled?: boolean;
 }
 
@@ -18,12 +18,12 @@ export function BillModeToggle({
   return (
     <div className="flex flex-col gap-1.5">
       <div className="flex items-center gap-1.5">
-        <FormLabel className="!mb-0">{t('categories.billModeLabel')}</FormLabel>
+        <FormLabel className="!mb-0">{t('categories.fundingModeLabel')}</FormLabel>
         <InfoTooltip
           content={
-            value === 'SCHEDULED_BILL'
-              ? t('categories.tooltips.scheduledBill')
-              : t('categories.tooltips.flexibleBill')
+            value === 'RECURRING'
+              ? t('categories.fundingModeRecurringDesc')
+              : t('categories.fundingModeTargetBalanceDesc')
           }
           align="left"
         />
@@ -32,28 +32,28 @@ export function BillModeToggle({
         <button
           type="button"
           disabled={disabled}
-          onClick={() => onChange('SCHEDULED_BILL')}
+          onClick={() => onChange('RECURRING')}
           className={`flex items-center justify-center gap-2 py-2 px-3 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
-            value === 'SCHEDULED_BILL'
+            value === 'RECURRING'
               ? 'bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 shadow-xs'
               : 'text-slate-600 dark:text-slate-300 hover:text-slate-900'
           }`}
         >
           <Calendar className="w-4 h-4 shrink-0" />
-          <span>{t('categories.billModeScheduled')}</span>
+          <span>{t('categories.fundingModeRecurring')}</span>
         </button>
         <button
           type="button"
           disabled={disabled}
-          onClick={() => onChange('FLEXIBLE_BILL')}
+          onClick={() => onChange('TARGET_BALANCE')}
           className={`flex items-center justify-center gap-2 py-2 px-3 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
-            value === 'FLEXIBLE_BILL'
+            value === 'TARGET_BALANCE'
               ? 'bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 shadow-xs'
               : 'text-slate-600 dark:text-slate-300 hover:text-slate-900'
           }`}
         >
           <Sliders className="w-4 h-4 shrink-0" />
-          <span>{t('categories.billModeFlexible')}</span>
+          <span>{t('categories.fundingModeTargetBalance')}</span>
         </button>
       </div>
     </div>

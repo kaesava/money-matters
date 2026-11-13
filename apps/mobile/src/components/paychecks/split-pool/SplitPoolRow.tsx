@@ -10,7 +10,7 @@ import { SplitPoolReasoningField } from './SplitPoolReasoningField';
 interface SplitPoolRowProps {
   item: AllocationLineItem;
   poolObj?: PoolRecord;
-  groupType: 'EVERYDAY' | 'REGULAR' | 'GOAL';
+  groupType: 'EVERYDAY' | 'BILL' | 'GOAL';
   isSweep: boolean;
   sweepRemainder: number;
   linesMap: Record<string, string>;
@@ -94,7 +94,7 @@ export const SplitPoolRow: React.FC<SplitPoolRowProps> = ({
             {targetNum > 0 && (
               <Text style={styles.statMetaText}>
                 • {t('paydayDrawer.tableColTarget')}: {formatMobileCurrency(targetNum)}
-                {groupType === 'REGULAR' ? t('paydayDrawer.perMonth') : ''}
+                {groupType === 'BILL' ? t('paydayDrawer.perMonth') : ''}
                 {poolObj?.endDate ? ` (${formatDate(poolObj.endDate)})` : ''}
               </Text>
             )}

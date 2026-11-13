@@ -78,13 +78,14 @@ export default function RecurringSchedulesScreen() {
       const source = expenseSources.find((e) => e.id === searchParams.editBillId || e.envelopeId === searchParams.editBillId);
       const targetPool = pools.find((p) => p.id === searchParams.editBillId || (source && p.id === source.envelopeId));
       if (source || targetPool) {
-        const resolvedType = targetPool?.envelopeType || 'SCHEDULED_BILL';
+        const resolvedType = targetPool?.envelopeType || 'BILL';
         setPoolToEdit({
           id: targetPool?.id || source?.envelopeId || source?.id || searchParams.editBillId,
           name: targetPool?.name || source?.name || '',
           type: resolvedType,
-          poolType: resolvedType,
           envelopeType: resolvedType,
+          fundingMode: targetPool?.fundingMode || 'RECURRING',
+          isPriority: targetPool?.isPriority ?? false,
           bankAccountId: targetPool?.bankAccountId,
           monthlyAmount: source?.amount || targetPool?.monthlyAmount,
           enteredAmount: source?.amount || targetPool?.enteredAmount,
@@ -187,7 +188,7 @@ export default function RecurringSchedulesScreen() {
               setFormModalVisible(true);
             } else {
               const targetPool = pools.find((p) => p.id === source.id || p.id === source.poolId);
-              const resolvedType = targetPool?.envelopeType || 'REGULAR';
+              const resolvedType = targetPool?.envelopeType || 'BILL';
               setPoolToEdit({
                 id: source.id,
                 name: source.name,

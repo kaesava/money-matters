@@ -7,8 +7,8 @@ import FormLabel from './FormLabel';
 import InfoTooltip from './InfoTooltip';
 
 export interface MobileBillModeToggleProps {
-  value: 'SCHEDULED_BILL' | 'FLEXIBLE_BILL';
-  onChange: (mode: 'SCHEDULED_BILL' | 'FLEXIBLE_BILL') => void;
+  value: 'RECURRING' | 'TARGET_BALANCE';
+  onChange: (mode: 'RECURRING' | 'TARGET_BALANCE') => void;
   disabled?: boolean;
 }
 
@@ -21,30 +21,30 @@ export function MobileBillModeToggle({
     <View style={styles.container}>
       <View style={styles.labelRow}>
         <FormLabel containerStyle={styles.formLabelWrap}>
-          {t('categories.billModeLabel')}
+          {t('categories.fundingModeLabel')}
         </FormLabel>
         <InfoTooltip
           content={
-            value === 'SCHEDULED_BILL'
-              ? t('categories.tooltips.scheduledBill')
-              : t('categories.tooltips.flexibleBill')
+            value === 'RECURRING'
+              ? t('categories.fundingModeRecurringDesc')
+              : t('categories.fundingModeTargetBalanceDesc')
           }
         />
       </View>
       <View style={styles.toggleRow}>
         <TouchableOpacity
           disabled={disabled}
-          onPress={() => onChange('SCHEDULED_BILL')}
+          onPress={() => onChange('RECURRING')}
           style={[
             styles.toggleBtn,
-            value === 'SCHEDULED_BILL' && styles.activeToggleBtn,
+            value === 'RECURRING' && styles.activeToggleBtn,
           ]}
         >
           <Feather
             name="calendar"
             size={14}
             color={
-              value === 'SCHEDULED_BILL'
+              value === 'RECURRING'
                 ? DESIGN_TOKENS.colors.sereneBlue
                 : DESIGN_TOKENS.colors.slate[600]
             }
@@ -52,25 +52,25 @@ export function MobileBillModeToggle({
           <Text
             style={[
               styles.btnText,
-              value === 'SCHEDULED_BILL' && styles.activeBtnText,
+              value === 'RECURRING' && styles.activeBtnText,
             ]}
           >
-            {t('categories.billModeScheduled')}
+            {t('categories.fundingModeRecurring')}
           </Text>
         </TouchableOpacity>
         <TouchableOpacity
           disabled={disabled}
-          onPress={() => onChange('FLEXIBLE_BILL')}
+          onPress={() => onChange('TARGET_BALANCE')}
           style={[
             styles.toggleBtn,
-            value === 'FLEXIBLE_BILL' && styles.activeToggleBtn,
+            value === 'TARGET_BALANCE' && styles.activeToggleBtn,
           ]}
         >
           <Feather
             name="sliders"
             size={14}
             color={
-              value === 'FLEXIBLE_BILL'
+              value === 'TARGET_BALANCE'
                 ? DESIGN_TOKENS.colors.sereneBlue
                 : DESIGN_TOKENS.colors.slate[600]
             }
@@ -78,10 +78,10 @@ export function MobileBillModeToggle({
           <Text
             style={[
               styles.btnText,
-              value === 'FLEXIBLE_BILL' && styles.activeBtnText,
+              value === 'TARGET_BALANCE' && styles.activeBtnText,
             ]}
           >
-            {t('categories.billModeFlexible')}
+            {t('categories.fundingModeTargetBalance')}
           </Text>
         </TouchableOpacity>
       </View>

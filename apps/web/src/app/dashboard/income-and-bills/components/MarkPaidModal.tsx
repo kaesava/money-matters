@@ -9,7 +9,7 @@ import { MarkPaidShortfallSection } from "./MarkPaidShortfallSection";
 export interface CategoryOption {
   id: string;
   name: string;
-  poolType?: "EVERYDAY" | "REGULAR" | "GOAL" | string;
+  poolType?: "EVERYDAY" | "BILL" | "GOAL" | string;
   currentBalance: number | string;
   isSurplusTarget?: boolean;
 }

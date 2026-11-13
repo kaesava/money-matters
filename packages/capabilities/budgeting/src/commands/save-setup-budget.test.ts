@@ -99,9 +99,9 @@ describe("saveSetupBudgetHandler", () => {
           { name: "Bills Account", bankProvider: "Other", accountType: "SAVINGS", lastKnownBalance: "2500.00", unbudgetedBuffer: "0.00", isPrivate: false },
         ],
         envelopes: [
-          { name: "Everyday Spending", envelopeType: "EVERYDAY", monthlyAmount: "600.00", isSurplusTarget: false, isCommitted: false, isPrivate: false, orderIndex: 0 },
-          { name: "Electricity", envelopeType: "SCHEDULED_BILL", monthlyAmount: "150.00", enteredAmount: "150.00", budgetFrequency: "MONTHLY", isSurplusTarget: false, isCommitted: true, isPrivate: false, orderIndex: 1 },
-          { name: "Emergency Reserve", envelopeType: "ONGOING_GOAL", targetAmount: "10000.00", isSurplusTarget: true, isCommitted: true, isPrivate: false, orderIndex: 2 },
+          { name: "Everyday Spending", envelopeType: "EVERYDAY", monthlyAmount: "600.00", isSurplusTarget: false, isPriority: false, isPrivate: false, orderIndex: 0 },
+          { name: "Electricity", envelopeType: "BILL", fundingMode: "RECURRING", monthlyAmount: "150.00", enteredAmount: "150.00", budgetFrequency: "MONTHLY", isSurplusTarget: false, isPriority: true, isPrivate: false, orderIndex: 1 },
+          { name: "Emergency Reserve", envelopeType: "GOAL", fundingMode: "RECURRING", targetAmount: "10000.00", isSurplusTarget: true, isPriority: true, isPrivate: false, orderIndex: 2 },
         ],
         archivedEnvelopeIds: [],
       },
@@ -125,7 +125,7 @@ describe("saveSetupBudgetHandler", () => {
     const existingEnvId = "00000000-0000-0000-0000-000000000010";
 
     const mockDb = createMockDb({
-      envelopes: [{ id: existingEnvId, name: "Electricity", envelopeType: "SCHEDULED_BILL", monthlyAmount: "150.00" }],
+      envelopes: [{ id: existingEnvId, name: "Electricity", envelopeType: "BILL", fundingMode: "RECURRING", monthlyAmount: "150.00" }],
       expenseSources: [{ id: "evt-1", envelopeId: existingEnvId, status: "PENDING" }],
     });
     const handler = saveSetupBudgetHandler(mockDb);
@@ -135,8 +135,8 @@ describe("saveSetupBudgetHandler", () => {
         incomes: [{ name: "Salary", type: "SALARY", amount: "3200.00", frequency: "FORTNIGHTLY", incomeType: "SALARIED" }],
         bankAccounts: [{ name: "Main", bankProvider: "CBA", lastKnownBalance: "1000.00", unbudgetedBuffer: "0.00", isPrivate: false }],
         envelopes: [
-          { id: existingEnvId, name: "Electricity", envelopeType: "SCHEDULED_BILL", monthlyAmount: "180.00", enteredAmount: "180.00", budgetFrequency: "MONTHLY", isSurplusTarget: false, isCommitted: false, isPrivate: false, orderIndex: 0 },
-          { name: "Gas", envelopeType: "SCHEDULED_BILL", monthlyAmount: "60.00", enteredAmount: "60.00", budgetFrequency: "MONTHLY", isSurplusTarget: false, isCommitted: false, isPrivate: false, orderIndex: 1 },
+          { id: existingEnvId, name: "Electricity", envelopeType: "BILL", fundingMode: "RECURRING", monthlyAmount: "180.00", enteredAmount: "180.00", budgetFrequency: "MONTHLY", isSurplusTarget: false, isPriority: false, isPrivate: false, orderIndex: 0 },
+          { name: "Gas", envelopeType: "BILL", fundingMode: "RECURRING", monthlyAmount: "60.00", enteredAmount: "60.00", budgetFrequency: "MONTHLY", isSurplusTarget: false, isPriority: false, isPrivate: false, orderIndex: 1 },
         ],
         archivedEnvelopeIds: [],
       },
@@ -162,7 +162,7 @@ describe("saveSetupBudgetHandler", () => {
         {
           incomes: [{ name: "Salary", type: "SALARY", amount: "3000.00", frequency: "MONTHLY", incomeType: "SALARIED" }],
           bankAccounts: [{ name: "Account", bankProvider: "CBA", lastKnownBalance: "500.00", unbudgetedBuffer: "0.00", isPrivate: false }],
-          envelopes: [{ id: "env-everyday", name: "Everyday Spending", envelopeType: "EVERYDAY", isSurplusTarget: false, isCommitted: false, isPrivate: false, orderIndex: 0 }],
+          envelopes: [{ id: "env-everyday", name: "Everyday Spending", envelopeType: "EVERYDAY", isSurplusTarget: false, isPriority: false, isPrivate: false, orderIndex: 0 }],
           archivedEnvelopeIds: ["env-everyday"],
         },
         appId,
@@ -176,8 +176,8 @@ describe("saveSetupBudgetHandler", () => {
     const mockDb = createMockDb({
       envelopes: [
         { id: "env-everyday", name: "Everyday Spending", envelopeType: "EVERYDAY" },
-        { id: "env-emergency", name: "Emergency Reserve", envelopeType: "ONGOING_GOAL", isSurplusTarget: true },
-        { id: "env-holiday", name: "Holiday Fund", envelopeType: "TARGET_GOAL" },
+        { id: "env-emergency", name: "Emergency Reserve", envelopeType: "GOAL", fundingMode: "RECURRING", isSurplusTarget: true },
+        { id: "env-holiday", name: "Holiday Fund", envelopeType: "GOAL", fundingMode: "TARGET_BALANCE" },
       ],
     });
     const handler = saveSetupBudgetHandler(mockDb);
@@ -187,8 +187,8 @@ describe("saveSetupBudgetHandler", () => {
         incomes: [{ name: "Salary", type: "SALARY", amount: "3000.00", frequency: "MONTHLY", incomeType: "SALARIED" }],
         bankAccounts: [{ name: "Account", bankProvider: "CBA", lastKnownBalance: "500.00", unbudgetedBuffer: "0.00", isPrivate: false }],
         envelopes: [
-          { id: "env-everyday", name: "Everyday Spending", envelopeType: "EVERYDAY", isSurplusTarget: false, isCommitted: false, isPrivate: false, orderIndex: 0 },
-          { id: "env-emergency", name: "Emergency Reserve", envelopeType: "ONGOING_GOAL", isSurplusTarget: true, isCommitted: true, isPrivate: false, orderIndex: 1 },
+          { id: "env-everyday", name: "Everyday Spending", envelopeType: "EVERYDAY", isSurplusTarget: false, isPriority: false, isPrivate: false, orderIndex: 0 },
+          { id: "env-emergency", name: "Emergency Reserve", envelopeType: "GOAL", fundingMode: "RECURRING", isSurplusTarget: true, isPriority: true, isPrivate: false, orderIndex: 1 },
         ],
         archivedEnvelopeIds: ["env-holiday"],
       },
@@ -216,9 +216,9 @@ describe("saveSetupBudgetHandler", () => {
       ],
       envelopes: [
         { id: "env-seed-everyday", name: "Everyday Spending", envelopeType: "EVERYDAY", bankAccountId: "acc-seeded" },
-        { id: "env-seed-rent", name: "Rent & Housing", envelopeType: "SCHEDULED_BILL", bankAccountId: "acc-seeded" },
-        { id: "env-seed-utils", name: "Electricity & Utilities", envelopeType: "SCHEDULED_BILL", bankAccountId: "acc-seeded" },
-        { id: "env-seed-emergency", name: "Emergency Reserve", envelopeType: "ONGOING_GOAL", bankAccountId: "acc-seeded" },
+        { id: "env-seed-rent", name: "Rent & Housing", envelopeType: "BILL", fundingMode: "RECURRING", bankAccountId: "acc-seeded" },
+        { id: "env-seed-utils", name: "Electricity & Utilities", envelopeType: "BILL", fundingMode: "RECURRING", bankAccountId: "acc-seeded" },
+        { id: "env-seed-emergency", name: "Emergency Reserve", envelopeType: "GOAL", fundingMode: "RECURRING", bankAccountId: "acc-seeded" },
       ],
     });
     const handler = saveSetupBudgetHandler(mockDb);
@@ -232,12 +232,12 @@ describe("saveSetupBudgetHandler", () => {
         ],
         envelopes: [
           // Client sends no IDs on pre-seeded envelopes
-          { name: "Everyday Spending", envelopeType: "EVERYDAY", monthlyAmount: "1200.00", isSurplusTarget: false, isCommitted: false, isPrivate: false, orderIndex: 0 },
-          { name: "Rent & Housing", envelopeType: "SCHEDULED_BILL", monthlyAmount: "2400.00", enteredAmount: "2400.00", budgetFrequency: "MONTHLY", isSurplusTarget: false, isCommitted: true, isEssential: true, isPrivate: false, orderIndex: 1 },
-          { name: "Electricity & Utilities", envelopeType: "SCHEDULED_BILL", monthlyAmount: "350.00", enteredAmount: "350.00", budgetFrequency: "MONTHLY", isSurplusTarget: false, isCommitted: true, isEssential: true, isPrivate: false, orderIndex: 2 },
-          { name: "Emergency Reserve", envelopeType: "ONGOING_GOAL", targetAmount: "10000.00", enteredAmount: "300.00", monthlyAmount: "300.00", budgetFrequency: "MONTHLY", isSurplusTarget: true, isCommitted: true, isPrivate: false, orderIndex: 3 },
+          { name: "Everyday Spending", envelopeType: "EVERYDAY", monthlyAmount: "1200.00", isSurplusTarget: false, isPriority: false, isPrivate: false, orderIndex: 0 },
+          { name: "Rent & Housing", envelopeType: "BILL", fundingMode: "RECURRING", monthlyAmount: "2400.00", enteredAmount: "2400.00", budgetFrequency: "MONTHLY", isSurplusTarget: false, isPriority: true, isPrivate: false, orderIndex: 1 },
+          { name: "Electricity & Utilities", envelopeType: "BILL", fundingMode: "RECURRING", monthlyAmount: "350.00", enteredAmount: "350.00", budgetFrequency: "MONTHLY", isSurplusTarget: false, isPriority: true, isPrivate: false, orderIndex: 2 },
+          { name: "Emergency Reserve", envelopeType: "GOAL", fundingMode: "RECURRING", targetAmount: "10000.00", enteredAmount: "300.00", monthlyAmount: "300.00", budgetFrequency: "MONTHLY", isSurplusTarget: true, isPriority: true, isPrivate: false, orderIndex: 3 },
           // Plus 1 brand new goal
-          { name: "Family Vacation", envelopeType: "TARGET_GOAL", targetAmount: "4000.00", monthlyAmount: "333.33", isSurplusTarget: false, isCommitted: true, isPrivate: false, orderIndex: 4 },
+          { name: "Family Vacation", envelopeType: "GOAL", fundingMode: "TARGET_BALANCE", targetAmount: "4000.00", monthlyAmount: "333.33", isSurplusTarget: false, isPriority: true, isPrivate: false, orderIndex: 4 },
         ],
       },
       appId,

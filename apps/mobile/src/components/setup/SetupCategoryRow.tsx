@@ -3,13 +3,14 @@ import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { EstimatedCategoryItem } from '@money-matters/types';
 import { DESIGN_TOKENS, AmountInput } from '@money-matters/ui/mobile';
 import { t } from '@money-matters/i18n';
+import { formatMobileCurrency } from '../../lib/format';
 
 interface SetupCategoryRowProps {
   cat: EstimatedCategoryItem;
   freq: 'WEEKLY' | 'FORTNIGHTLY' | 'MONTHLY' | 'QUARTERLY' | 'YEARLY';
   onUpdateAmount: (monthlyAmount: number) => void;
   onUpdateFreq: (freq: 'WEEKLY' | 'FORTNIGHTLY' | 'MONTHLY' | 'QUARTERLY' | 'YEARLY') => void;
-  onToggleBillType?: (newType: 'SCHEDULED_BILL' | 'FLEXIBLE_BILL') => void;
+  onToggleBillType?: (newType: 'RECURRING' | 'TARGET_BALANCE') => void;
   onEditCategory?: () => void;
   onRemove: () => void;
   isRerun?: boolean;
@@ -52,8 +53,8 @@ export function SetupCategoryRow({
   };
 
   const displayVal = convertFromMonthly(cat.monthlyAud, freq);
-  const isBill = cat.type === 'REGULAR' || cat.type === 'BILL';
-  const isFlexible = cat.envelopeType === 'FLEXIBLE_BILL';
+  const isBill = cat.type === 'BILL';
+  const isFlexible = cat.fundingMode === 'TARGET_BALANCE';
   const isSpecial =
     cat.envelopeType === 'EVERYDAY' ||
     cat.type === 'EVERYDAY' ||
@@ -68,11 +69,11 @@ export function SetupCategoryRow({
           <Text style={styles.name} numberOfLines={1}>{cat.icon || '📌'} {cat.name}</Text>
           {isBill && onToggleBillType && (
             <TouchableOpacity
-              onPress={() => onToggleBillType(isFlexible ? 'SCHEDULED_BILL' : 'FLEXIBLE_BILL')}
+              onPress={() => onToggleBillType(isFlexible ? 'RECURRING' : 'TARGET_BALANCE')}
               style={[styles.typeBadge, isFlexible ? styles.flexibleBadge : styles.scheduledBadge]}
             >
               <Text style={isFlexible ? styles.flexibleBadgeText : styles.scheduledBadgeText}>
-                {isFlexible ? 'Flexible' : 'Scheduled'}
+                {isFlexible ? t('categories.flexibleBillBadge') : t('categories.scheduledBillBadge')}
               </Text>
             </TouchableOpacity>
           )}
@@ -82,7 +83,7 @@ export function SetupCategoryRow({
         {isRerun ? (
           <View style={styles.rerunInfoRow}>
             <Text style={styles.rerunAmountText}>
-              ${displayVal} {FREQS.find(f => f.key === freq)?.label}
+              {formatMobileCurrency(displayVal)} {FREQS.find(f => f.key === freq)?.label}
             </Text>
             {onEditCategory && (
               <TouchableOpacity onPress={onEditCategory} style={styles.editBtn}>

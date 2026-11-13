@@ -12,17 +12,9 @@ export const EnvelopeTypeSchema = z.enum([
   "EVERYDAY",
   "BILL",
   "GOAL",
-  "SCHEDULED_BILL",
-  "FLEXIBLE_BILL",
-  "TARGET_GOAL",
-  "ONGOING_GOAL",
 ]);
 export type EnvelopeType = z.infer<typeof EnvelopeTypeSchema>;
 export const EnvelopeTypeEnum = EnvelopeTypeSchema;
-
-export const GoalModeSchema = z.enum(["TARGET_DATE", "ONGOING"]);
-export type GoalMode = z.infer<typeof GoalModeSchema>;
-export const GoalModeEnum = GoalModeSchema;
 
 /**
  * Schema defining flat Envelopes directly linked to Bank Accounts.
@@ -40,11 +32,8 @@ export const EnvelopeSchema = BaseSchema.extend({
   startDate: z.string().nullable().optional(),
   endDate: z.string().nullable().optional(),
   rrule: z.string().nullable().optional(),
-  goalMode: GoalModeSchema.default("TARGET_DATE").optional(),
   targetAmount: z.string().nullable().optional(),
   isPriority: z.boolean().default(false),
-  isEssential: z.boolean().default(false),
-  isCommitted: z.boolean().default(false),
   isSurplusTarget: z.boolean().default(false),
   isPrivate: z.boolean().default(false),
   userId: z.string().uuid().nullable().optional(),
@@ -68,11 +57,8 @@ export const EnvelopeListItemDtoSchema = z.object({
   startDate: z.string().nullable(),
   endDate: z.string().nullable(),
   rrule: z.string().nullable(),
-  goalMode: GoalModeSchema.nullable().optional(),
   targetAmount: z.string().nullable(),
-  isPriority: z.boolean().optional(),
-  isEssential: z.boolean(),
-  isCommitted: z.boolean(),
+  isPriority: z.boolean().default(false),
   isSurplusTarget: z.boolean(),
   isPrivate: z.boolean(),
   userId: z.string().nullable(),
