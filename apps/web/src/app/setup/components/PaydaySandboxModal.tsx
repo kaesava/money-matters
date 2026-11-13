@@ -1,39 +1,67 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { Sparkles, ShieldCheck, Target, Wallet } from "lucide-react";
 import { ModalDialog, AmountField, Button } from "@money-matters/ui/web";
+import {
+  EstimatedCategoryItem,
+  IncomeItem,
+  UserGoalItem,
+  simulateSetupPaydaySandbox,
+} from "@money-matters/types";
 import { t } from "@money-matters/i18n";
-
 import { useLocale } from "../../../providers/LocaleProvider";
+import { BankAccountRowItem } from "./SetupBankAccountRow";
 
 interface PaydaySandboxModalProps {
   isOpen: boolean;
   onClose: () => void;
   onFinish?: () => void;
-  estimatedBills: number;
-  estimatedGoals: number;
-  defaultPaycheck: number;
+  incomes: IncomeItem[];
+  bankAccounts: BankAccountRowItem[];
+  activeEveryday: EstimatedCategoryItem[];
+  activeRegular: EstimatedCategoryItem[];
+  activeGoals: EstimatedCategoryItem[];
+  goals: UserGoalItem[];
 }
 
 export function PaydaySandboxModal({
   isOpen,
   onClose,
-  onFinish: _onFinish,
-  estimatedBills,
-  estimatedGoals,
-  defaultPaycheck,
+  incomes,
+  bankAccounts,
+  activeEveryday,
+  activeRegular,
+  activeGoals,
+  goals,
 }: PaydaySandboxModalProps) {
   const { fmt } = useLocale();
-  const [paycheckStr, setPaycheckStr] = useState(String(defaultPaycheck > 0 ? defaultPaycheck : 2500));
+  const defaultPaycheck = incomes[0]?.amount ?? 0;
+  const [paycheckStr, setPaycheckStr] = useState(String(defaultPaycheck));
   const [isSimulated, setIsSimulated] = useState(false);
 
-  const parsedPaycheck = parseFloat(paycheckStr) || 0;
-  const billsAllocated = Math.min(parsedPaycheck, estimatedBills > 0 ? estimatedBills : 850);
-  const goalsAllocated = Math.min(Math.max(0, parsedPaycheck - billsAllocated), estimatedGoals > 0 ? estimatedGoals : 400);
-  const safeToSpend = Math.max(0, parsedPaycheck - billsAllocated - goalsAllocated);
+  useEffect(() => {
+    if (isOpen) {
+      setPaycheckStr(String(incomes[0]?.amount ?? 0));
+      setIsSimulated(false);
+    }
+  }, [isOpen, incomes]);
 
-  const formatCurrency = (val: number) => fmt(val);
+  const parsedPaycheck = parseFloat(paycheckStr) || 0;
+
+  const simResult = useMemo(
+    () =>
+      simulateSetupPaydaySandbox({
+        paycheckAmount: parsedPaycheck,
+        incomes,
+        bankAccounts,
+        activeEveryday,
+        activeRegular,
+        activeGoals,
+        goals,
+      }),
+    [parsedPaycheck, incomes, bankAccounts, activeEveryday, activeRegular, activeGoals, goals]
+  );
 
   return (
     <ModalDialog
@@ -85,7 +113,7 @@ export function PaydaySandboxModal({
                   <span>{t("paydayDrawer.ringFencedBills")}</span>
                 </div>
                 <div className="font-mono text-base font-black text-blue-900 dark:text-blue-100">
-                  {formatCurrency(billsAllocated)}
+                  {fmt(simResult.billsAllocated)}
                 </div>
               </div>
 
@@ -95,7 +123,7 @@ export function PaydaySandboxModal({
                   <span>{t("paydayDrawer.fundedGoals")}</span>
                 </div>
                 <div className="font-mono text-base font-black text-indigo-900 dark:text-indigo-100">
-                  {formatCurrency(goalsAllocated)}
+                  {fmt(simResult.goalsAllocated)}
                 </div>
               </div>
 
@@ -105,7 +133,7 @@ export function PaydaySandboxModal({
                   <span>{t("paydayDrawer.safeToSpend")}</span>
                 </div>
                 <div className="font-mono text-base font-black text-emerald-900 dark:text-emerald-100">
-                  {formatCurrency(safeToSpend)}
+                  {fmt(simResult.safeToSpend)}
                 </div>
               </div>
             </div>

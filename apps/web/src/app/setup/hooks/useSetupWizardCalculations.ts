@@ -5,22 +5,13 @@ import {
   QuizAnswers,
   calculateQuizEstimates,
   EstimatedCategoryItem,
+  UserGoalItem,
 } from "@money-matters/types";
 
 interface CalculationsProps {
   quizAnswers: QuizAnswers;
   isRerun: boolean;
-  goals?: Array<{
-    id: string;
-    name: string;
-    monthlyAmount: number;
-    icon?: string;
-    targetAmount?: number | null;
-    dueDate?: string | null;
-    fundingMode?: "TARGET_BALANCE" | "RECURRING";
-    enteredAmount?: number | null;
-    budgetFrequency?: "WEEKLY" | "FORTNIGHTLY" | "MONTHLY" | "QUARTERLY" | "ANNUALLY";
-  }>;
+  goals?: UserGoalItem[];
   customCategories: EstimatedCategoryItem[];
   removedCategoryNames: Set<string>;
   amountOverrides: Record<string, number>;
@@ -57,6 +48,7 @@ export function useSetupWizardCalculations({
           const rawAmt = g.enteredAmount !== undefined && g.enteredAmount !== null ? g.enteredAmount : (g.monthlyAmount || g.targetAmount || 0);
           if (g.budgetFrequency === "WEEKLY") baseMonthly = Math.round((rawAmt * 52) / 12);
           else if (g.budgetFrequency === "FORTNIGHTLY") baseMonthly = Math.round((rawAmt * 26) / 12);
+          else if (g.budgetFrequency === "QUARTERLY") baseMonthly = Math.round((rawAmt * 4) / 12);
           else if (g.budgetFrequency === "ANNUALLY") baseMonthly = Math.round(rawAmt / 12);
           else baseMonthly = Math.round(rawAmt);
         } else {
@@ -68,6 +60,17 @@ export function useSetupWizardCalculations({
           type: "GOAL" as const,
           envelopeType: "GOAL" as const,
           fundingMode: isOngoing ? ("RECURRING" as const) : ("TARGET_BALANCE" as const),
+          isPriority: g.isPriority ?? true,
+          isSurplusTarget: g.isSurplusTarget,
+          isPrivate: g.isPrivate,
+          bankAccountId: g.bankAccountId,
+          targetAmount: g.targetAmount,
+          enteredAmount: g.enteredAmount,
+          budgetFrequency: g.budgetFrequency,
+          startDate: g.startDate,
+          endDate: g.dueDate,
+          rrule: g.rrule,
+          currentBalance: g.currentBalance,
           monthlyAud: override !== undefined ? override : baseMonthly,
           icon: g.icon || "target",
         };
@@ -75,12 +78,15 @@ export function useSetupWizardCalculations({
   }, [goals, removedCategoryNames, amountOverrides]);
 
   const activeCategories = useMemo(() => {
+    const customNonGoals = customCategories.filter((c) => c.type !== "GOAL");
+    const customNamesLower = new Set(customNonGoals.map((c) => c.name.trim().toLowerCase()));
+
     const nonGoalCategories = isRerun
-      ? customCategories.filter((c) => c.type !== "GOAL")
+      ? customNonGoals
       : [
-          ...estimation.regularBills,
-          ...estimation.everydayCategories,
-          ...customCategories.filter((c) => c.type !== "GOAL"),
+          ...estimation.regularBills.filter((b) => !customNamesLower.has(b.name.trim().toLowerCase())),
+          ...estimation.everydayCategories.filter((e) => !customNamesLower.has(e.name.trim().toLowerCase())),
+          ...customNonGoals,
         ];
 
     const mappedNonGoals = nonGoalCategories

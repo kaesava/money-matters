@@ -13,6 +13,7 @@ import {
   computeAccountAvailability,
 } from '@money-matters/types';
 import { MobileBankAccountItem } from '../../context/setup-wizard-types';
+import { formatMobileCurrency } from '../../lib/format';
 
 interface SetupBankAccountCardProps {
   acc: MobileBankAccountItem;
@@ -110,7 +111,7 @@ export function SetupBankAccountCard({
         <TextInput
           value={acc.name}
           onChangeText={(val) => onFieldChange(acc, 'name', val)}
-          placeholder="e.g. ANZ Bank (Savings)"
+          placeholder={t('setup.bankAccountsStep.accountNamePlaceholder')}
           style={styles.textInput}
         />
       </View>
@@ -153,7 +154,7 @@ export function SetupBankAccountCard({
         <View style={styles.availableBox}>
           <Text style={styles.availableLabel}>{t('bankAccounts.availableLabel')}:</Text>
           <Text style={[styles.availableAmount, isBufferInvalid && styles.textError]}>
-            ${available.toFixed(2)}
+            {formatMobileCurrency(available)}
           </Text>
         </View>
 

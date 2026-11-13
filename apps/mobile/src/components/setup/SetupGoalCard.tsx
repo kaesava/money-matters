@@ -2,16 +2,14 @@ import React from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { UserGoalItem } from '@money-matters/types';
-import { DESIGN_TOKENS, AmountInput, MobileDatePickerField } from '@money-matters/ui/mobile';
+import { DESIGN_TOKENS, AmountInput, MobileDatePickerField, InfoTooltip } from '@money-matters/ui/mobile';
 import { t } from '@money-matters/i18n';
+import { getMobileLocaleConfig } from '../../lib/format';
 
 interface SetupGoalCardProps {
   goal: UserGoalItem;
-  isRerun?: boolean;
-  isDirty?: boolean;
   onUpdate: (id: string, field: keyof UserGoalItem, value: string | number) => void;
-  onRemove: (id: string) => void;
-  onSave?: (id: string) => Promise<void>;
+  onRemove: () => void;
 }
 
 function getMonthsDiff(targetDateStr: string): number {
@@ -59,6 +57,10 @@ export function SetupGoalCard({
   const months = isOngoing ? 1 : getMonthsDiff(goal.dueDate || '');
   const rawAmt = goal.enteredAmount !== undefined && goal.enteredAmount !== null ? goal.enteredAmount : (goal.monthlyAmount || 0);
   const freq = goal.budgetFrequency || 'MONTHLY';
+  const isSurplusTarget = Boolean(goal.isSurplusTarget);
+  const tz = getMobileLocaleConfig().timezone;
+  const todayStr = new Intl.DateTimeFormat('en-CA', { timeZone: tz }).format(new Date());
+  const isPast = Boolean(!isOngoing && goal.dueDate && goal.dueDate < todayStr);
 
   const handleFrequencyChange = (newFreq: 'WEEKLY' | 'FORTNIGHTLY' | 'MONTHLY' | 'QUARTERLY' | 'ANNUALLY') => {
     onUpdate(goal.id, 'budgetFrequency', newFreq);
@@ -80,19 +82,31 @@ export function SetupGoalCard({
       <View style={styles.header}>
         <View style={styles.titleRow}>
           <View style={styles.iconBox}>{renderGoalIcon(goal.icon)}</View>
-          <TextInput
-            style={styles.nameInput}
-            value={goal.name}
-            onChangeText={(txt) => onUpdate(goal.id, 'name', txt)}
-          />
+          <View style={{ flex: 1 }}>
+            <TextInput
+              style={styles.nameInput}
+              value={goal.name}
+              onChangeText={(txt) => onUpdate(goal.id, 'name', txt)}
+            />
+            {isSurplusTarget && (
+              <Text style={styles.surplusBadgeText}>{t('setup.reviewSummary.surplusTargetHelp')}</Text>
+            )}
+            {isPast && (
+              <Text style={styles.pastDateText}>{t('categories.goalPastDateWarning')}</Text>
+            )}
+          </View>
         </View>
-        <TouchableOpacity
-          onPress={() => onRemove(goal.id)}
-          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-          style={styles.removeBtnTouch}
-        >
-          <Feather name="x" size={16} color={DESIGN_TOKENS.colors.critical} />
-        </TouchableOpacity>
+        {isSurplusTarget ? (
+          <InfoTooltip content={t('categories.cannotDeleteSpecialEnvelope')} />
+        ) : (
+          <TouchableOpacity
+            onPress={onRemove}
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            style={styles.removeBtnTouch}
+          >
+            <Feather name="x" size={16} color={DESIGN_TOKENS.colors.critical} />
+          </TouchableOpacity>
+        )}
       </View>
 
       <View style={styles.inputsRow}>
@@ -118,6 +132,8 @@ export function SetupGoalCard({
                   ? Math.round((num * 52) / 12)
                   : currentFreq === 'FORTNIGHTLY'
                   ? Math.round((num * 26) / 12)
+                  : currentFreq === 'QUARTERLY'
+                  ? Math.round((num * 4) / 12)
                   : currentFreq === 'ANNUALLY'
                   ? Math.round(num / 12)
                   : Math.round(num);
@@ -137,7 +153,11 @@ export function SetupGoalCard({
             <MobileDatePickerField
               compact
               value={goal.dueDate || ''}
-              onChange={(d) => onUpdate(goal.id, 'dueDate', d)}
+              onChange={(d) => {
+                onUpdate(goal.id, 'dueDate', d);
+                const m = getMonthsDiff(d);
+                onUpdate(goal.id, 'monthlyAmount', Math.round((goal.targetAmount || 0) / m));
+              }}
             />
           </View>
         ) : (
@@ -197,7 +217,18 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '700',
     color: DESIGN_TOKENS.colors.primary,
-    flex: 1,
+  },
+  surplusBadgeText: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: DESIGN_TOKENS.colors.successDark,
+    marginTop: 2,
+  },
+  pastDateText: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: DESIGN_TOKENS.colors.warning,
+    marginTop: 2,
   },
   removeBtnTouch: {
     padding: 4,

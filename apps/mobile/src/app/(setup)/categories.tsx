@@ -4,11 +4,13 @@ import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { t } from '@money-matters/i18n';
 import { DESIGN_TOKENS, InfoTooltip, useMobileToast, showMobileConfirm } from '@money-matters/ui/mobile';
+import { EstimatedCategoryItem } from '@money-matters/types';
 import { formatMobileCurrency } from '../../lib/format';
 import { useSetupWizard } from '../../context/SetupWizardContext';
+import { SetupProgressBar } from '../../components/setup/SetupProgressBar';
 import { SetupCategoryRow } from '../../components/setup/SetupCategoryRow';
 import { SetupCategoriesGoalsList } from '../../components/setup/SetupCategoriesGoalsList';
-import { SetupBalanceSweepModal } from '../../components/setup/SetupBalanceSweepModal';
+import { MobilePaydaySandboxModal } from '../../components/setup/MobilePaydaySandboxModal';
 import { EnvelopeFormModal, EnvelopeDraftPayload, EnvelopeItem } from '../../components/EnvelopeFormModal';
 import { useSetupCategoriesSubmission } from '../../context/useSetupCategoriesSubmission';
 
@@ -17,11 +19,15 @@ export default function SetupCategoriesScreen() {
   const router = useRouter();
   const toast = useMobileToast();
   const [showAddEnvelopeModal, setShowAddEnvelopeModal] = useState(false);
+  const [showSandboxModal, setShowSandboxModal] = useState(false);
   const [envelopeToEditDraft, setEnvelopeToEditDraft] = useState<EnvelopeItem | null>(null);
   const {
     isRerun,
+    totalSteps,
+    incomes,
     goals,
     setGoals,
+    handleRemoveGoal,
     activeEveryday,
     activeRegular,
     activeGoals,
@@ -37,39 +43,200 @@ export default function SetupCategoriesScreen() {
     totalRegularMonthly,
     totalGoalMonthly,
     estimation,
-    activeSweepPool,
-    setActiveSweepPool,
-    availablePools,
-    selectedSweepDest,
-    setSelectedSweepDest,
-    confirmSweepAndRemove,
+    convertFromMonthly,
   } = useSetupWizard();
 
   const { isSubmitting, handleFinish } = useSetupCategoriesSubmission();
-
   const netSurplus = estimation.totalMonthlyIncomeAud - totalAllocatedMonthly;
 
   const [everydayOpen, setEverydayOpen] = useState(false);
   const [billsOpen, setBillsOpen] = useState(false);
   const [goalsOpen, setGoalsOpen] = useState(false);
 
+  const executeRemoveCategory = (name: string) => {
+    setRemovedCategoryNames((prev) => new Set(prev).add(name));
+    const matchedGoal = goals.find((g) => g.name.trim().toLowerCase() === name.trim().toLowerCase());
+    if (matchedGoal) {
+      handleRemoveGoal(matchedGoal.id);
+    }
+  };
+
   const handleAttemptRemoveCategory = (name: string) => {
-    const lower = name.trim().toLowerCase();
-    if (lower.includes('emergency') || lower.includes('surplus') || lower.includes('reserve')) {
-      toast.error(t('setup.surplusTargetDeleteWarning'), t('setup.protectedPoolTitle'));
+    const allItems = [...activeEveryday, ...activeRegular, ...activeGoals];
+    const matchedCat = allItems.find((c) => c.name.trim().toLowerCase() === name.trim().toLowerCase());
+    const matchedGoal = goals.find((g) => g.name.trim().toLowerCase() === name.trim().toLowerCase());
+    if (matchedCat?.isSurplusTarget || matchedGoal?.isSurplusTarget) {
+      toast.error(t('setup.surplusTargetDeleteWarning', { name }), t('setup.protectedPoolTitle'));
       return;
     }
-    if (isRerun) {
+    const isExistingDbItem = Boolean(
+      (matchedCat?.id && !matchedCat.id.startsWith('temp-')) ||
+        (matchedGoal?.id && !matchedGoal.id.startsWith('g-'))
+    );
+    if (isRerun && isExistingDbItem) {
       showMobileConfirm({
-        title: t('categories.confirmArchiveTitle'),
-        message: t('categories.confirmArchiveDescription'),
-        confirmText: t('common.archive'),
+        title: t('setup.confirmArchiveEnvelopeTitle'),
+        message: t('setup.confirmArchiveEnvelopeDesc', { name }),
+        confirmText: t('common.remove'),
         isDestructive: true,
-        onConfirm: () => setRemovedCategoryNames((prev) => new Set(prev).add(name)),
+        onConfirm: () => executeRemoveCategory(name),
       });
       return;
     }
-    setRemovedCategoryNames((prev) => new Set(prev).add(name));
+    executeRemoveCategory(name);
+  };
+
+  const handleOpenEditCategory = (cat: EstimatedCategoryItem) => {
+    const rawFreq =
+      categoryFrequencies[cat.name] ||
+      (cat.budgetFrequency === 'ANNUALLY' ? 'YEARLY' : cat.budgetFrequency) ||
+      'MONTHLY';
+    const displayAmt =
+      cat.type === 'GOAL'
+        ? cat.enteredAmount ?? cat.targetAmount ?? cat.monthlyAud
+        : convertFromMonthly(
+            cat.monthlyAud,
+            rawFreq as 'WEEKLY' | 'FORTNIGHTLY' | 'MONTHLY' | 'QUARTERLY' | 'YEARLY'
+          );
+    const budgetFreq = rawFreq === 'YEARLY' ? 'ANNUALLY' : rawFreq;
+    setEnvelopeToEditDraft({
+      id: cat.id || `temp-${cat.name}`,
+      name: cat.name,
+      type: cat.type,
+      envelopeType: cat.envelopeType || (cat.type === 'EVERYDAY' ? 'EVERYDAY' : cat.type === 'GOAL' ? 'GOAL' : 'BILL'),
+      fundingMode: cat.fundingMode || (cat.type === 'EVERYDAY' || cat.type === 'GOAL' ? 'TARGET_BALANCE' : 'RECURRING'),
+      isPriority: cat.isPriority ?? true,
+      isSurplusTarget: cat.isSurplusTarget ?? false,
+      bankAccountId: cat.bankAccountId || bankAccounts[0]?.id,
+      safetyBufferFloor: cat.safetyBufferFloor !== undefined ? String(cat.safetyBufferFloor) : '0.00',
+      monthlyAmount: String(cat.monthlyAud || '0'),
+      enteredAmount: String(displayAmt || '0'),
+      targetAmount: String(cat.targetAmount ?? displayAmt ?? '0'),
+      budgetFrequency: budgetFreq,
+      startDate: cat.startDate,
+      endDate: cat.endDate,
+      rrule: cat.rrule,
+      hasScheduledEvents: cat.generateEvents ?? true,
+    });
+    setShowAddEnvelopeModal(true);
+  };
+
+  const handleSaveEnvelopeDraft = (draft: EnvelopeDraftPayload) => {
+    const oldName = envelopeToEditDraft?.name;
+    if (oldName && oldName.trim().toLowerCase() !== draft.name.trim().toLowerCase()) {
+      setRemovedCategoryNames((prev) => new Set(prev).add(oldName));
+    }
+    if (draft.isSurplusTarget) {
+      setGoals((prev) => prev.map((g) => ({ ...g, isSurplusTarget: false })));
+      setCustomCategories((prev) => prev.map((c) => ({ ...c, isSurplusTarget: false })));
+    }
+    const num = parseFloat(draft.monthlyAmount || draft.targetAmount || '0') || 0;
+    if (draft.type === 'GOAL') {
+      const id = envelopeToEditDraft?.id && !envelopeToEditDraft.id.startsWith('temp-') ? envelopeToEditDraft.id : `g-${Date.now()}`;
+      const targetVal = parseFloat(draft.targetAmount || draft.enteredAmount || String(num)) || 0;
+      const enteredVal = parseFloat(draft.enteredAmount || draft.targetAmount || String(num)) || 0;
+      let goalMonthly = num;
+      if (draft.fundingMode === 'TARGET_BALANCE' && !draft.monthlyAmount) {
+        const now = new Date();
+        const target = draft.endDate ? new Date(draft.endDate) : new Date(now.getFullYear() + 1, now.getMonth(), now.getDate());
+        const months = Math.max(1, (target.getFullYear() - now.getFullYear()) * 12 + (target.getMonth() - now.getMonth()));
+        goalMonthly = Math.round(targetVal / months);
+      }
+      setGoals((prev) => {
+        const existing = prev.filter(
+          (g) =>
+            g.id !== id &&
+            g.name.trim().toLowerCase() !== draft.name.trim().toLowerCase() &&
+            (!oldName || g.name.trim().toLowerCase() !== oldName.trim().toLowerCase())
+        );
+        return [
+          ...existing,
+          {
+            id,
+            name: draft.name,
+            targetAmount: targetVal,
+            enteredAmount: enteredVal,
+            dueDate: draft.fundingMode === 'RECURRING' ? null : draft.endDate || null,
+            fundingMode: draft.fundingMode || 'TARGET_BALANCE',
+            isPriority: draft.isPriority ?? true,
+            isSurplusTarget: draft.isSurplusTarget ?? false,
+            bankAccountId: draft.bankAccountId,
+            monthlyAmount: goalMonthly,
+            budgetFrequency: draft.budgetFrequency || 'MONTHLY',
+            startDate: draft.startDate,
+            rrule: draft.rrule,
+            icon: 'target',
+          },
+        ];
+      });
+      setRemovedCategoryNames((prev) => {
+        const next = new Set(prev);
+        next.delete(draft.name);
+        return next;
+      });
+    } else {
+      const existingId = envelopeToEditDraft?.id && !envelopeToEditDraft.id.startsWith('temp-') ? envelopeToEditDraft.id : undefined;
+      const updatedMonthly = draft.type === 'EVERYDAY' ? (parseFloat(envelopeToEditDraft?.monthlyAmount || '0') || num) : num;
+      setCustomCategories((prev) => {
+        const existing = prev.filter(
+          (c) =>
+            (!existingId || c.id !== existingId) &&
+            c.name.trim().toLowerCase() !== draft.name.trim().toLowerCase() &&
+            (!oldName || c.name.trim().toLowerCase() !== oldName.trim().toLowerCase())
+        );
+        return [
+          ...existing,
+          {
+            id: existingId,
+            name: draft.name,
+            type: draft.envelopeType,
+            envelopeType: draft.envelopeType,
+            fundingMode: draft.fundingMode,
+            isPriority: draft.isPriority ?? true,
+            isSurplusTarget: draft.isSurplusTarget ?? false,
+            bankAccountId: draft.bankAccountId,
+            safetyBufferFloor: draft.safetyBufferFloor ? parseFloat(draft.safetyBufferFloor) : 0,
+            enteredAmount: draft.enteredAmount ? parseFloat(draft.enteredAmount) : updatedMonthly,
+            targetAmount: draft.targetAmount ? parseFloat(draft.targetAmount) : null,
+            monthlyAud: updatedMonthly,
+            startDate: draft.startDate,
+            endDate: draft.endDate,
+            rrule: draft.rrule,
+            budgetFrequency: draft.budgetFrequency,
+            generateEvents: draft.generateEvents,
+            icon: draft.type === 'BILL' ? '📌' : '🛒',
+          },
+        ];
+      });
+      setRemovedCategoryNames((prev) => {
+        const next = new Set(prev);
+        next.delete(draft.name);
+        return next;
+      });
+      if (draft.budgetFrequency) {
+        setCategoryFrequencies((prev) => ({
+          ...prev,
+          [draft.name]:
+            draft.budgetFrequency === 'ANNUALLY'
+              ? 'YEARLY'
+              : (draft.budgetFrequency as 'WEEKLY' | 'FORTNIGHTLY' | 'MONTHLY' | 'QUARTERLY'),
+        }));
+      }
+      if (draft.type !== 'EVERYDAY') {
+        setAmountOverrides((prev) => ({
+          ...prev,
+          [draft.name]: updatedMonthly,
+        }));
+      }
+      if (draft.fundingMode) {
+        setBillTypeOverrides((prev) => ({
+          ...prev,
+          [draft.name]: draft.fundingMode || 'RECURRING',
+        }));
+      }
+    }
+    setShowAddEnvelopeModal(false);
+    setEnvelopeToEditDraft(null);
   };
 
   return (
@@ -80,10 +247,11 @@ export default function SetupCategoriesScreen() {
       ]}
       keyboardShouldPersistTaps="handled"
     >
+      <SetupProgressBar currentStep={totalSteps} totalSteps={totalSteps} isRerun={isRerun} />
+      <Text style={styles.stepLabel}>{t('setup.stepOf', { step: totalSteps, total: totalSteps })}</Text>
+
       <View style={styles.titleRow}>
-        <Text style={styles.title}>
-          {t('setup.reviewSummary.title')}
-        </Text>
+        <Text style={styles.title}>{t('setup.reviewSummary.title')}</Text>
       </View>
 
       <View style={styles.summaryGrid}>
@@ -118,21 +286,17 @@ export default function SetupCategoriesScreen() {
           style={styles.sectionHeader}
           activeOpacity={0.7}
         >
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+          <View style={styles.rowCenterGap6}>
             <Text style={styles.sectionTitle}>{t('setup.reviewSummary.everydaySpending')}</Text>
-            <Text style={{ fontSize: 12, color: DESIGN_TOKENS.colors.slate[400], fontWeight: '700' }}>
-              ({activeEveryday.length})
-            </Text>
+            <Text style={styles.countText}>({activeEveryday.length})</Text>
             <InfoTooltip
               title={t('setup.reviewSummary.everydayTooltipTitle')}
               content={t('setup.reviewSummary.everydayTooltipContent')}
             />
           </View>
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-            <Text style={styles.sectionTotal}>{formatMobileCurrency(totalEverydayMonthly)}/mo</Text>
-            <Text style={{ fontSize: 12, color: DESIGN_TOKENS.colors.slate[400], fontWeight: '700' }}>
-              {everydayOpen ? '▲' : '▼'}
-            </Text>
+          <View style={styles.rowCenterGap8}>
+            <Text style={styles.sectionTotal}>{formatMobileCurrency(totalEverydayMonthly)} {t('setup.freqSuffixMo')}</Text>
+            <Text style={styles.countText}>{everydayOpen ? '▲' : '▼'}</Text>
           </View>
         </TouchableOpacity>
         {everydayOpen && activeEveryday.map((cat) => (
@@ -140,10 +304,11 @@ export default function SetupCategoriesScreen() {
             key={cat.name}
             cat={cat}
             freq={categoryFrequencies[cat.name] || 'MONTHLY'}
+            isLastEveryday={activeEveryday.length <= 1}
             onUpdateAmount={(amt) => setAmountOverrides((prev) => ({ ...prev, [cat.name]: amt }))}
             onUpdateFreq={(f) => setCategoryFrequencies((prev) => ({ ...prev, [cat.name]: f }))}
+            onEditCategory={() => handleOpenEditCategory(cat)}
             onRemove={() => handleAttemptRemoveCategory(cat.name)}
-            isRerun={isRerun}
           />
         ))}
       </View>
@@ -155,21 +320,17 @@ export default function SetupCategoriesScreen() {
           style={styles.sectionHeader}
           activeOpacity={0.7}
         >
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+          <View style={styles.rowCenterGap6}>
             <Text style={styles.sectionTitle}>{t('setup.reviewSummary.regularBills')}</Text>
-            <Text style={{ fontSize: 12, color: DESIGN_TOKENS.colors.slate[400], fontWeight: '700' }}>
-              ({activeRegular.length})
-            </Text>
+            <Text style={styles.countText}>({activeRegular.length})</Text>
             <InfoTooltip
               title={t('setup.reviewSummary.billsTooltipTitle')}
               content={t('setup.reviewSummary.billsTooltipContent')}
             />
           </View>
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-            <Text style={styles.sectionTotal}>{formatMobileCurrency(totalRegularMonthly)}/mo</Text>
-            <Text style={{ fontSize: 12, color: DESIGN_TOKENS.colors.slate[400], fontWeight: '700' }}>
-              {billsOpen ? '▲' : '▼'}
-            </Text>
+          <View style={styles.rowCenterGap8}>
+            <Text style={styles.sectionTotal}>{formatMobileCurrency(totalRegularMonthly)} {t('setup.freqSuffixMo')}</Text>
+            <Text style={styles.countText}>{billsOpen ? '▲' : '▼'}</Text>
           </View>
         </TouchableOpacity>
         {billsOpen && activeRegular.map((cat) => (
@@ -180,25 +341,8 @@ export default function SetupCategoriesScreen() {
             onUpdateAmount={(amt) => setAmountOverrides((prev) => ({ ...prev, [cat.name]: amt }))}
             onUpdateFreq={(f) => setCategoryFrequencies((prev) => ({ ...prev, [cat.name]: f }))}
             onToggleBillType={(newType) => setBillTypeOverrides((prev) => ({ ...prev, [cat.name]: newType }))}
-            onEditCategory={() => {
-              setEnvelopeToEditDraft({
-                id: cat.id || `temp-${cat.name}`,
-                name: cat.name,
-                type: cat.type,
-                envelopeType: cat.envelopeType || (cat.type === 'EVERYDAY' ? 'EVERYDAY' : 'BILL'),
-                fundingMode: cat.fundingMode || 'RECURRING',
-                monthlyAmount: String(cat.monthlyAud || '0'),
-                enteredAmount: String(cat.monthlyAud || '0'),
-                budgetFrequency: cat.budgetFrequency || categoryFrequencies[cat.name] || 'MONTHLY',
-                startDate: cat.startDate,
-                endDate: cat.endDate,
-                rrule: cat.rrule,
-                hasScheduledEvents: cat.generateEvents ?? true,
-              });
-              setShowAddEnvelopeModal(true);
-            }}
+            onEditCategory={() => handleOpenEditCategory(cat)}
             onRemove={() => handleAttemptRemoveCategory(cat.name)}
-            isRerun={isRerun}
           />
         ))}
       </View>
@@ -210,21 +354,17 @@ export default function SetupCategoriesScreen() {
           style={styles.sectionHeader}
           activeOpacity={0.7}
         >
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+          <View style={styles.rowCenterGap6}>
             <Text style={styles.sectionTitle}>{t('setup.reviewSummary.savingsGoals')}</Text>
-            <Text style={{ fontSize: 12, color: DESIGN_TOKENS.colors.slate[400], fontWeight: '700' }}>
-              ({activeGoals.length})
-            </Text>
+            <Text style={styles.countText}>({activeGoals.length})</Text>
             <InfoTooltip
               title={t('setup.reviewSummary.goalsTooltipTitle')}
               content={t('setup.reviewSummary.goalsTooltipContent')}
             />
           </View>
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-            <Text style={styles.sectionTotal}>{formatMobileCurrency(totalGoalMonthly)}/mo</Text>
-            <Text style={{ fontSize: 12, color: DESIGN_TOKENS.colors.slate[400], fontWeight: '700' }}>
-              {goalsOpen ? '▲' : '▼'}
-            </Text>
+          <View style={styles.rowCenterGap8}>
+            <Text style={styles.sectionTotal}>{formatMobileCurrency(totalGoalMonthly)} {t('setup.freqSuffixMo')}</Text>
+            <Text style={styles.countText}>{goalsOpen ? '▲' : '▼'}</Text>
           </View>
         </TouchableOpacity>
         {goalsOpen && (
@@ -233,7 +373,7 @@ export default function SetupCategoriesScreen() {
             userGoals={goals}
             totalGoalMonthly={totalGoalMonthly}
             onRemove={handleAttemptRemoveCategory}
-            isRerun={isRerun}
+            onEditGoal={handleOpenEditCategory}
           />
         )}
       </View>
@@ -248,6 +388,15 @@ export default function SetupCategoriesScreen() {
         <Text style={styles.addEnvelopeBtnText}>{t('setup.reviewSummary.addEnvelopeBtn')}</Text>
       </TouchableOpacity>
 
+      {!isRerun && (
+        <TouchableOpacity
+          onPress={() => setShowSandboxModal(true)}
+          style={styles.sandboxBtn}
+        >
+          <Text style={styles.sandboxBtnText}>{t('setup.complete.simulateFirstPayday')}</Text>
+        </TouchableOpacity>
+      )}
+
       <EnvelopeFormModal
         visible={showAddEnvelopeModal}
         onClose={() => {
@@ -256,72 +405,18 @@ export default function SetupCategoriesScreen() {
         }}
         categoryToEdit={envelopeToEditDraft}
         bankAccounts={bankAccounts}
-        onSaveDraft={(draft: EnvelopeDraftPayload) => {
-          const num = parseFloat(draft.monthlyAmount || draft.targetAmount || '0') || 0;
-          if (draft.type === 'GOAL') {
-            const id = envelopeToEditDraft?.id && !envelopeToEditDraft.id.startsWith('temp-') ? envelopeToEditDraft.id : `g-${Date.now()}`;
-            setGoals((prev) => {
-              const existing = prev.filter((g) => g.name.trim().toLowerCase() !== draft.name.trim().toLowerCase());
-              return [
-                ...existing,
-                {
-                  id,
-                  name: draft.name,
-                  targetAmount: parseFloat(draft.targetAmount || String(num)),
-                  enteredAmount: parseFloat(draft.enteredAmount || String(num)),
-                  dueDate: draft.fundingMode === 'RECURRING' ? null : draft.endDate || null,
-                  fundingMode: draft.fundingMode || 'TARGET_BALANCE',
-                  monthlyAmount: num,
-                  budgetFrequency: draft.budgetFrequency || 'MONTHLY',
-                  startDate: draft.startDate,
-                  rrule: draft.rrule,
-                  icon: 'target',
-                  isPriority: draft.isPriority ?? false,
-                },
-              ];
-            });
-          } else {
-            setCustomCategories((prev) => {
-              const existing = prev.filter((c) => c.name.trim().toLowerCase() !== draft.name.trim().toLowerCase());
-              return [
-                ...existing,
-                {
-                  id: envelopeToEditDraft?.id && !envelopeToEditDraft.id.startsWith('temp-') ? envelopeToEditDraft.id : undefined,
-                  name: draft.name,
-                  type: draft.envelopeType,
-                  envelopeType: draft.envelopeType,
-                  fundingMode: draft.fundingMode,
-                  isPriority: draft.isPriority ?? true,
-                  monthlyAud: num,
-                  startDate: draft.startDate,
-                  endDate: draft.endDate,
-                  rrule: draft.rrule,
-                  budgetFrequency: draft.budgetFrequency,
-                  generateEvents: draft.generateEvents,
-                  icon: draft.type === 'BILL' ? '📌' : '🛒',
-                },
-              ];
-            });
-            if (draft.budgetFrequency) {
-              setCategoryFrequencies((prev) => ({
-                ...prev,
-                [draft.name]: draft.budgetFrequency === 'ANNUALLY' ? 'YEARLY' : (draft.budgetFrequency as 'WEEKLY' | 'FORTNIGHTLY' | 'MONTHLY'),
-              }));
-            }
-            setAmountOverrides((prev) => ({
-              ...prev,
-              [draft.name]: num,
-            }));
-            if (draft.fundingMode) {
-              setBillTypeOverrides((prev) => ({
-                ...prev,
-                [draft.name]: draft.fundingMode || 'RECURRING',
-              }));
-            }
-          }
-          setShowAddEnvelopeModal(false);
-          setEnvelopeToEditDraft(null);
-        }}
+        onSaveDraft={handleSaveEnvelopeDraft}
+      />
+
+      <MobilePaydaySandboxModal
+        visible={showSandboxModal}
+        onClose={() => setShowSandboxModal(false)}
+        incomes={incomes}
+        bankAccounts={bankAccounts}
+        activeEveryday={activeEveryday}
+        activeRegular={activeRegular}
+        activeGoals={activeGoals}
+        goals={goals}
       />
 
       <View style={styles.actionRow}>
@@ -347,22 +442,13 @@ export default function SetupCategoriesScreen() {
           )}
         </TouchableOpacity>
       </View>
-
-      <SetupBalanceSweepModal
-        visible={Boolean(activeSweepPool)}
-        activePool={activeSweepPool}
-        availablePools={availablePools}
-        selectedDest={selectedSweepDest}
-        onSelectDest={setSelectedSweepDest}
-        onConfirm={confirmSweepAndRemove}
-        onCancel={() => setActiveSweepPool(null)}
-      />
     </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
   container: { padding: 20, backgroundColor: DESIGN_TOKENS.colors.background, flexGrow: 1 },
+  stepLabel: { fontSize: 12, fontWeight: '700', color: DESIGN_TOKENS.colors.accent, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 },
   titleRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 16 },
   title: { fontSize: 20, fontWeight: '900', color: DESIGN_TOKENS.colors.primary, flex: 1 },
   summaryGrid: { flexDirection: 'row', gap: 8, marginBottom: 16 },
@@ -373,6 +459,9 @@ const styles = StyleSheet.create({
   deficitBg: { backgroundColor: DESIGN_TOKENS.colors.criticalLight, borderColor: DESIGN_TOKENS.colors.criticalBorder },
   sectionCard: { backgroundColor: DESIGN_TOKENS.colors.surface, padding: 14, borderRadius: DESIGN_TOKENS.radius.lg, borderWidth: 1, borderColor: DESIGN_TOKENS.colors.slate[200], marginBottom: 16 },
   sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', borderBottomWidth: 1, borderBottomColor: DESIGN_TOKENS.colors.slate[100], paddingBottom: 8, marginBottom: 4 },
+  rowCenterGap6: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  rowCenterGap8: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  countText: { fontSize: 12, color: DESIGN_TOKENS.colors.slate[400], fontWeight: '700' },
   sectionTitle: { fontSize: 13, fontWeight: '800', color: DESIGN_TOKENS.colors.primary },
   sectionTotal: { fontSize: 12, fontWeight: '700', color: DESIGN_TOKENS.colors.accent, fontFamily: 'monospace' },
   actionRow: { flexDirection: 'row', gap: 12, marginTop: 8, marginBottom: 40 },
@@ -384,14 +473,21 @@ const styles = StyleSheet.create({
     borderRadius: DESIGN_TOKENS.radius.md,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 16,
+    marginBottom: 12,
     backgroundColor: DESIGN_TOKENS.colors.accentLight,
   },
-  addEnvelopeBtnText: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: DESIGN_TOKENS.colors.accent,
+  addEnvelopeBtnText: { fontSize: 13, fontWeight: '700', color: DESIGN_TOKENS.colors.accent },
+  sandboxBtn: {
+    paddingVertical: 12,
+    borderWidth: 1,
+    borderColor: DESIGN_TOKENS.colors.accentBorder,
+    borderRadius: DESIGN_TOKENS.radius.md,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 16,
+    backgroundColor: DESIGN_TOKENS.colors.surface,
   },
+  sandboxBtnText: { fontSize: 13, fontWeight: '700', color: DESIGN_TOKENS.colors.accent },
   backBtn: { flex: 1, paddingVertical: 14, backgroundColor: DESIGN_TOKENS.colors.surface, borderWidth: 1, borderColor: DESIGN_TOKENS.colors.slate[300], borderRadius: DESIGN_TOKENS.radius.md, alignItems: 'center' },
   backBtnText: { fontSize: 14, fontWeight: '700', color: DESIGN_TOKENS.colors.slate[600] },
   nextBtn: { flex: 2, paddingVertical: 14, backgroundColor: DESIGN_TOKENS.colors.accent, borderRadius: DESIGN_TOKENS.radius.md, alignItems: 'center' },

@@ -5,6 +5,7 @@ import { generateBurstDates } from "../engine/burst-engine.js";
 export function deriveRruleFromFrequency(freq?: string | null): string {
   if (freq === "WEEKLY") return "FREQ=WEEKLY;INTERVAL=1";
   if (freq === "FORTNIGHTLY") return "FREQ=WEEKLY;INTERVAL=2";
+  if (freq === "QUARTERLY") return "FREQ=MONTHLY;INTERVAL=3";
   if (freq === "ANNUALLY") return "FREQ=YEARLY;INTERVAL=1";
   return "FREQ=MONTHLY;INTERVAL=1";
 }

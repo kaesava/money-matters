@@ -3,13 +3,13 @@ import { View, Text, TouchableOpacity, ScrollView, TextInput, StyleSheet } from 
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { t } from '@money-matters/i18n';
-import { DESIGN_TOKENS, AmountInput, MobileGoalModeToggle, useMobileToast, MobileDatePickerField, showMobileConfirm } from '@money-matters/ui/mobile';
+import { DESIGN_TOKENS, AmountInput, MobileGoalModeToggle, MobileDatePickerField, showMobileConfirm, InfoTooltip } from '@money-matters/ui/mobile';
 import { useSetupWizard } from '../../context/SetupWizardContext';
 import { SetupGoalCard } from '../../components/setup/SetupGoalCard';
 import { getMobileLocaleConfig } from '../../lib/format';
 import { SetupProgressBar } from '../../components/setup/SetupProgressBar';
-import { SetupBalanceSweepModal } from '../../components/setup/SetupBalanceSweepModal';
 import { SetupGoalsPresetsGrid, MobileGoalPresetConfig } from '../../components/setup/SetupGoalsPresetsGrid';
+import { UserGoalItem } from '@money-matters/types';
 
 export default function SetupGoalsScreen() {
   const insets = useSafeAreaInsets();
@@ -20,16 +20,8 @@ export default function SetupGoalsScreen() {
     isRerun,
     isAud,
     totalSteps,
-    activeSweepPool,
-    setActiveSweepPool,
-    availablePools,
-    selectedSweepDest,
-    setSelectedSweepDest,
-    dirtyGoalIds,
     handleUpdateGoalField,
-    handleSaveGoalImmediate,
     handleRemoveGoal,
-    confirmSweepAndRemove,
   } = useSetupWizard();
 
   const [customName, setCustomName] = useState('');
@@ -39,14 +31,32 @@ export default function SetupGoalsScreen() {
   const [customType, setCustomType] = useState<'TARGET_BALANCE' | 'RECURRING'>('TARGET_BALANCE');
 
   const tz = getMobileLocaleConfig().timezone;
+  const todayStr = new Intl.DateTimeFormat('en-CA', { timeZone: tz }).format(new Date());
+  const isCustomPastDate = Boolean(customType === 'TARGET_BALANCE' && customDate && customDate < todayStr);
 
   const isPresetActive = (name: string) =>
     goals.some((g) => g.name.trim().toLowerCase() === name.trim().toLowerCase());
 
+  const handlePromptRemoveGoal = (goal: UserGoalItem) => {
+    if (goal.isSurplusTarget) return;
+    const isExisting = !goal.id.startsWith('g-');
+    if (isRerun && isExisting) {
+      showMobileConfirm({
+        title: t('setup.confirmArchiveEnvelopeTitle'),
+        message: t('setup.confirmArchiveEnvelopeDesc', { name: goal.name }),
+        confirmText: t('common.remove'),
+        isDestructive: true,
+        onConfirm: () => handleRemoveGoal(goal.id),
+      });
+    } else {
+      handleRemoveGoal(goal.id);
+    }
+  };
+
   const togglePreset = (preset: MobileGoalPresetConfig) => {
     const existing = goals.find((g) => g.name.trim().toLowerCase() === preset.name.trim().toLowerCase());
     if (existing) {
-      handleRemoveGoal(existing.id);
+      handlePromptRemoveGoal(existing);
     } else {
       const isOngoing = preset.fundingMode === 'RECURRING';
       const d = new Date();
@@ -126,13 +136,7 @@ export default function SetupGoalsScreen() {
 
   const currentStep = isRerun ? 2 : 3;
 
-  const toast = useMobileToast();
-
-  const proceedToNextStep = async () => {
-    if (isRerun && dirtyGoalIds.size > 0) {
-      await Promise.all(Array.from(dirtyGoalIds).map((id) => handleSaveGoalImmediate(id)));
-      toast.success(t('toasts.saved'));
-    }
+  const proceedToNextStep = () => {
     if (isRerun) {
       router.push({ pathname: '/(setup)/categories', params: { mode: 'rerun' } });
     } else {
@@ -140,25 +144,25 @@ export default function SetupGoalsScreen() {
     }
   };
 
-  const handleNext = async () => {
+  const handleNext = () => {
     if (customName.trim()) {
       showMobileConfirm({
         title: t('setup.goals.unsavedGoalTitle'),
         message: t('setup.goals.unsavedGoalMessage', { name: customName.trim() }),
         confirmText: t('setup.goals.addAndProceed'),
         cancelText: t('setup.goals.discardAndProceed'),
-        onConfirm: async () => {
+        onConfirm: () => {
           handleAddCustom();
-          await proceedToNextStep();
+          proceedToNextStep();
         },
-        onCancel: async () => {
+        onCancel: () => {
           setCustomName('');
-          await proceedToNextStep();
+          proceedToNextStep();
         },
       });
       return;
     }
-    await proceedToNextStep();
+    proceedToNextStep();
   };
 
   const handleBack = () => {
@@ -182,6 +186,7 @@ export default function SetupGoalsScreen() {
       <Text style={styles.stepLabel}>{t('setup.stepOf', { step: currentStep, total: totalSteps })}</Text>
       <View style={styles.titleRow}>
         <Text style={styles.title}>{t('setup.goals.title')}</Text>
+        <InfoTooltip title={t('setup.goals.tooltipTitle')} content={t('setup.goals.tooltipContent')} />
       </View>
 
       <SetupGoalsPresetsGrid onTogglePreset={togglePreset} isPresetActive={isPresetActive} isAud={isAud} />
@@ -253,6 +258,9 @@ export default function SetupGoalsScreen() {
             <Text style={styles.addCustomBtnText}>+ {t('common.add')}</Text>
           </TouchableOpacity>
         </View>
+        {isCustomPastDate && (
+          <Text style={styles.pastDateWarning}>{t('categories.goalPastDateWarning')}</Text>
+        )}
       </View>
 
       {goals.length > 0 && (
@@ -264,11 +272,8 @@ export default function SetupGoalsScreen() {
             <SetupGoalCard
               key={g.id}
               goal={g}
-              isRerun={isRerun}
-              isDirty={dirtyGoalIds.has(g.id)}
               onUpdate={handleUpdateGoalField}
-              onRemove={handleRemoveGoal}
-              onSave={handleSaveGoalImmediate}
+              onRemove={() => handlePromptRemoveGoal(g)}
             />
           ))}
         </View>
@@ -284,16 +289,6 @@ export default function SetupGoalsScreen() {
           </Text>
         </TouchableOpacity>
       </View>
-
-      <SetupBalanceSweepModal
-        visible={Boolean(activeSweepPool)}
-        activePool={activeSweepPool}
-        availablePools={availablePools}
-        selectedDest={selectedSweepDest}
-        onSelectDest={setSelectedSweepDest}
-        onConfirm={confirmSweepAndRemove}
-        onCancel={() => setActiveSweepPool(null)}
-      />
     </ScrollView>
   );
 }
@@ -301,8 +296,9 @@ export default function SetupGoalsScreen() {
 const styles = StyleSheet.create({
   container: { padding: 20, backgroundColor: DESIGN_TOKENS.colors.background, flexGrow: 1 },
   stepLabel: { fontSize: 12, fontWeight: '700', color: DESIGN_TOKENS.colors.accent, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 },
-  titleRow: { marginBottom: 16 },
-  title: { fontSize: 20, fontWeight: '900', color: DESIGN_TOKENS.colors.primary },
+  titleRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 16 },
+  title: { fontSize: 20, fontWeight: '900', color: DESIGN_TOKENS.colors.primary, flex: 1 },
+  pastDateWarning: { fontSize: 11, fontWeight: '700', color: DESIGN_TOKENS.colors.warning, marginTop: 8 },
   sectionHeading: { fontSize: 13, fontWeight: '700', color: DESIGN_TOKENS.colors.textPrimary, marginBottom: 8 },
   marginTop16: { marginTop: 16 },
   rerunSection: { marginBottom: 16 },

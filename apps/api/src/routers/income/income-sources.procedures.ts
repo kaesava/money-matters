@@ -280,6 +280,7 @@ export const incomeSourcesProcedures = {
           .where(
             and(
               eq(incomeEvents.incomeSourceId, source.id),
+              eq(incomeEvents.status, "CONFIRMED"),
               eq(incomeEvents.tenantId, ctx.tenantId!),
               eq(incomeEvents.appId, ctx.appId!)
             )
@@ -287,8 +288,7 @@ export const incomeSourcesProcedures = {
 
         if (unperformedEvents.length > 0) {
           await ctx.db
-            .update(incomeEvents)
-            .set({ archivedAt: new Date(), updatedBy: ctx.userId!, updatedAt: new Date() })
+            .delete(incomeEvents)
             .where(inArray(incomeEvents.id, unperformedEvents.map((e) => e.id)));
         }
 
@@ -331,7 +331,7 @@ export const incomeSourcesProcedures = {
       const newInt = input.data.interval ?? 1;
       let rrule: string | null = source.rrule || "FREQ=MONTHLY";
       if (newFreq || input.data.interval !== undefined) {
-        const targetFreq = newFreq || (source.rrule?.includes("FREQ=WEEKLY") ? (source.rrule.includes("INTERVAL=2") ? "FORTNIGHTLY" : "WEEKLY") : source.rrule?.includes("FREQ=YEARLY") ? "ANNUALLY" : "MONTHLY");
+        const targetFreq = newFreq || (source.rrule?.includes("FREQ=WEEKLY") ? (source.rrule.includes("INTERVAL=2") ? "FORTNIGHTLY" : "WEEKLY") : source.rrule?.includes("FREQ=YEARLY") ? "ANNUALLY" : source.rrule?.includes("INTERVAL=3") ? "QUARTERLY" : "MONTHLY");
         rrule = buildRRule(targetFreq, newInt);
       }
 
@@ -343,46 +343,72 @@ export const incomeSourcesProcedures = {
         }
       }
 
-      if (unperformedEvents.length > 0) {
-        await ctx.db
-          .update(incomeEvents)
-          .set({ archivedAt: new Date(), updatedBy: ctx.userId!, updatedAt: new Date() })
-          .where(inArray(incomeEvents.id, unperformedEvents.map((e) => e.id)));
-      }
+      const scheduleChanged =
+        (rrule !== source.rrule) ||
+        (input.data.startDate !== undefined && input.data.startDate !== source.startDate) ||
+        (input.data.endDate !== undefined && input.data.endDate !== (source.endDate || null)) ||
+        (!wasRecurring && isRecurring);
+
+      const detailChanged =
+        (newName !== source.name) ||
+        (parseFloat(newAmount) !== parseFloat(source.amount)) ||
+        (targetMode !== source.contributionMode) ||
+        (targetValue !== source.contributionValue);
 
       let newLastBurstDate: string | null = null;
 
-      if (rrule) {
-        const [tenantRecord] = await ctx.db
-          .select({ timezone: tenants.timezone })
-          .from(tenants)
-          .where(eq(tenants.id, ctx.tenantId!))
-          .limit(1);
-        const timeZone = tenantRecord?.timezone || "Australia/Sydney";
-        const todayStr = getTenantDateString(new Date(), { timezone: timeZone });
-        const yesterday = new Date(Date.now() - 86400000);
-        const yesterdayStr = getTenantDateString(yesterday, { timezone: timeZone });
-        const afterDateStr = newStartDate < todayStr ? yesterdayStr : null;
-
-        const count = await burstIncomeEvents(ctx.db, {
-          incomeSourceId: source.id,
-          name: newName,
-          amount: newAmount,
-          rrule,
-          startDate: newStartDate,
-          endDate: newEndDate,
-          contributionMode: targetMode,
-          contributionValue: targetValue,
-          tenantId: ctx.tenantId!,
-          appId: ctx.appId!,
-          userId: ctx.userId!,
-          timeZone,
-          afterDateStr,
-        });
-
-        if (count === 0 && newEndDate) {
-          newLastBurstDate = newEndDate;
+      if (scheduleChanged || unperformedEvents.length === 0) {
+        if (unperformedEvents.length > 0) {
+          await ctx.db
+            .delete(incomeEvents)
+            .where(inArray(incomeEvents.id, unperformedEvents.map((e) => e.id)));
         }
+
+        if (rrule) {
+          const [tenantRecord] = await ctx.db
+            .select({ timezone: tenants.timezone })
+            .from(tenants)
+            .where(eq(tenants.id, ctx.tenantId!))
+            .limit(1);
+          const timeZone = tenantRecord?.timezone || "Australia/Sydney";
+          const todayStr = getTenantDateString(new Date(), { timezone: timeZone });
+          const yesterday = new Date(Date.now() - 86400000);
+          const yesterdayStr = getTenantDateString(yesterday, { timezone: timeZone });
+          const afterDateStr = newStartDate < todayStr ? yesterdayStr : null;
+
+          const count = await burstIncomeEvents(ctx.db, {
+            incomeSourceId: source.id,
+            name: newName,
+            amount: newAmount,
+            rrule,
+            startDate: newStartDate,
+            endDate: newEndDate,
+            contributionMode: targetMode,
+            contributionValue: targetValue,
+            tenantId: ctx.tenantId!,
+            appId: ctx.appId!,
+            userId: ctx.userId!,
+            timeZone,
+            afterDateStr,
+          });
+
+          if (count === 0 && newEndDate) {
+            newLastBurstDate = newEndDate;
+          }
+        }
+      } else if (detailChanged && unperformedEvents.length > 0) {
+        await ctx.db
+          .update(incomeEvents)
+          .set({
+            name: newName,
+            expectedAmount: newAmount,
+            actualAmount: newAmount,
+            contributionMode: targetMode,
+            contributionValue: targetValue,
+            updatedBy: ctx.userId!,
+            updatedAt: new Date(),
+          })
+          .where(inArray(incomeEvents.id, unperformedEvents.map((e) => e.id)));
       }
 
       const [updated] = await ctx.db

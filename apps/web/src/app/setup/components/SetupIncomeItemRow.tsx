@@ -12,8 +12,6 @@ interface SetupIncomeItemRowProps {
   isRerun: boolean;
   onUpdateIncome: <K extends keyof IncomeItem>(id: string, field: K, value: IncomeItem[K]) => void;
   onRemoveIncome: (id: string) => void;
-  onSaveIncome?: (id: string) => Promise<void>;
-  isDirty?: boolean;
 }
 
 export function SetupIncomeItemRow({
@@ -116,9 +114,9 @@ export function SetupIncomeItemRow({
           setShowConfirm(false);
           onRemoveIncome(inc.id);
         }}
-        title={t("modals.incomeExpenseForm.archiveIncomeTitle")}
-        description={t("modals.incomeExpenseForm.archiveIncomeConfirm")}
-        confirmLabel={t("modals.incomeExpenseForm.archiveSchedule")}
+        title={t("setup.confirmArchiveIncomeTitle")}
+        description={t("setup.confirmArchiveIncomeDesc", { name: inc.name })}
+        confirmLabel={t("common.remove")}
         variant="danger"
       />
     </div>

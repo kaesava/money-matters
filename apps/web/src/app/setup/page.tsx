@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import { t } from "@money-matters/i18n";
-import { ConfirmDialog } from "@money-matters/ui/web";
+import { getTotalSetupSteps } from "@money-matters/types";
 import { SetupIncomeStep } from "./components/SetupIncomeStep";
 import { SetupBankAccountsStep } from "./components/SetupBankAccountsStep";
 import { SetupGoalsStep } from "./components/SetupGoalsStep";
@@ -10,7 +10,6 @@ import { SetupLifestyleStep } from "./components/SetupLifestyleStep";
 import { SetupCategoriesStep } from "./components/SetupCategoriesStep";
 import { SetupDiscardModal } from "./components/SetupDiscardModal";
 import { PaydaySandboxModal } from "./components/PaydaySandboxModal";
-import { SetupBalanceSweepModal } from "./components/SetupBalanceSweepModal";
 import { SetupHeaderBar } from "./components/SetupHeaderBar";
 import { EnvelopeFormModal, EnvelopeDraftPayload, EnvelopeFormModalProps } from "../../components/web/EnvelopeFormModal";
 import { useSetupWizardState } from "./hooks/useSetupWizardState";
@@ -21,7 +20,7 @@ function SetupWizardContent() {
   const [envelopeToEditDraft, setEnvelopeToEditDraft] = useState<EnvelopeFormModalProps["categoryToEdit"]>(null);
   const state = useSetupWizardState();
 
-  const totalSteps = state.step >= 4 || !state.isRerun ? 4 : 2;
+  const totalSteps = getTotalSetupSteps(state.isRerun);
   const isReviewStep = state.step === 5 || (state.isRerun && state.step === 3);
 
   if (state.isRerun && state.isLoading) {
@@ -43,7 +42,6 @@ function SetupWizardContent() {
           isRerun={state.isRerun}
           step={state.step}
           totalSteps={totalSteps}
-          isReviewStep={isReviewStep}
           onCancel={() => state.setShowDiscardModal(true)}
         />
 
@@ -52,7 +50,6 @@ function SetupWizardContent() {
           <SetupIncomeStep
             incomes={state.incomes}
             isRerun={state.isRerun}
-            dirtyIncomeIds={state.dirtyIncomeIds}
             onAddIncome={() => {
               const id = `inc-${Date.now()}`;
               state.setIncomes((prev) => [
@@ -69,7 +66,6 @@ function SetupWizardContent() {
             }}
             onUpdateIncome={state.handleUpdateIncome}
             onRemoveIncome={state.handleRemoveIncome}
-            onSaveIncome={state.handleSaveIncomeImmediate}
             onNext={state.handleNextFromIncomes}
             totalSteps={totalSteps}
           />
@@ -93,7 +89,6 @@ function SetupWizardContent() {
           <SetupGoalsStep
             goals={state.goals}
             isRerun={state.isRerun}
-            dirtyGoalIds={state.dirtyGoalIds}
             isAud={state.isAud}
             onAddGoal={(g) => {
               const id = `g-${Date.now()}`;
@@ -101,7 +96,6 @@ function SetupWizardContent() {
             }}
             onUpdateGoal={state.handleUpdateGoal}
             onRemoveGoal={state.handleRemoveGoal}
-            onSaveGoal={state.handleSaveGoalImmediate}
             onBack={() => state.setStep(state.isRerun ? 1 : 2)}
             onNext={state.handleNextFromGoals}
             totalSteps={totalSteps}
@@ -182,8 +176,17 @@ function SetupWizardContent() {
             categoryFrequencies={state.categoryFrequencies}
             setCategoryFrequencies={state.setCategoryFrequencies}
             setAmountOverrides={state.setAmountOverrides}
-            onRemoveCategory={(name) => state.setRemovedCategoryNames((prev) => new Set(prev).add(name))}
-            onOpenAddEnvelope={() => setShowAddEnvelopeModal(true)}
+            onRemoveCategory={(name) => {
+              state.setRemovedCategoryNames((prev) => new Set(prev).add(name));
+              const matchedGoal = state.goals.find((g) => g.name.trim().toLowerCase() === name.trim().toLowerCase());
+              if (matchedGoal) {
+                state.handleRemoveGoal(matchedGoal.id);
+              }
+            }}
+            onOpenAddEnvelope={() => {
+              setEnvelopeToEditDraft(null);
+              setShowAddEnvelopeModal(true);
+            }}
             convertToMonthly={state.convertToMonthly}
             convertFromMonthly={state.convertFromMonthly}
             totalMonthlyIncomeAud={state.estimation.totalMonthlyIncomeAud}
@@ -197,16 +200,29 @@ function SetupWizardContent() {
             onSimulatePayday={() => setShowSandboxModal(true)}
             onToggleBillType={(name, newType) => state.setBillTypeOverrides((prev) => ({ ...prev, [name]: newType }))}
             onEditCategory={(cat) => {
+              const rawFreq = state.categoryFrequencies[cat.name] || (cat.budgetFrequency === "ANNUALLY" ? "YEARLY" : cat.budgetFrequency) || "MONTHLY";
+              const displayAmt =
+                cat.type === "GOAL"
+                  ? cat.enteredAmount ?? cat.targetAmount ?? cat.monthlyAud
+                  : state.convertFromMonthly(
+                      cat.monthlyAud,
+                      rawFreq as "WEEKLY" | "FORTNIGHTLY" | "MONTHLY" | "QUARTERLY" | "YEARLY"
+                    );
+              const budgetFreq = rawFreq === "YEARLY" ? "ANNUALLY" : rawFreq;
               setEnvelopeToEditDraft({
                 id: cat.id || `temp-${cat.name}`,
                 name: cat.name,
                 type: cat.type,
-                envelopeType: cat.envelopeType || (cat.type === "EVERYDAY" ? "EVERYDAY" : "BILL"),
-                fundingMode: cat.fundingMode || (cat.type === "EVERYDAY" ? "TARGET_BALANCE" : "RECURRING"),
+                envelopeType: cat.envelopeType || (cat.type === "EVERYDAY" ? "EVERYDAY" : cat.type === "GOAL" ? "GOAL" : "BILL"),
+                fundingMode: cat.fundingMode || (cat.type === "EVERYDAY" || cat.type === "GOAL" ? "TARGET_BALANCE" : "RECURRING"),
                 isPriority: cat.isPriority ?? true,
+                isSurplusTarget: cat.isSurplusTarget ?? false,
+                bankAccountId: cat.bankAccountId || state.bankAccounts[0]?.id,
+                safetyBufferFloor: cat.safetyBufferFloor !== undefined ? String(cat.safetyBufferFloor) : "0.00",
                 monthlyAmount: String(cat.monthlyAud || "0"),
-                enteredAmount: String(cat.monthlyAud || "0"),
-                budgetFrequency: cat.budgetFrequency || state.categoryFrequencies[cat.name] || "MONTHLY",
+                enteredAmount: String(displayAmt || "0"),
+                targetAmount: String(cat.targetAmount ?? displayAmt ?? "0"),
+                budgetFrequency: budgetFreq,
                 startDate: cat.startDate,
                 endDate: cat.endDate,
                 rrule: cat.rrule,
@@ -227,22 +243,46 @@ function SetupWizardContent() {
           categoryToEdit={envelopeToEditDraft}
           bankAccounts={state.bankAccounts}
           onSaveDraft={(draft: EnvelopeDraftPayload) => {
+            const oldName = envelopeToEditDraft?.name;
+            if (oldName && oldName.trim().toLowerCase() !== draft.name.trim().toLowerCase()) {
+              state.setRemovedCategoryNames((prev) => new Set(prev).add(oldName));
+            }
+            if (draft.isSurplusTarget) {
+              state.setGoals((prev) => prev.map((g) => ({ ...g, isSurplusTarget: false })));
+              state.setCustomCategories((prev) => prev.map((c) => ({ ...c, isSurplusTarget: false })));
+            }
             const num = parseFloat(draft.monthlyAmount || draft.targetAmount || "0") || 0;
             if (draft.type === "GOAL") {
               const id = envelopeToEditDraft?.id && !envelopeToEditDraft.id.startsWith("temp-") ? envelopeToEditDraft.id : `g-${Date.now()}`;
+              const targetVal = parseFloat(draft.targetAmount || draft.enteredAmount || String(num)) || 0;
+              const enteredVal = parseFloat(draft.enteredAmount || draft.targetAmount || String(num)) || 0;
+              let goalMonthly = num;
+              if (draft.fundingMode === "TARGET_BALANCE" && !draft.monthlyAmount) {
+                const now = new Date();
+                const target = draft.endDate ? new Date(draft.endDate) : new Date(now.getFullYear() + 1, now.getMonth(), now.getDate());
+                const months = Math.max(1, (target.getFullYear() - now.getFullYear()) * 12 + (target.getMonth() - now.getMonth()));
+                goalMonthly = Math.round(targetVal / months);
+              }
               state.setGoals((prev) => {
-                const existing = prev.filter((g) => g.name.trim().toLowerCase() !== draft.name.trim().toLowerCase());
+                const existing = prev.filter(
+                  (g) =>
+                    g.id !== id &&
+                    g.name.trim().toLowerCase() !== draft.name.trim().toLowerCase() &&
+                    (!oldName || g.name.trim().toLowerCase() !== oldName.trim().toLowerCase())
+                );
                 return [
                   ...existing,
                   {
                     id,
                     name: draft.name,
-                    targetAmount: parseFloat(draft.targetAmount || String(num)),
-                    enteredAmount: parseFloat(draft.enteredAmount || String(num)),
+                    targetAmount: targetVal,
+                    enteredAmount: enteredVal,
                     dueDate: draft.fundingMode === "RECURRING" ? null : draft.endDate || null,
                     fundingMode: draft.fundingMode || "TARGET_BALANCE",
                     isPriority: draft.isPriority ?? true,
-                    monthlyAmount: num,
+                    isSurplusTarget: draft.isSurplusTarget ?? false,
+                    bankAccountId: draft.bankAccountId,
+                    monthlyAmount: goalMonthly,
                     budgetFrequency: draft.budgetFrequency || "MONTHLY",
                     startDate: draft.startDate,
                     rrule: draft.rrule,
@@ -250,19 +290,36 @@ function SetupWizardContent() {
                   },
                 ];
               });
+              state.setRemovedCategoryNames((prev) => {
+                const next = new Set(prev);
+                next.delete(draft.name);
+                return next;
+              });
             } else {
+              const existingId = envelopeToEditDraft?.id && !envelopeToEditDraft.id.startsWith("temp-") ? envelopeToEditDraft.id : undefined;
+              const updatedMonthly = draft.type === "EVERYDAY" ? (parseFloat(envelopeToEditDraft?.monthlyAmount || "0") || num) : num;
               state.setCustomCategories((prev) => {
-                const existing = prev.filter((c) => c.name.trim().toLowerCase() !== draft.name.trim().toLowerCase());
+                const existing = prev.filter(
+                  (c) =>
+                    (!existingId || c.id !== existingId) &&
+                    c.name.trim().toLowerCase() !== draft.name.trim().toLowerCase() &&
+                    (!oldName || c.name.trim().toLowerCase() !== oldName.trim().toLowerCase())
+                );
                 return [
                   ...existing,
                   {
-                    id: envelopeToEditDraft?.id && !envelopeToEditDraft.id.startsWith("temp-") ? envelopeToEditDraft.id : undefined,
+                    id: existingId,
                     name: draft.name,
                     type: draft.type,
                     envelopeType: draft.envelopeType,
                     fundingMode: draft.fundingMode,
                     isPriority: draft.isPriority ?? true,
-                    monthlyAud: num,
+                    isSurplusTarget: draft.isSurplusTarget ?? false,
+                    bankAccountId: draft.bankAccountId,
+                    safetyBufferFloor: draft.safetyBufferFloor ? parseFloat(draft.safetyBufferFloor) : 0,
+                    enteredAmount: draft.enteredAmount ? parseFloat(draft.enteredAmount) : updatedMonthly,
+                    targetAmount: draft.targetAmount ? parseFloat(draft.targetAmount) : null,
+                    monthlyAud: updatedMonthly,
                     startDate: draft.startDate,
                     endDate: draft.endDate,
                     rrule: draft.rrule,
@@ -272,16 +329,26 @@ function SetupWizardContent() {
                   },
                 ];
               });
+              state.setRemovedCategoryNames((prev) => {
+                const next = new Set(prev);
+                next.delete(draft.name);
+                return next;
+              });
               if (draft.budgetFrequency) {
                 state.setCategoryFrequencies((prev) => ({
                   ...prev,
-                  [draft.name]: draft.budgetFrequency === "ANNUALLY" ? "YEARLY" : (draft.budgetFrequency as "WEEKLY" | "FORTNIGHTLY" | "MONTHLY"),
+                  [draft.name]:
+                    draft.budgetFrequency === "ANNUALLY"
+                      ? "YEARLY"
+                      : (draft.budgetFrequency as "WEEKLY" | "FORTNIGHTLY" | "MONTHLY" | "QUARTERLY"),
                 }));
               }
-              state.setAmountOverrides((prev) => ({
-                ...prev,
-                [draft.name]: num,
-              }));
+              if (draft.type !== "EVERYDAY") {
+                state.setAmountOverrides((prev) => ({
+                  ...prev,
+                  [draft.name]: updatedMonthly,
+                }));
+              }
               if (draft.fundingMode === "TARGET_BALANCE") {
                 state.setBillTypeOverrides((prev) => ({
                   ...prev,
@@ -312,28 +379,12 @@ function SetupWizardContent() {
             setShowSandboxModal(false);
             state.handleFinish();
           }}
-          estimatedBills={state.totalRegularMonthly}
-          estimatedGoals={state.totalGoalMonthly}
-          defaultPaycheck={state.incomes[0]?.amount || 2500}
-        />
-
-        <SetupBalanceSweepModal
-          activeSweepPool={state.activeSweepPool}
-          availablePools={state.availablePools}
-          selectedSweepDest={state.selectedSweepDest}
-          onSelectDest={state.setSelectedSweepDest}
-          onCancel={() => state.setActiveSweepPool(null)}
-          onConfirm={state.confirmSweepAndRemove}
-        />
-
-        <ConfirmDialog
-          isOpen={state.showScheduleRuleWarning}
-          onClose={state.cancelScheduleRuleWarning}
-          onConfirm={state.confirmScheduleRuleWarning}
-          title={t("modals.updateSchedule.confirmTitleIncome")}
-          description={t("modals.updateSchedule.confirmDescRuleChange", { startDate: state.incomes[0]?.startDate || "" })}
-          confirmLabel={t("modals.updateSchedule.confirmCta")}
-          variant="warning"
+          incomes={state.incomes}
+          bankAccounts={state.bankAccounts}
+          activeEveryday={state.activeEveryday}
+          activeRegular={state.activeRegular}
+          activeGoals={state.activeGoals}
+          goals={state.goals}
         />
       </div>
     </div>

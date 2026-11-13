@@ -113,8 +113,8 @@ export function SetupGoalsPresetsGrid({
                 </div>
                 <div className="text-[11px] font-semibold text-zinc-500 mt-0.5 font-mono">
                   {isOngoing
-                    ? `${fmt(isAud ? preset.defaultTarget : 0)}/mo`
-                    : `Target: ${fmt(isAud ? preset.defaultTarget : 0)}`}
+                    ? `${fmt(isAud ? preset.defaultTarget : 0)} ${t("setup.freqSuffixMo")}`
+                    : `${t("setup.goals.targetAmountLabel")}: ${fmt(isAud ? preset.defaultTarget : 0)}`}
                 </div>
               </div>
             </button>

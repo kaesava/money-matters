@@ -8,11 +8,12 @@ describe('useSetupWizardCalculations logic', () => {
       { id: 'c2', name: 'Internet', type: 'BILL' as const, monthlyAud: 90, icon: '📌' },
     ];
     const goals = [
-      { id: 'c3', name: 'Car Fund', monthlyAmount: 200, targetAmount: 2400, fundingMode: 'RECURRING' as const, icon: '🎯' },
+      { id: 'c3', name: 'Car Fund', monthlyAmount: 200, targetAmount: 2400, fundingMode: 'RECURRING' as const, isPriority: true, icon: '🎯' },
     ];
 
     const result = computeSetupWizardCalculations({
       isRerun: true,
+      country: 'AU',
       incomes: [{ id: 'inc-1', name: 'Salary', amount: 4000, frequency: 'MONTHLY', type: 'SALARY' }],
       housingType: 'RENT_SOLO',
       hasCars: false,
@@ -22,6 +23,7 @@ describe('useSetupWizardCalculations logic', () => {
       hasKids: false,
       children: [],
       hasPrivateHealth: false,
+      hasMedicalOutofPocket: true,
       hasGym: false,
       hasPets: false,
       petsCount: 0,
@@ -54,6 +56,7 @@ describe('useSetupWizardCalculations logic', () => {
 
     const result = computeSetupWizardCalculations({
       isRerun: true,
+      country: 'AU',
       incomes: [{ id: 'inc-1', name: 'Salary', amount: 4000, frequency: 'MONTHLY', type: 'SALARY' }],
       housingType: 'RENT_SOLO',
       hasCars: false,
@@ -63,6 +66,7 @@ describe('useSetupWizardCalculations logic', () => {
       hasKids: false,
       children: [],
       hasPrivateHealth: false,
+      hasMedicalOutofPocket: true,
       hasGym: false,
       hasPets: false,
       petsCount: 0,

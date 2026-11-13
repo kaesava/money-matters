@@ -79,6 +79,9 @@ describe("saveSetupBudgetHandler", () => {
           }),
         })),
       })),
+      delete: vi.fn().mockImplementation(() => ({
+        where: vi.fn().mockResolvedValue([]),
+      })),
     };
 
     mockDb.transaction = vi.fn().mockImplementation((cb: any) => cb(mockDb));

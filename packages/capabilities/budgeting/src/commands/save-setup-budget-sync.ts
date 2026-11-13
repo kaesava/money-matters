@@ -1,42 +1,35 @@
 import { DbOrTx, expenseEvents, incomeEvents, envelopes, incomeSources } from "@money-matters/db";
 import { and, eq, inArray, sql } from "drizzle-orm";
+import { getTenantDateString } from "@money-matters/core";
 import { burstEnvelopeEvents } from "./envelope-schedule.js";
 import { burstIncomeEvents } from "./income-schedule.js";
 
 export async function archivePendingIncomeEvents(
   tx: DbOrTx,
-  archivedIncomeIds: string[],
-  userId: string,
-  now: Date
+  archivedIncomeIds: string[]
 ): Promise<void> {
   if (archivedIncomeIds.length === 0) return;
   await tx
-    .update(incomeEvents)
-    .set({ archivedAt: now, updatedBy: userId, updatedAt: now })
+    .delete(incomeEvents)
     .where(
       and(
         inArray(incomeEvents.incomeSourceId, archivedIncomeIds),
-        eq(incomeEvents.status, "PENDING"),
-        sql`${incomeEvents.archivedAt} IS NULL`
+        eq(incomeEvents.status, "PENDING")
       )
     );
 }
 
 export async function archivePendingExpenseEvents(
   tx: DbOrTx,
-  archivedEnvelopeIds: string[],
-  userId: string,
-  now: Date
+  archivedEnvelopeIds: string[]
 ): Promise<void> {
   if (archivedEnvelopeIds.length === 0) return;
   await tx
-    .update(expenseEvents)
-    .set({ archivedAt: now, updatedBy: userId, updatedAt: now })
+    .delete(expenseEvents)
     .where(
       and(
         inArray(expenseEvents.envelopeId, archivedEnvelopeIds),
-        eq(expenseEvents.status, "PENDING"),
-        sql`${expenseEvents.archivedAt} IS NULL`
+        eq(expenseEvents.status, "PENDING")
       )
     );
 }
@@ -61,9 +54,13 @@ export async function synchronizeUpdatedIncomeEvents(
 ): Promise<void> {
   if (scheduleChanged) {
     await tx
-      .update(incomeEvents)
-      .set({ archivedAt: params.now, updatedBy: params.userId, updatedAt: params.now })
-      .where(and(eq(incomeEvents.incomeSourceId, sourceId), eq(incomeEvents.status, "PENDING"), sql`${incomeEvents.archivedAt} IS NULL`));
+      .delete(incomeEvents)
+      .where(and(eq(incomeEvents.incomeSourceId, sourceId), eq(incomeEvents.status, "PENDING")));
+
+    const tz = params.timeZone || "Australia/Sydney";
+    const todayStr = getTenantDateString(params.now, { timezone: tz });
+    const yesterdayStr = getTenantDateString(new Date(params.now.getTime() - 86400000), { timezone: tz });
+    const afterDateStr = params.startDate < todayStr ? yesterdayStr : null;
 
     const count = await burstIncomeEvents(tx, {
       incomeSourceId: sourceId,
@@ -76,6 +73,7 @@ export async function synchronizeUpdatedIncomeEvents(
       appId: params.appId,
       userId: params.userId,
       timeZone: params.timeZone,
+      afterDateStr,
     });
 
     if (count === 0) {
@@ -115,11 +113,15 @@ export async function synchronizeUpdatedEnvelopeEvents(
 
   if (scheduleChanged) {
     await tx
-      .update(expenseEvents)
-      .set({ archivedAt: params.now, updatedBy: params.userId, updatedAt: params.now })
-      .where(and(eq(expenseEvents.envelopeId, envelopeId), eq(expenseEvents.isScheduled, true), eq(expenseEvents.status, "PENDING"), sql`${expenseEvents.archivedAt} IS NULL`));
+      .delete(expenseEvents)
+      .where(and(eq(expenseEvents.envelopeId, envelopeId), eq(expenseEvents.isScheduled, true), eq(expenseEvents.status, "PENDING")));
 
     if (shouldBurst && parseFloat(params.amount) > 0) {
+      const tz = params.timeZone || "Australia/Sydney";
+      const todayStr = getTenantDateString(params.now, { timezone: tz });
+      const yesterdayStr = getTenantDateString(new Date(params.now.getTime() - 86400000), { timezone: tz });
+      const afterDateStr = params.startDate < todayStr ? yesterdayStr : null;
+
       const count = await burstEnvelopeEvents(tx, {
         envelopeId,
         name: params.name,
@@ -131,6 +133,7 @@ export async function synchronizeUpdatedEnvelopeEvents(
         appId: params.appId,
         userId: params.userId,
         timeZone: params.timeZone,
+        afterDateStr,
       });
 
       if (count === 0) {

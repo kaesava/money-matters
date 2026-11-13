@@ -28,5 +28,5 @@ export function getSetupSteps(isRerun: boolean): SetupStepConfig[] {
 }
 
 export function getTotalSetupSteps(isRerun: boolean): number {
-  return isRerun ? 2 : 4;
+  return isRerun ? 3 : 5;
 }

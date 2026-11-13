@@ -74,25 +74,16 @@ export async function clearPendingIncomeEvents(
   tx: DbOrTx,
   incomeSourceId: string,
   tenantId: string,
-  appId: string,
-  userId?: string
+  appId: string
 ): Promise<void> {
-  const now = new Date();
   await tx
-    .update(incomeEvents)
-    .set({
-      archivedAt: now,
-      archivedBy: userId || null,
-      updatedAt: now,
-      ...(userId ? { updatedBy: userId } : {}),
-    })
+    .delete(incomeEvents)
     .where(
       and(
         eq(incomeEvents.incomeSourceId, incomeSourceId),
         eq(incomeEvents.status, "PENDING"),
         eq(incomeEvents.tenantId, tenantId),
-        eq(incomeEvents.appId, appId),
-        sql`${incomeEvents.archivedAt} IS NULL`
+        eq(incomeEvents.appId, appId)
       )
     );
 }

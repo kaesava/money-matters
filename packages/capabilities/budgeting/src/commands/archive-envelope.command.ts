@@ -47,25 +47,18 @@ export async function archiveEnvelopeCommand(
 
   const archiveTimestamp = new Date();
 
-  // Soft-archive all pending (unconfirmed) expense events (both scheduled and one-off)
+  // Hard-delete all pending (unconfirmed) expense events (both scheduled and one-off)
   // Confirmed history and bank accounts are never modified or archived.
   await dbClient
-    .update(expenseEvents)
-    .set({
-      archivedAt: new Date(),
-      archivedBy: userId,
-      updatedAt: new Date(),
-      updatedBy: userId,
-    })
-      .where(
-        and(
-          eq(expenseEvents.envelopeId, envelopeId),
-          eq(expenseEvents.status, "PENDING"),
-          eq(expenseEvents.tenantId, tenantId),
-          eq(expenseEvents.appId, appId),
-          sql`${expenseEvents.archivedAt} IS NULL`
-        )
-      );
+    .delete(expenseEvents)
+    .where(
+      and(
+        eq(expenseEvents.envelopeId, envelopeId),
+        eq(expenseEvents.status, "PENDING"),
+        eq(expenseEvents.tenantId, tenantId),
+        eq(expenseEvents.appId, appId)
+      )
+    );
 
   const [archived] = await dbClient
     .update(envelopes)

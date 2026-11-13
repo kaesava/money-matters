@@ -7,7 +7,6 @@ interface SetupHeaderBarProps {
   isRerun: boolean;
   step: number;
   totalSteps: number;
-  isReviewStep: boolean;
   onCancel: () => void;
 }
 
@@ -15,17 +14,16 @@ export function SetupHeaderBar({
   isRerun,
   step,
   totalSteps,
-  isReviewStep,
   onCancel,
 }: SetupHeaderBarProps) {
   return (
     <div className="flex items-center justify-between bg-white px-5 py-3 rounded-2xl border border-slate-200 shadow-xs">
       <div className="flex items-center gap-2">
-        <span className="text-sm font-black text-[#1B2B4B] tracking-tight">Money Matters</span>
+        <span className="text-sm font-black text-[#1B2B4B] tracking-tight">{t("app.title")}</span>
         <span className="text-xs font-bold text-slate-300">|</span>
         <span className="text-xs font-bold text-slate-500">
           {isRerun ? t("setup.recalibrateTitle") : t("setup.wizardTitle")}
-          {!isReviewStep && ` (${t("setup.stepOf", { step, total: totalSteps })})`}
+          {` (${t("setup.stepOf", { step, total: totalSteps })})`}
         </span>
       </div>
       <button

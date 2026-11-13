@@ -46,8 +46,7 @@ export const incomeLifecycleProcedures = {
 
         if (unperformedEvents.length > 0) {
           await tx
-            .update(incomeEvents)
-            .set({ archivedAt: new Date(), updatedBy: ctx.userId!, updatedAt: new Date() })
+            .delete(incomeEvents)
             .where(
               and(
                 inArray(incomeEvents.id, unperformedEvents.map((e) => e.id)),

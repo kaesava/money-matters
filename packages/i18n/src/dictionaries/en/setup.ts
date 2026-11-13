@@ -13,6 +13,11 @@ export const setup = {
     "freqQuarters": "Quarters",
     "freqYears": "Years",
     "frequencyQuarterly": "Quarterly",
+    "freqSuffixWk": "/ wk",
+    "freqSuffixFn": "/ fn",
+    "freqSuffixMo": "/ mo",
+    "freqSuffixQtr": "/ qtr",
+    "freqSuffixYr": "/ yr",
     "lifestyle": {
       "title": "Lifestyle Setup",
       "subtitle": "Tailor your regular household commitments and lifestyle habits.",
@@ -68,7 +73,8 @@ export const setup = {
       "medicalOutofPocket": "Regular Medical / Out-of-pocket",
       "debtRepaymentPlaceholder": "Monthly repayment",
       "charityFamily": "Charity & Family Support",
-      "charityAmountPlaceholder": "Monthly amount"
+      "charityAmountPlaceholder": "Monthly amount",
+      "petsCountLabel": "Number of Pets"
     },
     "previousStep": "Back",
     "stepOf": "Step {step} of {total}",
@@ -81,10 +87,10 @@ export const setup = {
     "recalibrateSuccess": "Household budget updated successfully.",
     "saveError": "Couldn't save setup. Please try again.",
     "saveErrorTitle": "Setup Error",
-    "sweepModalTitle": "Move Remaining Balance",
-    "sweepModalDesc": "Envelope \"{envelopeName}\" holds an active balance of {balance}. Where would you like to move this money before removing the envelope?",
-    "sweepDestinationLabel": "Destination Envelope",
-    "sweepConfirmButton": "Move Balance & Remove Envelope",
+    "confirmArchiveIncomeTitle": "Archive Income Schedule?",
+    "confirmArchiveIncomeDesc": "Removing \"{name}\" will archive this income schedule and delete all unconfirmed upcoming payday events when you save. Confirmed payment history remains safely preserved.",
+    "confirmArchiveEnvelopeTitle": "Archive Envelope?",
+    "confirmArchiveEnvelopeDesc": "Removing \"{name}\" will archive this envelope, delete any unconfirmed scheduled events, and automatically sweep any remaining balance into your Surplus Sweep Target when you save. Confirmed history and bank accounts remain safely preserved.",
     "bankAccountsStep": {
       "title": "Bank Accounts & Envelope Routing",
       "subtitle": "We've set up a default Primary Account for you. Add extra accounts or adjust how your money envelopes are routed.",
@@ -97,7 +103,8 @@ export const setup = {
       "accountNumber": "Bank Account #{number}",
       "negativeAvailableError": "One or more bank accounts have a set-aside amount exceeding the account balance. Please adjust set-aside amounts before continuing.",
       "noSharedAccountError": "Your household requires at least one shared bank account for shared living expenses.",
-      "singleAccountPrivateDisabledTooltip": "Your household requires at least one shared account for shared living expenses. Add another account to create private accounts."
+      "singleAccountPrivateDisabledTooltip": "Your household requires at least one shared account for shared living expenses. Add another account to create private accounts.",
+      "accountNamePlaceholder": "e.g. Everyday Account (Savings)"
     },
     "income": {
       "title": "Income & pay",
@@ -167,12 +174,12 @@ export const setup = {
       "recalibrateBudget": "Save & Update Budget",
       "addEnvelopeBtn": "+ Add Envelope",
       "surplusTargetHelp": "Surplus destination receives any remaining unallocated paycheck money.",
-      "readOnlyGoalsNote": "Savings goals can be edited in Step 2."
+      "monthlyEstBadge": "Monthly Est: {amount}/mo",
+      "ongoingEstMetric": "{entered}{suffix} (Est: {monthly}/mo)",
+      "targetWithDateMetric": "Target: {target} • By {date} (Est: {monthly}/mo)",
+      "targetNoDateMetric": "Target: {target} (Est: {monthly}/mo)"
     },
     "complete": {
-      "title": "You're all set! 🎉",
-      "subtitle": "Your money plan is locked in. Let's see where you're at.",
-      "goDashboard": "Take me to my dashboard",
       "simulateFirstPayday": "Test My First Payday (30-sec Sandbox)"
     },
     "sandbox": {
@@ -181,7 +188,9 @@ export const setup = {
       "paycheckAmount": "Simulated Paycheck Amount",
       "runSimulateCta": "Simulate Payday Plan",
       "simulatedSuccess": "Payday plan calculated! Here is where every dollar goes:",
-      "returnToReview": "Return to Review"
-    }
+      "returnToReview": "Return to Review",
+      "surplusSwept": "Surplus Swept"
+    },
+    "surplusSwept": "Archived envelope balances ({amount}) were automatically swept to your Surplus Target."
   }
 } as const;

@@ -11,7 +11,6 @@ import { useSetupWizardCalculations } from "./useSetupWizardCalculations";
 import { useSetupWizardPrepopulation } from "./useSetupWizardPrepopulation";
 import { useSetupWizardSubmission } from "./useSetupWizardSubmission";
 import { useSetupLifestyleState } from "./useSetupLifestyleState";
-import { useSetupSweepQueue } from "./useSetupSweepQueue";
 import { useSetupAccountsState } from "./useSetupAccountsState";
 import { useSetupIncomeState } from "./useSetupIncomeState";
 import { useSetupGoalsState } from "./useSetupGoalsState";
@@ -89,9 +88,6 @@ export function useSetupWizardState() {
   const { bankAccounts, setBankAccounts, archivedAccountIds } = accounts;
 
   const [customCategories, setCustomCategories] = useState<EstimatedCategoryItem[]>([]);
-  const [customCatName, setCustomCatName] = useState("");
-  const [customCatType, setCustomCatType] = useState<"BILL" | "GOAL" | "EVERYDAY">("BILL");
-  const [customCatAmount, setCustomCatAmount] = useState("100");
   const [removedCategoryNames, setRemovedCategoryNames] = useState<Set<string>>(new Set());
   const [amountOverrides, setAmountOverrides] = useState<Record<string, number>>({});
   const [billTypeOverrides, setBillTypeOverrides] = useState<Record<string, "RECURRING" | "TARGET_BALANCE">>({});
@@ -104,20 +100,8 @@ export function useSetupWizardState() {
     setBankAccounts,
     setGoals: (val) => goalsState.setGoals(val),
     setCustomCategories,
+    setCategoryFrequencies,
   });
-
-  const sweepPools = useMemo(
-    () =>
-      prepopulation.pools.map((p) => ({
-        id: p.id,
-        name: p.name,
-        currentBalance: p.currentBalance,
-        isSurplusTarget: p.isSurplusTarget ?? false,
-      })),
-    [prepopulation.pools]
-  );
-
-  const sweep = useSetupSweepQueue(sweepPools, (val) => goalsState.setGoals(val));
 
   const incomeState = useSetupIncomeState({
     isRerun,
@@ -126,9 +110,6 @@ export function useSetupWizardState() {
   });
 
   const goalsState = useSetupGoalsState({
-    isRerun,
-    prepopulationPools: prepopulation.pools,
-    onSweepRemoveGoal: (id) => sweep.handleRemoveGoal(id),
     onProceedToNextStep: () => setStep(isRerun ? 3 : 4),
   });
 
@@ -187,6 +168,7 @@ export function useSetupWizardState() {
       children: lifestyle.children,
       hasPrivateHealth: lifestyle.hasPrivateHealth,
       hasGym: lifestyle.hasGym,
+      hasMedicalOutofPocket: lifestyle.hasMedicalOutofPocket,
       hasPets: lifestyle.hasPets,
       petsCount: lifestyle.petsCount,
       activeDebtMonthlyRepayment: lifestyle.debtMonthlyRepayment,
@@ -216,8 +198,8 @@ export function useSetupWizardState() {
     activeCategories: calculations.activeCategories,
     goals,
     categoryFrequencies,
-    sweepQueue: sweep.sweepQueue,
     removedCategoryNames,
+    archivedGoalIds: goalsState.archivedGoalIds,
     archivedAccountIds,
     archivedIncomeIds: incomeState.archivedIncomeIds,
     existingPools: prepopulation.pools,
@@ -261,21 +243,13 @@ export function useSetupWizardState() {
     setGoals: goalsState.setGoals,
     dirtyGoalIds: goalsState.dirtyGoalIds,
     handleUpdateGoal: goalsState.handleUpdateGoalField,
-    handleSaveGoalImmediate: goalsState.handleSaveGoalImmediate,
     handleRemoveGoal: goalsState.handleRemoveGoal,
     handleNextFromGoals: goalsState.handleNextFromGoals,
-    sweepQueue: sweep.sweepQueue,
-    activeSweepPool: sweep.activeSweepPool,
-    setActiveSweepPool: sweep.setActiveSweepPool,
-    selectedSweepDest: sweep.selectedSweepDest,
-    setSelectedSweepDest: sweep.setSelectedSweepDest,
-    confirmSweepAndRemove: sweep.confirmSweepAndRemove,
     availablePools: prepopulation.pools,
     incomes,
     setIncomes: incomeState.setIncomes,
     dirtyIncomeIds: incomeState.dirtyIncomeIds,
     handleUpdateIncome: incomeState.handleUpdateIncomeField,
-    handleSaveIncomeImmediate: incomeState.handleSaveIncomeImmediate,
     handleRemoveIncome: incomeState.handleRemoveIncome,
     handleNextFromIncomes: incomeState.handleNextFromIncomes,
     bankAccounts,
@@ -285,12 +259,6 @@ export function useSetupWizardState() {
     handleRemoveAccount: accounts.handleRemoveAccount,
     customCategories,
     setCustomCategories,
-    customCatName,
-    setCustomCatName,
-    customCatType,
-    setCustomCatType,
-    customCatAmount,
-    setCustomCatAmount,
     removedCategoryNames,
     setRemovedCategoryNames,
     amountOverrides,

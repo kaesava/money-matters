@@ -55,6 +55,18 @@ export async function processSetupEnvelopes(
     (e) => e.isSurplusTarget === true && !e.isPrivate
   );
   if (designatedSurplusIndex === -1) {
+    const existingSurplusIds = new Set(
+      existingEnvelopes
+        .filter((e) => e.isSurplusTarget && !e.isPrivate && !archivedEnvelopeIds.includes(e.id))
+        .map((e) => e.id)
+    );
+    if (existingSurplusIds.size > 0) {
+      designatedSurplusIndex = envelopesInput.findIndex(
+        (e) => !e.isPrivate && Boolean(e.id && existingSurplusIds.has(e.id))
+      );
+    }
+  }
+  if (designatedSurplusIndex === -1) {
     // Priority: Emergency Reserve -> first non-private Goal -> non-private Everyday
     designatedSurplusIndex = envelopesInput.findIndex(
       (e) => !e.isPrivate && (e.name.toLowerCase().includes("emergency") || e.name.toLowerCase().includes("reserve"))
@@ -91,83 +103,8 @@ export async function processSetupEnvelopes(
       )
     );
 
-  const envelopeBalancesMap = await getEnvelopeBalancesMap(tenantId, appId, tx);
-  let sweptEnvelopesCount = 0;
-  let sweptTotalAmount = 0;
-
-  for (const envId of archivedEnvelopeIds) {
-    const envToArchive = existingEnvelopes.find((e) => e.id === envId);
-    if (!envToArchive) continue;
-
-    const currentBalance = envelopeBalancesMap[envId] || 0;
-    if (currentBalance > 0.005) {
-      const destEnvId =
-        envelopesInput.find((e) => e.isSurplusTarget)?.id ||
-        existingEnvelopes.find((e) => e.isSurplusTarget && e.id !== envId)?.id;
-
-      if (!destEnvId) {
-        throw new Error(
-          `Cannot remove envelope "${envToArchive.name}" with positive balance of $${currentBalance.toFixed(2)} without specifying a valid destination envelope for the funds sweep.`
-        );
-      }
-
-      const sweepAmountStr = currentBalance.toFixed(2);
-      const transferGroupId = randomUUID();
-      const transferNote = `Balance sweep upon archiving envelope "${envToArchive.name}"`;
-
-      await tx.insert(transactionLedger).values([
-        {
-          id: randomUUID(),
-          tenantId,
-          appId,
-          envelopeId: envId,
-          bankAccountId: envToArchive.bankAccountId,
-          amount: sweepAmountStr,
-          flowType: "DEBIT",
-          transactionType: "TRANSFER_OUT",
-          idempotencyKey: `sweep-out-${envId}-${randomUUID()}`,
-          note: transferNote,
-          source: "MANUAL",
-          transferGroupId,
-          recordedAt: now,
-          createdAt: now,
-          createdBy: userId,
-          updatedAt: now,
-          updatedBy: userId,
-        },
-        {
-          id: randomUUID(),
-          tenantId,
-          appId,
-          envelopeId: destEnvId,
-          bankAccountId: envToArchive.bankAccountId,
-          amount: sweepAmountStr,
-          flowType: "CREDIT",
-          transactionType: "TRANSFER_IN",
-          idempotencyKey: `sweep-in-${destEnvId}-${randomUUID()}`,
-          note: transferNote,
-          source: "MANUAL",
-          transferGroupId,
-          recordedAt: now,
-          createdAt: now,
-          createdBy: userId,
-          updatedAt: now,
-          updatedBy: userId,
-        },
-      ]);
-      sweptEnvelopesCount++;
-      sweptTotalAmount += currentBalance;
-    }
-
-    await tx
-      .update(envelopes)
-      .set({ archivedAt: now, archivedBy: userId, updatedAt: now, updatedBy: userId })
-      .where(eq(envelopes.id, envId));
-  }
-
-  await archivePendingExpenseEvents(tx, archivedEnvelopeIds, userId, now);
-
   const envelopeIdMap = new Map<string, string>();
+  let resolvedSurplusTargetId: string | undefined;
 
   for (let i = 0; i < envelopesInput.length; i++) {
     const envInput = envelopesInput[i];
@@ -241,7 +178,7 @@ export async function processSetupEnvelopes(
         })
         .where(eq(envelopes.id, matchedExisting.id));
 
-      const effectiveFreq = (envInput.budgetFrequency || matchedExisting.budgetFrequency || "MONTHLY") as "MONTHLY" | "WEEKLY" | "FORTNIGHTLY" | "ANNUALLY";
+      const effectiveFreq = (envInput.budgetFrequency || matchedExisting.budgetFrequency || "MONTHLY") as "MONTHLY" | "WEEKLY" | "FORTNIGHTLY" | "QUARTERLY" | "ANNUALLY";
       const isScheduledBill = envInput.envelopeType === "BILL" && fundingMode === "RECURRING" && envInput.generateEvents !== false;
       await synchronizeUpdatedEnvelopeEvents(tx, matchedExisting.id, scheduleChanged, nameOrAmountChanged, {
         name: envInput.name,
@@ -259,6 +196,7 @@ export async function processSetupEnvelopes(
 
       if (envInput.id) envelopeIdMap.set(envInput.id, matchedExisting.id);
       envelopeIdMap.set(`name-${envInput.name}`, matchedExisting.id);
+      if (envInput.isSurplusTarget) resolvedSurplusTargetId = matchedExisting.id;
     } else {
       const newEnvId = randomUUID();
       await tx.insert(envelopes).values({
@@ -290,8 +228,86 @@ export async function processSetupEnvelopes(
 
       if (envInput.id) envelopeIdMap.set(envInput.id, newEnvId);
       envelopeIdMap.set(`name-${envInput.name}`, newEnvId);
+      if (envInput.isSurplusTarget) resolvedSurplusTargetId = newEnvId;
     }
   }
+
+  const envelopeBalancesMap = await getEnvelopeBalancesMap(tenantId, appId, tx);
+  let sweptEnvelopesCount = 0;
+  let sweptTotalAmount = 0;
+
+  for (const envId of archivedEnvelopeIds) {
+    const envToArchive = existingEnvelopes.find((e) => e.id === envId);
+    if (!envToArchive) continue;
+
+    const currentBalance = envelopeBalancesMap[envId] || 0;
+    if (currentBalance > 0.005) {
+      const destEnvId =
+        resolvedSurplusTargetId ||
+        existingEnvelopes.find((e) => e.isSurplusTarget && e.id !== envId && !archivedEnvelopeIds.includes(e.id))?.id ||
+        existingEnvelopes.find((e) => e.envelopeType === "EVERYDAY" && !e.isPrivate && e.id !== envId && !archivedEnvelopeIds.includes(e.id))?.id;
+
+      if (!destEnvId) {
+        throw new Error(
+          `Cannot remove envelope "${envToArchive.name}" with positive balance of $${currentBalance.toFixed(2)} without specifying a valid destination envelope for the funds sweep.`
+        );
+      }
+
+      const sweepAmountStr = currentBalance.toFixed(2);
+      const transferGroupId = randomUUID();
+      const transferNote = `Balance sweep upon archiving envelope "${envToArchive.name}"`;
+
+      await tx.insert(transactionLedger).values([
+        {
+          id: randomUUID(),
+          tenantId,
+          appId,
+          envelopeId: envId,
+          bankAccountId: envToArchive.bankAccountId,
+          amount: sweepAmountStr,
+          flowType: "DEBIT",
+          transactionType: "TRANSFER_OUT",
+          idempotencyKey: `sweep-out-${envId}-${randomUUID()}`,
+          note: transferNote,
+          source: "MANUAL",
+          transferGroupId,
+          recordedAt: now,
+          createdAt: now,
+          createdBy: userId,
+          updatedAt: now,
+          updatedBy: userId,
+        },
+        {
+          id: randomUUID(),
+          tenantId,
+          appId,
+          envelopeId: destEnvId,
+          bankAccountId: envToArchive.bankAccountId,
+          amount: sweepAmountStr,
+          flowType: "CREDIT",
+          transactionType: "TRANSFER_IN",
+          idempotencyKey: `sweep-in-${destEnvId}-${randomUUID()}`,
+          note: transferNote,
+          source: "MANUAL",
+          transferGroupId,
+          recordedAt: now,
+          createdAt: now,
+          createdBy: userId,
+          updatedAt: now,
+          updatedBy: userId,
+        },
+      ]);
+      sweptEnvelopesCount++;
+      sweptTotalAmount += currentBalance;
+    }
+
+    await tx
+      .update(envelopes)
+      .set({ archivedAt: now, archivedBy: userId, updatedAt: now, updatedBy: userId })
+      .where(eq(envelopes.id, envId));
+  }
+
+  await archivePendingExpenseEvents(tx, archivedEnvelopeIds);
 
   return { envelopeIdMap, sweptEnvelopesCount, sweptTotalAmount };
 }

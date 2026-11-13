@@ -90,7 +90,9 @@ export function SetupGoalsPresetsGrid({
             >
               <Text style={styles.presetName} numberOfLines={1}>{displayLabel}</Text>
               <Text style={styles.presetMeta}>
-                {isOngoing ? `${formatMobileCurrency(targetAmt)}/mo` : `Target: ${formatMobileCurrency(targetAmt)}`}
+                {isOngoing
+                  ? `${formatMobileCurrency(targetAmt)} ${t('setup.freqSuffixMo')}`
+                  : `${t('setup.goals.targetAmountLabel')}: ${formatMobileCurrency(targetAmt)}`}
               </Text>
             </TouchableOpacity>
           );

@@ -3,6 +3,7 @@ import { useRouter } from 'expo-router';
 import { t } from '@money-matters/i18n';
 import { useMobileToast, buildRecurrenceRule } from '@money-matters/ui/mobile';
 import { trpc } from '../lib/trpc';
+import { formatMobileCurrency } from '../lib/format';
 import { useSetupWizard } from './SetupWizardContext';
 
 export function useSetupCategoriesSubmission() {
@@ -16,11 +17,12 @@ export function useSetupCategoriesSubmission() {
     bankAccounts,
     archivedAccountIds,
     archivedIncomeIds,
+    archivedGoalIds,
     goals,
     activeCategories,
     categoryFrequencies,
     removedCategoryNames,
-    sweepQueue,
+    convertFromMonthly,
   } = useSetupWizard();
 
   const poolsQuery = trpc.listPools.useQuery();
@@ -43,96 +45,151 @@ export function useSetupCategoriesSubmission() {
       const primaryBankAccountId = accountsPayload[0]?.id;
       const existingPools = poolsQuery.data || [];
 
-      const nonGoalCategories = activeCategories.filter((c) => c.type !== 'GOAL');
+      const everydayItems = activeCategories.filter((c) => c.type === 'EVERYDAY');
+      const billCategories = activeCategories.filter((c) => c.type === 'BILL');
 
-      // Find surplus target: Emergency Reserve -> first non-private goal -> everyday
-      const surplusGoalIndex = goals.findIndex(
-        (g) =>
-          !g.isPrivate &&
-          (g.name.toLowerCase().includes('emergency') || g.name.toLowerCase().includes('reserve'))
-      );
-      const effectiveSurplusIndex = surplusGoalIndex !== -1
-        ? surplusGoalIndex
-        : goals.findIndex((g) => !g.isPrivate);
+      const totalEverydayMonthly = everydayItems.reduce((sum, item) => sum + (item.monthlyAud || 0), 0);
+      const existingEverydayEnv = existingPools.find((env) => env.envelopeType === 'EVERYDAY' && !env.isPrivate);
+      const customEverydayItem = everydayItems.find((item) => item.id && !item.id.startsWith('temp-')) || everydayItems[0];
+
+      const everydayPayload = {
+        id: existingEverydayEnv?.id || (customEverydayItem?.id && !customEverydayItem.id.startsWith('temp-') ? customEverydayItem.id : undefined),
+        bankAccountId: customEverydayItem?.bankAccountId || existingEverydayEnv?.bankAccountId || primaryBankAccountId,
+        isPrivate: false,
+        name: existingEverydayEnv?.name || 'Everyday',
+        envelopeType: 'EVERYDAY' as const,
+        fundingMode: 'TARGET_BALANCE' as const,
+        safetyBufferFloor: (customEverydayItem?.safetyBufferFloor ?? parseFloat(existingEverydayEnv?.safetyBufferFloor || '0')).toFixed(2),
+        monthlyAmount: totalEverydayMonthly.toFixed(2),
+        enteredAmount: totalEverydayMonthly.toFixed(2),
+        budgetFrequency: 'MONTHLY' as const,
+        generateEvents: false,
+        isPriority: false,
+        orderIndex: 0,
+      };
+
+      const finalGoalsPayload = goals.filter((g) => !removedCategoryNames.has(g.name));
+
+      const hasExplicitSurplusGoal = finalGoalsPayload.some((g) => g.isSurplusTarget && !g.isPrivate);
+      const hasExplicitSurplusBill = billCategories.some((c) => c.isSurplusTarget && !c.isPrivate);
+
+      const fallbackSurplusGoalIdx =
+        !hasExplicitSurplusGoal && !hasExplicitSurplusBill
+          ? finalGoalsPayload.findIndex(
+              (g) =>
+                !g.isPrivate &&
+                (g.name.toLowerCase().includes('emergency') || g.name.toLowerCase().includes('reserve'))
+            )
+          : -1;
+      const effectiveFallbackGoalIdx =
+        !hasExplicitSurplusGoal && !hasExplicitSurplusBill
+          ? fallbackSurplusGoalIdx !== -1
+            ? fallbackSurplusGoalIdx
+            : finalGoalsPayload.findIndex((g) => !g.isPrivate)
+          : -1;
 
       const envelopesPayload = [
-        ...nonGoalCategories.map((c, idx) => {
+        everydayPayload,
+        ...billCategories.map((c, idx) => {
           const rawFreq = c.budgetFrequency || categoryFrequencies[c.name];
+          const uiFreq: 'WEEKLY' | 'FORTNIGHTLY' | 'MONTHLY' | 'QUARTERLY' | 'YEARLY' =
+            rawFreq === 'ANNUALLY'
+              ? 'YEARLY'
+              : (rawFreq as 'WEEKLY' | 'FORTNIGHTLY' | 'MONTHLY' | 'QUARTERLY' | 'YEARLY') || 'MONTHLY';
           const budgetFreq: 'WEEKLY' | 'FORTNIGHTLY' | 'MONTHLY' | 'QUARTERLY' | 'ANNUALLY' =
-            rawFreq === 'YEARLY' ? 'ANNUALLY' : (rawFreq as 'WEEKLY' | 'FORTNIGHTLY' | 'MONTHLY' | 'QUARTERLY' | 'ANNUALLY') || 'MONTHLY';
-          const isEveryday = c.type === 'EVERYDAY';
-          const envelopeType: 'EVERYDAY' | 'BILL' | 'GOAL' = isEveryday ? 'EVERYDAY' : 'BILL';
-          const fundingMode: 'TARGET_BALANCE' | 'RECURRING' = isEveryday
-            ? 'TARGET_BALANCE'
-            : c.fundingMode || 'RECURRING';
-          const catId = 'id' in c && typeof c.id === 'string' && !c.id.startsWith('temp-') ? c.id : undefined;
-          const matchedPool = (catId ? existingPools.find((p) => p.id === catId) : undefined) ||
-            (isEveryday
-              ? existingPools.find((p) => p.envelopeType === 'EVERYDAY' && !p.isPrivate)
-              : existingPools.find((p) => p.envelopeType === envelopeType && p.name.trim().toLowerCase() === c.name.trim().toLowerCase()));
+            uiFreq === 'YEARLY' ? 'ANNUALLY' : uiFreq;
+          const fundingMode: 'TARGET_BALANCE' | 'RECURRING' = c.fundingMode || 'RECURRING';
+          const catId = c.id && !c.id.startsWith('temp-') ? c.id : undefined;
+          const matchedPool =
+            (catId ? existingPools.find((p) => p.id === catId) : undefined) ||
+            existingPools.find(
+              (p) => p.envelopeType === 'BILL' && p.name.trim().toLowerCase() === c.name.trim().toLowerCase()
+            );
           const resolvedEnvId = catId || matchedPool?.id;
+          const enteredVal = convertFromMonthly(c.monthlyAud || 0, uiFreq);
+
           return {
             id: resolvedEnvId,
-            bankAccountId: matchedPool?.bankAccountId || primaryBankAccountId,
-            isPrivate: matchedPool?.isPrivate ?? false,
+            bankAccountId: c.bankAccountId || matchedPool?.bankAccountId || primaryBankAccountId,
+            isPrivate: c.isPrivate ?? matchedPool?.isPrivate ?? false,
             name: c.name,
-            envelopeType,
+            envelopeType: 'BILL' as const,
             fundingMode,
+            targetAmount:
+              fundingMode === 'TARGET_BALANCE'
+                ? (c.targetAmount ?? c.monthlyAud ?? 0).toFixed(2)
+                : undefined,
             monthlyAmount: (c.monthlyAud || 0).toFixed(2),
-            enteredAmount: (c.monthlyAud || 0).toFixed(2),
+            enteredAmount: enteredVal.toFixed(2),
             budgetFrequency: fundingMode === 'TARGET_BALANCE' ? ('MONTHLY' as const) : budgetFreq,
-            startDate: c.startDate || matchedPool?.startDate,
-            endDate: c.endDate || matchedPool?.endDate,
-            rrule: c.rrule || matchedPool?.rrule,
+            startDate: c.startDate ?? matchedPool?.startDate,
+            endDate: c.endDate ?? matchedPool?.endDate,
+            rrule: c.rrule ?? matchedPool?.rrule,
             generateEvents: fundingMode === 'RECURRING' ? (c.generateEvents ?? true) : false,
-            isPriority: !isEveryday,
-            orderIndex: idx,
+            isPriority: c.isPriority ?? true,
+            isSurplusTarget: Boolean(c.isSurplusTarget),
+            orderIndex: idx + 1,
           };
         }),
-        ...goals.map((g, idx) => {
+        ...finalGoalsPayload.map((g, idx) => {
           const goalId = g.id?.startsWith('g-') ? undefined : g.id;
-          const matchedPool = (goalId ? existingPools.find((p) => p.id === goalId) : undefined) ||
-            existingPools.find((p) => p.envelopeType === 'GOAL' && p.name.trim().toLowerCase() === g.name.trim().toLowerCase());
+          const matchedPool =
+            (goalId ? existingPools.find((p) => p.id === goalId) : undefined) ||
+            existingPools.find(
+              (p) => p.envelopeType === 'GOAL' && p.name.trim().toLowerCase() === g.name.trim().toLowerCase()
+            );
           const resolvedGoalId = goalId || matchedPool?.id;
           const isOngoing = g.fundingMode === 'RECURRING' || (!g.dueDate && Boolean(g.budgetFrequency));
-          const fundingMode: 'TARGET_BALANCE' | 'RECURRING' = g.fundingMode || (isOngoing ? 'RECURRING' : 'TARGET_BALANCE');
-          const rawAmt = g.enteredAmount !== undefined && g.enteredAmount !== null
-            ? g.enteredAmount
-            : (g.monthlyAmount || g.targetAmount || 0);
+          const fundingMode: 'TARGET_BALANCE' | 'RECURRING' =
+            g.fundingMode || (isOngoing ? 'RECURRING' : 'TARGET_BALANCE');
+          const rawAmt =
+            g.enteredAmount !== undefined && g.enteredAmount !== null
+              ? g.enteredAmount
+              : (g.monthlyAmount || g.targetAmount || 0);
           const computedMonthly = isOngoing
-            ? (g.budgetFrequency === 'WEEKLY'
-                ? (rawAmt * 52) / 12
-                : g.budgetFrequency === 'FORTNIGHTLY'
-                ? (rawAmt * 26) / 12
-                : g.budgetFrequency === 'ANNUALLY'
-                ? rawAmt / 12
-                : rawAmt)
+            ? g.budgetFrequency === 'WEEKLY'
+              ? (rawAmt * 52) / 12
+              : g.budgetFrequency === 'FORTNIGHTLY'
+              ? (rawAmt * 26) / 12
+              : g.budgetFrequency === 'QUARTERLY'
+              ? (rawAmt * 4) / 12
+              : g.budgetFrequency === 'ANNUALLY'
+              ? rawAmt / 12
+              : rawAmt
             : (g.monthlyAmount || (g.targetAmount ? g.targetAmount / 12 : 100));
+
+          const isSurplus =
+            hasExplicitSurplusGoal || hasExplicitSurplusBill
+              ? Boolean(g.isSurplusTarget)
+              : idx === effectiveFallbackGoalIdx;
 
           return {
             id: resolvedGoalId,
-            bankAccountId: matchedPool?.bankAccountId || primaryBankAccountId,
+            bankAccountId: g.bankAccountId || matchedPool?.bankAccountId || primaryBankAccountId,
             name: g.name,
             envelopeType: 'GOAL' as const,
             fundingMode,
             targetAmount: (isOngoing
-              ? (g.targetAmount !== undefined && g.targetAmount !== null && g.targetAmount > 0
-                  ? g.targetAmount
-                  : (g.enteredAmount || g.monthlyAmount || 0))
+              ? g.targetAmount !== undefined && g.targetAmount !== null && g.targetAmount > 0
+                ? g.targetAmount
+                : (g.enteredAmount || g.monthlyAmount || 0)
               : (g.targetAmount || g.monthlyAmount * 12 || 1000)
             ).toFixed(2),
             monthlyAmount: computedMonthly.toFixed(2),
             endDate: isOngoing ? null : (g.dueDate || null),
-            enteredAmount: (g.enteredAmount !== undefined && g.enteredAmount !== null)
-              ? g.enteredAmount.toFixed(2)
-              : (g.monthlyAmount ? g.monthlyAmount.toFixed(2) : undefined),
+            enteredAmount:
+              g.enteredAmount !== undefined && g.enteredAmount !== null
+                ? g.enteredAmount.toFixed(2)
+                : g.monthlyAmount
+                ? g.monthlyAmount.toFixed(2)
+                : undefined,
             budgetFrequency: g.budgetFrequency || (isOngoing ? 'MONTHLY' : undefined),
             startDate: g.startDate,
             rrule: g.rrule,
-            isSurplusTarget: idx === effectiveSurplusIndex,
-            isPriority: true,
+            isSurplusTarget: isSurplus,
+            isPriority: g.isPriority ?? true,
             isPrivate: matchedPool?.isPrivate ?? Boolean(g.isPrivate),
-            orderIndex: nonGoalCategories.length + idx,
+            orderIndex: billCategories.length + 1 + idx,
           };
         }),
       ];
@@ -165,34 +222,69 @@ export function useSetupCategoriesSubmission() {
         };
       });
 
-      const resolvedArchivedEnvelopeIds = Array.from(removedCategoryNames)
-        .map((name) => existingPools.find((c) => c.name === name)?.id)
-        .filter((id): id is string => Boolean(id));
+      const archivedEnvelopeIds = isRerun
+        ? Array.from(
+            new Set([
+              ...Array.from(archivedGoalIds),
+              ...existingPools
+                .filter(
+                  (env) =>
+                    removedCategoryNames.has(env.name) ||
+                    (env.envelopeType === 'GOAL' && !finalGoalsPayload.some((g) => g.id === env.id))
+                )
+                .map((env) => env.id),
+            ])
+          )
+        : [];
 
-      await saveSetupBudgetMut.mutateAsync({
+      const result = await saveSetupBudgetMut.mutateAsync({
         incomes: incomesPayload,
-        bankAccounts: accountsPayload.length > 0 ? accountsPayload : [
-          { name: 'Other Financial Institution (Everyday)', bankProvider: 'Other', accountType: 'EVERYDAY', lastKnownBalance: '1000.00', unbudgetedBuffer: '0.00', isPrivate: false },
-        ],
-        envelopes: envelopesPayload.length > 0 ? envelopesPayload : [
-          { name: 'Everyday Spending', envelopeType: 'EVERYDAY', bankAccountId: accountsPayload[0]?.id, monthlyAmount: '1000.00', isPriority: false, fundingMode: 'TARGET_BALANCE' },
-        ],
-        archivedEnvelopeIds: [...sweepQueue.map((s) => s.poolId), ...resolvedArchivedEnvelopeIds],
+        bankAccounts:
+          accountsPayload.length > 0
+            ? accountsPayload
+            : [
+                {
+                  name: 'Other Financial Institution (Everyday)',
+                  bankProvider: 'Other',
+                  accountType: 'EVERYDAY',
+                  lastKnownBalance: '1000.00',
+                  unbudgetedBuffer: '0.00',
+                  isPrivate: false,
+                },
+              ],
+        envelopes:
+          envelopesPayload.length > 0
+            ? envelopesPayload
+            : [
+                {
+                  name: 'Everyday',
+                  envelopeType: 'EVERYDAY',
+                  bankAccountId: accountsPayload[0]?.id,
+                  monthlyAmount: '1000.00',
+                  isPriority: false,
+                  fundingMode: 'TARGET_BALANCE',
+                },
+              ],
+        archivedEnvelopeIds,
         archivedAccountIds: Array.from(archivedAccountIds),
         archivedIncomeIds: Array.from(archivedIncomeIds),
       });
 
-      utils.getTenantStatus.setData(undefined, (old) => (old ? { ...old, setupCompleted: true, setupStatus: 'COMPLETED' } : undefined));
+      utils.getTenantStatus.setData(undefined, (old) =>
+        old ? { ...old, setupCompleted: true, setupStatus: 'COMPLETED' } : undefined
+      );
       await utils.getTenantStatus.refetch();
       await utils.invalidate();
 
-      if (isRerun) {
+      const sweptTotal = result.persistedCounts?.sweptTotalAmount ?? 0;
+      if (sweptTotal > 0.005) {
+        toast.success(t('setup.surplusSwept', { amount: formatMobileCurrency(sweptTotal) }));
+      } else if (isRerun) {
         toast.success(t('setup.recalibrateSuccess'));
-        router.replace('/(app)/home');
       } else {
         toast.success(t('toasts.setupSaved'));
-        router.replace('/(setup)/complete');
       }
+      router.replace('/(app)/home');
     } catch {
       toast.error(t('setup.saveError'), t('setup.saveErrorTitle'));
     } finally {

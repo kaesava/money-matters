@@ -11,6 +11,9 @@ interface PrepopulationProps {
   setBankAccounts: React.Dispatch<React.SetStateAction<MobileBankAccountItem[]>>;
   setGoals: React.Dispatch<React.SetStateAction<UserGoalItem[]>>;
   setCustomCategories: React.Dispatch<React.SetStateAction<EstimatedCategoryItem[]>>;
+  setCategoryFrequencies: React.Dispatch<
+    React.SetStateAction<Record<string, 'WEEKLY' | 'FORTNIGHTLY' | 'MONTHLY' | 'QUARTERLY' | 'YEARLY'>>
+  >;
 }
 
 export function useSetupWizardPrepopulation({
@@ -19,15 +22,16 @@ export function useSetupWizardPrepopulation({
   setBankAccounts,
   setGoals,
   setCustomCategories,
+  setCategoryFrequencies,
 }: PrepopulationProps) {
   const tz = getMobileLocaleConfig().timezone;
-  const incomeSourcesQuery = trpc.listIncomeSources.useQuery(undefined, { enabled: isRerun });
+  const incomeSourcesQuery = trpc.listIncomeSources.useQuery();
   const bankAccountsQuery = trpc.getBankAccountsWithMappings.useQuery();
   const poolsQuery = trpc.listPools.useQuery();
 
-  // Pre-populate incomes if in rerun mode
+  // Pre-populate incomes if in rerun mode (or if existing income sources exist)
   useEffect(() => {
-    if (!isRerun || !incomeSourcesQuery.data || incomeSourcesQuery.data.length === 0) return;
+    if (!incomeSourcesQuery.data || incomeSourcesQuery.data.length === 0) return;
     setIncomes(
       incomeSourcesQuery.data.map((inc) => {
         const parsed = parseRecurrenceRule(inc.rrule);
@@ -40,11 +44,13 @@ export function useSetupWizardPrepopulation({
           rrule: inc.rrule,
           type: 'SALARY',
           receivingAccountId: inc.receivingAccountId,
-          startDate: inc.startDate ? String(inc.startDate) : new Intl.DateTimeFormat('en-CA', { timeZone: tz }).format(new Date()),
+          startDate: inc.startDate
+            ? String(inc.startDate)
+            : new Intl.DateTimeFormat('en-CA', { timeZone: tz }).format(new Date()),
         };
       })
     );
-  }, [isRerun, incomeSourcesQuery.data, setIncomes, tz]);
+  }, [incomeSourcesQuery.data, setIncomes, tz]);
 
   // Pre-populate bank accounts (both in normal mode and rerun)
   useEffect(() => {
@@ -78,11 +84,18 @@ export function useSetupWizardPrepopulation({
             name: g.name,
             fundingMode: isOngoing ? ('RECURRING' as const) : ('TARGET_BALANCE' as const),
             isPriority: g.isPriority ?? true,
+            isSurplusTarget: g.isSurplusTarget ?? false,
+            isPrivate: g.isPrivate ?? false,
+            bankAccountId: g.bankAccountId,
+            currentBalance:
+              typeof g.currentBalance === 'number'
+                ? g.currentBalance
+                : parseFloat(String(g.currentBalance || '0')),
             monthlyAmount: isOngoing ? monthlyAmt : (monthlyAmt || (targetAmt > 0 ? Math.round(targetAmt / 12) : 0)),
             icon: 'target',
             targetAmount: targetAmt,
             enteredAmount: enteredAmt,
-            budgetFrequency: (g.budgetFrequency as 'WEEKLY' | 'FORTNIGHTLY' | 'MONTHLY' | 'ANNUALLY' | null) || undefined,
+            budgetFrequency: (g.budgetFrequency as 'WEEKLY' | 'FORTNIGHTLY' | 'MONTHLY' | 'QUARTERLY' | 'ANNUALLY' | null) || undefined,
             startDate: g.startDate,
             rrule: g.rrule,
             dueDate: isOngoing
@@ -101,23 +114,52 @@ export function useSetupWizardPrepopulation({
   useEffect(() => {
     if (!isRerun || !poolsQuery.data || poolsQuery.data.length === 0) return;
     const nonGoalEnvelopes = poolsQuery.data.filter((p) => p.envelopeType !== 'GOAL');
+    const freqMap: Record<string, 'WEEKLY' | 'FORTNIGHTLY' | 'MONTHLY' | 'QUARTERLY' | 'YEARLY'> = {};
     setCustomCategories(
-      nonGoalEnvelopes.map((c) => ({
-        id: c.id,
-        name: c.name,
-        type: (c.envelopeType === 'EVERYDAY' ? 'EVERYDAY' : 'BILL') as 'BILL' | 'GOAL' | 'EVERYDAY',
-        envelopeType: c.envelopeType,
-        fundingMode: c.fundingMode || (c.envelopeType === 'BILL' ? 'RECURRING' : 'TARGET_BALANCE'),
-        isPriority: c.isPriority ?? (c.envelopeType === 'BILL'),
-        monthlyAud: parseFloat(c.monthlyAmount || c.targetAmount || '0'),
-        icon: c.envelopeType === 'EVERYDAY' ? 'wallet' : 'pin',
-      }))
+      nonGoalEnvelopes.map((c) => {
+        const rawFreq = c.budgetFrequency as string | null | undefined;
+        if (rawFreq) {
+          freqMap[c.name] =
+            rawFreq === 'ANNUALLY'
+              ? 'YEARLY'
+              : (rawFreq as 'WEEKLY' | 'FORTNIGHTLY' | 'MONTHLY' | 'QUARTERLY' | 'YEARLY');
+        }
+        return {
+          id: c.id,
+          name: c.name,
+          type: (c.envelopeType === 'EVERYDAY' ? 'EVERYDAY' : 'BILL') as 'BILL' | 'GOAL' | 'EVERYDAY',
+          envelopeType: c.envelopeType as 'EVERYDAY' | 'BILL' | 'GOAL',
+          fundingMode: (c.fundingMode || (c.envelopeType === 'BILL' ? 'RECURRING' : 'TARGET_BALANCE')) as
+            | 'RECURRING'
+            | 'TARGET_BALANCE',
+          isPriority: c.isPriority ?? (c.envelopeType === 'BILL'),
+          isSurplusTarget: c.isSurplusTarget ?? false,
+          isPrivate: c.isPrivate ?? false,
+          bankAccountId: c.bankAccountId,
+          safetyBufferFloor: parseFloat(c.safetyBufferFloor || '0'),
+          enteredAmount: c.enteredAmount ? parseFloat(c.enteredAmount) : parseFloat(c.monthlyAmount || c.targetAmount || '0'),
+          targetAmount: c.targetAmount ? parseFloat(c.targetAmount) : null,
+          currentBalance:
+            typeof c.currentBalance === 'number'
+              ? c.currentBalance
+              : parseFloat(String(c.currentBalance || '0')),
+          monthlyAud: parseFloat(c.monthlyAmount || c.targetAmount || '0'),
+          budgetFrequency: (c.budgetFrequency as 'WEEKLY' | 'FORTNIGHTLY' | 'MONTHLY' | 'QUARTERLY' | 'ANNUALLY' | null) || undefined,
+          startDate: c.startDate,
+          endDate: c.endDate,
+          rrule: c.rrule,
+          generateEvents: c.hasScheduledEvents ?? (c.envelopeType === 'BILL' && c.fundingMode === 'RECURRING'),
+          icon: c.envelopeType === 'EVERYDAY' ? '🛒' : '📌',
+        };
+      })
     );
-  }, [isRerun, poolsQuery.data, setCustomCategories]);
+    if (Object.keys(freqMap).length > 0) {
+      setCategoryFrequencies((prev) => ({ ...freqMap, ...prev }));
+    }
+  }, [isRerun, poolsQuery.data, setCustomCategories, setCategoryFrequencies]);
 
   return {
     rawPools: poolsQuery.data || [],
-    rawCategories: [] as unknown[],
     isLoading: incomeSourcesQuery.isLoading || poolsQuery.isLoading || bankAccountsQuery.isLoading,
   };
 }

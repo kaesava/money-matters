@@ -253,14 +253,15 @@ The onboarding flow delivers an engaging interactive estimation experience compl
    - Allows users to adjust monthly target amounts ($), add custom categories, or remove categories.
 
 ### Safe Forward-Looking Setup Re-calibration (`mode=rerun`)
-- **3-Step Streamlined Flow**:
-  - Accessible via Settings ("Re-calibrate Household Budget") or Pools header ("⚙️ Re-calibrate Household Budget").
-  - Skips Lifestyle Quiz to protect custom category amounts from being overwritten by ABS national averages.
-  - Step 1: Incomes $\rightarrow$ Step 2: Bank Accounts & Routing $\rightarrow$ Step 3: Pools & Category Targets.
-- **Atomic Balance Sweep on Pool Deletion**:
-  - If a user deletes an active pool that holds positive funds ($> \$0.00$), the system blocks silent loss and presents the **Move Remaining Balance** modal.
-  - Prompts destination pool selection (defaulting to the Surplus Target pool).
-  - Atomically records balanced `TRANSFER_OUT` and `TRANSFER_IN` ledger entries before soft-archiving the pool, guaranteeing 100% historical ledger integrity.
+- **3-Step Streamlined Draft-Only Flow**:
+  - Accessible via Settings ("Re-calibrate Household Budget") or Envelopes header ("Re-calibrate Household Budget").
+  - Skips Bank Accounts and the Lifestyle Quiz to protect custom envelope configurations from being overwritten by ABS national averages.
+  - Step 1: Income Schedules $\rightarrow$ Step 2: Goals & Commitments $\rightarrow$ Step 3: Envelopes & Budget Review.
+  - **100% Draft-Only Until Final Save**: All income schedule additions/edits/removals, goal additions/edits/removals, and envelope adjustments in `mode=rerun` are held in wizard draft state and committed atomically only when the user clicks `"Save & Update Budget"`. Clicking `"Cancel Setup"` discards all draft changes cleanly without mutating the database.
+- **Automatic Surplus Sweep on Envelope Archiving & Event Lifecycle**:
+  - Removing an existing Income Schedule, Goal, or Bill Envelope in `mode=rerun` prompts a confirmation dialog warning that the item will be archived on Save, any pending unperformed scheduled events will be permanently deleted, and (for Envelopes) any positive balance will be automatically swept into the household **Surplus Sweep Target** (falling back to the shared `EVERYDAY` envelope if no Goal is marked `isSurplusTarget`).
+  - On `"Save & Update Budget"`, `saveSetupBudget` atomically records balanced `TRANSFER_OUT` and `TRANSFER_IN` ledger entries to sweep positive balances ($> \$0.00$) from archived envelopes into the Surplus Sweep Target, soft-archives the parent `envelopes` / `income_sources` records (`archivedAt = now`), and hard-deletes (`DELETE FROM ... WHERE status = 'PENDING'`) all unperformed scheduled `expense_events` / `income_events`.
+  - When updating an existing Income Schedule or Bill Envelope: if only the name or amount changed, `status = 'PENDING'` events are updated in-place (`UPDATE`); if schedule rules changed (`frequency`, `interval`, `rrule`, `startDate`, `endDate`, `generateEvents`, `fundingMode`), `status = 'PENDING'` events are hard-deleted and re-burst from today forward while preserving historical `CONFIRMED` events untouched.
 
 ### UX Guardrails & Flow Controls
 - **Discard Warning & Skip Guard (`cancelSetup`)**: Clicking "Cancel Setup" on Web or "Skip for now" on Mobile during first-run Setup prompts a confirmation modal. Confirming invokes the `cancelSetup` mutation, which marks `setupStatus: 'CANCELLED'` and stamps `setupCompletedAt` on the household `tenants` record, while ensuring only the minimal workspace exists: **1 bank account** (`Other Financial Institution (Everyday)`) and **1 shared `EVERYDAY` envelope** (`Everyday Spending`, designated as the surplus target) linked to that bank account, with **no** Income Schedules and **no** Bill or Goal envelopes. If the user later manually visits `/setup` while `setupStatus === 'CANCELLED'`, the full 5-step first-run wizard launches (rather than 3-step rerun mode) and saving completes setup (`setupStatus: 'COMPLETED'`).
@@ -641,16 +642,18 @@ This section provides the authoritative, exhaustive breakdown of every functiona
 
 ### 12.4 Household Setup & Budget Re-calibration Wizard
 * **Initial Onboarding Wizard (`/setup`, `/(setup)/*`)**:
-  - *Step 1: Income Setup*: Dynamic addition of income sources (Primary Salary, Side Hustle, Investments) with Name, Amount ($), Frequency (Weekly, Fortnightly, Monthly), and Start Date.
-  - *Step 2: Australian Household Banking Architecture*: Archetype selection (Aussie 2-Account Blueprint, Yours Mine & Ours, All-in-One Account) with 60-Second Australian Bank Cheat Sheet modal (CBA, Up, Macquarie, ING).
-  - *Step 3: Goals & Commitments*: Targeted savings goals (Emergency Fund, Car, Holiday) with target amount and target date.
-  - *Step 4: Lifestyle Category Budgeting*: ABS 2025/2026 benchmark estimations for housing, transport, food, family, and utilities.
-  - *Step 5: Review & Confirm*: Total Monthly Income vs Total Monthly Budgeted comparison; custom category adjustments; automated recurring bill expense schedule generation (`autoCreateExpenseSchedules`, defaulting to enabled with opt-out checkbox in the Regular Bills section) which creates `expense_sources` and 12 projected `expense_events` anchored to the 1st of next month for monthly bills (or next pay cycle for weekly/fortnightly bills) to prevent Day 1 Cashflow Guard distortions; single-click commit creating pools, categories, bill schedules, and setting `setupStatus = 'COMPLETED'`.
+  - *5-Step Sequence (`totalSteps = 5`)*: Displays `"Step X of 5"` across all 5 steps including Review.
+  - *Step 1: Income Setup*: Dynamic addition of income schedules with Name, Amount, Frequency (`Weekly`, `Fortnightly`, `Monthly`, `Quarterly`, `Annually`), Start Date, and End Date.
+  - *Step 2: Household Banking Architecture*: Archetype selection (2-Account Blueprint, Yours Mine & Ours, All-in-One Account) with 60-Second Bank Cheat Sheet modal.
+  - *Step 3: Goals & Commitments*: Targeted (`TARGET_BALANCE`) and ongoing (`RECURRING`) savings goals with target/contribution amounts, frequency (`Weekly`, `Fortnightly`, `Monthly`, `Quarterly`, `Annually`), target/start dates, and past-date warning banners.
+  - *Step 4: Lifestyle Budgeting*: Benchmark estimations across housing, transport (vehicles, public transport, rideshare), family (dependents), health cover & out-of-pocket medical/pharmacy, gym/fitness, debt repayments, pets, and charity giving on both Web and Mobile.
+  - *Step 5: Review & Confirm*: Total Monthly Income vs Total Allocated comparison; unified inline editing + full `EnvelopeFormModal` editing across Everyday, Regular & Flexible Bills, and Goals & Savings; realistic interactive `"Test My First Payday"` Sandbox Simulator (`simulateSetupPaydaySandbox`) running the 5-step cycle-prorated waterfall against the user's draft incomes, bank balances, and envelopes; single-click commit creating bank accounts, income schedules (with 12-month burst `income_events`), and envelopes (with 12-month burst `expense_events` for recurring bills), setting `setupStatus = 'COMPLETED'`, and navigating directly to Dashboard.
 * **Budget Re-calibration (`/setup?mode=rerun`)**:
-  - *Universal*: 3-step streamlined flow skipping lifestyle quiz: Step 1 Incomes $\rightarrow$ Step 2 Bank Accounts $\rightarrow$ Step 3 Categories & Targets.
-  - *Strict Add-Only Schedule Preservation*: Re-running budget setup preserves existing bill schedules, custom due dates, and historical confirmed payment events untouched; newly introduced `BILL` categories without existing schedules are automatically created and scheduled.
-  - *Atomic Balance Sweep on Pool Deletion*: Prompts `<MoveMoneyModal>` to sweep positive balances ($> \$0.00$) into destination pool before pool soft-archival, recording balanced `TRANSFER_OUT`/`TRANSFER_IN` ledger entries.
-  - *Budget Impact Review Panel*: Diff preview showing +/- changes to monthly caps and effective start date before committing.
+  - *3-Step Streamlined Draft-Only Flow (`totalSteps = 3`)*: Displays `"Step X of 3"` across all 3 steps: Step 1 Income Schedules $\rightarrow$ Step 2 Goals & Commitments $\rightarrow$ Step 3 Envelopes & Budget Review (skipping Bank Accounts and Lifestyle Quiz).
+  - *Zero Premature DB Mutations*: All edits, additions, and removals in Step 1, Step 2, and Step 3 remain in wizard draft state until final `"Save & Update Budget"`.
+  - *Event Lifecycle & Schedule Diffing*: Updating an existing Income Schedule or Bill Envelope updates `status = 'PENDING'` events in-place when only name/amount changed, or hard-deletes `status = 'PENDING'` events and re-bursts from today when schedule rules (`frequency`, `interval`, `rrule`, `startDate`, `endDate`, `generateEvents`, `fundingMode`) changed. Archiving an Income Schedule or Envelope soft-archives the parent row and hard-deletes `status = 'PENDING'` events.
+  - *Automatic Surplus Sweep on Envelope Archiving*: Removing an existing Goal or Bill with a positive balance ($> \$0.00$) warns the user via confirmation dialog and, upon Save, automatically sweeps the positive balance into the household Surplus Sweep Target (or fallback shared `EVERYDAY` envelope) via balanced `TRANSFER_OUT`/`TRANSFER_IN` ledger entries before soft-archiving.
+  - *Surplus Sweep Target Integrity*: Preserves the database `isSurplusTarget` flag in `mode=rerun` and blocks archiving the active Surplus Sweep Target or `EVERYDAY` envelope.
 
 ### 12.5 Global Shell & Navigation
 * **Web Desktop & Tablet Shell**:

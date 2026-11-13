@@ -3,35 +3,18 @@
 import React, { useState } from "react";
 import { t } from "@money-matters/i18n";
 import { InfoTooltip, AmountField, GoalModeToggle, ConfirmDialog } from "@money-matters/ui/web";
+import type { UserGoalItem } from "@money-matters/types";
 import { SetupGoalsPresetsGrid, GoalPresetConfig } from "./SetupGoalsPresetsGrid";
 import { SetupGoalItemRow } from "./SetupGoalItemRow";
 
-export interface UserGoalItem {
-  id: string;
-  name: string;
-  monthlyAmount: number;
-  icon: string;
-  type?: "GOAL";
-  fundingMode?: "TARGET_BALANCE" | "RECURRING";
-  isPriority?: boolean;
-  targetAmount?: number | null;
-  dueDate?: string | null;
-  enteredAmount?: number | null;
-  budgetFrequency?: "WEEKLY" | "FORTNIGHTLY" | "MONTHLY" | "QUARTERLY" | "ANNUALLY";
-  startDate?: string | null;
-  rrule?: string | null;
-  isPrivate?: boolean;
-  isSurplusTarget?: boolean;
-}
+export type { UserGoalItem };
 
 interface SetupGoalsStepProps {
   goals: UserGoalItem[];
   isRerun?: boolean;
-  dirtyGoalIds?: Set<string>;
   onAddGoal: (goal: Omit<UserGoalItem, "id">) => void;
   onUpdateGoal: (id: string, field: keyof UserGoalItem, value: string | number) => void;
   onRemoveGoal: (id: string) => void;
-  onSaveGoal?: (id: string) => Promise<void>;
   onBack: () => void;
   onNext: () => void;
   totalSteps?: number;
@@ -47,14 +30,12 @@ const getFutureDate = (months: number) => {
 export function SetupGoalsStep({
   goals,
   isRerun = false,
-  dirtyGoalIds = new Set(),
   onAddGoal,
   onUpdateGoal,
   onRemoveGoal,
-  onSaveGoal,
   onBack,
   onNext,
-  totalSteps = 4,
+  totalSteps = 5,
   isAud = true,
 }: SetupGoalsStepProps) {
   const [customName, setCustomName] = useState("");
@@ -70,6 +51,7 @@ export function SetupGoalsStep({
   const togglePreset = (preset: GoalPresetConfig) => {
     const existing = goals.find((g) => g.name.trim().toLowerCase() === preset.name.trim().toLowerCase());
     if (existing) {
+      if (existing.isSurplusTarget) return;
       onRemoveGoal(existing.id);
     } else {
       const isOngoing = preset.fundingMode === "RECURRING";
@@ -238,10 +220,8 @@ export function SetupGoalsStep({
                 key={g.id}
                 goal={g}
                 isRerun={isRerun}
-                isDirty={dirtyGoalIds.has(g.id)}
                 onUpdateGoal={onUpdateGoal}
                 onRemoveGoal={onRemoveGoal}
-                onSaveGoal={onSaveGoal}
               />
             ))}
           </div>

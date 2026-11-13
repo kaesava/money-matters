@@ -43,6 +43,7 @@ export interface EnvelopeDraftPayload {
   type: "GOAL" | "BILL" | "EVERYDAY";
   envelopeType: "EVERYDAY" | "BILL" | "GOAL";
   fundingMode?: "TARGET_BALANCE" | "RECURRING";
+  safetyBufferFloor?: string;
   monthlyAmount?: string;
   enteredAmount?: string;
   targetAmount?: string;
@@ -237,7 +238,7 @@ export function EnvelopeFormModal({
 
   const handleSubmit = () => {
     if (!validateForm()) return;
-    if (isEdit && isScheduleRuleChanged) {
+    if (isEdit && !isDraftMode && isScheduleRuleChanged) {
       showMobileConfirm({
         title: t("modals.updateSchedule.confirmTitleExpense"),
         message: t("modals.updateSchedule.confirmDescRuleChange", { startDate: goalStartDate || "" }),
@@ -304,7 +305,7 @@ export function EnvelopeFormModal({
       footer={
         <EnvelopeFormFooter
           isEdit={isEdit}
-          showArchive={isEdit && type !== "EVERYDAY"}
+          showArchive={isEdit && !isDraftMode && type !== "EVERYDAY"}
           archiveLabel={
             initialMode === "BILL_SCHEDULE" ? t("categories.archiveBillSchedule") : t("categories.archivePool")
           }

@@ -4,9 +4,10 @@ import {
   IncomeItem,
   UserGoalItem,
   EstimatedCategoryItem,
+  getTotalSetupSteps,
 } from '@money-matters/types';
 import { SetupWizardContextValue } from './setup-wizard-types';
-import { formatIsoDate } from '../lib/format';
+import { formatIsoDate, getMobileLocaleConfig } from '../lib/format';
 import { useSetupWizardPrepopulation } from './useSetupWizardPrepopulation';
 import { useSetupWizardCalculations } from './useSetupWizardCalculations';
 import { useSetupWizardLifestyleState } from './useSetupWizardLifestyleState';
@@ -27,6 +28,8 @@ export function SetupWizardProvider({ children: reactChildren }: { children: Rea
     enabled: tenantStatusQuery.data?.hasTenant === true,
   });
 
+  const tz = getMobileLocaleConfig().timezone;
+
   // Auto-provision tenant for authenticated users without a household
   const isCreatingTenantRef = useRef(false);
   useEffect(() => {
@@ -38,10 +41,10 @@ export function SetupWizardProvider({ children: reactChildren }: { children: Rea
       isCreatingTenantRef.current = true;
       createTenantMut
         .mutateAsync({
-          name: "My Household",
-          country: "AU",
-          currency: "AUD",
-          timezone: "Australia/Sydney",
+          name: 'My Household',
+          country: 'AU',
+          currency: 'AUD',
+          timezone: tz,
         })
         .then(async () => {
           await tenantStatusQuery.refetch();
@@ -51,13 +54,13 @@ export function SetupWizardProvider({ children: reactChildren }: { children: Rea
           isCreatingTenantRef.current = false;
         });
     }
-  }, [tenantStatusQuery.data, createTenantMut, tenantStatusQuery, utils]);
+  }, [tenantStatusQuery.data, createTenantMut, tenantStatusQuery, utils, tz]);
 
   const globalParams = useGlobalSearchParams<{ mode?: string }>();
   const isRerunParam = globalParams.mode === 'rerun';
   const setupAlreadyCompleted = userPrefQuery.data?.setupStatus === 'COMPLETED';
   const [isRerun, setIsRerun] = useState<boolean>(() => isRerunParam || setupAlreadyCompleted);
-  const totalSteps = isRerun ? 2 : 4;
+  const totalSteps = getTotalSetupSteps(isRerun);
   const initialSetupCompletedRef = useRef<boolean | null>(null);
 
   const isAud = tenantQuery.data?.currency ? tenantQuery.data.currency === 'AUD' : true;
@@ -93,7 +96,11 @@ export function SetupWizardProvider({ children: reactChildren }: { children: Rea
         prev.map((inc) => (inc.id === 'inc-1' && inc.amount === 3200 ? { ...inc, amount: 0 } : inc))
       );
       accounts.setBankAccounts((prev) =>
-        prev.map((acc) => (acc.id === 'acc-default' && acc.lastKnownBalance === '1000.00' ? { ...acc, lastKnownBalance: '0.00' } : acc))
+        prev.map((acc) =>
+          acc.id === 'acc-default' && acc.lastKnownBalance === '1000.00'
+            ? { ...acc, lastKnownBalance: '0.00' }
+            : acc
+        )
       );
       setGoals((prev) =>
         prev.map((g) => {
@@ -119,10 +126,11 @@ export function SetupWizardProvider({ children: reactChildren }: { children: Rea
       amount: 3200,
       frequency: 'FORTNIGHTLY',
       type: 'SALARY',
-      startDate: new Intl.DateTimeFormat('en-CA', { timeZone: 'Australia/Sydney' }).format(new Date()),
+      startDate: new Intl.DateTimeFormat('en-CA', { timeZone: tz }).format(new Date()),
     },
   ]);
   const [archivedIncomeIds, setArchivedIncomeIds] = useState<Set<string>>(new Set());
+  const [archivedGoalIds, setArchivedGoalIds] = useState<Set<string>>(new Set());
 
   const [goals, setGoals] = useState<UserGoalItem[]>([
     {
@@ -134,6 +142,7 @@ export function SetupWizardProvider({ children: reactChildren }: { children: Rea
       targetAmount: 10000,
       budgetFrequency: 'MONTHLY',
       isPriority: false,
+      isSurplusTarget: true,
     },
     {
       id: 'g-2',
@@ -157,134 +166,39 @@ export function SetupWizardProvider({ children: reactChildren }: { children: Rea
     Record<string, 'WEEKLY' | 'FORTNIGHTLY' | 'MONTHLY' | 'QUARTERLY' | 'YEARLY'>
   >({});
 
-  // Balance Sweep & Archival state
-  const [sweepQueue, setSweepQueue] = useState<Array<{ poolId: string; sweepDestinationPoolId?: string | null }>>([]);
-  const [activeSweepPool, setActiveSweepPool] = useState<{ id: string; name: string; balance: number } | null>(null);
-  const [selectedSweepDest, setSelectedSweepDest] = useState<string>('');
-
-  const { rawPools, isLoading: isLoadingExistingData } = useSetupWizardPrepopulation({
+  const { isLoading: isLoadingExistingData } = useSetupWizardPrepopulation({
     isRerun,
     setIncomes,
     setBankAccounts: accounts.setBankAccounts,
     setGoals,
     setCustomCategories,
+    setCategoryFrequencies,
   });
-
-  const availablePools = useMemo(
-    () => rawPools.map((p) => ({ id: p.id, name: p.name, isSurplusTarget: p.isSurplusTarget })),
-    [rawPools]
-  );
-
-  const [dirtyIncomeIds, setDirtyIncomeIds] = useState<Set<string>>(new Set());
-  const [dirtyGoalIds, setDirtyGoalIds] = useState<Set<string>>(new Set());
-
-  const updateIncomeMut = trpc.updateIncomeSource.useMutation();
-  const archiveIncomeMut = trpc.archiveIncomeSource.useMutation();
-  const updatePoolMut = trpc.updatePool.useMutation();
-  const archivePoolMut = trpc.archivePool.useMutation();
 
   const handleUpdateIncomeField = <K extends keyof IncomeItem>(id: string, field: K, val: IncomeItem[K]) => {
     setIncomes((prev) => prev.map((inc) => (inc.id === id ? { ...inc, [field]: val } : inc)));
-    if (!id.startsWith('inc-')) {
-      setDirtyIncomeIds((prev) => new Set(prev).add(id));
-    }
-  };
-
-  const handleSaveIncomeImmediate = async (id: string) => {
-    if (id.startsWith('inc-')) return;
-    const target = incomes.find((inc) => inc.id === id);
-    if (!target) return;
-    const rawFreq = target.frequency as string;
-    const frequencyVal: 'WEEKLY' | 'FORTNIGHTLY' | 'MONTHLY' | 'ANNUALLY' =
-      rawFreq === 'WEEKLY' || rawFreq === 'FORTNIGHTLY' ? rawFreq : 'MONTHLY';
-    await updateIncomeMut.mutateAsync({
-      id,
-      data: {
-        name: target.name,
-        amount: String(target.amount || 0),
-        frequency: frequencyVal,
-        startDate: target.startDate || undefined,
-      },
-    });
-    setDirtyIncomeIds((prev) => {
-      const next = new Set(prev);
-      next.delete(id);
-      return next;
-    });
   };
 
   const handleUpdateGoalField = (id: string, field: keyof UserGoalItem, val: string | number) => {
     setGoals((prev) => prev.map((g) => (g.id === id ? { ...g, [field]: val } : g)));
-    if (!id.startsWith('g-')) {
-      setDirtyGoalIds((prev) => new Set(prev).add(id));
-    }
   };
 
-  const handleSaveGoalImmediate = async (id: string) => {
-    if (id.startsWith('g-')) return;
-    const target = goals.find((g) => g.id === id);
-    if (!target) return;
-    const isOngoing = target.fundingMode === 'RECURRING';
-    const amtStr = String(isOngoing ? target.monthlyAmount || target.targetAmount || 0 : target.targetAmount || 0);
-    await updatePoolMut.mutateAsync({
-      poolId: id,
-      data: {
-        name: target.name,
-        targetAmount: amtStr,
-        monthlyAmount: String(target.monthlyAmount || 0),
-        enteredAmount: target.enteredAmount ? String(target.enteredAmount) : amtStr,
-        budgetFrequency: target.budgetFrequency || 'MONTHLY',
-        endDate: isOngoing ? null : target.dueDate || null,
-        fundingMode: target.fundingMode || (isOngoing ? 'RECURRING' : 'TARGET_BALANCE'),
-        isPriority: target.isPriority ?? true,
-      },
-    });
-    setDirtyGoalIds((prev) => {
-      const next = new Set(prev);
-      next.delete(id);
-      return next;
-    });
-  };
-
-  const handleRemoveIncome = async (id: string) => {
+  const handleRemoveIncome = (id: string) => {
     if (!id.startsWith('inc-')) {
-      if (isRerun) {
-        await archiveIncomeMut.mutateAsync({ id });
-      }
       setArchivedIncomeIds((prev) => new Set(prev).add(id));
     }
     setIncomes((prev) => prev.filter((item) => item.id !== id));
   };
 
-  const handleRemoveGoal = async (id: string) => {
-    const pool = rawPools.find((p) => p.id === id);
-    const balance = pool ? parseFloat((pool as unknown as { currentBalance?: string }).currentBalance || '0') : 0;
-    if (balance > 0.005 && pool) {
-      setActiveSweepPool({ id: pool.id, name: pool.name, balance });
-      const dest = availablePools.find((p) => p.id !== pool.id)?.id || '';
-      setSelectedSweepDest(dest);
-    } else {
-      if (pool && isRerun) {
-        await archivePoolMut.mutateAsync({ poolId: id });
-      }
-      setGoals((prev) => prev.filter((g) => g.id !== id));
-      if (pool) {
-        setSweepQueue((prev) => [...prev, { poolId: pool.id, sweepDestinationPoolId: null }]);
-      }
+  const handleRemoveGoal = (id: string) => {
+    if (!id.startsWith('g-')) {
+      setArchivedGoalIds((prev) => new Set(prev).add(id));
     }
-  };
-
-  const confirmSweepAndRemove = () => {
-    if (!activeSweepPool) return;
-    setSweepQueue((prev) => [
-      ...prev,
-      { poolId: activeSweepPool.id, sweepDestinationPoolId: selectedSweepDest || null },
-    ]);
-    setGoals((prev) => prev.filter((g) => g.id !== activeSweepPool.id));
-    setActiveSweepPool(null);
+    setGoals((prev) => prev.filter((g) => g.id !== id));
   };
 
   const calculations = useSetupWizardCalculations({
+    country: lifestyle.country,
     isRerun,
     incomes,
     housingType: lifestyle.housingType,
@@ -296,6 +210,7 @@ export function SetupWizardProvider({ children: reactChildren }: { children: Rea
     children: lifestyle.children,
     hasPrivateHealth: lifestyle.hasPrivateHealth,
     hasGym: lifestyle.hasGym,
+    hasMedicalOutofPocket: lifestyle.hasMedicalOutofPocket,
     hasPets: lifestyle.hasPets,
     petsCount: lifestyle.petsCount,
     debtMonthlyRepayment: lifestyle.debtMonthlyRepayment,
@@ -323,6 +238,7 @@ export function SetupWizardProvider({ children: reactChildren }: { children: Rea
       handleRemoveIncome,
       ...accounts,
       archivedIncomeIds,
+      archivedGoalIds,
       goals,
       setGoals,
       customCategories,
@@ -335,20 +251,9 @@ export function SetupWizardProvider({ children: reactChildren }: { children: Rea
       setBillTypeOverrides,
       categoryFrequencies,
       setCategoryFrequencies,
-      sweepQueue,
-      activeSweepPool,
-      setActiveSweepPool,
-      selectedSweepDest,
-      setSelectedSweepDest,
-      availablePools,
-      dirtyIncomeIds,
-      dirtyGoalIds,
       handleUpdateIncomeField,
-      handleSaveIncomeImmediate,
       handleUpdateGoalField,
-      handleSaveGoalImmediate,
       handleRemoveGoal,
-      confirmSweepAndRemove,
       ...calculations,
     }),
     [
@@ -360,17 +265,13 @@ export function SetupWizardProvider({ children: reactChildren }: { children: Rea
       incomes,
       accounts,
       archivedIncomeIds,
+      archivedGoalIds,
       goals,
       customCategories,
       removedCategoryNames,
       amountOverrides,
+      billTypeOverrides,
       categoryFrequencies,
-      sweepQueue,
-      activeSweepPool,
-      selectedSweepDest,
-      availablePools,
-      dirtyIncomeIds,
-      dirtyGoalIds,
       calculations,
     ]
   );

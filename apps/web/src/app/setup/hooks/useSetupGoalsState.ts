@@ -1,28 +1,15 @@
 "use client";
 
 import { useState } from "react";
-import { trpc } from "../../../lib/trpc";
-import { useToast } from "@money-matters/ui/web";
-import { t } from "@money-matters/i18n";
 import { UserGoalItem } from "../components/SetupGoalsStep";
 
 export interface UseSetupGoalsStateOptions {
-  isRerun: boolean;
-  prepopulationPools: Array<{ id: string; currentBalance?: number | null }>;
-  onSweepRemoveGoal: (id: string) => void;
   onProceedToNextStep: () => void;
 }
 
 export function useSetupGoalsState({
-  isRerun,
-  prepopulationPools,
-  onSweepRemoveGoal,
   onProceedToNextStep,
 }: UseSetupGoalsStateOptions) {
-  const toast = useToast();
-  const updatePoolMut = trpc.updatePool.useMutation();
-  const archivePoolMut = trpc.archivePool.useMutation();
-
   const [goals, setGoals] = useState<UserGoalItem[]>([
     {
       id: "g-1",
@@ -33,6 +20,7 @@ export function useSetupGoalsState({
       enteredAmount: 300,
       fundingMode: "RECURRING",
       isPriority: true,
+      isSurplusTarget: true,
       budgetFrequency: "MONTHLY",
     },
     {
@@ -48,6 +36,7 @@ export function useSetupGoalsState({
       ),
     },
   ]);
+  const [archivedGoalIds, setArchivedGoalIds] = useState<Set<string>>(new Set());
   const [dirtyGoalIds, setDirtyGoalIds] = useState<Set<string>>(new Set());
 
   const handleUpdateGoalField = (id: string, field: keyof UserGoalItem, value: string | number) => {
@@ -57,61 +46,23 @@ export function useSetupGoalsState({
     }
   };
 
-  const handleSaveGoalImmediate = async (id: string) => {
-    if (id.startsWith("g-")) return;
-    const target = goals.find((g) => g.id === id);
-    if (!target) return;
-    const isOngoing = target.fundingMode === "RECURRING";
-    const amtStr = String(isOngoing ? target.monthlyAmount || target.targetAmount || 0 : target.targetAmount || 0);
-    await updatePoolMut.mutateAsync({
-      poolId: id,
-      data: {
-        name: target.name,
-        targetAmount: amtStr,
-        monthlyAmount: String(target.monthlyAmount || 0),
-        enteredAmount: target.enteredAmount ? String(target.enteredAmount) : amtStr,
-        budgetFrequency: target.budgetFrequency || "MONTHLY",
-        endDate: isOngoing ? null : target.dueDate || null,
-        fundingMode: target.fundingMode,
-        isPriority: target.isPriority ?? true,
-      },
-    });
-    setDirtyGoalIds((prev) => {
-      const next = new Set(prev);
-      next.delete(id);
-      return next;
-    });
-  };
-
-  const handleRemoveGoal = async (id: string) => {
+  const handleRemoveGoal = (id: string) => {
     if (!id.startsWith("g-")) {
-      const pool = prepopulationPools.find((p) => p.id === id);
-      const balance = pool ? pool.currentBalance || 0 : 0;
-      if (balance > 0.005) {
-        onSweepRemoveGoal(id);
-        return;
-      }
-      if (isRerun) {
-        await archivePoolMut.mutateAsync({ poolId: id });
-      }
+      setArchivedGoalIds((prev) => new Set(prev).add(id));
     }
     setGoals((prev) => prev.filter((g) => g.id !== id));
   };
 
-  const handleNextFromGoals = async () => {
-    if (isRerun && dirtyGoalIds.size > 0) {
-      await Promise.all(Array.from(dirtyGoalIds).map((id) => handleSaveGoalImmediate(id)));
-      toast.success(t("toasts.saved"));
-    }
+  const handleNextFromGoals = () => {
     onProceedToNextStep();
   };
 
   return {
     goals,
     setGoals,
+    archivedGoalIds,
     dirtyGoalIds,
     handleUpdateGoalField,
-    handleSaveGoalImmediate,
     handleRemoveGoal,
     handleNextFromGoals,
   };

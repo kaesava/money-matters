@@ -40,6 +40,7 @@ export interface SetupWizardContextValue {
   handleRemoveAccount: (id: string) => void;
   archivedAccountIds: Set<string>;
   archivedIncomeIds: Set<string>;
+  archivedGoalIds: Set<string>;
   goals: UserGoalItem[];
   setGoals: React.Dispatch<React.SetStateAction<UserGoalItem[]>>;
   housingType: HousingType;
@@ -103,18 +104,9 @@ export interface SetupWizardContextValue {
   totalRegularMonthly: number;
   totalGoalMonthly: number;
   totalAllocatedMonthly: number;
-  sweepQueue: Array<{ poolId: string; sweepDestinationPoolId?: string | null }>;
-  activeSweepPool: { id: string; name: string; balance: number } | null;
-  setActiveSweepPool: (pool: { id: string; name: string; balance: number } | null) => void;
-  selectedSweepDest: string;
-  setSelectedSweepDest: (id: string) => void;
-  availablePools: Array<{ id: string; name: string; isSurplusTarget?: boolean | null }>;
-  dirtyIncomeIds: Set<string>;
-  dirtyGoalIds: Set<string>;
+  convertToMonthly: (amount: number, freq: 'WEEKLY' | 'FORTNIGHTLY' | 'MONTHLY' | 'QUARTERLY' | 'YEARLY') => number;
+  convertFromMonthly: (monthlyAmount: number, freq: 'WEEKLY' | 'FORTNIGHTLY' | 'MONTHLY' | 'QUARTERLY' | 'YEARLY') => number;
   handleUpdateIncomeField: <K extends keyof IncomeItem>(id: string, field: K, value: IncomeItem[K]) => void;
-  handleSaveIncomeImmediate: (id: string) => Promise<void>;
   handleUpdateGoalField: (id: string, field: keyof UserGoalItem, value: string | number) => void;
-  handleSaveGoalImmediate: (id: string) => Promise<void>;
-  handleRemoveGoal: (id: string) => Promise<void>;
-  confirmSweepAndRemove: () => void;
+  handleRemoveGoal: (id: string) => void;
 }

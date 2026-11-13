@@ -70,9 +70,11 @@ export function SetupCategoriesStep({
   const [goalsOpen, setGoalsOpen] = useState(false);
 
   const handleAttemptRemove = (name: string) => {
-    const lower = name.trim().toLowerCase();
-    if (lower.includes("emergency") || lower.includes("surplus") || lower.includes("reserve")) {
-      setWarningMsg(`"${name}" is designated as your Surplus Sweep Target and cannot be deleted.`);
+    const allItems = [...activeEveryday, ...activeRegular, ...activeGoals];
+    const matchedCat = allItems.find((c) => c.name.trim().toLowerCase() === name.trim().toLowerCase());
+    const matchedGoal = goals.find((g) => g.name.trim().toLowerCase() === name.trim().toLowerCase());
+    if (matchedCat?.isSurplusTarget || matchedGoal?.isSurplusTarget) {
+      setWarningMsg(t("setup.surplusTargetDeleteWarning", { name }));
       setTimeout(() => setWarningMsg(null), 4000);
       return;
     }
@@ -123,7 +125,7 @@ export function SetupCategoriesStep({
             </div>
             <div className="flex items-center gap-2.5">
               <span className="text-xs font-bold font-mono text-[#2563eb] bg-blue-50 px-2.5 py-1 rounded-md border border-blue-200">
-                {currencySymbol}{totalEverydayMonthly.toFixed(2)}/mo
+                {currencySymbol}{totalEverydayMonthly.toFixed(2)} {t("setup.freqSuffixMo")}
               </span>
               <span className="text-xs font-bold text-zinc-400">{everydayOpen ? "▲" : "▼"}</span>
             </div>
@@ -140,6 +142,7 @@ export function SetupCategoriesStep({
                 onRemoveCategory={handleAttemptRemove}
                 convertToMonthly={convertToMonthly}
                 convertFromMonthly={convertFromMonthly}
+                onEditCategory={onEditCategory}
                 isRerun={isRerun}
               />
             </div>
@@ -167,7 +170,7 @@ export function SetupCategoriesStep({
             </div>
             <div className="flex items-center gap-2.5">
               <span className="text-xs font-bold font-mono text-[#2563eb] bg-blue-50 px-2.5 py-1 rounded-md border border-blue-200">
-                {currencySymbol}{totalRegularMonthly.toFixed(2)}/mo
+                {currencySymbol}{totalRegularMonthly.toFixed(2)} {t("setup.freqSuffixMo")}
               </span>
               <span className="text-xs font-bold text-zinc-400">{billsOpen ? "▲" : "▼"}</span>
             </div>
@@ -213,7 +216,7 @@ export function SetupCategoriesStep({
             </div>
             <div className="flex items-center gap-2.5">
               <span className="text-xs font-bold font-mono text-teal-800 bg-teal-50 px-2.5 py-1 rounded-md border border-teal-200">
-                {currencySymbol}{totalGoalMonthly.toFixed(2)}/mo
+                {currencySymbol}{totalGoalMonthly.toFixed(2)} {t("setup.freqSuffixMo")}
               </span>
               <span className="text-xs font-bold text-zinc-400">{goalsOpen ? "▲" : "▼"}</span>
             </div>
@@ -225,6 +228,7 @@ export function SetupCategoriesStep({
                 goals={goals}
                 totalGoalMonthly={totalGoalMonthly}
                 onRemoveCategory={handleAttemptRemove}
+                onEditGoal={onEditCategory}
                 isRerun={isRerun}
               />
             </div>

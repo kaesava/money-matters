@@ -6,10 +6,12 @@ import {
   ChildConfig,
   EstimatedCategoryItem,
   QuizAnswers,
+  UserGoalItem,
   calculateQuizEstimates,
 } from '@money-matters/types';
 
 export interface CalculationsProps {
+  country: 'AU' | 'NZ' | 'OTHER';
   isRerun: boolean;
   incomes: IncomeItem[];
   housingType: HousingType;
@@ -21,6 +23,7 @@ export interface CalculationsProps {
   children: ChildConfig[];
   hasPrivateHealth: boolean;
   hasGym: boolean;
+  hasMedicalOutofPocket: boolean;
   hasPets: boolean;
   petsCount: number;
   debtMonthlyRepayment: number;
@@ -29,17 +32,7 @@ export interface CalculationsProps {
   weeklyGroceries: number;
   weeklyDining: number;
   weeklyPersonal: number;
-  goals?: Array<{
-    id: string;
-    name: string;
-    monthlyAmount: number;
-    icon?: string;
-    targetAmount?: number | null;
-    dueDate?: string | null;
-    fundingMode?: 'TARGET_BALANCE' | 'RECURRING';
-    enteredAmount?: number | null;
-    budgetFrequency?: 'WEEKLY' | 'FORTNIGHTLY' | 'MONTHLY' | 'QUARTERLY' | 'ANNUALLY';
-  }>;
+  goals?: UserGoalItem[];
   customCategories: EstimatedCategoryItem[];
   removedCategoryNames: Set<string>;
   amountOverrides: Record<string, number>;
@@ -54,9 +47,33 @@ function getGoalMonthsDiff(targetDateStr?: string | null): number {
   return Math.max(1, months);
 }
 
+export function convertToMonthly(
+  amount: number,
+  freq: 'WEEKLY' | 'FORTNIGHTLY' | 'MONTHLY' | 'QUARTERLY' | 'YEARLY'
+) {
+  let result = amount;
+  if (freq === 'WEEKLY') result = amount * (52 / 12);
+  else if (freq === 'FORTNIGHTLY') result = amount * (26 / 12);
+  else if (freq === 'QUARTERLY') result = amount / 3;
+  else if (freq === 'YEARLY') result = amount / 12;
+  return Math.round(result * 100) / 100;
+}
+
+export function convertFromMonthly(
+  monthlyAmount: number,
+  freq: 'WEEKLY' | 'FORTNIGHTLY' | 'MONTHLY' | 'QUARTERLY' | 'YEARLY'
+) {
+  let result = monthlyAmount;
+  if (freq === 'WEEKLY') result = monthlyAmount / (52 / 12);
+  else if (freq === 'FORTNIGHTLY') result = monthlyAmount / (26 / 12);
+  else if (freq === 'QUARTERLY') result = monthlyAmount * 3;
+  else if (freq === 'YEARLY') result = monthlyAmount * 12;
+  return Math.round(result * 100) / 100;
+}
+
 export function computeSetupWizardCalculations(props: CalculationsProps) {
   const quizAnswers: QuizAnswers = {
-    country: 'AU',
+    country: props.country,
     incomes: props.incomes,
     housingType: props.housingType,
     hasCars: props.hasCars,
@@ -67,6 +84,7 @@ export function computeSetupWizardCalculations(props: CalculationsProps) {
     children: props.children,
     hasPrivateHealth: props.hasPrivateHealth,
     hasGym: props.hasGym,
+    hasMedicalOutofPocket: props.hasMedicalOutofPocket,
     hasPets: props.hasPets,
     petsCount: props.petsCount,
     activeDebtMonthlyRepayment: props.debtMonthlyRepayment,
@@ -86,7 +104,10 @@ export function computeSetupWizardCalculations(props: CalculationsProps) {
       const override = props.amountOverrides[g.name];
       let baseMonthly = 0;
       if (isOngoing) {
-        const rawAmt = g.enteredAmount !== undefined && g.enteredAmount !== null ? g.enteredAmount : (g.monthlyAmount || g.targetAmount || 0);
+        const rawAmt =
+          g.enteredAmount !== undefined && g.enteredAmount !== null
+            ? g.enteredAmount
+            : (g.monthlyAmount || g.targetAmount || 0);
         if (g.budgetFrequency === 'WEEKLY') baseMonthly = Math.round((rawAmt * 52) / 12);
         else if (g.budgetFrequency === 'FORTNIGHTLY') baseMonthly = Math.round((rawAmt * 26) / 12);
         else if (g.budgetFrequency === 'QUARTERLY') baseMonthly = Math.round((rawAmt * 4) / 12);
@@ -101,6 +122,17 @@ export function computeSetupWizardCalculations(props: CalculationsProps) {
         type: 'GOAL' as const,
         envelopeType: 'GOAL' as const,
         fundingMode: isOngoing ? ('RECURRING' as const) : ('TARGET_BALANCE' as const),
+        isPriority: g.isPriority ?? true,
+        isSurplusTarget: g.isSurplusTarget ?? false,
+        isPrivate: g.isPrivate ?? false,
+        bankAccountId: g.bankAccountId,
+        targetAmount: g.targetAmount ?? null,
+        enteredAmount: g.enteredAmount ?? null,
+        endDate: g.dueDate ?? null,
+        budgetFrequency: g.budgetFrequency ?? null,
+        startDate: g.startDate ?? null,
+        rrule: g.rrule ?? null,
+        currentBalance: g.currentBalance ?? 0,
         monthlyAud: override !== undefined ? override : baseMonthly,
         icon: g.icon || 'target',
       };
@@ -109,8 +141,12 @@ export function computeSetupWizardCalculations(props: CalculationsProps) {
   const nonGoalCategories = props.isRerun
     ? props.customCategories.filter((c) => c.type !== 'GOAL')
     : [
-        ...estimation.regularBills,
-        ...estimation.everydayCategories,
+        ...estimation.regularBills.filter(
+          (b) => !props.customCategories.some((c) => c.name.trim().toLowerCase() === b.name.trim().toLowerCase())
+        ),
+        ...estimation.everydayCategories.filter(
+          (e) => !props.customCategories.some((c) => c.name.trim().toLowerCase() === e.name.trim().toLowerCase())
+        ),
         ...props.customCategories.filter((c) => c.type !== 'GOAL'),
       ];
 
@@ -124,7 +160,10 @@ export function computeSetupWizardCalculations(props: CalculationsProps) {
       return {
         ...cat,
         envelopeType: isEveryday ? ('EVERYDAY' as const) : ('BILL' as const),
-        fundingMode: typeOverride || cat.fundingMode || (isEveryday ? ('TARGET_BALANCE' as const) : ('RECURRING' as const)),
+        fundingMode:
+          typeOverride ||
+          cat.fundingMode ||
+          (isEveryday ? ('TARGET_BALANCE' as const) : ('RECURRING' as const)),
         monthlyAud: override !== undefined ? override : cat.monthlyAud,
       };
     });
@@ -149,11 +188,14 @@ export function computeSetupWizardCalculations(props: CalculationsProps) {
     totalRegularMonthly,
     totalGoalMonthly,
     totalAllocatedMonthly,
+    convertToMonthly,
+    convertFromMonthly,
   };
 }
 
 export function useSetupWizardCalculations(props: CalculationsProps) {
   return useMemo(() => computeSetupWizardCalculations(props), [
+    props.country,
     props.isRerun,
     props.incomes,
     props.housingType,
@@ -165,6 +207,7 @@ export function useSetupWizardCalculations(props: CalculationsProps) {
     props.children,
     props.hasPrivateHealth,
     props.hasGym,
+    props.hasMedicalOutofPocket,
     props.hasPets,
     props.petsCount,
     props.debtMonthlyRepayment,
@@ -177,5 +220,6 @@ export function useSetupWizardCalculations(props: CalculationsProps) {
     props.customCategories,
     props.removedCategoryNames,
     props.amountOverrides,
+    props.billTypeOverrides,
   ]);
 }

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import {
   View,
   Text,
@@ -6,11 +6,9 @@ import {
   TouchableOpacity,
   ScrollView,
   StyleSheet,
-  ActivityIndicator,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Feather } from '@expo/vector-icons';
 import { t } from '@money-matters/i18n';
 import {
   DESIGN_TOKENS,
@@ -19,10 +17,10 @@ import {
   MobileDatePickerField,
   showMobileConfirm,
   SkeletonCard,
-  useMobileToast,
 } from '@money-matters/ui/mobile';
 import { useSetupWizard } from '../../context/SetupWizardContext';
 import { IncomeItem } from '@money-matters/types';
+import { getMobileLocaleConfig } from '../../lib/format';
 import { SetupProgressBar } from '../../components/setup/SetupProgressBar';
 
 const FREQUENCIES = ['WEEKLY', 'FORTNIGHTLY', 'MONTHLY', 'QUARTERLY', 'ANNUALLY'] as const;
@@ -36,8 +34,9 @@ const FREQ_LABELS: Record<Frequency, string> = {
   ANNUALLY: 'setup.freqYears',
 };
 
-function getDefaultStartDateAest(): string {
-  return new Intl.DateTimeFormat('en-CA', { timeZone: 'Australia/Sydney' }).format(new Date());
+function getDefaultStartDate(): string {
+  const tz = getMobileLocaleConfig().timezone;
+  return new Intl.DateTimeFormat('en-CA', { timeZone: tz }).format(new Date());
 }
 
 export default function SetupIncomeScreen() {
@@ -47,15 +46,12 @@ export default function SetupIncomeScreen() {
     incomes,
     setIncomes,
     isRerun,
+    isAud,
     totalSteps,
     isLoadingExistingData,
-    dirtyIncomeIds,
     handleUpdateIncomeField,
-    handleSaveIncomeImmediate,
     handleRemoveIncome,
   } = useSetupWizard();
-
-  const [savingId, setSavingId] = useState<string | null>(null);
 
   const handleAddIncome = () => {
     const id = `inc-${Date.now()}`;
@@ -64,10 +60,10 @@ export default function SetupIncomeScreen() {
       {
         id,
         name: `Income ${prev.length + 1}`,
-        amount: 2000,
+        amount: isAud ? 2000 : 0,
         frequency: 'FORTNIGHTLY',
         type: 'SALARY',
-        startDate: getDefaultStartDateAest(),
+        startDate: getDefaultStartDate(),
       },
     ]);
   };
@@ -76,9 +72,9 @@ export default function SetupIncomeScreen() {
     const isExisting = !inc.id.startsWith('inc-');
     if (isRerun && isExisting) {
       showMobileConfirm({
-        title: t('modals.incomeExpenseForm.archiveIncomeTitle'),
-        message: t('modals.incomeExpenseForm.archiveIncomeConfirm'),
-        confirmText: t('modals.incomeExpenseForm.archiveSchedule'),
+        title: t('setup.confirmArchiveIncomeTitle'),
+        message: t('setup.confirmArchiveIncomeDesc', { name: inc.name }),
+        confirmText: t('common.remove'),
         isDestructive: true,
         onConfirm: () => handleRemoveIncome(inc.id),
       });
@@ -87,25 +83,7 @@ export default function SetupIncomeScreen() {
     }
   };
 
-  const toast = useMobileToast();
-
-  const handleNext = async () => {
-    if (isRerun && dirtyIncomeIds.size > 0) {
-      const saveAndProceed = async () => {
-        await Promise.all(Array.from(dirtyIncomeIds).map((id) => handleSaveIncomeImmediate(id)));
-        toast.success(t('toasts.saved'));
-        router.push({ pathname: '/(setup)/goals', params: { mode: 'rerun' } });
-      };
-
-      showMobileConfirm({
-        title: t('modals.updateSchedule.confirmTitleIncome'),
-        message: t('modals.updateSchedule.confirmDescRuleChange', { startDate: incomes[0]?.startDate || '' }),
-        confirmText: t('modals.updateSchedule.confirmCta'),
-        isDestructive: false,
-        onConfirm: saveAndProceed,
-      });
-      return;
-    }
+  const handleNext = () => {
     if (isRerun) {
       router.push({ pathname: '/(setup)/goals', params: { mode: 'rerun' } });
     } else {
@@ -166,12 +144,7 @@ export default function SetupIncomeScreen() {
         <Text style={styles.rerunNotice}>{t('setup.income.rerunEditNotice')}</Text>
       )}
 
-      {incomes.map((inc, index) => {
-        const isExisting = !inc.id.startsWith('inc-');
-        const isDirty = dirtyIncomeIds.has(inc.id);
-        const isSaving = savingId === inc.id;
-
-        return (
+      {incomes.map((inc, index) => (
           <View key={inc.id} style={styles.card}>
             <View style={styles.cardHeader}>
               <View style={styles.itemTitleRow}>
@@ -230,13 +203,12 @@ export default function SetupIncomeScreen() {
             <View style={styles.datePickerWrap}>
               <MobileDatePickerField
                 label={t('setup.income.nextPaydayLabel')}
-                value={inc.startDate || getDefaultStartDateAest()}
+                value={inc.startDate || getDefaultStartDate()}
                 onChange={(d) => handleUpdateIncomeField(inc.id, 'startDate', d)}
               />
             </View>
           </View>
-        );
-      })}
+      ))}
 
       <TouchableOpacity
         style={styles.addBtn}

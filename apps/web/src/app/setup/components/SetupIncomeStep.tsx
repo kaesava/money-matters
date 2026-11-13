@@ -9,11 +9,9 @@ import { SetupIncomeItemRow } from "./SetupIncomeItemRow";
 interface SetupIncomeStepProps {
   incomes: IncomeItem[];
   isRerun?: boolean;
-  dirtyIncomeIds?: Set<string>;
   onAddIncome: () => void;
   onUpdateIncome: <K extends keyof IncomeItem>(id: string, field: K, value: IncomeItem[K]) => void;
   onRemoveIncome: (id: string) => void;
-  onSaveIncome?: (id: string) => Promise<void>;
   onNext: () => void;
   totalSteps?: number;
 }
@@ -21,14 +19,13 @@ interface SetupIncomeStepProps {
 export function SetupIncomeStep({
   incomes,
   isRerun = false,
-  dirtyIncomeIds = new Set(),
   onAddIncome,
   onUpdateIncome,
   onRemoveIncome,
-  onSaveIncome,
   onNext,
-  totalSteps = 4,
+  totalSteps = 5,
 }: SetupIncomeStepProps) {
+  const isValid = incomes.length > 0 && incomes.every((i) => i.name.trim() !== "" && i.amount > 0);
   return (
     <div className="flex flex-col gap-6 animate-in fade-in duration-200">
       {/* Retention Hero Banner (First run only) */}
@@ -72,10 +69,8 @@ export function SetupIncomeStep({
             index={index}
             canRemove={incomes.length > 1}
             isRerun={isRerun}
-            isDirty={dirtyIncomeIds.has(inc.id)}
             onUpdateIncome={onUpdateIncome}
             onRemoveIncome={onRemoveIncome}
-            onSaveIncome={onSaveIncome}
           />
         ))}
 
@@ -92,7 +87,8 @@ export function SetupIncomeStep({
         <button
           type="button"
           onClick={onNext}
-          className="px-6 py-3 text-xs font-bold rounded-xl bg-[#2563eb] text-white hover:bg-blue-700 transition-all shadow-md cursor-pointer"
+          disabled={!isValid}
+          className="px-6 py-3 text-xs font-bold rounded-xl bg-[#2563eb] text-white hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed transition-all shadow-md cursor-pointer"
         >
           {t("common.next")} →
         </button>

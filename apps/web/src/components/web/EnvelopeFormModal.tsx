@@ -14,6 +14,7 @@ export interface EnvelopeDraftPayload {
   envelopeType: "EVERYDAY" | "BILL" | "GOAL";
   fundingMode?: "TARGET_BALANCE" | "RECURRING";
   isPriority?: boolean;
+  safetyBufferFloor?: string;
   monthlyAmount?: string;
   enteredAmount?: string;
   targetAmount?: string;
@@ -182,7 +183,7 @@ export function EnvelopeFormModal({
     const err = validateForm();
     if (err) return setErrorMsg(err);
 
-    if (isEdit && isScheduleRuleChanged) {
+    if (isEdit && !isDraftMode && isScheduleRuleChanged) {
       setShowRuleChangeConfirm(true);
       return;
     }
@@ -268,7 +269,7 @@ export function EnvelopeFormModal({
         />
 
         <div className="flex justify-between items-center pt-4 border-t border-zinc-200">
-          {isEdit && type !== "EVERYDAY" ? (
+          {isEdit && !isDraftMode && type !== "EVERYDAY" ? (
             categoryToEdit?.isSurplusTarget ? (
               <span
                 className="px-3 py-2 text-xs font-medium text-slate-300 dark:text-slate-600 cursor-not-allowed"

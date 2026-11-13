@@ -1,37 +1,63 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
-import { Feather } from '@expo/vector-icons';
+import React, { useState, useEffect, useMemo } from 'react';
+import { View, Text, StyleSheet } from 'react-native';
 import { DESIGN_TOKENS, MobileModalDialog, AmountInput, MobileButton } from '@money-matters/ui/mobile';
+import {
+  EstimatedCategoryItem,
+  IncomeItem,
+  UserGoalItem,
+  simulateSetupPaydaySandbox,
+} from '@money-matters/types';
 import { t } from '@money-matters/i18n';
 import { formatMobileCurrency } from '../../lib/format';
+import { MobileBankAccountItem } from '../../context/setup-wizard-types';
 
 interface MobilePaydaySandboxModalProps {
   visible: boolean;
   onClose: () => void;
-  onFinish: () => void;
-  estimatedBills?: number;
-  estimatedGoals?: number;
-  defaultPaycheck?: number;
+  incomes: IncomeItem[];
+  bankAccounts: MobileBankAccountItem[];
+  activeEveryday: EstimatedCategoryItem[];
+  activeRegular: EstimatedCategoryItem[];
+  activeGoals: EstimatedCategoryItem[];
+  goals: UserGoalItem[];
 }
 
 export function MobilePaydaySandboxModal({
   visible,
   onClose,
-  onFinish,
-  estimatedBills = 850,
-  estimatedGoals = 400,
-  defaultPaycheck = 2500,
+  incomes,
+  bankAccounts,
+  activeEveryday,
+  activeRegular,
+  activeGoals,
+  goals,
 }: MobilePaydaySandboxModalProps) {
+  const defaultPaycheck = incomes[0]?.amount ?? 0;
   const [paycheckStr, setPaycheckStr] = useState(String(defaultPaycheck));
   const [isSimulated, setIsSimulated] = useState(false);
 
+  useEffect(() => {
+    if (visible) {
+      setPaycheckStr(String(incomes[0]?.amount ?? 0));
+      setIsSimulated(false);
+    }
+  }, [visible, incomes]);
+
   const parsedPaycheck = parseFloat(paycheckStr) || 0;
-  const billsAllocated = Math.min(parsedPaycheck, estimatedBills > 0 ? estimatedBills : 850);
-  const goalsAllocated = Math.min(
-    Math.max(0, parsedPaycheck - billsAllocated),
-    estimatedGoals > 0 ? estimatedGoals : 400
+
+  const simResult = useMemo(
+    () =>
+      simulateSetupPaydaySandbox({
+        paycheckAmount: parsedPaycheck,
+        incomes,
+        bankAccounts,
+        activeEveryday,
+        activeRegular,
+        activeGoals,
+        goals,
+      }),
+    [parsedPaycheck, incomes, bankAccounts, activeEveryday, activeRegular, activeGoals, goals]
   );
-  const safeToSpend = Math.max(0, parsedPaycheck - billsAllocated - goalsAllocated);
 
   return (
     <MobileModalDialog
@@ -77,17 +103,17 @@ export function MobilePaydaySandboxModal({
             <View style={styles.metricRow}>
               <View style={styles.metricCard}>
                 <Text style={styles.metricLabel}>{t('paydayDrawer.ringFencedBills')}</Text>
-                <Text style={styles.metricVal}>{formatMobileCurrency(billsAllocated)}</Text>
+                <Text style={styles.metricVal}>{formatMobileCurrency(simResult.billsAllocated)}</Text>
               </View>
 
               <View style={styles.metricCard}>
                 <Text style={styles.metricLabel}>{t('paydayDrawer.fundedGoals')}</Text>
-                <Text style={styles.metricVal}>{formatMobileCurrency(goalsAllocated)}</Text>
+                <Text style={styles.metricVal}>{formatMobileCurrency(simResult.goalsAllocated)}</Text>
               </View>
 
               <View style={[styles.metricCard, styles.safeCard]}>
                 <Text style={styles.safeLabel}>{t('paydayDrawer.safeToSpend')}</Text>
-                <Text style={styles.safeVal}>{formatMobileCurrency(safeToSpend)}</Text>
+                <Text style={styles.safeVal}>{formatMobileCurrency(simResult.safeToSpend)}</Text>
               </View>
             </View>
 
@@ -115,10 +141,10 @@ const styles = StyleSheet.create({
     lineHeight: 18,
   },
   inputCard: {
-    backgroundColor: '#F8FAFC',
+    backgroundColor: DESIGN_TOKENS.colors.surfaceVariant,
     borderRadius: 14,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: DESIGN_TOKENS.colors.slate[200],
     padding: 14,
     gap: 12,
   },
@@ -126,16 +152,16 @@ const styles = StyleSheet.create({
     gap: 14,
   },
   successBanner: {
-    backgroundColor: '#F0FDF4',
+    backgroundColor: DESIGN_TOKENS.colors.successLight,
     borderWidth: 1,
-    borderColor: '#BBF7D0',
+    borderColor: DESIGN_TOKENS.colors.successBorder,
     borderRadius: 10,
     padding: 10,
   },
   successText: {
     fontSize: 12,
     fontWeight: '700',
-    color: '#15803D',
+    color: DESIGN_TOKENS.colors.successDark,
   },
   metricRow: {
     flexDirection: 'row',
@@ -143,17 +169,17 @@ const styles = StyleSheet.create({
   },
   metricCard: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: DESIGN_TOKENS.colors.surface,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: DESIGN_TOKENS.colors.slate[200],
     borderRadius: 10,
     padding: 10,
     alignItems: 'center',
     gap: 4,
   },
   safeCard: {
-    backgroundColor: '#F0FDF4',
-    borderColor: '#86EFAC',
+    backgroundColor: DESIGN_TOKENS.colors.successLight,
+    borderColor: DESIGN_TOKENS.colors.successBorder,
   },
   metricLabel: {
     fontSize: 9,
@@ -170,13 +196,13 @@ const styles = StyleSheet.create({
   safeLabel: {
     fontSize: 9,
     fontWeight: '700',
-    color: '#16A34A',
+    color: DESIGN_TOKENS.colors.successDark,
     textAlign: 'center',
   },
   safeVal: {
     fontSize: 12,
     fontWeight: '900',
-    color: '#15803D',
+    color: DESIGN_TOKENS.colors.successDark,
     fontFamily: 'monospace',
   },
   finishBtn: {

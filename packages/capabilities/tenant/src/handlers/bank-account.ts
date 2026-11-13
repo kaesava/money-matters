@@ -294,25 +294,18 @@ export function archiveBankAccountHandler(db: DbOrTx) {
         );
 
       await db
-        .update(expenseEvents)
-        .set({
-          archivedAt: archiveTimestamp,
-          archivedBy: userId,
-          updatedBy: userId,
-          updatedAt: archiveTimestamp,
-        })
+        .delete(expenseEvents)
         .where(
           and(
             inArray(expenseEvents.envelopeId, poolIds),
             eq(expenseEvents.status, "PENDING"),
             eq(expenseEvents.tenantId, tenantId),
-            eq(expenseEvents.appId, appId),
-            sql`${expenseEvents.archivedAt} IS NULL`
+            eq(expenseEvents.appId, appId)
           )
         );
     }
 
-    // 3. Cascade archive linked income sources and their pending income events
+    // 3. Cascade archive linked income sources and delete their pending income events
     const linkedIncomes = await db
       .select({ id: incomeSources.id })
       .from(incomeSources)
@@ -345,20 +338,13 @@ export function archiveBankAccountHandler(db: DbOrTx) {
         );
 
       await db
-        .update(incomeEvents)
-        .set({
-          archivedAt: archiveTimestamp,
-          archivedBy: userId,
-          updatedBy: userId,
-          updatedAt: archiveTimestamp,
-        })
+        .delete(incomeEvents)
         .where(
           and(
             inArray(incomeEvents.incomeSourceId, incomeIds),
             eq(incomeEvents.status, "PENDING"),
             eq(incomeEvents.tenantId, tenantId),
-            eq(incomeEvents.appId, appId),
-            sql`${incomeEvents.archivedAt} IS NULL`
+            eq(incomeEvents.appId, appId)
           )
         );
     }

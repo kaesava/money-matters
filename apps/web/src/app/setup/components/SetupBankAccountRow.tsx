@@ -3,6 +3,7 @@
 import React from "react";
 import { t } from "@money-matters/i18n";
 import { InfoTooltip, AmountField } from "@money-matters/ui/web";
+import { useLocale } from "../../../providers/LocaleProvider";
 import {
   BANK_PROVIDERS,
   ACCOUNT_TYPES,
@@ -43,6 +44,7 @@ export function SetupBankAccountRow({
   onRemove,
   onFieldChange,
 }: SetupBankAccountRowProps) {
+  const { fmt } = useLocale();
   const { actualBalance, buffer, available } = computeAccountAvailability(
     String(acc.lastKnownBalance || "0.00"),
     String(acc.unbudgetedBuffer || "0.00")
@@ -122,7 +124,7 @@ export function SetupBankAccountRow({
           <input
             type="text"
             value={acc.name}
-            placeholder="e.g. ANZ Bank (Savings)"
+            placeholder={t("setup.bankAccountsStep.accountNamePlaceholder")}
             onChange={(e) => onFieldChange(acc, "name", e.target.value)}
             className="px-3 py-2 text-xs font-bold rounded-xl border border-zinc-200 bg-white text-zinc-800 focus:ring-2 focus:ring-[#2563eb]"
           />
@@ -170,7 +172,7 @@ export function SetupBankAccountRow({
           <div className="flex items-center justify-between px-3 py-2 rounded-xl bg-blue-50/80 border border-blue-200/80 text-xs font-bold">
             <span className="text-[11px] text-zinc-600 font-semibold">{t("bankAccounts.availableLabel")}:</span>
             <span className={`font-mono text-xs font-black ${isBufferInvalid ? "text-rose-600" : "text-emerald-700"}`}>
-              ${available.toFixed(2)}
+              {fmt(available)}
             </span>
           </div>
 

@@ -1,17 +1,15 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
 import { t } from "@money-matters/i18n";
-import { AmountField } from "@money-matters/ui/web";
+import { AmountField, ConfirmDialog, InfoTooltip } from "@money-matters/ui/web";
 import { UserGoalItem } from "./SetupGoalsStep";
 
 interface SetupGoalItemRowProps {
   goal: UserGoalItem;
   isRerun?: boolean;
-  isDirty?: boolean;
   onUpdateGoal: (id: string, field: keyof UserGoalItem, value: string | number) => void;
   onRemoveGoal: (id: string) => void;
-  onSaveGoal?: (id: string) => Promise<void>;
 }
 
 function getMonthsDiff(targetDateStr?: string | null): number {
@@ -24,12 +22,16 @@ function getMonthsDiff(targetDateStr?: string | null): number {
 
 export function SetupGoalItemRow({
   goal,
+  isRerun = false,
   onUpdateGoal,
   onRemoveGoal,
 }: SetupGoalItemRowProps) {
+  const [showArchiveConfirm, setShowArchiveConfirm] = useState(false);
   const isOngoing = goal.fundingMode === "RECURRING";
   const months = isOngoing ? 1 : getMonthsDiff(goal.dueDate);
   const isPast = !isOngoing && goal.dueDate && new Date(goal.dueDate) < new Date(new Date().setHours(0, 0, 0, 0));
+  const isExisting = !goal.id.startsWith("g-");
+  const isSurplusTarget = Boolean(goal.isSurplusTarget);
 
   return (
     <div className="p-3 bg-white rounded-xl border border-zinc-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xs">
@@ -41,6 +43,11 @@ export function SetupGoalItemRow({
             onChange={(e) => onUpdateGoal(goal.id, "name", e.target.value)}
             className="text-xs font-bold text-[#1B2B4B] bg-transparent border-b border-transparent hover:border-zinc-300 focus:border-[#2563eb] outline-none"
           />
+          {isSurplusTarget && (
+            <span className="block text-[10px] font-bold text-teal-600">
+              {t("setup.reviewSummary.surplusTargetHelp")}
+            </span>
+          )}
           {isPast && (
             <span className="block text-[10px] font-bold text-amber-700">
               {t("categories.goalPastDateWarning")}
@@ -128,16 +135,40 @@ export function SetupGoalItemRow({
           </select>
         )}
 
-        <button
-          type="button"
-          onClick={() => onRemoveGoal(goal.id)}
-          className="text-xs text-red-500 font-bold hover:text-red-700 p-2 cursor-pointer transition-colors"
-          title={t("common.remove")}
-        >
-          ✕
-        </button>
+        {isSurplusTarget ? (
+          <span className="inline-flex items-center p-2" title={t("categories.cannotDeleteSpecialEnvelope")}>
+            <InfoTooltip content={t("categories.cannotDeleteSpecialEnvelope")} />
+          </span>
+        ) : (
+          <button
+            type="button"
+            onClick={() => {
+              if (isRerun && isExisting) {
+                setShowArchiveConfirm(true);
+              } else {
+                onRemoveGoal(goal.id);
+              }
+            }}
+            className="text-xs text-red-500 font-bold hover:text-red-700 p-2 cursor-pointer transition-colors"
+            title={t("common.remove")}
+          >
+            ✕
+          </button>
+        )}
       </div>
 
+      <ConfirmDialog
+        isOpen={showArchiveConfirm}
+        onClose={() => setShowArchiveConfirm(false)}
+        onConfirm={() => {
+          setShowArchiveConfirm(false);
+          onRemoveGoal(goal.id);
+        }}
+        title={t("setup.confirmArchiveEnvelopeTitle")}
+        description={t("setup.confirmArchiveEnvelopeDesc", { name: goal.name })}
+        confirmLabel={t("common.remove")}
+        variant="danger"
+      />
     </div>
   );
 }

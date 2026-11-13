@@ -1,16 +1,16 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { t } from '@money-matters/i18n';
-import { DESIGN_TOKENS } from '@money-matters/ui/mobile';
+import { DESIGN_TOKENS, InfoTooltip } from '@money-matters/ui/mobile';
 import { EstimatedCategoryItem, UserGoalItem } from '@money-matters/types';
-import { formatMobileCurrency } from '../../lib/format';
+import { formatMobileCurrency, formatDate } from '../../lib/format';
 
 interface SetupCategoriesGoalsListProps {
   goals: EstimatedCategoryItem[];
   userGoals: UserGoalItem[];
   totalGoalMonthly: number;
   onRemove: (name: string) => void;
-  isRerun?: boolean;
+  onEditGoal?: (category: EstimatedCategoryItem) => void;
 }
 
 export function SetupCategoriesGoalsList({
@@ -18,7 +18,7 @@ export function SetupCategoriesGoalsList({
   userGoals,
   totalGoalMonthly,
   onRemove,
-  isRerun = false,
+  onEditGoal,
 }: SetupCategoriesGoalsListProps) {
   if (goals.length === 0) return null;
 
@@ -26,35 +26,53 @@ export function SetupCategoriesGoalsList({
     <View style={styles.sectionCard}>
       <View style={styles.sectionHeader}>
         <Text style={styles.sectionTitle}>{t('setup.categories.goalSection')}</Text>
-        <Text style={styles.sectionTotal}>{formatMobileCurrency(totalGoalMonthly)}/mo</Text>
+        <Text style={styles.sectionTotal}>
+          {t('setup.reviewSummary.monthlyEstBadge', { amount: formatMobileCurrency(totalGoalMonthly) })}
+        </Text>
       </View>
 
-      {isRerun && (
-        <Text style={styles.rerunNote}>{t('setup.reviewSummary.readOnlyGoalsNote')}</Text>
-      )}
-
       {goals.map((cat) => {
-        const isSurplusTarget =
-          cat.name.toLowerCase().includes('emergency') ||
-          cat.name.toLowerCase().includes('reserve') ||
-          cat.name.toLowerCase().includes('surplus');
         const userGoal = userGoals.find(
           (g) => g.name.trim().toLowerCase() === cat.name.trim().toLowerCase()
         );
-        const isOngoing = userGoal?.fundingMode === 'RECURRING' || (!userGoal?.dueDate && Boolean(userGoal?.budgetFrequency));
+        const isSurplusTarget = Boolean(userGoal?.isSurplusTarget ?? cat.isSurplusTarget);
+        const isOngoing =
+          userGoal?.fundingMode === 'RECURRING' || (!userGoal?.dueDate && Boolean(userGoal?.budgetFrequency));
         const freq = userGoal?.budgetFrequency || 'MONTHLY';
-        const freqSuffix = freq === 'WEEKLY' ? '/wk' : freq === 'FORTNIGHTLY' ? '/fn' : freq === 'ANNUALLY' ? '/yr' : '/mo';
+        const freqSuffix =
+          freq === 'WEEKLY'
+            ? t('setup.freqSuffixWk')
+            : freq === 'FORTNIGHTLY'
+            ? t('setup.freqSuffixFn')
+            : freq === 'QUARTERLY'
+            ? t('setup.freqSuffixQtr')
+            : freq === 'ANNUALLY'
+            ? t('setup.freqSuffixYr')
+            : t('setup.freqSuffixMo');
         const enteredAmt = userGoal?.enteredAmount ?? userGoal?.targetAmount ?? cat.monthlyAud;
 
         let displayMetric: string;
         if (isOngoing) {
-          displayMetric = freq === 'MONTHLY'
-            ? `${formatMobileCurrency(enteredAmt)}/mo`
-            : `${formatMobileCurrency(enteredAmt)}${freqSuffix} (Est: ${formatMobileCurrency(cat.monthlyAud)}/mo)`;
+          displayMetric =
+            freq === 'MONTHLY'
+              ? `${formatMobileCurrency(enteredAmt)} ${t('setup.freqSuffixMo')}`
+              : t('setup.reviewSummary.ongoingEstMetric', {
+                  entered: formatMobileCurrency(enteredAmt),
+                  freqSuffix,
+                  monthly: formatMobileCurrency(cat.monthlyAud),
+                });
         } else {
           const targetAmt = userGoal?.targetAmount ?? cat.monthlyAud;
-          const targetDateStr = userGoal?.dueDate ? ` • By ${userGoal.dueDate}` : '';
-          displayMetric = `Target: ${formatMobileCurrency(targetAmt)}${targetDateStr} (Est: ${formatMobileCurrency(cat.monthlyAud)}/mo)`;
+          displayMetric = userGoal?.dueDate
+            ? t('setup.reviewSummary.targetWithDateMetric', {
+                amount: formatMobileCurrency(targetAmt),
+                date: formatDate(userGoal.dueDate),
+                monthly: formatMobileCurrency(cat.monthlyAud),
+              })
+            : t('setup.reviewSummary.targetNoDateMetric', {
+                amount: formatMobileCurrency(targetAmt),
+                monthly: formatMobileCurrency(cat.monthlyAud),
+              });
         }
 
         return (
@@ -70,19 +88,46 @@ export function SetupCategoriesGoalsList({
                   </View>
                 )}
               </View>
-              <Text style={styles.targetSub}>
-                {displayMetric}
-              </Text>
+              <Text style={styles.targetSub}>{displayMetric}</Text>
             </View>
 
-            {!isSurplusTarget && (
-              <TouchableOpacity
-                onPress={() => onRemove(cat.name)}
-                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-              >
-                <Text style={styles.removeBtn}>✕</Text>
-              </TouchableOpacity>
-            )}
+            <View style={styles.actionRow}>
+              {onEditGoal && (
+                <TouchableOpacity
+                  onPress={() =>
+                    onEditGoal({
+                      ...cat,
+                      id: userGoal?.id || cat.id,
+                      type: 'GOAL',
+                      envelopeType: 'GOAL',
+                      fundingMode: userGoal?.fundingMode ?? cat.fundingMode ?? 'TARGET_BALANCE',
+                      isPriority: userGoal?.isPriority ?? cat.isPriority ?? true,
+                      isSurplusTarget,
+                      bankAccountId: userGoal?.bankAccountId ?? cat.bankAccountId,
+                      targetAmount: userGoal?.targetAmount ?? cat.targetAmount ?? null,
+                      enteredAmount: userGoal?.enteredAmount ?? cat.enteredAmount ?? null,
+                      endDate: userGoal?.dueDate ?? cat.endDate ?? null,
+                      budgetFrequency: userGoal?.budgetFrequency ?? cat.budgetFrequency ?? 'MONTHLY',
+                      startDate: userGoal?.startDate ?? cat.startDate ?? null,
+                      rrule: userGoal?.rrule ?? cat.rrule ?? null,
+                    })
+                  }
+                  style={styles.editBtn}
+                >
+                  <Text style={styles.editBtnText}>{t('common.edit')}</Text>
+                </TouchableOpacity>
+              )}
+              {isSurplusTarget ? (
+                <InfoTooltip content={t('categories.cannotDeleteSpecialEnvelope')} />
+              ) : (
+                <TouchableOpacity
+                  onPress={() => onRemove(cat.name)}
+                  hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                >
+                  <Text style={styles.removeBtn}>✕</Text>
+                </TouchableOpacity>
+              )}
+            </View>
           </View>
         );
       })}
@@ -143,7 +188,7 @@ const styles = StyleSheet.create({
     color: DESIGN_TOKENS.colors.primary,
   },
   surplusBadge: {
-    backgroundColor: '#DCFCE7',
+    backgroundColor: DESIGN_TOKENS.colors.successLight,
     paddingHorizontal: 6,
     paddingVertical: 2,
     borderRadius: 8,
@@ -151,23 +196,35 @@ const styles = StyleSheet.create({
   surplusBadgeText: {
     fontSize: 9,
     fontWeight: '800',
-    color: '#15803D',
+    color: DESIGN_TOKENS.colors.successDark,
   },
   targetSub: {
     fontSize: 11,
     color: DESIGN_TOKENS.colors.textMuted,
     marginTop: 2,
   },
+  actionRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  editBtn: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: DESIGN_TOKENS.colors.accentBorder,
+    backgroundColor: DESIGN_TOKENS.colors.accentLight,
+  },
+  editBtnText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: DESIGN_TOKENS.colors.accent,
+  },
   removeBtn: {
     fontSize: 13,
     fontWeight: '700',
     color: DESIGN_TOKENS.colors.slate[400],
     paddingHorizontal: 4,
-  },
-  rerunNote: {
-    fontSize: 11,
-    fontStyle: 'italic',
-    color: DESIGN_TOKENS.colors.textMuted,
-    marginBottom: 8,
   },
 });

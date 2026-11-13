@@ -101,6 +101,7 @@ export function useMobileEnvelopeFormState({
     if (frequency === "WEEKLY") monthly = (val * (52 / intVal)) / 12;
     else if (frequency === "FORTNIGHTLY") monthly = (val * (26 / intVal)) / 12;
     else if (frequency === "MONTHLY") monthly = val / intVal;
+    else if (frequency === "QUARTERLY") monthly = (val * (4 / intVal)) / 12;
     else if (frequency === "ANNUALLY") monthly = val / (12 * intVal);
     return monthly.toFixed(2);
   }, [targetAmount, frequency, interval]);

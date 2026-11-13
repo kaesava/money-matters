@@ -12,7 +12,7 @@ export function useSetupWizardLifestyleState() {
   const [children, setChildren] = useState<ChildConfig[]>([{ id: 'child-1', name: 'Child 1', stage: 'PRIMARY', type: 'PUBLIC' }]);
   const [hasPrivateHealth, setHasPrivateHealth] = useState(true);
   const [hasGym, setHasGym] = useState(false);
-  const [hasMedicalOutofPocket, setHasMedicalOutofPocket] = useState(false);
+  const [hasMedicalOutofPocket, setHasMedicalOutofPocket] = useState(true);
   const [hasDebt, setHasDebt] = useState(false);
   const [debtMonthlyRepayment, setDebtMonthlyRepayment] = useState(0);
   const [hasPets, setHasPets] = useState(false);

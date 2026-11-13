@@ -61,6 +61,7 @@ export const QuizAnswersSchema = z.object({
   // Health
   hasPrivateHealth: z.boolean().default(true),
   hasGym: z.boolean().default(false),
+  hasMedicalOutofPocket: z.boolean().default(true),
 
   // Debt & Pets
   hasPets: z.boolean().default(false),
@@ -89,6 +90,13 @@ export interface EstimatedCategoryItem {
   envelopeType?: EnvelopeType;
   fundingMode?: FundingMode;
   isPriority?: boolean;
+  isSurplusTarget?: boolean;
+  isPrivate?: boolean;
+  bankAccountId?: string | null;
+  safetyBufferFloor?: number | null;
+  targetAmount?: number | null;
+  enteredAmount?: number | null;
+  currentBalance?: number;
   monthlyAud: number;
   icon?: string;
   colour?: string;
@@ -145,7 +153,9 @@ export function calculateQuizEstimates(answers: QuizAnswers): EstimationResult {
     answers.incomes.forEach((inc) => {
       let m = inc.amount;
       if (inc.frequency === "WEEKLY") m = inc.amount * (52 / 12);
-      if (inc.frequency === "FORTNIGHTLY") m = inc.amount * (26 / 12);
+      else if (inc.frequency === "FORTNIGHTLY") m = inc.amount * (26 / 12);
+      else if (inc.frequency === "QUARTERLY") m = inc.amount * (4 / 12);
+      else if (inc.frequency === "ANNUALLY") m = inc.amount / 12;
       totalMonthlyIncome += m;
     });
 
@@ -285,7 +295,9 @@ export function calculateQuizEstimates(answers: QuizAnswers): EstimationResult {
       rationale: "Combined Hospital & Extras Australian private health cover benchmark based on family composition.",
     });
   }
-  regularBills.push({ name: "Out-of-Pocket Medical & Pharmacy", type: "BILL", envelopeType: "BILL", fundingMode: "TARGET_BALANCE", isPriority: true, monthlyAud: 100, icon: "💊", rationale: "PBS pharmacy and Medicare out-of-pocket medical benchmark." });
+  if (answers.hasMedicalOutofPocket !== false) {
+    regularBills.push({ name: "Out-of-Pocket Medical & Pharmacy", type: "BILL", envelopeType: "BILL", fundingMode: "TARGET_BALANCE", isPriority: true, monthlyAud: 100, icon: "💊", rationale: "PBS pharmacy and Medicare out-of-pocket medical benchmark." });
+  }
   if (answers.hasGym) {
     regularBills.push({ name: "Gym & Fitness Membership", type: "BILL", envelopeType: "BILL", fundingMode: "RECURRING", isPriority: false, monthlyAud: 80, icon: "💪", rationale: "Average Australian health club membership rates." });
   }
@@ -354,7 +366,9 @@ export function calculateQuizEstimates(answers: QuizAnswers): EstimationResult {
   answers.incomes.forEach((inc) => {
     let m = inc.amount;
     if (inc.frequency === "WEEKLY") m = inc.amount * (52 / 12);
-    if (inc.frequency === "FORTNIGHTLY") m = inc.amount * (26 / 12);
+    else if (inc.frequency === "FORTNIGHTLY") m = inc.amount * (26 / 12);
+    else if (inc.frequency === "QUARTERLY") m = inc.amount * (4 / 12);
+    else if (inc.frequency === "ANNUALLY") m = inc.amount / 12;
     totalMonthlyIncome += m;
   });
 
@@ -379,6 +393,9 @@ export const UserGoalItemSchema = z.object({
   icon: z.string().default("target"),
   fundingMode: z.enum(["TARGET_BALANCE", "RECURRING"]).optional().default("TARGET_BALANCE"),
   isPriority: z.boolean().optional().default(false),
+  isSurplusTarget: z.boolean().optional(),
+  bankAccountId: z.string().optional().nullable(),
+  currentBalance: z.number().optional(),
   targetAmount: z.number().nonnegative().optional().nullable(),
   dueDate: z.string().optional().nullable(),
   enteredAmount: z.number().nonnegative().optional().nullable(),
