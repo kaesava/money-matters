@@ -14,6 +14,7 @@ import { BankAccountRowItem } from "../components/SetupBankAccountRow";
 
 interface PrepopulationProps {
   isRerun: boolean;
+  enabled?: boolean;
   setIncomes: React.Dispatch<React.SetStateAction<IncomeItem[]>>;
   setBankAccounts: React.Dispatch<React.SetStateAction<BankAccountRowItem[]>>;
   setGoals: React.Dispatch<React.SetStateAction<UserGoalItem[]>>;
@@ -25,15 +26,16 @@ interface PrepopulationProps {
 
 export function useSetupWizardPrepopulation({
   isRerun,
+  enabled = true,
   setIncomes,
   setBankAccounts,
   setGoals,
   setCustomCategories,
   setCategoryFrequencies,
 }: PrepopulationProps) {
-  const poolsQuery = trpc.listPools.useQuery();
-  const bankAccountsQuery = trpc.getBankAccountsWithMappings.useQuery();
-  const incomeSourcesQuery = trpc.listIncomeSources.useQuery();
+  const poolsQuery = trpc.listPools.useQuery(undefined, { enabled });
+  const bankAccountsQuery = trpc.getBankAccountsWithMappings.useQuery(undefined, { enabled });
+  const incomeSourcesQuery = trpc.listIncomeSources.useQuery(undefined, { enabled });
 
   // Pre-populate bank accounts (both in normal mode and rerun)
   useEffect(() => {

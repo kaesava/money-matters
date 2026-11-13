@@ -1,5 +1,10 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { extractCorrelationId, extractAuthToken, clearEdgeContextCache } from './edge-context.js';
+import {
+  extractCorrelationId,
+  extractAuthToken,
+  buildNeonAuthCookieHeader,
+  clearEdgeContextCache,
+} from './edge-context.js';
 
 describe('Edge Context Unit Tests', () => {
   beforeEach(() => {
@@ -52,6 +57,42 @@ describe('Edge Context Unit Tests', () => {
       const req = new Request('https://api.moneymatters.kaesava.au/trpc');
       const token = extractAuthToken(req);
       expect(token).toBe('');
+    });
+  });
+
+  describe('buildNeonAuthCookieHeader', () => {
+    it('maps un-prefixed neon-auth.session_token to __Secure-neon-auth.session_token', () => {
+      const headers = new Headers();
+      headers.set('cookie', 'neon-auth.session_token=dev-token-123; theme=light');
+      const req = new Request('https://api.moneymatters.kaesava.au/trpc', { headers });
+
+      const cookieHeader = buildNeonAuthCookieHeader(req, 'dev-token-123');
+      expect(cookieHeader).toBe('__Secure-neon-auth.session_token=dev-token-123; theme=light');
+    });
+
+    it('preserves existing __Secure-neon-auth.session_token without double-prefixing', () => {
+      const headers = new Headers();
+      headers.set('cookie', '__Secure-neon-auth.session_token=prod-token-456');
+      const req = new Request('https://api.moneymatters.kaesava.au/trpc', { headers });
+
+      const cookieHeader = buildNeonAuthCookieHeader(req, 'prod-token-456');
+      expect(cookieHeader).toBe('__Secure-neon-auth.session_token=prod-token-456');
+    });
+
+    it('synthesizes session cookies from bearer token when no cookie header is present', () => {
+      const req = new Request('https://api.moneymatters.kaesava.au/trpc');
+
+      const cookieHeader = buildNeonAuthCookieHeader(req, 'bearer-token-789');
+      expect(cookieHeader).toBe(
+        '__Secure-neon-auth.session_token=bearer-token-789; neon-auth.session_token=bearer-token-789'
+      );
+    });
+
+    it('returns null when neither cookie header nor token is present', () => {
+      const req = new Request('https://api.moneymatters.kaesava.au/trpc');
+
+      const cookieHeader = buildNeonAuthCookieHeader(req, '');
+      expect(cookieHeader).toBeNull();
     });
   });
 

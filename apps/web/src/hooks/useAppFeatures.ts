@@ -1,10 +1,13 @@
 "use client";
 
+import { authClient } from "../lib/auth";
 import { trpc } from "../lib/trpc";
 import { DEFAULT_APP_FEATURE_FLAGS } from "@money-matters/types";
 
 export function useAppFeatures() {
+  const { data: session } = authClient.useSession();
   const query = trpc.getTenantStatus.useQuery(undefined, {
+    enabled: !!session?.user,
     staleTime: 1000 * 60 * 5, // 5 minutes cache
     refetchOnWindowFocus: false,
   });

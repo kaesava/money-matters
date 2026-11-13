@@ -7,6 +7,7 @@ import { MobileBankAccountItem } from './setup-wizard-types';
 
 interface PrepopulationProps {
   isRerun: boolean;
+  enabled?: boolean;
   setIncomes: React.Dispatch<React.SetStateAction<IncomeItem[]>>;
   setBankAccounts: React.Dispatch<React.SetStateAction<MobileBankAccountItem[]>>;
   setGoals: React.Dispatch<React.SetStateAction<UserGoalItem[]>>;
@@ -18,6 +19,7 @@ interface PrepopulationProps {
 
 export function useSetupWizardPrepopulation({
   isRerun,
+  enabled = true,
   setIncomes,
   setBankAccounts,
   setGoals,
@@ -25,9 +27,9 @@ export function useSetupWizardPrepopulation({
   setCategoryFrequencies,
 }: PrepopulationProps) {
   const tz = getMobileLocaleConfig().timezone;
-  const incomeSourcesQuery = trpc.listIncomeSources.useQuery();
-  const bankAccountsQuery = trpc.getBankAccountsWithMappings.useQuery();
-  const poolsQuery = trpc.listPools.useQuery();
+  const incomeSourcesQuery = trpc.listIncomeSources.useQuery(undefined, { enabled });
+  const bankAccountsQuery = trpc.getBankAccountsWithMappings.useQuery(undefined, { enabled });
+  const poolsQuery = trpc.listPools.useQuery(undefined, { enabled });
 
   // Pre-populate incomes if in rerun mode (or if existing income sources exist)
   useEffect(() => {

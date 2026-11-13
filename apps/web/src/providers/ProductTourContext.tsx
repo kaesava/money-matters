@@ -3,6 +3,7 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useMemo, useRef, ReactNode } from 'react';
 import { useRouter, usePathname, useSearchParams } from 'next/navigation';
 import { trpc } from '../lib/trpc';
+import { authClient } from '../lib/auth';
 import posthog from '../lib/posthog-client';
 import { useToast } from '@money-matters/ui/web';
 import { t } from '@money-matters/i18n';
@@ -105,7 +106,10 @@ export function ProductTourProvider({ children }: { children: ReactNode }) {
   const toast = useToast();
   const utils = trpc.useUtils();
 
-  const userPrefQuery = trpc.getUserPreferences.useQuery(undefined);
+  const { data: session } = authClient.useSession();
+  const userPrefQuery = trpc.getUserPreferences.useQuery(undefined, {
+    enabled: !!session?.user,
+  });
   const updatePrefMutation = trpc.updateUserPreferences.useMutation();
 
   const [showWelcome, setShowWelcome] = useState(false);

@@ -50,6 +50,38 @@ export function extractAuthToken(req: Request): string {
   return token;
 }
 
+/**
+ * Normalizes cookie headers for Neon Auth verification:
+ * maps local dev `neon-auth.*` / `better-auth.*` cookies to `__Secure-` prefixed cookies
+ * required by the remote HTTPS Neon Auth instance.
+ */
+export function buildNeonAuthCookieHeader(req: Request, token: string): string | null {
+  const rawCookie = req.headers.get('cookie');
+  if (rawCookie) {
+    let mapped = rawCookie;
+    if (
+      mapped.includes('neon-auth.session_token=') &&
+      !mapped.includes('__Secure-neon-auth.session_token=')
+    ) {
+      mapped = mapped.replace(/neon-auth\.session_token=/g, '__Secure-neon-auth.session_token=');
+    }
+    if (
+      mapped.includes('better-auth.session_token=') &&
+      !mapped.includes('__Secure-better-auth.session_token=')
+    ) {
+      mapped = mapped.replace(
+        /better-auth\.session_token=/g,
+        '__Secure-better-auth.session_token='
+      );
+    }
+    return mapped;
+  }
+  if (token) {
+    return `__Secure-neon-auth.session_token=${encodeURIComponent(token)}; neon-auth.session_token=${encodeURIComponent(token)}`;
+  }
+  return null;
+}
+
 interface CachedSessionClaims {
   claims: ResolvedClaims;
   cachedAt: number;
@@ -146,8 +178,13 @@ export async function resolveClaimsFromNeonAuth(
     return null;
   }
 
-  const cookieHeader = req.headers.get('cookie');
+  const token = extractAuthToken(req);
+  const cookieHeader = buildNeonAuthCookieHeader(req, token);
   const authHeader = req.headers.get('authorization');
+  if (!cookieHeader && !authHeader) {
+    return null;
+  }
+
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), 10_000);
 

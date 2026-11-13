@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useEffect, useCallback, use
 import { useRouter, useSegments, type Href } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import { trpc } from '../lib/trpc';
+import { authClient } from '../lib/auth';
 import { usePostHog } from 'posthog-react-native';
 import { useMobileToast } from '@money-matters/ui/mobile';
 import { t } from '@money-matters/i18n';
@@ -95,8 +96,13 @@ export function MobileProductTourProvider({ children }: { children: ReactNode })
   const { showToast } = useMobileToast();
   const utils = trpc.useUtils();
 
-  const userPrefQuery = trpc.getUserPreferences.useQuery(undefined);
-  const tenantStatusQuery = trpc.getTenantStatus.useQuery(undefined);
+  const { data: session } = authClient.useSession();
+  const userPrefQuery = trpc.getUserPreferences.useQuery(undefined, {
+    enabled: !!session?.user,
+  });
+  const tenantStatusQuery = trpc.getTenantStatus.useQuery(undefined, {
+    enabled: !!session?.user,
+  });
   const updatePrefMutation = trpc.updateUserPreferences.useMutation();
 
   const [isTourActive, setIsTourActive] = useState(false);

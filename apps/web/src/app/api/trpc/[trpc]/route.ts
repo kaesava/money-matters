@@ -137,17 +137,26 @@ async function handleProxy(req: NextRequest) {
       }
     });
 
-    // Ensure authorization header is forwarded if available
+    // Ensure authorization header and normalized session cookies are forwarded if available
     const authHeader = req.headers.get("authorization");
+    const cookieHeader = req.headers.get("cookie");
+    if (cookieHeader && process.env.NODE_ENV === "development") {
+      let mappedCookie = cookieHeader;
+      if (mappedCookie.includes("neon-auth.session_token=") && !mappedCookie.includes("__Secure-neon-auth.session_token=")) {
+        mappedCookie = mappedCookie.replace(/neon-auth\.session_token=/g, "__Secure-neon-auth.session_token=");
+      }
+      if (mappedCookie.includes("better-auth.session_token=") && !mappedCookie.includes("__Secure-better-auth.session_token=")) {
+        mappedCookie = mappedCookie.replace(/better-auth\.session_token=/g, "__Secure-better-auth.session_token=");
+      }
+      headers.set("cookie", mappedCookie);
+    }
+
     if (authHeader) {
       headers.set("authorization", authHeader);
-    } else {
-      const cookieHeader = req.headers.get("cookie");
-      if (cookieHeader) {
-        const match = cookieHeader.match(/(?:__Secure-)?(?:neon-auth\.session_token|better-auth\.session_token|session_token|neon_auth_session|session)=([^;]+)/);
-        if (match) {
-          headers.set("authorization", `Bearer ${decodeURIComponent(match[1])}`);
-        }
+    } else if (cookieHeader) {
+      const match = cookieHeader.match(/(?:__Secure-)?(?:neon-auth\.session_token|better-auth\.session_token|session_token|neon_auth_session|session)=([^;]+)/);
+      if (match) {
+        headers.set("authorization", `Bearer ${decodeURIComponent(match[1])}`);
       }
     }
     

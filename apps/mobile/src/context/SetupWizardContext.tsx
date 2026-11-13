@@ -12,6 +12,7 @@ import { useSetupWizardPrepopulation } from './useSetupWizardPrepopulation';
 import { useSetupWizardCalculations } from './useSetupWizardCalculations';
 import { useSetupWizardLifestyleState } from './useSetupWizardLifestyleState';
 import { useSetupWizardAccountsState } from './useSetupWizardAccountsState';
+import { authClient } from '../lib/auth';
 import { trpc } from '../lib/trpc';
 
 const SetupWizardContext = createContext<SetupWizardContextValue | null>(null);
@@ -19,13 +20,17 @@ const SetupWizardContext = createContext<SetupWizardContextValue | null>(null);
 export function SetupWizardProvider({ children: reactChildren }: { children: React.ReactNode }) {
   const router = useRouter();
   const utils = trpc.useUtils();
-  const tenantStatusQuery = trpc.getTenantStatus.useQuery();
+  const { data: session } = authClient.useSession();
+  const tenantStatusQuery = trpc.getTenantStatus.useQuery(undefined, {
+    enabled: !!session?.user,
+  });
   const createTenantMut = trpc.createTenant.useMutation();
+  const hasTenant = tenantStatusQuery.data?.hasTenant === true;
   const userPrefQuery = trpc.getUserPreferences.useQuery(undefined, {
-    enabled: tenantStatusQuery.data?.hasTenant === true,
+    enabled: !!session?.user && hasTenant,
   });
   const tenantQuery = trpc.getTenant.useQuery(undefined, {
-    enabled: tenantStatusQuery.data?.hasTenant === true,
+    enabled: !!session?.user && hasTenant,
   });
 
   const tz = getMobileLocaleConfig().timezone;
@@ -168,6 +173,7 @@ export function SetupWizardProvider({ children: reactChildren }: { children: Rea
 
   const { isLoading: isLoadingExistingData } = useSetupWizardPrepopulation({
     isRerun,
+    enabled: !!session?.user && hasTenant,
     setIncomes,
     setBankAccounts: accounts.setBankAccounts,
     setGoals,

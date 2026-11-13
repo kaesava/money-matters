@@ -2,6 +2,7 @@
 
 import { useState, useMemo, useEffect, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { authClient } from "../../../lib/auth";
 import { trpc } from "../../../lib/trpc";
 import {
   QuizAnswers,
@@ -19,13 +20,17 @@ export function useSetupWizardState() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const utils = trpc.useUtils();
-  const tenantStatusQuery = trpc.getTenantStatus.useQuery();
+  const { data: session } = authClient.useSession();
+  const tenantStatusQuery = trpc.getTenantStatus.useQuery(undefined, {
+    enabled: !!session?.user,
+  });
   const createTenantMut = trpc.createTenant.useMutation();
+  const hasTenant = tenantStatusQuery.data?.hasTenant === true;
   const userPrefQuery = trpc.getUserPreferences.useQuery(undefined, {
-    enabled: tenantStatusQuery.data?.hasTenant === true,
+    enabled: !!session?.user && hasTenant,
   });
   const tenantQuery = trpc.getTenant.useQuery(undefined, {
-    enabled: tenantStatusQuery.data?.hasTenant === true,
+    enabled: !!session?.user && hasTenant,
   });
   const cancelSetupMut = trpc.cancelSetup.useMutation();
 
@@ -96,6 +101,7 @@ export function useSetupWizardState() {
   // Prepopulation query
   const prepopulation = useSetupWizardPrepopulation({
     isRerun,
+    enabled: !!session?.user && hasTenant,
     setIncomes: (val) => incomeState.setIncomes(val),
     setBankAccounts,
     setGoals: (val) => goalsState.setGoals(val),
