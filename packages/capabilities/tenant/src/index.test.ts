@@ -1,6 +1,8 @@
 import { describe, it, expect, vi } from 'vitest';
+import { DbOrTx, tenants, bankAccounts, envelopes, incomeSources, incomeEvents, expenseEvents } from '@money-matters/db';
 import {
   createTenantHandler,
+  cancelSetupHandler,
   createBankAccountHandler,
   updateBankAccountHandler,
   archiveBankAccountHandler,
@@ -198,6 +200,82 @@ describe('Capability Tenant Handlers', () => {
     const handler = acceptInviteHandler(mockDb);
 
     await expect(handler({ inviteToken: 'valid-token' }, userId, 'attacker@example.com')).rejects.toThrow(/Invitation email .* does not match/);
+  });
+
+  it('cancelSetupHandler marks PENDING setup as CANCELLED and ensures only 1 bank account + 1 shared Everyday envelope', async () => {
+    const updatedTables: unknown[] = [];
+    const setWhereMock = vi.fn().mockResolvedValue([]);
+    const setMock = vi.fn().mockReturnValue({ where: setWhereMock });
+    const updateMock = vi.fn().mockImplementation((table: unknown) => {
+      updatedTables.push(table);
+      return { set: setMock };
+    });
+
+    const txMock = {
+      select: vi.fn().mockImplementation(() => ({
+        from: vi.fn().mockImplementation((table: unknown) => ({
+          where: vi.fn().mockImplementation(() => ({
+            limit: vi.fn().mockImplementation(async () => {
+              if (table === tenants) return [{ setupStatus: 'PENDING' }];
+              if (table === bankAccounts) return [{ id: accountId }];
+              if (table === envelopes) return [{ id: 'env-everyday-1' }];
+              return [];
+            }),
+          })),
+        })),
+      })),
+      update: updateMock,
+      insert: vi.fn(),
+    };
+
+    const mockDb = {
+      transaction: vi.fn().mockImplementation((cb: (tx: unknown) => unknown) => cb(txMock)),
+    } as unknown as DbOrTx;
+
+    const handler = cancelSetupHandler(mockDb);
+    const result = await handler(tenantId, appId, userId);
+
+    expect(result).toEqual({
+      success: true,
+      setupStatus: 'CANCELLED',
+      alreadyCompleted: false,
+    });
+    expect(txMock.insert).not.toHaveBeenCalled();
+    expect(updatedTables).toContain(envelopes);
+    expect(updatedTables).toContain(bankAccounts);
+    expect(updatedTables).toContain(incomeSources);
+    expect(updatedTables).toContain(incomeEvents);
+    expect(updatedTables).toContain(expenseEvents);
+    expect(updatedTables).toContain(tenants);
+  });
+
+  it('cancelSetupHandler is an idempotent no-op when setupStatus is already COMPLETED', async () => {
+    const updateMock = vi.fn();
+    const txMock = {
+      select: vi.fn().mockReturnValue({
+        from: vi.fn().mockReturnValue({
+          where: vi.fn().mockReturnValue({
+            limit: vi.fn().mockResolvedValue([{ setupStatus: 'COMPLETED' }]),
+          }),
+        }),
+      }),
+      update: updateMock,
+      insert: vi.fn(),
+    };
+
+    const mockDb = {
+      transaction: vi.fn().mockImplementation((cb: (tx: unknown) => unknown) => cb(txMock)),
+    } as unknown as DbOrTx;
+
+    const handler = cancelSetupHandler(mockDb);
+    const result = await handler(tenantId, appId, userId);
+
+    expect(result).toEqual({
+      success: true,
+      setupStatus: 'COMPLETED',
+      alreadyCompleted: true,
+    });
+    expect(updateMock).not.toHaveBeenCalled();
   });
 
   it('deleteMyAccountHandler purges household records and sends notification', async () => {

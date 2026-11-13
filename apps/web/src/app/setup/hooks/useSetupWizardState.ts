@@ -28,7 +28,7 @@ export function useSetupWizardState() {
   const tenantQuery = trpc.getTenant.useQuery(undefined, {
     enabled: tenantStatusQuery.data?.hasTenant === true,
   });
-  const updatePrefMut = trpc.updateUserPreferences.useMutation();
+  const cancelSetupMut = trpc.cancelSetup.useMutation();
 
   // Auto-provision tenant for authenticated users without a household (e.g. Google OAuth sign-in)
   const isCreatingTenantRef = useRef(false);
@@ -59,15 +59,15 @@ export function useSetupWizardState() {
   const [step, setStep] = useState(1);
   const [showDiscardModal, setShowDiscardModal] = useState(false);
 
-  // Re-run mode & auto-trigger when setup was already completed - locked on mount to prevent submission flicker
+  // Re-run mode & auto-trigger when setup was already completed (not cancelled) - locked on mount to prevent submission flicker
   const isRerunParam = searchParams?.get("mode") === "rerun";
-  const setupAlreadyCompleted = Boolean(userPrefQuery.data?.setupCompleted);
+  const setupAlreadyCompleted = userPrefQuery.data?.setupStatus === "COMPLETED";
   const [isRerun, setIsRerun] = useState<boolean>(() => isRerunParam || setupAlreadyCompleted);
   const initialSetupCompletedRef = useRef<boolean | null>(null);
 
   useEffect(() => {
     if (initialSetupCompletedRef.current === null && userPrefQuery.data !== undefined) {
-      initialSetupCompletedRef.current = Boolean(userPrefQuery.data?.setupCompleted);
+      initialSetupCompletedRef.current = userPrefQuery.data?.setupStatus === "COMPLETED";
       if (initialSetupCompletedRef.current && !isRerunParam) {
         setIsRerun(true);
       }
@@ -226,22 +226,24 @@ export function useSetupWizardState() {
   const handleDiscard = async () => {
     setShowDiscardModal(false);
     try {
-      if (tenantStatusQuery.data?.hasTenant) {
-        await updatePrefMut.mutateAsync({ setupCompleted: true });
-      } else {
-        await createTenantMut.mutateAsync({
-          name: "My Household",
-          country: "AU",
-          currency: "AUD",
-          timezone: "Australia/Sydney",
-        });
-        await updatePrefMut.mutateAsync({ setupCompleted: true });
+      if (!isRerun) {
+        if (!tenantStatusQuery.data?.hasTenant) {
+          await createTenantMut.mutateAsync({
+            name: "My Household",
+            country: "AU",
+            currency: "AUD",
+            timezone: "Australia/Sydney",
+          });
+        }
+        await cancelSetupMut.mutateAsync();
       }
-      utils.getTenantStatus.setData(undefined, (old) => old ? { ...old, setupCompleted: true } : undefined);
+      utils.getTenantStatus.setData(undefined, (old) =>
+        old ? { ...old, setupCompleted: true, setupStatus: isRerun ? old.setupStatus : "CANCELLED" } : undefined
+      );
       await utils.getTenantStatus.refetch();
       await utils.invalidate();
     } catch (_e) {
-      // Ignore if preference update fails
+      // Non-blocking fallback
     }
     router.replace("/dashboard");
   };

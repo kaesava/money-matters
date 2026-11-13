@@ -14,16 +14,17 @@ export interface SaveSetupIncomeInput {
   type?: "SALARY" | "FREELANCE" | "INVESTMENT" | "OTHER";
   incomeType?: "SALARIED" | "IRREGULAR";
   amount: string;
-  frequency: "WEEKLY" | "FORTNIGHTLY" | "MONTHLY" | "QUARTERLY" | "CUSTOM";
+  frequency: "WEEKLY" | "FORTNIGHTLY" | "MONTHLY" | "QUARTERLY" | "ANNUALLY" | "CUSTOM";
   receivingAccountId?: string | null;
   startDate?: string | null;
   rrule?: string | null;
 }
 
-export function deriveIncomeRrule(frequency: "WEEKLY" | "FORTNIGHTLY" | "MONTHLY" | "QUARTERLY" | "CUSTOM"): string {
+export function deriveIncomeRrule(frequency: "WEEKLY" | "FORTNIGHTLY" | "MONTHLY" | "QUARTERLY" | "ANNUALLY" | "CUSTOM"): string {
   if (frequency === "WEEKLY") return "FREQ=WEEKLY";
   if (frequency === "FORTNIGHTLY") return "FREQ=WEEKLY;INTERVAL=2";
   if (frequency === "QUARTERLY") return "FREQ=MONTHLY;INTERVAL=3";
+  if (frequency === "ANNUALLY") return "FREQ=YEARLY";
   return "FREQ=MONTHLY";
 }
 
@@ -37,14 +38,15 @@ export async function processSetupIncomes(
   tenantId: string,
   appId: string,
   userId: string,
-  now: Date
+  now: Date,
+  timeZone: string = "Australia/Sydney"
 ): Promise<void> {
   const existingIncomes = await tx
     .select()
     .from(incomeSources)
     .where(and(eq(incomeSources.tenantId, tenantId), eq(incomeSources.appId, appId), sql`${incomeSources.archivedAt} IS NULL`));
 
-  const todayAest = new Intl.DateTimeFormat("en-CA", { timeZone: "Australia/Sydney" }).format(now);
+  const todayLocal = new Intl.DateTimeFormat("en-CA", { timeZone }).format(now);
   const newIncomeCandidates: IncomeScheduleCandidate[] = [];
 
   for (const incInput of incomesInput) {
@@ -54,8 +56,8 @@ export async function processSetupIncomes(
       incInput.receivingAccountId ||
       (matchedIncome ? matchedIncome.receivingAccountId : primaryBankAccountId);
 
-    const rrule = deriveIncomeRrule(incInput.frequency);
-    const startDate = incInput.startDate || (matchedIncome ? matchedIncome.startDate : todayAest) || todayAest;
+    const rrule = incInput.rrule || deriveIncomeRrule(incInput.frequency);
+    const startDate = incInput.startDate || (matchedIncome ? matchedIncome.startDate : todayLocal) || todayLocal;
 
     if (matchedIncome) {
       const scheduleChanged =
@@ -86,6 +88,7 @@ export async function processSetupIncomes(
         rrule,
         startDate,
         endDate: (incInput as { endDate?: string | null }).endDate || null,
+        timeZone,
         tenantId,
         appId,
         userId,
@@ -149,7 +152,15 @@ export async function processSetupIncomes(
       existingDatesBySource.get(ev.incomeSourceId)!.add(ev.expectedDate);
     }
 
-    const { eventsToInsert } = buildIncomeEventPayloads(newIncomeCandidates, existingDatesBySource, tenantId, appId, userId, now);
+    const { eventsToInsert } = buildIncomeEventPayloads(
+      newIncomeCandidates,
+      existingDatesBySource,
+      tenantId,
+      appId,
+      userId,
+      now,
+      timeZone
+    );
     if (eventsToInsert.length > 0) {
       await insertIncomeEventsBulk(tx, eventsToInsert);
 

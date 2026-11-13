@@ -193,11 +193,12 @@ export async function processSetupEnvelopes(
       (matchedExisting ? matchedExisting.bankAccountId : primaryBankAccountId);
 
     const isScheduled = envInput.envelopeType === "BILL" && fundingMode === "RECURRING";
-    const rrule = isScheduled
+    const isOngoingGoal = envInput.envelopeType === "GOAL" && fundingMode === "RECURRING";
+    const rrule = (isScheduled || isOngoingGoal)
       ? envInput.rrule || deriveRrule(envInput.budgetFrequency || "MONTHLY")
       : envInput.rrule || null;
     const startDate = isScheduled
-      ? envInput.startDate || computeBillScheduleAnchorDate(envInput.budgetFrequency || "MONTHLY", now)
+      ? envInput.startDate || computeBillScheduleAnchorDate(envInput.budgetFrequency || "MONTHLY", now, timeZone)
       : envInput.startDate || null;
 
     if (matchedExisting) {

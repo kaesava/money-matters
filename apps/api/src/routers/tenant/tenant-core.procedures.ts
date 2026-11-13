@@ -1,10 +1,11 @@
-import { tenantProcedure, authenticatedProcedure, privateOwnerProcedure, publicProcedure, privateTenantProcedure } from '../../trpc/trpc.js';
+import { tenantProcedure, authenticatedProcedure, privateOwnerProcedure, publicProcedure, privateTenantProcedure, requiresWriteAccess } from '../../trpc/trpc.js';
 import { MONEY_MATTERS_APP_ID, clearEdgeContextCache } from '../../trpc/edge-context.js';
 import { db, tenants, tenantUsers, earlyAccessSubscribers, apps } from "@money-matters/db";
 import { and, eq, sql, asc, isNull } from "drizzle-orm";
 import { inngest } from '../../inngest/client.js';
 import { 
   createTenantHandler,
+  cancelSetupHandler,
   getTenantHandler,
   exportDataHandler,
   deleteMyAccountHandler,
@@ -55,6 +56,7 @@ export const tenantCoreProcedures = {
   getTenantStatus: authenticatedProcedure
     .query(async ({ ctx }) => {
       let setupCompleted = false;
+      let setupStatus: "PENDING" | "CANCELLED" | "COMPLETED" = "PENDING";
       const appId = ctx.appId || MONEY_MATTERS_APP_ID;
 
       if (ctx.tenantId) {
@@ -67,7 +69,11 @@ export const tenantCoreProcedures = {
           .where(eq(tenants.id, ctx.tenantId))
           .limit(1);
 
-        setupCompleted = tenant?.setupStatus === "COMPLETED" || Boolean(tenant?.setupCompletedAt);
+        setupStatus = (tenant?.setupStatus as "PENDING" | "CANCELLED" | "COMPLETED") || "PENDING";
+        setupCompleted =
+          setupStatus === "COMPLETED" ||
+          setupStatus === "CANCELLED" ||
+          Boolean(tenant?.setupCompletedAt);
       }
 
       const [appRecord] = await ctx.db
@@ -82,8 +88,17 @@ export const tenantCoreProcedures = {
         hasTenant: ctx.tenantId !== null,
         tenantId: ctx.tenantId,
         setupCompleted,
+        setupStatus,
         features: appRecord?.featureFlags || DEFAULT_APP_FEATURE_FLAGS,
       };
+    }),
+
+  cancelSetup: privateTenantProcedure
+    .mutation(async ({ ctx }) => {
+      requiresWriteAccess(ctx);
+      const appId = ctx.appId || MONEY_MATTERS_APP_ID;
+      const handler = cancelSetupHandler(ctx.db);
+      return await handler(ctx.tenantId!, appId, ctx.userId!);
     }),
 
   getTenant: tenantProcedure

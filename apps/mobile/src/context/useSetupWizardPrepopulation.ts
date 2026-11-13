@@ -22,8 +22,8 @@ export function useSetupWizardPrepopulation({
 }: PrepopulationProps) {
   const tz = getMobileLocaleConfig().timezone;
   const incomeSourcesQuery = trpc.listIncomeSources.useQuery(undefined, { enabled: isRerun });
-  const bankAccountsQuery = trpc.getBankAccountsWithMappings.useQuery(undefined, { enabled: isRerun });
-  const poolsQuery = trpc.listPools.useQuery(undefined, { enabled: isRerun });
+  const bankAccountsQuery = trpc.getBankAccountsWithMappings.useQuery();
+  const poolsQuery = trpc.listPools.useQuery();
 
   // Pre-populate incomes if in rerun mode
   useEffect(() => {
@@ -46,9 +46,9 @@ export function useSetupWizardPrepopulation({
     );
   }, [isRerun, incomeSourcesQuery.data, setIncomes, tz]);
 
-  // Pre-populate bank accounts if in rerun mode
+  // Pre-populate bank accounts (both in normal mode and rerun)
   useEffect(() => {
-    if (!isRerun || !bankAccountsQuery.data || bankAccountsQuery.data.length === 0) return;
+    if (!bankAccountsQuery.data || bankAccountsQuery.data.length === 0) return;
     setBankAccounts(
       bankAccountsQuery.data.map((acc) => ({
         id: acc.id,
@@ -60,7 +60,7 @@ export function useSetupWizardPrepopulation({
         isPrivate: Boolean(acc.isPrivate),
       }))
     );
-  }, [isRerun, bankAccountsQuery.data, setBankAccounts]);
+  }, [bankAccountsQuery.data, setBankAccounts]);
 
   // Pre-populate goal pools if in rerun mode
   useEffect(() => {

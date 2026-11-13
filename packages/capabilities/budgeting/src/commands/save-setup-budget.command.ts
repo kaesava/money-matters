@@ -74,7 +74,8 @@ export function saveSetupBudgetHandler(dbClient: DbOrTx) {
         tenantId,
         appId,
         userId,
-        now
+        now,
+        tenantTimezone
       );
 
       // 4. Auto-create Scheduled Events for New Recurring Bill Envelopes

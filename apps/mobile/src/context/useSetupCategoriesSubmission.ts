@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useRouter } from 'expo-router';
 import { t } from '@money-matters/i18n';
-import { useMobileToast } from '@money-matters/ui/mobile';
+import { useMobileToast, buildRecurrenceRule } from '@money-matters/ui/mobile';
 import { trpc } from '../lib/trpc';
 import { useSetupWizard } from './SetupWizardContext';
 
@@ -62,12 +62,14 @@ export function useSetupCategoriesSubmission() {
             rawFreq === 'YEARLY' ? 'ANNUALLY' : (rawFreq as 'WEEKLY' | 'FORTNIGHTLY' | 'MONTHLY' | 'QUARTERLY' | 'ANNUALLY') || 'MONTHLY';
           const isEveryday = c.type === 'EVERYDAY';
           const envelopeType: 'EVERYDAY' | 'BILL' | 'GOAL' = isEveryday ? 'EVERYDAY' : 'BILL';
-          const fundingMode: 'TARGET_BALANCE' | 'RECURRING' | undefined = isEveryday
-            ? undefined
+          const fundingMode: 'TARGET_BALANCE' | 'RECURRING' = isEveryday
+            ? 'TARGET_BALANCE'
             : c.fundingMode || 'RECURRING';
           const catId = 'id' in c && typeof c.id === 'string' && !c.id.startsWith('temp-') ? c.id : undefined;
           const matchedPool = (catId ? existingPools.find((p) => p.id === catId) : undefined) ||
-            existingPools.find((p) => p.envelopeType === envelopeType && p.name.trim().toLowerCase() === c.name.trim().toLowerCase());
+            (isEveryday
+              ? existingPools.find((p) => p.envelopeType === 'EVERYDAY' && !p.isPrivate)
+              : existingPools.find((p) => p.envelopeType === envelopeType && p.name.trim().toLowerCase() === c.name.trim().toLowerCase()));
           const resolvedEnvId = catId || matchedPool?.id;
           return {
             id: resolvedEnvId,
@@ -138,16 +140,26 @@ export function useSetupCategoriesSubmission() {
       const incomesPayload = incomes.map((inc) => {
         const incType: 'SALARY' | 'FREELANCE' | 'INVESTMENT' | 'OTHER' =
           inc.type === 'BUSINESS' ? 'FREELANCE' : inc.type === 'SALARY' || inc.type === 'OTHER' ? inc.type : 'SALARY';
-        const freq: 'WEEKLY' | 'FORTNIGHTLY' | 'MONTHLY' | 'CUSTOM' =
-          inc.frequency === 'WEEKLY' || inc.frequency === 'FORTNIGHTLY' || inc.frequency === 'MONTHLY'
+        const freq: 'WEEKLY' | 'FORTNIGHTLY' | 'MONTHLY' | 'QUARTERLY' | 'ANNUALLY' | 'CUSTOM' =
+          inc.frequency === 'WEEKLY' ||
+          inc.frequency === 'FORTNIGHTLY' ||
+          inc.frequency === 'MONTHLY' ||
+          inc.frequency === 'QUARTERLY' ||
+          inc.frequency === 'ANNUALLY'
             ? inc.frequency
             : 'CUSTOM';
+        const rrule =
+          inc.rrule ||
+          (freq !== 'CUSTOM'
+            ? buildRecurrenceRule(freq, inc.interval ?? 1)
+            : 'FREQ=MONTHLY');
         return {
           id: inc.id?.startsWith('inc-') ? undefined : inc.id,
           name: inc.name,
           type: incType,
           amount: (inc.amount || 0).toFixed(2),
           frequency: freq,
+          rrule,
           receivingAccountId: inc.receivingAccountId || null,
           startDate: inc.startDate || null,
         };
@@ -170,7 +182,7 @@ export function useSetupCategoriesSubmission() {
         archivedIncomeIds: Array.from(archivedIncomeIds),
       });
 
-      utils.getTenantStatus.setData(undefined, (old) => (old ? { ...old, setupCompleted: true } : undefined));
+      utils.getTenantStatus.setData(undefined, (old) => (old ? { ...old, setupCompleted: true, setupStatus: 'COMPLETED' } : undefined));
       await utils.getTenantStatus.refetch();
       await utils.invalidate();
 

@@ -3,6 +3,46 @@ import { tenants, tenantUsers, envelopes, bankAccounts, apps, users, userPrefere
 import { CreateTenantCommand, COUNTRY_DEFAULTS } from "@money-matters/types";
 import { eq, and, isNull, or, sql } from "drizzle-orm";
 
+export const DEFAULT_BANK_ACCOUNT_NAME = "Other Financial Institution (Everyday)";
+export const DEFAULT_EVERYDAY_ENVELOPE_NAME = "Everyday Spending";
+
+/**
+ * Seeds the absolute minimum workspace: ONE bank account and the single shared Everyday envelope
+ * linked to it (also the surplus target). Never creates Bill/Goal envelopes or Income Schedules.
+ * Pass existing ids to make the call idempotent.
+ */
+export async function seedMinimalWorkspace(
+  db: DbOrTx,
+  params: {
+    tenantId: string;
+    appId: string;
+    userId: string;
+    existingBankAccountId?: string | null;
+    existingEverydayEnvelopeId?: string | null;
+    hasEverydayEnvelope?: boolean;
+  }
+): Promise<{ bankAccountId: string; everydayEnvelopeId: string | null }> {
+  const { tenantId, appId, userId } = params;
+  let bankAccountId = params.existingBankAccountId ?? null;
+  if (!bankAccountId) {
+    const [acc] = await db.insert(bankAccounts).values({
+      tenantId, appId, name: DEFAULT_BANK_ACCOUNT_NAME, bankProvider: "Other", accountType: "EVERYDAY",
+      lastKnownBalance: "0.00", unbudgetedBuffer: "0.00", isPrivate: false, createdBy: userId, updatedBy: userId,
+    }).returning();
+    bankAccountId = acc.id;
+  }
+  let everydayEnvelopeId = params.existingEverydayEnvelopeId ?? null;
+  if (!everydayEnvelopeId && !params.hasEverydayEnvelope) {
+    const ins = await db.insert(envelopes).values({
+      tenantId, appId, bankAccountId, name: DEFAULT_EVERYDAY_ENVELOPE_NAME, envelopeType: "EVERYDAY",
+      fundingMode: "TARGET_BALANCE", monthlyAmount: "0.00", budgetFrequency: "MONTHLY", isPriority: true,
+      isSurplusTarget: true, isPrivate: false, orderIndex: 0, createdBy: userId, updatedBy: userId,
+    }).returning();
+    everydayEnvelopeId = Array.isArray(ins) && ins[0]?.id ? ins[0].id : null;
+  }
+  return { bankAccountId, everydayEnvelopeId };
+}
+
 /**
  * Creates a new tenant scope and assigns the creator user as OWNER.
  */
@@ -74,7 +114,9 @@ export function createTenantHandler(db: DbOrTx) {
     const subscriptionStatus = hasUsedTrial ? "TRIAL_EXPIRED" : "TRIAL_ACTIVE";
 
     const country = input.country || "AU";
-    const countryDefaults = (COUNTRY_DEFAULTS as Record<string, any>)[country] || COUNTRY_DEFAULTS["AU"];
+    const countryDefaults =
+      (COUNTRY_DEFAULTS as Record<string, { currency: string; timezone: string; phoneCountryCode: string }>)[country] ||
+      COUNTRY_DEFAULTS["AU"];
     const currency = input.currency || countryDefaults.currency;
     const timezone = input.timezone || countryDefaults.timezone;
 
@@ -151,81 +193,7 @@ export function createTenantHandler(db: DbOrTx) {
         .onConflictDoNothing();
     }
 
-    // 6. Create default initial bank account
-    const [primaryAccount] = await db
-      .insert(bankAccounts)
-      .values({
-        tenantId,
-        appId,
-        name: "Other Financial Institution (Everyday)",
-        bankProvider: "Other",
-        accountType: "EVERYDAY",
-        lastKnownBalance: "0.00",
-        unbudgetedBuffer: "0.00",
-        createdBy: userId,
-        updatedBy: userId,
-      })
-      .returning();
-
-    // 4. Bulk-insert default Envelopes on Primary Account in one statement (Everyday Spending and Surplus Sweep Target).
-    const isAudCurrency = currency === "AUD";
-    const defaultEnvelopes: Array<{
-      name: string;
-      envelopeType: "EVERYDAY" | "GOAL";
-      fundingMode: "TARGET_BALANCE" | "RECURRING";
-      monthlyAmount: string;
-      enteredAmount?: string;
-      targetAmount?: string;
-      budgetFrequency?: "MONTHLY";
-      isPriority?: boolean;
-      isSurplusTarget?: boolean;
-      isPrivate: boolean;
-      orderIndex: number;
-    }> = [
-      {
-        name: "Everyday Spending",
-        envelopeType: "EVERYDAY",
-        fundingMode: "TARGET_BALANCE",
-        monthlyAmount: isAudCurrency ? "1000.00" : "0.00",
-        isPriority: true,
-        isPrivate: false,
-        orderIndex: 0,
-      },
-      {
-        name: "Emergency Reserve",
-        envelopeType: "GOAL",
-        fundingMode: "TARGET_BALANCE",
-        targetAmount: isAudCurrency ? "10000.00" : "0.00",
-        enteredAmount: isAudCurrency ? "300.00" : "0.00",
-        monthlyAmount: isAudCurrency ? "300.00" : "0.00",
-        budgetFrequency: "MONTHLY",
-        isPriority: true,
-        isSurplusTarget: true,
-        isPrivate: false,
-        orderIndex: 1,
-      },
-    ];
-
-    await db.insert(envelopes).values(
-      defaultEnvelopes.map((e) => ({
-        tenantId,
-        appId,
-        bankAccountId: primaryAccount.id,
-        name: e.name,
-        envelopeType: e.envelopeType,
-        fundingMode: e.fundingMode,
-        monthlyAmount: e.monthlyAmount,
-        enteredAmount: e.enteredAmount ?? null,
-        budgetFrequency: e.budgetFrequency ?? "MONTHLY",
-        targetAmount: e.targetAmount ?? null,
-        isPriority: e.isPriority ?? false,
-        isSurplusTarget: e.isSurplusTarget ?? false,
-        isPrivate: e.isPrivate,
-        orderIndex: e.orderIndex,
-        createdBy: userId,
-        updatedBy: userId,
-      }))
-    );
+    await seedMinimalWorkspace(db, { tenantId, appId, userId });
 
     return {
       success: true,

@@ -309,7 +309,7 @@ export const SaveSetupBudgetCommand = z.object({
     incomeType: z.enum(["SALARIED", "IRREGULAR"]).default("SALARIED"),
     type: z.enum(["SALARY", "FREELANCE", "INVESTMENT", "OTHER"]),
     amount: z.string().regex(/^\d{1,12}(\.\d{1,2})?$/),
-    frequency: z.enum(["WEEKLY", "FORTNIGHTLY", "MONTHLY", "QUARTERLY", "CUSTOM"]).optional().default("FORTNIGHTLY"),
+    frequency: z.enum(["WEEKLY", "FORTNIGHTLY", "MONTHLY", "QUARTERLY", "ANNUALLY", "CUSTOM"]).optional().default("FORTNIGHTLY"),
     receivingAccountId: z.string().optional().nullable(),
     startDate: z.string().optional().nullable(),
     rrule: z.string().optional().nullable(),

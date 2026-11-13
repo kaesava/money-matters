@@ -30,7 +30,11 @@ export const profileProcedures = {
         ? await ctx.db.select().from(tenants).where(eq(tenants.id, ctx.tenantId)).limit(1)
         : [null];
 
-      const setupCompleted = currentTenant?.setupStatus === "COMPLETED" || Boolean(currentTenant?.setupCompletedAt);
+      const setupStatus = (currentTenant?.setupStatus as "PENDING" | "CANCELLED" | "COMPLETED") || "PENDING";
+      const setupCompleted =
+        setupStatus === "COMPLETED" ||
+        setupStatus === "CANCELLED" ||
+        Boolean(currentTenant?.setupCompletedAt);
       const setupCompletedAt = currentTenant?.setupCompletedAt?.toISOString() || null;
 
       const tenantCountry = currentTenant?.country;
@@ -57,6 +61,7 @@ export const profileProcedures = {
           : (countryDefaults?.phoneCountryCode || globalPref?.phoneCountryCode || "+61"),
         phoneNumber: globalPref?.phoneNumber ?? null,
         setupCompleted,
+        setupStatus,
         setupCompletedAt,
         appPreferences: tenantPref?.appPreferences ?? {},
       };

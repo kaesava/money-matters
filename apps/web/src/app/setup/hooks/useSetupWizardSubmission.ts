@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { trpc } from "../../../lib/trpc";
 import posthog from "../../../lib/posthog-client";
-import { useToast } from "@money-matters/ui/web";
+import { useToast, buildRecurrenceRule } from "@money-matters/ui/web";
 import { t } from "@money-matters/i18n";
 import {
   IncomeItem,
@@ -96,7 +96,13 @@ export function useSetupWizardSubmission({
           const isPriority = isEveryday ? false : (c.isPriority ?? true);
           const catId = "id" in c && typeof c.id === "string" && !c.id.startsWith("temp-") ? c.id : undefined;
           const matchedPool = (catId ? existingPools.find((p) => p.id === catId) : undefined) ||
-            existingPools.find((p) => (p.envelopeType === resolvedEnvelopeType || p.name?.trim().toLowerCase() === c.name.trim().toLowerCase()));
+            (isEveryday
+              ? existingPools.find((p) => p.envelopeType === "EVERYDAY" && !p.isPrivate)
+              : existingPools.find(
+                  (p) =>
+                    p.envelopeType === resolvedEnvelopeType &&
+                    p.name?.trim().toLowerCase() === c.name.trim().toLowerCase()
+                ));
           const resolvedEnvId = catId || matchedPool?.id;
           return {
             id: resolvedEnvId,
@@ -119,7 +125,9 @@ export function useSetupWizardSubmission({
         ...goals.map((g, idx) => {
           const goalId = g.id?.startsWith("g-") ? undefined : g.id;
           const matchedPool = (goalId ? existingPools.find((p) => p.id === goalId) : undefined) ||
-            existingPools.find((p) => (p.envelopeType === "GOAL" || p.name?.trim().toLowerCase() === g.name.trim().toLowerCase()));
+            existingPools.find(
+              (p) => p.envelopeType === "GOAL" && p.name?.trim().toLowerCase() === g.name.trim().toLowerCase()
+            );
           const resolvedGoalId = goalId || matchedPool?.id;
           const fundingMode: "TARGET_BALANCE" | "RECURRING" = g.fundingMode || (!g.dueDate && Boolean(g.budgetFrequency) ? "RECURRING" : "TARGET_BALANCE");
           const isRecurring = fundingMode === "RECURRING";
@@ -167,14 +175,26 @@ export function useSetupWizardSubmission({
       const incomesPayload = incomes.map((inc) => {
         const incType: "SALARY" | "FREELANCE" | "INVESTMENT" | "OTHER" =
           inc.type === "BUSINESS" ? "FREELANCE" : inc.type === "SALARY" || inc.type === "OTHER" ? inc.type : "SALARY";
-        const incFreq: "WEEKLY" | "FORTNIGHTLY" | "MONTHLY" | "CUSTOM" =
-          inc.frequency === "WEEKLY" || inc.frequency === "FORTNIGHTLY" || inc.frequency === "MONTHLY" ? inc.frequency : "CUSTOM";
+        const incFreq: "WEEKLY" | "FORTNIGHTLY" | "MONTHLY" | "QUARTERLY" | "ANNUALLY" | "CUSTOM" =
+          inc.frequency === "WEEKLY" ||
+          inc.frequency === "FORTNIGHTLY" ||
+          inc.frequency === "MONTHLY" ||
+          inc.frequency === "QUARTERLY" ||
+          inc.frequency === "ANNUALLY"
+            ? inc.frequency
+            : "CUSTOM";
+        const rrule =
+          inc.rrule ||
+          (incFreq !== "CUSTOM"
+            ? buildRecurrenceRule(incFreq, inc.interval ?? 1)
+            : "FREQ=MONTHLY");
         return {
           id: inc.id?.startsWith("inc-") ? undefined : inc.id,
           name: inc.name,
           type: incType,
           amount: (inc.amount || 0).toFixed(2),
           frequency: incFreq,
+          rrule,
           receivingAccountId: inc.receivingAccountId || null,
           startDate: inc.startDate || null,
         };
@@ -197,7 +217,7 @@ export function useSetupWizardSubmission({
         archivedIncomeIds: Array.from(archivedIncomeIds),
       });
 
-      utils.getTenantStatus.setData(undefined, (old) => (old ? { ...old, setupCompleted: true } : undefined));
+      utils.getTenantStatus.setData(undefined, (old) => (old ? { ...old, setupCompleted: true, setupStatus: "COMPLETED" } : undefined));
       void utils.getTenantStatus.refetch();
       void utils.invalidate();
 

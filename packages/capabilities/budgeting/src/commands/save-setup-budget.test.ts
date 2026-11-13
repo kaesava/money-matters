@@ -54,17 +54,17 @@ describe("saveSetupBudgetHandler", () => {
         values: vi.fn().mockImplementation((vals: any) => {
           const items = Array.isArray(vals) ? vals : [vals];
           if (table === transactionLedger) {
-            insertedRows["transaction_ledger"] = items;
+            insertedRows["transaction_ledger"] = [...(insertedRows["transaction_ledger"] || []), ...items];
           } else if (table === bankAccounts) {
-            insertedRows["bank_accounts"] = items;
+            insertedRows["bank_accounts"] = [...(insertedRows["bank_accounts"] || []), ...items];
           } else if (table === envelopes) {
-            insertedRows["envelopes"] = items;
+            insertedRows["envelopes"] = [...(insertedRows["envelopes"] || []), ...items];
           } else if (table === incomeSources) {
-            insertedRows["income_sources"] = items;
+            insertedRows["income_sources"] = [...(insertedRows["income_sources"] || []), ...items];
           } else if (table === incomeEvents) {
-            insertedRows["income_events"] = items;
+            insertedRows["income_events"] = [...(insertedRows["income_events"] || []), ...items];
           } else if (table === expenseEvents) {
-            insertedRows["expense_events"] = items;
+            insertedRows["expense_events"] = [...(insertedRows["expense_events"] || []), ...items];
           }
           return Promise.resolve(vals);
         }),
@@ -125,7 +125,7 @@ describe("saveSetupBudgetHandler", () => {
     const existingEnvId = "00000000-0000-0000-0000-000000000010";
 
     const mockDb = createMockDb({
-      envelopes: [{ id: existingEnvId, name: "Electricity", envelopeType: "BILL", fundingMode: "RECURRING", monthlyAmount: "150.00" }],
+      envelopes: [{ id: existingEnvId, name: "Electricity", envelopeType: "BILL", fundingMode: "RECURRING", budgetFrequency: "MONTHLY", monthlyAmount: "150.00" }],
       expenseSources: [{ id: "evt-1", envelopeId: existingEnvId, status: "PENDING" }],
     });
     const handler = saveSetupBudgetHandler(mockDb);
@@ -254,5 +254,56 @@ describe("saveSetupBudgetHandler", () => {
     // No new bank account inserted
     const insertedAccounts = insertedRows["bank_accounts"] || [];
     expect(insertedAccounts).toHaveLength(0);
+  });
+
+  it("saves first-time setup after minimal workspace seeding with multiple income schedules, bank accounts, envelopes, and burst events", async () => {
+    const mockDb = createMockDb({
+      accounts: [
+        { id: "acc-seeded", name: "Other Financial Institution (Everyday)", bankProvider: "Other", accountType: "EVERYDAY" },
+      ],
+      envelopes: [
+        { id: "env-seed-everyday", name: "Everyday Spending", envelopeType: "EVERYDAY", bankAccountId: "acc-seeded", isSurplusTarget: true, isPrivate: false },
+      ],
+    });
+    const handler = saveSetupBudgetHandler(mockDb);
+
+    const result = await handler(
+      {
+        incomes: [
+          { name: "Primary Salary", type: "SALARY", amount: "3200.00", frequency: "FORTNIGHTLY", rrule: "FREQ=WEEKLY;INTERVAL=2", incomeType: "SALARIED" },
+          { name: "Annual Bonus", type: "OTHER", amount: "5000.00", frequency: "ANNUALLY", rrule: "FREQ=YEARLY", incomeType: "SALARIED" },
+        ],
+        bankAccounts: [
+          { id: "acc-seeded", name: "CBA Everyday", bankProvider: "CBA", accountType: "EVERYDAY", lastKnownBalance: "1500.00", unbudgetedBuffer: "0.00", isPrivate: false },
+          { name: "High Interest Savings", bankProvider: "CBA", accountType: "SAVINGS", lastKnownBalance: "8000.00", unbudgetedBuffer: "500.00", isPrivate: false },
+        ],
+        envelopes: [
+          { id: "env-seed-everyday", bankAccountId: "acc-seeded", name: "Everyday Spending", envelopeType: "EVERYDAY", fundingMode: "TARGET_BALANCE", monthlyAmount: "2643.33", enteredAmount: "2643.33", budgetFrequency: "MONTHLY", isSurplusTarget: false, isPriority: false, isPrivate: false, orderIndex: 0 },
+          { bankAccountId: "acc-seeded", name: "Rent & Housing", envelopeType: "BILL", fundingMode: "RECURRING", monthlyAmount: "2400.00", enteredAmount: "2400.00", budgetFrequency: "MONTHLY", generateEvents: true, isSurplusTarget: false, isPriority: true, isPrivate: false, orderIndex: 1 },
+          { bankAccountId: "acc-seeded", name: "Council Rates", envelopeType: "BILL", fundingMode: "RECURRING", monthlyAmount: "170.00", enteredAmount: "170.00", budgetFrequency: "QUARTERLY", generateEvents: true, isSurplusTarget: false, isPriority: true, isPrivate: false, orderIndex: 2 },
+          { bankAccountId: "acc-seeded", name: "Emergency Reserve", envelopeType: "GOAL", fundingMode: "RECURRING", targetAmount: "10000.00", monthlyAmount: "300.00", enteredAmount: "300.00", budgetFrequency: "MONTHLY", isSurplusTarget: true, isPriority: true, isPrivate: false, orderIndex: 3 },
+        ],
+      },
+      appId,
+      userId,
+      tenantId
+    );
+
+    expect(result.success).toBe(true);
+    expect(result.persistedCounts.incomes).toBe(2);
+    expect(result.persistedCounts.bankAccounts).toBe(2);
+    expect(result.persistedCounts.envelopes).toBe(4);
+    expect(insertedRows["bank_accounts"]).toHaveLength(1);
+    expect(insertedRows["bank_accounts"][0].name).toBe("High Interest Savings");
+    expect(insertedRows["envelopes"]).toHaveLength(3);
+    expect(insertedRows["envelopes"].map((e) => e.name)).toEqual([
+      "Rent & Housing",
+      "Council Rates",
+      "Emergency Reserve",
+    ]);
+    expect(insertedRows["envelopes"].every((e) => e.bankAccountId === "acc-seeded")).toBe(true);
+    expect(insertedRows["income_events"].length).toBeGreaterThan(25);
+    expect(insertedRows["expense_events"].length).toBe(16); // 12 monthly Rent + 4 quarterly Council Rates
+    expect(updatedRows["tenants"][0].setupStatus).toBe("COMPLETED");
   });
 });

@@ -55,7 +55,7 @@ export function SetupWizardProvider({ children: reactChildren }: { children: Rea
 
   const globalParams = useGlobalSearchParams<{ mode?: string }>();
   const isRerunParam = globalParams.mode === 'rerun';
-  const setupAlreadyCompleted = Boolean(userPrefQuery.data?.setupCompleted);
+  const setupAlreadyCompleted = userPrefQuery.data?.setupStatus === 'COMPLETED';
   const [isRerun, setIsRerun] = useState<boolean>(() => isRerunParam || setupAlreadyCompleted);
   const totalSteps = isRerun ? 2 : 4;
   const initialSetupCompletedRef = useRef<boolean | null>(null);
@@ -64,7 +64,7 @@ export function SetupWizardProvider({ children: reactChildren }: { children: Rea
 
   useEffect(() => {
     if (initialSetupCompletedRef.current === null && userPrefQuery.data !== undefined) {
-      initialSetupCompletedRef.current = Boolean(userPrefQuery.data?.setupCompleted);
+      initialSetupCompletedRef.current = userPrefQuery.data?.setupStatus === 'COMPLETED';
       if (initialSetupCompletedRef.current && !isRerunParam) {
         setIsRerun(true);
         router.replace({ pathname: '/(setup)/income', params: { mode: 'rerun' } });

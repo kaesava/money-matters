@@ -129,7 +129,8 @@ export function buildIncomeEventPayloads(
   tenantId: string,
   appId: string,
   userId: string,
-  now: Date
+  now: Date,
+  timeZone: string = "Australia/Sydney"
 ) {
   const eventsToInsert: Array<typeof incomeEvents.$inferInsert> = [];
 
@@ -138,7 +139,7 @@ export function buildIncomeEventPayloads(
     const burstDates = generateBurstDates(item.rrule, item.startDate, item.endDate || null, 12);
 
     for (const d of burstDates) {
-      const dateStr = new Intl.DateTimeFormat("en-CA", { timeZone: "Australia/Sydney" }).format(d);
+      const dateStr = new Intl.DateTimeFormat("en-CA", { timeZone }).format(d);
       if (existingDates.has(dateStr)) continue;
 
       eventsToInsert.push({

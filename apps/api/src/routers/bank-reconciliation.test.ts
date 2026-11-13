@@ -56,11 +56,10 @@ describe("Bank Reconciliation & Mapping Rules", () => {
     expect(insertedAccounts).toHaveLength(1);
     expect(insertedAccounts[0].name).toBe("Other Financial Institution (Everyday)");
 
-    expect(insertedEnvelopes).toHaveLength(2);
-    const envelopeTypes = insertedEnvelopes.map((p) => p.envelopeType);
-    expect(envelopeTypes).toContain("EVERYDAY");
-    expect(envelopeTypes).toContain("GOAL");
-    expect(insertedEnvelopes.every((p) => p.bankAccountId === "acc-primary-123")).toBe(true);
+    expect(insertedEnvelopes).toHaveLength(1);
+    expect(insertedEnvelopes[0].envelopeType).toBe("EVERYDAY");
+    expect(insertedEnvelopes[0].isSurplusTarget).toBe(true);
+    expect(insertedEnvelopes[0].bankAccountId).toBe("acc-primary-123");
   });
 
   it("should block archiving a bank account if Everyday envelope is linked to it", async () => {

@@ -104,7 +104,11 @@ export function useSignInForm() {
           await switchActiveTenant(defaultTenant.id);
 
           const tenantRecord = await utils.getTenant.fetch();
-          if (tenantRecord?.setupStatus !== "COMPLETED") {
+          const isSetupDoneOrCancelled =
+            tenantRecord?.setupStatus === "COMPLETED" ||
+            tenantRecord?.setupStatus === "CANCELLED" ||
+            Boolean(tenantRecord?.setupCompletedAt);
+          if (!isSetupDoneOrCancelled) {
             router.replace("/(setup)/income");
             return;
           }
