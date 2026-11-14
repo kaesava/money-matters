@@ -15,7 +15,7 @@ export const tour = {
       },
       "payday": {
         "title": "Payday Plan",
-        "desc": "When income arrives, tap 'Plan Payday'. We automatically fund imminent bills and then future bills and goals. 1-tap confirmation or configure your plan!",
+        "desc": "When income arrives, tap 'Allocate Payday'. We automatically fund imminent bills first, then future bills and goals. Confirm in 1 tap or customize your draft!",
         "badge": "Payday Plan"
       },
       "affordCheck": {
@@ -47,6 +47,11 @@ export const tour = {
         "title": "History & Payday Plans",
         "desc": "View your complete transaction history, envelope balance changes, and past confirmed payday plans in one place.",
         "badge": "History & Plans"
+      },
+      "askPenny": {
+        "title": "Command Palette & Ask Penny",
+        "desc": "Jump to any envelope, account, or transaction in seconds—or ask Penny natural-language questions about your bills, balances, and affordability.",
+        "badge": "Fast Navigation & AI"
       }
     },
     "controls": {

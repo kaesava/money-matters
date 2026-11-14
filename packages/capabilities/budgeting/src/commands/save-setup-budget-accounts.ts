@@ -39,7 +39,7 @@ export async function processSetupBankAccounts(
     const matchedExisting =
       (accInput.id ? existingAccounts.find((a) => a.id === accInput.id) : null) ||
       existingAccounts.find((a) => a.name.trim().toLowerCase() === accInput.name.trim().toLowerCase()) ||
-      (i === 0 && existingAccounts.length === 1 ? existingAccounts[0] : null);
+      (i === 0 && existingAccounts.length === 1 && !archivedAccountIds.includes(existingAccounts[0].id) ? existingAccounts[0] : null);
 
     const bankProviderVal = accInput.bankProvider || matchedExisting?.bankProvider || "Other";
 

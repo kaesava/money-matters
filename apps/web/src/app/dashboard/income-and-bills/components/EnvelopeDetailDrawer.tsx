@@ -50,7 +50,7 @@ export function EnvelopeDetailDrawer({
   const [fileNotesOpen, setFileNotesOpen] = useState(false);
 
   // Fetch pool, categories, transactions, and fallback upcoming events
-  const poolsQuery = trpc.listPools.useQuery(undefined, { enabled: isOpen });
+  const poolsQuery = trpc.listEnvelopes.useQuery(undefined, { enabled: isOpen });
   const transactionsQuery = trpc.listTransactions.useQuery({ limit: 200, offset: 0 }, { enabled: isOpen });
   const expenseEventsQuery = trpc.listExpenseEvents.useQuery(undefined, { enabled: isOpen && !events });
 

@@ -77,7 +77,7 @@ export default function ReportsScreen() {
   }, [planSearch]);
 
   // Queries
-  const poolsQuery = trpc.listPools.useQuery(undefined, {
+  const poolsQuery = trpc.listEnvelopes.useQuery(undefined, {
     enabled: !!session?.user && hasReports,
   });
   const bankAccountsQuery = trpc.listBankAccounts.useQuery(undefined, {

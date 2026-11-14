@@ -101,7 +101,7 @@ export function EditUpcomingEventModal({
       } else {
         await utils.listExpenseEvents.invalidate();
       }
-      await utils.listPools.invalidate();
+      await utils.listEnvelopes.invalidate();
 
       toast.success(t("toasts.saved"));
       onSuccess?.();

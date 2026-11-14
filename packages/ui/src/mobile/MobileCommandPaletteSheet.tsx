@@ -173,6 +173,8 @@ export const MobileCommandPaletteSheet: React.FC<MobileCommandPaletteSheetProps>
           onClose();
           onNavigatePrefill(res);
         }
+      } catch {
+        setAiResult({ type: "unavailable", reason: "disabled" });
       } finally {
         setIsAiLoading(false);
       }
@@ -532,7 +534,7 @@ export const MobileCommandPaletteSheet: React.FC<MobileCommandPaletteSheetProps>
           )}
 
           {/* Suggested Prompts when empty query */}
-          {!query && (
+          {!query && onAskPenny && (
             <View style={styles.suggestedContainer}>
               <Text style={styles.suggestedHeader}>
                 {t("assistant.suggestedTitle")}
@@ -555,6 +557,13 @@ export const MobileCommandPaletteSheet: React.FC<MobileCommandPaletteSheetProps>
             </View>
           )}
         </ScrollView>
+        {typeof remainingCalls === "number" && onAskPenny && (
+          <View style={styles.footerBar}>
+            <Text style={styles.footerCallsText}>
+              {t("commandPalette.footer.callsLeft", { remaining: remainingCalls })}
+            </Text>
+          </View>
+        )}
       </View>
     </MobileModalDialog>
   );
@@ -788,5 +797,16 @@ const styles = StyleSheet.create({
   chipText: {
     fontSize: 12,
     color: DESIGN_TOKENS.colors.slate[700],
+  },
+  footerBar: {
+    borderTopWidth: 1,
+    borderTopColor: DESIGN_TOKENS.colors.slate[200],
+    paddingTop: 8,
+    marginTop: 8,
+    alignItems: "flex-end",
+  },
+  footerCallsText: {
+    fontSize: 11,
+    color: DESIGN_TOKENS.colors.slate[500],
   },
 });

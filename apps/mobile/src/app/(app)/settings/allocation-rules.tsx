@@ -54,7 +54,7 @@ export default function MobileAllocationRulesScreen() {
     { isPrivate: isPersonal },
     { enabled: hasCustomAllocationRules }
   );
-  const envelopesQuery = trpc.listPools.useQuery(undefined, {
+  const envelopesQuery = trpc.listEnvelopes.useQuery(undefined, {
     enabled: hasCustomAllocationRules,
   });
   const updateStepsMut = trpc.updateAllocationStrategySteps.useMutation();

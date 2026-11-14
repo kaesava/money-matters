@@ -28,7 +28,7 @@ export function MobileMatrixPlanTab({ onOpenCategoryModal }: MobileMatrixPlanTab
 
   const { data, isLoading: projectionLoading } = trpc.getMatrixProjectionData.useQuery({ monthsAhead: 12 });
   const { data: plansData, isLoading: plansLoading } = trpc.listAllAllocationPlans.useQuery();
-  const { data: poolsData, isLoading: poolsLoading } = trpc.listPools.useQuery();
+  const { data: poolsData, isLoading: poolsLoading } = trpc.listEnvelopes.useQuery();
 
   const isLoading = projectionLoading || plansLoading || poolsLoading;
 

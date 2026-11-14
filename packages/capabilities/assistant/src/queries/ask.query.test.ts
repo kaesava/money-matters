@@ -34,6 +34,7 @@ describe("Ask Assistant Query Orchestration", () => {
     mockStore = {
       getUsage: vi.fn().mockResolvedValue({ used: 10, limit: 150, remaining: 140, resetsOn: "2026-11-01" }),
       incrementLlmCalls: vi.fn().mockResolvedValue(true),
+      decrementLlmCalls: vi.fn().mockResolvedValue(undefined),
     };
   });
 
@@ -102,5 +103,43 @@ describe("Ask Assistant Query Orchestration", () => {
 
     expect(res.type).toBe("answer");
     expect(mockHandler.handlePoolBalance).toHaveBeenCalled();
+  });
+
+  it("decrements quota when LLM classification returns null (no quota leak)", async () => {
+    mockLlm.classifyIntent = vi.fn().mockResolvedValue(null);
+    const res = await askAssistant({
+      query: "Something totally ambiguous",
+      context,
+      appId,
+      handler: mockHandler,
+      llmProvider: mockLlm,
+      usageStore: mockStore,
+    });
+
+    expect(res.type).toBe("clarify");
+    expect(mockStore.incrementLlmCalls).toHaveBeenCalledTimes(1);
+    expect(mockStore.decrementLlmCalls).toHaveBeenCalledTimes(1);
+  });
+
+  it("handles ADD_ENTITY intent by returning a prefill action", async () => {
+    mockLlm.classifyIntent = vi.fn().mockResolvedValue({
+      intent: "ADD_ENTITY",
+      confidence: 0.9,
+      params: { categoryName: "bill", entityName: "Water", amount: 80 },
+    });
+    const res = await askAssistant({
+      query: "Add a water bill for 80",
+      context,
+      appId,
+      handler: mockHandler,
+      llmProvider: mockLlm,
+      usageStore: mockStore,
+    });
+
+    expect(res.type).toBe("prefill");
+    if (res.type === "prefill") {
+      expect(res.target).toBe("create-bill");
+      expect(res.params.name).toBe("Water");
+    }
   });
 });

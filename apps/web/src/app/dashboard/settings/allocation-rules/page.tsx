@@ -46,7 +46,7 @@ function AllocationRulesContent() {
   const strategyQuery = trpc.getActiveAllocationStrategy.useQuery({
     isPrivate: isPersonal,
   });
-  const envelopesQuery = trpc.listPools.useQuery();
+  const envelopesQuery = trpc.listEnvelopes.useQuery();
   const updateStepsMut = trpc.updateAllocationStrategySteps.useMutation();
   const applyPresetMut = trpc.applyAllocationPreset.useMutation();
 

@@ -1,15 +1,15 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
-import { EstimatedCategoryItem } from '@money-matters/types';
+import { EstimatedCategoryItem, convertFromMonthly, convertToMonthly, SetupFrequency } from '@money-matters/types';
 import { DESIGN_TOKENS, AmountInput, InfoTooltip } from '@money-matters/ui/mobile';
 import { t } from '@money-matters/i18n';
 
 interface SetupCategoryRowProps {
   cat: EstimatedCategoryItem;
-  freq: 'WEEKLY' | 'FORTNIGHTLY' | 'MONTHLY' | 'QUARTERLY' | 'YEARLY';
+  freq: SetupFrequency;
   isLastEveryday?: boolean;
   onUpdateAmount: (monthlyAmount: number) => void;
-  onUpdateFreq: (freq: 'WEEKLY' | 'FORTNIGHTLY' | 'MONTHLY' | 'QUARTERLY' | 'YEARLY') => void;
+  onUpdateFreq: (freq: SetupFrequency) => void;
   onToggleBillType?: (newType: 'RECURRING' | 'TARGET_BALANCE') => void;
   onEditCategory?: () => void;
   onRemove: () => void;
@@ -35,24 +35,6 @@ export function SetupCategoryRow({
   onEditCategory,
   onRemove,
 }: SetupCategoryRowProps) {
-  const convertFromMonthly = (monthly: number, f: typeof freq) => {
-    let result = monthly;
-    if (f === 'WEEKLY') result = monthly / (52 / 12);
-    else if (f === 'FORTNIGHTLY') result = monthly / (26 / 12);
-    else if (f === 'QUARTERLY') result = monthly * 3;
-    else if (f === 'YEARLY') result = monthly * 12;
-    return Math.round(result * 100) / 100;
-  };
-
-  const convertToMonthly = (amount: number, f: typeof freq) => {
-    let result = amount;
-    if (f === 'WEEKLY') result = amount * (52 / 12);
-    else if (f === 'FORTNIGHTLY') result = amount * (26 / 12);
-    else if (f === 'QUARTERLY') result = amount / 3;
-    else if (f === 'YEARLY') result = amount / 12;
-    return Math.round(result * 100) / 100;
-  };
-
   const displayVal = convertFromMonthly(cat.monthlyAud, freq);
   const isBill = cat.type === 'BILL';
   const isFlexible = cat.fundingMode === 'TARGET_BALANCE';

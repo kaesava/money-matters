@@ -48,11 +48,7 @@ export default function SetupBankAccountsScreen() {
 
   const handleNext = () => {
     if (!canProceed) return;
-    if (isRerun) {
-      router.push({ pathname: '/(setup)/categories', params: { mode: 'rerun' } });
-    } else {
-      router.push('/(setup)/goals');
-    }
+    router.push('/(setup)/goals');
   };
 
   return (

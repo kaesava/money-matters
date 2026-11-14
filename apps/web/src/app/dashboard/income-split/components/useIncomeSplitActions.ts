@@ -265,7 +265,7 @@ export function useIncomeSplitActions({
 
       toast.success(t("paydayDrawer.confirmSuccess"));
       await utils.listIncomeEvents.invalidate();
-      await utils.listPools.invalidate();
+      await utils.listEnvelopes.invalidate();
       setShowTransferModal(true);
     } catch (err: unknown) {
       toast.error(err instanceof Error ? err.message : t("paydayDrawer.confirmSplitFailed"));

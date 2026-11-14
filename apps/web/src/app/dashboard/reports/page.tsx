@@ -58,7 +58,7 @@ function ReportsPageContent() {
     return () => clearTimeout(handler);
   }, [planSearch]);
 
-  const poolsQuery = trpc.listPools.useQuery(undefined, { enabled: hasReports });
+  const poolsQuery = trpc.listEnvelopes.useQuery(undefined, { enabled: hasReports });
   const bankAccountsQuery = trpc.getBankAccountsWithMappings.useQuery(undefined, {
     enabled: hasReports,
   });

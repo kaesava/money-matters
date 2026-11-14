@@ -4,4 +4,3 @@ export * from "./cumulative-projection.js";
 export * from "./envelope-engine-mapper.js";
 export * from "./burst-engine.js";
 export * from "./bill-lifecycle-fsm.js";
-export * from "./shortfall-allocation.js";

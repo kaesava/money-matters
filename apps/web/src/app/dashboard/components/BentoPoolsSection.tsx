@@ -95,7 +95,6 @@ export const BentoPoolsSection: React.FC<BentoPoolsSectionProps> = ({
                 </div>
                 {onAlignEverydayBalance && (
                   <button
-                    data-tour="bank-accounts"
                     type="button"
                     onClick={onAlignEverydayBalance}
                     className="text-xs font-bold text-[#2563eb] hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 hover:underline px-2 py-1 rounded-lg hover:bg-blue-50 dark:hover:bg-zinc-800 transition-colors cursor-pointer"

@@ -23,6 +23,7 @@ export interface EnvelopeModalItem {
   startDate?: string | null;
   rrule?: string | null;
   isSurplusTarget?: boolean | null;
+  generateEvents?: boolean | null;
   hasScheduledEvents?: boolean | null;
   isPriority?: boolean | null;
 }
@@ -86,7 +87,7 @@ export function useEnvelopeFormModalState({
       setIsSurplusTarget(categoryToEdit.isSurplusTarget ?? false);
       setIsPriority(categoryToEdit.isPriority ?? false);
       const isInitialScheduled = resolvedType === "BILL" && resolvedFundingMode === "RECURRING";
-      setGenerateEvents(categoryToEdit.hasScheduledEvents ?? isInitialScheduled);
+      setGenerateEvents(categoryToEdit.generateEvents ?? categoryToEdit.hasScheduledEvents ?? isInitialScheduled);
     } else {
       setName("");
       setType("BILL");
@@ -186,7 +187,7 @@ export function useEnvelopeFormModalState({
     const initialStartDate = rawStartDate ? rawStartDate.split("T")[0] : "";
     const initialSurplus = categoryToEdit.isSurplusTarget ?? false;
     const initialPriority = categoryToEdit.isPriority ?? false;
-    const initialGenerate = categoryToEdit.hasScheduledEvents ?? (initialType === "BILL" && initialFundingMode === "RECURRING");
+    const initialGenerate = categoryToEdit.generateEvents ?? categoryToEdit.hasScheduledEvents ?? (initialType === "BILL" && initialFundingMode === "RECURRING");
 
     if (name.trim() !== initialName) return true;
     if (isSurplusTarget !== initialSurplus) return true;
@@ -291,7 +292,7 @@ export function useEnvelopeFormModalState({
     const initialStartDate = rawStartDate ? rawStartDate.split("T")[0] : "";
     const rawDate = categoryToEdit.endDate || categoryToEdit.targetDate || "";
     const initialDate = rawDate ? rawDate.split("T")[0] : "";
-    const initialGenerate = categoryToEdit.hasScheduledEvents ?? (initialType === "BILL" && initialFundingMode === "RECURRING");
+    const initialGenerate = categoryToEdit.generateEvents ?? categoryToEdit.hasScheduledEvents ?? (initialType === "BILL" && initialFundingMode === "RECURRING");
 
     const isCurrentScheduled = type === "BILL" && fundingMode === "RECURRING";
     const wasScheduled = initialType === "BILL" && initialFundingMode === "RECURRING";
@@ -332,7 +333,7 @@ export function useEnvelopeFormModalState({
         ? calculatedMonthly
         : undefined,
       enteredAmount: enteredAmountVal,
-      endDate: (isTargetGoal || isRecurringBill || isRecurringGoal) ? (targetDate || undefined) : undefined,
+      endDate: (isTargetGoal || isRecurringBill || isRecurringGoal) ? (targetDate || null) : null,
       budgetFrequency: isRecurringBill || isRecurringGoal ? frequency : isTargetBalanceBill ? ("MONTHLY" as const) : undefined,
       startDate: isRecurringBill || isRecurringGoal ? goalStartDate || undefined : undefined,
       rrule: isRecurringBill || isRecurringGoal ? rruleString || undefined : undefined,

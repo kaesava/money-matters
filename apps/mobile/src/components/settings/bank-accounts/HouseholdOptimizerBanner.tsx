@@ -22,7 +22,7 @@ export function HouseholdOptimizerBanner() {
       </View>
       <TouchableOpacity
         style={styles.optimizerActionBtn}
-        onPress={() => router.push("/(setup)?mode=rerun" as Href)}
+        onPress={() => router.push("/(setup)/income?mode=rerun" as Href)}
         activeOpacity={0.8}
       >
         <Text style={styles.optimizerActionText}>

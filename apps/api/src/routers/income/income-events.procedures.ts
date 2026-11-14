@@ -318,7 +318,6 @@ export const incomeEventsProcedures = {
     .input(
       z.object({
         eventId: z.string().uuid(),
-        status: z.enum(["SKIPPED", "DELETED"]).optional(),
       }).strict()
     )
     .mutation(async ({ input, ctx }) => {
@@ -350,6 +349,7 @@ export const incomeEventsProcedures = {
         .update(incomeEvents)
         .set({
           archivedAt: new Date(),
+          archivedBy: ctx.userId!,
           updatedAt: new Date(),
           updatedBy: ctx.userId!,
         })

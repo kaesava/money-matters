@@ -82,7 +82,7 @@ export async function processSetupEnvelopes(
       );
     }
     if (designatedSurplusIndex === -1 && envelopesInput.length > 0) {
-      designatedSurplusIndex = 0;
+      designatedSurplusIndex = envelopesInput.findIndex((e) => !e.isPrivate);
     }
   }
 
@@ -307,7 +307,7 @@ export async function processSetupEnvelopes(
       .where(eq(envelopes.id, envId));
   }
 
-  await archivePendingExpenseEvents(tx, archivedEnvelopeIds);
+  await archivePendingExpenseEvents(tx, tenantId, archivedEnvelopeIds);
 
   return { envelopeIdMap, sweptEnvelopesCount, sweptTotalAmount };
 }

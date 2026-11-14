@@ -33,7 +33,7 @@ export function useSetupWizardPrepopulation({
   setCustomCategories,
   setCategoryFrequencies,
 }: PrepopulationProps) {
-  const poolsQuery = trpc.listPools.useQuery(undefined, { enabled });
+  const poolsQuery = trpc.listEnvelopes.useQuery(undefined, { enabled });
   const bankAccountsQuery = trpc.getBankAccountsWithMappings.useQuery(undefined, { enabled });
   const incomeSourcesQuery = trpc.listIncomeSources.useQuery(undefined, { enabled });
 

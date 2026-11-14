@@ -44,7 +44,7 @@ export function useIncomeSplitState({
   const { userTimezone, timezone } = useLocale();
   const activeTz = userTimezone || timezone || "Australia/Sydney";
 
-  const poolsQuery = trpc.listPools.useQuery();
+  const poolsQuery = trpc.listEnvelopes.useQuery();
   const pools = useMemo(() => poolsQuery.data ?? [], [poolsQuery.data]);
 
   const bankAccountsQuery = trpc.listBankAccounts.useQuery();

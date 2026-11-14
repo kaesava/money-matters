@@ -35,7 +35,7 @@ export function useBankAccountForm(
     accountToEdit?.isPrivate && otherPrivateAccounts.length === 0
   );
 
-  const poolsQuery = trpc.listPools.useQuery(undefined, { enabled: visible });
+  const poolsQuery = trpc.listEnvelopes.useQuery(undefined, { enabled: visible });
   const allPools = poolsQuery.data || [];
   const linkedPools = isEdit && accountToEdit
     ? allPools.filter((p) => p.bankAccountId === accountToEdit.id)

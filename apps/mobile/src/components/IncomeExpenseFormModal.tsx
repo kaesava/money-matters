@@ -44,7 +44,7 @@ export function IncomeExpenseFormModal({
 }: IncomeExpenseFormModalProps) {
   const isEdit = Boolean(sourceToEdit);
 
-  const poolsQuery = trpc.listPools.useQuery(undefined, { enabled: visible });
+  const poolsQuery = trpc.listEnvelopes.useQuery(undefined, { enabled: visible });
   const bankAccountsQuery = trpc.listBankAccounts.useQuery(undefined, { enabled: visible && mode === 'INCOME' });
 
   const rawPools = poolsQuery.data ?? [];

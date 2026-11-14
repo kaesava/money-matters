@@ -24,7 +24,22 @@ export const assistantRouter = router({
     .input(AssistantAskInputSchema)
     .output(AssistantResultSchema)
     .mutation(async ({ ctx, input }) => {
-      // 0. App feature flag check
+      // 0. Subscription & feature flag gate (requires active trial or paid subscription; block grace/past-due/expired)
+      const subStatus = ctx.subscriptionStatus;
+      if (
+        subStatus.isTrialExpired ||
+        subStatus.isDeactivated ||
+        subStatus.isGracePeriod ||
+        subStatus.isPastDue ||
+        subStatus.status === "TRIAL_GRACE" ||
+        subStatus.status === "PAST_DUE"
+      ) {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "subscription_premium_required: Active subscription or unexpired 60-day trial required.",
+        });
+      }
+
       const [appRecord] = await ctx.db
         .select({ featureFlags: apps.featureFlags })
         .from(apps)
@@ -79,10 +94,16 @@ export const assistantRouter = router({
       const usage = await usageStore.getUsage(ctx.tenantId);
 
       let status: "active" | "grace" | "capped" | "disabled" = "active";
-      if (ctx.subscriptionStatus.isDeactivated) {
+      const sub = ctx.subscriptionStatus;
+      if (
+        sub.isDeactivated ||
+        sub.isTrialExpired ||
+        sub.isGracePeriod ||
+        sub.isPastDue ||
+        sub.status === "TRIAL_GRACE" ||
+        sub.status === "PAST_DUE"
+      ) {
         status = "disabled";
-      } else if (ctx.subscriptionStatus.status === "TRIAL_GRACE") {
-        status = "grace";
       } else if (usage.remaining <= 0) {
         status = "capped";
       }

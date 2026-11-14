@@ -52,8 +52,6 @@ export interface EnvelopeFormFieldsProps {
   isTargetDateInPast?: boolean;
 }
 
-export type CategoryFormFieldsProps = EnvelopeFormFieldsProps;
-
 export function EnvelopeFormFields({
   name,
   setName,
@@ -91,7 +89,7 @@ export function EnvelopeFormFields({
   setIsPriority,
   initialMode = 'ALL',
   isTargetDateInPast = false,
-}: CategoryFormFieldsProps) {
+}: EnvelopeFormFieldsProps) {
   const isBill = type === 'BILL';
   const effectiveFundingMode: 'RECURRING' | 'TARGET_BALANCE' = fundingMode;
 
@@ -303,5 +301,3 @@ export function EnvelopeFormFields({
     </>
   );
 }
-
-export const CategoryFormFields = EnvelopeFormFields;

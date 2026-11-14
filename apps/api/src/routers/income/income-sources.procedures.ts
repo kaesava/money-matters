@@ -309,7 +309,7 @@ export const incomeSourcesProcedures = {
 
         await ctx.db
           .update(incomeSources)
-          .set({ archivedAt: new Date(), updatedBy: ctx.userId!, updatedAt: new Date() })
+          .set({ archivedAt: new Date(), archivedBy: ctx.userId!, updatedBy: ctx.userId!, updatedAt: new Date() })
           .where(
             and(
               eq(incomeSources.id, source.id),

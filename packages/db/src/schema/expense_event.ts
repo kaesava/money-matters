@@ -1,4 +1,5 @@
-import { pgTable, uuid, numeric, pgEnum, date, varchar, boolean, index } from "drizzle-orm/pg-core";
+import { pgTable, uuid, numeric, pgEnum, date, varchar, boolean, index, uniqueIndex } from "drizzle-orm/pg-core";
+import { sql } from "drizzle-orm";
 import { envelopes } from "./envelope.js";
 import { tenantAndTimestamps } from "./base.js";
 
@@ -25,6 +26,9 @@ export const expenseEvents = pgTable(
       table.envelopeId,
       table.expectedDate
     ),
+    scheduledUniqueIdx: uniqueIndex("expense_events_scheduled_unique_idx")
+      .on(table.tenantId, table.envelopeId, table.expectedDate)
+      .where(sql`${table.isScheduled} = true AND ${table.archivedAt} IS NULL`),
   })
 );
 

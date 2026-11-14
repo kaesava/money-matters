@@ -45,8 +45,6 @@ export async function archiveEnvelopeCommand(
     throw new Error("Cannot archive an envelope designated as the household Surplus Sweep Target. Please designate another envelope as the Surplus Sweep Target first.");
   }
 
-  const archiveTimestamp = new Date();
-
   // Hard-delete all pending (unconfirmed) expense events (both scheduled and one-off)
   // Confirmed history and bank accounts are never modified or archived.
   await dbClient

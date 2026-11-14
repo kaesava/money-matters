@@ -28,7 +28,7 @@ export default function PoolDetailScreen() {
   const [notesModalVisible, setNotesModalVisible] = useState(false);
   const { hasFileNotes } = useAppFeatures();
 
-  const poolsQuery = trpc.listPools.useQuery(undefined, { enabled: !!session?.user });
+  const poolsQuery = trpc.listEnvelopes.useQuery(undefined, { enabled: !!session?.user });
   const bankAccountsQuery = trpc.listBankAccounts.useQuery(undefined, { enabled: !!session?.user });
   const txLedgerQuery = trpc.listTransactions.useQuery({ envelopeId: id, limit: 10 }, { enabled: !!session?.user && !!id });
   const expenseEventsQuery = trpc.listExpenseEvents.useQuery(undefined, { enabled: !!session?.user && !!id });

@@ -1,5 +1,5 @@
 import { envelopes, incomeSources, incomeEvents, expenseEvents, bankAccounts, tenants, apps, DbOrTx } from "@money-matters/db";
-import { eq, and, sql } from "drizzle-orm";
+import { eq, and, sql, gte, lte } from "drizzle-orm";
 import { getTenantDateString } from "@money-matters/core";
 import { burstEnvelopeEvents } from "./envelope-schedule.js";
 import { burstIncomeEvents } from "./income-schedule.js";
@@ -13,7 +13,8 @@ export async function restoreItemCommand(
   userId: string,
   dbClient: DbOrTx
 ) {
-  const [tenantRecord] = await dbClient
+  return dbClient.transaction(async (tx) => {
+  const [tenantRecord] = await tx
     .select({ timezone: tenants.timezone })
     .from(tenants)
     .where(eq(tenants.id, tenantId))
@@ -25,7 +26,7 @@ export async function restoreItemCommand(
   const yesterdayStr = getLocalDateString(yesterday);
 
   if (itemType === "BANK_ACCOUNT") {
-    const [acc] = await dbClient
+    const [acc] = await tx
       .select()
       .from(bankAccounts)
       .where(and(eq(bankAccounts.id, itemId), eq(bankAccounts.tenantId, tenantId), eq(bankAccounts.appId, appId)));
@@ -34,7 +35,7 @@ export async function restoreItemCommand(
       throw new Error("Access unauthorized or private account.");
     }
     if (acc.isPrivate) {
-      const [appRecord] = await dbClient
+      const [appRecord] = await tx
         .select({ featureFlags: apps.featureFlags })
         .from(apps)
         .where(eq(apps.id, appId))
@@ -46,8 +47,11 @@ export async function restoreItemCommand(
     }
 
     const bankArchivedAt = acc.archivedAt;
+    if (!bankArchivedAt) {
+      return acc;
+    }
 
-    const [restoredAcc] = await dbClient
+    const [restoredAcc] = await tx
       .update(bankAccounts)
       .set({
         archivedAt: null,
@@ -59,116 +63,125 @@ export async function restoreItemCommand(
         and(
           eq(bankAccounts.id, itemId),
           eq(bankAccounts.tenantId, tenantId),
-          eq(bankAccounts.appId, appId)
+          eq(bankAccounts.appId, appId),
+          sql`${bankAccounts.archivedAt} IS NOT NULL`
         )
       )
       .returning();
 
-    // Cascade restore linked envelopes and income sources archived at timestamp T (within 2 seconds)
-    if (bankArchivedAt) {
-      const bankEpoch = Math.floor(new Date(bankArchivedAt).getTime() / 1000);
+    if (!restoredAcc) {
+      return acc;
+    }
 
-      // Restore cascade envelopes
-      const restoredEnvelopes = await dbClient
-        .update(envelopes)
-        .set({
-          archivedAt: null,
-          archivedBy: null,
-          updatedBy: userId,
-          updatedAt: new Date(),
-        })
-        .where(
-          and(
-            eq(envelopes.tenantId, tenantId),
-            eq(envelopes.appId, appId),
-            eq(envelopes.bankAccountId, itemId),
-            sql`ABS(EXTRACT(EPOCH FROM ${envelopes.archivedAt}) - ${bankEpoch}) <= 2`
-          )
+    // Cascade restore linked envelopes and income sources archived at timestamp T (within +-2 seconds)
+    const archivedTimeMs = new Date(bankArchivedAt).getTime();
+    const windowStart = new Date(archivedTimeMs - 2000);
+    const windowEnd = new Date(archivedTimeMs + 2000);
+
+    // Restore cascade envelopes
+    const restoredEnvelopes = await tx
+      .update(envelopes)
+      .set({
+        archivedAt: null,
+        archivedBy: null,
+        updatedBy: userId,
+        updatedAt: new Date(),
+      })
+      .where(
+        and(
+          eq(envelopes.tenantId, tenantId),
+          eq(envelopes.appId, appId),
+          eq(envelopes.bankAccountId, itemId),
+          sql`${envelopes.archivedAt} IS NOT NULL`,
+          gte(envelopes.archivedAt, windowStart),
+          lte(envelopes.archivedAt, windowEnd)
         )
-        .returning();
+      )
+      .returning();
 
-      for (const env of restoredEnvelopes) {
-        const amountVal = env.enteredAmount || env.monthlyAmount || "0.00";
-        if (
-          env.envelopeType === "BILL" &&
-          env.fundingMode === "RECURRING" &&
-          env.generateEvents !== false &&
-          env.rrule &&
-          env.startDate &&
-          parseFloat(amountVal) > 0
-        ) {
-          const afterDateStr = env.startDate < todayStr ? yesterdayStr : null;
-          await burstEnvelopeEvents(dbClient, {
-            envelopeId: env.id,
-            name: env.name,
-            amount: amountVal,
-            rrule: env.rrule,
-            startDate: env.startDate,
-            endDate: env.endDate,
-            tenantId,
-            appId,
-            userId,
-            timeZone: tenantTz,
-            afterDateStr,
-          });
-        }
+    for (const env of restoredEnvelopes) {
+      const amountVal = env.enteredAmount || env.monthlyAmount || "0.00";
+      if (
+        env.envelopeType === "BILL" &&
+        env.fundingMode === "RECURRING" &&
+        env.generateEvents !== false &&
+        env.rrule &&
+        env.startDate &&
+        parseFloat(amountVal) > 0
+      ) {
+        const afterDateStr = env.startDate < todayStr ? yesterdayStr : null;
+        await burstEnvelopeEvents(tx, {
+          envelopeId: env.id,
+          name: env.name,
+          amount: amountVal,
+          rrule: env.rrule,
+          startDate: env.startDate,
+          endDate: env.endDate,
+          tenantId,
+          appId,
+          userId,
+          timeZone: tenantTz,
+          afterDateStr,
+        });
       }
+    }
 
-      // Restore cascade income sources
-      const restoredIncomes = await dbClient
-        .update(incomeSources)
-        .set({
-          archivedAt: null,
-          archivedBy: null,
-          updatedBy: userId,
-          updatedAt: new Date(),
-        })
-        .where(
-          and(
-            eq(incomeSources.tenantId, tenantId),
-            eq(incomeSources.appId, appId),
-            eq(incomeSources.receivingAccountId, itemId),
-            sql`ABS(EXTRACT(EPOCH FROM ${incomeSources.archivedAt}) - ${bankEpoch}) <= 2`
-          )
+    // Restore cascade income sources
+    const restoredIncomes = await tx
+      .update(incomeSources)
+      .set({
+        archivedAt: null,
+        archivedBy: null,
+        updatedBy: userId,
+        updatedAt: new Date(),
+      })
+      .where(
+        and(
+          eq(incomeSources.tenantId, tenantId),
+          eq(incomeSources.appId, appId),
+          eq(incomeSources.receivingAccountId, itemId),
+          sql`${incomeSources.archivedAt} IS NOT NULL`,
+          gte(incomeSources.archivedAt, windowStart),
+          lte(incomeSources.archivedAt, windowEnd)
         )
-        .returning();
+      )
+      .returning();
 
-      for (const inc of restoredIncomes) {
-        const startDate = inc.startDate || todayStr;
-        if (inc.rrule) {
-          const afterDateStr = startDate < todayStr ? yesterdayStr : null;
-          await burstIncomeEvents(dbClient, {
-            incomeSourceId: inc.id,
-            name: inc.name,
-            amount: inc.amount,
-            rrule: inc.rrule,
-            startDate,
-            endDate: inc.endDate,
-            contributionMode: inc.contributionMode,
-            contributionValue: inc.contributionValue,
-            tenantId,
-            appId,
-            userId,
-            timeZone: tenantTz,
-            afterDateStr,
-          });
-        } else {
-          await dbClient.insert(incomeEvents).values({
-            incomeSourceId: inc.id,
-            name: inc.name,
-            expectedDate: startDate,
-            actualDate: startDate,
-            expectedAmount: inc.amount,
-            actualAmount: inc.amount,
-            contributionMode: inc.contributionMode || "FULL",
-            contributionValue: inc.contributionValue || null,
-            status: "PENDING",
-            tenantId,
-            appId,
-            createdBy: userId,
-            updatedBy: userId,
-          });
-        }
+    for (const inc of restoredIncomes) {
+      const startDate = inc.startDate || todayStr;
+      if (inc.rrule) {
+        const afterDateStr = startDate < todayStr ? yesterdayStr : null;
+        await burstIncomeEvents(tx, {
+          incomeSourceId: inc.id,
+          name: inc.name,
+          amount: inc.amount,
+          rrule: inc.rrule,
+          startDate,
+          endDate: inc.endDate,
+          contributionMode: inc.contributionMode,
+          contributionValue: inc.contributionValue,
+          tenantId,
+          appId,
+          userId,
+          timeZone: tenantTz,
+          afterDateStr,
+        });
+      } else {
+        await tx.insert(incomeEvents).values({
+          incomeSourceId: inc.id,
+          name: inc.name,
+          expectedDate: startDate,
+          actualDate: startDate,
+          expectedAmount: inc.amount,
+          actualAmount: inc.amount,
+          contributionMode: inc.contributionMode || "FULL",
+          contributionValue: inc.contributionValue || null,
+          status: "PENDING",
+          tenantId,
+          appId,
+          createdBy: userId,
+          updatedBy: userId,
+        });
       }
     }
 
@@ -176,7 +189,7 @@ export async function restoreItemCommand(
   }
 
   if (itemType === "ENVELOPE") {
-    const [env] = await dbClient
+    const [env] = await tx
       .select({
         envelope: envelopes,
         bankAccountArchivedAt: bankAccounts.archivedAt,
@@ -199,7 +212,7 @@ export async function restoreItemCommand(
     }
 
     if (isEnvPrivate || env.bankAccountIsPrivate) {
-      const [appRecord] = await dbClient
+      const [appRecord] = await tx
         .select({ featureFlags: apps.featureFlags })
         .from(apps)
         .where(eq(apps.id, appId))
@@ -210,11 +223,15 @@ export async function restoreItemCommand(
       }
     }
 
+    if (!rawEnv.archivedAt) {
+      return rawEnv;
+    }
+
     if (env.bankAccountArchivedAt) {
       throw new Error("Cannot restore envelope because its linked bank account is archived. Please restore the bank account first.");
     }
 
-    const [restored] = await dbClient
+    const [restored] = await tx
       .update(envelopes)
       .set({
         archivedAt: null,
@@ -226,7 +243,8 @@ export async function restoreItemCommand(
         and(
           eq(envelopes.id, itemId),
           eq(envelopes.tenantId, tenantId),
-          eq(envelopes.appId, appId)
+          eq(envelopes.appId, appId),
+          sql`${envelopes.archivedAt} IS NOT NULL`
         )
       )
       .returning();
@@ -242,7 +260,7 @@ export async function restoreItemCommand(
         parseFloat(amountVal) > 0
       ) {
         const afterDateStr = restored.startDate < todayStr ? yesterdayStr : null;
-        await burstEnvelopeEvents(dbClient, {
+        await burstEnvelopeEvents(tx, {
           envelopeId: restored.id,
           name: restored.name,
           amount: amountVal,
@@ -262,7 +280,7 @@ export async function restoreItemCommand(
   }
 
   if (itemType === "INCOME_SOURCE") {
-    const [inc] = await dbClient
+    const [inc] = await tx
       .select({
         incomeSource: incomeSources,
         bankAccountArchivedAt: bankAccounts.archivedAt,
@@ -278,11 +296,15 @@ export async function restoreItemCommand(
       throw new Error("Access unauthorized or private income source.");
     }
 
+    if (!inc.incomeSource.archivedAt) {
+      return inc.incomeSource;
+    }
+
     if (inc.bankAccountArchivedAt) {
       throw new Error("Cannot restore income schedule because its receiving bank account is archived. Please restore the bank account first.");
     }
 
-    const activePrivate = await dbClient
+    const activePrivate = await tx
       .select({ id: envelopes.id })
       .from(envelopes)
       .leftJoin(bankAccounts, eq(envelopes.bankAccountId, bankAccounts.id))
@@ -297,7 +319,7 @@ export async function restoreItemCommand(
 
     const hasPrivate = activePrivate.length > 0;
 
-    const [restored] = await dbClient
+    const [restored] = await tx
       .update(incomeSources)
       .set({
         archivedAt: null,
@@ -310,7 +332,8 @@ export async function restoreItemCommand(
         and(
           eq(incomeSources.id, itemId),
           eq(incomeSources.tenantId, tenantId),
-          eq(incomeSources.appId, appId)
+          eq(incomeSources.appId, appId),
+          sql`${incomeSources.archivedAt} IS NOT NULL`
         )
       )
       .returning();
@@ -319,7 +342,7 @@ export async function restoreItemCommand(
       const startDate = restored.startDate || todayStr;
       if (restored.rrule) {
         const afterDateStr = startDate < todayStr ? yesterdayStr : null;
-        await burstIncomeEvents(dbClient, {
+        await burstIncomeEvents(tx, {
           incomeSourceId: restored.id,
           name: restored.name,
           amount: restored.amount,
@@ -335,7 +358,7 @@ export async function restoreItemCommand(
           afterDateStr,
         });
       } else {
-        await dbClient.insert(incomeEvents).values({
+        await tx.insert(incomeEvents).values({
           incomeSourceId: restored.id,
           name: restored.name,
           expectedDate: startDate,
@@ -357,4 +380,5 @@ export async function restoreItemCommand(
   }
 
   throw new Error("Unsupported item type for restoration.");
+  });
 }

@@ -36,6 +36,10 @@ export interface WorkerEnv {
   STRIPE_PRICE_FOUNDING_ANNUAL?: string;
   UPSTASH_REDIS_REST_URL?: string;
   UPSTASH_REDIS_REST_TOKEN?: string;
+  CF_ACCOUNT_ID?: string;
+  CF_AI_GATEWAY_ID?: string;
+  CF_AI_API_TOKEN?: string;
+  AI_MODEL_ID?: string;
 }
 
 export async function handleTrpcRequest(

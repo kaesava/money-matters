@@ -37,13 +37,9 @@ export function useSetupGoalsState({
     },
   ]);
   const [archivedGoalIds, setArchivedGoalIds] = useState<Set<string>>(new Set());
-  const [dirtyGoalIds, setDirtyGoalIds] = useState<Set<string>>(new Set());
 
   const handleUpdateGoalField = (id: string, field: keyof UserGoalItem, value: string | number) => {
     setGoals((prev) => prev.map((g) => (g.id === id ? { ...g, [field]: value } : g)));
-    if (!id.startsWith("g-")) {
-      setDirtyGoalIds((prev) => new Set(prev).add(id));
-    }
   };
 
   const handleRemoveGoal = (id: string) => {
@@ -61,7 +57,6 @@ export function useSetupGoalsState({
     goals,
     setGoals,
     archivedGoalIds,
-    dirtyGoalIds,
     handleUpdateGoalField,
     handleRemoveGoal,
     handleNextFromGoals,

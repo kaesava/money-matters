@@ -411,6 +411,10 @@ export default function SetupCategoriesScreen() {
       <MobilePaydaySandboxModal
         visible={showSandboxModal}
         onClose={() => setShowSandboxModal(false)}
+        onFinish={() => {
+          setShowSandboxModal(false);
+          void handleFinish();
+        }}
         incomes={incomes}
         bankAccounts={bankAccounts}
         activeEveryday={activeEveryday}

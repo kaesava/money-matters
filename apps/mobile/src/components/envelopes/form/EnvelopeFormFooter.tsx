@@ -15,8 +15,6 @@ export interface EnvelopeFormFooterProps {
   onSubmit: () => void;
 }
 
-export type CategoryFormFooterProps = EnvelopeFormFooterProps;
-
 export const EnvelopeFormFooter: React.FC<EnvelopeFormFooterProps> = ({
   isEdit,
   showArchive,
@@ -29,7 +27,7 @@ export const EnvelopeFormFooter: React.FC<EnvelopeFormFooterProps> = ({
   onSubmit,
 }) => {
   const canArchive = (showArchive ?? isEdit) && !isSurplusTarget;
-  const label = archiveLabel || t('categories.archivePool');
+  const label = archiveLabel || t('categories.archiveEnvelope');
   return (
     <View style={styles.footerContainer}>
       {canArchive ? (
@@ -87,6 +85,4 @@ const styles = StyleSheet.create({
     maxWidth: 200,
   },
 });
-
-export const CategoryFormFooter = EnvelopeFormFooter;
 

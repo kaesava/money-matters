@@ -60,6 +60,7 @@ export const incomeLifecycleProcedures = {
           .update(incomeSources)
           .set({
             archivedAt: new Date(),
+            archivedBy: ctx.userId!,
             updatedBy: ctx.userId!,
             updatedAt: new Date(),
           })

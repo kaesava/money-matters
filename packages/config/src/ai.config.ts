@@ -2,9 +2,9 @@ import { z } from "zod";
 
 /**
  * Model identifier constraint.
- * We use Meta LLaMA 3.1 8B Instruct Fast on Cloudflare Workers AI.
+ * We use Meta LLaMA 3.1 8B Instruct on Cloudflare Workers AI.
  */
-export const DEFAULT_AI_MODEL_ID = "@cf/meta/llama-3.1-8b-instruct-fast";
+export const DEFAULT_AI_MODEL_ID = "@cf/meta/llama-3.1-8b-instruct";
 
 /**
  * AI Assistant Environment Schema

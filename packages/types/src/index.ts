@@ -8,7 +8,6 @@
 export * from "./tenant.types.js";
 export * from "./status.types.js";
 export * from "./commands.types.js";
-export * from "./setup-presets.js";
 export * from "./app-preferences.js";
 export * from "./onboarding-quiz.js";
 export * from "./locale.types.js";

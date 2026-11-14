@@ -8,7 +8,12 @@ import {
   QuizAnswers,
   UserGoalItem,
   calculateQuizEstimates,
+  convertToMonthly,
+  convertFromMonthly,
+  getGoalMonthsDiff,
 } from '@money-matters/types';
+
+export { convertToMonthly, convertFromMonthly };
 
 export interface CalculationsProps {
   country: 'AU' | 'NZ' | 'OTHER';
@@ -37,38 +42,6 @@ export interface CalculationsProps {
   removedCategoryNames: Set<string>;
   amountOverrides: Record<string, number>;
   billTypeOverrides?: Record<string, 'RECURRING' | 'TARGET_BALANCE'>;
-}
-
-function getGoalMonthsDiff(targetDateStr?: string | null): number {
-  if (!targetDateStr) return 12;
-  const now = new Date();
-  const target = new Date(targetDateStr);
-  const months = (target.getFullYear() - now.getFullYear()) * 12 + (target.getMonth() - now.getMonth());
-  return Math.max(1, months);
-}
-
-export function convertToMonthly(
-  amount: number,
-  freq: 'WEEKLY' | 'FORTNIGHTLY' | 'MONTHLY' | 'QUARTERLY' | 'YEARLY'
-) {
-  let result = amount;
-  if (freq === 'WEEKLY') result = amount * (52 / 12);
-  else if (freq === 'FORTNIGHTLY') result = amount * (26 / 12);
-  else if (freq === 'QUARTERLY') result = amount / 3;
-  else if (freq === 'YEARLY') result = amount / 12;
-  return Math.round(result * 100) / 100;
-}
-
-export function convertFromMonthly(
-  monthlyAmount: number,
-  freq: 'WEEKLY' | 'FORTNIGHTLY' | 'MONTHLY' | 'QUARTERLY' | 'YEARLY'
-) {
-  let result = monthlyAmount;
-  if (freq === 'WEEKLY') result = monthlyAmount / (52 / 12);
-  else if (freq === 'FORTNIGHTLY') result = monthlyAmount / (26 / 12);
-  else if (freq === 'QUARTERLY') result = monthlyAmount * 3;
-  else if (freq === 'YEARLY') result = monthlyAmount * 12;
-  return Math.round(result * 100) / 100;
 }
 
 export function computeSetupWizardCalculations(props: CalculationsProps) {

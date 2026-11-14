@@ -3,7 +3,6 @@
 import React from "react";
 import { RecordFilterBadge } from "@money-matters/ui/web";
 import { getTenantDateString } from "@money-matters/core";
-import { ShortfallTransferItem } from "./MarkPaidModal";
 import { TimelineEventItem } from "./timeline/types";
 import { useUpcomingTimelineData } from "./timeline/useUpcomingTimelineData";
 import { TimelineFiltersBar } from "./timeline/TimelineFiltersBar";
@@ -34,7 +33,12 @@ interface UpcomingTimelineTabProps {
   initialKindFilter?: "ALL" | "INCOME" | "EXPENSE" | "TRANSFER";
   initialSearchQuery?: string;
   onAllocateIncome: (eventId: string) => void;
-  onMarkExpensePaid: (eventId: string, amount: string, date: string) => void;
+  onMarkExpensePaid: (
+    eventId: string,
+    amount: string,
+    date: string,
+    shortfallTransfers?: Array<{ sourceEnvelopeId: string; amount: string }>
+  ) => void | Promise<void>;
   onSkipIncome: (eventId: string) => void;
   onSkipExpense: (eventId: string) => void;
   onSkipTransfer?: (eventId: string) => void;
@@ -51,10 +55,6 @@ interface UpcomingTimelineTabProps {
     sourcePoolId?: string,
     destinationPoolId?: string
   ) => Promise<void> | void;
-  onConfirmTransferAndPay: (
-    transfers: ShortfallTransferItem[],
-    destCategoryId: string
-  ) => Promise<void>;
   onOpenTransferModalWithData?: (data: {
     sourcePoolId?: string;
     destinationPoolId?: string;
@@ -86,7 +86,6 @@ export function UpcomingTimelineTab({
   onSkipTransfer,
   onSaveTransferDraft,
   onExecuteTransfer,
-  onConfirmTransferAndPay,
 }: UpcomingTimelineTabProps) {
   const {
     todayStr,
@@ -216,7 +215,6 @@ export function UpcomingTimelineTab({
         onCloseMarkPaid={() => setMarkPaidModalEvent(null)}
         categories={categories}
         pools={pools}
-        onConfirmTransferAndPay={onConfirmTransferAndPay}
         onMarkExpensePaid={onMarkExpensePaid}
         onOpenTransferFromMarkPaid={handleOpenTransferFromMarkPaid}
         transferModalEvent={transferModalEvent}

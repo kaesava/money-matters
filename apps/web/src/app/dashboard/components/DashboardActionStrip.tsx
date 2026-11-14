@@ -10,7 +10,6 @@ export interface DashboardActionStripProps {
   readonly onOpenQuickIncome: () => void;
   readonly onOpenMoveMoney: () => void;
   readonly onOpenAffordCheck: () => void;
-  readonly onOpenAskPenny?: () => void;
 }
 
 export const DashboardActionStrip: React.FC<DashboardActionStripProps> = ({
@@ -18,7 +17,6 @@ export const DashboardActionStrip: React.FC<DashboardActionStripProps> = ({
   onOpenQuickIncome,
   onOpenMoveMoney,
   onOpenAffordCheck,
-  onOpenAskPenny: _onOpenAskPenny,
 }) => {
   const { hasSimulation } = useAppFeatures();
   const [isOpen, setIsOpen] = useState(false);

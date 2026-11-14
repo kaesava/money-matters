@@ -37,7 +37,7 @@ export function IncomeFormModal({ isOpen, onClose, sourceToEdit }: IncomeFormMod
   const bankAccountsQuery = trpc.getBankAccountsWithMappings.useQuery(undefined, { enabled: isOpen });
   const bankAccounts = useMemo(() => bankAccountsQuery.data ?? [], [bankAccountsQuery.data]);
 
-  const poolsQuery = trpc.listPools.useQuery(undefined, { enabled: isOpen });
+  const poolsQuery = trpc.listEnvelopes.useQuery(undefined, { enabled: isOpen });
   const hasPrivateEnvelopes = useMemo(() => (poolsQuery.data || []).some((e) => e.isPrivate), [poolsQuery.data]);
 
   const createIncomeMut = trpc.createIncomeSource.useMutation();

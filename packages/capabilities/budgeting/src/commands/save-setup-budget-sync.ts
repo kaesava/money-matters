@@ -6,6 +6,7 @@ import { burstIncomeEvents } from "./income-schedule.js";
 
 export async function archivePendingIncomeEvents(
   tx: DbOrTx,
+  tenantId: string,
   archivedIncomeIds: string[]
 ): Promise<void> {
   if (archivedIncomeIds.length === 0) return;
@@ -13,6 +14,7 @@ export async function archivePendingIncomeEvents(
     .delete(incomeEvents)
     .where(
       and(
+        eq(incomeEvents.tenantId, tenantId),
         inArray(incomeEvents.incomeSourceId, archivedIncomeIds),
         eq(incomeEvents.status, "PENDING")
       )
@@ -21,6 +23,7 @@ export async function archivePendingIncomeEvents(
 
 export async function archivePendingExpenseEvents(
   tx: DbOrTx,
+  tenantId: string,
   archivedEnvelopeIds: string[]
 ): Promise<void> {
   if (archivedEnvelopeIds.length === 0) return;
@@ -28,6 +31,7 @@ export async function archivePendingExpenseEvents(
     .delete(expenseEvents)
     .where(
       and(
+        eq(expenseEvents.tenantId, tenantId),
         inArray(expenseEvents.envelopeId, archivedEnvelopeIds),
         eq(expenseEvents.status, "PENDING")
       )
@@ -55,7 +59,13 @@ export async function synchronizeUpdatedIncomeEvents(
   if (scheduleChanged) {
     await tx
       .delete(incomeEvents)
-      .where(and(eq(incomeEvents.incomeSourceId, sourceId), eq(incomeEvents.status, "PENDING")));
+      .where(
+        and(
+          eq(incomeEvents.tenantId, params.tenantId),
+          eq(incomeEvents.incomeSourceId, sourceId),
+          eq(incomeEvents.status, "PENDING")
+        )
+      );
 
     const tz = params.timeZone || "Australia/Sydney";
     const todayStr = getTenantDateString(params.now, { timezone: tz });
@@ -86,7 +96,14 @@ export async function synchronizeUpdatedIncomeEvents(
     await tx
       .update(incomeEvents)
       .set({ name: params.name, expectedAmount: params.amount, actualAmount: params.amount, updatedAt: params.now, updatedBy: params.userId })
-      .where(and(eq(incomeEvents.incomeSourceId, sourceId), eq(incomeEvents.status, "PENDING"), sql`${incomeEvents.archivedAt} IS NULL`));
+      .where(
+        and(
+          eq(incomeEvents.tenantId, params.tenantId),
+          eq(incomeEvents.incomeSourceId, sourceId),
+          eq(incomeEvents.status, "PENDING"),
+          sql`${incomeEvents.archivedAt} IS NULL`
+        )
+      );
   }
 }
 
@@ -114,7 +131,14 @@ export async function synchronizeUpdatedEnvelopeEvents(
   if (scheduleChanged) {
     await tx
       .delete(expenseEvents)
-      .where(and(eq(expenseEvents.envelopeId, envelopeId), eq(expenseEvents.isScheduled, true), eq(expenseEvents.status, "PENDING")));
+      .where(
+        and(
+          eq(expenseEvents.tenantId, params.tenantId),
+          eq(expenseEvents.envelopeId, envelopeId),
+          eq(expenseEvents.isScheduled, true),
+          eq(expenseEvents.status, "PENDING")
+        )
+      );
 
     if (shouldBurst && parseFloat(params.amount) > 0) {
       const tz = params.timeZone || "Australia/Sydney";
@@ -152,6 +176,14 @@ export async function synchronizeUpdatedEnvelopeEvents(
     await tx
       .update(expenseEvents)
       .set({ name: params.name, expectedAmount: params.amount, updatedAt: params.now, updatedBy: params.userId })
-      .where(and(eq(expenseEvents.envelopeId, envelopeId), eq(expenseEvents.status, "PENDING"), sql`${expenseEvents.archivedAt} IS NULL`));
+      .where(
+        and(
+          eq(expenseEvents.tenantId, params.tenantId),
+          eq(expenseEvents.envelopeId, envelopeId),
+          eq(expenseEvents.isScheduled, true),
+          eq(expenseEvents.status, "PENDING"),
+          sql`${expenseEvents.archivedAt} IS NULL`
+        )
+      );
   }
 }

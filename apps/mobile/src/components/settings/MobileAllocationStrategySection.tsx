@@ -16,7 +16,7 @@ export function MobileAllocationStrategySection() {
   const [activeTab, setActiveTab] = useState<'household' | 'personal'>('household');
 
   const govQuery = trpc.getHouseholdGovernanceInfo.useQuery();
-  const envelopesQuery = trpc.listPools.useQuery();
+  const envelopesQuery = trpc.listEnvelopes.useQuery();
   const isOwner = govQuery.data?.isOwner ?? true;
 
   const hasPrivateEnvelopes = useMemo(

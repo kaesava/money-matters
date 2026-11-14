@@ -138,7 +138,7 @@ End the plan with an explicit list of everything you could not verify and why, c
 
 ## 9. Self-check before finishing
 Before you stop, confirm and tick off in the plan:
-- [ ] Every AGENTS.md section (1 to 26) was examined, and each has either items or an explicit "no findings" note with the evidence inspected.
+- [ ] Every AGENTS.md section and SKILLs was examined, and each has either items or an explicit "no findings" note with the evidence inspected.
 - [ ] Every inventory screen and modal has a parity row.
 - [ ] Every tRPC procedure was classified for tenant and private correctness.
 - [ ] Every table was checked for RLS and for the required columns.

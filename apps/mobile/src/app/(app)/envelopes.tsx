@@ -41,7 +41,7 @@ export default function PoolsScreen() {
   const toggleTypeCollapse = (type: string) =>
     setCollapsedTypes((prev) => ({ ...prev, [type]: !prev[type] }));
 
-  const poolsQuery = trpc.listPools.useQuery(undefined, { enabled: !!session?.user });
+  const poolsQuery = trpc.listEnvelopes.useQuery(undefined, { enabled: !!session?.user });
   const bankAccountsQuery = trpc.listBankAccounts.useQuery(undefined, { enabled: !!session?.user });
 
   const pools = poolsQuery.data ?? [];

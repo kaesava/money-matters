@@ -236,7 +236,8 @@
 | `isScheduled` | boolean | - | Domain column |
 | `note` | varchar | - | Domain column |
 | `status` | expenseEventStatusEnum | - | Domain column |
-| `tenantEnvelopeDateIdx` | index | - | Domain column |
+| `tenantEnvelopeDateIdx` | index | - | Domain index |
+| `scheduledUniqueIdx` | uniqueIndex | - | Partial unique index on `(tenantId, envelopeId, expectedDate)` where `isScheduled = true AND archivedAt IS NULL` |
 | `tenantId` | uuid | No | Tenant Foreign Key (RLS isolation) |
 | `appId` | varchar | No | Application ID |
 | `createdAt` | timestamp | No | Creation timestamp |
@@ -377,7 +378,7 @@
 | `userId` | uuid | - | Domain column |
 | `tenantId` | uuid | - | Domain column |
 | `appId` | uuid | - | Domain column |
-| `appPreferences` | jsonb | - | Domain column |
+| `appPreferences` | jsonb | - | App-keyed JSONB preferences (including per-platform `tour_web` and `tour_mobile` status) |
 | `createdAt` | timestamp | - | Domain column |
 | `createdBy` | uuid | - | Domain column |
 | `updatedAt` | timestamp | - | Domain column |

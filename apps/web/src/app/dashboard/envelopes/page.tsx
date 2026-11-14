@@ -29,7 +29,7 @@ function PoolsPageContent() {
   const poolIdParam = searchParams.get("poolId") || searchParams.get("id") || "";
   const categoryIdParam = searchParams.get("categoryId") || "";
 
-  const poolsQuery = trpc.listPools.useQuery();
+  const poolsQuery = trpc.listEnvelopes.useQuery();
   const archivedQuery = trpc.listArchivedItems.useQuery();
   const expenseEventsQuery = trpc.listExpenseEvents.useQuery();
   const incomeEventsQuery = trpc.listIncomeEvents.useQuery();
@@ -107,9 +107,9 @@ function PoolsPageContent() {
     return fmt(val);
   };
 
-  const archivePoolMut = trpc.archivePool.useMutation({
+  const archivePoolMut = trpc.archiveEnvelope.useMutation({
     onSuccess: () => {
-      utils.listPools.invalidate();
+      utils.listEnvelopes.invalidate();
     },
   });
 
@@ -138,7 +138,7 @@ function PoolsPageContent() {
   const confirmArchivePool = async () => {
     if (!poolToArchive) return;
     try {
-      await archivePoolMut.mutateAsync({ poolId: poolToArchive.id });
+      await archivePoolMut.mutateAsync({ envelopeId: poolToArchive.id });
       if (selectedPoolForDrawer?.id === poolToArchive.id) {
         setSelectedPoolForDrawer(null);
       }
@@ -417,7 +417,7 @@ function PoolsPageContent() {
           onClose={() => {
             setIsQuickDrawerOpen(false);
             setQuickDrawerInitialData(undefined);
-            utils.listPools.invalidate();
+            utils.listEnvelopes.invalidate();
           }}
           initialTab={quickDrawerTab}
           initialData={quickDrawerInitialData}
@@ -433,7 +433,7 @@ function PoolsPageContent() {
             setSelectedPoolForDrawer(null);
           }
           await Promise.all([
-            utils.listPools.refetch(),
+            utils.listEnvelopes.refetch(),
             utils.listExpenseEvents.refetch(),
             utils.getProjectedPoolBalances.refetch(),
           ]);
@@ -456,9 +456,9 @@ function PoolsPageContent() {
         isOpen={Boolean(poolToArchive)}
         onClose={() => setPoolToArchive(null)}
         onConfirm={confirmArchivePool}
-        title={t("categories.archivePool")}
+        title={t("categories.archiveEnvelope")}
         description={t("categories.archivePoolConfirm", { name: poolToArchive?.name || "" })}
-        confirmLabel={t("categories.archivePool")}
+        confirmLabel={t("categories.archiveEnvelope")}
         variant="danger"
         isLoading={archivePoolMut.isPending}
       />

@@ -1,8 +1,8 @@
 import { privateTenantProcedure, requiresWriteAccess } from '../trpc/trpc.js';
 import { envelopes, expenseEvents, bankAccounts } from "@money-matters/db";
 import { and, eq, sql, inArray } from "drizzle-orm";
-import { recordExpenseCommand } from "@money-matters/capability-transactions";
-import { CreateOneOffExpenseCommand } from "@money-matters/types";
+import { recordExpenseCommand, markExpensePaidCommand } from "@money-matters/capability-transactions";
+import { CreateOneOffExpenseCommand, MarkExpensePaidCommand } from "@money-matters/types";
 import { z } from 'zod';
 import { posthog } from '../lib/posthog.js';
 
@@ -211,85 +211,10 @@ export const expensesRouter = {
     }),
 
   markExpensePaid: privateTenantProcedure
-    .input(
-      z.object({
-        eventId: z.string().uuid(),
-        amount: z.string().regex(/^\d{1,12}(\.\d{1,2})?$/).refine((val) => parseFloat(val) > 0, "Amount must be greater than 0").optional(),
-        date: z.string().optional(),
-        note: z.string().optional(),
-      }).strict()
-    )
+    .input(MarkExpensePaidCommand)
     .mutation(async ({ input, ctx }) => {
       requiresWriteAccess(ctx);
-      const [evt] = await ctx.db
-        .select({
-          id: expenseEvents.id,
-          expectedAmount: expenseEvents.expectedAmount,
-          expectedDate: expenseEvents.expectedDate,
-          name: expenseEvents.name,
-          note: expenseEvents.note,
-          envelopeId: expenseEvents.envelopeId,
-          envelopeIsPrivate: envelopes.isPrivate,
-          envelopeUserId: envelopes.userId,
-          bankAccountIsPrivate: bankAccounts.isPrivate,
-          bankAccountUserId: bankAccounts.userId,
-        })
-        .from(expenseEvents)
-        .leftJoin(envelopes, eq(expenseEvents.envelopeId, envelopes.id))
-        .leftJoin(bankAccounts, eq(envelopes.bankAccountId, bankAccounts.id))
-        .where(
-          and(
-            eq(expenseEvents.id, input.eventId),
-            eq(expenseEvents.tenantId, ctx.tenantId!),
-            eq(expenseEvents.appId, ctx.appId!),
-            sql`${expenseEvents.archivedAt} IS NULL`
-          )
-        );
-
-      if (!evt) throw new Error("Expense event not found.");
-      if (
-        (evt.envelopeIsPrivate && evt.envelopeUserId !== ctx.userId) ||
-        (evt.bankAccountIsPrivate && evt.bankAccountUserId !== ctx.userId)
-      ) {
-        throw new Error("Expense event not found.");
-      }
-
-      const paidAmount = input.amount || evt.expectedAmount;
-      const paidDate = input.date || evt.expectedDate;
-
-      await ctx.db
-        .update(expenseEvents)
-        .set({
-          status: "CONFIRMED",
-          actualAmount: paidAmount,
-          actualDate: paidDate,
-          note: input.note || evt.note,
-          updatedAt: new Date(),
-          updatedBy: ctx.userId!,
-        })
-        .where(eq(expenseEvents.id, input.eventId));
-
-      if (evt.envelopeId) {
-        const cleanUserNote = input.note?.trim();
-        const transactionNote = cleanUserNote || evt.name;
-
-        await recordExpenseCommand(
-          {
-            envelopeId: evt.envelopeId,
-            flowType: "DEBIT",
-            amount: paidAmount,
-            source: "MANUAL",
-            note: transactionNote,
-            date: paidDate,
-          },
-          ctx.tenantId!,
-          ctx.appId!,
-          ctx.userId!,
-          ctx.db
-        );
-      }
-
-      return { success: true, message: "Bill marked as paid." };
+      return markExpensePaidCommand(input, ctx.tenantId!, ctx.appId!, ctx.userId!, ctx.db);
     }),
 };
 

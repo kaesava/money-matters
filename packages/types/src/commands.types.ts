@@ -357,3 +357,17 @@ export const CreateOneOffExpenseCommand = z.object({
   note: z.string().optional().nullable(),
 }).strict();
 
+export const ShortfallTransferItem = z.object({
+  sourceEnvelopeId: z.string().uuid(),
+  amount: z.string().regex(/^\d{1,12}(\.\d{1,2})?$/).refine((val) => parseFloat(val) > 0, "Transfer amount must be greater than 0"),
+}).strict();
+
+export const MarkExpensePaidCommand = z.object({
+  eventId: z.string().uuid(),
+  amount: z.string().regex(/^\d{1,12}(\.\d{1,2})?$/).refine((val) => parseFloat(val) > 0, "Amount must be greater than 0").optional(),
+  date: z.string().optional(),
+  note: z.string().optional(),
+  shortfallTransfers: z.array(ShortfallTransferItem).optional(),
+}).strict();
+export type MarkExpensePaidInput = z.infer<typeof MarkExpensePaidCommand>;
+

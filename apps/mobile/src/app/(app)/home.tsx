@@ -19,16 +19,32 @@ import { MobileReconciliationModal } from '../../components/envelopes/MobileReco
 import { useHomeData } from '../../components/dashboard/useHomeData';
 import { useHomeModals } from '../../components/dashboard/useHomeModals';
 import { useAppFeatures } from '../../context/useAppFeatures';
+import { useMobileProductTour } from '../../context/ProductTourContext';
 
 export default function HomeScreen() {
   const router = useRouter();
   const { token } = useLocalSearchParams<{ token?: string }>();
   const posthog = usePostHog();
   const { hasAiAssistant, hasSimulation } = useAppFeatures();
+  const { registerTourTarget } = useMobileProductTour();
+  const heroRef = React.useRef<View>(null);
+  const paydayRef = React.useRef<View>(null);
+
+  const subStatusQuery = trpc.getSubscriptionStatus.useQuery(undefined, {
+    staleTime: 60_000,
+  });
+  const hasAiAccess = Boolean(
+    hasAiAssistant &&
+      subStatusQuery.data &&
+      !subStatusQuery.data.isTrialExpired &&
+      !subStatusQuery.data.isGracePeriod &&
+      !subStatusQuery.data.isPastDue &&
+      !subStatusQuery.data.isDeactivated
+  );
 
   const askMutation = trpc.assistantAsk.useMutation();
   const usageQuery = trpc.assistantUsage.useQuery(undefined, {
-    enabled: hasAiAssistant,
+    enabled: hasAiAccess,
     staleTime: 30_000,
   });
 
@@ -173,44 +189,62 @@ export default function HomeScreen() {
         }
       >
 
-        <DashboardHeroCard
-          everydayBalance={everydayBalance}
-          everydayMonthlyBudget={everydayMonthlyBudget}
-          safetyBufferFloor={everydaySafetyBuffer}
-          billsBalance={billsBalance}
-          billsMonthlyBudget={billsMonthlyBudget}
-          daysUntilPayday={daysUntilPayday}
-          safeToSpend={safeToSpend}
-          dailyPace={dailyPace}
-          paceStatus={paceStatus}
-          isAwaitingFirstPayday={homeSummary?.isAwaitingFirstPayday}
-          billsShortfall={billsShortfall}
-          billsDue14DaysCount={billsDue14DaysCount}
-          totalBillsDue14Days={totalBillsDue14Days}
-          onMoveMoney={() => openQuickModal('TRANSFER')}
-          onEverydayPress={() =>
-            everydayPool
-              ? router.push(`/(app)/envelopes/${everydayPool.id}` as Href)
-              : router.push('/(app)/envelopes' as Href)
-          }
-          onAlignEverydayBalance={handleOpenEverydayReconciliation}
-          onBillsPress={() =>
-            billsPool
-              ? router.push(`/(app)/envelopes/${billsPool.id}` as Href)
-              : router.push('/(app)/envelopes' as Href)
-          }
-        />
+        <View
+          ref={heroRef}
+          onLayout={() => {
+            heroRef.current?.measureInWindow((x, y, width, height) => {
+              if (width > 0 && height > 0) registerTourTarget('envelopes-row', { x, y, width, height });
+            });
+          }}
+        >
+          <DashboardHeroCard
+            everydayBalance={everydayBalance}
+            everydayMonthlyBudget={everydayMonthlyBudget}
+            safetyBufferFloor={everydaySafetyBuffer}
+            billsBalance={billsBalance}
+            billsMonthlyBudget={billsMonthlyBudget}
+            daysUntilPayday={daysUntilPayday}
+            safeToSpend={safeToSpend}
+            dailyPace={dailyPace}
+            paceStatus={paceStatus}
+            isAwaitingFirstPayday={homeSummary?.isAwaitingFirstPayday}
+            billsShortfall={billsShortfall}
+            billsDue14DaysCount={billsDue14DaysCount}
+            totalBillsDue14Days={totalBillsDue14Days}
+            onMoveMoney={() => openQuickModal('TRANSFER')}
+            onEverydayPress={() =>
+              everydayPool
+                ? router.push(`/(app)/envelopes/${everydayPool.id}` as Href)
+                : router.push('/(app)/envelopes' as Href)
+            }
+            onAlignEverydayBalance={handleOpenEverydayReconciliation}
+            onBillsPress={() =>
+              billsPool
+                ? router.push(`/(app)/envelopes/${billsPool.id}` as Href)
+                : router.push('/(app)/envelopes' as Href)
+            }
+          />
+        </View>
 
-        <MobileNextPaydayCard
-          upcomingIncomes={upcomingIncomeList}
-          onPressRunSplit={(id: string) => {
-            if (posthog) posthog.capture('payday_wizard_opened');
-            router.push(`/(app)/income-split/${id}` as Href);
+        <View
+          ref={paydayRef}
+          onLayout={() => {
+            paydayRef.current?.measureInWindow((x, y, width, height) => {
+              if (width > 0 && height > 0) registerTourTarget('payday-card', { x, y, width, height });
+            });
           }}
-          onDeleteIncome={(id: string) => {
-            deleteIncomeMutation.mutate({ eventId: id });
-          }}
-        />
+        >
+          <MobileNextPaydayCard
+            upcomingIncomes={upcomingIncomeList}
+            onPressRunSplit={(id: string) => {
+              if (posthog) posthog.capture('payday_wizard_opened');
+              router.push(`/(app)/income-split/${id}` as Href);
+            }}
+            onDeleteIncome={(id: string) => {
+              deleteIncomeMutation.mutate({ eventId: id });
+            }}
+          />
+        </View>
 
         <AttentionItemsList
           items={attentionItems}
@@ -291,12 +325,12 @@ export default function HomeScreen() {
         upcomingEvents={searchEvents}
         onSearchTransactions={handleSearchTransactions}
         remainingCalls={
-          hasAiAssistant && usageQuery.data?.limit && usageQuery.data
+          hasAiAccess && usageQuery.data?.limit && usageQuery.data
             ? Math.max(0, usageQuery.data.limit - usageQuery.data.used)
             : undefined
         }
         onAskPenny={
-          hasAiAssistant
+          hasAiAccess
             ? async (query: string) => {
                 const res = await askMutation.mutateAsync({ query });
                 usageQuery.refetch();

@@ -49,7 +49,7 @@ export const NextPaydayCard: React.FC<NextPaydayCardProps> = ({
 
   if (!upcomingIncomes || upcomingIncomes.length === 0) {
     return (
-      <div className="bg-white border border-gray-200/80 rounded-2xl p-5 shadow-2xs">
+      <div data-tour="payday-card" className="bg-white border border-gray-200/80 rounded-2xl p-5 shadow-2xs">
         <div className="flex items-center justify-between gap-2 mb-2">
           <div className="flex items-center gap-2">
             <h2 className="text-sm font-extrabold text-[#1B2B4B]">{t('dashboard.nextPay.upcomingIncome')}</h2>

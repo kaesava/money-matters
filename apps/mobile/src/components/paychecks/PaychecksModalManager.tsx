@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { showMobileConfirm } from '@money-matters/ui/mobile';
 import { t } from '@money-matters/i18n';
 import { trpc } from '../../lib/trpc';
@@ -80,7 +80,8 @@ export function PaychecksModalManager({
   onRefresh,
   refetchAll,
 }: PaychecksModalManagerProps) {
-  const markExpensePaidMut = trpc.markExpensePaid.useMutation();
+  const [localMarkPaidEvent, setLocalMarkPaidEvent] = useState<MarkPaidEvent | null>(null);
+  const effectiveMarkPaidEvent = markPaidEvent || localMarkPaidEvent;
   const markIncomeReceivedMut = trpc.markIncomeReceived.useMutation();
   const deleteIncomeEventMut = trpc.deleteIncomeEvent.useMutation();
   const deleteExpenseEventMut = trpc.deleteExpenseEvent.useMutation();
@@ -102,9 +103,12 @@ export function PaychecksModalManager({
       />
 
       <MarkPaidModal
-        visible={!!markPaidEvent}
-        event={markPaidEvent}
-        onClose={onCloseMarkPaid}
+        visible={!!effectiveMarkPaidEvent}
+        event={effectiveMarkPaidEvent}
+        onClose={() => {
+          setLocalMarkPaidEvent(null);
+          onCloseMarkPaid();
+        }}
         onSuccess={refetchAll}
       />
 
@@ -186,8 +190,16 @@ export function PaychecksModalManager({
           upcomingEvents={activeCategoryDetail.events}
           onClose={onCloseCategoryDetail}
           onMarkPaid={async (eventId, amount, date) => {
-            await markExpensePaidMut.mutateAsync({ eventId, amount, date });
-            await onRefresh();
+            const evt = activeCategoryDetail.events.find((e) => e.id === eventId);
+            onCloseCategoryDetail();
+            setLocalMarkPaidEvent({
+              id: eventId,
+              name: evt?.name || activeCategoryDetail.poolName,
+              expectedAmount: parseFloat(amount) || 0,
+              expectedDate: evt?.dueDate || date,
+              categoryId: activeCategoryDetail.poolId,
+              poolId: activeCategoryDetail.poolId,
+            });
           }}
         />
       )}
@@ -215,10 +227,19 @@ export function PaychecksModalManager({
               actualAmount: amount,
               recordedAt: date,
             });
+            await onRefresh();
           } else {
-            await markExpensePaidMut.mutateAsync({ eventId, amount, date });
+            const evt = burstEvents.find((e) => e.id === eventId);
+            onCloseBurst();
+            setLocalMarkPaidEvent({
+              id: eventId,
+              name: evt?.name || burstSource?.name || t('common.expense'),
+              expectedAmount: parseFloat(amount) || 0,
+              expectedDate: evt?.expectedDate || date,
+              categoryId: burstSource?.id,
+              poolId: burstSource?.id,
+            });
           }
-          await onRefresh();
         }}
         onDeleteEvent={async (eventId) => {
           if (burstMode === 'INCOME') {

@@ -263,12 +263,13 @@ describe("Envelope Lifecycle & Event Sync", () => {
           return {
             leftJoin: vi.fn().mockReturnValue({
               where: vi.fn().mockResolvedValue([
-                { isPrivate: false, bankAccountUserId: null, generateEvents: false },
+                { isPrivate: false, bankAccountUserId: null, generateEvents: false, archivedAt: new Date() },
               ]),
             }),
           };
         }),
       }),
+      transaction: vi.fn().mockImplementation(async (cb: (tx: unknown) => Promise<unknown>) => cb(mockDb)),
       update: vi.fn().mockReturnValue({
         set: vi.fn().mockReturnValue({
           where: vi.fn().mockReturnValue({
@@ -384,12 +385,13 @@ describe("Envelope Lifecycle & Event Sync", () => {
           return {
             leftJoin: vi.fn().mockReturnValue({
               where: vi.fn().mockResolvedValue([
-                { isPrivate: false, bankAccountUserId: null, generateEvents: true },
+                { isPrivate: false, bankAccountUserId: null, generateEvents: true, archivedAt: new Date() },
               ]),
             }),
           };
         }),
       }),
+      transaction: vi.fn().mockImplementation(async (cb: (tx: unknown) => Promise<unknown>) => cb(mockDb)),
       update: vi.fn().mockReturnValue({
         set: vi.fn().mockReturnValue({
           where: vi.fn().mockReturnValue({

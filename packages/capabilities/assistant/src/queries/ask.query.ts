@@ -60,12 +60,27 @@ export async function askAssistant(opts: AskAssistantOptions): Promise<Assistant
     throw err;
   }
 
-  if (!classified || classified.intent === "UNKNOWN") {
+  if (!classified) {
+    if (typeof usageStore.decrementLlmCalls === "function") {
+      await usageStore.decrementLlmCalls(context.tenantId);
+    }
     return {
       type: "clarify",
       templateKey: "assistant.clarify.generic",
       suggestions: [
-        "How much is left in my Everyday pool?",
+        "How much is left in my Everyday envelope?",
+        "When is my next payday?",
+        "Which bills are due this week?",
+      ],
+    };
+  }
+
+  if (classified.intent === "UNKNOWN") {
+    return {
+      type: "clarify",
+      templateKey: "assistant.clarify.generic",
+      suggestions: [
+        "How much is left in my Everyday envelope?",
         "When is my next payday?",
         "Which bills are due this week?",
       ],
@@ -133,6 +148,24 @@ async function executeIntent(
       };
     case "SPENDING_SUMMARY":
       return handler.handleSpendingSummary(context, params.categoryName);
+    case "ADD_ENTITY": {
+      const entityType = params.categoryName?.toLowerCase();
+      const target =
+        entityType === "bill"
+          ? "create-bill"
+          : entityType === "income"
+            ? "create-income"
+            : "create-envelope";
+      return {
+        type: "prefill",
+        target,
+        params: {
+          name: params.entityName ?? "",
+          amount: params.amount ?? 0,
+          date: params.date ?? "",
+        },
+      };
+    }
     case "NAVIGATE_HELP":
       return {
         type: "prefill",

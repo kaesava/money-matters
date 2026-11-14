@@ -1,6 +1,7 @@
-import React from "react";
+import React, { useState } from "react";
 import {
   MobileModalDialog,
+  FormErrorBanner,
   showMobileConfirm,
   useMobileToast,
   RecurrenceFrequency,
@@ -32,6 +33,7 @@ export interface EnvelopeItem {
   safetyBufferFloor?: string | null;
   healthStatus?: string | null;
   isSurplusTarget?: boolean | null;
+  generateEvents?: boolean | null;
   hasScheduledEvents?: boolean | null;
   fundingMode?: "TARGET_BALANCE" | "RECURRING" | null;
   isPriority?: boolean | null;
@@ -47,7 +49,7 @@ export interface EnvelopeDraftPayload {
   monthlyAmount?: string;
   enteredAmount?: string;
   targetAmount?: string;
-  endDate?: string;
+  endDate?: string | null;
   budgetFrequency?: RecurrenceFrequency;
   startDate?: string;
   rrule?: string;
@@ -69,8 +71,6 @@ export interface EnvelopeFormModalProps {
   initialMode?: "ALL" | "BILL_SCHEDULE";
 }
 
-export type CategoryFormModalProps = EnvelopeFormModalProps;
-
 export function EnvelopeFormModal({
   visible,
   envelopeToEdit,
@@ -86,6 +86,7 @@ export function EnvelopeFormModal({
   const { hasPrivateMode } = useAppFeatures();
   const toast = useMobileToast();
   const utils = trpc.useUtils();
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   const isDraftMode = Boolean(onSaveDraft);
   const bankAccountsQuery = trpc.listBankAccountsWithExpected.useQuery(undefined, {
@@ -93,7 +94,7 @@ export function EnvelopeFormModal({
   });
   const bankAccounts = passedBankAccounts ?? bankAccountsQuery.data ?? [];
 
-  const poolsQuery = trpc.listPools.useQuery(undefined, { enabled: visible && !isDraftMode });
+  const poolsQuery = trpc.listEnvelopes.useQuery(undefined, { enabled: visible && !isDraftMode });
   const otherPrivateEnvelopes = (poolsQuery.data || []).filter((p) => p.isPrivate && p.id !== categoryToEdit?.id);
   const isLastPrivateEnvelope = Boolean(categoryToEdit?.isPrivate && otherPrivateEnvelopes.length === 0);
 
@@ -142,12 +143,13 @@ export function EnvelopeFormModal({
   });
 
   const invalidateQueries = () => {
-    utils.listPools.invalidate();
+    utils.listEnvelopes.invalidate();
     utils.listExpenseEvents.invalidate();
+    utils.listBillSchedules.invalidate();
     utils.getProjectedPoolBalances.invalidate();
   };
 
-  const createMut = trpc.createPool.useMutation({
+  const createMut = trpc.createEnvelope.useMutation({
     onSuccess: () => {
       invalidateQueries();
       toast.success(t("toasts.created"));
@@ -159,7 +161,7 @@ export function EnvelopeFormModal({
     },
   });
 
-  const updateMut = trpc.updatePool.useMutation({
+  const updateMut = trpc.updateEnvelope.useMutation({
     onSuccess: () => {
       invalidateQueries();
       toast.success(t("toasts.saved"));
@@ -171,7 +173,7 @@ export function EnvelopeFormModal({
     },
   });
 
-  const archiveMut = trpc.archivePool.useMutation({
+  const archiveMut = trpc.archiveEnvelope.useMutation({
     onSuccess: () => {
       invalidateQueries();
       toast.success(t("toasts.archived"));
@@ -184,33 +186,39 @@ export function EnvelopeFormModal({
   });
 
   const validateForm = (): boolean => {
+    setErrorMsg(null);
     if (!name.trim()) {
       setNameError(t("categories.nameRequired"));
+      setErrorMsg(t("categories.nameRequired"));
       return false;
     }
     if (!isEdit && !bankAccountId) {
-      toast.error(t("categories.bankAccountRequired"));
+      setErrorMsg(t("categories.bankAccountRequired"));
       return false;
     }
     if (type === "GOAL") {
       if (!targetAmount || parseFloat(targetAmount) <= 0) {
-        toast.error(t("categories.goalAmountRequired"));
+        setErrorMsg(t("categories.goalAmountRequired"));
         return false;
       }
       if (fundingMode === "TARGET_BALANCE" && !targetDate) {
-        toast.error(t("categories.goalDateRequired"));
+        setErrorMsg(t("categories.goalDateRequired"));
         return false;
       }
     }
     if (type === "BILL") {
       if (!targetAmount || parseFloat(targetAmount) <= 0) {
-        toast.error(t("categories.billAmountRequired"));
+        setErrorMsg(t("categories.billAmountRequired"));
         return false;
       }
       if (fundingMode === "RECURRING" && !goalStartDate) {
-        toast.error(t("categories.billStartDateRequired"));
+        setErrorMsg(t("categories.billStartDateRequired"));
         return false;
       }
+    }
+    if (goalStartDate && targetDate && targetDate < goalStartDate) {
+      setErrorMsg(t("categories.endDateBeforeStartDate"));
+      return false;
     }
     setNameError("");
     return true;
@@ -230,7 +238,7 @@ export function EnvelopeFormModal({
       return;
     }
     if (categoryToEdit) {
-      updateMut.mutate({ poolId: categoryToEdit.id, data: payload });
+      updateMut.mutate({ envelopeId: categoryToEdit.id, data: payload });
     } else {
       createMut.mutate({ ...payload, bankAccountId });
     }
@@ -239,9 +247,13 @@ export function EnvelopeFormModal({
   const handleSubmit = () => {
     if (!validateForm()) return;
     if (isEdit && !isDraftMode && isScheduleRuleChanged) {
+      const wasRecurring = (categoryToEdit?.fundingMode ?? (categoryToEdit?.envelopeType === "GOAL" ? "TARGET_BALANCE" : "RECURRING")) === "RECURRING";
+      const isConvertingToFlexible = wasRecurring && fundingMode === "TARGET_BALANCE";
       showMobileConfirm({
         title: t("modals.updateSchedule.confirmTitleExpense"),
-        message: t("modals.updateSchedule.confirmDescRuleChange", { startDate: goalStartDate || "" }),
+        message: isConvertingToFlexible
+          ? t("modals.updateSchedule.confirmDescConvertToFlexible")
+          : t("modals.updateSchedule.confirmDescRuleChange", { startDate: goalStartDate || "" }),
         confirmText: t("modals.updateSchedule.confirmCta"),
         isDestructive: false,
         onConfirm: executeSubmit,
@@ -254,9 +266,9 @@ export function EnvelopeFormModal({
   const handleArchive = () => {
     if (!categoryToEdit) return;
     const archiveLabel =
-      initialMode === "BILL_SCHEDULE" ? t("categories.archiveBillSchedule") : t("categories.archivePool");
+      initialMode === "BILL_SCHEDULE" ? t("categories.archiveBillSchedule") : t("categories.archiveEnvelope");
     const confirmMessage = isLastPrivateEnvelope
-      ? t("categories.archiveLastPrivatePoolConfirm")
+      ? t("categories.archiveLastPrivatePoolConfirm", { name: categoryToEdit.name })
       : t("categories.archivePoolConfirm", { name: categoryToEdit.name });
 
     showMobileConfirm({
@@ -265,7 +277,7 @@ export function EnvelopeFormModal({
       confirmText: archiveLabel,
       isDestructive: true,
       onConfirm: () => {
-        archiveMut.mutate({ poolId: categoryToEdit.id });
+        archiveMut.mutate({ envelopeId: categoryToEdit.id });
       },
     });
   };
@@ -300,14 +312,14 @@ export function EnvelopeFormModal({
           ? (categoryToEdit?.name || "")
           : initialMode === "BILL_SCHEDULE"
             ? t("incomeBillsTabs.addBillSchedule")
-            : t("categories.createPool")
+            : t("categories.createEnvelope")
       }
       footer={
         <EnvelopeFormFooter
           isEdit={isEdit}
           showArchive={isEdit && !isDraftMode && type !== "EVERYDAY"}
           archiveLabel={
-            initialMode === "BILL_SCHEDULE" ? t("categories.archiveBillSchedule") : t("categories.archivePool")
+            initialMode === "BILL_SCHEDULE" ? t("categories.archiveBillSchedule") : t("categories.archiveEnvelope")
           }
           isSurplusTarget={Boolean(categoryToEdit?.isSurplusTarget)}
           isPending={isPending}
@@ -318,6 +330,7 @@ export function EnvelopeFormModal({
         />
       }
     >
+      <FormErrorBanner message={errorMsg} />
       <EnvelopeFormFields
         name={name}
         setName={setName}
@@ -364,5 +377,3 @@ export function EnvelopeFormModal({
     </MobileModalDialog>
   );
 }
-
-export const CategoryFormModal = EnvelopeFormModal;

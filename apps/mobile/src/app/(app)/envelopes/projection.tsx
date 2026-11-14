@@ -25,7 +25,7 @@ export default function PoolProjectionScreen() {
   const [selectedHorizon, setSelectedHorizon] = useState<number>(1);
   const [refreshing, setRefreshing] = useState(false);
 
-  const poolsQuery = trpc.listPools.useQuery(undefined, {
+  const poolsQuery = trpc.listEnvelopes.useQuery(undefined, {
     enabled: !!session?.user,
   });
   const bankAccountsQuery = trpc.listBankAccounts.useQuery(undefined, {

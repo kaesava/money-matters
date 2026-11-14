@@ -17,6 +17,9 @@ pnpm app:set-flag --flag=customAllocationRules --value=true
 * Ensure parity between mobile and web - UI & functionality. So, when you write address a new/change/fix for the Web app, also ensure that the mobile app is in parity and address it there too. When you write address a new/change/fix for the Mobile app, also ensure that the web app is in parity and address it there too. Do this even if not explicitly asked, unless I explicitly state the app (Mobile: or Web:). Re-use code as much as possible while keeping native UI experiences.
 * As you build code, you decide whether you want to run pnpm typecheck/lint/test/test coverage/i8ln-check/install/ and any other scripts/checks as you complete changes. However, at the end, ensure pnpm validate:prod runs successfully. Once successful, commit code, but ask me before pushing the code.
 
+
+
+
 Manual Verification
 
 Feature flags - Ask Penny, File Notes, Private

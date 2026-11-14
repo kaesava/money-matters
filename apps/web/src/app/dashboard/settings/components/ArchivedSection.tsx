@@ -35,7 +35,7 @@ export function ArchivedSection() {
       setItemToRestore(null);
       await Promise.all([
         archivedQuery.refetch(),
-        trpcUtils.listPools.invalidate(),
+        trpcUtils.listEnvelopes.invalidate(),
         trpcUtils.listIncomeSources.invalidate(),
         trpcUtils.listBankAccounts.invalidate(),
         trpcUtils.listBankAccountsWithExpected.invalidate(),

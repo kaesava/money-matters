@@ -1,6 +1,14 @@
 import { resolveAiConfig, DEFAULT_AI_MODEL_ID } from "@money-matters/config";
+import { logger } from "@money-matters/core";
 import { AssistantClassifiedIntentSchema, type AssistantClassifiedIntent } from "@money-matters/types";
 import type { LlmProviderPort } from "../ports/index.js";
+
+function redactPromptPii(text: string): string {
+  return text
+    .replace(/\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b/g, "[EMAIL]")
+    .replace(/\b[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\b/gi, "[ID]")
+    .replace(/\b(?:\d[ -]*?){8,19}\b/g, "[NUMBER]");
+}
 
 const SYSTEM_PROMPT = `You are Penny, an AI intent classifier for Money Matters.
 Your ONLY role is to classify the user's natural language input into one of these intents:
@@ -32,11 +40,12 @@ export class CloudflareGatewayLlmProvider implements LlmProviderPort {
   async classifyIntent(userText: string): Promise<AssistantClassifiedIntent | null> {
     const config = this.getConfig();
     if (!config.CF_AI_API_TOKEN) {
-      console.warn("[Penny AI Gateway] Skipped: CF_AI_API_TOKEN is missing.");
+      logger.warn("[Penny AI Gateway] Skipped: CF_AI_API_TOKEN is missing.");
       return null;
     }
 
     const endpoint = `https://gateway.ai.cloudflare.com/v1/${config.CF_ACCOUNT_ID}/${config.CF_AI_GATEWAY_ID}/workers-ai/v1/chat/completions`;
+    const sanitizedText = redactPromptPii(userText).slice(0, 300);
 
     try {
       const controller = new AbortController();
@@ -53,7 +62,7 @@ export class CloudflareGatewayLlmProvider implements LlmProviderPort {
           model: config.AI_MODEL_ID || DEFAULT_AI_MODEL_ID,
           messages: [
             { role: "system", content: SYSTEM_PROMPT },
-            { role: "user", content: userText.slice(0, 300) },
+            { role: "user", content: sanitizedText },
           ],
           max_tokens: 150,
           temperature: 0.1,
@@ -65,7 +74,7 @@ export class CloudflareGatewayLlmProvider implements LlmProviderPort {
 
       if (!res.ok) {
         const errorText = await res.text().catch(() => "");
-        console.warn(`[Penny AI Gateway] HTTP ${res.status}:`, errorText);
+        logger.warn("[Penny AI Gateway] Non-OK HTTP response", { status: res.status, errorText });
         return null;
       }
 
@@ -81,7 +90,7 @@ export class CloudflareGatewayLlmProvider implements LlmProviderPort {
       const parsed = JSON.parse(cleanJson);
       return AssistantClassifiedIntentSchema.parse(parsed);
     } catch (err) {
-      console.warn("[Penny AI Gateway] Intent classification failed:", err);
+      logger.warn("[Penny AI Gateway] Intent classification failed", { error: err });
       return null;
     }
   }

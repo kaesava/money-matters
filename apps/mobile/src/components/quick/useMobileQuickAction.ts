@@ -60,7 +60,7 @@ export function useMobileQuickAction(
     categoryId: string;
   } | null>(null);
 
-  const poolsQuery = trpc.listPools.useQuery(undefined, { enabled: visible });
+  const poolsQuery = trpc.listEnvelopes.useQuery(undefined, { enabled: visible });
   const bankAccountsQuery = trpc.listBankAccountsWithExpected.useQuery(undefined, { enabled: visible });
   const transactionsQuery = trpc.listTransactions.useQuery({ limit: 100 }, { enabled: visible });
 

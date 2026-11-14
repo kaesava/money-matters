@@ -122,7 +122,6 @@ const D = DESIGN_TOKENS;
 const styles = StyleSheet.create({
   overlay: {
     flex: 1,
-    backgroundColor: 'rgba(15, 23, 42, 0.45)',
     justifyContent: 'flex-end',
   },
   backdrop: {

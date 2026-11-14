@@ -130,14 +130,28 @@ export function useIncomeExpenseMutations({
           });
           toast.success(t('toasts.saved'));
         } else if (isEdit && sourceToEdit) {
+          const freq = params.frequency || 'MONTHLY';
+          const numVal = parseFloat(formattedAmount);
+          const intVal = Math.max(1, params.interval || 1);
+          const monthlyVal =
+            freq === 'WEEKLY'
+              ? (numVal * (52 / intVal)) / 12
+              : freq === 'FORTNIGHTLY'
+                ? (numVal * (26 / intVal)) / 12
+                : freq === 'QUARTERLY'
+                  ? (numVal * (4 / intVal)) / 12
+                  : freq === 'ANNUALLY'
+                    ? numVal / (12 * intVal)
+                    : numVal / intVal;
           await updateEnvelopeMut.mutateAsync({
             envelopeId: sourceToEdit.id,
             data: {
               name: params.name.trim(),
-              targetAmount: formattedAmount,
-              budgetFrequency: params.frequency || 'MONTHLY',
+              enteredAmount: formattedAmount,
+              monthlyAmount: monthlyVal.toFixed(2),
+              budgetFrequency: freq,
               startDate: params.startDate || undefined,
-              endDate: params.endDate || undefined,
+              endDate: params.endDate || null,
             },
           });
           toast.success(t('toasts.saved'));

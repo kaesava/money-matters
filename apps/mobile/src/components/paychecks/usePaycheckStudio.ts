@@ -15,7 +15,7 @@ export function usePaycheckStudio(id: string | undefined, returnTo?: string) {
   const utils = trpc.useUtils();
   const { data: session } = authClient.useSession();
 
-  const poolsQuery = trpc.listPools.useQuery(undefined, { enabled: !!session?.user });
+  const poolsQuery = trpc.listEnvelopes.useQuery(undefined, { enabled: !!session?.user });
   const pools = poolsQuery.data ?? [];
   const bankAccountsQuery = trpc.listBankAccounts.useQuery(undefined, { enabled: !!session?.user });
   const bankAccounts = bankAccountsQuery.data ?? [];

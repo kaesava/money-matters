@@ -15,7 +15,7 @@ export function useBankAccountsList() {
   const isTrialExpired = subStatus?.isTrialExpired ?? false;
 
   const bankAccountsQuery = trpc.getBankAccountsWithMappings.useQuery();
-  const poolsQuery = trpc.listPools.useQuery();
+  const poolsQuery = trpc.listEnvelopes.useQuery();
   const utils = trpc.useUtils();
 
   const reconcileMut = trpc.reconcileBankBalance.useMutation();
@@ -263,7 +263,7 @@ export function useBankAccountsList() {
       note: reason?.trim() || undefined,
     });
 
-    utils.listPools.invalidate();
+    utils.listEnvelopes.invalidate();
     await bankAccountsQuery.refetch();
     setReconcileState(null);
     closeModal();

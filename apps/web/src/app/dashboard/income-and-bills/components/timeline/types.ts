@@ -1,4 +1,14 @@
-import { EventItem } from "../BurstModal";
+export interface EventItem {
+  id: string;
+  expectedDate: string;
+  expectedAmount: string;
+  actualAmount?: string | null;
+  status: string;
+  incomeSourceId?: string | null;
+  expenseSourceId?: string | null;
+  name?: string | null;
+  note?: string | null;
+}
 
 export interface TimelineEventItem extends EventItem {
   eventKind?: "INCOME" | "EXPENSE" | "TRANSFER";

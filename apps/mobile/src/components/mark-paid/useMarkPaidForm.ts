@@ -28,9 +28,9 @@ export function useMarkPaidForm(
   const [submitting, setSubmitting] = useState(false);
   const [generalError, setGeneralError] = useState('');
 
-  const { data: pools = [] } = trpc.listPools.useQuery(undefined, { enabled: visible });
+  const { data: pools = [] } = trpc.listEnvelopes.useQuery(undefined, { enabled: visible });
   const { data: expenseEvents = [] } = trpc.listExpenseEvents.useQuery(undefined, { enabled: visible });
-  const overrideMut = trpc.overrideEvent.useMutation();
+  const markExpensePaidMut = trpc.markExpensePaid.useMutation();
   const moveMoneyMut = trpc.moveMoney.useMutation();
   const recordExpenseMut = trpc.recordExpense.useMutation();
 
@@ -62,11 +62,13 @@ export function useMarkPaidForm(
   const hasShortfall = shortfallAmount > 0.001;
 
   const validFundingPools = useMemo(() => {
-    return pools.filter((p) => {
-      if (p.id === targetPoolId) return false;
-      const b = typeof p.currentBalance === 'number' ? p.currentBalance : parseFloat(String(p.currentBalance) || '0');
-      return b > 0;
-    });
+    return pools
+      .filter((p) => {
+        if (p.id === targetPoolId) return false;
+        const b = typeof p.currentBalance === 'number' ? p.currentBalance : parseFloat(String(p.currentBalance) || '0');
+        return b > 0;
+      })
+      .sort((a, b) => (a.isSurplusTarget ? -1 : b.isSurplusTarget ? 1 : 0));
   }, [pools, targetPoolId]);
 
   const surplusPool = useMemo(() => validFundingPools.find((p) => p.isSurplusTarget) || validFundingPools[0], [validFundingPools]);
@@ -143,18 +145,27 @@ export function useMarkPaidForm(
         onClose();
         return;
       }
-      if (hasShortfall && currentPool) {
-        const transfers = Object.entries(transferAmounts)
-          .map(([pId, amt]) => ({
-            sourceEnvelopeId: pId,
-            destinationEnvelopeId: currentPool.id,
-            amount: parseFloat(amt || '0').toFixed(2),
-            note: 'Shortfall Top Up',
-          }))
-          .filter((t) => parseFloat(t.amount) > 0);
-        if (transfers.length > 0) await Promise.all(transfers.map((t) => moveMoneyMut.mutateAsync(t)));
-      }
+      const shortfallTransfers = hasShortfall
+        ? Object.entries(transferAmounts)
+            .map(([pId, amt]) => ({
+              sourceEnvelopeId: pId,
+              amount: parseFloat(amt || '0').toFixed(2),
+            }))
+            .filter((t) => parseFloat(t.amount) > 0)
+        : [];
       if (event.id === 'temp-quick' && currentPool) {
+        if (shortfallTransfers.length > 0) {
+          await Promise.all(
+            shortfallTransfers.map((t) =>
+              moveMoneyMut.mutateAsync({
+                sourceEnvelopeId: t.sourceEnvelopeId,
+                destinationEnvelopeId: currentPool.id,
+                amount: t.amount,
+                note: 'Shortfall Top Up',
+              })
+            )
+          );
+        }
         await recordExpenseMut.mutateAsync({
           envelopeId: currentPool.id,
           amount: numAmount.toFixed(2),
@@ -162,16 +173,15 @@ export function useMarkPaidForm(
           note: note.trim() || event.name,
         });
       } else {
-        await overrideMut.mutateAsync({
+        await markExpensePaidMut.mutateAsync({
           eventId: event.id,
-          eventType: 'EXPENSE',
-          status: 'CONFIRMED',
-          actualAmount: numAmount.toFixed(2),
-          actualDate,
+          amount: numAmount.toFixed(2),
+          date: actualDate,
           note: note.trim() || event.name,
+          shortfallTransfers: shortfallTransfers.length > 0 ? shortfallTransfers : undefined,
         });
       }
-      utils.listPools.invalidate();
+      utils.listEnvelopes.invalidate();
       utils.listExpenseEvents.invalidate();
       utils.listTransactions.invalidate();
       utils.getMonthlySummary.invalidate();

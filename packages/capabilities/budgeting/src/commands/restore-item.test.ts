@@ -20,6 +20,7 @@ describe("restoreItemCommand", () => {
     };
 
     const mockDb = {
+      transaction: vi.fn().mockImplementation(async (cb: (tx: unknown) => Promise<unknown>) => cb(mockDb)),
       select: vi.fn().mockImplementation((fields?: any) => ({
         from: vi.fn().mockImplementation((table: any) => ({
           where: vi.fn().mockImplementation(() => {
@@ -50,18 +51,19 @@ describe("restoreItemCommand", () => {
     };
 
     const mockDb = {
+      transaction: vi.fn().mockImplementation(async (cb: (tx: unknown) => Promise<unknown>) => cb(mockDb)),
       select: vi.fn().mockImplementation((fields?: any) => ({
         from: vi.fn().mockImplementation((table: any) => ({
           leftJoin: vi.fn().mockReturnValue({
             where: vi.fn().mockReturnValue(chainable([
-              { isPrivate: false, bankAccountUserId: null },
+              { isPrivate: false, bankAccountUserId: null, archivedAt: new Date() },
             ])),
           }),
           where: vi.fn().mockImplementation(() => {
             if (fields?.timezone) {
               return chainable([{ timezone: "Australia/Sydney" }]);
             }
-            return chainable([{ isPrivate: false, bankAccountUserId: null }]);
+            return chainable([{ isPrivate: false, bankAccountUserId: null, archivedAt: new Date() }]);
           }),
         })),
       })),
@@ -82,5 +84,33 @@ describe("restoreItemCommand", () => {
     const res = await restoreItemCommand("env-1", "ENVELOPE", tenantId, appId, userId, mockDb);
     expect(res).toBeDefined();
     expect(updatedTables.length).toBe(1);
+  });
+
+  it("rejects restoring an already-active envelope (archivedAt IS NOT NULL guard)", async () => {
+    const chainable = (data: unknown) => {
+      const p = Promise.resolve(data);
+      const chain: any = {
+        limit: vi.fn().mockReturnValue(p),
+        then: (cb: any) => p.then(cb),
+        catch: (cb: any) => p.catch(cb),
+      };
+      return chain;
+    };
+
+    const mockDb = {
+      transaction: vi.fn().mockImplementation(async (cb: (tx: unknown) => Promise<unknown>) => cb(mockDb)),
+      select: vi.fn().mockImplementation(() => ({
+        from: vi.fn().mockImplementation(() => ({
+          leftJoin: vi.fn().mockReturnValue({
+            where: vi.fn().mockReturnValue(chainable([])),
+          }),
+          where: vi.fn().mockReturnValue(chainable([])),
+        })),
+      })),
+    } as unknown as DbOrTx;
+
+    await expect(
+      restoreItemCommand("env-active", "ENVELOPE", tenantId, appId, userId, mockDb)
+    ).rejects.toThrow("Envelope not found");
   });
 });

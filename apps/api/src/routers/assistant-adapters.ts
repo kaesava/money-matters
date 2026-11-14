@@ -71,7 +71,7 @@ export function createAssistantIntentHandler(db: DbOrTx, appId: string): IntentH
         .where(
           and(
             eq(envelopes.tenantId, ctx.tenantId),
-            eq(envelopes.envelopeType, "EVERYDAY"),
+            eq(envelopes.appId, appId),
             sql`${envelopes.archivedAt} IS NULL`
           )
         );
@@ -84,15 +84,19 @@ export function createAssistantIntentHandler(db: DbOrTx, appId: string): IntentH
         })
         .map((r) => r.envelope);
 
-      const everyday = rows[0];
+      const queryLower = poolName.trim().toLowerCase();
+      const matched =
+        rows.find((e) => e.name.toLowerCase().includes(queryLower)) ||
+        (queryLower === "everyday" ? rows.find((e) => e.envelopeType === "EVERYDAY") : undefined);
+
       const balancesMap = await getEnvelopeBalancesMap(ctx.tenantId, appId, db);
-      const balance = everyday ? (balancesMap[everyday.id] ?? 0) : 0;
+      const balance = matched ? (balancesMap[matched.id] ?? 0) : 0;
 
       return {
         type: "answer",
         templateKey: "assistant.answers.poolBalance",
         templateValues: {
-          envelopeName: poolName,
+          envelopeName: matched?.name || poolName,
           balance,
         },
       };
@@ -151,7 +155,13 @@ export function createAssistantIntentHandler(db: DbOrTx, appId: string): IntentH
 
     async handleBillsDue(ctx: IntentContext, daysAhead = 7): Promise<AssistantResult> {
       const coverage = await listBillCoverageQuery(ctx.tenantId, appId, db, ctx.userId);
-      const dueCount = coverage.items.length;
+      const now = new Date();
+      const todayStr = now.toISOString().slice(0, 10);
+      const horizon = new Date(now.getTime() + Math.max(0, daysAhead) * 86400000);
+      const horizonStr = horizon.toISOString().slice(0, 10);
+      const dueCount = coverage.items.filter(
+        (item) => item.nextDueDate && item.nextDueDate >= todayStr && item.nextDueDate <= horizonStr
+      ).length;
       return {
         type: "answer",
         templateKey: "assistant.answers.billsDue",

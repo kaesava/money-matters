@@ -4,7 +4,7 @@ import React, { useState, useMemo, useRef, useEffect, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { trpc } from "../../../lib/trpc";
 import { t } from "@money-matters/i18n";
-import { Spinner, SearchInput, Tabs, InfoTooltip } from "@money-matters/ui/web";
+import { Spinner, SearchInput, Tabs, InfoTooltip, useToast } from "@money-matters/ui/web";
 import { MoreVertical, ArrowDownCircle, ArrowUpCircle, ArrowRightLeft } from "lucide-react";
 import { IncomeFormModal, IncomeSourceToEdit } from "../../../components/web/IncomeFormModal";
 import { QuickExpenseDrawer } from "../../../components/web/QuickExpenseDrawer";
@@ -13,6 +13,7 @@ import { IncomeSchedulesCard } from "./components/IncomeSchedulesCard";
 import { BillSchedulesCard } from "./components/BillSchedulesCard";
 import { TimelineTabWrapper } from "./components/TimelineTabWrapper";
 import { MatrixPlanTab } from "./components/MatrixPlanTab";
+import { MarkPaidModal } from "./components/MarkPaidModal";
 
 const VALID_TABS = ["EVENTS", "MATRIX", "STREAMS"] as const;
 type PlanTab = typeof VALID_TABS[number];
@@ -48,6 +49,15 @@ function IncomeAndBillsContent() {
   } | null>(null);
 
   const [setupSearchQuery, setSetupSearchQuery] = useState("");
+  const toast = useToast();
+  const markExpensePaidMut = trpc.markExpensePaid.useMutation();
+  const [matrixMarkPaidTarget, setMatrixMarkPaidTarget] = useState<{
+    eventId: string;
+    name: string;
+    amount: string;
+    date: string;
+    poolId?: string;
+  } | null>(null);
   const [setupScopeFilter, setSetupScopeFilter] = useState<"ALL" | "SHARED" | "PRIVATE">("ALL");
   const [overflowMenuOpen, setOverflowMenuOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -85,7 +95,7 @@ function IncomeAndBillsContent() {
   };
 
   const utils = trpc.useUtils();
-  const poolsQuery = trpc.listPools.useQuery();
+  const poolsQuery = trpc.listEnvelopes.useQuery();
   const bankAccountsQuery = trpc.listBankAccounts.useQuery();
   const incomeSourcesQuery = trpc.listIncomeSources.useQuery();
   const billSchedulesQuery = trpc.listBillSchedules.useQuery();
@@ -402,6 +412,53 @@ function IncomeAndBillsContent() {
           categories={matrixCategories}
           incomeEvents={matrixIncomeEvents}
           expenseEvents={matrixExpenseEvents}
+          onMarkPaid={(eventId, amount, date) => {
+            const evt = expenseEvents.find((e) => e.id === eventId);
+            setMatrixMarkPaidTarget({
+              eventId,
+              name: evt?.name || "Expense",
+              amount,
+              date,
+              poolId: evt?.envelopeId ?? undefined,
+            });
+          }}
+        />
+      )}
+
+      {matrixMarkPaidTarget && (
+        <MarkPaidModal
+          isOpen={Boolean(matrixMarkPaidTarget)}
+          onClose={() => setMatrixMarkPaidTarget(null)}
+          billName={matrixMarkPaidTarget.name}
+          poolId={matrixMarkPaidTarget.poolId}
+          initialAmount={matrixMarkPaidTarget.amount}
+          initialDate={matrixMarkPaidTarget.date}
+          availableCategories={pools.map((p) => ({
+            id: p.id,
+            name: p.name,
+            poolType: p.envelopeType,
+            currentBalance: parseFloat(String(p.currentBalance || "0")),
+            isSurplusTarget: p.isSurplusTarget,
+          }))}
+          onConfirmMarkPaid={async ({ amount, date, transfers }) => {
+            const shortfallTransfers = (transfers || [])
+              .filter((tr) => parseFloat(tr.amount || "0") > 0)
+              .map((tr) => ({ sourceEnvelopeId: tr.poolId, amount: parseFloat(tr.amount).toFixed(2) }));
+            await markExpensePaidMut.mutateAsync({
+              eventId: matrixMarkPaidTarget.eventId,
+              amount: amount.toFixed(2),
+              date,
+              note: `Paid on ${date}`,
+              shortfallTransfers: shortfallTransfers.length > 0 ? shortfallTransfers : undefined,
+            });
+            toast.success(t("toasts.expenseMarkedPaid"));
+            await Promise.all([
+              utils.listExpenseEvents.invalidate(),
+              utils.listEnvelopes.invalidate(),
+              utils.listTransactions.invalidate(),
+            ]);
+            setMatrixMarkPaidTarget(null);
+          }}
         />
       )}
 
@@ -421,7 +478,7 @@ function IncomeAndBillsContent() {
           envelopeToEdit={envelopeToEdit}
           onSuccess={() => {
             utils.listBillSchedules.invalidate();
-            utils.listPools.invalidate();
+            utils.listEnvelopes.invalidate();
             utils.listExpenseEvents.invalidate();
           }}
         />

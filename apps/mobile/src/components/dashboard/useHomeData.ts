@@ -44,7 +44,7 @@ export function useHomeData(token?: string) {
 
   const summaryQuery = trpc.getMonthlySummary.useQuery({ year: todayYear, month: todayMonth }, { enabled: !!session?.user });
   const homeSummaryQuery = trpc.getHomeSummary.useQuery(undefined, { enabled: !!session?.user });
-  const poolsQuery = trpc.listPools.useQuery(undefined, { enabled: !!session?.user });
+  const poolsQuery = trpc.listEnvelopes.useQuery(undefined, { enabled: !!session?.user });
 
   useEffect(() => {
     if (homeSummaryQuery.data && activeTenantId && userId) {

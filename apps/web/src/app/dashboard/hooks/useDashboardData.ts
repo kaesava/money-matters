@@ -18,7 +18,7 @@ export function useDashboardData() {
 
   const summaryQuery = trpc.getMonthlySummary.useQuery({ year: todayYear, month: todayMonth });
   const homeSummaryQuery = trpc.getHomeSummary.useQuery();
-  const poolsQuery = trpc.listPools.useQuery();
+  const poolsQuery = trpc.listEnvelopes.useQuery();
   const bankAccountsQuery = trpc.listBankAccountsWithExpected.useQuery();
   const incomeEventsQuery = trpc.listIncomeEvents.useQuery();
   const expenseEventsQuery = trpc.listExpenseEvents.useQuery();

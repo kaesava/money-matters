@@ -46,8 +46,8 @@ export function SidebarContent({
   const effectiveAvatar = avatarUrl || sessionUser?.image || null;
   const tour = useProductTour();
   const currentTourStep =
-    tour.isTourActive && tour.currentStep >= 0 && tour.currentStep < TOUR_STEPS.length
-      ? TOUR_STEPS[tour.currentStep]
+    tour.isTourActive && tour.currentStep >= 1 && tour.currentStep <= TOUR_STEPS.length
+      ? TOUR_STEPS[tour.currentStep - 1]
       : null;
 
   return (
@@ -123,6 +123,7 @@ export function SidebarContent({
           {onOpenAsk && (
             <button
               type="button"
+              data-tour="ask-penny"
               onClick={() => {
                 setMobileMenuOpen(false);
                 onOpenAsk();

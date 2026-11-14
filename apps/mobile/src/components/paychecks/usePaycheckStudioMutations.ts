@@ -183,7 +183,7 @@ export function usePaycheckStudioMutations({
           toast.success(t('paydayDrawer.confirmSuccess'));
           await Promise.all([
             utils.listIncomeEvents.invalidate(),
-            utils.listPools.invalidate(),
+            utils.listEnvelopes.invalidate(),
             utils.listTransactions.invalidate(),
             utils.getMonthlySummary.invalidate(),
           ]);

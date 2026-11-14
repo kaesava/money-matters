@@ -110,8 +110,6 @@ export function useSetupWizardState() {
   });
 
   const incomeState = useSetupIncomeState({
-    isRerun,
-    prepopulationIncomeSources: prepopulation.incomeSources,
     onProceedToNextStep: () => setStep(2),
   });
 
@@ -247,7 +245,6 @@ export function useSetupWizardState() {
     setShowDiscardModal,
     goals,
     setGoals: goalsState.setGoals,
-    dirtyGoalIds: goalsState.dirtyGoalIds,
     handleUpdateGoal: goalsState.handleUpdateGoalField,
     handleRemoveGoal: goalsState.handleRemoveGoal,
     handleNextFromGoals: goalsState.handleNextFromGoals,
@@ -274,9 +271,6 @@ export function useSetupWizardState() {
     categoryFrequencies,
     setCategoryFrequencies,
     showIcons: userPrefQuery.data?.showIcons ?? true,
-    showScheduleRuleWarning: incomeState.showScheduleRuleWarning,
-    confirmScheduleRuleWarning: incomeState.confirmScheduleRuleWarning,
-    cancelScheduleRuleWarning: incomeState.cancelScheduleRuleWarning,
     ...lifestyle,
     ...calculations,
     isAud,

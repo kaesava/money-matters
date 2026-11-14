@@ -45,8 +45,6 @@ export interface EnvelopeFormFieldsProps {
   isTargetDateInPast?: boolean;
 }
 
-export type CategoryFormFieldsProps = EnvelopeFormFieldsProps;
-
 export const EnvelopeFormFields: React.FC<EnvelopeFormFieldsProps> = ({
   name,
   setName,
@@ -283,5 +281,3 @@ const styles = StyleSheet.create({
     paddingLeft: 30,
   },
 });
-
-export const CategoryFormFields = EnvelopeFormFields;

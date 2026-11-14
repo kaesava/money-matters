@@ -29,7 +29,7 @@ export function useSetupWizardPrepopulation({
   const tz = getMobileLocaleConfig().timezone;
   const incomeSourcesQuery = trpc.listIncomeSources.useQuery(undefined, { enabled });
   const bankAccountsQuery = trpc.getBankAccountsWithMappings.useQuery(undefined, { enabled });
-  const poolsQuery = trpc.listPools.useQuery(undefined, { enabled });
+  const poolsQuery = trpc.listEnvelopes.useQuery(undefined, { enabled });
 
   // Pre-populate incomes if in rerun mode (or if existing income sources exist)
   useEffect(() => {
@@ -150,7 +150,7 @@ export function useSetupWizardPrepopulation({
           startDate: c.startDate,
           endDate: c.endDate,
           rrule: c.rrule,
-          generateEvents: c.hasScheduledEvents ?? (c.envelopeType === 'BILL' && c.fundingMode === 'RECURRING'),
+          generateEvents: (c as { generateEvents?: boolean }).generateEvents ?? c.hasScheduledEvents ?? (c.envelopeType === 'BILL' && c.fundingMode === 'RECURRING'),
           icon: c.envelopeType === 'EVERYDAY' ? '🛒' : '📌',
         };
       })

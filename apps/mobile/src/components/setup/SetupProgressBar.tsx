@@ -13,6 +13,7 @@ interface SetupProgressBarProps {
 
 export function SetupProgressBar({ currentStep, totalSteps, isRerun }: SetupProgressBarProps) {
   const router = useRouter();
+  const tenantStatusQuery = trpc.getTenantStatus.useQuery();
   const cancelSetupMut = trpc.cancelSetup.useMutation();
   const utils = trpc.useUtils();
 
@@ -35,12 +36,14 @@ export function SetupProgressBar({ currentStep, totalSteps, isRerun }: SetupProg
         confirmText: t('setup.skipConfirmButton'),
         onConfirm: async () => {
           try {
-            await cancelSetupMut.mutateAsync();
-            utils.getTenantStatus.setData(undefined, (old) =>
-              old ? { ...old, setupCompleted: true, setupStatus: 'CANCELLED' } : undefined
-            );
-            await utils.getTenantStatus.refetch();
-            await utils.invalidate();
+            if (tenantStatusQuery.data?.hasTenant) {
+              await cancelSetupMut.mutateAsync();
+              utils.getTenantStatus.setData(undefined, (old) =>
+                old ? { ...old, setupCompleted: true, setupStatus: 'CANCELLED' } : undefined
+              );
+              await utils.getTenantStatus.refetch();
+              await utils.invalidate();
+            }
           } catch {
             // Non-blocking cancel setup fallback
           }

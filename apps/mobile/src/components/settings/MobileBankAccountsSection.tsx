@@ -73,7 +73,7 @@ export function MobileBankAccountsSection() {
   }, [searchQuery, selectedPoolId, selectedAccountId, sortField, sortOrder, pageSize]);
 
   const bankAccountsQuery = trpc.listBankAccountsWithExpected.useQuery();
-  const poolsQuery = trpc.listPools.useQuery();
+  const poolsQuery = trpc.listEnvelopes.useQuery();
   const accounts = bankAccountsQuery.data || [];
   const allPools = poolsQuery.data || [];
 

@@ -150,7 +150,7 @@ export function MobileReconciliationModal({
 
       toast.success(t('toasts.saved'));
       utils.listBankAccountsWithExpected.invalidate();
-      utils.listPools.invalidate();
+      utils.listEnvelopes.invalidate();
       utils.listTransactions.invalidate();
       onSuccess?.();
       onClose();

@@ -53,7 +53,7 @@ export function useMobileEnvelopeFormState({
       setFundingMode(resolvedFundingMode);
       setBankAccountId(categoryToEdit.bankAccountId ?? "");
       setSafetyBufferFloor(categoryToEdit.safetyBufferFloor ?? "");
-      setTargetAmount((categoryToEdit.enteredAmount || categoryToEdit.targetAmount) ?? "");
+      setTargetAmount((categoryToEdit.enteredAmount || categoryToEdit.targetAmount || categoryToEdit.monthlyAmount) ?? "");
       const rawDate = categoryToEdit.endDate || categoryToEdit.targetDate || "";
       setTargetDate(rawDate ? formatIsoDate(rawDate) : "");
       const parsedRecurrence = parseRecurrenceRule(categoryToEdit.rrule, categoryToEdit.budgetFrequency);
@@ -65,7 +65,7 @@ export function useMobileEnvelopeFormState({
       const initialPriority = categoryToEdit.isPriority ?? false;
       setIsPriority(initialPriority);
       const isInitialScheduled = resolvedType === "BILL" && resolvedFundingMode === "RECURRING";
-      setGenerateEvents(categoryToEdit.hasScheduledEvents ?? isInitialScheduled);
+      setGenerateEvents(categoryToEdit.generateEvents ?? categoryToEdit.hasScheduledEvents ?? isInitialScheduled);
     } else {
       setName("");
       const resolvedDefault = defaultType === "GOAL" ? "GOAL" : defaultType === "EVERYDAY" ? "EVERYDAY" : "BILL";
@@ -165,7 +165,7 @@ export function useMobileEnvelopeFormState({
     const initialInterval = parsedInitialRecurrence.interval;
     const rawStartDate = categoryToEdit.startDate || "";
     const initialStartDate = rawStartDate ? formatIsoDate(rawStartDate) : "";
-    const initialGenerate = categoryToEdit.hasScheduledEvents ?? (initialType === "BILL" && initialFundingMode === "RECURRING");
+    const initialGenerate = categoryToEdit.generateEvents ?? categoryToEdit.hasScheduledEvents ?? (initialType === "BILL" && initialFundingMode === "RECURRING");
 
     if (name.trim() !== initialName) return true;
     if (isSurplusTarget !== initialSurplus) return true;
@@ -232,7 +232,7 @@ export function useMobileEnvelopeFormState({
     if (!isEdit || !categoryToEdit) return true;
     const rawType = categoryToEdit.envelopeType || categoryToEdit.poolType || categoryToEdit.type || "BILL";
     const isInitialScheduled = rawType === "BILL" && categoryToEdit.fundingMode === "RECURRING";
-    return categoryToEdit.hasScheduledEvents ?? isInitialScheduled;
+    return categoryToEdit.generateEvents ?? categoryToEdit.hasScheduledEvents ?? isInitialScheduled;
   }, [isEdit, categoryToEdit]);
 
   const isScheduleRuleChanged = useMemo(() => {
@@ -249,7 +249,7 @@ export function useMobileEnvelopeFormState({
     const initialStartDate = rawStartDate ? formatIsoDate(rawStartDate) : "";
     const rawDate = categoryToEdit.endDate || categoryToEdit.targetDate || "";
     const initialDate = rawDate ? formatIsoDate(rawDate) : "";
-    const initialGenerate = categoryToEdit.hasScheduledEvents ?? (initialType === "BILL" && initialFundingMode === "RECURRING");
+    const initialGenerate = categoryToEdit.generateEvents ?? categoryToEdit.hasScheduledEvents ?? (initialType === "BILL" && initialFundingMode === "RECURRING");
 
     const isCurrentScheduled = (type === "BILL") && fundingMode === "RECURRING";
     const wasScheduled = initialFundingMode === "RECURRING";
@@ -295,7 +295,7 @@ export function useMobileEnvelopeFormState({
         ? calculatedMonthly
         : undefined,
       enteredAmount: enteredAmountVal,
-      endDate: (isTargetGoal || isScheduledBill || isOngoingGoal) ? (targetDate || undefined) : undefined,
+      endDate: (isTargetGoal || isScheduledBill || isOngoingGoal) ? (targetDate || null) : null,
       budgetFrequency: isScheduledBill || isOngoingGoal ? frequency : isFlexibleBill ? ("MONTHLY" as const) : undefined,
       startDate: isScheduledBill || isOngoingGoal ? goalStartDate || undefined : undefined,
       rrule: isScheduledBill || isOngoingGoal ? rruleString || undefined : undefined,

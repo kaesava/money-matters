@@ -23,9 +23,8 @@ export default function DashboardPage() {
   const toast = useToast();
   const utils = trpc.useUtils();
   const { fmt } = useLocale();
-  const moveMoneyMut = trpc.moveMoney.useMutation();
 
-  const poolsQuery = trpc.listPools.useQuery();
+  const poolsQuery = trpc.listEnvelopes.useQuery();
   const pools = poolsQuery.data ?? [];
 
   const {
@@ -90,12 +89,18 @@ export default function DashboardPage() {
     todayStr,
   });
 
-  const handleMarkPaidItem = async (item: WebAttentionItem, amount: number, date: string) => {
+  const handleMarkPaidItem = async (
+    item: WebAttentionItem,
+    amount: number,
+    date: string,
+    shortfallTransfers?: Array<{ sourceEnvelopeId: string; amount: string }>
+  ) => {
     await markExpensePaidMutation.mutateAsync({
       eventId: item.id,
       amount: amount.toFixed(2),
       date,
       note: `${item.name} (Paid on ${date})`,
+      shortfallTransfers: shortfallTransfers?.length ? shortfallTransfers : undefined,
     });
     const remainingCount = attentionItems.filter((i) => i.id !== item.id && i.type === "EXPENSE").length;
     if (remainingCount === 0) {
@@ -203,7 +208,7 @@ export default function DashboardPage() {
     });
     toast.success(t("toasts.saved"));
 
-    utils.listPools.invalidate();
+    utils.listEnvelopes.invalidate();
     utils.listTransactions.invalidate();
     await bankAccountsQuery.refetch();
     await summaryQuery.refetch();
@@ -225,11 +230,6 @@ export default function DashboardPage() {
         onOpenAffordCheck={() => {
           setAffordInitialAmount("");
           setIsAffordModalOpen(true);
-        }}
-        onOpenAskPenny={() => {
-          if (typeof window !== "undefined") {
-            window.dispatchEvent(new CustomEvent("open-ask-penny"));
-          }
         }}
       />
 
@@ -295,20 +295,6 @@ export default function DashboardPage() {
             onSaveTransferDraft={handleSaveTransferDraft}
             onExecuteTransfer={handleExecuteTransfer}
             onDeleteTransfer={handleDeleteTransfer}
-            onConfirmTransferAndPay={async (transfers, destinationCategoryId) => {
-              await Promise.all(
-                transfers.map((t) =>
-                  moveMoneyMut.mutateAsync({
-                    sourceEnvelopeId: t.poolId,
-                    destinationEnvelopeId: destinationCategoryId,
-                    amount: t.amount,
-                    note: "Shortfall Top Up",
-                  })
-                )
-              );
-              await utils.listPools.invalidate();
-              await utils.listTransactions.invalidate();
-            }}
             formatCurrency={fmt}
           />
         </div>

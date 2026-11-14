@@ -49,7 +49,7 @@ export function useQuickActionState(
   const isTransfer = type === "TRANSFER";
   const isFutureDate = date > todayStr;
 
-  const poolsQuery = trpc.listPools.useQuery();
+  const poolsQuery = trpc.listEnvelopes.useQuery();
   const bankAccountsQuery = trpc.listBankAccountsWithExpected.useQuery();
   const transactionsQuery = trpc.listTransactions.useQuery({ limit: 100 });
 
@@ -129,7 +129,7 @@ export function useQuickActionState(
 
   function handleDone() {
     utils.listTransactions.invalidate();
-    utils.listPools.invalidate();
+    utils.listEnvelopes.invalidate();
     utils.listIncomeSources.invalidate();
     utils.listIncomeEvents.invalidate();
     utils.listExpenseEvents.invalidate();

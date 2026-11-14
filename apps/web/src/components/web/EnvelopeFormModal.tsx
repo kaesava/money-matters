@@ -18,7 +18,7 @@ export interface EnvelopeDraftPayload {
   monthlyAmount?: string;
   enteredAmount?: string;
   targetAmount?: string;
-  endDate?: string;
+  endDate?: string | null;
   budgetFrequency?: "WEEKLY" | "FORTNIGHTLY" | "MONTHLY" | "QUARTERLY" | "ANNUALLY";
   startDate?: string;
   rrule?: string;
@@ -37,8 +37,6 @@ export interface EnvelopeFormModalProps {
   onSuccess?: () => void;
   initialMode?: "ALL" | "BILL_SCHEDULE";
 }
-
-export type CategoryFormModalProps = EnvelopeFormModalProps;
 
 export function EnvelopeFormModal({
   isOpen,
@@ -60,15 +58,15 @@ export function EnvelopeFormModal({
   const rawAccounts = bankAccountsQuery.data;
   const bankAccounts = useMemo(() => passedBankAccounts ?? rawAccounts ?? [], [passedBankAccounts, rawAccounts]);
 
-  const poolsQuery = trpc.listPools.useQuery(undefined, { enabled: isOpen && !isDraftMode });
+  const poolsQuery = trpc.listEnvelopes.useQuery(undefined, { enabled: isOpen && !isDraftMode });
   const otherPrivateEnvelopes = useMemo(() => {
     return (poolsQuery.data || []).filter((p) => p.isPrivate && p.id !== categoryToEdit?.id);
   }, [poolsQuery.data, categoryToEdit?.id]);
   const isLastPrivateEnvelope = Boolean(categoryToEdit?.isPrivate && otherPrivateEnvelopes.length === 0);
 
-  const createPoolMut = trpc.createPool.useMutation();
-  const updatePoolMut = trpc.updatePool.useMutation();
-  const archivePoolMut = trpc.archivePool.useMutation();
+  const createPoolMut = trpc.createEnvelope.useMutation();
+  const updatePoolMut = trpc.updateEnvelope.useMutation();
+  const archivePoolMut = trpc.archiveEnvelope.useMutation();
 
   const {
     isEdit,
@@ -123,9 +121,9 @@ export function EnvelopeFormModal({
   const confirmArchive = async () => {
     if (!categoryToEdit?.id) return;
     try {
-      await archivePoolMut.mutateAsync({ poolId: categoryToEdit.id });
+      await archivePoolMut.mutateAsync({ envelopeId: categoryToEdit.id });
       await Promise.all([
-        utils.listPools.invalidate(),
+        utils.listEnvelopes.invalidate(),
         utils.listExpenseEvents.invalidate(),
         utils.listBillSchedules.invalidate(),
         utils.getProjectedPoolBalances.invalidate(),
@@ -157,12 +155,12 @@ export function EnvelopeFormModal({
         return;
       }
       if (isEdit && categoryToEdit) {
-        await updatePoolMut.mutateAsync({ poolId: categoryToEdit.id, data: payload });
+        await updatePoolMut.mutateAsync({ envelopeId: categoryToEdit.id, data: payload });
       } else {
         await createPoolMut.mutateAsync({ ...payload, bankAccountId });
       }
       await Promise.all([
-        utils.listPools.invalidate(),
+        utils.listEnvelopes.invalidate(),
         utils.listExpenseEvents.invalidate(),
         utils.listBillSchedules.invalidate(),
         utils.getProjectedPoolBalances.invalidate(),
@@ -205,7 +203,7 @@ export function EnvelopeFormModal({
           ? (categoryToEdit?.name || "")
           : initialMode === "BILL_SCHEDULE"
             ? t("incomeBillsTabs.addBillSchedule")
-            : t("categories.createPool")
+            : t("categories.createEnvelope")
       }
       maxWidth="max-w-lg"
     >
@@ -275,7 +273,7 @@ export function EnvelopeFormModal({
                 className="px-3 py-2 text-xs font-medium text-slate-300 dark:text-slate-600 cursor-not-allowed"
                 title={t("categories.cannotArchiveSurplusTarget")}
               >
-                {initialMode === "BILL_SCHEDULE" ? t("categories.archiveBillSchedule") : t("categories.archivePool")}
+                {initialMode === "BILL_SCHEDULE" ? t("categories.archiveBillSchedule") : t("categories.archiveEnvelope")}
               </span>
             ) : (
               <button
@@ -285,7 +283,7 @@ export function EnvelopeFormModal({
                 title={t("categories.tooltips.archive")}
                 className="px-3 py-2 text-xs font-medium text-slate-400 hover:text-slate-600 dark:text-slate-500 dark:hover:text-slate-400 hover:underline cursor-pointer"
               >
-                {initialMode === "BILL_SCHEDULE" ? t("categories.archiveBillSchedule") : t("categories.archivePool")}
+                {initialMode === "BILL_SCHEDULE" ? t("categories.archiveBillSchedule") : t("categories.archiveEnvelope")}
               </button>
             )
           ) : <div />}
@@ -305,13 +303,13 @@ export function EnvelopeFormModal({
         isOpen={showArchiveConfirm}
         onClose={() => setShowArchiveConfirm(false)}
         onConfirm={confirmArchive}
-        title={initialMode === "BILL_SCHEDULE" ? t("categories.archiveBillSchedule") : t("categories.archivePool")}
+        title={initialMode === "BILL_SCHEDULE" ? t("categories.archiveBillSchedule") : t("categories.archiveEnvelope")}
         description={
           isLastPrivateEnvelope
             ? t("categories.archiveLastPrivatePoolConfirm", { name: categoryToEdit?.name || "" })
             : t("categories.archivePoolConfirm", { name: categoryToEdit?.name || "" })
         }
-        confirmLabel={initialMode === "BILL_SCHEDULE" ? t("categories.archiveBillSchedule") : t("categories.archivePool")}
+        confirmLabel={initialMode === "BILL_SCHEDULE" ? t("categories.archiveBillSchedule") : t("categories.archiveEnvelope")}
         variant="danger"
         isLoading={submitting}
       />
@@ -335,5 +333,3 @@ export function EnvelopeFormModal({
     </ModalDialog>
   );
 }
-
-export const CategoryFormModal = EnvelopeFormModal;

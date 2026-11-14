@@ -91,6 +91,10 @@ export async function updateEnvelopeCommand(
 
     const willBeSurplusTarget = input.isSurplusTarget !== undefined ? input.isSurplusTarget : existing.isSurplusTarget;
 
+    if (willBeSurplusTarget && effectiveIsPrivate) {
+      throw new Error("A Surplus Sweep Target cannot be private. Please designate another public envelope as the Surplus Sweep Target first.");
+    }
+
     if (input.isSurplusTarget === false && existing.isSurplusTarget && !effectiveIsPrivate) {
       const otherSurplusTargets = await tx
         .select({ id: envelopes.id })
@@ -302,7 +306,9 @@ export async function updateEnvelopeCommand(
             .where(
               and(
                 eq(expenseEvents.envelopeId, envelopeId),
+                eq(expenseEvents.isScheduled, true),
                 eq(expenseEvents.status, "PENDING"),
+                sql`${expenseEvents.archivedAt} IS NULL`,
                 eq(expenseEvents.tenantId, tenantId),
                 eq(expenseEvents.appId, appId)
               )

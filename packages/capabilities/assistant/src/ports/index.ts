@@ -23,8 +23,3 @@ export interface UsageStorePort {
   incrementLlmCalls(tenantId: string, limit: number): Promise<boolean>;
   decrementLlmCalls?(tenantId: string): Promise<void>;
 }
-
-export interface EntityResolverPort {
-  resolveEnvelope(tenantId: string, name: string): Promise<{ id: string; name: string } | null>;
-  resolveBill(tenantId: string, name: string): Promise<{ id: string; name: string; amount: number } | null>;
-}

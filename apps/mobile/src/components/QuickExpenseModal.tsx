@@ -60,7 +60,7 @@ export function QuickExpenseModal({
   ]);
 
   const invalidateAllQueries = () => {
-    state.utils.listPools.invalidate();
+    state.utils.listEnvelopes.invalidate();
     state.utils.listTransactions.invalidate();
     state.utils.listBillSchedules.invalidate();
     state.utils.listExpenseEvents.invalidate();

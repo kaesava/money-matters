@@ -14,6 +14,7 @@ import { MobileBankAccountItem } from '../../context/setup-wizard-types';
 interface MobilePaydaySandboxModalProps {
   visible: boolean;
   onClose: () => void;
+  onFinish?: () => void;
   incomes: IncomeItem[];
   bankAccounts: MobileBankAccountItem[];
   activeEveryday: EstimatedCategoryItem[];
@@ -25,6 +26,7 @@ interface MobilePaydaySandboxModalProps {
 export function MobilePaydaySandboxModal({
   visible,
   onClose,
+  onFinish,
   incomes,
   bankAccounts,
   activeEveryday,
@@ -120,7 +122,7 @@ export function MobilePaydaySandboxModal({
             <MobileButton
               variant="secondary"
               label={t('setup.sandbox.returnToReview')}
-              onPress={onClose}
+              onPress={onFinish ?? onClose}
               style={styles.finishBtn}
             />
           </View>

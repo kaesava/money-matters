@@ -55,7 +55,7 @@ export default function AppLayout() {
           if (res?.newEventsCount && res.newEventsCount > 0) {
             utils.listIncomeEvents.invalidate();
             utils.listExpenseEvents.invalidate();
-            utils.listPools.invalidate();
+            utils.listEnvelopes.invalidate();
           }
         },
         onError: (err) => {
@@ -242,7 +242,7 @@ export default function AppLayout() {
         visible={poolModalVisible}
         onClose={() => setPoolModalVisible(false)}
         onSuccess={() => {
-          utils.listPools.invalidate();
+          utils.listEnvelopes.invalidate();
         }}
       />
     </View>

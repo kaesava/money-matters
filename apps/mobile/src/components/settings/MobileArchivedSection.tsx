@@ -32,7 +32,7 @@ export function MobileArchivedSection() {
     onSuccess: async () => {
       await Promise.all([
         archivedQuery.refetch(),
-        utils.listPools.invalidate(),
+        utils.listEnvelopes.invalidate(),
         utils.listIncomeSources.invalidate(),
         utils.listBankAccounts.invalidate(),
         utils.listBankAccountsWithExpected.invalidate(),

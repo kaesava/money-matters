@@ -3,6 +3,13 @@ import { users } from "./user.js";
 import { tenants } from "./tenant.js";
 import { apps } from "./app.js";
 
+export interface PlatformTourStatus {
+  has_seen?: boolean;
+  completed_at?: string;
+  dismissed_at?: string;
+  last_step?: number;
+}
+
 export interface AppPreferencesBlob {
   // Household / Cashflow Notification Alerts (Tenant Scoped Granular Matrix)
   weekly_digest_email?: boolean;
@@ -15,7 +22,9 @@ export interface AppPreferencesBlob {
   payday_alerts_enabled?: boolean;
   weekly_digest_enabled?: boolean;
   balance_nudge_enabled?: boolean;
-  // Unified Product Tour Lifecycle
+  // Unified Product Tour Lifecycle (per-platform + legacy fallback)
+  tour_web?: PlatformTourStatus;
+  tour_mobile?: PlatformTourStatus;
   has_seen_product_tour?: boolean;
   tour_completed_at?: string;
   tour_dismissed_at?: string;

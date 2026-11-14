@@ -25,7 +25,7 @@ export function useSetupCategoriesSubmission() {
     convertFromMonthly,
   } = useSetupWizard();
 
-  const poolsQuery = trpc.listPools.useQuery();
+  const poolsQuery = trpc.listEnvelopes.useQuery();
   const saveSetupBudgetMut = trpc.saveSetupBudget.useMutation();
   const utils = trpc.useUtils();
 
@@ -52,22 +52,6 @@ export function useSetupCategoriesSubmission() {
       const existingEverydayEnv = existingPools.find((env) => env.envelopeType === 'EVERYDAY' && !env.isPrivate);
       const customEverydayItem = everydayItems.find((item) => item.id && !item.id.startsWith('temp-')) || everydayItems[0];
 
-      const everydayPayload = {
-        id: existingEverydayEnv?.id || (customEverydayItem?.id && !customEverydayItem.id.startsWith('temp-') ? customEverydayItem.id : undefined),
-        bankAccountId: customEverydayItem?.bankAccountId || existingEverydayEnv?.bankAccountId || primaryBankAccountId,
-        isPrivate: false,
-        name: existingEverydayEnv?.name || 'Everyday',
-        envelopeType: 'EVERYDAY' as const,
-        fundingMode: 'TARGET_BALANCE' as const,
-        safetyBufferFloor: (customEverydayItem?.safetyBufferFloor ?? parseFloat(existingEverydayEnv?.safetyBufferFloor || '0')).toFixed(2),
-        monthlyAmount: totalEverydayMonthly.toFixed(2),
-        enteredAmount: totalEverydayMonthly.toFixed(2),
-        budgetFrequency: 'MONTHLY' as const,
-        generateEvents: false,
-        isPriority: false,
-        orderIndex: 0,
-      };
-
       const finalGoalsPayload = goals.filter((g) => !removedCategoryNames.has(g.name));
 
       const hasExplicitSurplusGoal = finalGoalsPayload.some((g) => g.isSurplusTarget && !g.isPrivate);
@@ -88,6 +72,25 @@ export function useSetupCategoriesSubmission() {
             : finalGoalsPayload.findIndex((g) => !g.isPrivate)
           : -1;
 
+      const everydayPayload = {
+        id: existingEverydayEnv?.id || (customEverydayItem?.id && !customEverydayItem.id.startsWith('temp-') ? customEverydayItem.id : undefined),
+        bankAccountId: customEverydayItem?.bankAccountId || existingEverydayEnv?.bankAccountId || primaryBankAccountId,
+        isPrivate: false,
+        name: customEverydayItem?.name || existingEverydayEnv?.name || 'Everyday',
+        envelopeType: 'EVERYDAY' as const,
+        fundingMode: 'TARGET_BALANCE' as const,
+        safetyBufferFloor: (customEverydayItem?.safetyBufferFloor ?? parseFloat(existingEverydayEnv?.safetyBufferFloor || '0')).toFixed(2),
+        monthlyAmount: totalEverydayMonthly.toFixed(2),
+        enteredAmount: totalEverydayMonthly.toFixed(2),
+        budgetFrequency: 'MONTHLY' as const,
+        generateEvents: false,
+        isPriority: false,
+        isSurplusTarget:
+          everydayItems.some((item) => Boolean(item.isSurplusTarget)) ||
+          (!hasExplicitSurplusGoal && !hasExplicitSurplusBill && effectiveFallbackGoalIdx === -1),
+        orderIndex: 0,
+      };
+
       const envelopesPayload = [
         everydayPayload,
         ...billCategories.map((c, idx) => {
@@ -106,7 +109,10 @@ export function useSetupCategoriesSubmission() {
               (p) => p.envelopeType === 'BILL' && p.name.trim().toLowerCase() === c.name.trim().toLowerCase()
             );
           const resolvedEnvId = catId || matchedPool?.id;
-          const enteredVal = convertFromMonthly(c.monthlyAud || 0, uiFreq);
+          const enteredVal =
+            fundingMode === 'TARGET_BALANCE'
+              ? (c.targetAmount ?? c.monthlyAud ?? 0)
+              : convertFromMonthly(c.monthlyAud || 0, uiFreq);
 
           return {
             id: resolvedEnvId,

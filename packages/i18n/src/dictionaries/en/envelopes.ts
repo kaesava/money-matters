@@ -81,6 +81,7 @@ export const envelopes = {
     "targetCompletionDate": "Target Completion Date",
     "projectionModeReadOnlyNotice": "Projection Mode active (Read-Only). Adding or editing envelopes is disabled while viewing projected balances.",
     "archivePool": "Archive Envelope",
+    "archiveEnvelope": "Archive Envelope",
     "archiveBillSchedule": "Archive Bill Schedule",
     "editPool": "Edit Envelope",
     "currentBalance": "Current Balance",
@@ -95,6 +96,7 @@ export const envelopes = {
     "goalPastDateWarning": "⚠️ This date is in the past — your goal may be overdue.",
     "addPool": "Add Envelope",
     "createPool": "Create Envelope",
+    "createEnvelope": "Create Envelope",
     "editPoolTitle": "Edit Envelope — {name}",
     "archivePoolConfirm": "Are you sure you want to archive \"{name}\"? Any upcoming scheduled events for this envelope will be cancelled. Past transaction history remains safely preserved.",
     "cannotArchiveSurplusTarget": "Cannot archive primary Surplus Sweep Target without designating another public envelope as the sweep target.",
@@ -266,6 +268,7 @@ export const envelopes = {
       "confirmTitleIncome": "Update Income Schedule?",
       "confirmTitleExpense": "Update Expense Schedule?",
       "confirmDescRuleChange": "Updating schedule settings (frequency, interval, or start date) will remove and re-create your events. All unconfirmed  events will be recreated starting from {startDate}. Confirmed transactions stay 100% safe and untouched.",
+      "confirmDescConvertToFlexible": "Switching to a flexible target will cancel all future scheduled bill events. Confirmed transactions stay 100% safe and untouched.",
       "confirmDescDetailChange": "Updating schedule details will apply your changes to all unconfirmed events on your timeline. Confirmed transactions stay 100% safe and untouched.",
       "confirmCta": "Update Schedule"
     },

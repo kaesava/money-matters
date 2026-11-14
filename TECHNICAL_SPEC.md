@@ -423,10 +423,10 @@ tenants (id PK, appId FK→apps.id, name, subscriptionTier, stripeCustomerId, st
   - `packages/ui/src/mobile/fields/Checkbox.tsx` & `SelectField.tsx`: Standardized form inputs consuming Serene design tokens.
 
 
-### 9.5 Expenses Router Note Formatting (`apps/api/src/routers/expenses.router.ts`)
+### 9.5 Expenses Router & Atomic Mark Paid (`apps/api/src/routers/expenses.router.ts`)
 - **`markExpensePaid`**:
-  - Resolves `evt = await ctx.db.select().from(expenseEvents)...`
-  - Injects `evt.name` into `transactionNote`: prepends event name to user note (e.g., `${evt.name} - ${input.note}`) or defaults to `Paid scheduled bill: ${evt.name}`.
+  - Executes inside a single DB transaction (`markExpensePaidCommand`) with an optimistic lock (`WHERE status = 'PENDING' AND archivedAt IS NULL`).
+  - Atomically executes any user-allocated `shortfallTransfers` (guarding against self-transfers, cross-user private envelopes, and negative balances) before recording the expense via `recordExpenseCommand` and injecting the scheduled bill's `name` into `transactionNote`.
 
 ### 9.6 Pool List Query Additions (`packages/capabilities/budgeting`)
 - **`listPoolsQuery`**:
@@ -587,26 +587,26 @@ Money Matters is engineered to comply with the 13 Australian Privacy Principles 
 
 ### 11.5 Cross-Platform Onboarding Product Tour Architecture
 - **State & Persistence Layer**:
-  - Stored inside `tenantUserPreferences.appPreferences` JSONB blob (`packages/db/src/schema/tenant_user_preference.ts`).
-  - Fields: `has_seen_product_tour: boolean`, `tour_completed_at?: string`, `tour_dismissed_at?: string`, `tour_last_step?: number`.
-  - Zero database migration requirement; persisted via existing `trpc.tenant.updatePreferences` mutation.
-  - Cross-platform synchronization: action taken on Web immediately reflects on Mobile and vice-versa.
+  - Stored inside `tenantUserPreferences.appPreferences[appId]` JSONB blob (`packages/db/src/schema/tenant_user_preference.ts`), scoped per `(userId, tenantId, appId, platform)` via `tour_web` and `tour_mobile`.
+  - Fields per platform (`PlatformTourStatus`): `has_seen?: boolean`, `completed_at?: string`, `dismissed_at?: string`, `last_step?: number`.
+  - Zero database migration requirement; persisted via existing `trpc.updateUserPreferences` mutation. Web and Mobile tour states are tracked independently so each user sees the tour once per app per platform.
 - **Web Tour Implementation (`apps/web`)**:
-  - `ProductTourContext.tsx`: Manages active step (1 to 7), automated cross-page routing (`/dashboard` $\rightarrow$ `/dashboard/income-and-bills` $\rightarrow$ `/dashboard/history` $\rightarrow$ `/dashboard`), element target bounding rectangle observation (`getBoundingClientRect` with window resize listeners), and PostHog analytics capture (`product_tour_started`, `product_tour_step_viewed`, `product_tour_completed`, `product_tour_dismissed`).
+  - `ProductTourContext.tsx`: Manages 9 steps (including `ask-penny`), automated cross-page routing (`/dashboard` $\rightarrow$ `/dashboard/income-and-bills` $\rightarrow$ `/dashboard/history` $\rightarrow$ `/dashboard`), `MutationObserver`-backed element target observation (`getBoundingClientRect` with window resize listeners), and PostHog analytics capture (`tour_prompted`, `tour_started`, `tour_step_viewed`, `tour_completed`, `tour_skipped`).
   - `ProductTourSpotlight.tsx`: Pure SVG cutout overlay mask dims background while leaving target highlighted.
   - `ProductTourPopover.tsx`: Anchored floating card rendered using Serene Finance tokens (`#2563eb`, `#1B2B4B`, `#F7F8FA`), badge chips, keyboard controls (`Escape` to dismiss, arrow keys to navigate), and Next/Back actions.
   - `TourWelcomeModal.tsx`: Unobtrusive welcome dialog offering opt-in start or self-exploration.
 - **Mobile Tour Implementation (`apps/mobile`)**:
-  - `ProductTourContext.tsx`: Native context managing steps, tactile haptic feedback (`expo-haptics`), and programmatic tab/screen navigation (`router.push`).
+  - `ProductTourContext.tsx`: Native context managing 9 steps (including `ask-penny`), welcome prompt (`MobileConfirmDialog`), `registerTourTarget` layout measurement, tactile haptic feedback (`expo-haptics`), and programmatic tab/screen navigation (`router.replace`).
   - `MobileProductTourSheet.tsx`: Native bottom sheet drawer rendering step badge, title, localized description, progress dots, and Next/Skip buttons.
 - **E2E Test Coverage**:
   - Spec `4.4 - Product Tour Flow` verified in `apps/web/e2e/screen-by-screen.spec.ts`.
 
 ### 11.6 Ask Penny AI Assistant Architecture
 - **Capability Slice (`packages/capabilities/assistant`)**:
-  - Implements decoupled vertical slice with dependency injection (`IntentHandlerPort`, `LlmProviderPort`, `UsageStorePort`, `EntityResolverPort`).
-  - **Deterministic-First Intent Matcher**: Evaluates top user queries (Everyday balance, upcoming bills, payday preview, goal achievement dates, spending summaries, bill recording) using zero-token local regex, date, and currency scoring.
-  - **Cloudflare Workers AI Gateway Provider**: Calls Cloudflare AI Gateway REST endpoint (`@cf/meta/llama-3.1-8b-instruct-fast`) through `https://gateway.ai.cloudflare.com/v1/{account_id}/{gateway_id}/workers-ai`. Features edge response caching (`cf-aig-cache-status`), request logging disabled for zero PII leakage, and strict JSON output schema parsing.
+  - Implements decoupled vertical slice with dependency injection (`IntentHandlerPort`, `LlmProviderPort`, `UsageStorePort`).
+  - **Deterministic-First Intent Matcher**: Evaluates top user queries (Everyday balance, upcoming bills, payday preview, goal achievement dates, spending summaries, bill recording) using zero-token local regex, date, and currency scoring. Supports `ADD_ENTITY` navigation prefill alongside query intents.
+  - **Cloudflare Workers AI Gateway Provider**: Calls Cloudflare AI Gateway REST endpoint (`@cf/meta/llama-3.1-8b-instruct`) through `https://gateway.ai.cloudflare.com/v1/{account_id}/{gateway_id}/workers-ai`. Features PII redaction (`redactPromptPii`), edge response caching (`cf-aig-cache-status`), request logging disabled, and strict JSON output schema parsing.
+  - **Subscription Gating & Quota Protection**: `assistantRouter` gates both `assistantAsk` and `assistantUsage` by active subscription/trial status (disabling access when `isTrialExpired`, `isGracePeriod`, `isPastDue`, or `isDeactivated`). Calls `decrementLlmCalls` on null LLM classification so failed classifications do not leak monthly quota.
   - **Tenant Quota & Sliding-Window Rate Limiting**: Max 150 LLM calls per month per tenant (enforcing $\le \$1.50$ cost cap on $\$7.95$/mo subscriptions). Burst rate limiting (10 calls/min, 40 calls/day) enforced via Upstash Redis sliding window (`checkAiTenantRateLimit`).
   - **Atomic Quota Storage**: Tracked in `ai_usage` table with optimistic concurrency checks (`llm_calls < limit`) and monthly reset tracking.
 - **Client Presentation & Unified Command Palette**:

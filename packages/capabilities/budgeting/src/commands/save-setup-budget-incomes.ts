@@ -129,7 +129,7 @@ export async function processSetupIncomes(
       .where(and(eq(incomeSources.tenantId, tenantId), eq(incomeSources.appId, appId), inArray(incomeSources.id, archivedIncomeIds)));
   }
 
-  await archivePendingIncomeEvents(tx, archivedIncomeIds);
+  await archivePendingIncomeEvents(tx, tenantId, archivedIncomeIds);
 
   if (autoCreateIncomeEvents && newIncomeCandidates.length > 0) {
     const candidateSourceIds = newIncomeCandidates.map((c) => c.incomeSourceId);

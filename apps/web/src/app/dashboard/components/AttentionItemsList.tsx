@@ -4,7 +4,7 @@ import React, { useState, useMemo } from "react";
 import Link from "next/link";
 import { ConfirmDialog, InfoTooltip } from "@money-matters/ui/web";
 import { t } from "@money-matters/i18n";
-import { MarkPaidModal, ShortfallTransferItem } from "../income-and-bills/components/MarkPaidModal";
+import { MarkPaidModal } from "../income-and-bills/components/MarkPaidModal";
 import { TransferModal } from "../../../components/web/TransferModal";
 import { useLocale } from "../../../providers/LocaleProvider";
 
@@ -36,7 +36,12 @@ export interface CategoryOption {
 export interface WebAttentionItemsListProps {
   readonly items: readonly WebAttentionItem[];
   readonly availableCategories?: readonly CategoryOption[];
-  readonly onMarkPaid: (item: WebAttentionItem, amount: number, date: string) => void;
+  readonly onMarkPaid: (
+    item: WebAttentionItem,
+    amount: number,
+    date: string,
+    shortfallTransfers?: Array<{ sourceEnvelopeId: string; amount: string }>
+  ) => void | Promise<void>;
   readonly onSkipExpense?: (item: WebAttentionItem) => void;
   readonly onSaveTransferDraft?: (params: {
     eventId: string;
@@ -52,10 +57,6 @@ export interface WebAttentionItemsListProps {
     destinationPoolId?: string;
   }) => Promise<void>;
   readonly onDeleteTransfer?: (eventId: string) => Promise<void>;
-  readonly onConfirmTransferAndPay?: (
-    transfers: ShortfallTransferItem[],
-    destinationCategoryId: string
-  ) => Promise<void>;
   readonly formatCurrency?: (val: number | string) => string;
 }
 
@@ -67,7 +68,6 @@ export const AttentionItemsList: React.FC<WebAttentionItemsListProps> = ({
   onSaveTransferDraft,
   onExecuteTransfer,
   onDeleteTransfer,
-  onConfirmTransferAndPay,
   formatCurrency,
 }) => {
   const { fmt, fmtDate: formatLocaleDate, timezone: contextTz, userTimezone } = useLocale();
@@ -268,11 +268,10 @@ export const AttentionItemsList: React.FC<WebAttentionItemsListProps> = ({
           initialDate={selectedMarkPaidItem.expectedDate}
           availableCategories={availableCategories as CategoryOption[]}
           onConfirmMarkPaid={async ({ amount, date, transfers }) => {
-            const destId = selectedMarkPaidItem.categoryId || availableCategories[0]?.id || "";
-            if (transfers && transfers.length > 0 && onConfirmTransferAndPay) {
-              await onConfirmTransferAndPay(transfers, destId);
-            }
-            onMarkPaid(selectedMarkPaidItem, amount, date);
+            const nonZeroTransfers = (transfers || [])
+              .filter((t) => parseFloat(t.amount || "0") > 0)
+              .map((tr) => ({ sourceEnvelopeId: tr.poolId, amount: parseFloat(tr.amount).toFixed(2) }));
+            await onMarkPaid(selectedMarkPaidItem, amount, date, nonZeroTransfers);
             setSelectedMarkPaidItem(null);
           }}
           onOpenTransferModal={() => {

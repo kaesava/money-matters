@@ -73,9 +73,11 @@ export function ProductTourPopover({
       top = Math.max(16, targetRect.top + 8);
     }
 
+    top = Math.min(Math.max(16, top), Math.max(16, window.innerHeight - popoverHeight - 16));
+
     left = Math.min(
       Math.max(16, targetRect.left),
-      window.innerWidth - popoverWidth - 20
+      Math.max(16, window.innerWidth - popoverWidth - 20)
     );
   }
 

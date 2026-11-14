@@ -18,7 +18,7 @@ function TransactionsPageContent() {
   const initialSearch = searchParams.get("search") || "";
   const [activeTab, setActiveTab] = useState(initialTab);
 
-  const poolsQuery = trpc.listPools.useQuery();
+  const poolsQuery = trpc.listEnvelopes.useQuery();
   const bankAccountsQuery = trpc.getBankAccountsWithMappings.useQuery();
 
   const pools = useMemo(() => poolsQuery.data ?? [], [poolsQuery.data]);

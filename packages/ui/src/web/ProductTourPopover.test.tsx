@@ -4,7 +4,7 @@ import { ProductTourPopover, TourStepConfig } from './ProductTourPopover';
 describe('ProductTourPopover', () => {
   const stepConfig: TourStepConfig = {
     step: 1,
-    totalSteps: 8,
+    totalSteps: 9,
     titleKey: 'tour.steps.hero.title',
     descKey: 'tour.steps.hero.desc',
     badgeKey: 'tour.steps.hero.badge',
@@ -24,16 +24,16 @@ describe('ProductTourPopover', () => {
 
     expect(element).toBeTruthy();
     expect(element.props.stepConfig.step).toBe(1);
-    expect(element.props.stepConfig.totalSteps).toBe(8);
+    expect(element.props.stepConfig.totalSteps).toBe(9);
   });
 
   it('supports last step configuration', () => {
     const lastStepConfig: TourStepConfig = {
-      step: 8,
-      totalSteps: 8,
-      titleKey: 'tour.steps.historyLedger.title',
-      descKey: 'tour.steps.historyLedger.desc',
-      badgeKey: 'tour.steps.historyLedger.badge',
+      step: 9,
+      totalSteps: 9,
+      titleKey: 'tour.steps.askPenny.title',
+      descKey: 'tour.steps.askPenny.desc',
+      badgeKey: 'tour.steps.askPenny.badge',
     };
 
     const element = (
@@ -48,6 +48,6 @@ describe('ProductTourPopover', () => {
     );
 
     expect(element.props.isLastStep).toBe(true);
-    expect(element.props.stepConfig.step).toBe(8);
+    expect(element.props.stepConfig.step).toBe(9);
   });
 });

@@ -97,6 +97,14 @@ export const TOUR_STEPS: Array<{
     descKey: 'tour.steps.historyLedger.desc',
     badgeKey: 'tour.steps.historyLedger.badge',
   },
+  {
+    id: 'ask-penny',
+    route: '/dashboard',
+    selector: '[data-tour="ask-penny"]',
+    titleKey: 'tour.steps.askPenny.title',
+    descKey: 'tour.steps.askPenny.desc',
+    badgeKey: 'tour.steps.askPenny.badge',
+  },
 ];
 
 export function ProductTourProvider({ children }: { children: ReactNode }) {
@@ -118,18 +126,34 @@ export function ProductTourProvider({ children }: { children: ReactNode }) {
   const [targetRect, setTargetRect] = useState<DOMRect | null>(null);
   const hasDismissedRef = useRef(false);
 
-  const { hasSimulation } = useAppFeatures();
+  const { hasSimulation, hasAiAssistant } = useAppFeatures();
   const tourSteps = useMemo(() => {
-    return TOUR_STEPS.filter((s) => s.id !== 'afford-check' || hasSimulation);
-  }, [hasSimulation]);
+    return TOUR_STEPS.filter((s) => {
+      if (s.id === 'afford-check' && !hasSimulation) return false;
+      if (s.id === 'ask-penny' && !hasAiAssistant) return false;
+      return true;
+    });
+  }, [hasSimulation, hasAiAssistant]);
 
-  // Check if tour should prompt on first dashboard visit
+  const scopeKey = userPrefQuery.data
+    ? `${session?.user?.id ?? ''}:${userPrefQuery.data.tenantId ?? ''}:${userPrefQuery.data.appId}:web`
+    : '';
+  const lastScopeKeyRef = useRef<string>('');
+  useEffect(() => {
+    if (scopeKey && lastScopeKeyRef.current !== scopeKey) {
+      lastScopeKeyRef.current = scopeKey;
+      hasDismissedRef.current = false;
+    }
+  }, [scopeKey]);
+
+  // Check if tour should prompt on first dashboard visit (scoped per user, tenant, app, platform)
   useEffect(() => {
     if (!userPrefQuery.data || userPrefQuery.isLoading) return;
 
     const appId = userPrefQuery.data.appId;
     const currentAppPrefs = (userPrefQuery.data.appPreferences?.[appId] || {}) as Record<string, unknown>;
-    const hasSeenTour = Boolean(currentAppPrefs.has_seen_product_tour);
+    const tourWeb = currentAppPrefs.tour_web as { has_seen?: boolean } | undefined;
+    const hasSeenTour = Boolean(tourWeb?.has_seen ?? currentAppPrefs.has_seen_product_tour);
 
     if (
       !hasSeenTour &&
@@ -150,14 +174,20 @@ export function ProductTourProvider({ children }: { children: ReactNode }) {
       if (!userPrefQuery.data) return;
       const appId = userPrefQuery.data.appId;
       const existingAppPrefs = (userPrefQuery.data.appPreferences?.[appId] || {}) as Record<string, unknown>;
+      const existingWebTour = (existingAppPrefs.tour_web || {}) as Record<string, unknown>;
+
+      const updatedWebTour = {
+        ...existingWebTour,
+        has_seen: true,
+        ...(completed
+          ? { completed_at: new Date().toISOString() }
+          : { dismissed_at: new Date().toISOString() }),
+        last_step: currentStep,
+      };
 
       const updatedBlob = {
         ...existingAppPrefs,
-        has_seen_product_tour: true,
-        ...(completed
-          ? { tour_completed_at: new Date().toISOString() }
-          : { tour_dismissed_at: new Date().toISOString() }),
-        tour_last_step: currentStep,
+        tour_web: updatedWebTour,
       };
 
       // Optimistically update query cache immediately to prevent re-opening modal
@@ -255,12 +285,38 @@ export function ProductTourProvider({ children }: { children: ReactNode }) {
       router.push(stepDef.route);
     }
 
-    const timer = setTimeout(() => {
-      updateTargetRect();
-    }, 350);
+    let settled = false;
+    const tryMeasure = () => {
+      const el = document.querySelector(stepDef.selector);
+      if (el) {
+        settled = true;
+        updateTargetRect();
+        return true;
+      }
+      return false;
+    };
 
-    return () => clearTimeout(timer);
-  }, [isTourActive, currentStep, pathname, searchParams, router, updateTargetRect]);
+    if (tryMeasure()) return;
+
+    const observer = new MutationObserver(() => {
+      if (!settled && tryMeasure()) {
+        observer.disconnect();
+      }
+    });
+    observer.observe(document.body, { childList: true, subtree: true });
+
+    const fallbackTimer = setTimeout(() => {
+      if (!settled) {
+        updateTargetRect();
+      }
+      observer.disconnect();
+    }, 1500);
+
+    return () => {
+      observer.disconnect();
+      clearTimeout(fallbackTimer);
+    };
+  }, [isTourActive, currentStep, pathname, searchParams, router, tourSteps, updateTargetRect]);
 
   // Document-level outside click to dismiss/skip tour
   useEffect(() => {

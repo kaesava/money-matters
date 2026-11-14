@@ -70,6 +70,5 @@ export * from './charts/BarTrendChart';
 export * from './charts/HorizontalRankedBarChart';
 export * from './charts/SpendingOverviewCard';
 export * from './AiUsageCard';
-export * from './AskPennyPalette';
 export * from './CommandPaletteModal';
 export * from './CelebrationBanner';

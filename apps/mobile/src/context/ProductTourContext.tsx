@@ -9,6 +9,7 @@ import { t } from '@money-matters/i18n';
 import { useAppFeatures } from './useAppFeatures';
 import {
   MobileProductTourSheet,
+  MobileConfirmDialog,
   MobileTourStepConfig,
   TargetLayoutRect,
 } from '@money-matters/ui/mobile';
@@ -61,7 +62,7 @@ export const MOBILE_TOUR_STEPS: Array<{
   },
   {
     id: 'bank-accounts',
-    route: '/(app)/home',
+    route: '/(app)/settings/bank-accounts',
     titleKey: 'tour.steps.bankAccounts.title',
     descKey: 'tour.steps.bankAccounts.desc',
     badgeKey: 'tour.steps.bankAccounts.badge',
@@ -75,7 +76,7 @@ export const MOBILE_TOUR_STEPS: Array<{
   },
   {
     id: 'schedules-tab',
-    route: '/(app)/paychecks',
+    route: '/(app)/paychecks/schedules',
     titleKey: 'tour.steps.schedulesTab.title',
     descKey: 'tour.steps.schedulesTab.desc',
     badgeKey: 'tour.steps.schedulesTab.badge',
@@ -86,6 +87,13 @@ export const MOBILE_TOUR_STEPS: Array<{
     titleKey: 'tour.steps.historyLedger.title',
     descKey: 'tour.steps.historyLedger.desc',
     badgeKey: 'tour.steps.historyLedger.badge',
+  },
+  {
+    id: 'ask-penny',
+    route: '/(app)/home',
+    titleKey: 'tour.steps.askPenny.title',
+    descKey: 'tour.steps.askPenny.desc',
+    badgeKey: 'tour.steps.askPenny.badge',
   },
 ];
 
@@ -106,14 +114,24 @@ export function MobileProductTourProvider({ children }: { children: ReactNode })
   const updatePrefMutation = trpc.updateUserPreferences.useMutation();
 
   const [isTourActive, setIsTourActive] = useState(false);
+  const [showWelcomeModal, setShowWelcomeModal] = useState(false);
   const [currentStep, setCurrentStep] = useState(1);
   const [targetRects, setTargetRects] = useState<Record<string, TargetLayoutRect | null>>({});
   const hasDismissedRef = useRef(false);
 
-  const { hasSimulation } = useAppFeatures();
+  const { hasSimulation, hasAiAssistant } = useAppFeatures();
   const tourSteps = useMemo(() => {
-    return MOBILE_TOUR_STEPS.filter((s) => s.id !== 'afford-check' || hasSimulation);
-  }, [hasSimulation]);
+    return MOBILE_TOUR_STEPS.filter(
+      (s) =>
+        (s.id !== 'afford-check' || hasSimulation) &&
+        (s.id !== 'ask-penny' || hasAiAssistant)
+    );
+  }, [hasSimulation, hasAiAssistant]);
+
+  // Reset local dismissal guard when active user or tenant changes
+  useEffect(() => {
+    hasDismissedRef.current = false;
+  }, [session?.user?.id, tenantStatusQuery.data?.tenantId]);
 
   const registerTourTarget = useCallback((id: string, rect: TargetLayoutRect | null) => {
     setTargetRects((prev) => ({ ...prev, [id]: rect }));
@@ -125,7 +143,8 @@ export function MobileProductTourProvider({ children }: { children: ReactNode })
 
     const appId = userPrefQuery.data.appId;
     const currentAppPrefs = (userPrefQuery.data.appPreferences?.[appId] || {}) as Record<string, unknown>;
-    const hasSeenTour = Boolean(currentAppPrefs.has_seen_product_tour);
+    const tourMobile = currentAppPrefs.tour_mobile as { has_seen?: boolean } | undefined;
+    const hasSeenTour = Boolean(tourMobile?.has_seen);
     const isHomeScreen = segments.includes('home');
     const isSetupCompleted = Boolean(tenantStatusQuery.data?.setupCompleted ?? userPrefQuery.data.setupCompleted);
 
@@ -134,13 +153,13 @@ export function MobileProductTourProvider({ children }: { children: ReactNode })
       !hasDismissedRef.current &&
       isSetupCompleted &&
       isHomeScreen &&
-      !isTourActive
+      !isTourActive &&
+      !showWelcomeModal
     ) {
-      setIsTourActive(true);
-      setCurrentStep(1);
+      setShowWelcomeModal(true);
       posthog.capture('tour_prompted');
     }
-  }, [userPrefQuery.data, userPrefQuery.isLoading, tenantStatusQuery.data, tenantStatusQuery.isLoading, segments, isTourActive, posthog]);
+  }, [userPrefQuery.data, userPrefQuery.isLoading, tenantStatusQuery.data, tenantStatusQuery.isLoading, segments, isTourActive, showWelcomeModal, posthog]);
 
   const saveTourStatus = useCallback(
     async (completed: boolean) => {
@@ -148,14 +167,18 @@ export function MobileProductTourProvider({ children }: { children: ReactNode })
       if (!userPrefQuery.data) return;
       const appId = userPrefQuery.data.appId;
       const existingAppPrefs = (userPrefQuery.data.appPreferences?.[appId] || {}) as Record<string, unknown>;
+      const existingTourMobile = (existingAppPrefs.tour_mobile || {}) as Record<string, unknown>;
 
       const updatedBlob = {
         ...existingAppPrefs,
-        has_seen_product_tour: true,
-        ...(completed
-          ? { tour_completed_at: new Date().toISOString() }
-          : { tour_dismissed_at: new Date().toISOString() }),
-        tour_last_step: currentStep,
+        tour_mobile: {
+          ...existingTourMobile,
+          has_seen: true,
+          ...(completed
+            ? { completed_at: new Date().toISOString() }
+            : { dismissed_at: new Date().toISOString() }),
+          last_step: currentStep,
+        },
       };
 
       // Optimistically update query cache immediately
@@ -185,6 +208,7 @@ export function MobileProductTourProvider({ children }: { children: ReactNode })
   );
 
   const startTour = useCallback(() => {
+    setShowWelcomeModal(false);
     setIsTourActive(true);
     setCurrentStep(1);
     posthog.capture('tour_started');
@@ -192,6 +216,7 @@ export function MobileProductTourProvider({ children }: { children: ReactNode })
   }, [posthog, router]);
 
   const skipTour = useCallback(() => {
+    setShowWelcomeModal(false);
     setIsTourActive(false);
     saveTourStatus(false);
     posthog.capture('tour_skipped', { step: currentStep });
@@ -261,6 +286,18 @@ export function MobileProductTourProvider({ children }: { children: ReactNode })
       }}
     >
       {children}
+
+      <MobileConfirmDialog
+        visible={showWelcomeModal}
+        title={t('tour.welcome.title', {
+          name: session?.user?.name?.split(' ')[0] || '',
+        }).replace(', !', '!')}
+        message={t('tour.welcome.subtitle')}
+        confirmText={t('tour.welcome.startAction')}
+        cancelText={t('tour.welcome.dismissAction')}
+        onConfirm={startTour}
+        onCancel={skipTour}
+      />
 
       {isTourActive && stepConfig ? (
         <MobileProductTourSheet

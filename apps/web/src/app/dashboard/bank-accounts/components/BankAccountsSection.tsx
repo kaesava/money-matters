@@ -218,7 +218,7 @@ export function BankAccountsSection() {
         <QuickExpenseDrawer
           onClose={() => {
             list.setMoveMoneyOpen(false);
-            utils.listPools.invalidate();
+            utils.listEnvelopes.invalidate();
           }}
           initialTab="TRANSFER"
         />

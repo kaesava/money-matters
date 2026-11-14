@@ -289,6 +289,8 @@ export const CommandPaletteModal: React.FC<CommandPaletteModalProps> = ({
           onClose();
           onNavigatePrefill(res);
         }
+      } catch {
+        setAiResult({ type: "unavailable", reason: "disabled" });
       } finally {
         setIsAiLoading(false);
       }

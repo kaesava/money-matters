@@ -60,7 +60,7 @@ export default function TransactionsScreen() {
     { limit: 500 },
     { enabled: !!session?.user }
   );
-  const poolsQuery = trpc.listPools.useQuery(undefined, { enabled: !!session?.user });
+  const poolsQuery = trpc.listEnvelopes.useQuery(undefined, { enabled: !!session?.user });
   const bankAccountsQuery = trpc.listBankAccounts.useQuery(undefined, {
     enabled: !!session?.user,
   });

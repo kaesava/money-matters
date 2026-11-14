@@ -12,16 +12,12 @@ describe("Router protections & procedure sanity checks", () => {
     expect(tenantRouter.getTenantStatus).toBeDefined();
   });
 
-  it("exports budgetingRouter with required envelope procedures and pool aliases", () => {
+  it("exports budgetingRouter with required envelope procedures", () => {
     expect(budgetingRouter).toBeDefined();
     expect(budgetingRouter.createEnvelope).toBeDefined();
     expect(budgetingRouter.updateEnvelope).toBeDefined();
     expect(budgetingRouter.archiveEnvelope).toBeDefined();
     expect(budgetingRouter.listEnvelopes).toBeDefined();
-    expect(budgetingRouter.createPool).toBeDefined();
-    expect(budgetingRouter.updatePool).toBeDefined();
-    expect(budgetingRouter.archivePool).toBeDefined();
-    expect(budgetingRouter.listPools).toBeDefined();
     expect(budgetingRouter.moveMoney).toBeDefined();
     expect(budgetingRouter.burstUpcomingEvents).toBeDefined();
   });

@@ -231,6 +231,7 @@ export function archiveBankAccountHandler(db: DbOrTx) {
       .where(
         and(
           eq(envelopes.tenantId, tenantId),
+          eq(envelopes.appId, appId),
           eq(envelopes.bankAccountId, accountId),
           sql`${envelopes.archivedAt} IS NULL`
         )

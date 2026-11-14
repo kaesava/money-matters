@@ -3,7 +3,7 @@ import {
   calculateShortfall,
   calculateTotalAllocated,
   validateShortfallAllocations,
-} from './shortfall-allocation';
+} from '@money-matters/types';
 
 describe('shortfall-allocation engine', () => {
   describe('calculateShortfall', () => {

@@ -1,5 +1,6 @@
 import { expenseEvents, envelopes, DbOrTx } from "@money-matters/db";
 import { and, eq } from "drizzle-orm";
+import { getTenantDateString } from "@money-matters/core";
 import { generateBurstDates } from "../engine/burst-engine.js";
 
 export function deriveRruleFromFrequency(freq?: string | null): string {
@@ -11,11 +12,13 @@ export function deriveRruleFromFrequency(freq?: string | null): string {
 }
 
 export function computeDefaultStartDate(timeZone = "Australia/Sydney"): string {
-  const now = new Date();
-  const nextMonthYear = now.getMonth() === 11 ? now.getFullYear() + 1 : now.getFullYear();
-  const nextMonth = now.getMonth() === 11 ? 0 : now.getMonth() + 1;
-  const targetDate = new Date(Date.UTC(nextMonthYear, nextMonth, 1));
-  return new Intl.DateTimeFormat("en-CA", { timeZone }).format(targetDate);
+  const todayStr = getTenantDateString(new Date(), { timezone: timeZone });
+  const [yearStr, monthStr] = todayStr.split("-");
+  const year = Number(yearStr);
+  const month = Number(monthStr); // 1-12
+  const nextMonthYear = month === 12 ? year + 1 : year;
+  const nextMonth = month === 12 ? 1 : month + 1;
+  return `${nextMonthYear}-${String(nextMonth).padStart(2, "0")}-01`;
 }
 
 export async function burstEnvelopeEvents(
@@ -36,14 +39,13 @@ export async function burstEnvelopeEvents(
 ): Promise<number> {
   const dates = generateBurstDates(params.rrule, params.startDate, params.endDate, 12, 1000, params.afterDateStr);
   if (dates.length === 0) return 0;
-  const tz = params.timeZone || "Australia/Sydney";
-
   const eventsToInsert = dates.map((d) => ({
     tenantId: params.tenantId,
     appId: params.appId,
     envelopeId: params.envelopeId,
     name: params.name,
-    expectedDate: new Intl.DateTimeFormat("en-CA", { timeZone: tz }).format(d),
+    // generateBurstDates yields UTC-midnight calendar dates; slice ISO date directly to avoid negative-UTC-offset -1 day shifts.
+    expectedDate: d.toISOString().slice(0, 10),
     expectedAmount: params.amount,
     isScheduled: true,
     status: "PENDING" as const,

@@ -53,37 +53,6 @@ export const budgetingRouter = {
       return await listEnvelopesQuery(ctx.tenantId!, ctx.appId!, ctx.db, ctx.userId);
     }),
 
-  // Backward-compatible pool aliases for clients still transitioning
-  createPool: privateTenantProcedure
-    .input(CreateEnvelopeCommand)
-    .mutation(async ({ input, ctx }) => {
-      requiresWriteAccess(ctx);
-      return await createEnvelopeCommand(input, ctx.tenantId!, ctx.appId!, ctx.userId!, ctx.db);
-    }),
-
-  updatePool: privateTenantProcedure
-    .input(z.object({
-      poolId: z.string().uuid(),
-      data: UpdateEnvelopeCommand
-    }).strict())
-    .mutation(async ({ input, ctx }) => {
-      requiresWriteAccess(ctx);
-      return await updateEnvelopeCommand(input.poolId, input.data, ctx.tenantId!, ctx.appId!, ctx.userId!, ctx.db);
-    }),
-
-  archivePool: privateTenantProcedure
-    .input(z.object({ poolId: z.string().uuid() }).strict())
-    .mutation(async ({ input, ctx }) => {
-      requiresWriteAccess(ctx);
-      await archiveEnvelopeCommand(input.poolId, ctx.tenantId!, ctx.appId!, ctx.userId!, ctx.db);
-      return { success: true };
-    }),
-
-  listPools: privateTenantProcedure
-    .query(async ({ ctx }) => {
-      return await listEnvelopesQuery(ctx.tenantId!, ctx.appId!, ctx.db, ctx.userId);
-    }),
-
   moveMoney: privateTenantProcedure
     .input(MoveMoneyCommand)
     .mutation(async ({ input, ctx }) => {

@@ -1,6 +1,6 @@
 import React from "react";
 import { ConfirmDialog } from "@money-matters/ui/web";
-import { MarkPaidModal, ShortfallTransferItem } from "../MarkPaidModal";
+import { MarkPaidModal } from "../MarkPaidModal";
 import { TransferModal } from "../../../../../components/web/TransferModal";
 import { EditUpcomingEventModal } from "../../../../../components/web/EditUpcomingEventModal";
 import { useLocale } from "../../../../../providers/LocaleProvider";
@@ -25,11 +25,12 @@ interface TimelineModalsProps {
     bankAccountId?: string | null;
     poolType?: string;
   }[];
-  onConfirmTransferAndPay: (
-    transfers: ShortfallTransferItem[],
-    destCategoryId: string
-  ) => Promise<void>;
-  onMarkExpensePaid: (eventId: string, amount: string, date: string) => void;
+  onMarkExpensePaid: (
+    eventId: string,
+    amount: string,
+    date: string,
+    shortfallTransfers?: Array<{ sourceEnvelopeId: string; amount: string }>
+  ) => void | Promise<void>;
   onOpenTransferFromMarkPaid: (resolvedPoolId: string) => void;
   transferModalEvent: TimelineEventItem | null;
   onCloseTransfer: () => void;
@@ -59,7 +60,6 @@ export function TimelineModals({
   onCloseMarkPaid,
   categories,
   pools,
-  onConfirmTransferAndPay,
   onMarkExpensePaid,
   onOpenTransferFromMarkPaid,
   transferModalEvent,
@@ -123,13 +123,10 @@ export function TimelineModals({
                   : (p.currentBalance ?? 0),
             }))}
             onConfirmMarkPaid={async ({ amount, date, transfers }) => {
-              const nonZeroTransfers = (transfers || []).filter(
-                (t) => parseFloat(t.amount || "0") > 0
-              );
-              if (nonZeroTransfers.length > 0) {
-                await onConfirmTransferAndPay(nonZeroTransfers, resolvedPoolId);
-              }
-              await onMarkExpensePaid(markPaidModalEvent.id, amount.toFixed(2), date);
+              const nonZeroTransfers = (transfers || [])
+                .filter((t) => parseFloat(t.amount || "0") > 0)
+                .map((tr) => ({ sourceEnvelopeId: tr.poolId, amount: parseFloat(tr.amount).toFixed(2) }));
+              await onMarkExpensePaid(markPaidModalEvent.id, amount.toFixed(2), date, nonZeroTransfers);
               onCloseMarkPaid();
             }}
             onOpenTransferModal={() => onOpenTransferFromMarkPaid(resolvedPoolId)}

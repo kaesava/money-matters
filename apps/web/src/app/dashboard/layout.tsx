@@ -44,7 +44,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     retry: false,
   });
   const userProfileQuery = trpc.getUserProfile.useQuery(undefined, { enabled: !!session?.user });
-  const envelopesQuery = trpc.listPools.useQuery(undefined, { enabled: !!session?.user && hasTenant });
+  const envelopesQuery = trpc.listEnvelopes.useQuery(undefined, { enabled: !!session?.user && hasTenant });
   const bankAccountsQuery = trpc.listBankAccountsWithExpected.useQuery(undefined, { enabled: !!session?.user && hasTenant, staleTime: 30_000 });
   const incomeEventsQuery = trpc.listIncomeEvents.useQuery(undefined, { enabled: !!session?.user && hasTenant, staleTime: 30_000 });
   const expenseEventsQuery = trpc.listExpenseEvents.useQuery(undefined, { enabled: !!session?.user && hasTenant, staleTime: 30_000 });
@@ -77,7 +77,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           if (res?.newEventsCount && res.newEventsCount > 0) {
             utils.listIncomeEvents.invalidate();
             utils.listExpenseEvents.invalidate();
-            utils.listPools.invalidate();
+            utils.listEnvelopes.invalidate();
             utils.listBankAccountsWithExpected.invalidate();
           }
         },
@@ -162,9 +162,17 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const [isRetrying, setIsRetrying] = useState(false);
   const [cooldownSeconds, setCooldownSeconds] = useState(0);
 
+  const hasAiAccess =
+    hasAiAssistant &&
+    !!subStatus &&
+    !subStatus.isTrialExpired &&
+    !subStatus.isGracePeriod &&
+    !subStatus.isPastDue &&
+    !subStatus.isDeactivated;
+
   const askMutation = trpc.assistantAsk.useMutation();
   const usageQuery = trpc.assistantUsage.useQuery(undefined, {
-    enabled: !!session?.user && hasAiAssistant,
+    enabled: !!session?.user && hasTenant && hasAiAccess,
     staleTime: 30_000,
   });
 
@@ -458,8 +466,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             envelopes={searchEnvelopes}
             upcomingEvents={searchEvents}
             onSearchTransactions={handleSearchTransactions}
-            remainingCalls={hasAiAssistant && usageQuery.data?.limit && usageQuery.data ? Math.max(0, usageQuery.data.limit - usageQuery.data.used) : undefined}
-            onAskPenny={hasAiAssistant ? async (q) => {
+            remainingCalls={hasAiAccess && usageQuery.data?.limit && usageQuery.data ? Math.max(0, usageQuery.data.limit - usageQuery.data.used) : undefined}
+            onAskPenny={hasAiAccess ? async (q) => {
               const res = await askMutation.mutateAsync({ query: q });
               usageQuery.refetch();
               return res;

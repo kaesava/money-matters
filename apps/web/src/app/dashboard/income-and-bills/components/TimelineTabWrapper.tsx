@@ -38,7 +38,6 @@ export function TimelineTabWrapper({
   const deleteTransferEventMut = trpc.deleteTransferEvent.useMutation();
   const updateTransferEventMut = trpc.updateTransferEvent.useMutation();
   const executeTransferEventMut = trpc.executeTransferEvent.useMutation();
-  const moveMoneyMut = trpc.moveMoney.useMutation();
 
   return (
     <div className="p-6 bg-white/80 dark:bg-zinc-900/80 backdrop-blur-md rounded-2xl border border-zinc-200 dark:border-zinc-800 shadow-sm">
@@ -50,13 +49,14 @@ export function TimelineTabWrapper({
         transferEvents={transferEvents}
         categories={categories}
         pools={pools}
-        onMarkExpensePaid={async (eventId, amount, date) => {
+        onMarkExpensePaid={async (eventId, amount, date, shortfallTransfers) => {
           try {
             await markExpensePaidMut.mutateAsync({
               eventId,
               amount: amount ? String(amount) : undefined,
               date: date || undefined,
               note: `Paid on ${date}`,
+              shortfallTransfers: shortfallTransfers?.length ? shortfallTransfers : undefined,
             });
             const remainingCount = expenseEvents.filter((e) => e.id !== eventId && e.status !== "CONFIRMED").length;
             if (remainingCount === 0) {
@@ -65,7 +65,7 @@ export function TimelineTabWrapper({
               toast.success(t("toasts.expenseMarkedPaid"));
             }
             await utils.listExpenseEvents.invalidate();
-            await utils.listPools.invalidate();
+            await utils.listEnvelopes.invalidate();
             await utils.listTransactions.invalidate();
           } catch (err) {
             toast.error(err instanceof Error ? err.message : "Failed to mark spent.");
@@ -121,35 +121,13 @@ export function TimelineTabWrapper({
             await executeTransferEventMut.mutateAsync({ eventId, amount, name, sourcePoolId, destinationPoolId });
             toast.success(t("toasts.transferCompleted"));
             utils.listTransferEvents.invalidate();
-            utils.listPools.invalidate();
+            utils.listEnvelopes.invalidate();
             utils.listTransactions.invalidate();
           } catch (err) {
             toast.error(err instanceof Error ? err.message : "Failed to execute transfer.");
           }
         }}
         onOpenTransferModalWithData={onOpenTransferDrawer}
-        onConfirmTransferAndPay={async (transfers, destinationCategoryId) => {
-          if (!destinationCategoryId) throw new Error("Invalid target pool for transfer.");
-          const validTransfers = transfers.filter((t) => parseFloat(t.amount) > 0);
-          if (validTransfers.length === 0) return;
-          try {
-            await Promise.all(
-              validTransfers.map((t) =>
-                moveMoneyMut.mutateAsync({
-                  sourceEnvelopeId: t.poolId,
-                  destinationEnvelopeId: destinationCategoryId,
-                  amount: t.amount,
-                  note: "Shortfall Top Up",
-                })
-              )
-            );
-            await utils.listPools.invalidate();
-            await utils.listTransactions.invalidate();
-          } catch (err) {
-            toast.error(err instanceof Error ? err.message : "Failed to execute transfers.");
-            throw err;
-          }
-        }}
       />
     </div>
   );

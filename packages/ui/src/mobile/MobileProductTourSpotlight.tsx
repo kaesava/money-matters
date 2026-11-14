@@ -1,5 +1,5 @@
 import React from 'react';
-import { StyleSheet, View, Dimensions, Pressable } from 'react-native';
+import { StyleSheet, View, useWindowDimensions, Pressable } from 'react-native';
 import Svg, { Defs, Mask, Rect } from 'react-native-svg';
 
 export interface TargetLayoutRect {
@@ -18,7 +18,7 @@ export function MobileProductTourSpotlight({
   targetRect,
   onDismiss,
 }: MobileProductTourSpotlightProps) {
-  const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
+  const { width: screenWidth, height: screenHeight } = useWindowDimensions();
   const padding = 8;
   const radius = 12;
 
