@@ -1,20 +1,19 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { MoreVertical, ArrowDownCircle, ArrowUpCircle, ArrowRightLeft, TrendingUp, SlidersHorizontal, X } from "lucide-react";
-import { useToast, ConfirmDialog, RecordFilterBadge } from "@money-matters/ui/web";
+import { X } from "lucide-react";
+import { useToast, RecordFilterBadge } from "@money-matters/ui/web";
 import { t } from "@money-matters/i18n";
 
 import { trpc } from "../../../lib/trpc";
 import posthog from "../../../lib/posthog-client";
-import { QuickExpenseDrawer as QuickActionDrawer } from "../../../components/web/QuickExpenseDrawer";
-import { EnvelopeFormModal } from "../../../components/web/EnvelopeFormModal";
 import { EnvelopeSummaryItem, PoolTableRow } from "./types";
 import { PoolsTable } from "./components/PoolsTable";
 import { EnvelopesFilterBar } from "./components/EnvelopesFilterBar";
-import { EnvelopeDetailDrawer } from "../income-and-bills/components/EnvelopeDetailDrawer";
+import { EnvelopesOverflowMenu } from "./components/EnvelopesOverflowMenu";
+import { EnvelopesPageModals } from "./components/EnvelopesPageModals";
 import { useLocale } from "../../../providers/LocaleProvider";
 import { useEnvelopesTableData, PoolTypeFilter } from "./hooks/useEnvelopesTableData";
 
@@ -120,21 +119,6 @@ function PoolsPageContent() {
     setIsQuickDrawerOpen(true);
   };
 
-  const dropdownRef = useRef<HTMLDivElement>(null);
-  useEffect(() => {
-    function handleClickOutside(event: MouseEvent) {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
-        setOverflowMenuOpen(false);
-      }
-    }
-    if (overflowMenuOpen) {
-      document.addEventListener("mousedown", handleClickOutside);
-    }
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-    };
-  }, [overflowMenuOpen]);
-
   const confirmArchivePool = async () => {
     if (!poolToArchive) return;
     try {
@@ -173,84 +157,17 @@ function PoolsPageContent() {
             <span>{t("categories.addPool")}</span>
           </button>
 
-          <div className="relative" ref={dropdownRef}>
-            <button
-              type="button"
-              onClick={() => setOverflowMenuOpen(!overflowMenuOpen)}
-              className="p-2.5 rounded-xl font-bold text-xs bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-zinc-700 dark:text-zinc-200 transition-all border border-zinc-200 dark:border-zinc-700 flex items-center justify-center cursor-pointer"
-              aria-label="Actions"
-            >
-              <MoreVertical className="w-4 h-4" />
-            </button>
-
-            {overflowMenuOpen && (
-              <div className="absolute right-0 mt-2 w-56 rounded-xl bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 shadow-xl py-1.5 z-50">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setOverflowMenuOpen(false);
-                    setQuickDrawerInitialData(undefined);
-                    setQuickDrawerTab("DEBIT");
-                    setIsQuickDrawerOpen(true);
-                  }}
-                  className="w-full px-3.5 py-2 text-left text-xs font-semibold text-zinc-700 dark:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800 flex items-center gap-2.5 transition-colors cursor-pointer"
-                >
-                  <ArrowDownCircle className="w-4 h-4 text-emerald-600" />
-                  <span>{t("categories.actions.quickExpense")}</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setOverflowMenuOpen(false);
-                    setQuickDrawerInitialData(undefined);
-                    setQuickDrawerTab("CREDIT");
-                    setIsQuickDrawerOpen(true);
-                  }}
-                  className="w-full px-3.5 py-2 text-left text-xs font-semibold text-zinc-700 dark:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800 flex items-center gap-2.5 transition-colors cursor-pointer"
-                >
-                  <ArrowUpCircle className="w-4 h-4 text-[#2563eb]" />
-                  <span>{t("categories.actions.quickIncome")}</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setOverflowMenuOpen(false);
-                    setQuickDrawerInitialData(undefined);
-                    setQuickDrawerTab("TRANSFER");
-                    setIsQuickDrawerOpen(true);
-                  }}
-                  className="w-full px-3.5 py-2 text-left text-xs font-semibold text-zinc-700 dark:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800 flex items-center gap-2.5 transition-colors cursor-pointer"
-                >
-                  <ArrowRightLeft className="w-4 h-4 text-[#2563eb]" />
-                  <span>{t("categories.actions.moveMoney")}</span>
-                </button>
-                <div className="h-px bg-zinc-100 dark:bg-zinc-800 my-1" />
-                <Link
-                  href="/setup?mode=rerun"
-                  onClick={() => setOverflowMenuOpen(false)}
-                  className="w-full px-3.5 py-2 text-left text-xs font-semibold text-zinc-700 dark:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800 flex items-center gap-2.5 transition-colors cursor-pointer"
-                >
-                  <SlidersHorizontal className="w-4 h-4 text-[#2563eb]" />
-                  <span>{t("categories.recalibrateBudget")}</span>
-                </Link>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setOverflowMenuOpen(false);
-                    setShowProjectionMatrix(!showProjectionMatrix);
-                  }}
-                  className="w-full px-3.5 py-2 text-left text-xs font-semibold text-zinc-700 dark:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800 flex items-center gap-2.5 transition-colors cursor-pointer"
-                >
-                  <TrendingUp className="w-4 h-4 text-purple-600" />
-                  <span>
-                    {showProjectionMatrix
-                      ? t("categories.actions.exitProjection")
-                      : t("categories.actions.futureProjection")}
-                  </span>
-                </button>
-              </div>
-            )}
-          </div>
+          <EnvelopesOverflowMenu
+            overflowMenuOpen={overflowMenuOpen}
+            setOverflowMenuOpen={setOverflowMenuOpen}
+            showProjectionMatrix={showProjectionMatrix}
+            setShowProjectionMatrix={setShowProjectionMatrix}
+            onQuickAction={(tab) => {
+              setQuickDrawerInitialData(undefined);
+              setQuickDrawerTab(tab);
+              setIsQuickDrawerOpen(true);
+            }}
+          />
         </div>
       </div>
 
@@ -412,55 +329,23 @@ function PoolsPageContent() {
         </div>
       )}
 
-      {isQuickDrawerOpen && (
-        <QuickActionDrawer
-          onClose={() => {
-            setIsQuickDrawerOpen(false);
-            setQuickDrawerInitialData(undefined);
-            utils.listEnvelopes.invalidate();
-          }}
-          initialTab={quickDrawerTab}
-          initialData={quickDrawerInitialData}
-        />
-      )}
-
-      <EnvelopeFormModal
-        isOpen={isPoolModalOpen}
-        onClose={() => setIsPoolModalOpen(false)}
-        envelopeToEdit={poolToEdit}
-        onSuccess={async () => {
-          if (poolToEdit?.id && selectedPoolForDrawer?.id === poolToEdit.id) {
-            setSelectedPoolForDrawer(null);
-          }
-          await Promise.all([
-            utils.listEnvelopes.refetch(),
-            utils.listExpenseEvents.refetch(),
-            utils.getProjectedPoolBalances.refetch(),
-          ]);
-        }}
-      />
-
-      <EnvelopeDetailDrawer
-        isOpen={Boolean(selectedPoolForDrawer)}
-        categoryName={selectedPoolForDrawer?.name || ""}
-        categoryId={selectedPoolForDrawer?.id}
-        onClose={() => setSelectedPoolForDrawer(null)}
+      <EnvelopesPageModals
+        isQuickDrawerOpen={isQuickDrawerOpen}
+        setIsQuickDrawerOpen={setIsQuickDrawerOpen}
+        quickDrawerTab={quickDrawerTab}
+        quickDrawerInitialData={quickDrawerInitialData}
+        setQuickDrawerInitialData={setQuickDrawerInitialData}
+        isPoolModalOpen={isPoolModalOpen}
+        setIsPoolModalOpen={setIsPoolModalOpen}
+        poolToEdit={poolToEdit}
+        setPoolToEdit={setPoolToEdit}
+        selectedPoolForDrawer={selectedPoolForDrawer}
+        setSelectedPoolForDrawer={setSelectedPoolForDrawer}
         onDrawDown={handleDrawDown}
-        onEditPool={(pool) => {
-          setPoolToEdit(pool);
-          setIsPoolModalOpen(true);
-        }}
-      />
-
-      <ConfirmDialog
-        isOpen={Boolean(poolToArchive)}
-        onClose={() => setPoolToArchive(null)}
-        onConfirm={confirmArchivePool}
-        title={t("categories.archiveEnvelope")}
-        description={t("categories.archivePoolConfirm", { name: poolToArchive?.name || "" })}
-        confirmLabel={t("categories.archiveEnvelope")}
-        variant="danger"
-        isLoading={archivePoolMut.isPending}
+        poolToArchive={poolToArchive}
+        setPoolToArchive={setPoolToArchive}
+        onConfirmArchive={confirmArchivePool}
+        isArchiving={archivePoolMut.isPending}
       />
     </div>
   );

@@ -12,11 +12,10 @@ import { Feather } from '@expo/vector-icons';
 import {
   SegmentedTabs,
   MobileSpendingOverviewCard,
-  MobileFilterSheet,
-  MobileBankPicker,
   SearchInput,
   DESIGN_TOKENS,
 } from '@money-matters/ui/mobile';
+import { ReportsFilterSheets } from '../../components/reports/ReportsFilterSheets';
 import { AppScreenWrapper } from '../../components/AppScreenWrapper';
 import { t } from '@money-matters/i18n';
 import { trpc } from '../../lib/trpc';
@@ -287,76 +286,23 @@ export default function ReportsScreen() {
           </ScrollView>
         )}
 
-        {/* Spending Filter Sheet */}
-        <MobileFilterSheet
-          visible={spendingFilterSheetVisible}
-          onClose={() => setSpendingFilterSheetVisible(false)}
-          activeCount={spendingActiveFilterCount}
-          sections={[
-            {
-              id: 'flowType',
-              title: t('transactions.flowType'),
-              options: [
-                { id: 'ALL', label: t('reports.filters.allFlows') },
-                { id: 'DEBIT', label: t('reports.filters.debitsOnly') },
-                { id: 'CREDIT', label: t('reports.filters.creditsOnly') },
-                { id: 'TRANSFER', label: t('reports.filters.transfersOnly') },
-              ],
-              selectedValue: spendingFlowType,
-              onSelect: (id: string) => setSpendingFlowType(id as SpendingFlowType),
-            },
-            {
-              id: 'bank',
-              title: t('bankAccounts.title'),
-              renderCustom: () => (
-                <MobileBankPicker
-                  banks={bankAccounts.map((b) => ({ id: b.id, name: b.name }))}
-                  selectedBankId={spendingBankId}
-                  onSelectBank={setSpendingBankId}
-                  allowAllOption={true}
-                />
-              ),
-            },
-            {
-              id: 'pool',
-              title: t('categories.title'),
-              options: [
-                { id: 'ALL', label: t('reports.filters.allEnvelopes') },
-                ...pools.map((p) => ({ id: p.id, label: p.name })),
-              ],
-              selectedValue: spendingPoolId,
-              onSelect: (id: string) => setSpendingPoolId(id),
-            },
-          ]}
-          onReset={() => {
-            setSpendingFlowType('ALL');
-            setSpendingBankId('ALL');
-            setSpendingPoolId('ALL');
-          }}
-        />
-
-        {/* Payday Plans Filter Sheet */}
-        <MobileFilterSheet
-          visible={planFilterSheetVisible}
-          onClose={() => setPlanFilterSheetVisible(false)}
-          activeCount={planActiveFilterCount}
-          sections={[
-            {
-              id: 'bank',
-              title: t('bankAccounts.title'),
-              renderCustom: () => (
-                <MobileBankPicker
-                  banks={bankAccounts.map((b) => ({ id: b.id, name: b.name }))}
-                  selectedBankId={planBankId}
-                  onSelectBank={setPlanBankId}
-                  allowAllOption={true}
-                />
-              ),
-            },
-          ]}
-          onReset={() => {
-            setPlanBankId('ALL');
-          }}
+        <ReportsFilterSheets
+          spendingFilterSheetVisible={spendingFilterSheetVisible}
+          onCloseSpendingFilter={() => setSpendingFilterSheetVisible(false)}
+          spendingActiveFilterCount={spendingActiveFilterCount}
+          spendingFlowType={spendingFlowType}
+          setSpendingFlowType={setSpendingFlowType}
+          spendingBankId={spendingBankId}
+          setSpendingBankId={setSpendingBankId}
+          spendingPoolId={spendingPoolId}
+          setSpendingPoolId={setSpendingPoolId}
+          planFilterSheetVisible={planFilterSheetVisible}
+          onClosePlanFilter={() => setPlanFilterSheetVisible(false)}
+          planActiveFilterCount={planActiveFilterCount}
+          planBankId={planBankId}
+          setPlanBankId={setPlanBankId}
+          bankAccounts={bankAccounts}
+          pools={pools}
         />
       </View>
     </AppScreenWrapper>

@@ -4,12 +4,11 @@ import { useRouter, usePathname } from "next/navigation";
 import { t, setLanguage } from "@money-matters/i18n";
 import { authClient } from "../../lib/auth";
 import posthog from "../../lib/posthog-client";
-import { QuickExpenseDrawer } from "../../components/web/QuickExpenseDrawer";
 
 import { TrialBanner } from "../../components/TrialBanner";
 import { useSubscriptionStatus } from "../../hooks/useSubscriptionStatus";
 import { useAppFeatures } from "../../hooks/useAppFeatures";
-import { Spinner, CommandPaletteModal } from "@money-matters/ui/web";
+import { Spinner } from "@money-matters/ui/web";
 import { useNetworkStatus } from "../../providers/AppProviders";
 import type { QuickActionInitialData } from "@money-matters/types";
 import { trpc } from "../../lib/trpc";
@@ -19,8 +18,8 @@ import { DashboardMobileDrawer } from "./components/DashboardMobileDrawer";
 import { DashboardMobileHeader } from "./components/DashboardMobileHeader";
 import { DashboardQueryErrorFallback } from "./components/DashboardQueryErrorFallback";
 import { DashboardFooter } from "./components/DashboardFooter";
-import { handlePennyPrefillNavigation } from "./components/DashboardPennyHandler";
-import { KeyboardShortcutsModal } from "./components/KeyboardShortcutsModal";
+import { DashboardLayoutModals } from "./components/DashboardLayoutModals";
+import { useDashboardSearchAndShortcuts } from "./components/useDashboardSearchAndShortcuts";
 import { NAV_ITEMS } from "./components/navItems";
 import { getWebVersionInfo } from "../../lib/version";
 import { ProductTourProvider } from "../../providers/ProductTourContext";
@@ -178,58 +177,16 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   const versionInfo = getWebVersionInfo();
 
-  const searchAccounts = React.useMemo(() => {
-    return (bankAccountsQuery.data ?? []).map((acc) => ({
-      id: acc.id,
-      name: acc.name,
-      type: acc.accountType,
-      currentBalance: parseFloat(acc.expectedBalance),
-    }));
-  }, [bankAccountsQuery.data]);
-
-  const searchEnvelopes = React.useMemo(() => {
-    return (envelopesQuery.data ?? []).map((env) => ({
-      id: env.id,
-      name: env.name,
-      type: env.envelopeType,
-      currentBalance: env.currentBalance,
-    }));
-  }, [envelopesQuery.data]);
-
-  const searchEvents = React.useMemo(() => {
-    const incomes = (incomeEventsQuery.data ?? []).map((ev) => ({
-      id: ev.id,
-      name: ev.name,
-      amount: parseFloat(ev.expectedAmount),
-      dueDate: ev.expectedDate,
-      type: "INCOME" as const,
-    }));
-    const expenses = (expenseEventsQuery.data ?? []).map((ev) => ({
-      id: ev.id,
-      name: ev.name,
-      amount: parseFloat(ev.expectedAmount),
-      dueDate: ev.expectedDate,
-      type: "EXPENSE" as const,
-    }));
-    return [...incomes, ...expenses];
-  }, [incomeEventsQuery.data, expenseEventsQuery.data]);
-
-  const handleSearchTransactions = useCallback(
-    async (q: string) => {
-      const res = await utils.searchTransactions.fetch({ query: q, limit: 10 });
-      return res.map((tx) => ({
-        id: tx.id,
-        recordedAt: tx.recordedAt,
-        amount: parseFloat(tx.amount),
-        note: tx.note,
-        flowType: tx.flowType,
-        envelopeName: tx.envelopeName,
-        envelopeId: tx.envelopeId,
-        bankAccountId: tx.bankAccountId,
-      }));
-    },
-    [utils]
-  );
+  const { searchAccounts, searchEnvelopes, searchEvents, handleSearchTransactions } =
+    useDashboardSearchAndShortcuts({
+      bankAccountsData: bankAccountsQuery.data,
+      envelopesData: envelopesQuery.data,
+      incomeEventsData: incomeEventsQuery.data,
+      expenseEventsData: expenseEventsQuery.data,
+      setAskPennyOpen,
+      setShowShortcutsModal,
+      setQuickExpenseOpen,
+    });
 
   // Anti-spam cooldown timer
   useEffect(() => {
@@ -263,52 +220,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const isInitialLoading = (!envelopesQuery.data || !tenantsQuery.data) && (envelopesQuery.isLoading || tenantsQuery.isLoading || userPrefQuery.isLoading);
   const isQueryFetching = isRetrying;
   const isQueryError = (isGlobalError || envelopesQuery.isError || tenantsQuery.isError || userPrefQuery.isError) && !envelopesQuery.data && !tenantsQuery.data;
-
-
-  // Unified Keyboard Shortcuts Hook
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (
-        document.activeElement?.tagName === "INPUT" ||
-        document.activeElement?.tagName === "TEXTAREA" ||
-        (document.activeElement as HTMLElement)?.isContentEditable
-      ) {
-        if (e.key === "Escape") {
-          (document.activeElement as HTMLElement).blur();
-        }
-        return;
-      }
-
-      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
-        e.preventDefault();
-        setAskPennyOpen((prev) => !prev);
-      } else if (e.key === "?") {
-        setShowShortcutsModal((prev) => !prev);
-      } else if (e.key === "Escape") {
-        setShowShortcutsModal(false);
-      } else if (e.key === "n" || e.key === "N") {
-        e.preventDefault();
-        setQuickExpenseOpen(true);
-      } else if (e.key === "/") {
-        e.preventDefault();
-        const searchInput =
-          document.querySelector<HTMLInputElement>('[data-search-input]') ||
-          document.querySelector<HTMLInputElement>('input[type="search"]') ||
-          document.querySelector<HTMLInputElement>('input[placeholder*="Search"]');
-        if (searchInput) {
-          searchInput.focus();
-        }
-      }
-    };
-
-    const handleOpenAskPenny = () => setAskPennyOpen(true);
-    window.addEventListener("open-ask-penny", handleOpenAskPenny);
-    window.addEventListener("keydown", handleKeyDown);
-    return () => {
-      window.removeEventListener("open-ask-penny", handleOpenAskPenny);
-      window.removeEventListener("keydown", handleKeyDown);
-    };
-  }, []);
 
   const handleSignOut = useCallback(async () => {
     await authClient.signOut();
@@ -442,56 +353,28 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             <DashboardFooter versionInfo={versionInfo} />
           </div>
 
-          {quickExpenseOpen && (
-            <QuickExpenseDrawer
-              initialTab={quickExpenseData?.type || (pathname.startsWith("/dashboard/bank-accounts") ? "CREDIT" : "DEBIT")}
-              initialData={quickExpenseData}
-              onClose={() => {
-                setQuickExpenseOpen(false);
-                setQuickExpenseData(undefined);
-              }}
-            />
-          )}
-
-          <KeyboardShortcutsModal
-            isOpen={showShortcutsModal}
-            onClose={() => setShowShortcutsModal(false)}
-          />
-
-          <CommandPaletteModal
-            isOpen={askPennyOpen}
-            onClose={() => setAskPennyOpen(false)}
+          <DashboardLayoutModals
+            quickExpenseOpen={quickExpenseOpen}
+            setQuickExpenseOpen={setQuickExpenseOpen}
+            quickExpenseData={quickExpenseData}
+            setQuickExpenseData={setQuickExpenseData}
+            showShortcutsModal={showShortcutsModal}
+            setShowShortcutsModal={setShowShortcutsModal}
+            askPennyOpen={askPennyOpen}
+            setAskPennyOpen={setAskPennyOpen}
             hasSimulation={hasSimulation}
-            accounts={searchAccounts}
-            envelopes={searchEnvelopes}
-            upcomingEvents={searchEvents}
-            onSearchTransactions={handleSearchTransactions}
+            hasAiAccess={hasAiAccess}
+            searchAccounts={searchAccounts}
+            searchEnvelopes={searchEnvelopes}
+            searchEvents={searchEvents}
+            handleSearchTransactions={handleSearchTransactions}
             remainingCalls={hasAiAccess && usageQuery.data?.limit && usageQuery.data ? Math.max(0, usageQuery.data.limit - usageQuery.data.used) : undefined}
             onAskPenny={hasAiAccess ? async (q) => {
               const res = await askMutation.mutateAsync({ query: q });
               usageQuery.refetch();
               return res;
             } : undefined}
-            onNavigatePrefill={(prefill) =>
-              handlePennyPrefillNavigation(prefill, router, setQuickExpenseData, setQuickExpenseOpen, hasSimulation)
-            }
-            onSelectAccount={() => {
-              router.push("/dashboard/bank-accounts");
-            }}
-            onSelectEnvelope={(env) => {
-              router.push(`/dashboard/envelopes?poolId=${env.id}`);
-            }}
-            onSelectEvent={() => {
-              router.push("/dashboard/income-and-bills?tab=timeline");
-            }}
-            onSelectTransaction={() => {
-              router.push("/dashboard/history");
-            }}
-            onViewAllTransactions={(q) => {
-              router.push(`/dashboard/history?search=${encodeURIComponent(q)}`);
-            }}
           />
-
         </div>
       </div>
     </ProductTourProvider>

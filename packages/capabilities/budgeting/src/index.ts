@@ -31,4 +31,9 @@ export * from "./commands/seed-allocation-strategy.command.js";
 export * from "./commands/apply-allocation-preset.command.js";
 export * from "./commands/update-allocation-strategy-steps.command.js";
 export * from "./queries/get-active-allocation-strategy.query.js";
+export * from "./commands/save-bulk-allocations.command.js";
+export * from "./queries/get-matrix-projection-data.query.js";
+export * from "./commands/income-sources.command.js";
+export * from "./commands/income-events.command.js";
+export * from "./queries/allocation-plans.query.js";
 

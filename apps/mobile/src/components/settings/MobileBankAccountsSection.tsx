@@ -12,29 +12,17 @@ import { HouseholdOptimizerBanner } from './bank-accounts/HouseholdOptimizerBann
 import {
   DESIGN_TOKENS,
   SearchInput,
-  MobileFilterSheet,
-  MobilePoolPicker,
   MobilePaginationBar,
   InfoTooltip,
 } from '@money-matters/ui/mobile';
 import { t } from '@money-matters/i18n';
 import { trpc } from '../../lib/trpc';
 import { useAppFeatures } from '../../context/useAppFeatures';
-import { NotesFeedModal } from '@money-matters/capability-file-notes/mobile';
-import {
-  BankAccountFormModal,
-  BankAccountItemToEdit,
-} from '../BankAccountFormModal';
-import {
-  MobileReconciliationModal,
-  MobileReconciliationModalProps,
-} from '../envelopes/MobileReconciliationModal';
+import { BankAccountItemToEdit } from '../BankAccountFormModal';
+import { MobileReconciliationModalProps } from '../envelopes/MobileReconciliationModal';
 import { BankAccountCard } from '../bank-accounts/BankAccountCard';
-import {
-  LinkedPoolsModalSheet,
-  LinkedPoolItem,
-} from '../bank-accounts/LinkedPoolsModalSheet';
-import { QuickExpenseModal } from '../QuickExpenseModal';
+import { LinkedPoolItem } from '../bank-accounts/LinkedPoolsModalSheet';
+import { MobileBankAccountsModals } from './bank-accounts/MobileBankAccountsModals';
 
 export function MobileBankAccountsSection() {
   const router = useRouter();
@@ -300,101 +288,40 @@ export function MobileBankAccountsSection() {
         />
       )}
 
-      {/* Filter Sheet for Bank Accounts */}
-      <MobileFilterSheet
-        visible={filterSheetVisible}
-        onClose={() => setFilterSheetVisible(false)}
-        activeCount={activeFilterCount}
+      <MobileBankAccountsModals
+        filterSheetVisible={filterSheetVisible}
+        onCloseFilterSheet={() => setFilterSheetVisible(false)}
+        activeFilterCount={activeFilterCount}
         sortField={sortField}
+        setSortField={setSortField}
         sortOrder={sortOrder}
-        sortOptions={[
-          { id: 'name', label: t('common.name') },
-          { id: 'balance', label: t('common.amount') },
-        ]}
-        onSortFieldChange={(field) => setSortField(field as 'name' | 'balance')}
-        onSortOrderChange={setSortOrder}
-        sections={[
-          {
-            id: 'pool',
-            title: t('categories.title'),
-            renderCustom: () => (
-              <MobilePoolPicker
-                pools={allPools.map((p) => ({
-                  id: p.id,
-                  name: p.name,
-                  poolType: p.envelopeType,
-                  currentBalance: p.currentBalance,
-                }))}
-                selectedPoolId={selectedPoolId}
-                onSelectPool={(pId) => setSelectedPoolId(pId)}
-                allowAllOption={true}
-              />
-            ),
-          },
-        ]}
-        onReset={() => {
+        setSortOrder={setSortOrder}
+        allPools={allPools}
+        selectedPoolId={selectedPoolId}
+        setSelectedPoolId={setSelectedPoolId}
+        onResetFilters={() => {
           setSelectedAccountId(null);
           setSelectedPoolId('ALL');
           setSortField('name');
           setSortOrder('asc');
         }}
-      />
-
-      {/* Account Create/Edit Modal */}
-      <BankAccountFormModal
-        visible={formModalVisible}
+        formModalVisible={formModalVisible}
         accountToEdit={accountToEdit}
-        onClose={() => setFormModalVisible(false)}
-        onSuccess={() => bankAccountsQuery.refetch()}
-        onNeedsReconciliation={(accToReconcile) => setReconcileAccount(accToReconcile)}
-      />
-
-      {/* Balance Reconciliation Modal */}
-      <MobileReconciliationModal
-        visible={!!reconcileAccount}
-        account={reconcileAccount}
-        onClose={() => setReconcileAccount(null)}
-        onSuccess={() => {
+        onCloseFormModal={() => setFormModalVisible(false)}
+        reconcileAccount={reconcileAccount}
+        setReconcileAccount={setReconcileAccount}
+        poolsSheetAccount={poolsSheetAccount}
+        setPoolsSheetAccount={setPoolsSheetAccount}
+        transferModalVisible={transferModalVisible}
+        setTransferModalVisible={setTransferModalVisible}
+        notesAccount={notesAccount}
+        setNotesAccount={setNotesAccount}
+        onRefetchAll={() => {
           bankAccountsQuery.refetch();
           poolsQuery.refetch();
         }}
-        onOpenTransfer={() => {
-          setReconcileAccount(null);
-          setTransferModalVisible(true);
-        }}
+        onRefetchAccounts={() => bankAccountsQuery.refetch()}
       />
-
-      {/* Linked Pools Sheet */}
-      {poolsSheetAccount && (
-        <LinkedPoolsModalSheet
-          visible={!!poolsSheetAccount}
-          onClose={() => setPoolsSheetAccount(null)}
-          accountName={poolsSheetAccount.name}
-          pools={poolsSheetAccount.pools}
-        />
-      )}
-
-      {/* Transfer Between Pools Modal */}
-      <QuickExpenseModal
-        visible={transferModalVisible}
-        initialType="TRANSFER"
-        onClose={() => setTransferModalVisible(false)}
-        onSuccess={() => {
-          bankAccountsQuery.refetch();
-          poolsQuery.refetch();
-        }}
-      />
-
-      {/* File & Notes Modal for Bank Account */}
-      {notesAccount && (
-        <NotesFeedModal
-          visible={!!notesAccount}
-          onClose={() => setNotesAccount(null)}
-          entityType="BANK_ACCOUNT"
-          entityId={notesAccount.id}
-          entityName={notesAccount.name}
-        />
-      )}
     </View>
   );
 }

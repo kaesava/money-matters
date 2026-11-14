@@ -263,7 +263,7 @@
 
 ---
 
-#### `ARCH-01` — 19 Files Exceed the Strict 400-Line Limit (`AGENTS.md §4`)
+#### `ARCH-01` — [x] COMPLETED — 19 Files Exceed the Strict 400-Line Limit (`AGENTS.md §4`)
 - **Title:** Refactor all 19 files exceeding 400 lines into focused, single-responsibility modules ≤ 400 lines
 - **Evidence:**
   1. `packages/ui/src/mobile/MobileCommandPaletteSheet.tsx` — **812 lines**
@@ -304,7 +304,7 @@
 
 ---
 
-#### `ARCH-02` — Domain Business Logic Embedded Directly in `apps/api/src/routers/*` Instead of Capability Packages
+#### `ARCH-02` — [x] COMPLETED — Domain Business Logic Embedded Directly in `apps/api/src/routers/*` Instead of Capability Packages
 - **Title:** Extract inline database queries and domain mutations from `apps/api/src/routers/*` into `@money-matters/capability-*` handlers
 - **Evidence:**
   - `apps/api/src/routers/income/income-sources.procedures.ts:35-473` (473 lines of direct Drizzle queries, contribution mode math, and schedule materialization inside `apps/api`).
@@ -329,7 +329,7 @@
 
 ---
 
-#### `ARCH-03` — Financial & Rollup Domain Logic Duplicated in Web and Mobile UI Hooks/Helpers
+#### `ARCH-03` — [x] COMPLETED — Financial & Rollup Domain Logic Duplicated in Web and Mobile UI Hooks/Helpers
 - **Title:** Consolidate client-side envelope funding math, bank-rollup math, setup wizard calculations, and payday split draft math into `@money-matters/types` or server query DTOs
 - **Evidence:**
   - `apps/web/src/app/dashboard/envelopes/hooks/useEnvelopesTableData.ts` (427L) vs `apps/mobile/src/lib/envelopes.ts` (242L): both independently compute envelope funding status (`FUNDED`, `ON_TRACK`, `SHORTFALL`), target pacing, and group totals on the client.
