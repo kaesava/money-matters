@@ -78,6 +78,15 @@ export async function updateEnvelopeCommand(
       targetAccount = acc;
     }
 
+    if (
+      input.bankAccountId !== undefined &&
+      input.bankAccountId !== existing.bankAccountId &&
+      targetAccount &&
+      Boolean(targetAccount.isPrivate) !== Boolean(existing.isPrivate)
+    ) {
+      throw new Error("Envelopes can only be moved to a bank account with the same privacy setting.");
+    }
+
     const effectiveIsPrivate = targetAccount?.isPrivate
       ? true
       : input.isPrivate !== undefined

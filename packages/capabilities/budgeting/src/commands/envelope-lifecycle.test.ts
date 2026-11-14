@@ -344,4 +344,105 @@ describe("Envelope Lifecycle & Event Sync", () => {
     expect(insertedEnvelopeValues).not.toBeNull();
     expect((insertedEnvelopeValues as unknown as Record<string, unknown>).generateEvents).toBe(false);
   });
+
+  it("updateEnvelopeCommand allows moving an envelope to another bank account with the same privacy tier", async () => {
+    let updatedValues: Record<string, unknown> | null = null;
+    let selectCall = 0;
+    const mockDb = {
+      select: vi.fn().mockImplementation(() => ({
+        from: vi.fn().mockReturnValue({
+          where: vi.fn().mockImplementation(() => {
+            selectCall += 1;
+            if (selectCall === 1) {
+              return Promise.resolve([
+                {
+                  id: "env-ed-1",
+                  name: "Everyday Spending",
+                  envelopeType: "EVERYDAY",
+                  fundingMode: "TARGET_BALANCE",
+                  bankAccountId: "bank-shared-1",
+                  isPrivate: false,
+                  isSurplusTarget: true,
+                  generateEvents: false,
+                },
+              ]);
+            }
+            const accountRow = [{ id: selectCall === 2 ? "bank-shared-1" : "bank-shared-2", isPrivate: false, userId: null }];
+            return Object.assign(Promise.resolve(accountRow), {
+              limit: vi.fn().mockResolvedValue(accountRow),
+            });
+          }),
+        }),
+      })),
+      update: vi.fn().mockImplementation(() => ({
+        set: vi.fn().mockImplementation((vals: Record<string, unknown>) => {
+          updatedValues = vals;
+          return {
+            where: vi.fn().mockReturnValue({
+              returning: vi.fn().mockResolvedValue([{ id: "env-ed-1", ...vals }]),
+            }),
+          };
+        }),
+      })),
+      transaction: vi.fn().mockImplementation(async (cb: (tx: unknown) => Promise<unknown>) => cb(mockDb)),
+    } as unknown as DbOrTx;
+
+    await updateEnvelopeCommand(
+      "env-ed-1",
+      { bankAccountId: "bank-shared-2" },
+      tenantId,
+      appId,
+      userId,
+      mockDb as unknown as DbOrTx
+    );
+
+    expect(updatedValues).not.toBeNull();
+    expect((updatedValues as unknown as Record<string, unknown>).bankAccountId).toBe("bank-shared-2");
+  });
+
+  it("updateEnvelopeCommand rejects moving a shared envelope to a private bank account", async () => {
+    let selectCall = 0;
+    const mockDb = {
+      select: vi.fn().mockImplementation(() => ({
+        from: vi.fn().mockReturnValue({
+          where: vi.fn().mockImplementation(() => {
+            selectCall += 1;
+            if (selectCall === 1) {
+              return Promise.resolve([
+                {
+                  id: "env-ed-1",
+                  name: "Everyday Spending",
+                  envelopeType: "EVERYDAY",
+                  fundingMode: "TARGET_BALANCE",
+                  bankAccountId: "bank-shared-1",
+                  isPrivate: false,
+                  isSurplusTarget: false,
+                  generateEvents: false,
+                },
+              ]);
+            }
+            const accountRow =
+              selectCall === 2
+                ? [{ id: "bank-shared-1", isPrivate: false, userId: null }]
+                : [{ id: "bank-priv-1", isPrivate: true, userId }];
+            return Object.assign(Promise.resolve(accountRow), {
+              limit: vi.fn().mockResolvedValue(accountRow),
+            });
+          }),
+        }),
+      })),
+      transaction: vi.fn().mockImplementation(async (cb: (tx: unknown) => Promise<unknown>) => cb(mockDb)),
+    } as unknown as DbOrTx;
+
+    await expect(
+      updateEnvelopeCommand(
+        "env-ed-1",
+        { bankAccountId: "bank-priv-1" },
+        tenantId,
+        appId,
+        userId,
+        mockDb as unknown as DbOrTx
+      )
+    ).rejects.toThrow("same privacy setting");
+  });
 });

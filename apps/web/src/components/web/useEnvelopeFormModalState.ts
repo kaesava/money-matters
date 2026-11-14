@@ -6,35 +6,8 @@ import { useState, useEffect, useMemo } from "react";
 import { parseRecurrenceRule, buildRecurrenceRule, RecurrenceFrequency } from "@money-matters/ui/web";
 import { t } from "@money-matters/i18n";
 
-export interface EnvelopeModalItem {
-  id: string;
-  poolId?: string;
-  name: string;
-  type?: "EVERYDAY" | "BILL" | "GOAL" | string;
-  envelopeType?: string;
-  fundingMode?: "TARGET_BALANCE" | "RECURRING" | null;
-  bankAccountId?: string | null;
-  isPrivate?: boolean | null;
-  monthlyAmount?: string | null;
-  safetyBufferFloor?: string | null;
-  targetAmount?: string | null;
-  endDate?: string | null;
-  targetDate?: string | null;
-  enteredAmount?: string | null;
-  budgetFrequency?: "WEEKLY" | "FORTNIGHTLY" | "MONTHLY" | "ANNUALLY" | string | null;
-  startDate?: string | null;
-  rrule?: string | null;
-  isSurplusTarget?: boolean | null;
-  generateEvents?: boolean | null;
-  hasScheduledEvents?: boolean | null;
-  isPriority?: boolean | null;
-}
-
-export interface UseEnvelopeFormModalStateParams {
-  isOpen: boolean;
-  categoryToEdit?: EnvelopeModalItem | null;
-  bankAccounts: Array<{ id: string; name: string; isPrivate?: boolean | null }>;
-}
+import type { EnvelopeModalItem, UseEnvelopeFormModalStateParams } from "./envelopeFormTypes";
+export type { EnvelopeModalItem, UseEnvelopeFormModalStateParams };
 
 export function useEnvelopeFormModalState({
   isOpen,
@@ -197,6 +170,7 @@ export function useEnvelopeFormModalState({
     if (isPriority !== initialPriority) return true;
     if (type !== initialType) return true;
     if (fundingMode !== initialFundingMode) return true;
+    if (bankAccountId !== (categoryToEdit.bankAccountId || "")) return true;
 
     if (type === "EVERYDAY") {
       return safetyBufferFloor.trim() !== initialFloor;
@@ -331,6 +305,10 @@ export function useEnvelopeFormModalState({
     return {
       name: name.trim(),
       envelopeType: type,
+      bankAccountId:
+        isEdit && bankAccountId && bankAccountId !== (categoryToEdit?.bankAccountId || "")
+          ? bankAccountId
+          : undefined,
       fundingMode: type === "EVERYDAY" ? undefined : fundingMode,
       isPriority,
       safetyBufferFloor: type === "EVERYDAY" ? safetyBufferFloor || "0.00" : undefined,

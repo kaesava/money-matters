@@ -173,6 +173,7 @@ export function useMobileEnvelopeFormState({
     if (isPriority !== initialPriority) return true;
     if (type !== initialType) return true;
     if (fundingMode !== initialFundingMode) return true;
+    if (bankAccountId !== (categoryToEdit.bankAccountId || "")) return true;
 
     if (type === "EVERYDAY") {
       return safetyBufferFloor.trim() !== initialFloor;
@@ -291,6 +292,10 @@ export function useMobileEnvelopeFormState({
     return {
       name: name.trim(),
       envelopeType: canonicalEnvelopeType,
+      bankAccountId:
+        isEdit && bankAccountId && bankAccountId !== (categoryToEdit?.bankAccountId || "")
+          ? bankAccountId
+          : undefined,
       fundingMode: effectiveFundingMode,
       safetyBufferFloor: type === "EVERYDAY" ? safetyBufferFloor || "0.00" : undefined,
       targetAmount: finalTargetAmount,

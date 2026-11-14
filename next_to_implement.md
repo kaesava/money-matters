@@ -18,6 +18,9 @@ pnpm app:set-flag --flag=customAllocationRules --value=true
 * As you build code, you decide whether you want to run pnpm typecheck/lint/test/test coverage/i8ln-check/install/ and any other scripts/checks as you complete changes. However, at the end, ensure pnpm validate:prod runs successfully. Once successful, commit code, but ask me before pushing the code.
 
 
+
+
+
 Manual Verification
 
 Feature flags - Ask Penny, File Notes, Private

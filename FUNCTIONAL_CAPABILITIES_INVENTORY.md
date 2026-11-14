@@ -116,7 +116,7 @@
 | `CommandPaletteModal` | `packages/ui/src/web/CommandPaletteModal.tsx` | 802 | `createPortal` modal | Shared in `@money-matters/ui/web` (`⌘K` search + Ask Penny AI) |
 | `FileNotesDrawer` | `packages/capabilities/file-notes/src/web/FileNotesDrawer.tsx` | 316 | `SlideOverDrawer`, `ConfirmDialog` | Shared capability drawer for attaching/viewing PDF/image notes |
 | `QuickActionDrawer` (`QuickExpenseDrawer`) | `apps/web/src/components/web/QuickExpenseDrawer.tsx` | 371 | `SlideOverDrawer`, `ConfirmDialog` | Renders `CrossBankTransferModal` and `MarkPaidModal` |
-| `EnvelopeFormModal` | `apps/web/src/components/web/EnvelopeFormModal.tsx` | 335 | `ModalDialog`, `ConfirmDialog` (x2) | Merged Create/Edit envelope & bill schedule modal (`isEdit`) |
+| `EnvelopeFormModal` | `apps/web/src/components/web/EnvelopeFormModal.tsx` | 383 | `ModalDialog`, `EnvelopeFormConfirmDialogs` (`ConfirmDialog` x3, `CrossBankTransferModal`) | Merged Create/Edit envelope & bill schedule modal (`isEdit`), same-privacy bank re-linking |
 | `IncomeFormModal` | `apps/web/src/components/web/IncomeFormModal.tsx` | 393 | `ModalDialog`, `ConfirmDialog` (x2) | Merged Create/Edit income schedule modal (`isEdit`) |
 | `MarkPaidModal` | `apps/web/src/app/dashboard/income-and-bills/components/MarkPaidModal.tsx` | 324 | `ModalDialog` | Shortfall resolution & bill payment confirmation modal |
 | `TransferModal` | `apps/web/src/components/web/TransferModal.tsx` | 338 | `ModalDialog`, `ConfirmDialog` | Scheduled/pending transfer confirmation modal |
@@ -152,7 +152,7 @@
 | `MobileEnvelopeDetailSheet` | `packages/ui/src/mobile/MobileEnvelopeDetailSheet.tsx` | 325 | `MobileModalDialog` | Shared envelope detail bottom sheet |
 | `MobileFileNotesSheet` / `NotesFeedModal` | `packages/capabilities/file-notes/src/mobile/MobileFileNotesSheet.tsx` (369L) / `NotesFeedModal.tsx` (456L) | 369 / 456 | `MobileModalDialog`, `showMobileConfirm` | Shared capability bottom sheet for file notes |
 | `QuickExpenseModal` | `apps/mobile/src/components/QuickExpenseModal.tsx` | 229 | `MobileModalDialog`, `showMobileConfirm` | 3-tab quick action sheet (`QuickExpenseTab`, `QuickIncomeTab`, `QuickTransferTab`) |
-| `EnvelopeFormModal` | `apps/mobile/src/components/EnvelopeFormModal.tsx` | 379 | `MobileModalDialog`, `MobileConfirmDialog` (x2) | Merged Create/Edit envelope & bill schedule sheet (`isEdit`) |
+| `EnvelopeFormModal` | `apps/mobile/src/components/EnvelopeFormModal.tsx` | 388 | `MobileModalDialog`, `showMobileConfirm`, `CrossBankTransferModal` | Merged Create/Edit envelope & bill schedule sheet (`isEdit`), same-privacy bank re-linking |
 | `IncomeExpenseFormModal` | `apps/mobile/src/components/IncomeExpenseFormModal.tsx` | 268 | `MobileModalDialog`, `MobileConfirmDialog` (x2) | Create/Edit income schedule or one-off event sheet (`isEdit`) |
 | `BankAccountFormModal` | `apps/mobile/src/components/BankAccountFormModal.tsx` | 216 | `MobileModalDialog`, `showMobileConfirm` | Merged Create/Edit bank account sheet (`isEdit`) |
 | `MobileReconciliationModal` | `apps/mobile/src/components/envelopes/MobileReconciliationModal.tsx` | 394 | `MobileModalDialog`, `showMobileConfirm` | Match Bank Balance sheet |
@@ -214,7 +214,7 @@ All user-facing copy lives in `packages/i18n/src/dictionaries/en/*.ts` (re-expor
 | `commandPalette.ts` | `commandPalette` | 26 | 4 (2) | 0 (0) | 0 (0) | 40 (21) |
 | `common.ts` | `common`, `nav`, `actions`, `badges`, `tables`, `forms`, `toasts`, `tooltips`, `validation`, `notFound`, `networkError`, `keyboardShortcuts`, `errors`, `legal`, `location`, `app`, `searchSelect` | 210 | 302 (136) | 307 (98) | 0 (0) | 133 (79) |
 | `dashboard.ts` | `dashboard`, `home`, `cards`, `assistant` | 131 | 83 (71) | 96 (78) | 0 (9) | 18 (19) |
-| `envelopes.ts` | `envelopes`, `categories`, `categoryDrawer`, `drawers`, `modals`, `poolTypes`, `quickPick`, `goalModes` | 309 | 290 (201) | 271 (177) | 0 (0) | 82 (42) |
+| `envelopes.ts` | `envelopes`, `categories`, `categoryDrawer`, `drawers`, `modals`, `poolTypes`, `quickPick`, `goalModes` | 312 | 290 (201) | 271 (177) | 0 (0) | 82 (42) |
 | `feedback.ts` | `feedback` | 26 | 25 (25) | 25 (25) | 0 (0) | 0 (0) |
 | `fileNotes.ts` | `fileNotes` | 16 | 2 (2) | 2 (1) | 0 (0) | 27 (16) |
 | `plan.ts` | `planTabs`, `incomeAndBills`, `schedules`, `matrix`, `billCoverage`, `expenseStatus` | 132 | 75 (66) | 100 (81) | 0 (0) | 11 (16) |

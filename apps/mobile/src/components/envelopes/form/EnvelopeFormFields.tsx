@@ -123,7 +123,7 @@ export const EnvelopeFormFields: React.FC<EnvelopeFormFieldsProps> = ({
           options={bankOptions}
           value={bankAccountId}
           onChange={setBankAccountId}
-          disabled={isEdit || bankDisabled}
+          disabled={bankDisabled}
         />
       </View>
 

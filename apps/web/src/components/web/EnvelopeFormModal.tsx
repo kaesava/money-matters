@@ -1,7 +1,8 @@
 "use client";
 
-import React, { useMemo } from "react";
-import { useToast, ConfirmDialog, ModalDialog, Button, FormErrorBanner } from "@money-matters/ui/web";
+import React, { useMemo, useState } from "react";
+import { useToast, ModalDialog, Button, FormErrorBanner } from "@money-matters/ui/web";
+import { EnvelopeFormConfirmDialogs, type CrossBankPromptState } from "./EnvelopeFormConfirmDialogs";
 import { t } from "@money-matters/i18n";
 import { trpc } from "../../lib/trpc";
 import { useAppFeatures } from "../../hooks/useAppFeatures";
@@ -32,7 +33,11 @@ export interface EnvelopeFormModalProps {
   onClose: () => void;
   envelopeToEdit?: EnvelopeModalItem | null;
   categoryToEdit?: EnvelopeModalItem | null;
-  bankAccounts?: Array<{ id: string; name: string; isPrivate?: boolean | null }>;
+  bankAccounts?: Array<{
+    id: string;
+    name: string;
+    isPrivate?: boolean | null;
+  }>;
   onSaveDraft?: (draft: EnvelopeDraftPayload) => void;
   onSuccess?: () => void;
   initialMode?: "ALL" | "BILL_SCHEDULE";
@@ -54,6 +59,9 @@ export function EnvelopeFormModal({
   const utils = trpc.useUtils();
 
   const isDraftMode = Boolean(onSaveDraft);
+  const [showBankChangeConfirm, setShowBankChangeConfirm] = useState(false);
+  const [crossBankPrompt, setCrossBankPrompt] = useState<CrossBankPromptState | null>(null);
+
   const bankAccountsQuery = trpc.getBankAccountsWithMappings.useQuery(undefined, { enabled: isOpen && !isDraftMode });
   const rawAccounts = bankAccountsQuery.data;
   const bankAccounts = useMemo(() => passedBankAccounts ?? rawAccounts ?? [], [passedBankAccounts, rawAccounts]);
@@ -166,6 +174,19 @@ export function EnvelopeFormModal({
         utils.listBillSchedules.invalidate(),
         utils.getProjectedPoolBalances.invalidate(),
       ]);
+      const initialBankId = categoryToEdit?.bankAccountId || "";
+      const balanceNum = Number(categoryToEdit?.currentBalance ?? 0);
+      if (isEdit && !isDraftMode && bankAccountId && bankAccountId !== initialBankId && Number.isFinite(balanceNum) && balanceNum > 0) {
+        const oldAcc = bankAccounts.find((a) => a.id === initialBankId);
+        const newAcc = bankAccounts.find((a) => a.id === bankAccountId);
+        if (oldAcc && newAcc) {
+          setCrossBankPrompt({
+            sourceAccountName: oldAcc.name,
+            destAccountName: newAcc.name,
+            amount: balanceNum,
+          });
+        }
+      }
       onSuccess?.();
       onClose();
     } catch (submitErr: unknown) {
@@ -173,8 +194,16 @@ export function EnvelopeFormModal({
     } finally {
       setSubmitting(false);
       setShowRuleChangeConfirm(false);
+      setShowBankChangeConfirm(false);
     }
   };
+
+  const initialBankAccountId = categoryToEdit?.bankAccountId || "";
+  const isBankAccountChanged = Boolean(isEdit && !isDraftMode && bankAccountId && bankAccountId !== initialBankAccountId);
+  const currentBalanceNum = Number(categoryToEdit?.currentBalance ?? 0);
+  const hasPositiveBalance = Number.isFinite(currentBalanceNum) && currentBalanceNum > 0;
+  const oldBankName = bankAccounts.find((a) => a.id === initialBankAccountId)?.name ?? "";
+  const newBankName = bankAccounts.find((a) => a.id === bankAccountId)?.name ?? "";
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -187,16 +216,26 @@ export function EnvelopeFormModal({
       return;
     }
 
+    if (isBankAccountChanged && hasPositiveBalance) {
+      setShowBankChangeConfirm(true);
+      return;
+    }
+
     await executeSubmit();
   };
 
-  if (!isOpen) return null;
+  if (!isOpen && !crossBankPrompt) return null;
 
-  const isAccountSelectionDisabled = isEdit || type === "EVERYDAY";
+  const eligibleAccounts = isEdit && categoryToEdit
+    ? bankAccounts.filter((acc) => Boolean(acc.isPrivate) === Boolean(categoryToEdit.isPrivate))
+    : bankAccounts;
+  const isAccountSelectionDisabled = isEdit ? eligibleAccounts.length <= 1 : type === "EVERYDAY";
 
   return (
-    <ModalDialog
-      isOpen={isOpen}
+    <>
+      {isOpen && (
+        <ModalDialog
+          isOpen={isOpen}
       onClose={onClose}
       isDirty={isDirty}
       title={
@@ -226,7 +265,7 @@ export function EnvelopeFormModal({
           isPastStartDate={isPastStartDate}
           bankAccountOptions={[
             ...(!isEdit && !isAccountSelectionDisabled ? [{ value: "", label: t("categories.selectBankAccount") }] : []),
-            ...bankAccounts.map((acc) => ({
+            ...eligibleAccounts.map((acc) => ({
               value: acc.id,
               label: `${acc.name}${hasPrivateMode ? ` ${acc.isPrivate ? t("categories.privateBadge") : t("categories.householdBadge")}` : ''}`,
             })),
@@ -300,38 +339,39 @@ export function EnvelopeFormModal({
           </div>
         </div>
       </form>
-
-      <ConfirmDialog
-        isOpen={showArchiveConfirm}
-        onClose={() => setShowArchiveConfirm(false)}
-        onConfirm={confirmArchive}
-        title={initialMode === "BILL_SCHEDULE" ? t("categories.archiveBillSchedule") : t("categories.archiveEnvelope")}
-        description={
+        </ModalDialog>
+      )}
+      <EnvelopeFormConfirmDialogs
+        showArchiveConfirm={showArchiveConfirm}
+        onCloseArchive={() => setShowArchiveConfirm(false)}
+        onConfirmArchive={confirmArchive}
+        showRuleChangeConfirm={showRuleChangeConfirm}
+        onCloseRuleChange={() => setShowRuleChangeConfirm(false)}
+        onConfirmRuleChange={() => {
+          setShowRuleChangeConfirm(false);
+          if (isBankAccountChanged && hasPositiveBalance) setShowBankChangeConfirm(true);
+          else void executeSubmit();
+        }}
+        showBankChangeConfirm={showBankChangeConfirm}
+        onCloseBankChange={() => setShowBankChangeConfirm(false)}
+        onConfirmBankChange={executeSubmit}
+        archiveTitle={initialMode === "BILL_SCHEDULE" ? t("categories.archiveBillSchedule") : t("categories.archiveEnvelope")}
+        archiveDescription={
           isLastPrivateEnvelope
             ? t("categories.archiveLastPrivatePoolConfirm", { name: categoryToEdit?.name || "" })
             : t("categories.archivePoolConfirm", { name: categoryToEdit?.name || "" })
         }
-        confirmLabel={initialMode === "BILL_SCHEDULE" ? t("categories.archiveBillSchedule") : t("categories.archiveEnvelope")}
-        variant="danger"
-        isLoading={submitting}
+        archiveConfirmLabel={initialMode === "BILL_SCHEDULE" ? t("categories.archiveBillSchedule") : t("categories.archiveEnvelope")}
+        type={type}
+        fundingMode={fundingMode}
+        goalStartDate={goalStartDate}
+        currentBalanceNum={currentBalanceNum}
+        oldBankName={oldBankName}
+        newBankName={newBankName}
+        submitting={submitting}
+        crossBankPrompt={crossBankPrompt}
+        onCloseCrossBankPrompt={() => setCrossBankPrompt(null)}
       />
-
-      <ConfirmDialog
-        isOpen={showRuleChangeConfirm}
-        onClose={() => setShowRuleChangeConfirm(false)}
-        onConfirm={executeSubmit}
-        title={t("modals.updateSchedule.confirmTitleExpense")}
-        description={
-          type === "GOAL"
-            ? t("categories.confirmDescConvertToGoal")
-            : fundingMode === "TARGET_BALANCE"
-            ? t("categories.confirmDescConvertToFlexible")
-            : t("modals.updateSchedule.confirmDescRuleChange", { startDate: goalStartDate || "" })
-        }
-        confirmLabel={t("modals.updateSchedule.confirmCta")}
-        variant="warning"
-        isLoading={submitting}
-      />
-    </ModalDialog>
+    </>
   );
 }

@@ -4,7 +4,6 @@ import {
   FormErrorBanner,
   showMobileConfirm,
   useMobileToast,
-  RecurrenceFrequency,
 } from "@money-matters/ui/mobile";
 import { t } from "@money-matters/i18n";
 import { trpc } from "../lib/trpc";
@@ -12,64 +11,11 @@ import { useAppFeatures } from "../context/useAppFeatures";
 import { EnvelopeFormFields } from "./envelopes/form/EnvelopeFormFields";
 import { EnvelopeFormFooter } from "./envelopes/form/EnvelopeFormFooter";
 import { useMobileEnvelopeFormState } from "./envelopes/form/useMobileEnvelopeFormState";
+import { CrossBankTransferModal } from "./CrossBankTransferModal";
+import { formatMobileCurrency } from "../lib/format";
 
-export interface EnvelopeItem {
-  id: string;
-  name: string;
-  type: "GOAL" | "BILL" | "EVERYDAY" | string;
-  poolType?: string;
-  envelopeType?: string;
-  targetAmount?: string | null;
-  targetDate?: string | null;
-  endDate?: string | null;
-  enteredAmount?: string | null;
-  budgetFrequency?: RecurrenceFrequency | string | null;
-  startDate?: string | null;
-  rrule?: string | null;
-  monthlyAmount?: string | null;
-  everydayTargetKeepAmount?: string | null;
-  bankAccountId?: string | null;
-  currentBalance?: string;
-  safetyBufferFloor?: string | null;
-  healthStatus?: string | null;
-  isSurplusTarget?: boolean | null;
-  generateEvents?: boolean | null;
-  hasScheduledEvents?: boolean | null;
-  fundingMode?: "TARGET_BALANCE" | "RECURRING" | null;
-  isPriority?: boolean | null;
-  isPrivate?: boolean | null;
-}
-
-export interface EnvelopeDraftPayload {
-  name: string;
-  type: "GOAL" | "BILL" | "EVERYDAY";
-  envelopeType: "EVERYDAY" | "BILL" | "GOAL";
-  fundingMode?: "TARGET_BALANCE" | "RECURRING";
-  safetyBufferFloor?: string;
-  monthlyAmount?: string;
-  enteredAmount?: string;
-  targetAmount?: string;
-  endDate?: string | null;
-  budgetFrequency?: RecurrenceFrequency;
-  startDate?: string;
-  rrule?: string;
-  isSurplusTarget?: boolean;
-  isPriority?: boolean;
-  bankAccountId?: string;
-  generateEvents?: boolean;
-}
-
-export interface EnvelopeFormModalProps {
-  visible: boolean;
-  envelopeToEdit?: EnvelopeItem | null;
-  categoryToEdit?: EnvelopeItem | null;
-  defaultType?: "GOAL" | "BILL" | "EVERYDAY";
-  bankAccounts?: Array<{ id: string; name: string; isPrivate?: boolean | null }>;
-  onSaveDraft?: (draft: EnvelopeDraftPayload) => void;
-  onClose: () => void;
-  onSuccess?: () => void;
-  initialMode?: "ALL" | "BILL_SCHEDULE";
-}
+import type { EnvelopeItem, EnvelopeDraftPayload, EnvelopeFormModalProps } from "./envelopes/form/envelopeFormTypes";
+export type { EnvelopeItem, EnvelopeDraftPayload, EnvelopeFormModalProps };
 
 export function EnvelopeFormModal({
   visible,
@@ -87,6 +33,9 @@ export function EnvelopeFormModal({
   const toast = useMobileToast();
   const utils = trpc.useUtils();
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [crossBankPrompt, setCrossBankPrompt] = useState<{
+    sourceAccountName: string; destAccountName: string; amount: number;
+  } | null>(null);
 
   const isDraftMode = Boolean(onSaveDraft);
   const bankAccountsQuery = trpc.listBankAccountsWithExpected.useQuery(undefined, {
@@ -225,6 +174,13 @@ export function EnvelopeFormModal({
     return true;
   };
 
+  const initialBankAccountId = categoryToEdit?.bankAccountId || "";
+  const isBankAccountChanged = Boolean(isEdit && !isDraftMode && bankAccountId && bankAccountId !== initialBankAccountId);
+  const currentBalanceNum = Number(categoryToEdit?.currentBalance ?? 0);
+  const hasPositiveBalance = Number.isFinite(currentBalanceNum) && currentBalanceNum > 0;
+  const oldAcc = bankAccounts.find((a) => a.id === initialBankAccountId);
+  const newAcc = bankAccounts.find((a) => a.id === bankAccountId);
+
   const executeSubmit = () => {
     const payload = buildPayload();
     if (isDraftMode && onSaveDraft) {
@@ -239,10 +195,41 @@ export function EnvelopeFormModal({
       return;
     }
     if (categoryToEdit) {
-      updateMut.mutate({ envelopeId: categoryToEdit.id, data: payload });
+      updateMut.mutate(
+        { envelopeId: categoryToEdit.id, data: payload },
+        {
+          onSuccess: () => {
+            if (isBankAccountChanged && hasPositiveBalance && oldAcc && newAcc) {
+              setCrossBankPrompt({
+                sourceAccountName: oldAcc.name,
+                destAccountName: newAcc.name,
+                amount: currentBalanceNum,
+              });
+            }
+          },
+        }
+      );
     } else {
       createMut.mutate({ ...payload, bankAccountId });
     }
+  };
+
+  const confirmBankChangeIfNeeded = () => {
+    if (isBankAccountChanged && hasPositiveBalance && oldAcc && newAcc) {
+      showMobileConfirm({
+        title: t("categories.bankChangeConfirmTitle"),
+        message: t("categories.bankChangeConfirmMessage", {
+          amount: formatMobileCurrency(currentBalanceNum),
+          fromBank: oldAcc.name,
+          toBank: newAcc.name,
+        }),
+        confirmText: t("categories.bankChangeConfirmCta"),
+        isDestructive: false,
+        onConfirm: executeSubmit,
+      });
+      return;
+    }
+    executeSubmit();
   };
 
   const handleSubmit = () => {
@@ -257,11 +244,11 @@ export function EnvelopeFormModal({
           : t("modals.updateSchedule.confirmDescRuleChange", { startDate: goalStartDate || "" }),
         confirmText: t("modals.updateSchedule.confirmCta"),
         isDestructive: false,
-        onConfirm: executeSubmit,
+        onConfirm: confirmBankChangeIfNeeded,
       });
       return;
     }
-    executeSubmit();
+    confirmBankChangeIfNeeded();
   };
 
   const handleArchive = () => {
@@ -296,15 +283,20 @@ export function EnvelopeFormModal({
         { key: "GOAL", label: t("categories.typeGoal") },
       ];
 
-  const bankOptions = bankAccounts.map((acc) => ({
+  const eligibleAccounts = isEdit && categoryToEdit
+    ? bankAccounts.filter((acc) => Boolean(acc.isPrivate) === Boolean(categoryToEdit.isPrivate))
+    : bankAccounts;
+
+  const bankOptions = eligibleAccounts.map((acc) => ({
     key: acc.id,
     label: `${acc.name}${hasPrivateMode ? ` ${acc.isPrivate ? t("categories.privateBadge") : t("categories.householdBadge")}` : ''}`,
   }));
 
-  const isBankDisabled = isEdit || type === "EVERYDAY";
+  const isBankDisabled = isEdit ? eligibleAccounts.length <= 1 : type === "EVERYDAY";
 
   return (
-    <MobileModalDialog
+    <>
+      <MobileModalDialog
       visible={visible}
       onClose={onClose}
       isDirty={isDirty}
@@ -377,5 +369,13 @@ export function EnvelopeFormModal({
         bankOptions={bankOptions}
       />
     </MobileModalDialog>
+    <CrossBankTransferModal
+      visible={!!crossBankPrompt}
+      onClose={() => setCrossBankPrompt(null)}
+      sourceAccountName={crossBankPrompt?.sourceAccountName ?? ""}
+      destAccountName={crossBankPrompt?.destAccountName ?? ""}
+      amount={crossBankPrompt?.amount ?? 0}
+    />
+    </>
   );
 }
