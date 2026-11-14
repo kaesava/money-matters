@@ -45,7 +45,6 @@ export const common = {
     "remove": "Remove",
     "discard": "Discard",
     "markSpent": "Mark Spent",
-    "paid": "Paid",
     "count": "Count",
     "technicalDetails": "Technical details",
     "redirectingToDev": "Redirecting to development server...",
@@ -104,7 +103,6 @@ export const common = {
     "history": "History"
   },
   "actions": {
-    "markPaid": "Mark Paid"
   },
   "badges": {
     "bill": "BILL",
@@ -220,7 +218,6 @@ export const common = {
   },
   "keyboardShortcuts": {
     "title": "Keyboard Shortcuts",
-    "askPenny": "Ask Penny",
     "quickExpense": "Quick Expense",
     "search": "Search",
     "close": "Close",
@@ -229,7 +226,6 @@ export const common = {
   "errors": {
     "somethingWentWrongTitle": "Something Went Wrong",
     "somethingWentWrongBody": "An unexpected application error occurred. Our team has been notified automatically.",
-    "privateModeDisabledRestore": "Private Mode is currently disabled for this application. Private items cannot be restored."
   },
   "legal": {
     "privacyPolicy": "Privacy Policy",

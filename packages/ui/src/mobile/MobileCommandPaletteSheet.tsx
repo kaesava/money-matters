@@ -10,7 +10,7 @@ import {
 } from "react-native";
 import { Feather } from "@expo/vector-icons";
 import { DESIGN_TOKENS } from "../tokens";
-import { t } from "@money-matters/i18n";
+import { t, ASSISTANT_UNAVAILABLE_KEYS } from "@money-matters/i18n";
 import { useCurrencyLocale } from "../hooks/CurrencyLocaleContext";
 import type { AssistantResult } from "@money-matters/types";
 import MobileModalDialog from "./MobileModalDialog";
@@ -317,7 +317,7 @@ export const MobileCommandPaletteSheet: React.FC<MobileCommandPaletteSheetProps>
               )}
               {aiResult.type === "unavailable" && (
                 <Text style={styles.unavailableText}>
-                  {t(`assistant.unavailable.${aiResult.reason}`)}
+                  {t(ASSISTANT_UNAVAILABLE_KEYS[aiResult.reason] ?? "assistant.unavailable.disabled")}
                 </Text>
               )}
             </View>

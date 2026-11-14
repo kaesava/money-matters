@@ -20,5 +20,8 @@
     "test": "vitest run --passWithNoTests",
     "typecheck": "tsc --noEmit",
     "test:coverage": "vitest run --passWithNoTests --coverage"
+  },
+  "devDependencies": {
+    "vitest": "^4.1.10"
   }
 }

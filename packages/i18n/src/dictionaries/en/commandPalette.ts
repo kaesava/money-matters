@@ -1,11 +1,9 @@
 export const commandPalette = {
   commandPalette: {
-    triggerPlaceholder: "Search bank accounts, envelopes, bills, transactions... (⌘K)",
     triggerTitle: "Search & Ask Penny",
     triggerSubtitle: "Global Search & Command Palette",
     mobilePlaceholder: "Search anything...",
     inputPlaceholder: "Search anything or ask Penny...",
-    quickJump: "Quick Navigation",
     askPennyPrefix: "Ask Penny",
     askPennyHint: "Press Tab to ask AI",
     categories: {
@@ -25,7 +23,6 @@ export const commandPalette = {
     emptyState: {
       noResults: "No matching records found for \"{query}\"",
       tip: "Try searching by envelope name, merchant, or bank account.",
-      recentTitle: "Quick Jumps",
     },
     viewAllTransactions: "View all matching transactions in History →",
     footer: {

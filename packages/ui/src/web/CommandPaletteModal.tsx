@@ -13,7 +13,7 @@ import {
   ExternalLink,
   ChevronRight,
 } from "lucide-react";
-import { t } from "@money-matters/i18n";
+import { t, ASSISTANT_UNAVAILABLE_KEYS } from "@money-matters/i18n";
 import { useCurrencyLocale } from "../hooks/CurrencyLocaleContext";
 import type { AssistantResult } from "@money-matters/types";
 
@@ -491,7 +491,7 @@ export const CommandPaletteModal: React.FC<CommandPaletteModalProps> = ({
             )}
             {aiResult.type === "unavailable" && (
               <p className="text-sm text-amber-600 dark:text-amber-400">
-                {t(`assistant.unavailable.${aiResult.reason}`)}
+                {t(ASSISTANT_UNAVAILABLE_KEYS[aiResult.reason] ?? "assistant.unavailable.disabled")}
               </p>
             )}
           </div>

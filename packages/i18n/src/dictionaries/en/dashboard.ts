@@ -56,11 +56,6 @@ export const dashboard = {
       "onTrack": "{count} of {total} on track",
       "allOnTrack": "All {total} goals on track",
       "viewAll": "View All Goals",
-      "pacingTarget": "Pacing Target: {percent}%",
-      "justBehind": "Just Behind",
-      "lagging": "Lagging",
-      "onTrackBadge": "On Track",
-      "pace": "({percent}% pace)",
       "funded": "{percent}% funded",
       "ongoingPill": "Ongoing",
       "savedLabel": "Total Saved",
@@ -88,7 +83,6 @@ export const dashboard = {
       "noUpcoming": "No upcoming paydays scheduled.",
       "upcomingEventsLink": "Upcoming Events →",
       "twelveMonthPlanLink": "12-Month Plan →",
-      "twelveMonthSplit": "12-Month Plan",
       "nextPaydayBadge": "Next Payday",
       "allocatePayday": "Allocate Payday",
       "savedBadge": "Locked"
@@ -121,7 +115,6 @@ export const dashboard = {
     "trigger": "Ask Penny",
     "triggerTitle": "Ask Penny",
     "placeholder": "Ask about your goals, bills, payday, or envelopes...",
-    "subtitle": "Your intelligent Money Matters companion. Suggested questions are always free.",
     "remainingUsage": "{remaining} of {limit} AI questions left this month (resets {resetsOn})",
     "suggestedTitle": "Suggested Questions",
     "chips": {
@@ -139,7 +132,6 @@ export const dashboard = {
       "nextPayday": "Your next scheduled payday is on {date} with an expected {amount} to allocate.",
       "nextPaydayNotScheduled": "No upcoming income event is scheduled yet. Add an income schedule to preview your next payday.",
       "billsDue": "You have {count} bill(s) due within the next {days} days.",
-      "billPaid": "✓ {bill} ({amount}) has been paid and confirmed.",
       "billCovered": "✓ {bill} ({amount}) is fully funded in your envelope and ready for its due date.",
       "billUnpaid": "⚠ {bill} ({amount}) currently has a shortfall or is unfunded.",
       "billStatusNotFound": "Couldn't find an envelope or bill named '{bill}'."

@@ -4,7 +4,7 @@ import React, { useEffect } from "react";
 import Link from "next/link";
 import { FileText } from "lucide-react";
 import { PaginationBar, SkeletonTable } from "@money-matters/ui/web";
-import { t, TranslationKey } from "@money-matters/i18n";
+import { t, BANK_ACCOUNT_TYPE_KEYS } from "@money-matters/i18n";
 import { useAppFeatures } from "../../../../hooks/useAppFeatures";
 import type { AccountType } from "@money-matters/types";
 
@@ -133,7 +133,7 @@ export function BankAccountTable({
                           </button>
                           {acc.accountType && (
                             <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md bg-blue-50 text-blue-700 border border-blue-200">
-                              {t(`bankAccounts.accountTypes.${acc.accountType}` as TranslationKey)}
+                              {t(BANK_ACCOUNT_TYPE_KEYS[acc.accountType] ?? "bankAccounts.accountTypes.EVERYDAY")}
                             </span>
                           )}
                           {hasPrivateMode && acc.isPrivate && (

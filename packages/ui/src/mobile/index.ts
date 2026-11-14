@@ -6,12 +6,6 @@ export { default as MobileButton } from './Button';
 export type { ButtonProps as MobileButtonProps } from './Button';
 export { default as MobileInput } from './Input';
 export type { InputProps as MobileInputProps } from './Input';
-export { default as MobileSearchSelect } from './SearchSelect';
-export type { MobileSearchSelectOption, MobileSearchSelectProps } from './SearchSelect';
-export { default as MobileEmailInput } from './fields/EmailInput';
-export { default as MobilePhoneInput } from './fields/PhoneInput';
-export { SmartEmailInput } from './fields/SmartEmailInput';
-export { SmartPhoneInput } from './fields/SmartPhoneInput';
 export { validateMobileNumber } from '../lib/phone-validation';
 export { default as MobileScreenWrapper } from './ScreenWrapper';
 export type { ScreenWrapperProps as MobileScreenWrapperProps } from './ScreenWrapper';
@@ -21,10 +15,6 @@ export { default as MobileModalDialog } from './MobileModalDialog';
 export type { MobileModalDialogProps } from './MobileModalDialog';
 export { MobilePaginationBar } from './MobilePaginationBar';
 export type { MobilePaginationBarProps } from './MobilePaginationBar';
-export { default as MobileCollapsibleSection } from './CollapsibleSection';
-export type { CollapsibleSectionProps as MobileCollapsibleSectionProps } from './CollapsibleSection';
-export { default as MobileSectionHeader } from './MobileSectionHeader';
-export type { MobileSectionHeaderProps } from './MobileSectionHeader';
 export { default as MobileSpinner } from './Spinner';
 export type { SpinnerProps as MobileSpinnerProps } from './Spinner';
 export { default as MobileLogo } from './Logo';
@@ -67,9 +57,6 @@ export { CalendarModal as MobileCalendarModal } from './fields/CalendarModal';
 
 export { default as MobileCheckbox, MobileCheckbox as Checkbox } from './fields/Checkbox';
 export type { MobileCheckboxProps } from './fields/Checkbox';
-
-export { default as MobileSelectField, SelectField } from './fields/SelectField';
-export type { SelectFieldProps as MobileSelectFieldProps, SelectOption } from './fields/SelectField';
 
 export { default as MobileSegmentedTabs, SegmentedTabs } from './SegmentedTabs';
 export type { SegmentedTabsProps as MobileSegmentedTabsProps, SegmentTabItem } from './SegmentedTabs';
@@ -130,13 +117,10 @@ export type {
 export { MobileMatrixFilterBar } from './MobileMatrixFilterBar';
 export type { MobileMatrixFilterBarProps } from './MobileMatrixFilterBar';
 
-export { MobileEnvelopeExplainer, MobileEnvelopeExplainer as EnvelopeExplainer } from './EnvelopeExplainer';
 export { MobileGoalModeToggle, MobileGoalModeToggle as GoalModeToggle } from './GoalModeToggle';
 export type { MobileGoalModeToggleProps, MobileGoalModeToggleProps as GoalModeToggleProps } from './GoalModeToggle';
 export { MobileBillModeToggle, MobileBillModeToggle as BillModeToggle } from './BillModeToggle';
 export type { MobileBillModeToggleProps, MobileBillModeToggleProps as BillModeToggleProps } from './BillModeToggle';
-export { MobileBillCoverageBadge, MobileBillCoverageBadge as BillCoverageBadge } from './BillCoverageBadge';
-export type { MobileBillCoverageBadgeProps, MobileBillCoverageBadgeProps as BillCoverageBadgeProps } from './BillCoverageBadge';
 
 export { MobileProductTourSheet } from './MobileProductTourSheet';
 export type { MobileProductTourSheetProps, MobileTourStepConfig } from './MobileProductTourSheet';
@@ -153,7 +137,6 @@ export { MobileSpendingOverviewCard } from './charts/MobileSpendingOverviewCard'
 export type { MobileSpendingOverviewLabels } from './charts/MobileSpendingOverviewCard';
 
 export { MobileAiUsageCard } from './MobileAiUsageCard';
-export { MobileAskSheet } from './MobileAskSheet';
 export { MobileCommandPaletteSheet } from './MobileCommandPaletteSheet';
 export type { MobileCommandPaletteSheetProps } from './MobileCommandPaletteSheet';
 export { MobileCelebrationBanner } from './MobileCelebrationBanner';

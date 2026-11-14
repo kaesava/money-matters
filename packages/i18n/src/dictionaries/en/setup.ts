@@ -27,7 +27,6 @@ export const setup = {
       "housingTitle": "Housing Setup",
       "vehiclesTitle": "Vehicles",
       "ownVehicles": "✓ Own Vehicles",
-      "noVehicle": "No Vehicle",
       "addVehicle": "Add Vehicle",
       "dependentsTitle": "Children",
       "haveKids": "✓ Have Kids",
@@ -35,12 +34,9 @@ export const setup = {
       "addChild": "Add Child",
       "healthcarePetsTitle": "Healthcare & Pets",
       "privateHealth": "Private Health",
-      "havePrivateHealth": "✓ Private Health",
       "pets": "Pets",
-      "havePets": "✓ Have Pets",
       "debtTitle": "Active Debt Repayments",
       "haveDebt": "✓ Have Debt",
-      "noDebt": "None",
       "spendingTitle": "Weekly Everyday Spending",
       "groceries": "Groceries",
       "dining": "Dining & Fun",
@@ -113,10 +109,6 @@ export const setup = {
       "namePlaceholder": "e.g. Salary – Jane",
       "amountLabel": "Take-home amount",
       "amountPlaceholder": "0.00",
-      "scheduleLabel": "How often do you get paid?",
-      "scheduleWeekly": "Weekly",
-      "scheduleFortnightly": "Fortnightly",
-      "scheduleMonthly": "Monthly",
       "nextPaydayLabel": "Next Payday Date",
       "progressiveHint": "You can add more income sources and bank accounts later in Settings.",
       "takeHomePayTooltipTitle": "Take-Home Pay",
@@ -156,7 +148,6 @@ export const setup = {
     },
     "reviewSummary": {
       "title": "Almost Done – Review Your Household Budget",
-      "subtitle": "Verify your planned allocation before saving.",
       "monthlyNetIncome": "Monthly Net Income",
       "totalAllocated": "Total Allocated",
       "estimatedMonthlyExtra": "Estimated Monthly Extra",
@@ -189,7 +180,6 @@ export const setup = {
       "runSimulateCta": "Simulate Payday Plan",
       "simulatedSuccess": "Payday plan calculated! Here is where every dollar goes:",
       "returnToReview": "Return to Review",
-      "surplusSwept": "Surplus Swept"
     },
     "surplusSwept": "Archived envelope balances ({amount}) were automatically swept to your Surplus Target."
   }

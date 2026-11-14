@@ -45,7 +45,7 @@
     "@types/uuid": "^9.0.8",
     "dotenv-cli": "^8.0.0",
     "typescript": "^6.0.3",
-    "wrangler": "^4.114.0"
+    "wrangler": "^4.114.0",
+    "vitest": "^4.1.10"
   }
 }
-

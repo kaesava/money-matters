@@ -109,7 +109,7 @@
 
 ---
 
-#### `DEP-01` — Undeclared Phantom Dependencies Breaking Isolated Package Typecheck (`@money-matters/capability-file-notes`, `@money-matters/ui`, `@money-matters/core`, `apps/mobile`, `apps/web`, `@money-matters/i18n`, `@money-matters/db`)
+#### [x] COMPLETED `DEP-01` — Undeclared Phantom Dependencies Breaking Isolated Package Typecheck (`@money-matters/capability-file-notes`, `@money-matters/ui`, `@money-matters/core`, `apps/mobile`, `apps/web`, `@money-matters/i18n`, `@money-matters/db`)
 - **Title:** Declare all missing workspace dependencies and remove root `react-native-web` phantom dependency
 - **Evidence:**
   - `packages/capabilities/file-notes/src/mobile/NotesFeedModal.tsx:12-14` imports `expo-document-picker`, `expo-image-picker`, and `@expo/vector-icons`, none of which are in `packages/capabilities/file-notes/package.json`.
@@ -546,7 +546,7 @@
 
 ---
 
-#### `I18N-01` — 205 Confirmed Unused Keys & 7 Legacy Dynamic Enum Keys in `packages/i18n/src/dictionaries/en.ts` (Including Banned "Pool" & "Lock/Unlock" Keys)
+#### [x] COMPLETED `I18N-01` — 205 Confirmed Unused Keys & 7 Legacy Dynamic Enum Keys in `packages/i18n/src/dictionaries/en.ts` (Including Banned "Pool" & "Lock/Unlock" Keys)
 - **Title:** Cull all 212 dead i18n keys from `en.ts` and convert the remaining 36 dynamic template keys to typed lookup maps
 - **Evidence:**
   - See Section 4.2 (205 `CONFIRMED UNUSED` keys, including `categories.archivePool`, `categories.createPool`, `categories.editPoolTitle`, `categoryDrawer.poolType`, `paydayDrawer.lockSplit`, `matrix.lock`, `matrix.unlock`, `matrix.lockedBadge`) and Section 4.3 (7 dead enum keys: `settings.archived.types.POOL`, `settings.paydayRules.stepTypes.ESSENTIAL_BILLS`, `FLEXIBLE_BILLS`, `COMMITTED_GOALS`, and `stepDescriptions.ESSENTIAL_BILLS`, `FLEXIBLE_BILLS`, `COMMITTED_GOALS`).
@@ -563,7 +563,7 @@
 
 ---
 
-#### `I18N-02` — 406 Mobile-Only `mobile.*` Namespace Keys Duplicate Canonical Shared Keys
+#### [x] COMPLETED `I18N-02` — 406 Mobile-Only `mobile.*` Namespace Keys Duplicate Canonical Shared Keys
 - **Title:** Merge duplicate `mobile.*` copy keys into canonical shared namespaces (`auth.*`, `dashboard.*`, `categories.*`, `transactions.*`, `settings.*`, `common.*`)
 - **Evidence:**
   - `packages/i18n/src/dictionaries/en.ts` contains 406 keys under `mobile.*` (Section 4.4 and Section 6.7) that duplicate existing Web keys with identical meaning.
@@ -578,7 +578,7 @@
 
 ---
 
-#### `DEAD-01` — 28 Unused Files in `packages/ui` & Leaked V2 Push Notification / Basiq Code
+#### [x] COMPLETED `DEAD-01` — 28 Unused Files in `packages/ui` & Leaked V2 Push Notification / Basiq Code
 - **Title:** Delete 28 unused files in `packages/ui/src/` and remove leaked V2 push notification / Basiq stubs
 - **Evidence:**
   - See Appendix Section `6.5.3` for the complete list of **28 unused files in `packages/ui/src/`** (13 in `packages/ui/src/web/` including `EnvelopeHealthBadge.tsx`, `FormField.tsx`, `TableContainer.tsx`, `PageHeader.tsx`, `SummaryStatCard.tsx`, `StatusPill.tsx`, `EmptyStateCard.tsx`, `SectionCard.tsx`, `FilterChipBar.tsx`, `ActionMenu.tsx`, `KeyValueRow.tsx`, `StepProgressHeader.tsx`, `CurrencyText.tsx`; and 15 in `packages/ui/src/mobile/` including `usePushNotifications.ts`, `NotificationPermissionBanner.tsx`, `MobileEmptyState.tsx`, `MobileSectionHeader.tsx`, `MobileStatCard.tsx`, `MobileStatusBadge.tsx`, `MobileFilterChips.tsx`, `MobileFormField.tsx`, `MobileListRow.tsx`, `MobileKeyValueRow.tsx`, `MobileStepIndicator.tsx`, `MobileActionSheet.tsx`, `MobileCurrencyText.tsx`, `MobileSearchBar.tsx`, `MobileAvatar.tsx`).
@@ -652,7 +652,7 @@
 
 ---
 
-#### `DEAD-02` — Stale Root-Level Backup and Scratch Planning Files Polluting Repository Root
+#### [x] COMPLETED `DEAD-02` — Stale Root-Level Backup and Scratch Planning Files Polluting Repository Root
 - **Title:** Remove stale root files (`_BAK_AGENTS.md`, `MOBILE_PARITY_IMPLEMENTATION_PLAN.md`, `next_to_implement.md`, `codebase_details_researcher_output.md`, `posthog-self-driving-report.md`)
 - **Evidence:**
   - Repo root contains `_BAK_AGENTS.md` (297L), `MOBILE_PARITY_IMPLEMENTATION_PLAN.md`, `next_to_implement.md`, `codebase_details_researcher_output.md`, and `posthog-self-driving-report.md`.

@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useMemo, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { t } from "@money-matters/i18n";
+import { t, ALLOCATION_STEP_TYPE_KEYS, ALLOCATION_STEP_DESC_KEYS } from "@money-matters/i18n";
 import {
   Button,
   useToast,
@@ -239,8 +239,8 @@ function AllocationRulesContent() {
           const isSweep = step.stepType === "SURPLUS_SWEEP";
           const isBeforeSweep = steps[index + 1]?.stepType === "SURPLUS_SWEEP";
           const isLastMovable = index === steps.length - 1 || isBeforeSweep;
-          const stepName = t(`settings.paydayRules.stepTypes.${step.stepType}`);
-          const stepDesc = t(`settings.paydayRules.stepDescriptions.${step.stepType}`);
+          const stepName = t(ALLOCATION_STEP_TYPE_KEYS[step.stepType] ?? step.stepType);
+          const stepDesc = t(ALLOCATION_STEP_DESC_KEYS[step.stepType] ?? "");
 
           return (
             <div

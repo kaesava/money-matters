@@ -2,7 +2,6 @@ export const reports = {
   "reports": {
     "title": "Reports",
     "subtitle": "Visual analytics and historical breakdown of your spending, cash flow, and payday plans.",
-    "viewReports": "View Reports",
     "tabs": {
       "spending": "Spending & Cash Flow",
       "paydayPlans": "Payday Plans"
@@ -19,10 +18,6 @@ export const reports = {
       "searchPaydaysPlaceholder": "Filter payday plans..."
     },
     "kpi": {
-      "totalSpend": "Total Spend",
-      "netCashFlow": "Net Cash Flow",
-      "totalAllocated": "Total Planned",
-      "activeFilters": "Active Filters"
     }
   }
 } as const;

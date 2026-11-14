@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, ActivityIndicator, StyleSheet } from 'react-native';
 import { DESIGN_TOKENS } from '@money-matters/ui/mobile';
-import { t } from '@money-matters/i18n';
+import { t, ARCHIVED_ITEM_TYPE_KEYS } from '@money-matters/i18n';
 import { formatDate } from '../../../lib/format';
 
 export type RestorableItemType =
@@ -34,8 +34,8 @@ export function ArchivedItemRow({
   onRestore,
 }: ArchivedItemRowProps) {
   const getItemTypeBadge = () => {
-    const typeKey = `settings.archived.types.${item.itemType}` as const;
-    return t(typeKey);
+    const typeKey = ARCHIVED_ITEM_TYPE_KEYS[item.itemType];
+    return typeKey ? t(typeKey) : item.itemType;
   };
 
   const formattedDate = item.archivedAt ? formatDate(item.archivedAt) : '';

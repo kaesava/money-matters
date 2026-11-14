@@ -8,7 +8,7 @@ import { en } from "./dictionaries/en";
 
 /**
  * Registry of supported localization dictionaries.
- * Note: Japanese (ja.ts) has been archived in ./dictionaries/archive/ja.ts for Release 2 (V2_SCOPE.md).
+ * Note: Japanese (ja.ts) has been archived in ../../archive/ja.ts for Release 2 (V2_SCOPE.md).
  */
 export const translations = {
   en,
@@ -100,4 +100,6 @@ export function t(
 
   return result;
 }
+
+export * from "./key-maps";
 

@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { BankProviderBadge, CardDrawerIndicator, DESIGN_TOKENS } from '@money-matters/ui/mobile';
 import { formatMobileCurrency } from '../../lib/format';
-import { t } from '@money-matters/i18n';
+import { t, BANK_ACCOUNT_TYPE_KEYS } from '@money-matters/i18n';
 
 export interface BankAccountCardHeaderProps {
   name: string;
@@ -36,7 +36,7 @@ export function BankAccountCardHeader({
           </Text>
           {accountType && (
             <View style={styles.typePill}>
-              <Text style={styles.typeText}>{t(`bankAccounts.accountTypes.${accountType}`)}</Text>
+              <Text style={styles.typeText}>{t(BANK_ACCOUNT_TYPE_KEYS[accountType] ?? 'bankAccounts.accountTypes.EVERYDAY')}</Text>
             </View>
           )}
           {isPrivate && (

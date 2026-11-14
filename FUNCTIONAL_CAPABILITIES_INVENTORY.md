@@ -1,402 +1,229 @@
-# Money Matters — Complete Functional Capabilities Inventory (Web & Mobile Parity)
+# FUNCTIONAL_CAPABILITIES_INVENTORY.md — Canonical UI, Route, Modal, i18n & Web/Mobile Parity Registry
 
-> **Specification Standard**: 100% feature coverage across all screens, modals, drawers, popups, alert dialogs, form fields, validations, and UX interactions.
-> **Platform Legend**:
-> - `[W]`: Web Application (`apps/web`)
-> - `[M]`: Native Mobile Application (`apps/mobile`)
-> - `[W/M Parity]`: Identical shared capability / centralized tokenized primitive
-> - `[W vs M Diff]`: Platform-specific UX, gesture, navigation, or storage difference
-
----
-
-## 1. General & Cross-Cutting Infrastructure
-
-### Connection Interrupted & Offline Resilience
-* **Validity & Trigger**: Detects network disconnection or API gateway timeout.
-* **UX & Retry Flow**:
-  * `[W]`: Displays a sticky amber notification banner at the top of the viewport: *"Connection interrupted. Changes will resume when back online."* Provides a *"Retry Connection"* button triggering query cache invalidation.
-  * `[M]`: Integrated NetInfo listener dispatches non-blocking in-app toasts; pull-to-refresh (`RefreshControl`) on dashboard and list views forces query re-fetch; tRPC client interceptor automatically reloads refreshed JWT credentials from `SecureStore` upon 401 token expiry.
-* `[W vs M Diff]`: Web uses persistent top notification bar; Mobile utilizes native pull-to-refresh gestures and transient toasts.
-
-### Universal Table & Card Standards ("Set Once & Re-Use")
-* **Search, Sort, Alignment & Pagination**:
-  * `[W]`: High-density Serene Finance tables with standardized `SortHeader` (direction indicators `▲`/`▼`); unified search bar with `left-3.5` icon spacing and `pl-10` text indent; `<SkeletonTable />` loading states; 100% column header-to-cell alignment parity (Left for text/names, Center for dates/badges/actions, Right for monetary amounts `font-mono tabular-nums`); conditional `<PaginationBar />` (rendered only if total records $\ge 5$).
-  * `[M]`: Touch-optimized structured cards (`BankAccountCard`, `TransactionRow`, `ExpenseBillCard`, `IncomeSourceCard`, `MatrixPaydayCard`) with `<SkeletonCard />` loading animations; conditional `<MobilePaginationBar />` ($\ge 5$ records); horizontal swipe actions where applicable.
-* `[W vs M Diff]`: Web is table/column-oriented with fixed column widths; Mobile is vertical card-oriented with touch targets $\ge 44\text{px}$.
-
-### Modal Dialogs, Drawers & Discard Guardrails
-* **Behavior & LIFO Hierarchy**:
-  * `[W]`: Unified `<ModalDialog />` (centered dialog) and slide-over side drawers (`<SlideOverAllocationDrawer />`, `<SlideOverCategoryDrawer />`, `<QuickExpenseDrawer />`). LIFO dismissal on `Escape` key; backdrop click dismissal when form is clean; explicit unsaved changes confirmation dialog (`<ConfirmDialog />`) when dirty (`isDirty`).
-  * `[M]`: Native bottom-sheet modals (`<MobileModalDialog />`, `<CategoryItemModal />`, `<LinkedPoolsModalSheet />`, `<PoolsFilterSheet />`) with pull-down drag indicator; backdrop dismiss; `showMobileConfirm(...)` discard confirmation when `isDirty`.
-* `[W vs M Diff]`: Web slides from right or centers on screen with keyboard `Escape` handling; Mobile slides up from bottom with hardware Android back-button interception.
-
-### Defensive Form Validation & Centralized Inputs
-* `[W/M Parity]`: All validation is 100% Zod `.strict()` schema-driven. Mandatory labels use `<FormLabel required={true}>` (subtle red asterisk). Inline field errors render below the input via `<FormFieldError />`. Top-level submission/API errors render in `<FormErrorBanner />`. Primary submit buttons (`Button` / `MobileButton`) are strictly disabled unless the form is dirty and valid (`!isDirty || !isValid`), showing a built-in spinner during mutation.
-* **Monetary Inputs**: `<AmountField />` (web) and `<AmountInput />` (mobile) enforce `$` prefix, monospace font (`JetBrains Mono`), non-negative values, max 12 digits, and max 2 decimal places. Browser native number steppers are suppressed in favor of custom steppers.
-* **Date Pickers**: Supported boundaries (`min` / `max` dates) prevent invalid past dates on future transfers or future dates on historical payments.
-
-### Information Tooltip Icons (`InfoTooltip`)
-* `[W/M Parity]`: Contextual `(i)` trigger providing plain-English, friendly financial explanations (zero technical or banking jargon).
-* **Global Visibility Toggle**: Centrally controlled via "Show information icons" toggle in Settings > My Details across both Web and Mobile. When disabled, all `(i)` icons are hidden across all headers, cards, tables, and modals.
-
-### Timezone & Currency Formatting Parity
-* `[W/M Parity]`: Dates stored in UTC; rendered in user presentation timezone (AEST/en-AU default) via `fmtDate` / `fmtDateMedium`. Raw ISO strings (`YYYY-MM-DD`) are strictly banned in UI components.
-* **Zero-Decimal Currencies**: For zero-decimal currencies (e.g., `JPY`), monetary values disallow decimal input and render without cents.
+> **Purpose & Agent Protocol (Token Optimization & Zero Hallucination):**  
+> This file is the **single source of truth** for every Web route, Mobile route, Modal/Drawer/Bottom Sheet, Confirm Dialog, Screen-by-Screen Web/Mobile Parity mapping, `@money-matters/ui` primitive export, and `@money-matters/i18n` dictionary namespace.  
+> - **Before planning or building:** Read this registry first instead of running broad repo-wide file/grep scans.  
+> - **After every feature build:** Update the exact affected rows in this file whenever a route, screen, modal, UI primitive, or i18n namespace is added, modified, or removed.  
+> - **Zero Redundancy Rule:** Domain math and waterfall/simulation algorithms live in `FUNCTIONAL_SPEC.md`; tRPC procedures, HTTP endpoints, Inngest workflows, and feature flags live in `TECHNICAL_SPEC.md`; database tables, columns, RLS policies, and consumers live in `SCHEMA_DATA_DICTIONARY.md`.
 
 ---
 
-## 2. Public Pre-Login & Legal
+## 1. Cross-Platform UX & Component Invariants (Quick Reference)
 
-### Landing Page (`/`, Unauthenticated)
-* `[W]`: Interactive split hero comparing Traditional Budgeting (47 receipts logged, surprise bill shock) vs Money Matters (payday ring-fencing, guilt-free everyday spending), 4-pillar Bento showcase, Problem/Solution narrative, 28-day interactive Payday Timeline Simulator (`<PaycheckSimulator />`) with pool transfers modal, dynamic pricing CTA adapted to visitor trial status, and embedded `<AuthModal />`.
-* `[M]`: Mobile sign-in landing screen (`/(auth)/sign-in`) with brand identity, key value props, and direct auth routing.
-* `[W vs M Diff]`: Web features full marketing website with rich interactive simulator; Mobile is a direct native authentication portal.
-
-### Terms of Service (`/terms`)
-* `[W]`: Full Australian legal framework under NSW jurisdiction, Corporations Act 2001 general advice warnings (ASIC/AFSL exemption), Australian Consumer Law statutory guarantees, and SaaS subscription terms.
-* `[M]`: Accessible via in-app browser from Profile Settings.
-
-### Privacy Policy (`/privacy`)
-* `[W]`: Complete APPs 12 & 13 privacy documentation, Consumer Data Right (CDR) privacy compliance, Postgres RLS stealth privacy architecture, and data retention/erasure rights.
-* `[M]`: Accessible via dedicated in-app Privacy Governance section with direct 1-tap data export and erasure triggers.
-
-### Custom 404 Page (`/invalid-route`)
-* `[W]`: Branded Aussie 404 screen with "Back to Dashboard" / "Back to Home" navigation buttons.
-* `[M]`: Expo Router fallback screen redirecting to `/(app)/home`.
+| Dimension | Web (`apps/web` + `@money-matters/ui/web`) | Mobile (`apps/mobile` + `@money-matters/ui/mobile`) |
+| :--- | :--- | :--- |
+| **Primary Primitives** | `Button`, `FormLabel`, `FormFieldError`, `FormErrorBanner`, `ModalDialog`, `SlideOverDrawer`, `ConfirmDialog`, `TypedConfirmDialog`, `AmountField`, `DatePickerField`, `GenericSelectField`, `PaginationBar`, `SkeletonTable`, `SearchInput` | `MobileButton`, `MobileInput`, `FormLabel`, `FormFieldError`, `FormErrorBanner`, `AmountInput`, `ChipSelect`, `MobileModalDialog`, `MobileConfirmDialog`, `showMobileConfirm`, `MobilePaginationBar`, `BankProviderBadge`, `MobilePoolPicker`, `SkeletonCard` |
+| **Modals & Dirty State** | `ModalDialog` / `SlideOverDrawer` with LIFO `Escape` stack (`modalStack.ts`) and `isDirty` discard confirmation via `ConfirmDialog`. Native `confirm()` is banned. | `MobileModalDialog` bottom-sheet with Android back-button interception and `isDirty` discard confirmation via `MobileConfirmDialog` (`showMobileConfirm`). Native `Alert.alert` is banned. |
+| **Forms & Inputs** | Standard `h-10` height; first editable field has `autoFocus`; submit disabled while `!isDirty \|\| !isValid`; loading spinner on mutation. | `44dp` minimum touch target; first editable field focused; `AmountInput` uses `selectTextOnFocus`; submit disabled while `!isDirty \|\| !isValid`. |
+| **Tables, Cards & Pagination** | Left: text/names; Center: dates/badges/actions; Right: `font-mono tabular-nums` amounts. Render `PaginationBar` only when `totalItems >= 5`. | Structured cards with `SkeletonCard` loading state. Render `MobilePaginationBar` only when `totalItems >= 5`. |
+| **Formatting & i18n** | 100% strings from `@money-matters/i18n` (`en.ts`). Currency via `useCurrencyLocale()`; dates via `fmtDate` / `fmtDateMedium` in user presentation timezone. | 100% strings from `@money-matters/i18n` (`en.ts`). Currency via `formatMobileCurrency`; dates via `formatDate` in user presentation timezone. |
 
 ---
 
-## 3. Authentication & Account Access
+## 2. Web Routes & Screens Inventory (`apps/web/src/app` — 36 Files)
 
-### Sign-Up (`/sign-up`, `/(auth)/sign-up`)
-* `[W/M Parity]`: Full Name, Email, Password, Google OAuth, Apple Sign-In. Password complexity enforced (min 8 chars, 1 uppercase, 1 lowercase, 1 number, 1 special character). Real-time visual `<PasswordStrengthIndicator />` / `<MobilePasswordStrength />`.
-* **Provider Conflict Handling**: Attempting to sign up with an existing email via a different provider displays an informative notice to log in using the original method.
-
-### Sign-In (`/sign-in`, `/(auth)/sign-in`)
-* `[W/M Parity]`: Email/Password, Google OAuth, Apple Sign-In. Validates credentials; automatically redirects to active household dashboard, or to `/setup` if household onboarding is incomplete (`setupStatus !== 'COMPLETED'`).
-
-### Forgot Password OTP Flow (`/forgot-password`, `/(auth)/forgot-password`)
-* `[W/M Parity]`: 2-stage self-service password recovery:
-  * *Stage 1*: User submits email $\rightarrow$ API issues 6-digit OTP via Resend.
-  * *Stage 2*: User enters 6-digit OTP (`<OtpVerificationView />` / `<MobileOtpInput />`), New Password, and Confirm Password $\rightarrow$ verifies token, updates credentials, and establishes session.
-
-### Partner Invitation Acceptance (`/invite/[token]`, `/(auth)/invite/[token]`)
-* `[W/M Parity]`: Validates token against 48-hour expiration window; verifies user email identity matches invite email; joins household tenant (`tenant_users` with role `MEMBER`); redirects directly to household dashboard. Expired or mismatched tokens display actionable error guidance.
-
----
-
-## 4. Household Setup & Budget Re-calibration Wizard
-
-### Initial Onboarding Wizard (`/setup`, `/(setup)/*`)
-* **Step 1: Income Setup**: Dynamic list of income sources (Primary Salary, Freelance, Side Hustle) with Name, Amount ($), Frequency (Weekly, Fortnightly, Monthly), and First Pay Date.
-* **Step 2: Australian Household Banking Architecture**: Archetype selection (Aussie 2-Account Blueprint, Yours Mine & Ours, All-in-One Account) + 60-Second Australian Bank Cheat Sheet modal (CBA, Up, Macquarie, ING).
-* **Step 3: Goals & Commitments**: Targeted savings goals (Emergency Fund, Car, Holiday) with target amount and target date.
-* **Step 4: Lifestyle Category Budgeting**: ABS 2025/2026 benchmark estimations for housing, transport, food, family, and utilities.
-* **Step 5: Review & Confirm**: Total Monthly Income vs Total Monthly Budgeted comparison; custom category adjustments; single-click commit creating pools, categories, schedules, and setting `setupStatus = 'COMPLETED'`.
-* `[W vs M Diff]`: Web executes as a multi-step progressive form on `/setup`; Mobile executes as a dedicated Expo stack flow (`/(setup)/income`, `/(setup)/accounts`, `/(setup)/categories`, `/(setup)/complete`).
-
-### Budget Re-calibration Flow (`/setup?mode=rerun`)
-* `[W/M Parity]`: 3-step streamlined flow skipping lifestyle quiz: Step 1 Incomes $\rightarrow$ Step 2 Bank Accounts $\rightarrow$ Step 3 Categories & Targets.
-* **Atomic Balance Sweep on Pool Deletion**: If a user deletes an active pool holding positive funds ($> \$0.00$), system prompts destination pool selection (defaulting to Surplus Target), recording balanced `TRANSFER_OUT`/`TRANSFER_IN` ledger entries before soft-archival.
-* **Budget Impact Review Panel**: Diff preview showing +/- changes to monthly caps and effective start date before committing.
-
----
-
-## 5. Shell, Layout & Global Navigation
-
-### Web Desktop & Tablet Shell
-* Left fixed sidebar (`SideNavBar`) with brand logo, primary navigation links (`Dashboard`, `Income & Expenses`, `Pools & Categories`, `History`, `Settings`), active trial countdown badge, tenant switcher dropdown, and user profile footer with sign-out.
-* Sticky frosted-glass top navigation bar (`TopNavBar`) with responsive mobile hamburger drawer trigger.
-
-### Mobile Shell (`/(app)/_layout.tsx`)
-* Fixed bottom navigation bar (`BottomNavBar`) with 4 primary destinations: Home (`/(app)/home`), Schedules (`/(app)/paychecks`), Upcoming (`/(app)/upcoming`), and Pools (`/(app)/categories`).
-* Top app bar (`ScreenHeader`) featuring Household title, active trial badge, and User Avatar button opening `ScreenMenuModal`.
-* Header Avatar Menu (`ScreenMenuModal`): User Identity Card, Change Household (tenant switcher modal), Bank Accounts link, History link, Settings link, and Sign Out confirmation.
-
-### Tenant Switching (Multi-Household)
-* `[W]`: Dropdown select at the base of the sidebar (`TenantSwitcher.tsx`).
-* `[M]`: Dedicated modal sheet (`MobileTenantSwitcherModal`) triggered from avatar menu, persisting active selection to `SecureStore`.
+| Web Route | File Path | Lines | Auth / Guard | Primary Components / Modals / Drawers Rendered |
+| :--- | :--- | ---: | :--- | :--- |
+| Root Layout | `apps/web/src/app/layout.tsx` | 168 | Public / Root | `TRPCProvider`, `ThemeProvider`, `ToastContainer`, `PostHogProvider`, `CookieConsentBanner` |
+| Global Error | `apps/web/src/app/global-error.tsx` | 60 | Public | Next.js global error boundary (`<html><body>`) |
+| Global 404 | `apps/web/src/app/not-found.tsx` | 58 | Public | Top-level 404 screen with link to `/` and `/dashboard` |
+| `/` | `apps/web/src/app/page.tsx` | 109 | Public | `LandingHeader`, `HeroSection`, `InteractivePaydayEngine`, `ProblemSection`, `HowItWorksSection`, `AdvantagesSection`, `PricingSection`, `FaqSection`, `LandingFooter`, `AuthModal`, `EarlyAccessModal` |
+| `/sign-in` | `apps/web/src/app/sign-in/page.tsx` | 120 | Public (`<Suspense>`) | `SignInForm`, `SocialAuthButtons` |
+| `/sign-up` | `apps/web/src/app/sign-up/page.tsx` | 134 | Public (`<Suspense>`) | `SignUpForm`, `SocialAuthButtons` |
+| `/forgot-password` | `apps/web/src/app/forgot-password/page.tsx` | 330 | Public | Multi-step email/OTP/new-password reset flow (`OtpInput`, `PasswordStrengthIndicator`) |
+| `/reset-password` | `apps/web/src/app/reset-password/page.tsx` | 167 | Public (`<Suspense>`) | Token-based password reset form (`PasswordStrengthIndicator`) |
+| `/auth-callback` | `apps/web/src/app/auth-callback/page.tsx` | 70 | Public (`<Suspense>`) | OAuth/session callback redirect handler (`trpc.tenant.getMyTenants`) |
+| `/dev-callback/[...slug]` | `apps/web/src/app/dev-callback/[...slug]/page.tsx` | 76 | Dev-only | Local OAuth callback bridge |
+| `/invite/[token]` | `apps/web/src/app/invite/[token]/page.tsx` | 133 | Public / Auth | Household partner invitation acceptance (`trpc.tenant.getInviteDetails`, `trpc.tenant.acceptInvite`) |
+| `/privacy` | `apps/web/src/app/privacy/page.tsx` | 173 | Public | Privacy Policy page (`LandingHeader`, `LandingFooter`) |
+| `/terms` | `apps/web/src/app/terms/page.tsx` | 144 | Public | Terms of Service page (`LandingHeader`, `LandingFooter`) |
+| `/blog` | `apps/web/src/app/blog/page.tsx` | 124 | Public | Blog index (`BLOG_POSTS` from `apps/web/src/lib/blog-data.ts`) |
+| `/blog/[slug]` | `apps/web/src/app/blog/[slug]/page.tsx` | 215 | Public | Blog article detail (`BLOG_POSTS`) |
+| `/setup` | `apps/web/src/app/setup/page.tsx` | 400 | Authenticated | 5-step setup wizard (`SetupHeaderBar`, `SetupBankAccountsStep`, `SetupIncomeStep`, `SetupLifestyleStep`, `SetupGoalsStep`, `SetupCategoriesStep`, `EnvelopeFormModal`, `SetupDiscardModal`, `PaydaySandboxModal`) |
+| `/subscription/upgrade` | `apps/web/src/app/subscription/upgrade/page.tsx` | 255 | Authenticated (`<Suspense>`) | Plan selection & Stripe Checkout redirect (`ActiveSubscriptionCard`, `trpc.billing.createCheckoutSession`) |
+| `/subscription/success` | `apps/web/src/app/subscription/success/page.tsx` | 130 | Authenticated (`<Suspense>`) | Checkout verification (`trpc.billing.verifyCheckoutSession`) |
+| `/subscription/manage` | `apps/web/src/app/subscription/manage/page.tsx` | 50 | Authenticated | Redirects to `/dashboard/settings?tab=subscription` |
+| `/dashboard` (Layout) | `apps/web/src/app/dashboard/layout.tsx` | 499 | Authenticated + Tenant | `ProductTourProvider`, `FileNotesProvider`, `DashboardDesktopSidebar`, `DashboardMobileHeader`, `DashboardMobileDrawer`, `DashboardFooter`, `TrialBanner`, `CommandPaletteModal`, `FeedbackModal`, `KeyboardShortcutsModal` |
+| `/dashboard` | `apps/web/src/app/dashboard/page.tsx` | 364 | Authenticated + Tenant | `DashboardActionStrip`, `BentoPoolsSection`, `NextPaydayCard`, `GoalsProgressStrip`, `BalanceMatchNudgeBanner`, `AttentionItemsList`, `BankAccountsSection`, `DashboardModals` (`QuickActionDrawer`, `ReconciliationModal`, `EnvelopeFormModal`, `AffordCheckModal`, `MarkPaidModal`, `TransferModal`) |
+| `/dashboard/envelopes` | `apps/web/src/app/dashboard/envelopes/page.tsx` | 475 | Authenticated + Tenant | `EnvelopesFilterBar`, `PoolsTable`, `PoolTableRowItem`, `QuickActionDrawer`, `EnvelopeFormModal`, `EnvelopeDetailDrawer`, `ConfirmDialog`, `FileNotesDrawer` |
+| `/dashboard/income-and-bills` | `apps/web/src/app/dashboard/income-and-bills/page.tsx` | 503 | Authenticated + Tenant (`<Suspense>`) | 3 tabs: `UpcomingTimelineTab` (`TimelineFiltersBar`, `TimelineEventsTable`, `TimelineModals`), `MatrixPlanTab` (`MatrixTableHeader`, `MatrixCellInput`), and Schedules (`IncomeSchedulesCard`, `BillSchedulesCard`, `IncomeFormModal`, `EnvelopeFormModal`, `EnvelopeDetailDrawer`, `FileNotesDrawer`) |
+| `/dashboard/income-split` | `apps/web/src/app/dashboard/income-split/page.tsx` | 44 | Authenticated + Tenant (`<Suspense>`) | Renders `IncomeSplitScreen` (`PaydayCelebrationCard`, `PaydayMetricsGrid`, `IncomeEventInlineCard`, `DestinationTransferItem`, `IncomeSplitPoolTable`, `IncomeSplitModals`, `UnsavedSplitExitDialog`, `FileNotesDrawer`) |
+| `/dashboard/bank-accounts` | `apps/web/src/app/dashboard/bank-accounts/page.tsx` | 22 | Authenticated + Tenant | Redirects to `/dashboard/settings?tab=bank-accounts` |
+| `/dashboard/history` | `apps/web/src/app/dashboard/history/page.tsx` | 88 | Authenticated + Tenant (`<Suspense>`) | 2 tabs: `TransactionsTab` and `PaydayAllocationsTab` (`SlideOverAllocationDrawer`, `FileNotesDrawer`) |
+| `/dashboard/afford-check` | `apps/web/src/app/dashboard/afford-check/page.tsx` | 16 | Authenticated + Tenant | Renders `AffordCheckScreen` (`AffordCheckVerdict`, `AffordCheckBreakdown`, `GoalDelayCard`, `AffordCheckSkeleton`) |
+| `/dashboard/reports` | `apps/web/src/app/dashboard/reports/page.tsx` | 311 | Authenticated + Tenant + `reports` flag | `SpendingOverviewCard` (`DonutChart`, `BarTrendChart`, `HorizontalRankedBarChart`), KPI summary cards, CSV export |
+| `/dashboard/settings` | `apps/web/src/app/dashboard/settings/page.tsx` | 242 | Authenticated + Tenant | Tabbed settings (`ProfileSection`, `HouseholdDetailsSection`, `PartnerInviteSection`, `HouseholdDangerZoneSection`, `BankAccountsSection`, `AllocationStrategySection`, `SubscriptionSection`, `NotificationsPage`, `PrivacySection`, `ArchivedSection`, `FeedbackModal`, `ConfirmDialog`, version footer) |
+| `/dashboard/settings/allocation-rules` | `apps/web/src/app/dashboard/settings/allocation-rules/page.tsx` | 354 | Authenticated + Tenant + `customAllocationRules` flag | Custom payday waterfall strategy step builder (`ConfirmDialog`) |
+| `/dashboard/settings/notifications` | `apps/web/src/app/dashboard/settings/notifications/page.tsx` | 163 | Authenticated + Tenant | Notification toggles (`trpc.notifications.getPreferences`, `trpc.notifications.updatePreferences`) |
+| `/dashboard/settings/history` | `apps/web/src/app/dashboard/settings/history/page.tsx` | 41 | Authenticated + Tenant | Redirects to `/dashboard/history` |
+| `/dashboard/[...not-found]` | `apps/web/src/app/dashboard/[...not-found]/page.tsx` | 108 | Authenticated + Tenant | Scoped dashboard 404 screen |
+| `/api/auth/[...auth]` | `apps/web/src/app/api/auth/[...auth]/route.ts` | 234 | Public / Cookie | Next.js Neon Auth proxy + CSRF origin check + rate-limit header forwarding |
+| `/api/trpc/[trpc]` | `apps/web/src/app/api/trpc/[trpc]/route.ts` | 215 | Public / Cookie | Next.js tRPC proxy to Cloudflare Worker API (`NEXT_PUBLIC_API_URL`) |
+| `/robots.txt` & `/sitemap.xml` | `apps/web/src/app/robots.ts` (21L), `sitemap.ts` (74L) | 95 | Public | Search engine metadata routes |
 
 ---
 
-## 6. Dashboard / Home Financial Cockpit
+## 3. Mobile Routes & Screens Inventory (`apps/mobile/src/app` — 37 Files)
 
-### Hero Financial Overview Card
-* Displays Household Greeting, AEST formatted localized date, Total Net Worth / Available Balance.
-* **Pacing Meter**: Everyday Spending card with daily spendable pace (`$XX / day`), days-until-payday countdown, and pacing status (`On Track ✓`, `Pace Tightened`, `Bills at Risk`).
-* **Regular Bills Card**: Shortfall alerts (`⚠️ Shortfall of $X` vs `✅ Next 14 days covered!`) and next bill due date.
-
-### Goals Progress Strip (`GoalsProgressStrip`)
-* Horizontal progress strip displaying top 2 goals needing attention with percentage funded, target amount, target date, and vertical time-elapsed pacing needle (Green = on track, Amber = within 20% behind, Red = lagging).
-
-### Attention Queue & Action Items (`AttentionItemsList`)
-* Two-tier urgency alerts: Red for overdue items; Amber for bills due within 3 days. Contextual 1-click action triggers: "Mark Paid" (opens Mark Spent modal) and "Delete".
-
-### Next Payday Preview Card (`NextPaydayCard`, `MobileNextPaydayCard`)
-* Upcoming paycheck deposit date, expected amount, days countdown, and "Split Income" / "Review Split" CTA button.
-
-### Bank Balances Strip (`BankBalancesStrip`)
-* Linked accounts horizontal strip with branded institution badges (`BankProviderBadge`), current balances, and 1-click reconciliation triggers.
-
-### Missing Schedules Advisory Banner (`MissingSchedulesBanner`)
-* Warns when active categories have \$0 targets with direct setup link.
-
----
-
-## 7. Common & Quick Actions (Expense, Income, Transfer)
-
-### Trigger Mechanism
-* `[W]`: Consolidated top-header "+ Quick Action" button with dropdown menu (`Record Expense`, `Record Income`, `Transfer between Pools`).
-* `[M]`: Floating Action Button (FAB) at bottom-right of screen opening `QuickExpenseModal` with tactile haptic feedback.
-
-### Quick Form Fields & Capabilities
-* Flow Type toggle (Debit / Credit), Amount (`<AmountField>` / `<AmountInput>`), Date picker (defaults to today), Pool & Category picker, optional Note.
-* **Quick-Pick Suggestion Badges (`QuickPickBadges`)**: 1-tap chips for frequent Everyday purchases (`☕ Coffee $5.50`, `🥗 Lunch $18.00`, `🛒 Groceries $80.00`, `⛽ Fuel $70.00`), auto-filling amount and category.
-* **Recent & Frequent Presets**: Automatically aggregates up to 2 most recent presets and 2 most frequent presets from the past 180 days.
-* **Defensive Guardrails**: Inline liquidity warning if debit exceeds pool balance; negative amount blocking; submit button disabled until valid.
-
----
-
-## 8. "Can I Afford It?" Simulation Studio (`/dashboard/afford-check`, `/(app)/afford-check`)
-
-### Core Modes
-* **One-Off Purchase Mode**: Evaluates immediate purchase amount against available Everyday spending and upcoming bills before payday.
-* **Recurring Commitment Mode**: Evaluates 12-month budget impact; protects bills 100% and guarantees Everyday spending remains $\ge 80\%$ of monthly allowance.
-
-### 6-Verdict Classification
-* `SAFE_YES` (Green): Sufficient liquidity and Everyday balance $\ge$ recommended safe cushion.
-* `PACING_TIGHT` (Amber): Affordable, but Everyday balance drops below safe cushion ($X remaining until payday).
-* `BILLS_RISK` (Orange): Unfunded bills due before payday consume the buffer; itemizes upcoming bills.
-* `WAIT_FOR_PAYCYCLE` (Blue): Shortfall today, but projected income by paycycle $N$ accumulates sufficient funds; offers flexible savings alternative.
-* `GOAL_DELAYED` (Orange): Recurring commitment pushes back target dates of savings goals across 12-month forecast.
-* `HARD_NO` (Red): Recurring commitment starves essential Everyday spending below 80% allowance.
-
-### Prorated Safe Cushion & Stateless Execution
-* Formatted purely as total dollars remaining until payday (`$X safe cushion`), eliminating technical velocity jargon.
-* Pure stateless execution: Performs zero database writes.
+| Mobile Route | File Path | Lines | Auth / Guard | Primary Components / Modals / Sheets Rendered |
+| :--- | :--- | ---: | :--- | :--- |
+| Root Layout | `apps/mobile/src/app/_layout.tsx` | 118 | Public / Root | `AppProviders` (`TRPCProvider`, `CurrencyLocaleProvider`, `DateLocaleProvider`, `IconVisibilityProvider`, `MobileToastProvider`, `NotificationServiceProvider`, `ProductTourProvider`, `SetupWizardProvider`, `FileNotesProvider`), `BiometricLockOverlay`, `MobileConfirmContainer`, `MobileToastContainer` |
+| `/` (Entry Redirect) | `apps/mobile/src/app/index.tsx` | 43 | Public / Auth | Redirects to `/(auth)/sign-in`, `/(setup)/accounts`, or `/(app)/home` |
+| `+not-found` | `apps/mobile/src/app/+not-found.tsx` | 86 | Public | Unmatched route screen |
+| `(auth)` Layout | `apps/mobile/src/app/(auth)/_layout.tsx` | 14 | Public | Expo Router `Stack` for auth screens |
+| `/(auth)/sign-in` | `apps/mobile/src/app/(auth)/sign-in.tsx` | 149 | Public | `SignInEmailPasswordFields`, `MobileOtpVerificationView`, `MobileSocialAuthButtons` |
+| `/(auth)/sign-up` | `apps/mobile/src/app/(auth)/sign-up.tsx` | 191 | Public | `SignUpFormFields`, `SignUpTermsCheckbox`, `MobileOtpVerificationView`, `MobileSocialAuthButtons` |
+| `/(auth)/forgot-password` | `apps/mobile/src/app/(auth)/forgot-password.tsx` | 219 | Public | `ForgotPasswordEmailStep`, `ForgotPasswordOtpStep`, `ForgotPasswordSuccessStep` |
+| `/(auth)/reset-password` | `apps/mobile/src/app/(auth)/reset-password.tsx` | 240 | Public | Deep-link token password reset screen (`MobilePasswordStrength`) |
+| `/(auth)/invite/[token]` | `apps/mobile/src/app/(auth)/invite/[token].tsx` | 159 | Public / Auth | Partner invite acceptance screen (`trpc.tenant.getInviteDetails`, `trpc.tenant.acceptInvite`) |
+| `(setup)` Layout | `apps/mobile/src/app/(setup)/_layout.tsx` | 19 | Authenticated | Expo Router `Stack` for setup wizard |
+| `/(setup)/accounts` | `apps/mobile/src/app/(setup)/accounts.tsx` | 124 | Authenticated | Step 1: `SetupProgressBar`, `SetupBankAccountsHeader`, `SetupBankAccountCard` |
+| `/(setup)/income` | `apps/mobile/src/app/(setup)/income.tsx` | 343 | Authenticated | Step 2: `SetupProgressBar`, income schedule inputs, `RecurrenceBuilder` |
+| `/(setup)/lifestyle` | `apps/mobile/src/app/(setup)/lifestyle.tsx` | 351 | Authenticated | Step 3: `SetupProgressBar`, `LifestyleChildSubCard`, `LifestyleVehicleSubCard`, `MobileDiscretionarySliders` |
+| `/(setup)/goals` | `apps/mobile/src/app/(setup)/goals.tsx` | 394 | Authenticated | Step 4: `SetupProgressBar`, `SetupGoalsPresetsGrid`, `SetupGoalCard` |
+| `/(setup)/categories` | `apps/mobile/src/app/(setup)/categories.tsx` | 499 | Authenticated | Step 5: `SetupProgressBar`, `SetupCategoriesGoalsList`, `SetupCategoryRow`, `EnvelopeFormModal`, `MobilePaydaySandboxModal` |
+| `(app)` Tabs Layout | `apps/mobile/src/app/(app)/_layout.tsx` | 274 | Authenticated + Tenant | Bottom Tabs (`home`, `envelopes`, `paychecks`, `transactions`, `settings`) + hidden stack routes, `QuickActionFab`, `QuickExpenseModal`, `MobileCommandPaletteSheet`, `MobileAnalyticsConsentPrompt` |
+| `/(app)/home` | `apps/mobile/src/app/(app)/home.tsx` | 368 | Authenticated + Tenant | `TrialBanner`, `DashboardHeroCard`, `MobileNextPaydayCard`, `MobileAffordCheckCard`, `GoalsProgressStrip`, `AttentionItemsList`, `BankAccountCard`, `EnvelopeFormModal`, `BankAccountFormModal`, `MobileReconciliationModal`, `MarkPaidModal`, `MobileTransferModal`, `MobileAffordCheckModal`, `QuickExpenseModal`, `LinkedPoolsModalSheet` |
+| `/(app)/envelopes` | `apps/mobile/src/app/(app)/envelopes.tsx` | 248 | Authenticated + Tenant | `PoolSummaryCard`, `PoolGroupSection`, `PoolItemCard`, `EnvelopesFilterSheet`, `EnvelopeFormModal`, `MobileEnvelopeDetailSheet`, `PoolOverflowMenuModal`, `QuickExpenseModal` |
+| `/(app)/envelopes/[id]` | `apps/mobile/src/app/(app)/envelopes/[id].tsx` | 186 | Authenticated + Tenant | Envelope detail route (`PoolUpcomingSection`, `PoolHistorySection`, `EnvelopeFormModal`) |
+| `/(app)/envelopes/projection` | `apps/mobile/src/app/(app)/envelopes/projection.tsx` | 171 | Authenticated + Tenant | `ProjectionScrubber`, `ProjectionPoolGroupSection`, `ProjectionPoolCard` |
+| `/(app)/paychecks` | `apps/mobile/src/app/(app)/paychecks.tsx` | 284 | Authenticated + Tenant | Segmented tabs: `UpcomingEventsTab`, `MobileMatrixPlanTab`, `RecurringSchedulesTab`, `PaychecksModalManager` |
+| `/(app)/paychecks/[id]` | `apps/mobile/src/app/(app)/paychecks/[id].tsx` | 20 | Authenticated + Tenant | Redirects to `/(app)/income-split/[id]` |
+| `/(app)/paychecks/schedules` | `apps/mobile/src/app/(app)/paychecks/schedules.tsx` | 284 | Authenticated + Tenant | Dedicated schedules management screen (`IncomeSourceCard`, `ExpenseBillCard`, `IncomeExpenseFormModal`, `EnvelopeFormModal`, `MobileBurstModal`) |
+| `/(app)/paychecks/transfer-instructions` | `apps/mobile/src/app/(app)/paychecks/transfer-instructions.tsx` | 115 | Authenticated + Tenant | Standalone transfer rollup instructions screen |
+| `/(app)/income-split` | `apps/mobile/src/app/(app)/income-split.tsx` | 60 | Authenticated + Tenant | Resolves next pending payday and redirects to `/(app)/income-split/[id]` or `/(app)/paychecks` |
+| `/(app)/income-split/[id]` | `apps/mobile/src/app/(app)/income-split/[id].tsx` | 237 | Authenticated + Tenant | `MobilePaydayCelebrationCard`, `MobilePaydayMetricsGrid`, `MobileIncomeEventInlineCard`, `MobileBankTransferRollupCard`, `MobileIncomeSplitPoolList`, `MobilePaydayActionButtons`, `MobilePaydayTransferModal`, `MobileUnsavedSplitExitDialog`, `MobileEnvelopeDetailSheet`, `EnvelopeFormModal` |
+| `/(app)/upcoming` | `apps/mobile/src/app/(app)/upcoming.tsx` | 12 | Authenticated + Tenant | Redirects to `/(app)/paychecks` |
+| `/(app)/transactions` | `apps/mobile/src/app/(app)/transactions.tsx` | 186 | Authenticated + Tenant | Segmented tabs: `LedgerHistoryTab` and `IncomeSplitsTab`, `TransactionDetailSheet`, `MobilePaydayAllocationDetailModal` |
+| `/(app)/afford-check` | `apps/mobile/src/app/(app)/afford-check.tsx` | 134 | Authenticated + Tenant | `AffordCheckInputControls`, `AffordCheckVerdictCard`, `AffordCheckBreakdownCard`, `GoalDelayCard` |
+| `/(app)/reports` | `apps/mobile/src/app/(app)/reports.tsx` | 409 | Authenticated + Tenant + `reports` flag | `MobileSpendingOverviewCard` (`MobileDonutChart`, `MobileBarTrendChart`, `MobileHorizontalRankedBarChart`), KPI cards, CSV export (`expo-sharing`) |
+| `/(app)/settings` | `apps/mobile/src/app/(app)/settings.tsx` | 360 | Authenticated + Tenant | `SettingsActiveHouseholdCard`, `MobileProfileSection`, `HouseholdDetailsSection`, `HouseholdPartnerInviteSection`, `HouseholdDangerZoneSection`, `MobileBankAccountsSection`, `MobileAllocationStrategySection`, `SubscriptionPlanSection`, `SettingsNotificationsCard`, `PrivacyGovernanceSection`, `MobileArchivedSection`, `SettingsVersionFooter`, `FeedbackFormModal`, `MobileTenantSwitcherModal` |
+| `/(app)/settings/allocation-rules` | `apps/mobile/src/app/(app)/settings/allocation-rules.tsx` | 525 | Authenticated + Tenant + `customAllocationRules` flag | Custom payday waterfall strategy step builder |
+| `/(app)/settings/archived` | `apps/mobile/src/app/(app)/settings/archived.tsx` | 36 | Authenticated + Tenant | Standalone wrapper around `MobileArchivedSection` |
+| `/(app)/settings/bank-accounts` | `apps/mobile/src/app/(app)/settings/bank-accounts.tsx` | 15 | Authenticated + Tenant | Redirects to `/(app)/settings?tab=bank-accounts` |
+| `/(app)/settings/history` | `apps/mobile/src/app/(app)/settings/history.tsx` | 18 | Authenticated + Tenant | Redirects to `/(app)/transactions` |
+| `/(app)/settings/notifications` | `apps/mobile/src/app/(app)/settings/notifications.tsx` | 180 | Authenticated + Tenant | Notification preferences screen (`SwitchRow`, `trpc.notifications.getPreferences`, `trpc.notifications.updatePreferences`) |
+| `/(app)/settings/subscription` | `apps/mobile/src/app/(app)/settings/subscription.tsx` | 25 | Authenticated + Tenant | Redirects to `/(app)/settings?tab=subscription` |
 
 ---
 
-## 9. Pools & Categories Hub (`/dashboard/pools`, `/(app)/categories`, `/(app)/pools/[id]`)
+## 4. Modals, Drawers, Bottom Sheets & Confirm Dialogs Registry
 
-### Projection Timeline Scrubber
-* Draggable timeline slider (Today $\rightarrow$ +12 Months) scrubbing forward in time to inspect projected pool and category balances with real-time math simulation.
+### 4.1 Web Modals, Drawers & Confirm Dialogs (30 Components)
 
-### Pools Table & List View
-* `[W]`: Full-width structured table with expandable/collapsible pool rows, SortHeader, search bar, filters (All / Everyday / Bills / Goals & All / Shared / Private), pagination, and Category itemization.
-* `[M]`: Filterable pool card list with `PoolsFilterSheet`, category progress badges, and dedicated Pool Detail screen (`/(app)/pools/[id]`).
+| Component / Dialog Name | File Path | Lines | Primitive Used | Notes / Status |
+| :--- | :--- | ---: | :--- | :--- |
+| `CommandPaletteModal` | `packages/ui/src/web/CommandPaletteModal.tsx` | 802 | `createPortal` modal | Shared in `@money-matters/ui/web` (`⌘K` search + Ask Penny AI) |
+| `FileNotesDrawer` | `packages/capabilities/file-notes/src/web/FileNotesDrawer.tsx` | 316 | `SlideOverDrawer`, `ConfirmDialog` | Shared capability drawer for attaching/viewing PDF/image notes |
+| `QuickActionDrawer` (`QuickExpenseDrawer`) | `apps/web/src/components/web/QuickExpenseDrawer.tsx` | 371 | `SlideOverDrawer`, `ConfirmDialog` | Renders `CrossBankTransferModal` and `MarkPaidModal` |
+| `EnvelopeFormModal` | `apps/web/src/components/web/EnvelopeFormModal.tsx` | 335 | `ModalDialog`, `ConfirmDialog` (x2) | Merged Create/Edit envelope & bill schedule modal (`isEdit`) |
+| `IncomeFormModal` | `apps/web/src/components/web/IncomeFormModal.tsx` | 393 | `ModalDialog`, `ConfirmDialog` (x2) | Merged Create/Edit income schedule modal (`isEdit`) |
+| `MarkPaidModal` | `apps/web/src/app/dashboard/income-and-bills/components/MarkPaidModal.tsx` | 324 | `ModalDialog` | Shortfall resolution & bill payment confirmation modal |
+| `TransferModal` | `apps/web/src/components/web/TransferModal.tsx` | 338 | `ModalDialog`, `ConfirmDialog` | Scheduled/pending transfer confirmation modal |
+| `CrossBankTransferModal` | `apps/web/src/components/web/CrossBankTransferModal.tsx` | 106 | `ModalDialog` | Cross-bank physical transfer reminder modal |
+| `EditUpcomingEventModal` | `apps/web/src/components/web/EditUpcomingEventModal.tsx` | 225 | `ModalDialog` | Edit upcoming income/expense event occurrence |
+| `AffordCheckModal` | `apps/web/src/components/web/AffordCheckModal.tsx` | 130 | `ModalDialog` | Dashboard "Can I Afford It?" quick modal |
+| `FeedbackModal` | `apps/web/src/components/web/FeedbackModal.tsx` | 194 | `ModalDialog` | Bug report / feedback submission (`trpc.submitFeedback`) |
+| `AvatarCropModal` | `apps/web/src/components/web/AvatarCropModal.tsx` | 188 | `ModalDialog` | Avatar zoom/crop canvas modal |
+| `TourWelcomeModal` | `apps/web/src/components/web/TourWelcomeModal.tsx` | 62 | `ModalDialog` | Product tour welcome prompt |
+| `KeyboardShortcutsModal` | `apps/web/src/app/dashboard/components/KeyboardShortcutsModal.tsx` | 48 | `ModalDialog` | `?` keyboard shortcuts cheat-sheet modal |
+| `BankAccountFormModal` | `apps/web/src/app/dashboard/bank-accounts/components/BankAccountFormModal.tsx` | 326 | `ModalDialog`, `ConfirmDialog` (x2) | Merged Create/Edit bank account modal (`isEdit`) |
+| `PaydayTransferModal` | `apps/web/src/app/dashboard/income-split/components/PaydayTransferModal.tsx` | 204 | `ModalDialog` | Post-payday bank transfer checklist modal |
+| `PaydaySandboxModal` | `apps/web/src/app/setup/components/PaydaySandboxModal.tsx` | 156 | `ModalDialog` | Setup wizard payday simulation modal |
+| `SetupDiscardModal` | `apps/web/src/app/setup/components/SetupDiscardModal.tsx` | 24 | `ConfirmDialog` | Setup wizard discard confirmation |
+| `ReconciliationModal` | `apps/web/src/components/ReconciliationModal.tsx` | 451 | Custom `<div role="dialog">` | Match Balance modal (flagged in `PRODUCTION_READINESS_PLAN.md` to use `ModalDialog` & <400L) |
+| `BankAccountTable` (Linked Envelopes Modal) | `apps/web/src/app/dashboard/bank-accounts/components/BankAccountTable.tsx` | 349 | Custom `<div className="fixed inset-0">` | Inline linked-envelopes modal (flagged to use `ModalDialog`) |
+| `UnsavedSplitExitDialog` | `apps/web/src/app/dashboard/income-split/components/UnsavedSplitExitDialog.tsx` | 85 | Custom `<div role="dialog">` | Unsaved payday split exit dialog (flagged to use `ConfirmDialog`) |
+| `AuthModal` | `apps/web/src/components/landing/AuthModal.tsx` | 190 | Custom `<div role="dialog">` | Landing page auth modal (flagged to use `ModalDialog`) |
+| `EarlyAccessModal` | `apps/web/src/components/landing/EarlyAccessModal.tsx` | 121 | Custom `<div role="dialog">` | Early access waitlist modal (flagged to use `ModalDialog`) |
+| `SlideOverAllocationDrawer` | `apps/web/src/components/web/SlideOverAllocationDrawer.tsx` | 184 | Custom `<div className="fixed inset-0">` | Historical payday split drawer (flagged to use `SlideOverDrawer`) |
+| `EnvelopeDetailDrawer` | `apps/web/src/app/dashboard/income-and-bills/components/EnvelopeDetailDrawer.tsx` | 350 | Custom `<div className="fixed inset-0">` | Envelope detail drawer (flagged to use `SlideOverDrawer`) |
+| `DashboardMobileDrawer` | `apps/web/src/app/dashboard/components/DashboardMobileDrawer.tsx` | 34 | Custom mobile nav drawer | Responsive sidebar drawer for `<768px` viewports |
+| `PartnerInviteSection` (Role/Revoke Confirms) | `apps/web/src/app/dashboard/settings/components/PartnerInviteSection.tsx` | 165 | `TypedConfirmDialog`, `ConfirmDialog` | Ownership transfer & invite revocation dialogs |
+| `HouseholdDangerZoneSection` (Leave/Delete) | `apps/web/src/app/dashboard/settings/components/HouseholdDangerZoneSection.tsx` | 170 | `TypedConfirmDialog` (x2) | Leave household & delete household typed confirmations |
+| `TimelineModals` | `apps/web/src/app/dashboard/income-and-bills/components/timeline/TimelineModals.tsx` | 210 | `ConfirmDialog`, `MarkPaidModal`, `TransferModal`, `EditUpcomingEventModal`, `EnvelopeDetailDrawer`, `FileNotesDrawer` | Orchestrates modals for `UpcomingTimelineTab` |
+| `IncomeSplitModals` | `apps/web/src/app/dashboard/income-split/components/IncomeSplitModals.tsx` | 165 | `ConfirmDialog` (x3), `PaydayTransferModal`, `EnvelopeDetailDrawer`, `EnvelopeFormModal` | Orchestrates modals for `IncomeSplitScreen` |
 
-### Add & Edit Pool Modal (`<PoolFormModal>`)
-* **Fields**: Pool Name, Pool Type (`EVERYDAY`, `BILL`, `GOAL`), Linked Bank Account, Target Amount (for Goal pools), Target Date (for Goal pools), Surplus Target toggle (`isSurplusTarget`).
-* **Immutable Linking Protection**: Bank Account link and Pool Type are strictly locked after creation to preserve ledger auditability.
+### 4.2 Mobile Modals, Bottom Sheets & Confirm Dialogs (26 Components)
 
-### Archive & Restore Pool
-* Cascades soft-archival to child categories. Blocked if active positive balance exists (prompts balance sweep) or if last remaining Everyday pool.
-* Restoration available in Settings > Archived Data.
-
-### Add & Edit Category Modal (`<CategoryFormModal>`)
-* **Fields**: Category Name, Parent Pool, Target Amount ($), Frequency (Weekly, Fortnightly, Monthly, Annually), Monthly Equivalent preview ($/mo), Essential Bill toggle (`isEssential`), Lucide icon picker.
-* **Immutable Pool Linking**: Parent Pool locked after creation.
-
-### Priority & Stealth Privacy
-* Categories marked `isEssential: true` receive priority funding in Step 1 of the waterfall allocation engine.
-* Pools linked to private bank accounts inherit `isPrivate: true`, masked in partner views via RLS session variables.
-
----
-
-## 10. Bank Accounts Management & 1-Click Alignment (`/dashboard/bank-accounts`, `/(app)/settings/bank-accounts`)
-
-### Bank Accounts Table & Card Deck
-* Account Name, Branded Provider Badge, Account Type, Last 4 Digits, Current Balance, Unbudgeted Buffer, Expected Pool Balance, and Linked Pools count.
-
-### Add & Edit Bank Account Modal (`<BankAccountFormModal>`)
-* **Fields**: Bank Provider select, Account Name, Account Type (`CHECKING`, `SAVINGS`, `OFFSET`, `CREDIT_CARD`), Last 4 Digits, Current Balance ($), Unbudgeted Buffer / Reserved Funds ($), Stealth Private toggle (`isPrivate`).
-* **Unbudgeted Buffer Constraint**: Unbudgeted Buffer cannot exceed Current Balance; inline validation blocks invalid entries.
-* **Stealth Private Flag**: Locks ownership to creator; masked from household partner in RLS queries.
-
-### 1-Click Bank Balance Alignment (`<ReconciliationModal>`, `<MobileReconciliationModal>`)
-* Compares Actual Bank Balance vs Expected Balance (Sum of linked pools + Unbudgeted Buffer).
-* **Surplus Alignment**: Allocates positive variance to designated Surplus Target pool or user-selected pool.
-* **Shortfall Alignment**: Prompts funding source selection from non-zero pools up to available balance; records deterministic `ACCOUNT_ALIGNMENT` ledger transactions.
-
-### Cross-Bank Transfer Warning Modal (`<CrossBankTransferModal>`)
-* Triggered whenever an internal transfer spans pools in distinct physical bank accounts; displays source/destination bank accounts and 1-tap "Copy Amount" button for banking apps.
-
----
-
-## 11. Income & Expenses Command Center (`/dashboard/income-and-bills`, `/(app)/paychecks`)
-
-### Tab 1: 12-Month Matrix Plan (`MatrixPlanTab`, `MobileMatrixPlanTab`)
-* `[W]`: 12-month forward-looking spreadsheet grid with paydays as columns and pools/bills as rows, intermediate expense deductions, assumed pro-rata Everyday burn rate, and 1.5x anti-runaway cap. Clicking any payday column header opens the Income Split action drawer.
-* `[M]`: Horizontally scrollable pay-cycle timeline carousel card deck where each card summarizes a pay period with expandable bill lists.
-
-### Tab 2: Upcoming Queue (`UpcomingTimelineTab`, `/(app)/upcoming`)
-* Chronological queue of pending Income, Expense, and Transfer events with Overdue badges, search, and type filters.
-* Actions: "Run Split" (Income events $\rightarrow$ opens Income Split studio), "Mark Paid" (Expense events $\rightarrow$ opens Mark Spent modal), "Transfer" (Transfer events $\rightarrow$ opens Transfer modal), "Delete" (inconspicuous confirm).
-
-### Tab 3: Setup & Sources (`SetupSourcesTab`)
-* Structured tables for recurring Income Schedules and Expense Schedules.
-* **Add/Edit Schedule Modal (`<IncomeExpenseFormModal>`)**: Name, Amount ($), Recurrence (Weekly, Fortnightly, Monthly, Annually), Interval ("Every N"), Start Date, End Date, Receiving/Paying Bank Account, Category link.
-* **Burst & Re-Burst Engine**: Generates 12 months of forward occurrences. Editing schedule automatically re-bursts unperformed future events while preserving historical paid records.
-
----
-
-## 12. Dedicated Income Split Studio (`/dashboard/income-split`, `/(app)/paychecks/[id]`)
-
-### Layout & Navigation
-* `[W]`: Dedicated screen route `/dashboard/income-split?id=[incomeEventId]` integrated with standard sidebar and header shell.
-* `[M]`: Focused screen `/(app)/paychecks/[id]` with back navigation.
-
-### Header & Status Badges
-* Crystal-clear plan source badges: `✨ Auto-Calculated` (5-step waterfall engine), `💾 Custom Saved Plan`, `✓ Confirmed & Executed`.
-* Prominent "🔄 Re-calculate" button: refreshes dynamic allocations or prompts confirmation to discard custom overrides.
-
-### Structured Serene Pool Table
-* Collapsible category groups (`▼ Everyday Pools`, `▼ Bills Pools`, `▼ Goals`) with group subtotals.
-* Direct amount inputs with quick percentage chips (`[100%]`, `[$0]`).
-
-### Reactive Auto-Surplus & Deficit Banner
-* Designated Surplus pool automatically absorbs residual funds in real time.
-* Active deficit alert banner (`-$X.XX Deficit`) if allocations exceed net income, disabling Save and Confirm actions.
-
-### Bank-Account-Aware Transfer Rollup Card
-* Identifies paycheck deposit bank account; groups external transfers into **1 single transfer per destination bank account** with constituent pool breakdown and 1-click amount copy.
-
-### Execution & Ledger Confirmation
-* "Run Income Split" confirms allocations, generates immutable `CREDIT` entries in `transactionLedger`, marks income event and allocation plan as `CONFIRMED`, and presents the actionable transfer plan.
+| Component / Dialog Name | File Path | Lines | Primitive Used | Notes / Status |
+| :--- | :--- | ---: | :--- | :--- |
+| `MobileCommandPaletteSheet` | `packages/ui/src/mobile/MobileCommandPaletteSheet.tsx` | 812 | `MobileModalDialog` | Shared in `@money-matters/ui/mobile` (search + Ask Penny AI) |
+| `MobileEnvelopeDetailSheet` | `packages/ui/src/mobile/MobileEnvelopeDetailSheet.tsx` | 325 | `MobileModalDialog` | Shared envelope detail bottom sheet |
+| `MobileFileNotesSheet` / `NotesFeedModal` | `packages/capabilities/file-notes/src/mobile/MobileFileNotesSheet.tsx` (369L) / `NotesFeedModal.tsx` (456L) | 369 / 456 | `MobileModalDialog`, `showMobileConfirm` | Shared capability bottom sheet for file notes |
+| `QuickExpenseModal` | `apps/mobile/src/components/QuickExpenseModal.tsx` | 229 | `MobileModalDialog`, `showMobileConfirm` | 3-tab quick action sheet (`QuickExpenseTab`, `QuickIncomeTab`, `QuickTransferTab`) |
+| `EnvelopeFormModal` | `apps/mobile/src/components/EnvelopeFormModal.tsx` | 379 | `MobileModalDialog`, `MobileConfirmDialog` (x2) | Merged Create/Edit envelope & bill schedule sheet (`isEdit`) |
+| `IncomeExpenseFormModal` | `apps/mobile/src/components/IncomeExpenseFormModal.tsx` | 268 | `MobileModalDialog`, `MobileConfirmDialog` (x2) | Create/Edit income schedule or one-off event sheet (`isEdit`) |
+| `BankAccountFormModal` | `apps/mobile/src/components/BankAccountFormModal.tsx` | 216 | `MobileModalDialog`, `showMobileConfirm` | Merged Create/Edit bank account sheet (`isEdit`) |
+| `MobileReconciliationModal` | `apps/mobile/src/components/envelopes/MobileReconciliationModal.tsx` | 394 | `MobileModalDialog`, `showMobileConfirm` | Match Bank Balance sheet |
+| `MarkPaidModal` | `apps/mobile/src/components/MarkPaidModal.tsx` | 255 | `MobileModalDialog` | Bill payment & shortfall cover sheet |
+| `MobileTransferModal` | `apps/mobile/src/components/paychecks/MobileTransferModal.tsx` | 230 | `MobileModalDialog`, `MobileConfirmDialog` | Scheduled transfer confirmation sheet |
+| `CrossBankTransferModal` | `apps/mobile/src/components/CrossBankTransferModal.tsx` | 188 | `MobileModalDialog` | Cross-bank transfer reminder modal |
+| `EventOverrideModal` | `apps/mobile/src/components/EventOverrideModal.tsx` | 252 | `MobileModalDialog`, `showMobileConfirm` | Edit upcoming income/expense event occurrence |
+| `MobileBurstModal` | `apps/mobile/src/components/paychecks/MobileBurstModal.tsx` | 243 | `MobileModalDialog`, `showMobileConfirm` | Schedule occurrence list & inline edit sheet |
+| `MobilePaydayTransferModal` | `apps/mobile/src/components/paychecks/MobilePaydayTransferModal.tsx` | 168 | `MobileModalDialog` | Post-payday transfer checklist sheet |
+| `MobilePaydayAllocationDetailModal` | `apps/mobile/src/components/paychecks/MobilePaydayAllocationDetailModal.tsx` | 114 | `MobileModalDialog` | Historical payday split breakdown sheet |
+| `TransactionDetailSheet` | `apps/mobile/src/components/transactions/TransactionDetailSheet.tsx` | 194 | `MobileModalDialog` | Ledger transaction detail & inline note edit sheet |
+| `LinkedPoolsModalSheet` | `apps/mobile/src/components/bank-accounts/LinkedPoolsModalSheet.tsx` | 166 | `MobileModalDialog` | Bank account linked envelopes breakdown sheet |
+| `EnvelopesFilterSheet` | `apps/mobile/src/components/envelopes/EnvelopesFilterSheet.tsx` | 91 | `MobileFilterSheet` | Envelopes filter & sort bottom sheet |
+| `MobileAffordCheckModal` | `apps/mobile/src/components/afford-check/MobileAffordCheckModal.tsx` | 289 | `MobileModalDialog` | Dashboard "Can I Afford It?" sheet |
+| `FeedbackFormModal` | `apps/mobile/src/components/FeedbackFormModal.tsx` | 237 | `MobileModalDialog` | Bug report / feedback sheet (`trpc.submitFeedback`) |
+| `MobilePlanPickerModal` | `apps/mobile/src/components/settings/MobilePlanPickerModal.tsx` | 315 | `MobileModalDialog` | Subscription plan picker & Stripe checkout sheet |
+| `MobileTenantSwitcherModal` | `apps/mobile/src/components/settings/MobileTenantSwitcherModal.tsx` | 176 | `MobileModalDialog` | Household switcher & create household sheet |
+| `MobilePaydaySandboxModal` | `apps/mobile/src/components/setup/MobilePaydaySandboxModal.tsx` | 213 | `MobileModalDialog` | Setup wizard payday simulation sheet |
+| `PoolOverflowMenuModal` | `apps/mobile/src/components/envelopes/PoolOverflowMenuModal.tsx` | 142 | Raw `<Modal>` | Envelope action menu (flagged to use `MobileModalDialog`) |
+| `MobileUnsavedSplitExitDialog` | `apps/mobile/src/components/paychecks/MobileUnsavedSplitExitDialog.tsx` | 164 | Raw `<Modal>` | Unsaved payday split exit dialog (flagged to use `MobileConfirmDialog`) |
 
 ---
 
-## 13. Mark Paid / Spent Workflow (`<MarkPaidModal>`)
+## 5. Screen-by-Screen Web vs. Mobile Parity Matrix
 
-* **Trigger**: Upcoming bills queue, Attention Items list on dashboard, or Pool detail views.
-* **Form Controls**:
-  * Event Name (editable), Actual Amount Paid (`<AmountField>`), Payment Date (`<DatePickerField max={todayStr}>` in user timezone).
-* **Shortfall Resolution Workflow**:
-  * Compares paid amount against target pool balance. If shortfall exists, prompts: "Select Funding Pools to cover shortfall:".
-  * Allows selecting non-zero pools up to their available balance, defaulting to the household Surplus Target pool.
-  * Automatically records required funding `TRANSFER_OUT`/`TRANSFER_IN` transactions before confirming the expense as `CONFIRMED`.
-
----
-
-## 14. Scheduled & Ad-Hoc Transfers Workflow (`<TransferModal>`, `<MobileTransferModal>`)
-
-* **Trigger**: Upcoming timeline, dashboard Quick Action FAB/menu, or pool cards.
-* **Form Controls**:
-  * Transfer Name, Amount (`<AmountField>`), Date (`<DatePickerField min={todayStr}>`), Source Pool select, Destination Pool select.
-* **Validation & Actions**:
-  * Source pool liquidity check (prevents overdrafting source pool).
-  * Date branching: Future dates display "Save" (updates scheduled event); Today displays "Confirm" (executes transfer immediately via `moveMoneyCommand`).
-  * Discard protection on dirty state (`isDirty`).
+| Screen / Capability | Web Route & Primary File | Mobile Route & Primary File | tRPC Procedures Invoked | Tour Anchors (`data-tour` / `MOBILE_TOUR_STEPS`) | Intentional Platform Idioms & Open Parity Notes |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| **Public Marketing, Legal & Early Access** | `/`, `/privacy`, `/terms`, `/blog` (`apps/web/src/app/page.tsx`) | In-app links from Auth/Settings (Mobile starts at `/(auth)/sign-in`) | `tenant.subscribeEarlyAccess`, `getAppConfig` | N/A | Web hosts full marketing site & interactive payday simulator; Mobile enters directly into authentication. |
+| **Authentication, OTP Reset & Partner Invite** | `/sign-in`, `/sign-up`, `/forgot-password`, `/reset-password`, `/invite/[token]` | `/(auth)/sign-in`, `/(auth)/sign-up`, `/(auth)/forgot-password`, `/(auth)/reset-password`, `/(auth)/invite/[token]` | `tenant.getInviteDetails`, `tenant.acceptInvite`, `tenant.getMyTenants` | N/A | Full functional parity (Email/Password, Google OAuth, 6-digit OTP reset, 48h partner invite). |
+| **First-Run 5-Step Setup & 3-Step Rerun Wizard** | `/setup` (`?mode=rerun`) (`apps/web/src/app/setup/page.tsx`) | `/(setup)/accounts`, `income`, `lifestyle`, `goals`, `categories` | `envelopes.saveSetupBudget`, `tenant.completeSetup`, `tenant.cancelSetup`, `income.listIncomeSources`, `envelopes.listEnvelopes` | N/A | Web uses single-page step state; Mobile uses Expo Router stack screens. Both commit via `envelopes.saveSetupBudget`. |
+| **Dashboard / Home Overview** | `/dashboard` (`apps/web/src/app/dashboard/page.tsx`) | `/(app)/home` (`apps/mobile/src/app/(app)/home.tsx`) | `envelopes.getHomeSummary`, `tenant.getBankAccounts`, `billing.getSubscriptionStatus` | `hero-metric`, `envelopes-bento`, `bank-accounts`, `payday-card`, `quick-actions` | Web uses top "+ Quick Action" dropdown; Mobile uses bottom-right `QuickActionFab` with haptics. |
+| **Envelopes List, Detail & 12M Projection** | `/dashboard/envelopes` (`apps/web/src/app/dashboard/envelopes/page.tsx`) | `/(app)/envelopes`, `/(app)/envelopes/[id]`, `/(app)/envelopes/projection` | `envelopes.listEnvelopes`, `envelopes.createEnvelope`, `envelopes.updateEnvelope`, `envelopes.archiveEnvelope`, `envelopes.getProjectedEnvelopeBalances` | `envelopes-list`, `new-category-btn`, `search-input` | Web opens `EnvelopeDetailDrawer` + inline projection scrubber; Mobile navigates to `/(app)/envelopes/[id]` and `/(app)/envelopes/projection`. |
+| **Plan: Upcoming Timeline, 12M Matrix & Schedules** | `/dashboard/income-and-bills` (`apps/web/src/app/dashboard/income-and-bills/page.tsx`) | `/(app)/paychecks`, `/(app)/paychecks/schedules` | `payday.getMatrixPlan`, `income.listUpcomingIncomeEvents`, `expenses.listUpcomingExpenseEvents`, `transfers.listUpcomingTransferEvents`, `payday.overrideEvent`, `payday.bulkDeleteEvents` | `matrix-plan`, `upcoming-events` | Web renders 12M spreadsheet grid; Mobile renders horizontal pay-cycle card carousel + `MobileBurstModal`. |
+| **Allocate Payday (Income Split Studio)** | `/dashboard/income-split` (`apps/web/src/app/dashboard/income-split/page.tsx`) | `/(app)/income-split`, `/(app)/income-split/[id]`, `/(app)/paychecks/transfer-instructions` | `payday.previewPayday`, `payday.saveBulkAllocations`, `payday.saveAutoAllocation`, `payday.confirmPayday`, `payday.resetAllocationPlan` | `allocate-payday` | Both implement the Document Draft Model (`Auto-Calculated` -> `Custom Draft` -> `Save Draft` / `Confirm & Apply` + `Reset`). |
+| **"Can I Afford It?" Purchase Simulator** | `/dashboard/afford-check` (`apps/web/src/app/dashboard/afford-check/page.tsx`) | `/(app)/afford-check` (`apps/mobile/src/app/(app)/afford-check.tsx`) | `simulation.canAfford` | `affordability-simulator` | Full 6-verdict (`SAFE_YES`, `PACING_TIGHT`, `BILLS_RISK`, `WAIT_FOR_PAYCYCLE`, `GOAL_DELAYED`, `HARD_NO`) & `GoalDelayCard` parity. |
+| **Activity / History (Transactions & Payday Splits)** | `/dashboard/history` (`apps/web/src/app/dashboard/history/page.tsx`) | `/(app)/transactions` (`apps/mobile/src/app/(app)/transactions.tsx`) | `transactions.listTransactions`, `transactions.recordManualTransaction`, `transactions.moveMoney`, `transactions.markExpensePaid`, `transactions.updateTransactionNote`, `payday.listConfirmedAllocations` | `history-ledger` | Web downloads CSV directly; Mobile shares CSV via `expo-sharing`. |
+| **Visual Analytics / Reports** | `/dashboard/reports` (`apps/web/src/app/dashboard/reports/page.tsx`) | `/(app)/reports` (`apps/mobile/src/app/(app)/reports.tsx`) | `payday.getIncomeSplitAnalytics`, `transactions.listTransactions`, `envelopes.listEnvelopes` | N/A | Guarded by `apps.featureFlags.reports` on both platforms. |
+| **Settings (Profile, Household, Bank Accounts, Rules, Subscription, Notifications, Privacy, Archive)** | `/dashboard/settings` + `/allocation-rules`, `/notifications` | `/(app)/settings` + `/allocation-rules`, `/archived`, `/notifications`, `/subscription` | `tenant.*`, `payday.getActiveAllocationStrategy`, `payday.applyAllocationPreset`, `payday.updateAllocationStrategySteps`, `billing.*`, `notifications.*`, `envelopes.listArchivedItems`, `envelopes.restoreArchivedItem`, `submitFeedback` | Settings Product Tour button & Version Footer on both | Mobile adds native Biometric Lock (`mm_biometric_lock_enabled`) and Haptic Feedback (`mm_haptics_enabled`) toggles. |
 
 ---
 
-## 15. History & Audit Ledger (`/dashboard/history`, `/(app)/transactions`)
+## 6. `@money-matters/ui` Shared Primitives & Entrypoints Inventory
 
-### Tab 1: Transactions Ledger
-* Paired transfer detection (`Source ➔ Dest`), search, multi-filter dropdowns (All / Spent / Received / Transfer, Pool filter), sortable headers, pagination, and CSV export.
-* `[W vs M Diff]`: Web triggers immediate browser `.csv` file download; Mobile invokes native OS share sheet via `expo-sharing` (`Share.share`).
-
-### Tab 2: Payday Allocations History
-* Historical allocation runs with Income Source, Bank Account, Payday Date, Split Execution Date, and Total Amount.
-* Clicking any run opens `<SlideOverAllocationDrawer>` (web) or `<MobilePaydayAllocationDetailModal>` (mobile) displaying read-only pool breakdowns and ledger notes.
+### 6.1 Package Entrypoints (`packages/ui/package.json`)
+- `@money-matters/ui` (`.`) → `packages/ui/src/index.ts` (re-exports `DESIGN_TOKENS`, shared hooks/formatters/dates, and `./web/index`).
+- `@money-matters/ui/web` (`./web`) → `packages/ui/src/web/index.ts` (68 exported symbols across modals, drawers, form inputs, tables, charts, and providers).
+- `@money-matters/ui/mobile` (`./mobile`) → `packages/ui/src/mobile/index.ts` (106 exported symbols across native bottom-sheet modals, inputs, pickers, charts, and providers).
+- `@money-matters/ui/tokens` (`./tokens`) → `packages/ui/src/tokens.ts` (`DESIGN_TOKENS`).
 
 ---
 
-## 15A. Visual Analytics & Reports (`/dashboard/reports`, `/(app)/reports`)
+## 7. `@money-matters/i18n` Dictionary Files & Namespace Inventory (`2,048` Leaf Keys)
 
-* **Feature Entitlement**: Guarded by the `reports` app feature flag (defaults to `true`; unauthorized access returns `TRPCError FORBIDDEN`).
-* `[W/M Parity]`: Dedicated visual analytics interface cleanly separated from ledger tables.
-* **Tab 1: Spending & Cash Flow**:
-  * Timeframe pills (`30D`, `90D`, `1Y`).
-  * Search filter, Envelope picker, Bank account picker, and Flow Type filter (`All`, `Expenses Only`, `Income Only`, `Transfers Only`).
-  * Visualizations: Cash flow bar trends (inflow vs outflow), 3-horizon timeframe comparisons, and envelope spending donut distributions.
-* **Tab 2: Payday Plans**:
-  * Timeframe pills (`30D`, `90D`, `1Y`), search filter, and receiving Bank Account picker.
-  * Visualizations: Payday plan flow trends, allocation horizon comparisons, and total ring-fenced funds summaries.
-* `[W vs M Diff]`: Web provides rich desktop layout with responsive grid charts; Mobile provides scrollable card views with `<MobileSpendingOverviewCard>` and bottom filter sheets.
+All user-facing copy lives in `packages/i18n/src/dictionaries/en/*.ts` (re-exported via `packages/i18n/src/dictionaries/en.ts`).
 
----
-
-## 16. Settings — My Details (Profile & Preferences)
-
-* **Read-Only Default Mode**: Renders in clean read-only mode by default to prevent accidental edits; explicit "Edit" button enters edit mode with "Save" and "Cancel" (with dirty discard confirm).
-* **Fields & Validation**:
-  * Display Name (mandatory), Notification Email (valid email regex), Phone Country Code (`CountrySelect`), Phone Number (`PhoneInput` with Australian mobile `04` validation), Presentation Timezone (AEST/en-AU), Locale & Date Format, UI Theme (`Light` / `Dark` / `System`), and "Show information icons" toggle.
-* **Avatar Photo Upload**:
-  * `[W]`: File upload with interactive 256x256 WebP pan/zoom modal (`<AvatarCropModal>`).
-  * `[M]`: Native image picker with built-in crop square.
-
----
-
-## 17. Settings — Household Management & Governance
-
-* **Household Details**:
-  * Household Name, Country, Base Currency (`AUD`, `USD`, `EUR`, `GBP`, `CAD`, `JPY`, `NZD`, `SGD`), Household Accounting Timezone. Currency change triggers warning dialog regarding historical non-conversion.
-* **Member Collaboration & Invites**:
-  * Active member list with avatar, role (`OWNER`, `MEMBER`), and pending status badges.
-  * Partner Invite: Owner enters email; dispatches 48-hour invite token via Inngest and Resend.
-  * Member Removal: Owner can remove member with confirmation challenge, soft-archiving their private accounts/pools.
-* **Household Danger Zone & Account Erasure**:
-  * *Leave Household*: Non-owners can leave; transfers ownership to next member or deletes private data with confirmation challenge.
-  * *Delete Household & All Data*: Sole owner deletes entire tenant with exact household name confirmation typing requirement.
-
----
-
-## 18. Settings — Archived Data & Cascading Restoration
-
-* **Archived Items Table & Cards**:
-  * Filters by Item Type (All, Pools, Categories, Bank Accounts, Income Schedules, Expense Schedules).
-  * Search input, archived timestamp, and "Restore" action button.
-* **Cascading Archival & Restoration Safeguards**:
-  * Archiving a Bank Account cascades to its Pools and Categories.
-  * Restoring a Category requires its parent Pool to be active. Restoring a Pool requires its linked Bank Account to be active. Date-sensitive integrity checks prevent orphaned child records.
-
----
-
-## 19. Settings — Data & Subscription Lifecycle (Stripe & Trial)
-
-* **60-Day Trial Status**:
-  * Prominent trial countdown badge (`X days remaining on trial`).
-  * Anti-abuse guard: Users can own at most 1 active trial household (`hasUsedTrial` flag).
-* **Hard Paywall Lockdown (`TRIAL_EXPIRED`)**:
-  * On Day 61, tenant transitions to `TRIAL_EXPIRED`, redirecting dashboard routes to `/subscription/expired`.
-  * Mutation blocking on API worker (`requiresWriteAccess`).
-  * Isolated holding screen offers Upgrade CTA, 1-click Zipped CSV Backup download (`exportMyData`), and Sign Out.
-* **Stripe Checkout & Billing Portal**:
-  * Checkout session creation ($9.95 AUD/mo or $89 AUD/yr) supporting Cards, Apple Pay, Google Pay.
-  * Synchronous verification on return (`/subscription/success?session_id=...`).
-  * Stripe Customer Portal integration for cancellation with grace access through paid period.
-* **Invoice History**: Paid and failed invoices table with direct links to Stripe-hosted invoice PDFs.
-* **1-Click Zipped CSV Backup**:
-  * Bundles 12 complete database tables into `money-matters-backup-YYYY-MM-DD.zip`.
-  * `[W vs M Diff]`: Web triggers direct browser `.zip` download via in-memory `JSZip`; Mobile writes `.zip` to `FileSystem.cacheDirectory` and invokes the native OS share sheet via `expo-sharing`.
-
----
-
-## 20. Native Android Mobile Capabilities
-
-* **Biometric App Lock (`BiometricLockOverlay`)**:
-  * Optional Face ID / Touch ID / Fingerprint / Device PIN lock enabled in Profile Settings (`mm_biometric_lock_enabled`).
-  * Engages secure authentication overlay when backgrounded for $\ge 2$ minutes.
-* **Tactile Haptic Feedback**:
-  * `expo-haptics` vibrations on FAB press, expense/income submission, split execution, pull-to-refresh, and destructive action confirmations (user toggleable in Settings).
-* **Push Notifications & In-App Toast Feedback**:
-  * Expo push notification registration with background cron dispatch; foreground push listener rendering non-blocking in-app toasts.
-* **Offline Resilience & Local Cache**:
-  * SQLite local caching for offline viewing; resilient 401 token refresh in tRPC client.
-
----
-
-## 21. Ask Penny AI Assistant (Web & Mobile Parity)
-
-* **Cost-Efficient & Safe Conversational Financial Inquiries**:
-  * `[W/M Parity]`: Natural language interface answering questions regarding current balances, payday allocations, upcoming bills, savings goal dates, and spend history without micro-budgeting friction.
-  * **Deterministic-First Interception**: 100% free, zero-token instant matching for common questions (*"When is my next payday?"*, *"How much is left in Everyday?"*, *"Which bills are due this week?"*, *"Can I afford $250 next week?"*, *"When can I achieve my Goal?"*, *"I paid my internet bill $190 on 23-Jan"*).
-  * **Zero Hallucination / Read-Only**: Cloudflare Workers AI Gateway (`@cf/meta/llama-3.1-8b-instruct-fast`) acts strictly as an intent classifier. It is barred from executing database writes directly.
-  * **Prefill Action Routing**: When asking to record an expense, mark a bill paid, or perform a transfer, Penny returns structured prefill payloads routing the user directly into the relevant modal/drawer (Quick Expense drawer, Mark Paid modal, Affordability check) for explicit human confirmation.
-  * **Tenant Quota & Abuse Protections**: Enforces a strict monthly cap of 150 LLM questions per tenant ($\le \$1.50$ cost boundary) with live usage bar in Settings > Plan/Subscription. Burst rate limits: 10 calls/min, 40 calls/day per tenant via Upstash Redis.
-* **Platform Invocation**:
-  * `[W]`: `<AskPennyPalette />` opened via sidebar nav item, mobile header sparkle icon, or keyboard shortcut `⌘K` / `Ctrl+K`.
-  * `[M]`: Native `<MobileAskSheet />` bottom-sheet dialog opened via header sparkle icon (`zap`) in `AppScreenWrapper`.
-
+| Dictionary File (`packages/i18n/src/dictionaries/en/*.ts`) | Top-Level Namespaces Owned | Total Keys | Web `t()` Calls (Distinct Keys) | Mobile `t()` Calls (Distinct Keys) | API `t()` Calls (Distinct Keys) | Packages `t()` Calls (Distinct Keys) |
+| :--- | :--- | ---: | ---: | ---: | ---: | ---: |
+| `auth.ts` | `auth`, `tenantSwitcher`, `partner` | 83 | 133 (74) | 132 (76) | 0 (0) | 1 (1) |
+| `commandPalette.ts` | `commandPalette` | 26 | 4 (2) | 0 (0) | 0 (0) | 40 (21) |
+| `common.ts` | `common`, `nav`, `actions`, `badges`, `tables`, `forms`, `toasts`, `tooltips`, `validation`, `notFound`, `networkError`, `keyboardShortcuts`, `errors`, `legal`, `location`, `app`, `searchSelect` | 210 | 302 (136) | 307 (98) | 0 (0) | 133 (79) |
+| `dashboard.ts` | `dashboard`, `home`, `cards`, `assistant` | 131 | 83 (71) | 96 (78) | 0 (9) | 18 (19) |
+| `envelopes.ts` | `envelopes`, `categories`, `categoryDrawer`, `drawers`, `modals`, `poolTypes`, `quickPick`, `goalModes` | 309 | 290 (201) | 271 (177) | 0 (0) | 82 (42) |
+| `feedback.ts` | `feedback` | 26 | 25 (25) | 25 (25) | 0 (0) | 0 (0) |
+| `fileNotes.ts` | `fileNotes` | 16 | 2 (2) | 2 (1) | 0 (0) | 27 (16) |
+| `incomeBills.ts` | `incomeBillsTabs`, `incomeAndBills`, `schedules`, `matrix`, `billCoverage`, `expenseStatus` | 133 | 75 (66) | 100 (81) | 0 (0) | 11 (16) |
+| `landing.ts` | `landing` | 292 | 230 (192) | 5 (3) | 0 (0) | 0 (0) |
+| `payday.ts` | `payday`, `paydayDrawer`, `paychecks` | 99 | 86 (75) | 103 (79) | 0 (0) | 14 (8) |
+| `privacy.ts` | `privacy`, `terms`, `public` | 144 | 136 (135) | 22 (21) | 0 (5) | 4 (4) |
+| `reports.ts` | `reports` | 18 | 12 (9) | 8 (8) | 0 (0) | 0 (0) |
+| `settings.ts` | `settings`, `subscription`, `notifications`, `bankAccounts` | 382 | 341 (281) | 294 (247) | 4 (3) | 16 (22) |
+| `setup.ts` | `setup` | 176 | 177 (151) | 169 (153) | 0 (0) | 5 (9) |
+| `tour.ts` | `tour` | 38 | 7 (33) | 7 (33) | 0 (0) | 12 (5) |
+| `transactions.ts` | `transactions`, `canIAfford` | 177 | 133 (101) | 101 (84) | 0 (0) | 78 (43) |
+| **Total** | **47 Top-Level Namespaces across 16 Files** | **2,260** | **2,036 (1,554)** | **1,642 (1,165)** | **4 (17)** | **441 (245)** |

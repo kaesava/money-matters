@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import { trpc } from "../../../../lib/trpc";
-import { t } from "@money-matters/i18n";
+import { t, ARCHIVED_ITEM_TYPE_KEYS } from "@money-matters/i18n";
 import { PaginationBar, Spinner, InfoTooltip, SearchInput, SkeletonTable, ConfirmDialog, useToast } from "@money-matters/ui/web";
 import { useLocale } from "../../../../providers/LocaleProvider";
 
@@ -71,8 +71,8 @@ export function ArchivedSection() {
   const paginated = filtered.slice((page - 1) * pageSize, page * pageSize);
 
   const getItemTypeBadge = (itemType: string) => {
-    const typeKey = `settings.archived.types.${itemType}` as const;
-    return t(typeKey) || itemType.replace("_", " ");
+    const typeKey = ARCHIVED_ITEM_TYPE_KEYS[itemType];
+    return typeKey ? t(typeKey) : itemType.replace("_", " ");
   };
 
   return (

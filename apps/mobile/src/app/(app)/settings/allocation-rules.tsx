@@ -9,7 +9,7 @@ import {
 } from 'react-native';
 import { useRouter, useLocalSearchParams, type Href } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
-import { t } from '@money-matters/i18n';
+import { t, ALLOCATION_STEP_TYPE_KEYS, ALLOCATION_STEP_DESC_KEYS } from '@money-matters/i18n';
 import {
   DESIGN_TOKENS,
   MobileButton,
@@ -271,10 +271,10 @@ export default function MobileAllocationRulesScreen() {
                     </View>
                     <View style={styles.stepTitleTextContainer}>
                       <Text style={styles.stepTypeName}>
-                        {t(`settings.paydayRules.stepTypes.${step.stepType}` as Parameters<typeof t>[0])}
+                        {t(ALLOCATION_STEP_TYPE_KEYS[step.stepType] ?? step.stepType)}
                       </Text>
                       <Text style={styles.stepTypeDesc}>
-                        {t(`settings.paydayRules.stepDescriptions.${step.stepType}` as Parameters<typeof t>[0])}
+                        {t(ALLOCATION_STEP_DESC_KEYS[step.stepType] ?? '')}
                       </Text>
                     </View>
                   </View>
