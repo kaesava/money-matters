@@ -29,7 +29,3 @@ CREATE POLICY stealth_privacy_isolation ON "allocation_strategies"
 -- 3. user_preferences: enforce FORCE RLS and mm_app permissions (SEC-03)
 ALTER TABLE "user_preferences" FORCE ROW LEVEL SECURITY;
 GRANT SELECT, INSERT, UPDATE, DELETE ON "user_preferences" TO mm_app;
-
--- 4. bug_reports: enforce FORCE RLS and mm_app permissions (SEC-03)
-ALTER TABLE "bug_reports" FORCE ROW LEVEL SECURITY;
-GRANT SELECT, INSERT, UPDATE, DELETE ON "bug_reports" TO mm_app;
