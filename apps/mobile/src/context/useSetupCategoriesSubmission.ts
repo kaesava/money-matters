@@ -192,6 +192,7 @@ export function useSetupCategoriesSubmission() {
             budgetFrequency: g.budgetFrequency || (isOngoing ? 'MONTHLY' : undefined),
             startDate: g.startDate,
             rrule: g.rrule,
+            generateEvents: false,
             isSurplusTarget: isSurplus,
             isPriority: g.isPriority ?? true,
             isPrivate: matchedPool?.isPrivate ?? Boolean(g.isPrivate),

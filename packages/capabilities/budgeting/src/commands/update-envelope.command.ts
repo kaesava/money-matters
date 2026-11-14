@@ -2,7 +2,6 @@ import { envelopes, expenseEvents, bankAccounts, tenants, DbOrTx } from "@money-
 import { eq, and, sql } from "drizzle-orm";
 import { z } from "zod";
 import { UpdateEnvelopeCommand } from "@money-matters/types";
-import { getTenantDateString } from "@money-matters/core";
 import {
   deriveRruleFromFrequency,
   computeDefaultStartDate,
@@ -169,7 +168,9 @@ export async function updateEnvelopeCommand(
       throw new Error("End date cannot be earlier than start date.");
     }
 
-    const effectiveGenerateEvents = restInput.generateEvents !== undefined ? restInput.generateEvents : existing.generateEvents;
+    const effectiveGenerateEvents = isNowScheduled
+      ? (restInput.generateEvents !== undefined ? restInput.generateEvents : existing.generateEvents)
+      : false;
 
     const [updated] = await tx
       .update(envelopes)
@@ -260,10 +261,6 @@ export async function updateEnvelopeCommand(
             .where(eq(tenants.id, tenantId))
             .limit(1);
           const tenantTz = tenantRecord?.timezone || "Australia/Sydney";
-          const todayStr = getTenantDateString(new Date(), { timezone: tenantTz });
-          const yesterday = new Date(Date.now() - 86400000);
-          const yesterdayStr = getTenantDateString(yesterday, { timezone: tenantTz });
-          const afterDateStr = startDate < todayStr ? yesterdayStr : null;
 
           const count = await burstEnvelopeEvents(tx, {
             envelopeId,
@@ -276,7 +273,7 @@ export async function updateEnvelopeCommand(
             appId,
             userId,
             timeZone: tenantTz,
-            afterDateStr,
+            afterDateStr: null,
           });
 
           if (count === 0) {

@@ -109,8 +109,7 @@ export async function restoreItemCommand(
         env.startDate &&
         parseFloat(amountVal) > 0
       ) {
-        const afterDateStr = env.startDate < todayStr ? yesterdayStr : null;
-        await burstEnvelopeEvents(tx, {
+        const count = await burstEnvelopeEvents(tx, {
           envelopeId: env.id,
           name: env.name,
           amount: amountVal,
@@ -121,8 +120,14 @@ export async function restoreItemCommand(
           appId,
           userId,
           timeZone: tenantTz,
-          afterDateStr,
+          afterDateStr: null,
         });
+        if (count === 0) {
+          await tx
+            .update(envelopes)
+            .set({ lastBurstDate: env.endDate || null, updatedAt: new Date(), updatedBy: userId })
+            .where(eq(envelopes.id, env.id));
+        }
       }
     }
 
@@ -259,8 +264,7 @@ export async function restoreItemCommand(
         restored.startDate &&
         parseFloat(amountVal) > 0
       ) {
-        const afterDateStr = restored.startDate < todayStr ? yesterdayStr : null;
-        await burstEnvelopeEvents(tx, {
+        const count = await burstEnvelopeEvents(tx, {
           envelopeId: restored.id,
           name: restored.name,
           amount: amountVal,
@@ -271,8 +275,14 @@ export async function restoreItemCommand(
           appId,
           userId,
           timeZone: tenantTz,
-          afterDateStr,
+          afterDateStr: null,
         });
+        if (count === 0) {
+          await tx
+            .update(envelopes)
+            .set({ lastBurstDate: restored.endDate || null, updatedAt: new Date(), updatedBy: userId })
+            .where(eq(envelopes.id, restored.id));
+        }
       }
     }
 

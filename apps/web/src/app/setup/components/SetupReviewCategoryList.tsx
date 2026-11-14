@@ -90,6 +90,14 @@ export function SetupReviewCategoryList({
                     {isFlexible ? t("categories.flexibleBillBadge") : t("categories.scheduledBillBadge")}
                   </button>
                 )}
+                {isBill && !isFlexible && cat.generateEvents === false && (
+                  <span
+                    className="text-[10px] font-semibold px-2 py-0.5 rounded-full border bg-zinc-100 text-zinc-600 border-zinc-200 shrink-0"
+                    title={t("categories.tooltips.eventsOff")}
+                  >
+                    {t("categories.badgeEventsOff")}
+                  </span>
+                )}
               </div>
 
               <div className="flex items-center gap-2">

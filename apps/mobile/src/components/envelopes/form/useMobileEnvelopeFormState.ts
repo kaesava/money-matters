@@ -228,6 +228,10 @@ export function useMobileEnvelopeFormState({
     return Boolean(type === "GOAL" && fundingMode === "TARGET_BALANCE" && targetDate && targetDate < todayStr);
   }, [type, fundingMode, targetDate, todayStr]);
 
+  const isPastStartDate = useMemo(() => {
+    return Boolean(goalStartDate && goalStartDate < todayStr);
+  }, [goalStartDate, todayStr]);
+
   const initialGenerateEvents = useMemo(() => {
     if (!isEdit || !categoryToEdit) return true;
     const rawType = categoryToEdit.envelopeType || categoryToEdit.poolType || categoryToEdit.type || "BILL";
@@ -320,6 +324,7 @@ export function useMobileEnvelopeFormState({
     targetDate,
     setTargetDate,
     isTargetDateInPast,
+    isPastStartDate,
     fundingMode,
     setFundingMode,
     frequency,

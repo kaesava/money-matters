@@ -151,6 +151,7 @@ export function useSetupWizardPrepopulation({
           endDate: c.endDate,
           rrule: c.rrule,
           generateEvents: (c as { generateEvents?: boolean }).generateEvents ?? c.hasScheduledEvents ?? (c.envelopeType === 'BILL' && c.fundingMode === 'RECURRING'),
+          hasScheduledEvents: c.hasScheduledEvents ?? false,
           icon: c.envelopeType === 'EVERYDAY' ? '🛒' : '📌',
         };
       })

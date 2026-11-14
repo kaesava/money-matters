@@ -50,6 +50,7 @@ export interface EnvelopeFormFieldsProps {
   hasExistingScheduledEvents?: boolean;
   initialMode?: 'ALL' | 'BILL_SCHEDULE';
   isTargetDateInPast?: boolean;
+  isPastStartDate?: boolean;
 }
 
 export function EnvelopeFormFields({
@@ -89,6 +90,7 @@ export function EnvelopeFormFields({
   setIsPriority,
   initialMode = 'ALL',
   isTargetDateInPast = false,
+  isPastStartDate = false,
 }: EnvelopeFormFieldsProps) {
   const isBill = type === 'BILL';
   const effectiveFundingMode: 'RECURRING' | 'TARGET_BALANCE' = fundingMode;
@@ -213,6 +215,7 @@ export function EnvelopeFormFields({
               initialGenerateEvents={initialGenerateEvents}
               hasExistingScheduledEvents={hasExistingScheduledEvents}
               isEdit={isEdit}
+              isPastStartDate={isPastStartDate}
             />
           )}
         </div>

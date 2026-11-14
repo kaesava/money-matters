@@ -60,6 +60,11 @@ export function SetupCategoryRow({
               </Text>
             </TouchableOpacity>
           )}
+          {isBill && !isFlexible && cat.generateEvents === false && (
+            <View style={[styles.typeBadge, styles.flexibleBadge]}>
+              <Text style={styles.flexibleBadgeText}>{t('categories.badgeEventsOff')}</Text>
+            </View>
+          )}
         </View>
       </View>
       <View style={styles.inputCol}>

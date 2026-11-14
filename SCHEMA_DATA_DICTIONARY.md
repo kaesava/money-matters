@@ -228,7 +228,7 @@
 | `isPriority` | boolean | No | Priority flag for allocation waterfalls (Priority Bills & Priority Goals) |
 | `isSurplusTarget` | boolean | No | Domain column |
 | `isPrivate` | boolean | No | Domain column |
-| `generateEvents` | boolean | No | Controls auto-generation of upcoming scheduled expense events |
+| `generateEvents` | boolean | No | Controls auto-generation of upcoming scheduled expense events (`true` only for `BILL` + `RECURRING`; normalized to `false` otherwise) |
 | `userId` | uuid | Yes | Domain column |
 | `emoji` | varchar | Yes | Visual envelope emoji icon |
 | `colorKey` | varchar | Yes | Visual envelope theme color key |

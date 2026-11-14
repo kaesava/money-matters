@@ -62,6 +62,7 @@ export function useSetupWizardState() {
 
   const [step, setStep] = useState(1);
   const [showDiscardModal, setShowDiscardModal] = useState(false);
+  const [isDiscarding, setIsDiscarding] = useState(false);
 
   // Re-run mode & auto-trigger when setup was already completed (not cancelled) - locked on mount to prevent submission flicker
   const isRerunParam = searchParams?.get("mode") === "rerun";
@@ -98,17 +99,6 @@ export function useSetupWizardState() {
   const [billTypeOverrides, setBillTypeOverrides] = useState<Record<string, "RECURRING" | "TARGET_BALANCE">>({});
   const [categoryFrequencies, setCategoryFrequencies] = useState<Record<string, "WEEKLY" | "FORTNIGHTLY" | "MONTHLY" | "QUARTERLY" | "YEARLY">>({});
 
-  // Prepopulation query
-  const prepopulation = useSetupWizardPrepopulation({
-    isRerun,
-    enabled: !!session?.user && hasTenant,
-    setIncomes: (val) => incomeState.setIncomes(val),
-    setBankAccounts,
-    setGoals: (val) => goalsState.setGoals(val),
-    setCustomCategories,
-    setCategoryFrequencies,
-  });
-
   const incomeState = useSetupIncomeState({
     onProceedToNextStep: () => setStep(2),
   });
@@ -117,8 +107,19 @@ export function useSetupWizardState() {
     onProceedToNextStep: () => setStep(isRerun ? 3 : 4),
   });
 
-  const { incomes } = incomeState;
-  const { goals } = goalsState;
+  const { incomes, setIncomes } = incomeState;
+  const { goals, setGoals } = goalsState;
+
+  // Prepopulation query
+  const prepopulation = useSetupWizardPrepopulation({
+    isRerun,
+    enabled: !!session?.user && hasTenant,
+    setIncomes,
+    setBankAccounts,
+    setGoals,
+    setCustomCategories,
+    setCategoryFrequencies,
+  });
 
   const isAud = tenantQuery.data?.currency ? tenantQuery.data.currency === "AUD" : true;
 
@@ -136,13 +137,13 @@ export function useSetupWizardState() {
     }
     const tenantCurrency = tenantQuery.data?.currency;
     if (tenantCurrency && tenantCurrency !== "AUD" && !isRerun) {
-      incomeState.setIncomes((prev) =>
+      setIncomes((prev) =>
         prev.map((inc) => (inc.id === "inc-1" && inc.amount === 3200 ? { ...inc, amount: 0 } : inc))
       );
       setBankAccounts((prev) =>
         prev.map((acc) => (acc.id === "acc-default" && acc.lastKnownBalance === "1000.00" ? { ...acc, lastKnownBalance: "0.00" } : acc))
       );
-      goalsState.setGoals((prev) =>
+      setGoals((prev) =>
         prev.map((g) => {
           if (g.id === "g-1" && g.targetAmount === 10000) {
             return { ...g, monthlyAmount: 0, targetAmount: 0, enteredAmount: 0 };
@@ -157,7 +158,7 @@ export function useSetupWizardState() {
       setWeeklyDining(0);
       setWeeklyPersonal(0);
     }
-  }, [tenantQuery.data?.country, tenantQuery.data?.currency, isRerun, setCountry, setWeeklyGroceries, setWeeklyDining, setWeeklyPersonal, setBankAccounts, incomeState, goalsState]);
+  }, [tenantQuery.data?.country, tenantQuery.data?.currency, isRerun, setCountry, setWeeklyGroceries, setWeeklyDining, setWeeklyPersonal, setBankAccounts, setIncomes, setGoals]);
 
   const quizAnswers: QuizAnswers = useMemo(
     () => ({
@@ -210,7 +211,7 @@ export function useSetupWizardState() {
   });
 
   const handleDiscard = async () => {
-    setShowDiscardModal(false);
+    setIsDiscarding(true);
     try {
       if (!isRerun) {
         if (!tenantStatusQuery.data?.hasTenant) {
@@ -226,12 +227,20 @@ export function useSetupWizardState() {
       utils.getTenantStatus.setData(undefined, (old) =>
         old ? { ...old, setupCompleted: true, setupStatus: isRerun ? old.setupStatus : "CANCELLED" } : undefined
       );
-      await utils.getTenantStatus.refetch();
-      await utils.invalidate();
+      void utils.getTenantStatus.refetch();
+      void utils.invalidate();
     } catch (_e) {
       // Non-blocking fallback
+    } finally {
+      setIsDiscarding(false);
+      setShowDiscardModal(false);
     }
     router.replace("/dashboard");
+    setTimeout(() => {
+      if (typeof window !== "undefined" && window.location.pathname.startsWith("/setup")) {
+        window.location.assign("/dashboard");
+      }
+    }, 150);
   };
 
   return {
@@ -241,6 +250,7 @@ export function useSetupWizardState() {
     step,
     setStep,
     isSubmitting: submission.isSubmitting,
+    isDiscarding,
     showDiscardModal,
     setShowDiscardModal,
     goals,

@@ -140,6 +140,7 @@ export function useSetupWizardPrepopulation({
             endDate: c.endDate,
             rrule: c.rrule,
             generateEvents: (c as { generateEvents?: boolean }).generateEvents ?? true,
+            hasScheduledEvents: (c as { hasScheduledEvents?: boolean }).hasScheduledEvents ?? false,
             icon: c.envelopeType === "EVERYDAY" ? "wallet" : "pin",
           };
         })

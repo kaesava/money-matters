@@ -226,7 +226,8 @@ function SetupWizardContent() {
                 startDate: cat.startDate,
                 endDate: cat.endDate,
                 rrule: cat.rrule,
-                hasScheduledEvents: cat.generateEvents ?? true,
+                generateEvents: cat.generateEvents ?? true,
+                hasScheduledEvents: state.isRerun ? Boolean(cat.hasScheduledEvents) : false,
               });
               setShowAddEnvelopeModal(true);
             }}
@@ -370,6 +371,7 @@ function SetupWizardContent() {
           isOpen={state.showDiscardModal}
           onClose={() => state.setShowDiscardModal(false)}
           onConfirm={state.handleDiscard}
+          isLoading={state.isDiscarding}
         />
 
         <PaydaySandboxModal

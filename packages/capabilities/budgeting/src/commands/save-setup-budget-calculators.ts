@@ -84,7 +84,8 @@ export function buildEnvelopeEventPayloads(
         appId,
         envelopeId: item.envelopeId,
         name: item.name,
-        expectedDate: new Intl.DateTimeFormat("en-CA", { timeZone }).format(d),
+        // generateBurstDates yields UTC-midnight calendar dates; slice ISO date directly to avoid negative-UTC-offset -1 day shifts.
+        expectedDate: d.toISOString().slice(0, 10),
         expectedAmount: item.amount,
         isScheduled: true,
         status: "PENDING",

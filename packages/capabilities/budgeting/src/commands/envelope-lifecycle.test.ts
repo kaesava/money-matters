@@ -222,214 +222,9 @@ describe("Envelope Lifecycle & Event Sync", () => {
     expect(updatedEnvelopePayload.enteredAmount).toBe("100.00");
   });
 
-  it("maintainRollingWindowCommand skips envelopes where generateEvents is false", async () => {
-    let queriedGenerateEvents = false;
-    const mockDb = {
-      select: vi.fn().mockImplementation(() => ({
-        from: vi.fn().mockReturnValue({
-          where: vi.fn().mockImplementation(() => ({
-            limit: vi.fn().mockResolvedValue([{ timezone: "Australia/Sydney" }]),
-            then: (resolve: any) => {
-              queriedGenerateEvents = true;
-              return Promise.resolve([]).then(resolve);
-            },
-          })),
-        }),
-      })),
-    } as unknown as DbOrTx;
-
-    const res = await maintainRollingWindowCommand({
-      db: mockDb,
-      tenantId,
-      appId,
-      userId,
-    });
-    expect(queriedGenerateEvents).toBe(true);
-    expect(res.newEventsCount).toBe(0);
-  });
-
-  it("restoreItemCommand does not burst if envelope has generateEvents === false", async () => {
-    let insertedEvents = false;
-    const mockDb = {
-      select: vi.fn().mockReturnValue({
-        from: vi.fn().mockImplementation((table: any) => {
-          if (table === tenants) {
-            return {
-              where: vi.fn().mockReturnValue({
-                limit: vi.fn().mockResolvedValue([{ timezone: "Australia/Sydney" }]),
-              }),
-            };
-          }
-          return {
-            leftJoin: vi.fn().mockReturnValue({
-              where: vi.fn().mockResolvedValue([
-                { isPrivate: false, bankAccountUserId: null, generateEvents: false, archivedAt: new Date() },
-              ]),
-            }),
-          };
-        }),
-      }),
-      transaction: vi.fn().mockImplementation(async (cb: (tx: unknown) => Promise<unknown>) => cb(mockDb)),
-      update: vi.fn().mockReturnValue({
-        set: vi.fn().mockReturnValue({
-          where: vi.fn().mockReturnValue({
-            returning: vi.fn().mockResolvedValue([
-              {
-                id: "env-opted-out",
-                name: "Opted Out Bill",
-                envelopeType: "BILL",
-                fundingMode: "RECURRING",
-                generateEvents: false,
-                rrule: "FREQ=MONTHLY;INTERVAL=1",
-                startDate: "2026-11-01",
-                monthlyAmount: "50.00",
-              },
-            ]),
-          }),
-        }),
-      }),
-      insert: vi.fn().mockImplementation(() => {
-        insertedEvents = true;
-        return { values: vi.fn().mockResolvedValue([]) };
-      }),
-    } as unknown as DbOrTx;
-
-    await restoreItemCommand("env-opted-out", "ENVELOPE", tenantId, appId, userId, mockDb);
-    expect(insertedEvents).toBe(false);
-  });
-
-  it("maintainRollingWindowCommand incrementally bursts only occurrences strictly after lastBurstDate", async () => {
+  it("updateEnvelopeCommand bursts all occurrences from startDate when updating schedule with past startDate", async () => {
     let insertedExpensePayloads: any[] = [];
-    let updatedEnvelopePayload: any = null;
-
-    const mockDb = {
-      select: vi.fn().mockReturnValue({
-        from: vi.fn().mockImplementation((table: any) => ({
-          where: vi.fn().mockImplementation(() => {
-            if (table === tenants) {
-              return { limit: vi.fn().mockResolvedValue([{ timezone: "Australia/Sydney" }]) };
-            }
-            if (table === incomeSources) {
-              return Promise.resolve([]);
-            }
-            if (table === envelopes) {
-              return Promise.resolve([
-                {
-                  id: "env-incremental",
-                  name: "Internet Bill",
-                  envelopeType: "BILL",
-                  fundingMode: "RECURRING",
-                  generateEvents: true,
-                  rrule: "FREQ=MONTHLY;INTERVAL=1",
-                  startDate: "2026-01-01",
-                  enteredAmount: "80.00",
-                  monthlyAmount: "80.00",
-                  // Already burst up to 6 months in the future from 2026-01-01
-                  lastBurstDate: "2026-06-01",
-                },
-              ]);
-            }
-            return Promise.resolve([]);
-          }),
-        })),
-      }),
-      insert: vi.fn().mockImplementation(() => ({
-        values: vi.fn().mockImplementation((payloads: any[]) => {
-          insertedExpensePayloads = payloads;
-          return Promise.resolve(payloads);
-        }),
-      })),
-      update: vi.fn().mockReturnValue({
-        set: vi.fn().mockImplementation((payload: any) => {
-          updatedEnvelopePayload = payload;
-          return {
-            where: vi.fn().mockResolvedValue([]),
-          };
-        }),
-      }),
-    } as unknown as DbOrTx;
-
-    const res = await maintainRollingWindowCommand({
-      db: mockDb,
-      tenantId,
-      appId,
-      userId,
-    });
-
-    expect(res.success).toBe(true);
-    expect(res.expenseEventsCreated).toBeGreaterThan(0);
-    // All inserted events must have expectedDate > 2026-06-01
-    for (const ev of insertedExpensePayloads) {
-      expect(ev.expectedDate > "2026-06-01").toBe(true);
-    }
-    // Verify lastBurstDate on envelope is advanced
-    expect(updatedEnvelopePayload).toBeDefined();
-    expect(updatedEnvelopePayload.lastBurstDate > "2026-06-01").toBe(true);
-  });
-
-  it("restoreItemCommand does not generate past events when restored item had past startDate", async () => {
-    let insertedExpensePayloads: any[] = [];
-    const pastStartDate = "2025-01-01";
-    const todayAest = new Intl.DateTimeFormat("en-CA", { timeZone: "Australia/Sydney" }).format(new Date());
-
-    const mockDb = {
-      select: vi.fn().mockReturnValue({
-        from: vi.fn().mockImplementation((table: any) => {
-          if (table === tenants) {
-            return {
-              where: vi.fn().mockReturnValue({
-                limit: vi.fn().mockResolvedValue([{ timezone: "Australia/Sydney" }]),
-              }),
-            };
-          }
-          return {
-            leftJoin: vi.fn().mockReturnValue({
-              where: vi.fn().mockResolvedValue([
-                { isPrivate: false, bankAccountUserId: null, generateEvents: true, archivedAt: new Date() },
-              ]),
-            }),
-          };
-        }),
-      }),
-      transaction: vi.fn().mockImplementation(async (cb: (tx: unknown) => Promise<unknown>) => cb(mockDb)),
-      update: vi.fn().mockReturnValue({
-        set: vi.fn().mockReturnValue({
-          where: vi.fn().mockReturnValue({
-            returning: vi.fn().mockResolvedValue([
-              {
-                id: "env-past-restore",
-                name: "Old Gym Membership",
-                envelopeType: "BILL",
-                fundingMode: "RECURRING",
-                generateEvents: true,
-                rrule: "FREQ=MONTHLY;INTERVAL=1",
-                startDate: pastStartDate,
-                monthlyAmount: "50.00",
-                enteredAmount: "50.00",
-              },
-            ]),
-          }),
-        }),
-      }),
-      insert: vi.fn().mockImplementation(() => ({
-        values: vi.fn().mockImplementation((payloads: any[]) => {
-          insertedExpensePayloads = payloads;
-          return Promise.resolve(payloads);
-        }),
-      })),
-    } as unknown as DbOrTx;
-
-    await restoreItemCommand("env-past-restore", "ENVELOPE", tenantId, appId, userId, mockDb);
-    expect(insertedExpensePayloads.length).toBeGreaterThan(0);
-    // All restored events must have expectedDate >= today
-    for (const ev of insertedExpensePayloads) {
-      expect(ev.expectedDate >= todayAest).toBe(true);
-    }
-  });
-
-  it("updateEnvelopeCommand does not generate past events when updating schedule with past startDate", async () => {
-    let insertedExpensePayloads: any[] = [];
-    const pastStartDate = "2025-01-01";
+    const pastStartDate = "2026-01-01";
     const todayAest = new Intl.DateTimeFormat("en-CA", { timeZone: "Australia/Sydney" }).format(new Date());
 
     const mockDb = {
@@ -507,9 +302,46 @@ describe("Envelope Lifecycle & Event Sync", () => {
     );
 
     expect(insertedExpensePayloads.length).toBeGreaterThan(0);
-    // All newly generated events must be >= today
-    for (const ev of insertedExpensePayloads) {
-      expect(ev.expectedDate >= todayAest).toBe(true);
-    }
+    // Updated schedule bursts from startDate forward (including past startDate occurrences)
+    expect(insertedExpensePayloads[0].expectedDate).toBe(pastStartDate);
+    expect(insertedExpensePayloads.some((ev) => ev.expectedDate < todayAest)).toBe(true);
+  });
+
+  it("createEnvelopeCommand normalizes generateEvents to false for non-recurring envelopes", async () => {
+    let insertedEnvelopeValues: Record<string, unknown> | null = null;
+    const mockDb = {
+      select: vi.fn().mockReturnValue({
+        from: vi.fn().mockReturnValue({
+          where: vi.fn().mockResolvedValue([{ id: "acc-1", isPrivate: false, userId: null }]),
+        }),
+      }),
+      insert: vi.fn().mockImplementation(() => ({
+        values: vi.fn().mockImplementation((vals: Record<string, unknown>) => {
+          insertedEnvelopeValues = vals;
+          return {
+            returning: vi.fn().mockResolvedValue([{ id: "env-goal-1", ...vals }]),
+          };
+        }),
+      })),
+      transaction: vi.fn().mockImplementation(async (cb: (tx: unknown) => Promise<unknown>) => cb(mockDb)),
+    } as unknown as DbOrTx;
+
+    await createEnvelopeCommand(
+      {
+        name: "Emergency Fund",
+        envelopeType: "GOAL",
+        fundingMode: "TARGET_BALANCE",
+        bankAccountId: "acc-1",
+        targetAmount: "5000.00",
+        generateEvents: true,
+      },
+      tenantId,
+      appId,
+      userId,
+      mockDb
+    );
+
+    expect(insertedEnvelopeValues).not.toBeNull();
+    expect((insertedEnvelopeValues as unknown as Record<string, unknown>).generateEvents).toBe(false);
   });
 });

@@ -180,7 +180,7 @@ export function useSetupWizardSubmission({
             startDate: c.startDate || matchedPool?.startDate,
             endDate: c.endDate || matchedPool?.endDate,
             rrule: c.rrule || matchedPool?.rrule,
-            generateEvents: c.generateEvents ?? true,
+            generateEvents: fundingMode === "RECURRING" ? (c.generateEvents ?? true) : false,
             orderIndex: consolidatedEverydayPayload.length + idx,
           };
         }),
@@ -231,6 +231,7 @@ export function useSetupWizardSubmission({
             isSurplusTarget: idx === effectiveSurplusGoalIndex,
             isPriority: g.isPriority ?? true,
             isPrivate: matchedPool?.isPrivate ?? Boolean(g.isPrivate),
+            generateEvents: false,
             orderIndex: nonGoalCategories.length + idx,
           };
         }),

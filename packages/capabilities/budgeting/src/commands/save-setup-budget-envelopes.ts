@@ -139,13 +139,17 @@ export async function processSetupEnvelopes(
       : envInput.startDate || null;
 
     if (matchedExisting) {
+      const effectiveGenerateEvents = isScheduled
+        ? (envInput.generateEvents !== undefined ? envInput.generateEvents : (matchedExisting.generateEvents ?? true))
+        : false;
       const scheduleChanged =
         (envInput.envelopeType !== matchedExisting.envelopeType) ||
         (fundingMode !== matchedExisting.fundingMode) ||
         (envInput.budgetFrequency !== undefined && envInput.budgetFrequency !== matchedExisting.budgetFrequency) ||
         (envInput.startDate !== undefined && envInput.startDate !== matchedExisting.startDate) ||
         (envInput.endDate !== undefined && envInput.endDate !== matchedExisting.endDate) ||
-        (envInput.rrule !== undefined && envInput.rrule !== matchedExisting.rrule);
+        (envInput.rrule !== undefined && envInput.rrule !== matchedExisting.rrule) ||
+        (effectiveGenerateEvents !== (matchedExisting.generateEvents ?? true));
 
       const amountVal = envInput.enteredAmount || envInput.monthlyAmount || matchedExisting.enteredAmount || matchedExisting.monthlyAmount || "0.00";
       const nameOrAmountChanged =
@@ -170,7 +174,7 @@ export async function processSetupEnvelopes(
           safetyBufferFloor: envInput.safetyBufferFloor || matchedExisting.safetyBufferFloor || "0.00",
           isSurplusTarget: envInput.isSurplusTarget ?? matchedExisting.isSurplusTarget,
           isPrivate: envInput.isPrivate ?? matchedExisting.isPrivate,
-          generateEvents: envInput.generateEvents !== undefined ? envInput.generateEvents : (matchedExisting.generateEvents ?? true),
+          generateEvents: effectiveGenerateEvents,
           bankAccountId: resolvedBankAccountId || matchedExisting.bankAccountId,
           orderIndex: envInput.orderIndex ?? matchedExisting.orderIndex,
           updatedAt: now,
@@ -179,7 +183,7 @@ export async function processSetupEnvelopes(
         .where(eq(envelopes.id, matchedExisting.id));
 
       const effectiveFreq = (envInput.budgetFrequency || matchedExisting.budgetFrequency || "MONTHLY") as "MONTHLY" | "WEEKLY" | "FORTNIGHTLY" | "QUARTERLY" | "ANNUALLY";
-      const isScheduledBill = envInput.envelopeType === "BILL" && fundingMode === "RECURRING" && envInput.generateEvents !== false;
+      const isScheduledBill = isScheduled && effectiveGenerateEvents === true;
       await synchronizeUpdatedEnvelopeEvents(tx, matchedExisting.id, scheduleChanged, nameOrAmountChanged, {
         name: envInput.name,
         amount: amountVal,
@@ -218,7 +222,7 @@ export async function processSetupEnvelopes(
         safetyBufferFloor: envInput.safetyBufferFloor || "0.00",
         isSurplusTarget: envInput.isSurplusTarget ?? false,
         isPrivate: envInput.isPrivate ?? false,
-        generateEvents: envInput.generateEvents ?? true,
+        generateEvents: isScheduled ? (envInput.generateEvents ?? true) : false,
         orderIndex: envInput.orderIndex ?? i,
         createdAt: now,
         createdBy: userId,
@@ -303,7 +307,7 @@ export async function processSetupEnvelopes(
 
     await tx
       .update(envelopes)
-      .set({ archivedAt: now, archivedBy: userId, updatedAt: now, updatedBy: userId })
+      .set({ archivedAt: now, archivedBy: userId, lastBurstDate: null, updatedAt: now, updatedBy: userId })
       .where(eq(envelopes.id, envId));
   }
 

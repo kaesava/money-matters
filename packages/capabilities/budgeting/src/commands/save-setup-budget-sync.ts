@@ -141,11 +141,6 @@ export async function synchronizeUpdatedEnvelopeEvents(
       );
 
     if (shouldBurst && parseFloat(params.amount) > 0) {
-      const tz = params.timeZone || "Australia/Sydney";
-      const todayStr = getTenantDateString(params.now, { timezone: tz });
-      const yesterdayStr = getTenantDateString(new Date(params.now.getTime() - 86400000), { timezone: tz });
-      const afterDateStr = params.startDate < todayStr ? yesterdayStr : null;
-
       const count = await burstEnvelopeEvents(tx, {
         envelopeId,
         name: params.name,
@@ -157,7 +152,7 @@ export async function synchronizeUpdatedEnvelopeEvents(
         appId: params.appId,
         userId: params.userId,
         timeZone: params.timeZone,
-        afterDateStr,
+        afterDateStr: null,
       });
 
       if (count === 0) {

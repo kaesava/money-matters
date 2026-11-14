@@ -249,11 +249,15 @@ export function useEnvelopeFormModalState({
     return Boolean(type === "GOAL" && fundingMode === "TARGET_BALANCE" && targetDate && targetDate < todayStr);
   }, [type, fundingMode, targetDate, todayStr]);
 
+  const isPastStartDate = useMemo(() => {
+    return Boolean(goalStartDate && goalStartDate < todayStr);
+  }, [goalStartDate, todayStr]);
+
   const initialGenerateEvents = useMemo(() => {
     if (!isEdit || !categoryToEdit) return true;
     const rawType = categoryToEdit.envelopeType || categoryToEdit.type || "BILL";
     const isInitialScheduled = rawType === "BILL" && categoryToEdit.fundingMode === "RECURRING";
-    return categoryToEdit.hasScheduledEvents ?? isInitialScheduled;
+    return categoryToEdit.generateEvents ?? categoryToEdit.hasScheduledEvents ?? isInitialScheduled;
   }, [isEdit, categoryToEdit]);
 
   const validateForm = (): string | null => {
@@ -338,7 +342,7 @@ export function useEnvelopeFormModalState({
       startDate: isRecurringBill || isRecurringGoal ? goalStartDate || undefined : undefined,
       rrule: isRecurringBill || isRecurringGoal ? rruleString || undefined : undefined,
       isSurplusTarget: type !== "EVERYDAY" ? isSurplusTarget : undefined,
-      generateEvents: isRecurringBill ? generateEvents : undefined,
+      generateEvents: isRecurringBill ? generateEvents : false,
     };
   };
 
@@ -359,6 +363,7 @@ export function useEnvelopeFormModalState({
     targetDate,
     setTargetDate,
     isTargetDateInPast,
+    isPastStartDate,
     frequency,
     setFrequency,
     interval,

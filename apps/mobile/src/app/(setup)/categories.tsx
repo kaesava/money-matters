@@ -116,7 +116,8 @@ export default function SetupCategoriesScreen() {
       startDate: cat.startDate,
       endDate: cat.endDate,
       rrule: cat.rrule,
-      hasScheduledEvents: cat.generateEvents ?? true,
+      generateEvents: cat.generateEvents ?? true,
+      hasScheduledEvents: isRerun ? Boolean(cat.hasScheduledEvents) : false,
     });
     setShowAddEnvelopeModal(true);
   };

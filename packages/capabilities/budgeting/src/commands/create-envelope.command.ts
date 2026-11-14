@@ -1,4 +1,4 @@
-import { envelopes, bankAccounts, DbOrTx } from "@money-matters/db";
+import { envelopes, bankAccounts, tenants, DbOrTx } from "@money-matters/db";
 import { eq, and } from "drizzle-orm";
 import { z } from "zod";
 import { CreateEnvelopeCommand } from "@money-matters/types";
@@ -53,17 +53,27 @@ export async function createEnvelopeCommand(
     const isPriority = input.isPriority ?? false;
 
     const isScheduled = input.envelopeType === "BILL" && fundingMode === "RECURRING";
+    let tenantTz = "Australia/Sydney";
+    if (isScheduled && !input.startDate) {
+      const [tenantRecord] = await tx
+        .select({ timezone: tenants.timezone })
+        .from(tenants)
+        .where(eq(tenants.id, tenantId));
+      tenantTz = tenantRecord?.timezone || "Australia/Sydney";
+    }
     const rrule = isScheduled
       ? input.rrule || deriveRruleFromFrequency(input.budgetFrequency)
       : input.rrule || null;
     const startDate = isScheduled
-      ? input.startDate || computeDefaultStartDate()
+      ? input.startDate || computeDefaultStartDate(tenantTz)
       : input.startDate || null;
     const endDate = input.endDate || null;
 
     if (startDate && endDate && endDate < startDate) {
       throw new Error("End date cannot be earlier than start date.");
     }
+
+    const effectiveGenerateEvents = isScheduled ? (input.generateEvents ?? true) : false;
 
     const [envelope] = await tx
       .insert(envelopes)
@@ -83,7 +93,7 @@ export async function createEnvelopeCommand(
         targetAmount: input.targetAmount || null,
         isSurplusTarget: input.isSurplusTarget ?? false,
         isPrivate,
-        generateEvents: input.generateEvents ?? true,
+        generateEvents: effectiveGenerateEvents,
         userId: isPrivate ? (targetAccount.userId ?? userId) : null,
         orderIndex: input.orderIndex ?? 0,
         tenantId,
@@ -94,7 +104,7 @@ export async function createEnvelopeCommand(
       .returning();
 
     const amountVal = input.enteredAmount || input.monthlyAmount || "0.00";
-    const shouldBurst = isScheduled && input.generateEvents !== false;
+    const shouldBurst = isScheduled && effectiveGenerateEvents;
     if (shouldBurst && rrule && startDate && parseFloat(amountVal) > 0) {
       await burstEnvelopeEvents(tx, {
         envelopeId: envelope.id,
@@ -106,6 +116,8 @@ export async function createEnvelopeCommand(
         tenantId,
         appId,
         userId,
+        timeZone: tenantTz,
+        afterDateStr: null,
       });
     }
 

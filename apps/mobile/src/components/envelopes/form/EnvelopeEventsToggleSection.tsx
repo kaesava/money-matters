@@ -10,6 +10,7 @@ export interface EnvelopeEventsToggleSectionProps {
   initialGenerateEvents?: boolean;
   hasExistingScheduledEvents?: boolean;
   isEdit?: boolean;
+  isPastStartDate?: boolean;
 }
 
 export const EnvelopeEventsToggleSection: React.FC<EnvelopeEventsToggleSectionProps> = ({
@@ -18,6 +19,7 @@ export const EnvelopeEventsToggleSection: React.FC<EnvelopeEventsToggleSectionPr
   initialGenerateEvents = true,
   hasExistingScheduledEvents = false,
   isEdit = false,
+  isPastStartDate = false,
 }) => {
   const [expanded, setExpanded] = useState(false);
   const isModified = generateEvents !== initialGenerateEvents;
@@ -56,6 +58,13 @@ export const EnvelopeEventsToggleSection: React.FC<EnvelopeEventsToggleSectionPr
                     : t('categories.generateEventsUncheckedNewImplication')}
                 </MobileAlertBanner>
               )}
+            </View>
+          )}
+          {generateEvents && isPastStartDate && (isEdit || isModified) && (
+            <View style={styles.bannerWrapper}>
+              <MobileAlertBanner variant="warning">
+                {t('categories.generateEventsPastStartDateWarning')}
+              </MobileAlertBanner>
             </View>
           )}
         </View>

@@ -125,6 +125,7 @@ export const envelopes = {
     "generateEventsCheckedImplication": "Saving will generate upcoming expense events for up to 12 months on your calendar.",
     "generateEventsUncheckedEditImplication": "Saving will remove all upcoming scheduled events for this bill from your calendar.",
     "generateEventsUncheckedNewImplication": "Saving will not create any upcoming expense events on your calendar.",
+    "generateEventsPastStartDateWarning": "Your start date is in the past. Enabling event generation will create scheduled events for all occurrences from that start date forward—update the start date if you only want future bills.",
     "badgeEventsOn": "Events On",
     "badgeEventsOff": "Events Off",
     "statusCovered": "Covered",

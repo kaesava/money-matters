@@ -63,6 +63,7 @@ export async function archiveEnvelopeCommand(
     .set({
       archivedAt: new Date(),
       archivedBy: userId,
+      lastBurstDate: null,
       updatedBy: userId,
       updatedAt: new Date(),
     })

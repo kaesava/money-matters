@@ -85,6 +85,7 @@ export function EnvelopeFormModal({
     targetDate,
     setTargetDate,
     isTargetDateInPast,
+    isPastStartDate,
     frequency,
     setFrequency,
     interval,
@@ -222,6 +223,7 @@ export function EnvelopeFormModal({
           setBankAccountId={setBankAccountId}
           bankAccountDisabled={isAccountSelectionDisabled}
           isTargetDateInPast={isTargetDateInPast}
+          isPastStartDate={isPastStartDate}
           bankAccountOptions={[
             ...(!isEdit && !isAccountSelectionDisabled ? [{ value: "", label: t("categories.selectBankAccount") }] : []),
             ...bankAccounts.map((acc) => ({

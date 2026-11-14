@@ -113,6 +113,7 @@ export function EnvelopeFormModal({
     targetDate,
     setTargetDate,
     isTargetDateInPast,
+    isPastStartDate,
     fundingMode,
     setFundingMode,
     frequency,
@@ -359,6 +360,7 @@ export function EnvelopeFormModal({
         setBankAccountId={setBankAccountId}
         bankDisabled={isBankDisabled}
         isTargetDateInPast={isTargetDateInPast}
+        isPastStartDate={isPastStartDate}
         isSurplusTarget={isSurplusTarget}
         setIsSurplusTarget={setIsSurplusTarget}
         isPriority={isPriority}

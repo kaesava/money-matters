@@ -27,6 +27,7 @@ describe("saveSetupBudgetHandler", () => {
     incomes?: any[];
     expenseSources?: any[];
     prefs?: any[];
+    tenants?: any[];
   }) => {
     insertedRows = {};
     updatedRows = {};
@@ -39,7 +40,7 @@ describe("saveSetupBudgetHandler", () => {
             if (table === envelopes) return existingData?.envelopes || [];
             if (table === incomeSources) return existingData?.incomes || [];
             if (table === expenseEvents) return existingData?.expenseSources || [];
-            if (table === tenants) return [{ timezone: "Australia/Sydney" }];
+            if (table === tenants) return existingData?.tenants || [{ timezone: "Australia/Sydney" }];
             return existingData?.prefs || [];
           };
           const queryResult: any = Promise.resolve(getData());
@@ -72,7 +73,7 @@ describe("saveSetupBudgetHandler", () => {
       update: vi.fn().mockImplementation((table: any) => ({
         set: vi.fn().mockImplementation((setVals: any) => ({
           where: vi.fn().mockImplementation(() => {
-            const tableName = table === tenants ? "tenants" : table?.name || "unknown";
+            const tableName = table === tenants ? "tenants" : table === envelopes ? "envelopes" : table?.name || "unknown";
             updatedRows[tableName] = updatedRows[tableName] || [];
             updatedRows[tableName].push(setVals);
             return Promise.resolve([setVals]);
@@ -308,5 +309,40 @@ describe("saveSetupBudgetHandler", () => {
     expect(insertedRows["income_events"].length).toBeGreaterThan(25);
     expect(insertedRows["expense_events"].length).toBe(16); // 12 monthly Rent + 4 quarterly Council Rates
     expect(updatedRows["tenants"][0].setupStatus).toBe("COMPLETED");
+  });
+
+  it("preserves exact calendar expectedDate in negative-UTC-offset timezones and clears events when generateEvents toggles false", async () => {
+    const db = createMockDb({
+      tenants: [{ timezone: "America/New_York" }],
+      accounts: [{ id: "acc-1", name: "Checking" }],
+      envelopes: [
+        { id: "env-ed", name: "Everyday", envelopeType: "EVERYDAY", fundingMode: "TARGET_BALANCE", bankAccountId: "acc-1", isSurplusTarget: true, isPrivate: false },
+        { id: "env-rent", name: "Rent", envelopeType: "BILL", fundingMode: "RECURRING", monthlyAmount: "2000.00", enteredAmount: "2000.00", budgetFrequency: "MONTHLY", generateEvents: true, bankAccountId: "acc-1", isPrivate: false },
+      ],
+      incomes: [],
+    });
+
+    const handler = saveSetupBudgetHandler(db);
+    await handler(
+      {
+        incomes: [
+          { name: "Salary", incomeType: "SALARIED", type: "SALARY", amount: "3000.00", frequency: "FORTNIGHTLY", startDate: "2026-12-01", receivingAccountId: "acc-1" },
+        ],
+        bankAccounts: [{ id: "acc-1", name: "Checking", bankProvider: "Other", accountType: "EVERYDAY", lastKnownBalance: "0.00", unbudgetedBuffer: "0.00" }],
+        envelopes: [
+          { id: "env-ed", bankAccountId: "acc-1", name: "Everyday", envelopeType: "EVERYDAY", fundingMode: "TARGET_BALANCE", monthlyAmount: "500.00", isSurplusTarget: true, isPriority: false, isPrivate: false, orderIndex: 0 },
+          { id: "env-rent", bankAccountId: "acc-1", name: "Rent", envelopeType: "BILL", fundingMode: "RECURRING", monthlyAmount: "2000.00", enteredAmount: "2000.00", budgetFrequency: "MONTHLY", generateEvents: false, isSurplusTarget: false, isPriority: true, isPrivate: false, orderIndex: 1 },
+          { bankAccountId: "acc-1", name: "Internet", envelopeType: "BILL", fundingMode: "RECURRING", monthlyAmount: "80.00", enteredAmount: "80.00", budgetFrequency: "MONTHLY", startDate: "2026-12-01", generateEvents: true, isSurplusTarget: false, isPriority: true, isPrivate: false, orderIndex: 2 },
+        ],
+      },
+      appId,
+      userId,
+      tenantId
+    );
+
+    expect(updatedRows["envelopes"].some((u) => u.lastBurstDate === null)).toBe(true);
+    const internetEvents = (insertedRows["expense_events"] || []).filter((e) => e.name === "Internet");
+    expect(internetEvents.length).toBeGreaterThan(0);
+    expect(internetEvents[0].expectedDate).toBe("2026-12-01");
   });
 });

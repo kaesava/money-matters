@@ -28,6 +28,7 @@ export async function processSetupScheduledBills(
         eq(expenseEvents.tenantId, tenantId),
         eq(expenseEvents.appId, appId),
         eq(expenseEvents.isScheduled, true),
+        eq(expenseEvents.status, "PENDING"),
         sql`${expenseEvents.archivedAt} IS NULL`
       )
     );
