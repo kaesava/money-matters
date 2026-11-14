@@ -1,3 +1,5 @@
+"use client";
+
 import React, { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import { Search, Sparkles, ArrowRight, Loader2, X } from "lucide-react";
 import { t, ASSISTANT_UNAVAILABLE_KEYS } from "@money-matters/i18n";

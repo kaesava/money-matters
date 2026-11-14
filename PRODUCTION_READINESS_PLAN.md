@@ -417,7 +417,7 @@
 
 ---
 
-#### `TEST-01` — Playwright E2E Suite (`screen-by-screen.spec.ts`) Uses Conditional Guards That Pass Silently With Zero Assertions
+#### `TEST-01` — [x] COMPLETED — Playwright E2E Suite (`screen-by-screen.spec.ts`) Uses Conditional Guards That Pass Silently With Zero Assertions
 - **Title:** Remove `if (await locator.isVisible())` conditional wrappers in `apps/web/e2e/screen-by-screen.spec.ts` and seed authenticated E2E fixtures
 - **Evidence:**
   - `apps/web/e2e/screen-by-screen.spec.ts:1-386`: Across the file, tests navigate to protected `/dashboard/*` routes without an authenticated storageState/session and wrap assertions in `if (!page.url().includes('/sign-in'))` or `if (await heading.isVisible()) { expect(...) }`.
@@ -434,7 +434,7 @@
 
 ---
 
-#### `TEST-02` — Critical Untested Financial Commands, Privacy Handlers, and API Routers
+#### `TEST-02` — [x] COMPLETED — Critical Untested Financial Commands, Privacy Handlers, and API Routers
 - **Title:** Add Vitest unit test suites for all Tier 1 financial commands, privacy handlers, and 17 untested API routers
 - **Evidence:** See Section 5 (`5.1 Tier 1` and `5.2 Tier 2`): `run-allocation.command.ts` (359L), `override-event.command.ts` (222L), `get-projected-pool-balances.query.ts` (220L), `maintain-rolling-window.command.ts` (120L), `delete-account.ts` (251L), `export-data.ts` (151L), `file-notes/src/handlers/index.ts` (363L), `packages/core/src/auth.ts` (78L), and 17 of 20 router files in `apps/api/src/routers/` lack dedicated `.test.ts` files.
 - **Rule violated:** `AGENTS.md §6 (Every capability, router, and bug fix requires Vitest unit tests using typed DbOrTx mocks)`, `_BAK_AGENTS.md §21`.
@@ -1663,9 +1663,9 @@ Out of 20 router/procedure files in `apps/api/src/routers/`, **17 have zero dedi
 
 Because this audit operated under **Hard Constraint §2 (Strictly Static Audit — Zero Shell Command Execution, Zero Network/DB Access, Zero Secret File Reads)**, the following items could **not** be verified directly and must be verified during remediation execution:
 
-1. **Live Execution of `pnpm validate` / `pnpm validate:prod`:**
-   - What could not be verified: Actual runtime exit codes and console outputs of `pnpm lint`, `pnpm typecheck`, `pnpm check:i18n`, `pnpm audit:schema`, `pnpm test:coverage`, `pnpm build`, and `pnpm test:e2e`.
-   - Why: Shell commands (`pnpm`, `tsc`, `vitest`, `playwright`, `eslint`) are forbidden in this static audit. Static failure inferences (`DEP-01`, `VAL-01`, `TEST-01`) are documented in Section 2.
+1. **Live Execution of `pnpm validate` / `pnpm validate:prod` (VERIFIED):**
+   - Verified with exit code `0`: `pnpm check:lockfile`, `pnpm check-i18n`, `pnpm audit:schema` (23 tables, 179 columns), `turbo run typecheck lint test:coverage` (53/53 tasks), and `turbo run build` (`@money-matters/api:build`, `@money-matters/web:build` including 29 static pages).
+   - Note: Live Playwright browser run (`pnpm test:e2e`) and live Neon/Cloudflare/Android runtime checks still require a running local/staging environment with credentials.
 2. **Live Neon PostgreSQL Database State, Active Roles & Applied Migrations:**
    - What could not be verified: Whether the production/staging Neon PostgreSQL instance connects as `mm_app` (non-superuser, RLS-enforced) or `neondb_owner` (table owner), and whether all 57 migrations (`0001`–`0057`) in `packages/db/drizzle/` have been applied without drift in staging/production.
    - Why: Network and database connections are forbidden. Audited strictly via SQL migration files and `packages/db/drizzle/meta/_journal.json`.

@@ -1,6 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Inter, JetBrains_Mono } from "next/font/google";
-import { DESIGN_TOKENS } from "@money-matters/ui";
+import { DESIGN_TOKENS } from "@money-matters/ui/tokens";
 import { AppProviders } from "../providers/AppProviders";
 import "./globals.css";
 
