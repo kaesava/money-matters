@@ -2,7 +2,7 @@ import { useState, useMemo, useEffect } from "react";
 import { trpc } from "../../../../lib/trpc";
 import { t } from "@money-matters/i18n";
 import { useResizableColumns } from "@money-matters/ui/web";
-import { SpendingTimeframe } from "@money-matters/types";
+import { SpendingTimeframe, serializeCsvRows } from "@money-matters/types";
 import { getTenantDateString } from "@money-matters/core";
 import { useLocale } from "../../../../providers/LocaleProvider";
 
@@ -262,16 +262,15 @@ export function useHistoryTransactionsData({
       t("transactions.exportHeaders.amountWithCurrency", { currency: currencyLabel }),
     ];
     const rows = sortedTransactions.map((tx) => [
-      `"${tx.date}"`,
-      `"${getTransactionTypeLabel(tx.transactionType)}"`,
-      `"${tx.description.replace(/"/g, '""')}"`,
-      `"${tx.categoryName.replace(/"/g, '""')}"`,
-      `"${tx.source || "MANUAL"}"`,
-      `"${tx.amount}"`,
+      tx.date,
+      getTransactionTypeLabel(tx.transactionType),
+      tx.description,
+      tx.categoryName,
+      tx.source || "MANUAL",
+      tx.amount,
     ]);
     const csvContent =
-      "data:text/csv;charset=utf-8," +
-      [headers.join(","), ...rows.map((r) => r.join(","))].join("\n");
+      "data:text/csv;charset=utf-8," + serializeCsvRows(headers, rows);
     const encodedUri = encodeURI(csvContent);
     const link = document.createElement("a");
     link.setAttribute("href", encodedUri);

@@ -1,6 +1,7 @@
 import * as FileSystem from 'expo-file-system/legacy';
 import * as Sharing from 'expo-sharing';
 import { t } from '@money-matters/i18n';
+import { serializeCsvRows } from '@money-matters/types';
 import { formatDate, formatIsoDate } from '../../../lib/format';
 import { LedgerTxItem } from '../LedgerHistoryTab';
 import { MobilePaydayAllocationRecord } from '../../paychecks/MobilePaydayAllocationDetailModal';
@@ -18,15 +19,15 @@ export function useTransactionsExport() {
       t('transactions.exportHeaders.note'),
     ];
     const rows = transactions.map((tx) => [
-      `"${formatDate(tx.recordedAt)}"`,
-      `"${tx.amount}"`,
-      `"${tx.effectiveType}"`,
-      `"${(tx.poolName || '').replace(/"/g, '""')}"`,
-      `"${(tx.categoryName || '').replace(/"/g, '""')}"`,
-      `"${(tx.bankAccountName || '').replace(/"/g, '""')}"`,
-      `"${(tx.note || '').replace(/"/g, '""')}"`,
+      formatDate(tx.recordedAt),
+      tx.amount,
+      tx.effectiveType,
+      tx.poolName || '',
+      tx.categoryName || '',
+      tx.bankAccountName || '',
+      tx.note || '',
     ]);
-    const csv = [headers.join(','), ...rows.map((r) => r.join(','))].join('\n');
+    const csv = serializeCsvRows(headers, rows);
     try {
       const fileUri = `${FileSystem.cacheDirectory || FileSystem.documentDirectory}transactions_${formatIsoDate(new Date())}.csv`;
       await FileSystem.writeAsStringAsync(fileUri, csv, {
@@ -53,13 +54,13 @@ export function useTransactionsExport() {
       t('transactions.exportHeaders.totalAmount'),
     ];
     const rows = plans.map((p) => [
-      `"${formatDate(p.createdAt)}"`,
-      `"${formatDate(p.expectedDate || p.createdAt)}"`,
-      `"${(p.incomeName || '').replace(/"/g, '""')}"`,
-      `"${(p.receivingAccountName || '').replace(/"/g, '""')}"`,
-      `"${p.totalIncomeAmount}"`,
+      formatDate(p.createdAt),
+      formatDate(p.expectedDate || p.createdAt),
+      p.incomeName || '',
+      p.receivingAccountName || '',
+      p.totalIncomeAmount,
     ]);
-    const csv = [headers.join(','), ...rows.map((r) => r.join(','))].join('\n');
+    const csv = serializeCsvRows(headers, rows);
     try {
       const fileUri = `${FileSystem.cacheDirectory || FileSystem.documentDirectory}payday_plans_${formatIsoDate(new Date())}.csv`;
       await FileSystem.writeAsStringAsync(fileUri, csv, {

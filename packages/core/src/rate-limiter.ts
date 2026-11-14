@@ -31,6 +31,21 @@ function isValidUpstashConfig(url?: string, token?: string): boolean {
   return true;
 }
 
+function isProductionEnv(): boolean {
+  return (
+    process.env.ENVIRONMENT === "production" ||
+    process.env.NODE_ENV === "production"
+  );
+}
+
+function isSensitiveAuthIdentifier(identifier: string): boolean {
+  return (
+    identifier.startsWith("auth:") ||
+    identifier.startsWith("reset-password:") ||
+    identifier.startsWith("invite:")
+  );
+}
+
 /**
  * Executes a sliding-window rate limit check using Upstash Redis REST pipeline.
  * Protects edge calls with a 1,500ms AbortController timeout.
@@ -44,54 +59,59 @@ export async function checkRateLimit(
   const restUrl = env?.UPSTASH_REDIS_REST_URL || process.env["UPSTASH_REDIS_REST_URL"];
   const restToken = env?.UPSTASH_REDIS_REST_TOKEN || process.env["UPSTASH_REDIS_REST_TOKEN"];
 
-  if (isValidUpstashConfig(restUrl, restToken)) {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 1500);
-
-    try {
-      const now = Date.now();
-      const windowStart = now - windowSeconds * 1000;
-      const key = `rl:${identifier}`;
-      const member = `${now}-${crypto.randomUUID()}`;
-
-      const res = await fetch(`${restUrl}/pipeline`, {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${restToken}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify([
-          ["ZREMRANGEBYSCORE", key, 0, windowStart],
-          ["ZADD", key, now, member],
-          ["ZCARD", key],
-          ["EXPIRE", key, windowSeconds],
-        ]),
-        signal: controller.signal,
-      });
-
-      if (res.ok) {
-        const data = (await res.json()) as Array<{ result: number }>;
-        const count = data[2]?.result ?? 0;
-        return {
-          allowed: count <= limit,
-          remaining: Math.max(0, limit - count),
-        };
-      }
-    } catch {
-      // In production, only sensitive auth brute-force endpoints fail closed on Redis outage.
-      // General API routes fall back to the in-process sliding-window cache so a Redis network/DNS outage does not take down the platform.
-      const isProduction =
-        process.env.ENVIRONMENT === "production" ||
-        process.env.NODE_ENV === "production";
-      if (isProduction && identifier.startsWith("reset-password:")) {
-        return { allowed: false, remaining: 0 };
-      }
-    } finally {
-      clearTimeout(timeoutId);
+  if (!isValidUpstashConfig(restUrl, restToken)) {
+    if (isProductionEnv() && isSensitiveAuthIdentifier(identifier)) {
+      return { allowed: false, remaining: 0 };
     }
+    return inProcessCheck(identifier, limit, windowSeconds);
   }
 
-  // Fallback in-process check for dev/test or when Redis is unreachable
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 1500);
+
+  try {
+    const now = Date.now();
+    const windowStart = now - windowSeconds * 1000;
+    const key = `rl:${identifier}`;
+    const member = `${now}-${crypto.randomUUID()}`;
+
+    const res = await fetch(`${restUrl}/pipeline`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${restToken}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify([
+        ["ZREMRANGEBYSCORE", key, 0, windowStart],
+        ["ZADD", key, now, member],
+        ["ZCARD", key],
+        ["EXPIRE", key, windowSeconds],
+      ]),
+      signal: controller.signal,
+    });
+
+    if (res.ok) {
+      const data = (await res.json()) as Array<{ result: number }>;
+      const count = data[2]?.result ?? 0;
+      return {
+        allowed: count <= limit,
+        remaining: Math.max(0, limit - count),
+      };
+    }
+    if (isProductionEnv() && isSensitiveAuthIdentifier(identifier)) {
+      return { allowed: false, remaining: 0 };
+    }
+  } catch {
+    // In production, sensitive auth brute-force endpoints fail closed on Redis outage.
+    // General API routes fall back to the in-process sliding-window cache so a Redis outage does not take down the platform.
+    if (isProductionEnv() && isSensitiveAuthIdentifier(identifier)) {
+      return { allowed: false, remaining: 0 };
+    }
+  } finally {
+    clearTimeout(timeoutId);
+  }
+
+  // Fallback in-process check for dev/test or when Redis is unreachable for non-auth routes
   return inProcessCheck(identifier, limit, windowSeconds);
 }
 
@@ -107,51 +127,52 @@ export async function checkAiTenantRateLimit(
   const restUrl = env?.UPSTASH_REDIS_REST_URL || process.env["UPSTASH_REDIS_REST_URL"];
   const restToken = env?.UPSTASH_REDIS_REST_TOKEN || process.env["UPSTASH_REDIS_REST_TOKEN"];
 
-  if (isValidUpstashConfig(restUrl, restToken)) {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 1500);
-
-    try {
-      const now = Date.now();
-      const windowStart = now - 60_000;
-      const key = `ai:rl:tenant:${tenantId}`;
-      const uniqueMember = `${now}-${crypto.randomUUID()}`;
-
-      const res = await fetch(`${restUrl}/pipeline`, {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${restToken}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify([
-          ["ZREMRANGEBYSCORE", key, 0, windowStart],
-          ["ZADD", key, now, uniqueMember],
-          ["ZCARD", key],
-          ["EXPIRE", key, 60],
-        ]),
-        signal: controller.signal,
-      });
-
-      if (res.ok) {
-        const data = (await res.json()) as Array<{ result: number }>;
-        const count = data[2]?.result ?? 0;
-        return {
-          allowed: count <= limitPerMinute,
-          remaining: Math.max(0, limitPerMinute - count),
-        };
-      }
+  if (!isValidUpstashConfig(restUrl, restToken)) {
+    if (isProductionEnv()) {
       return { allowed: false, remaining: 0 };
-    } catch {
-      // In production, fail-closed for AI rate limits
-      if (
-        process.env.ENVIRONMENT === "production" ||
-        process.env.NODE_ENV === "production"
-      ) {
-        return { allowed: false, remaining: 0 };
-      }
-    } finally {
-      clearTimeout(timeoutId);
     }
+    return checkRateLimit(`ai:tenant:${tenantId}`, limitPerMinute, 60);
+  }
+
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 1500);
+
+  try {
+    const now = Date.now();
+    const windowStart = now - 60_000;
+    const key = `ai:rl:tenant:${tenantId}`;
+    const uniqueMember = `${now}-${crypto.randomUUID()}`;
+
+    const res = await fetch(`${restUrl}/pipeline`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${restToken}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify([
+        ["ZREMRANGEBYSCORE", key, 0, windowStart],
+        ["ZADD", key, now, uniqueMember],
+        ["ZCARD", key],
+        ["EXPIRE", key, 60],
+      ]),
+      signal: controller.signal,
+    });
+
+    if (res.ok) {
+      const data = (await res.json()) as Array<{ result: number }>;
+      const count = data[2]?.result ?? 0;
+      return {
+        allowed: count <= limitPerMinute,
+        remaining: Math.max(0, limitPerMinute - count),
+      };
+    }
+    return { allowed: false, remaining: 0 };
+  } catch {
+    if (isProductionEnv()) {
+      return { allowed: false, remaining: 0 };
+    }
+  } finally {
+    clearTimeout(timeoutId);
   }
 
   // Local/dev fallback

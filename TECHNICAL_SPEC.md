@@ -355,184 +355,207 @@ tenants (id PK, appId FK→apps.id, name, subscriptionTier, stripeCustomerId, st
 
 ---
 
-## 9. UI Primitives, Router Procedures & Transfer Architecture
+## 9. Complete tRPC Routers and Procedures Registry (12 Routers, 103 Procedures)
 
-### 9.1 AmountField Component Specification (`packages/ui`)
-- **Package Path**: `packages/ui/src/web/fields/AmountField.tsx`
-- **Design Tokens**: Serene Finance primary `#2563eb`, navy `#1B2B4B`, font JetBrains Mono / font-mono tabular-nums.
-- **Chevrons**: Custom stacked `ChevronUp` and `ChevronDown` from `lucide-react` stepping by 1. Native browser number spinners hidden via Tailwind utility classes `[appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none`.
-- **Blur 2dp Formatting**: Numeric input is parsed and formatted via `.toFixed(2)` on blur. Empty values remain empty string.
-- **Negative Support**: `allowNegative={true}` permits leading `-` character and renders formatted value with `text-rose-600 font-bold`. When `false` (default), minus sign is automatically stripped on input.
-- **Input Boundaries**: Max 12 characters (10 integer digits, 2 decimal places).
+> **Cross-Reference (Zero Redundancy):**  
+> All Web routes, Mobile routes, Modals/Drawers/Confirm Dialogs, Screen-by-Screen Parity mappings, `@money-matters/ui` primitives, and `@money-matters/i18n` dictionary namespaces are documented in [FUNCTIONAL_CAPABILITIES_INVENTORY.md](file:///home/kaesava/projects/money-matters/FUNCTIONAL_CAPABILITIES_INVENTORY.md).  
+> **Procedure Guard Legend:**
+> - `publicProcedure`: Unauthenticated; sets `app.current_tenant_id = ''` and `app.current_user_id = ''`.
+> - `authenticatedProcedure`: Requires Neon Auth session (`ctx.userId`); sets `app.current_user_id = ctx.userId`.
+> - `tenantProcedure`: Requires `ctx.userId` and `ctx.tenantId`; sets `app.current_tenant_id = ctx.tenantId` and `app.current_user_id = ''`.
+> - `ownerProcedure`: `tenantProcedure` + checks `ctx.role === 'OWNER'`.
+> - `privateTenantProcedure`: Requires `ctx.userId` and `ctx.tenantId`; sets **both** `app.current_tenant_id = ctx.tenantId` and `app.current_user_id = ctx.userId` for stealth privacy RLS.
+> - `privateOwnerProcedure`: `privateTenantProcedure` + checks `ctx.role === 'OWNER'`.
 
-### 9.2 DatePickerField Boundary Extensions (`packages/ui`)
-- **Package Path**: `packages/ui/src/web/fields/DatePickerField.tsx`
-- **Props**: `min?: string; max?: string; disabled?: boolean; id?: string;` forwarded directly to `<input type="date" min={min} max={max} ... />`.
-- **Keyboard Protection**: Prevents arbitrary text entry on date picker via keydown filter (`Tab` and `Escape` allowed).
+### 9.1 Root Router (`apps/api/src/routers/index.ts` — 3 Top-Level Procedures)
 
-### 9.3 Transfer Router Procedures (`apps/api/src/routers/transfers.router.ts`)
-- **`updateTransferEvent`**:
-  - Access: `privateTenantProcedure` (RLS injected with `tenantId` and `userId`).
-  - Input: `eventId` (UUID), `name?` (string min 1), `amount?` (regex 2dp), `expectedDate?` (YYYY-MM-DD).
-  - Mutates `transferEvents` table fields without creating transaction ledgers or moving funds.
-- **`executeTransferEvent`**:
-  - Access: `privateTenantProcedure`.
-  - Input: `eventId` (UUID), `name?` (optional string), `amount?` (optional string), `sourcePoolId?`, `destinationPoolId?`.
-  - Updates `transferEvents.name`, sets `status = 'CONFIRMED'`, and invokes `moveMoneyCommand` with the resolved transfer name.
+| Procedure | Line | Type | Write / Flag Guard | Input Schema (`.strict()`?) | Output Schema | Capability / DB Tables |
+| :--- | ---: | :--- | :--- | :--- | :--- | :--- |
+| `health` | 26 | `publicProcedure` | None | None | None | None (`{ status: 'ok', timestamp }`) |
+| `getAppConfig` | 30 | `publicProcedure` | None | `z.object({ appId: z.string().uuid().optional() }).optional()` | None | `apps` (`featureFlags` lookup) |
+| `submitFeedback` | `bug-reports.router.ts:5` | `privateTenantProcedure` | None | `SubmitFeedbackInputSchema` (`.strict()`) | None | `submitFeedbackCommand` (`bugReports`), `sendEmail` (`@money-matters/core`) |
 
-### 9.4 Mobile Component & Routing Architecture (`apps/mobile`)
-- **Routing Structure (Expo Router File-Based Routing)**:
-  - `apps/mobile/src/app/(app)/_layout.tsx`: Root 4-tab bar (`Home`, `Schedules`, `Upcoming`, `Envelopes`) and header shell dynamically padded using `useSafeAreaInsets` above Android's system gesture bar.
-  - `apps/mobile/src/app/(app)/home.tsx`: Dashboard with Hero card, linked bank accounts summary, 3 bento cards, attention queue, pull-to-refresh, trial status banner.
-  - `apps/mobile/src/app/(app)/paychecks.tsx`: Income and bills command center with 3 tabs: Upcoming timeline, 12-Month Rolling Matrix Plan (`MobileMatrixPlanTab.tsx`), and Income/Expense recurring schedules ("Schedules" tab). Supports deep-linking to `tab=events`.
-  - `apps/mobile/src/app/(app)/upcoming.tsx`: Dedicated 4th tab deep-linking directly into the Events & Timeline view of `paychecks?tab=events`.
-  - `apps/mobile/src/app/(app)/paychecks/[id].tsx`: Parameterized distraction-free Income Split Studio with plan source badges, direct amount inputs with quick chips, interactive auto-surplus/deficit meter, bank-aware rollup card (`MobileBankTransferRollupCard`), and execution confirmation.
-  - `apps/mobile/src/app/(app)/categories.tsx`: Pools and Categories management hub with 12M timeline scrubber, categorized pool cards, and balance reconciliation modal (`MobileReconciliationModal.tsx`).
-  - `apps/mobile/src/app/(app)/pools/[id].tsx`: Pool detail view with category list, category item bottom sheet modal (`CategoryItemModal.tsx`), move money, and archive controls.
-  - `apps/mobile/src/app/(app)/afford-check.tsx`: Standalone "Can We Afford This?" simulator with 5-level verdict, daily pacing velocity impact, and goal completion delay estimation.
-  - `apps/mobile/src/app/(app)/transactions.tsx`: Consolidated 2-tab history screen accessible via Header Avatar menu (Tab 1: Transactions Ledger with paired transfer detection `Source ➔ Dest`, search, advanced filters, pagination, CSV export; Tab 2: Payday Allocations audit log with `MobilePaydayAllocationDetailModal`).
-  - `apps/mobile/src/app/(app)/settings.tsx`: Complete settings hub reorganized into 4 top segmented tabs (`[Household | Preferences | Plan | Privacy]`) eliminating vertical scrolling and matching web modularity.
-  - `apps/mobile/src/app/(app)/settings/bank-accounts.tsx`: Bank accounts management accessible via Header Avatar menu with provider branding (`BankProviderBadge`), linked pool balances, stealth private toggles, and 1-click balance alignment.
-  - `apps/mobile/src/app/(app)/settings/archived.tsx`: Restorable archive viewer for pools, categories, income schedules, and expense bills.
-  - `apps/mobile/src/app/(app)/settings/history.tsx`: Seamless redirection to `/(app)/transactions?tab=payday-allocations` (MECE compliance).
-  - `apps/mobile/src/app/(setup)/income.tsx`, `apps/mobile/src/app/(setup)/categories.tsx`, `apps/mobile/src/app/(setup)/complete.tsx`: 3-step interactive onboarding wizard with Australian family presets and AEST timezone-aware date pickers.
-- **Header Avatar & Profile Menu (`ScreenHeader` & `ScreenMenuModal`)**:
-  - Displays user avatar photo if available; otherwise renders person icon / user initials.
-  - Tapping opens the financial profile menu modal featuring:
-    1. User Card: Photo/Avatar, Display Name, Email, Active Household Badge.
-    2. **Change Household**: Displayed only if user belongs to >1 household, allows 1-tap switching via `MobileTenantSwitcherModal`, and marks the active household with `✓ Active`.
-    3. **Bank Accounts**: Direct navigation to `/(app)/settings/bank-accounts`.
-    4. **History**: Direct navigation to `/(app)/transactions`.
-    5. **Settings**: Direct navigation to `/(app)/settings`.
-    6. **Sign Out**: Guarded by styled `<MobileConfirmDialog />`.
-- **Mobile Hardware, Platform Services & Edge-to-Edge**:
-  - `react-native-safe-area-context`: Wrapped at root level in `AppProviders.tsx`, replacing deprecated `SafeAreaView` with dynamic `useSafeAreaInsets` across all screens, headers, modals, and tab bars for full Android edge-to-edge compatibility.
-  - `apps/mobile/src/lib/locale-config.ts`: Standalone central state for mobile locale (`en-AU`), timezone (`Australia/Sydney`), and currency preferences (`AUD`), fully decoupled to prevent require cycles with `schedule-format.ts` and `format.ts`.
-  - `apps/mobile/src/lib/biometrics.ts`: Hardware security & local authentication wrapper (`expo-local-authentication`, `expo-secure-store`) with 2-minute background inactivity lock.
-  - `apps/mobile/src/lib/haptics.ts`: Tactile feedback engine (`expo-haptics`) supporting light/medium/heavy/success impact patterns and user preferences.
-  - `apps/mobile/src/lib/trpc.ts`: Centralized 401 token refresh interceptor reloading refreshed JWT credentials upon session expiry, with multi-key SecureStore, active tenant switching (`switchActiveTenant` / `money_matters_active_tenant_id`), and cookie extraction (`getStoredTokenAndCookie`) for seamless background tRPC authentication.
-  - Avatar Image Management: Strict 200 KB size constraint across mobile (`useProfileAvatarPicker`) and web (`useProfileForm` + `AvatarCropModal`), backed by server-side `z.string().max(300_000)` validation on `avatarUrl` in `tenant.router.ts` to prevent database bloat and excessive payload sizes.
-  - `apps/mobile/eas.json`: EAS Build matrix supporting `development` (internal client), `preview` (standalone APK for testing), and `production` (Google Play App Bundle / AAB). Pinned to Expo SDK 54 with `react-native-screens` 4.16.0 compatibility.
-- **Mobile Primitives in `@money-matters/ui`**:
-  - `packages/ui/src/mobile/BankProviderBadge.tsx`: Branded provider badges for Australian banks (CBA, Westpac, ANZ, NAB, ING, Macquarie, Other).
-  - `packages/ui/src/mobile/ToastContext.tsx`: Non-blocking mobile toast alert system (`MobileToastProvider`, `useMobileToast`).
-  - `packages/ui/src/mobile/fields/DatePickerField.tsx` & `CalendarModal.tsx`: Standardized Serene Finance Date Picker with AEST date display, quick chips (`Today`, `Yesterday`, `Tomorrow`), and custom bottom-sheet calendar modal.
-  - `packages/ui/src/mobile/SegmentedTabs.tsx`: Serene pill-style segmented tab control with smooth transitions.
-  - `packages/ui/src/mobile/SearchInput.tsx`: Standardized search input with 44dp touch target, `left-3.5` search icon, and `pl-10` padding.
-  - `packages/ui/src/mobile/SkeletonCard.tsx`: Shimmer loading skeleton for cards and table rows.
-  - `packages/ui/src/mobile/fields/Checkbox.tsx` & `SelectField.tsx`: Standardized form inputs consuming Serene design tokens.
+### 9.2 `tenant` Router (`apps/api/src/routers/tenant.router.ts` + `apps/api/src/routers/tenant/*.procedures.ts` — 29 Procedures)
 
+| Procedure | File & Line | Type | Write / Flag Guard | Input Schema (`.strict()`?) | Output Schema | Capability / DB Tables |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| `tenant.createTenant` | `tenant-core.procedures.ts:18` | `authenticatedProcedure` | None | `CreateTenantCommand` (`.strict()`) | None | `createTenantHandler` (`apps`, `users`, `tenants`, `tenantUsers`, `userPreferences`, `bankAccounts`, `allocationStrategies`, `allocationStrategySteps`), `inngest.send('auth/user.signup')` |
+| `tenant.completeSetup` | `tenant-core.procedures.ts:57` | `privateOwnerProcedure` | `requiresWriteAccess` | `z.object({ completed: z.boolean().default(true) }).strict()` | None | `tenants`, `bankAccounts`, `incomeSources`, `envelopes`, `inngest.send('onboarding/setup.completed')` |
+| `tenant.cancelSetup` | `tenant-core.procedures.ts:103` | `privateOwnerProcedure` | None | None | None | `cancelSetupHandler` (`tenants`) |
+| `tenant.getTenant` | `tenant-core.procedures.ts:110` | `tenantProcedure` | None | None | None | `getTenantHandler` (`tenants`) |
+| `tenant.exportMyData` | `tenant-core.procedures.ts:116` | `privateTenantProcedure` | None | None | None | `exportDataHandler` (`tenants`, `users`, `userPreferences`, `tenantUsers`, `bankAccounts`, `envelopes`, `incomeSources`, `incomeEvents`, `expenseEvents`, `allocationPlans`, `transactionLedger`) |
+| `tenant.deleteMyAccount` | `tenant-core.procedures.ts:121` | `authenticatedProcedure` | None | `z.object({ confirmText: z.literal("DELETE") }).strict()` | None | `deleteMyAccountHandler` (20+ tables + `neon_auth`), `inngest.send('auth/account.deleted')` |
+| `tenant.getMyTenants` | `tenant-core.procedures.ts:137` | `authenticatedProcedure` | None | None | None | `tenantUsers`, `tenants` |
+| `tenant.switchTenant` | `tenant-core.procedures.ts:165` | `authenticatedProcedure` | None | `z.object({ tenantId: z.string().uuid() }).strict()` | None | `tenantUsers` |
+| `tenant.subscribeEarlyAccess` | `tenant-core.procedures.ts:187` | `publicProcedure` | None | `z.object({ email: z.string().email() }).strict()` | None | `earlyAccessSubscribers` |
+| `tenant.getUserPreferences` | `profile.procedures.ts:9` | `privateTenantProcedure` | None | None | None | `userPreferences`, `tenantUserPreferences`, `tenants` |
+| `tenant.updateUserPreferences` | `profile.procedures.ts:70` | `privateTenantProcedure` | `requiresWriteAccess` | Inline `z.object({...}).strict()` | None | `userPreferences`, `tenantUserPreferences` |
+| `tenant.getUserProfile` | `profile.procedures.ts:146` | `authenticatedProcedure` | None | None | None | `users`, `userPreferences`, `tenants` |
+| `tenant.updateUserProfile` | `profile.procedures.ts:192` | `authenticatedProcedure` | None | Inline `z.object({...}).strict()` | None | `users`, `neon_auth.user`, `userPreferences` |
+| `tenant.createBankAccount` | `bank-accounts.procedures.ts:19` | `privateTenantProcedure` | `requiresWriteAccess` | `CreateBankAccountCommand` (`.strict()`) | None | `createBankAccountHandler` (`bankAccounts`) |
+| `tenant.updateBankAccount` | `bank-accounts.procedures.ts:39` | `privateTenantProcedure` | `requiresWriteAccess` | `z.object({ accountId: uuid, data: UpdateBankAccountCommand }).strict()` | None | `updateBankAccountHandler` (`bankAccounts`) |
+| `tenant.archiveBankAccount` | `bank-accounts.procedures.ts:50` | `privateTenantProcedure` | `requiresWriteAccess` | `z.object({ accountId: uuid }).strict()` | None | `archiveBankAccountHandler` (`bankAccounts`, `envelopes`, `incomeSources`) |
+| `tenant.getBankAccounts` | `bank-accounts.procedures.ts:59` | `privateTenantProcedure` | None | None | None | `getBankAccountsWithMappingsHandler` (`bankAccounts`, `envelopes`, `incomeSources`, `transactionLedger`) |
+| `tenant.getBankAccountDeleteImpact` | `bank-accounts.procedures.ts:65` | `privateTenantProcedure` | None | `z.object({ accountId: uuid }).strict()` | None | `bankAccounts`, `envelopes`, `listEnvelopesQuery` |
+| `tenant.reconcileBankBalance` | `bank-accounts.procedures.ts:119` | `privateTenantProcedure` | `requiresWriteAccess` | Inline `z.object({...}).strict()` | None | `bankAccounts`, `transactionLedger` |
+| `tenant.getLeaveHouseholdStatus` | `household.procedures.ts:69` | `privateTenantProcedure` | None | None | None | `tenantUsers`, `users`, `tenants`, `bankAccounts`, `envelopes` |
+| `tenant.invitePartner` | `household.procedures.ts:137` | `ownerProcedure` | `requiresWriteAccess` | `z.object({ email: z.string().email() }).strict()` | None | `invitePartnerHandler` (`tenants`, `tenantUsers`, `users`), `sendEmail`, `inngest.send('household/partner.invited')` |
+| `tenant.revokeInvite` | `household.procedures.ts:212` | `ownerProcedure` | `requiresWriteAccess` | `z.object({ inviteId: uuid }).strict()` | None | `tenantUsers` |
+| `tenant.getInviteDetails` | `household.procedures.ts:231` | `publicProcedure` | None | `z.object({ token: z.string() }).strict()` | None | `tenantUsers`, `tenants`, `users`, `apps` |
+| `tenant.acceptInvite` | `household.procedures.ts:276` | `authenticatedProcedure` | None | `z.object({ token: z.string() }).strict()` | None | `acceptInviteHandler` (`tenantUsers`, `users`) |
+| `tenant.leaveHousehold` | `household.procedures.ts:292` | `privateTenantProcedure` | None | `z.object({ confirmText: z.string(), newOwnerUserId: uuid.optional() }).strict()` | None | `leaveTenantHandler` (`tenantUsers`, `users`, `envelopes`, `bankAccounts`, `incomeSources`, `allocationStrategies`, `fileNotes`) |
+| `tenant.getHouseholdMembers` | `household.procedures.ts:303` | `tenantProcedure` | None | None | None | `tenantUsers`, `users` |
+| `tenant.updateHouseholdSettings` | `household.procedures.ts:320` | `ownerProcedure` | None | Inline `z.object({...}).strict()` | None | `tenantUsers`, `tenants` |
+| `tenant.updateHouseholdMemberRole` | `household.procedures.ts:366` | `privateOwnerProcedure` | `requiresWriteAccess` | `UpdateHouseholdMemberRoleCommand` (`.strict()`) | None | `updateHouseholdMemberRoleHandler` (`tenantUsers`) |
 
-### 9.5 Expenses Router & Atomic Mark Paid (`apps/api/src/routers/expenses.router.ts`)
-- **`markExpensePaid`**:
-  - Executes inside a single DB transaction (`markExpensePaidCommand`) with an optimistic lock (`WHERE status = 'PENDING' AND archivedAt IS NULL`).
-  - Atomically executes any user-allocated `shortfallTransfers` (guarding against self-transfers, cross-user private envelopes, and negative balances) before recording the expense via `recordExpenseCommand` and injecting the scheduled bill's `name` into `transactionNote`.
+### 9.3 `envelopes` Router (`apps/api/src/routers/envelopes.router.ts` — 16 Procedures: 10 Canonical + 6 Deprecated `*Pool*` Aliases)
 
-### 9.6 Pool List Query Additions (`packages/capabilities/budgeting`)
-- **`listPoolsQuery`**:
-  - Selects and returns `pools.createdAt` to support pacing calculations.
-  - Fixes default progress calculation: `target > 0 ? Math.min(100, Math.round((currentBalance / target) * 100)) : 0` (previously defaulted to 100% when balance/target was 0).
+| Procedure | Line | Type | Write / Flag Guard | Input Schema (`.strict()`?) | Output Schema | Capability / DB Tables |
+| :--- | ---: | :--- | :--- | :--- | :--- | :--- |
+| `envelopes.listEnvelopes` | 35 | `privateTenantProcedure` | None | None | None | `listEnvelopesQuery` (`envelopes`, `bankAccounts`, `expenseEvents`, `transactionLedger`) |
+| `envelopes.createEnvelope` | 40 | `privateTenantProcedure` | `requiresWriteAccess` | `CreateEnvelopeCommandSchema` (`.strict()`) | None | `createEnvelopeCommand` (`envelopes`, `bankAccounts`, `expenseEvents`) |
+| `envelopes.updateEnvelope` | 57 | `privateTenantProcedure` | `requiresWriteAccess` | `UpdateEnvelopeCommandSchema` (`.strict()`) | None | `updateEnvelopeCommand` (`envelopes`, `bankAccounts`, `expenseEvents`) |
+| `envelopes.archiveEnvelope` | 62 | `privateTenantProcedure` | `requiresWriteAccess` | `ArchiveEnvelopeCommandSchema` (`.strict()`) | None | `archiveEnvelopeCommand` (`envelopes`, `expenseEvents`, `transferEvents`, `allocationStrategySteps`) |
+| `envelopes.listArchivedItems` | 67 | `privateTenantProcedure` | None | None | None | `listArchivedItemsQuery` (`envelopes`, `incomeSources`, `bankAccounts`) |
+| `envelopes.restoreArchivedItem` | 75 | `privateTenantProcedure` | `requiresWriteAccess` | `RestoreItemCommand` (`.strict()`) | None | `restoreItemCommand` (`envelopes`, `incomeSources`, `bankAccounts`, `apps`) |
+| `envelopes.getEnvelopeRuleChangeImpact` | 88 | `privateTenantProcedure` | None | `z.object({ envelopeId: uuid, fromDate: z.string().optional() }).strict()` | None | `getEnvelopeRuleChangeImpactQuery` (`expenseEvents`) |
+| `envelopes.getProjectedEnvelopeBalances` | 101 | `privateTenantProcedure` | None | `GetProjectedEnvelopeBalancesQuerySchema` (`.strict()`) | None | `getProjectedEnvelopeBalancesQuery` (`envelopes`, `incomeEvents`, `expenseEvents`, `allocationPlans`, `allocationPlanLines`) |
+| `envelopes.getHomeSummary` | 113 | `privateTenantProcedure` | None | None | None | `getHomeSummaryQuery` (`envelopes`, `bankAccounts`, `incomeEvents`, `expenseEvents`, `transferEvents`, `allocationPlans`, `transactionLedger`) |
+| `envelopes.saveSetupBudget` | 124 | `privateOwnerProcedure` | `requiresWriteAccess` | `SaveSetupBudgetInputSchema` (`.strict()`) | None | `saveSetupBudget` (`tenants`, `bankAccounts`, `incomeSources`, `incomeEvents`, `envelopes`, `expenseEvents`, `allocationStrategies`, `allocationStrategySteps`, `transactionLedger`) |
+| `envelopes.listPools` / `createPool` / `updatePool` / `archivePool` / `getPoolRuleChangeImpact` / `getProjectedPoolBalances` | 145–195 | `privateTenantProcedure` | Same as canonical | Same as canonical | None | Deprecated compatibility aliases delegating to canonical `*Envelope*` handlers |
 
-### 9.7 UI Primitives, LIFO Modal Stack & Interaction Hierarchy (`packages/ui`)
-- **`PoolPicker`**:
-  - Requires mandatory `showBalance: boolean` prop. Controls whether pool chips and dropdown options display current balance badges (useful for contextual selection where balance display might be redundant or clutter the UI).
-  - Supports `allowAllOption?: boolean` (and `allOptionLabel?: string`) for filter dropdown contexts, rendering a pinned "All Pools" option at the top with active checkmark indicator, plus a quick clear `(X)` reset button on the trigger field when a pool/category filter is applied.
-- **`MobilePoolPicker` (`packages/ui/src/mobile/MobilePoolPicker.tsx`)**:
-  - Unified mobile pool and category selector component in 100% parity with web `PoolPicker`.
-  - Supports `mode?: 'modal' | 'inline'` (defaulting to `'inline'` for `displayStyle="field"`), avoiding nested React Native modal window manager conflicts on Android when spawned inside modal sheets.
-  - Groups pools by type (`EVERYDAY POOLS`, `BILLS POOLS`, `GOALS`, `OTHER POOLS`) with collapsible headers, real-time search filtering, formatted balances, and indented subcategories.
-  - Fully integrated into mobile Quick Actions (`QuickExpenseTab`, `QuickTransferTab`), and transfer modals (`MobileTransferModal`), retiring local ad-hoc picker sheets.
-- **Centralized LIFO Modal Stack Manager (`modalStack.ts` / `useModalDismiss`)**:
-  - Managed via `@money-matters/ui/web` (`packages/ui/src/web/modalStack.ts`), maintaining a global Last-In-First-Out (LIFO) modal registry.
-  - Subscribes `ConfirmDialog`, `SlideOverDrawer`, `ModalDialog`, `ReconciliationModal`, and `CrossBankTransferModal`.
-  - When `Escape` is pressed in nested modal contexts (e.g., `ConfirmDialog` atop `ModalDialog`, or `TransferModal` opened over `MarkPaidModal`), only the topmost modal receives the dismiss event (`e.stopImmediatePropagation()`), preventing unintended parent modal dismissal.
-- **Cross-Account Bank Transfer Prompt (`<CrossBankTransferModal />`)**:
-  - Automatically triggered when a pool transfer spans different underlying bank accounts (`sourcePool.bankAccountId !== destPool.bankAccountId`).
-  - Presents clear physical bank transfer instructions, source/destination bank account names, transfer amount, and a 1-tap "Copy Amount" clipboard helper.
-- **Transaction Ledger Description Uniformity & User Overrides**:
-  - Directional transfers: DEBIT entries record `"Transfer to [Destination Pool]"`; CREDIT entries record `"Transfer from [Source Pool]"`. If a custom note is provided, both entries store the user's custom note directly.
-  - Income splits: Retains custom line reasoning if provided via note input; falls back to `"Income Topup"`.
-  - Balance alignment: Default note `"Balance Alignment"`, overridable by user-entered reason in `<ReconciliationModal />`.
-  - Expense recording / Mark paid: Defaults to bill/category name, overridable by custom user note.
-- **`InfoTooltip` Portal Anchoring**:
-  - Fixed-position portal rendered directly into `document.body` (`z-[9999]`) with viewport edge clamping, eliminating container overflow clipping in tables and flex headers.
+### 9.4 `income` Router (`apps/api/src/routers/income.router.ts` + `apps/api/src/routers/income/*.procedures.ts` — 12 Procedures)
 
-### 9.7 Router & Data Export Refinements
-- **Expense Schedule In-Place Updates (`apps/api/src/routers/expenses.router.ts`)**:
-  - `updateExpenseSource` compares existing and incoming recurrence rules (`frequency`, `interval`, `startDate`, `endDate`, `dayOfWeek`, `dayOfMonth`). If recurrence patterns remain identical, schedule properties (name, amount, pool) are updated in-place without re-bursting future events, preserving individually modified or deleted occurrences.
-- **Data Export Stealth Privacy (`packages/capabilities/tenant/src/export-data.ts`)**:
-  - Enforces strict pool privacy filtering on export: pools are included only if `!p.bankAccountId || allowedBankAccountIds.has(p.bankAccountId) || p.createdBy === userId`. Export filenames standardized to `Income_Split_Plans.csv` and `Income_Split_Plan_Lines.csv`.
+| Procedure | File & Line | Type | Write / Flag Guard | Input Schema (`.strict()`?) | Output Schema | Capability / DB Tables |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| `income.createIncomeSource` | `income-sources.procedures.ts:11` | `privateTenantProcedure` | `requiresWriteAccess` | Inline `z.object({...}).strict()` | None | `bankAccounts`, `incomeSources`, `tenants`, `incomeEvents`, `burstIncomeEvents` |
+| `income.listIncomeEventsBySource` | `income-sources.procedures.ts:183` | `privateTenantProcedure` | None | `z.object({ incomeSourceId: uuid }).strict()` | None | `incomeSources`, `bankAccounts`, `incomeEvents` |
+| `income.getIncomeSourceRuleChangeImpact` | `income-sources.procedures.ts:227` | `privateTenantProcedure` | None | `z.object({ id: uuid, fromDate: z.string().optional() }).strict()` | None | `incomeSources`, `bankAccounts`, `incomeEvents` |
+| `income.updateIncomeSource` | `income-sources.procedures.ts:276` | `privateTenantProcedure` | `requiresWriteAccess` | Inline `z.object({ id: uuid, confirmReset: bool, data: z.object({...}).strict() }).strict()` | None | `incomeSources`, `bankAccounts`, `incomeEvents`, `tenants`, `burstIncomeEvents` |
+| `income.listIncomeSources` | `income-sources.procedures.ts:439` | `privateTenantProcedure` | None | None | None | `incomeSources`, `bankAccounts` |
+| `income.createIncomeEvent` | `income-events.procedures.ts:9` | `privateTenantProcedure` | `requiresWriteAccess` | `CreateIncomeEventCommand` (`.strict()`) | None | `incomeSources`, `bankAccounts`, `incomeEvents` |
+| `income.listUpcomingIncomeEvents` | `income-events.procedures.ts:81` | `privateTenantProcedure` | None | None | None | `incomeEvents`, `incomeSources`, `bankAccounts` |
+| `income.listIncomeEvents` | `income-events.procedures.ts:144` | `privateTenantProcedure` | None | None | None | `incomeEvents`, `incomeSources`, `bankAccounts` |
+| `income.updateIncomeEvent` | `income-events.procedures.ts:199` | `privateTenantProcedure` | `requiresWriteAccess` | Inline `z.object({...}).strict()` | None | `incomeEvents`, `incomeSources`, `bankAccounts` |
+| `income.markIncomeReceived` | `income-events.procedures.ts:255` | `privateTenantProcedure` | `requiresWriteAccess` | Inline `z.object({...}).strict()` | None | `incomeEvents`, `incomeSources`, `bankAccounts` |
+| `income.deleteIncomeEvent` | `income-events.procedures.ts:317` | `privateTenantProcedure` | `requiresWriteAccess` | `z.object({ eventId: uuid }).strict()` | None | `incomeEvents`, `incomeSources`, `bankAccounts` |
+| `income.archiveIncomeSource` | `income-lifecycle.procedures.ts:7` | `privateTenantProcedure` | `requiresWriteAccess` | `z.object({ id: uuid }).strict()` | None | `incomeSources`, `bankAccounts`, `incomeEvents` |
 
-### 9.8 Shared UI Component Library & Cross-Platform Form Standards (`packages/ui`)
-- **Architectural Tenet ("Set Once & Re-Use")**:
-  - All reusable UI elements, form fields, validation helpers, modal containers, and design tokens are defined centrally in `@money-matters/ui` (`@money-matters/ui/web` and `@money-matters/ui/mobile`).
-  - Apps (`apps/web`, `apps/mobile`) act as thin composition layers. Defining local modal wrappers, custom confirm popups, ad-hoc buttons, or duplicate amount inputs inside apps is strictly forbidden.
-- **Web UI Primitives Catalog (`@money-matters/ui/web`)**:
-  - `Button`: Primary (`#2563eb`), Secondary, Destructive (`#ba1a1a`), and Ghost variants. Accepts `isLoading: boolean` prop to render an inline spinner and preserve button dimensions without geometry jump. Disables pointer events while loading.
-  - `FormLabel`: Unified label element. Accepts `required?: boolean` (renders subtle red `*`), `htmlFor?: string`, and either `label?: string` prop or JSX children.
-  - `FormFieldError`: Accessible inline error display (`role="alert"`). Renders subtle red helper text (`text-xs text-rose-600 dark:text-rose-400 mt-1`) directly below the targeted input.
-  - `FormErrorBanner`: Top-level form alert banner with warning icon for API or submission failures (`bg-rose-50 border border-rose-200 text-rose-800 dark:bg-rose-950/40 dark:border-rose-800/60 dark:text-rose-200`).
-  - `ModalDialog`: Accessible modal overlay. Subscribes to global LIFO modal stack (`useModalDismiss`). Accepts `isDirty?: boolean` prop; when dirty, any attempt to dismiss via Cancel button, backdrop click, or `Escape` key automatically intercepts and renders a nested discard confirmation prompt.
-  - `ConfirmDialog`: Promise-friendly action confirmation dialog replacing native browser `confirm()`.
-  - `SortHeader`: Table column header component with active/direction indicators (`▲`/`▼`), maintaining alignment parity with underlying data cells.
-  - `TextLink`: Accessible link primitive with Serene Blue styling and subtle focus rings.
-  - `AmountField`: Form input primitive enforcing `$` currency adornment, 12-digit max limit, 2 decimal places, monospace numerals (`font-mono tabular-nums`), and non-negative boundaries.
-  - `DatePickerField`: Native date input wrapper with timezone-aware ISO date formatting (`YYYY-MM-DD`).
-  - `GenericSelectField` & `SearchSelect`: Searchable dropdown selects with Serene styling and keyboard navigation.
-  - `PaginationBar`: Standardized table pagination controls. **Conditionally rendered only when `totalItems >= 5`**.
-  - `SkeletonTable`: Standardized skeleton loading table with configurable row and column counts.
-- **Mobile UI Primitives Catalog (`@money-matters/ui/mobile`)**:
-  - `MobileButton` (`Button`): Native touchable button with primary (`#2563eb`), secondary, destructive (`#ba1a1a`), and ghost variants. Automatically displays `ActivityIndicator` during `isLoading` or `isSubmitting` states.
-  - `MobileInput` (`Input`): Native text input integrated with `FormLabel` and `FormFieldError`.
-  - `AmountInput`: Monetary amount input with `$` currency prefix, numeric keypad (`keyboardType="decimal-pad"`), 12-digit limit, 2 decimal place formatting, and automatic select-on-focus (`selectTextOnFocus={true}`) for immediate typing.
-  - `ChipSelect`: Flexible single/multi-select chip component supporting `key`/`value` or `value`/`label` options with Serene Blue active state.
-  - `MobileModalDialog`: Centralized modal sheet / bottom drawer with scrollable body, fixed header/footer, and `isDirty` discard confirmation interception.
-  - `MobileConfirmDialog` (`showMobileConfirm`): Universal native confirmation modal replacing `Alert.alert` for all destructive, archival, and discard actions.
-  - `MobilePaginationBar`: Mobile pagination bar with Prev/Next controls, **conditionally rendered only when `totalItems >= 5`**.
-  - `BankProviderBadge`: Branded badges for Australian banks (`CBA`, `Westpac`, `ANZ`, `NAB`, `ING`, `Macquarie`, `Other`).
-- **Form State & Interaction Governance**:
-  - **Submit Button Blocking**: Primary form submission actions MUST remain disabled unless form state is dirty and valid (`!isDirty || !isValid`).
-  - **Autofocus**: First editable text/amount input in any modal or form MUST receive `autoFocus`.
-  - **Zero Ad-Hoc Hex Colors**: All styling MUST strictly consume Serene Finance tokens (`tokens.colors`, `tokens.fonts`) or standard Serene Tailwind classes.
-- **Mobile TypeScript Cache Management (`.tsbuildinfo`)**:
-  - `apps/mobile/tsconfig.json` operates in incremental compilation mode (`.tsbuildinfo`). When `@money-matters/ui` or any workspace package adds or alters exports, developers/agents MUST execute `rm -f apps/mobile/.tsbuildinfo` before `pnpm --filter @money-matters/mobile typecheck` to prevent false typecheck errors caused by stale build cache.
+### 9.5 `expenses` Router (`apps/api/src/routers/expenses.router.ts` — 4 Procedures)
+
+| Procedure | Line | Type | Write / Flag Guard | Input Schema (`.strict()`?) | Output Schema | Capability / DB Tables |
+| :--- | ---: | :--- | :--- | :--- | :--- | :--- |
+| `expenses.createExpenseEvent` | 15 | `privateTenantProcedure` | `requiresWriteAccess` | Inline `z.object({...}).strict()` | None | `envelopes`, `expenseEvents` |
+| `expenses.listExpenseEventsByEnvelope` | 91 | `privateTenantProcedure` | None | `z.object({ envelopeId: uuid.optional(), categoryId: uuid.optional() }).strict()` | None | `envelopes`, `expenseEvents` |
+| `expenses.listExpenseEventsByCategory` (deprecated alias) | 145 | `privateTenantProcedure` | None | `z.object({ categoryId: uuid }).strict()` | None | `envelopes`, `expenseEvents` |
+| `expenses.listUpcomingExpenseEvents` | 184 | `privateTenantProcedure` | None | None | None | `expenseEvents`, `envelopes` |
+
+### 9.6 `payday` Router (`apps/api/src/routers/payday.router.ts` + `apps/api/src/routers/payday/*.procedures.ts` — 16 Procedures)
+
+| Procedure | File & Line | Type | Write / Flag Guard | Input Schema (`.strict()`?) | Output Schema | Capability / DB Tables |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| `payday.resetAllocationPlan` | `payday-execution.procedures.ts:20` | `privateTenantProcedure` | `requiresWriteAccess` | `z.object({ incomeEventId: uuid }).strict()` | None | `incomeEvents`, `incomeSources`, `bankAccounts`, `resetAllocationPlanCommand` (`allocationPlans`, `allocationPlanLines`) |
+| `payday.confirmPayday` | `payday-execution.procedures.ts:59` | `privateTenantProcedure` | `requiresWriteAccess` | `ConfirmPaydayCommand` (`.strict()`) | None | `incomeEvents`, `incomeSources`, `bankAccounts`, `runAllocationCommand` (`allocationPlans`, `allocationPlanLines`, `transactionLedger`, `envelopes`, `expenseEvents`) |
+| `payday.previewPayday` | `payday-execution.procedures.ts:116` | `privateTenantProcedure` | None | `z.object({ incomeEventId: uuid, overrideAmount: z.string().optional() }).strict()` | None | `incomeEvents`, `incomeSources`, `bankAccounts`, `previewPaydayQuery` |
+| `payday.listConfirmedAllocations` | `payday-execution.procedures.ts:163` | `privateTenantProcedure` | None | None | None | `allocationPlans`, `incomeEvents`, `incomeSources`, `bankAccounts`, `allocationPlanLines`, `envelopes` |
+| `payday.getIncomeSplitAnalytics` | `payday-execution.procedures.ts:236` | `privateTenantProcedure` | `apps.featureFlags.reports` | `GetIncomeSplitAnalyticsQuerySchema` (`.strict()`) | None | `apps`, `getIncomeSplitAnalyticsQuery` (`allocationPlans`, `allocationPlanLines`, `envelopes`) |
+| `payday.overrideEvent` | `payday-matrix.procedures.ts:30` | `privateTenantProcedure` | `requiresWriteAccess` | `OverrideEventCommand` (`.strict()`) | None | `overrideEventCommand` (`incomeEvents`, `expenseEvents`, `envelopes`, `incomeSources`, `bankAccounts`) |
+| `payday.deleteUpcomingEvent` | `payday-matrix.procedures.ts:37` | `privateTenantProcedure` | `requiresWriteAccess` | `DeleteUpcomingEventCommand` (`.strict()`) | None | `deleteUpcomingEventCommand` (`incomeEvents`, `expenseEvents`) |
+| `payday.bulkDeleteEvents` | `payday-matrix.procedures.ts:44` | `privateTenantProcedure` | `requiresWriteAccess` | `BulkDeleteEventsCommand` (`.strict()`) | None | `bulkDeleteEventsCommand` (`incomeEvents`, `expenseEvents`, `transferEvents`) |
+| `payday.saveBulkAllocations` | `payday-matrix.procedures.ts:51` | `privateTenantProcedure` | `requiresWriteAccess` | Inline `z.object({...}).strict()` | None | `incomeEvents`, `incomeSources`, `bankAccounts`, `allocationPlans`, `allocationPlanLines` |
+| `payday.saveAutoAllocation` | `payday-matrix.procedures.ts:148` | `privateTenantProcedure` | `requiresWriteAccess` | Inline `z.object({...}).strict()` | None | `incomeEvents`, `incomeSources`, `bankAccounts`, `allocationPlans`, `allocationPlanLines` |
+| `payday.getMatrixPlan` | `payday-matrix.procedures.ts:261` | `privateTenantProcedure` | None | Inline `z.object({ horizonMonths: z.number().min(1).max(12).default(12) }).strict().optional()` | None | `envelopes`, `bankAccounts`, `tenants`, `incomeEvents`, `incomeSources`, `expenseEvents`, `allocationPlans`, `allocationPlanLines`, `computeMatrixProjection` |
+| `payday.previewAllocation` | `payday-matrix.procedures.ts:435` | `privateTenantProcedure` | None | `z.object({ incomeAmount: z.string() }).strict()` | None | `previewAllocationQuery` |
+| `payday.getActiveAllocationStrategy` | `payday-strategy.procedures.ts:20` | `privateTenantProcedure` | None | `z.object({ scope: AllocationStrategyScopeEnum.optional() }).optional()` | None | `getActiveAllocationStrategyQuery`, `seedAllocationStrategyCommand` (`allocationStrategies`, `allocationStrategySteps`) |
+| `payday.listAllocationPresets` | `payday-strategy.procedures.ts:41` | `privateTenantProcedure` | None | None | None | `ALLOCATION_PRESETS` (`@money-matters/types`) |
+| `payday.applyAllocationPreset` | `payday-strategy.procedures.ts:45` | `privateTenantProcedure` | `requiresWriteAccess` + role check for `HOUSEHOLD` | `ApplyAllocationPresetInputSchema` (`.strict()`) | None | `applyAllocationPresetCommand` (`allocationStrategies`, `allocationStrategySteps`) |
+| `payday.updateAllocationStrategySteps` | `payday-strategy.procedures.ts:74` | `privateTenantProcedure` | `requiresWriteAccess` + `customAllocationRules` flag + role check for `HOUSEHOLD` | `UpdateAllocationStrategyStepsInputSchema` (`.strict()`) | None | `apps`, `allocationStrategies`, `updateAllocationStrategyStepsCommand` (`allocationStrategySteps`) |
+
+### 9.7 `transactions` Router (`apps/api/src/routers/transactions.router.ts` — 8 Procedures)
+
+| Procedure | Line | Type | Write / Flag Guard | Input Schema (`.strict()`?) | Output Schema | Capability / DB Tables |
+| :--- | ---: | :--- | :--- | :--- | :--- | :--- |
+| `transactions.moveMoney` | 26 | `privateTenantProcedure` | `requiresWriteAccess` | `MoveMoneyCommand` (`.strict()`) | None | `moveMoneyCommand` (`envelopes`, `transactionLedger`, `expenseEvents`) |
+| `transactions.recordManualTransaction` | 36 | `privateTenantProcedure` | `requiresWriteAccess` | `RecordManualTransactionCommand` (`.strict()`) | None | `recordManualTransactionCommand` (`envelopes`, `transactionLedger`, `expenseEvents`) |
+| `transactions.updateTransactionNote` | 59 | `privateTenantProcedure` | `requiresWriteAccess` | `UpdateTransactionNoteCommand` (`.strict()`) | None | `updateTransactionNoteCommand` (`transactionLedger`, `envelopes`) |
+| `transactions.markExpensePaid` | 69 | `privateTenantProcedure` | `requiresWriteAccess` | `MarkExpensePaidCommand` (`.strict()`) | None | `markExpensePaidCommand` (`expenseEvents`, `envelopes`, `transactionLedger`) |
+| `transactions.listEnvelopeTransactions` | 91 | `privateTenantProcedure` | None | `ListEnvelopeTransactionsQuery` (`.strict()`) | None | `listEnvelopeTransactionsQuery` (`transactionLedger`, `envelopes`, `bankAccounts`) |
+| `transactions.listPoolTransactions` (deprecated alias) | 99 | `privateTenantProcedure` | None | `ListEnvelopeTransactionsQuery` (`.strict()`) | None | `listEnvelopeTransactionsQuery` |
+| `transactions.listTransactions` | 107 | `privateTenantProcedure` | None | `ListTransactionsQuery` (`.strict()`) | None | `listTransactionsQuery` (`transactionLedger`, `envelopes`, `bankAccounts`) |
+| `transactions.searchTransactions` | 115 | `privateTenantProcedure` | None | `SearchTransactionsQuery` (`.strict()`) | None | `searchTransactionsQuery` (`transactionLedger`, `envelopes`, `bankAccounts`) |
+
+### 9.8 `transfers`, `billing`, `notifications`, `simulation`, `assistant` & `fileNotes` Routers (25 Procedures)
+
+| Router & Procedure | File & Line | Type | Write / Flag Guard | Input Schema (`.strict()`?) | Output Schema | Capability / DB Tables |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| `transfers.createTransferEvent` | `transfers.router.ts:10` | `privateTenantProcedure` | `requiresWriteAccess` | Inline `z.object({...}).strict()` | None | `envelopes`, `transferEvents` |
+| `transfers.listUpcomingTransferEvents` | `transfers.router.ts:88` | `privateTenantProcedure` | None | None | None | `transferEvents`, `envelopes`, `bankAccounts` |
+| `transfers.deleteTransferEvent` | `transfers.router.ts:190` | `privateTenantProcedure` | `requiresWriteAccess` | `z.object({ eventId: uuid }).strict()` | None | `transferEvents`, `envelopes` |
+| `transfers.updateTransferEvent` | `transfers.router.ts:248` | `privateTenantProcedure` | `requiresWriteAccess` | Inline `z.object({...}).strict()` | None | `transferEvents` |
+| `transfers.executeTransferEvent` | `transfers.router.ts:286` | `privateTenantProcedure` | `requiresWriteAccess` | Inline `z.object({...}).strict()` | None | `transferEvents`, `moveMoneyCommand` |
+| `billing.getSubscriptionStatus` | `billing.router.ts:14` | `tenantProcedure` | None | None | None | `getSubscriptionStatusQuery` (`tenants`), `syncSubscriptionFromStripeCommand` |
+| `billing.listInvoices` | `billing.router.ts:35` | `tenantProcedure` | None | None | None | `listInvoicesQuery` (`billingInvoices`) |
+| `billing.createCheckoutSession` | `billing.router.ts:40` | `ownerProcedure` | None | `CreateCheckoutSessionInputSchema` (`.strict()`) | None | `createCheckoutSessionCommand` (`tenants`, `users`, Stripe API) |
+| `billing.verifyCheckoutSession` | `billing.router.ts:53` | `tenantProcedure` | None | `VerifyCheckoutSessionInputSchema` (`.strict()`) | None | `verifyCheckoutSessionCommand` (`tenants`, `billingInvoices`, Stripe API) |
+| `billing.createCustomerPortalSession` | `billing.router.ts:61` | `ownerProcedure` | None | `CreateCustomerPortalSessionInputSchema` (`.strict()`) | None | `createCustomerPortalSessionCommand` (`tenants`, Stripe API) |
+| `notifications.registerPushToken` | `notifications.router.ts:13` | `tenantProcedure` | None | `RegisterPushTokenInputSchema` (`.strict()`) | None | `registerPushTokenCommand` (`deviceTokens`) |
+| `notifications.unregisterPushToken` | `notifications.router.ts:24` | `tenantProcedure` | None | `UnregisterPushTokenInputSchema` (`.strict()`) | None | `unregisterPushTokenCommand` (`deviceTokens`) |
+| `notifications.getPreferences` | `notifications.router.ts:35` | `tenantProcedure` | None | None | None | `getNotificationPreferencesQuery` (`tenantUserPreferences`) |
+| `notifications.updatePreferences` | `notifications.router.ts:45` | `tenantProcedure` | None | `UpdateNotificationPreferencesInputSchema` (`.strict()`) | None | `updateNotificationPreferencesCommand` (`tenantUserPreferences`) |
+| `simulation.canAfford` | `simulation.router.ts:13` | `privateTenantProcedure` | `apps.featureFlags.simulation` | `CanAffordInputSchema` (`.strict()`) | None | `apps`, `canAffordSimulationQuery` (`envelopes`, `bankAccounts`, `incomeEvents`, `expenseEvents`, `allocationPlans`, `allocationPlanLines`, `transactionLedger`) |
+| `assistant.ask` | `assistant.router.ts:25` | `privateTenantProcedure` | `apps.featureFlags.askPenny` + `checkRateLimit('ai-ask:...')` | `AskAssistantInputSchema` (`.strict()`) | `AskAssistantOutputSchema` (`.strict()`) | `apps`, `askAssistantCommand` (`aiUsage`, `tenants`, capability adapters) |
+| `assistant.quotaStatus` | `assistant.router.ts:81` | `privateTenantProcedure` | None | None | `AiQuotaStatusSchema` (`.strict()`) | `apps`, `getAiQuotaStatusQuery` (`aiUsage`, `tenants`) |
+| `fileNotes.createPreSignedUrl` | `file-notes.router.ts:23` | `privateTenantProcedure` | `requiresWriteAccess` + `fileNotes` flag | `CreatePreSignedUrlInput` (`.strict()`) | None | `createPreSignedUrlHandler` (`fileNotes`, R2 S3 presigner) |
+| `fileNotes.create` | `file-notes.router.ts:33` | `privateTenantProcedure` | `requiresWriteAccess` + `fileNotes` flag | `CreateFileNoteInput` (`.strict()`) | `FileNoteDto` (`.strict()`) | `createFileNoteHandler` (`fileNotes`) |
+| `fileNotes.list` | `file-notes.router.ts:44` | `privateTenantProcedure` | `fileNotes` flag | `FileNotesListInput` (`.strict()`) | `z.array(FileNoteDto)` | `listFileNotesHandler` (`fileNotes`, `users`) |
+| `fileNotes.getDownloadUrl` | `file-notes.router.ts:55` | `privateTenantProcedure` | `fileNotes` flag | `z.object({ id: uuid }).strict()` | None | `getDownloadUrlHandler` (`fileNotes`, R2 S3 presigner) |
+| `fileNotes.updateComment` | `file-notes.router.ts:65` | `privateTenantProcedure` | `requiresWriteAccess` + `fileNotes` flag | `UpdateFileNoteCommentInput` (`.strict()`) | `FileNoteDto` (`.strict()`) | `updateFileNoteCommentHandler` (`fileNotes`, `users`) |
+| `fileNotes.archive` | `file-notes.router.ts:76` | `privateTenantProcedure` | `requiresWriteAccess` + `fileNotes` flag | `z.object({ id: uuid }).strict()` | None | `archiveFileNoteHandler` (`fileNotes`) |
+| `fileNotes.purge` | `file-notes.router.ts:86` | `privateTenantProcedure` | Deprecated (convert to soft-delete per `SEC-01`) | `z.object({ id: uuid }).strict()` | None | `purgeFileNoteHandler` (`fileNotes`) |
+| `fileNotes.getStorageQuota` | `file-notes.router.ts:96` | `privateTenantProcedure` | None | None | `StorageQuotaDto` (`.strict()`) | `getStorageQuotaHandler` (`fileNotes`) |
 
 ---
 
-## 10. Web Pre-Login Architecture & Modular Auth Primitives
+## 10. HTTP/Webhook Endpoints, Active Inngest Workflows & Feature Flags Registry
 
-### 10.1 Unified Public Layout Components (`apps/web/src/components/public`)
-- **`PublicHeader.tsx`**:
-  - Standardized unauthenticated top navigation bar across `/terms`, `/privacy`, `/subscription/upgrade`, and `/invite/[token]`.
-  - Brand identity rendering: SVG Logo mark + "Money Matters" (sans legacy attribution).
-  - Navigation actions: Responsive back-links (*← Back to Home*, *← Back to Dashboard*) and direct *Sign In* trigger.
-- **`PublicFooter.tsx`**:
-  - Unified footer across all pre-login surfaces.
-  - Dynamically renders current year copyright (`© {new Date().getFullYear()} Money Matters`), brand tagline, Serene Finance badge, and legal links (`/terms`, `/privacy`).
-- **`Terms of Service` (`/terms`)**:
-  - Comprehensive Australian legal standing covering ASIC/AFSL general advice exemption (Corporations Act 2001 s 911A), Australian Consumer Law statutory non-excludable guarantees (Competition and Consumer Act 2010), SaaS licensing, Stripe billing and 60-day trial rules, PostgreSQL tenant RLS data security, and exclusive jurisdiction of the Courts of New South Wales, Australia. 100% externalized via `@money-matters/i18n` with zero hardcoded literals.
+### 10.1 HTTP & Webhook Endpoints (`apps/api/src/worker.ts` & `apps/web/src/app/api/*`)
 
-### 10.2 Modular Authentication Architecture (`apps/web/src/components/auth`)
-- **`SocialAuthButtons.tsx`**: Modular Google SSO OAuth button with SVG branding and Serene hover states (Apple Social Auth deferred to Release 2; see `V2_SCOPE.md` `FEAT-V2-009-APPLE-AUTHENTICATION`).
-- **`PasswordStrengthIndicator.tsx`**: 4-rule security checklist (≥8 chars, uppercase, lowercase, number/special character) with dynamic progress bar and color-coded strength score (Weak / Fair / Good / Strong).
-- **`OtpVerificationView.tsx`**: 6-digit email confirmation code entry view with auto-advance inputs and Resend integration.
-- **`SignInForm.tsx` & `SignUpForm.tsx`**: Isolated form components cleanly separated from page shells to ensure strict <400 lines compliance across `/sign-in` (98 lines) and `/sign-up` (108 lines).
-- **`AuthModal.tsx` (`apps/web/src/components/landing`)**: Accessible overlay on `/` enabling in-place authentication without page navigation. Supports tab switching between Sign In and 60-Day Free Trial, backdrop dismiss, and `Escape` key capture.
+| Endpoint | Method(s) | File Path & Line | Auth / Verification | Rate Limit & Routing Notes |
+| :--- | :--- | :--- | :--- | :--- |
+| `/health` | `GET` | `apps/api/src/worker.ts:144` | Public | Returns `{ status: 'ok', runtime: 'cloudflare-workers' }` |
+| `/api/inngest` | `GET`, `POST`, `PUT` | `apps/api/src/worker.ts:154` | Inngest signing key (`INNGEST_SIGNING_KEY`) | Executes registered background workflows |
+| `/api/webhooks/stripe` | `POST` | `apps/api/src/worker.ts:161` (`apps/api/src/routes/stripe-webhook.ts:15`) | `stripe.webhooks.constructEventAsync` (`stripe-signature` on raw body) | Idempotency via `processed_webhooks` |
+| `/api/auth/mobile-google` | `GET` | `apps/api/src/worker.ts:166` (`apps/api/src/routes/mobile-auth.ts:52`) | Public OAuth initiator | Initiates Neon Auth social sign-in for Mobile |
+| `/api/auth/mobile-done` | `GET` | `apps/api/src/worker.ts:170` (`apps/api/src/routes/mobile-auth.ts:127`) | OAuth callback cookie/verifier exchange | Redirects to `return_to` deep link (`moneymatters://` or `exp://`) |
+| `/api/auth/*` (Worker) | `GET`, `POST` | `apps/api/src/worker.ts:174` (`apps/api/src/routes/auth-proxy.ts:152`) | Proxies to `NEON_AUTH_BASE_URL` | Passes through `enforceApiRateLimit` (`auth` bucket: 10 req / 60s) |
+| `/trpc/*` (Worker) | `GET`, `POST` | `apps/api/src/worker.ts:185` | JWT/Cookie session via `createEdgeContext` | Passes through `enforceApiRateLimit` (`mutation`: 100/60s, `query`: 300/60s) |
+| `/api/auth/[...auth]` (Web) | `GET`, `POST` | `apps/web/src/app/api/auth/[...auth]/route.ts:159` | CSRF origin check + proxies to `NEON_AUTH_BASE_URL` | Next.js auth proxy (`SEC-06` adds Upstash rate limiting) |
+| `/api/trpc/[trpc]` (Web) | `GET`, `POST` | `apps/web/src/app/api/trpc/[trpc]/route.ts:116` | Extracts session token from cookies and forwards to `NEXT_PUBLIC_API_URL/trpc` | Forwards `x-forwarded-for` to Worker API |
 
-- **`LandingHeader.tsx`**: Responsive header featuring passive `requestAnimationFrame` scrollspy navigation (`#why-us`, `#how-it-works`, `#simulator`, `#advantages`, `#pricing`, `#faq`), refined ghost Sign-In secondary action, high-contrast Serene Blue Free Trial CTA, and dynamic `authClient.useSession()` state (user identity badge + direct "Go to Dashboard →" link for authenticated visitors).
-- **`page.tsx` (`apps/web/src/app`)**: Root landing page shell with smooth scrolling (`scroll-smooth`). Authenticated users are permitted to freely browse the landing page and simulator without forced redirects to `/dashboard`.
-- **`LandingHero.tsx` & `HeroCtaActions.tsx`**: Dual-column hero layout combining the Before/After traditional vs Money Matters comparison with the interactive Serene Bento showcase and context-aware CTA actions tailored to visitor lifecycle state (anonymous visitors see "Start 60-Day Free Trial", active subscribers see "Go to Your Dashboard →", trial users see remaining trial days, and grace-period accounts see "Reactivate Full Access →").
-- **`ProblemSection.tsx`**: 4 fatal budgeting traps illustrated with Serene Finance vector icons (zero decorative emojis).
-- **`HowItWorksSection.tsx`**: 3-step automated payday allocation pipeline.
-- **`PaycheckSimulator.tsx` (`apps/web/src/components/simulator/`)**: Full-Width Multi-Payline Cashflow & Payday Timeline Simulator (<400 lines modular architecture) featuring:
-  - `SimulatorTimelineBar.tsx`: Day 0 to Day 28 interactive scrubber with milestone jump chips and auto-play controls.
-  - `PaydayCheckpointBanner.tsx`: Interactive payday checkpoint that pauses at Day 0 / Day 14, allowing real-time adjustment of net income ($1,800 to $4,500) and instant waterfall recalculation.
-  - `SimulatorPoolCard.tsx`: Variable-speed synchronized pool fill bars with subtle 100% completion celebration badge (`✓ 100% Funded`) and inconspicuous `[⇄ Transfer]` action.
-  - `PoolTransferModal.tsx`: Accessible interactive modal enabling simulated ad-hoc transfers between pools with live balance adjustments and full keyboard Escape dismissal.
-  - `SimulatorEventCallout.tsx`: Dynamic event narrative displaying cashflow outcomes, step bill deductions (Rent Day 3, Electricity Day 18), continuous daily living drawdowns, and manual transfer records.
-  - `simulationData.ts`: Pure mathematical timeline engine modeling step bills deductions, cumulative daily drawdowns, dynamic income scaling, and surplus sweep into Home Loan Offset reserve.
-- **`AdvantagesSection.tsx`**: 3 core mechanical guarantees: 5-Step Self-Healing Waterfall, 5-Level "Can We Afford This?" Engine, and Harmonious Shared & Personal Budgets (shared bill clarity + 100% confidential personal spending without surveillance).
-- **`LandingFooter.tsx`**: Standardized footer with brand links, legal routes, and customer-lifecycle-aware conversion banner.
+### 10.2 Active Inngest Workflows (`apps/api/src/inngest/index.ts` — 9 Functions)
+
+| Function ID | Trigger (Cron / Event) | File Path & Line | Description & Tables Accessed |
+| :--- | :--- | :--- | :--- |
+| `welcome-onboarding` | Event: `auth/user.signup` | `packages/capabilities/notifications/src/workflows.ts:13` | Sends welcome email via `sendEmail`, waits 2 days, sends setup nudge (`tenants`) |
+| `setup-completed` | Event: `onboarding/setup.completed` | `packages/capabilities/notifications/src/workflows.ts:56` | Sends setup completion summary email (`users`, `tenants`) |
+| `account-deleted` | Event: `auth/account.deleted` | `packages/capabilities/notifications/src/workflows.ts:89` | Sends account deletion confirmation email (`sendEmail`) |
+| `partner-invited` | Event: `household/partner.invited` | `packages/capabilities/notifications/src/workflows.ts:111` | Waits 3 days, checks `tenantUsers.inviteStatus === 'PENDING'`, sends reminder email |
+| `weekly-digest` | Cron: `0 8 * * 1` (Mon 08:00 UTC) | `packages/capabilities/notifications/src/scheduled-workflows.ts:323` | Sends weekly financial digest email to opted-in users (`tenants`, `tenantUsers`, `users`, `userPreferences`, `tenantUserPreferences`, `envelopes`, `expenseEvents`, `incomeEvents`) |
+| `data-retention-cleanup` | Cron: `0 3 * * *` (Daily 03:00 UTC) | `packages/capabilities/notifications/src/retention-workflows.ts:13` | Deletes `processedWebhooks` > 90 days, soft-archived `deviceTokens` > 90 days, expired `tenantUsers` invites > 30 days |
+| `check-expired-trials` | Cron: `0 0 * * *` (Daily 00:00 UTC) | `apps/api/src/inngest/billing-workflows.ts:14` | Transitions expired `TRIALING` tenants to `TRIAL_GRACE` and expired `TRIAL_GRACE` tenants to `EXPIRED` (`tenants`) |
+| `daily-rolling-window-materializer` | Cron: `0 15 * * *` (Daily 15:00 UTC / 01:00 AEST) | `apps/api/src/inngest/budgeting-workflows.ts:10` | Extends 12-month rolling window of `incomeEvents` and `expenseEvents` for all active tenants (`tenants`, `incomeSources`, `envelopes`) |
+| `auto-archive-completed-schedules` | Cron: `30 15 * * *` (Daily 15:30 UTC / 01:30 AEST) | `apps/api/src/inngest/budgeting-workflows.ts:57` | Soft-archives `envelopes` and `incomeSources` whose `endDate < today` and have zero `PENDING` events |
+
+### 10.3 Feature Flags & Entitlements Registry
+
+1. **Database App Feature Flags (`packages/types/src/app-feature-flags.types.ts` & `apps.feature_flags` JSONB column):**
+   - `fileNotes` (`boolean`, default `true` in schema): Controls file attachment notes on Envelopes, Transactions, and Bank Accounts (`FileNotesProvider`, `fileNotesRouter`).
+   - `reports` (`boolean`, default `false`): Controls Visual Analytics / Reports (`payday.getIncomeSplitAnalytics`, Web `/dashboard/reports`, Mobile `/(app)/reports`).
+   - `askPenny` (`boolean`, default `false`): Controls Ask Penny AI Assistant (`assistant.ask`, Web `DashboardLayout`, Mobile `(app)/_layout.tsx`).
+   - `simulation` (`boolean`, default `false`): Controls "Can I Afford It?" Purchase Simulator (`simulation.canAfford`, Web `/dashboard/afford-check`, Mobile `/(app)/afford-check`).
+   - `customAllocationRules` (`boolean`, default `false`): Controls custom waterfall step ordering (`payday.updateAllocationStrategySteps`, Web `/dashboard/settings/allocation-rules`, Mobile `/(app)/settings/allocation-rules`).
+2. **Static Env Feature Flags (`packages/config/src/feature-flags.ts`):**
+   - `FF_AI_ASSISTANT`, `FF_PAYDAY_SIMULATION`, `FF_BILLING_STRIPE`, `FF_PUSH_NOTIFICATIONS`, `FF_POSTHOG_ANALYTICS` (with `owner`, `expiresAt`, and `killSwitchEnabled`).
 
 ---
 

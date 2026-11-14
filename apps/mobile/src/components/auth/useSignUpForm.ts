@@ -60,7 +60,6 @@ export function useSignUpForm() {
 
   const createTenant = trpc.createTenant.useMutation();
   const registerToken = trpc.registerToken.useMutation();
-  const checkEmail = trpc.checkEmailRegistered.useMutation();
 
   const handleSignUp = async () => {
     setError(null);
@@ -92,18 +91,6 @@ export function useSignUpForm() {
 
     setLoading(true);
     try {
-      // 1. Check if user already exists
-      try {
-        const checkRes = await checkEmail.mutateAsync({ email: normalizedEmail });
-        if (checkRes.registered) {
-          setError(t("auth.userAlreadyExists"));
-          setLoading(false);
-          router.replace(`/(auth)/sign-in?email=${encodeURIComponent(normalizedEmail)}&reason=existing` as Href);
-          return;
-        }
-      } catch (_checkErr) {
-        // Fallback: Proceed with standard signUp if verification endpoint is temporarily unavailable
-      }
 
       const signUpResult = await authClient.signUp.email({
         name: name.trim(),

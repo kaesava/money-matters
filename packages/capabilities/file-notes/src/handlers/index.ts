@@ -1,5 +1,5 @@
 import { TRPCError } from "@trpc/server";
-import { eq, and, isNull, isNotNull, desc, sql } from "drizzle-orm";
+import { eq, and, or, isNull, isNotNull, desc, sql } from "drizzle-orm";
 import { fileNotes, bankAccounts, envelopes, users, apps, DbOrTx } from "@money-matters/db";
 import {
   CreatePreSignedUrlInput,
@@ -11,7 +11,11 @@ import {
   DEFAULT_APP_FEATURE_FLAGS,
   AppFeatureFlags,
 } from "@money-matters/types";
-import { getPresignedUploadUrl, getPresignedDownloadUrl, deleteFileFromBucket } from "../storage.js";
+import { getPresignedUploadUrl, getPresignedDownloadUrl } from "../storage.js";
+
+function privacyFilter(userId: string) {
+  return or(eq(fileNotes.isPrivate, false), eq(fileNotes.userId, userId));
+}
 
 export interface FileNotesContext {
   tenantId: string;
@@ -183,10 +187,19 @@ export async function listFileNotesHandler(
     return [];
   }
 
+  const entityInfo = await resolveEntityPrivacy(db, ctx, input.entityType, input.entityId);
+  if (!entityInfo.exists) {
+    return [];
+  }
+  if (entityInfo.isPrivate && entityInfo.ownerUserId && entityInfo.ownerUserId !== ctx.userId) {
+    throw new TRPCError({ code: "FORBIDDEN", message: "private_entity_unauthorized" });
+  }
+
   const conditions = [
     eq(fileNotes.tenantId, ctx.tenantId),
     eq(fileNotes.entityType, input.entityType),
     eq(fileNotes.entityId, input.entityId),
+    privacyFilter(ctx.userId),
   ];
 
   if (input.status === "ACTIVE") {
@@ -236,7 +249,7 @@ export async function getDownloadUrlHandler(
   const [note] = await db
     .select()
     .from(fileNotes)
-    .where(and(eq(fileNotes.id, id), eq(fileNotes.tenantId, ctx.tenantId)))
+    .where(and(eq(fileNotes.id, id), eq(fileNotes.tenantId, ctx.tenantId), privacyFilter(ctx.userId)))
     .limit(1);
 
   if (!note || !note.fileKey) {
@@ -255,7 +268,14 @@ export async function updateFileNoteCommentHandler(
   const [existing] = await db
     .select()
     .from(fileNotes)
-    .where(and(eq(fileNotes.id, input.id), eq(fileNotes.tenantId, ctx.tenantId), isNull(fileNotes.archivedAt)))
+    .where(
+      and(
+        eq(fileNotes.id, input.id),
+        eq(fileNotes.tenantId, ctx.tenantId),
+        privacyFilter(ctx.userId),
+        isNull(fileNotes.archivedAt)
+      )
+    )
     .limit(1);
 
   if (!existing) {
@@ -301,7 +321,14 @@ export async function archiveFileNoteHandler(
   const [existing] = await db
     .select()
     .from(fileNotes)
-    .where(and(eq(fileNotes.id, id), eq(fileNotes.tenantId, ctx.tenantId), isNull(fileNotes.archivedAt)))
+    .where(
+      and(
+        eq(fileNotes.id, id),
+        eq(fileNotes.tenantId, ctx.tenantId),
+        privacyFilter(ctx.userId),
+        isNull(fileNotes.archivedAt)
+      )
+    )
     .limit(1);
 
   if (!existing) {
@@ -327,18 +354,25 @@ export async function purgeFileNoteHandler(
   const [existing] = await db
     .select()
     .from(fileNotes)
-    .where(and(eq(fileNotes.id, id), eq(fileNotes.tenantId, ctx.tenantId)))
+    .where(and(eq(fileNotes.id, id), eq(fileNotes.tenantId, ctx.tenantId), privacyFilter(ctx.userId)))
     .limit(1);
 
   if (!existing) {
     throw new TRPCError({ code: "NOT_FOUND", message: "fileNoteNotFound" });
   }
 
-  if (existing.fileKey) {
-    await deleteFileFromBucket(existing.fileKey);
-  }
+  // Soft-archive only; R2 object deletion is deferred to full tenant erasure
+  const now = new Date();
+  await db
+    .update(fileNotes)
+    .set({
+      archivedAt: existing.archivedAt ?? now,
+      archivedBy: existing.archivedBy ?? ctx.userId,
+      updatedAt: now,
+      updatedBy: ctx.userId,
+    })
+    .where(and(eq(fileNotes.id, id), eq(fileNotes.tenantId, ctx.tenantId)));
 
-  await db.delete(fileNotes).where(eq(fileNotes.id, id));
   return { success: true, purgedId: id };
 }
 

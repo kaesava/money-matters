@@ -78,8 +78,8 @@ async function sendWithRetry(
         error: errText,
       });
 
-      // Do not retry 4xx client errors (e.g. invalid email / auth error)
-      if (res.status >= 400 && res.status < 500) {
+      // Do not retry non-429 4xx client errors (e.g. invalid email / auth error)
+      if (res.status >= 400 && res.status < 500 && res.status !== 429) {
         return { success: false };
       }
     } catch (err) {

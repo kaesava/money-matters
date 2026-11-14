@@ -6,6 +6,7 @@ import { expensesRouter } from './expenses.router.js';
 import { paydayRouter } from './payday.router.js';
 import { transactionsRouter } from './transactions.router.js';
 import { notificationsRouter } from './notifications.router.js';
+import { bugReportsRouter } from './bug-reports.router.js';
 import { billingRouter } from './billing.router.js';
 import { transfersRouter } from './transfers.router.js';
 import { simulationRouter } from './simulation.router.js';
@@ -20,6 +21,7 @@ export const appRouter = router({
   ...paydayRouter,
   ...transactionsRouter,
   ...notificationsRouter,
+  ...bugReportsRouter,
   ...billingRouter,
   ...transfersRouter,
   ...simulationRouter,

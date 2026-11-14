@@ -17,7 +17,7 @@ import { z } from "zod";
 
 export const paydayStrategyProcedures = {
   getActiveAllocationStrategy: privateTenantProcedure
-    .input(z.object({ isPrivate: z.boolean().optional() }).optional())
+    .input(z.object({ isPrivate: z.boolean().optional() }).strict().optional())
     .query(async ({ ctx, input }) => {
       return await getActiveAllocationStrategyQuery(
         ctx.tenantId!,

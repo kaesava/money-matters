@@ -12,26 +12,7 @@ import {
   DbOrTx,
 } from "@money-matters/db";
 import { eq, and } from "drizzle-orm";
-
-function arrayToCsv(items: Record<string, unknown>[], headers: string[]): string {
-  if (items.length === 0) return headers.join(",") + "\n";
-  const rows = items.map((item) =>
-    headers
-      .map((header) => {
-        const val = item[header];
-        if (val === null || val === undefined) return "";
-        let str = String(val);
-        // Neutralize CSV formula injection (CWE-1236)
-        if (/^[=+\-@\t\r]/.test(str)) {
-          str = `'${str}`;
-        }
-        str = str.replace(/"/g, '""');
-        return `"${str}"`;
-      })
-      .join(",")
-  );
-  return [headers.join(","), ...rows].join("\n") + "\n";
-}
+import { serializeCsvObjects } from "@money-matters/types";
 
 export function exportDataHandler(db: DbOrTx) {
   return async (tenantId: string, userId: string, appId: string) => {
@@ -75,16 +56,26 @@ export function exportDataHandler(db: DbOrTx) {
     );
     const allowedEnvelopeIds = new Set(userEnvelopes.map((e) => e.id));
 
-    // 5. Fetch Income Sources & Events
-    const userIncomeSources = await db
+    // 5. Fetch Income Sources & Events (exclude partner private receiving accounts)
+    const rawIncomeSources = await db
       .select()
       .from(incomeSources)
       .where(and(eq(incomeSources.tenantId, tenantId), eq(incomeSources.appId, appId)));
 
-    const userIncomeEvents = await db
+    const userIncomeSources = rawIncomeSources.filter(
+      (s) => !s.receivingAccountId || allowedBankAccountIds.has(s.receivingAccountId)
+    );
+    const allowedIncomeSourceIds = new Set(userIncomeSources.map((s) => s.id));
+
+    const rawIncomeEvents = await db
       .select()
       .from(incomeEvents)
       .where(and(eq(incomeEvents.tenantId, tenantId), eq(incomeEvents.appId, appId)));
+
+    const userIncomeEvents = rawIncomeEvents.filter(
+      (e) => !e.incomeSourceId || allowedIncomeSourceIds.has(e.incomeSourceId)
+    );
+    const allowedIncomeEventIds = new Set(userIncomeEvents.map((e) => e.id));
 
     // 6. Fetch Expense Events
     const rawExpenseEvents = await db
@@ -103,10 +94,12 @@ export function exportDataHandler(db: DbOrTx) {
     const userLedger = rawLedger.filter((t) => allowedEnvelopeIds.has(t.envelopeId));
 
     // 8. Fetch Allocation Plans & Lines
-    const userAllocationPlans = await db
+    const rawAllocationPlans = await db
       .select()
       .from(allocationPlans)
       .where(and(eq(allocationPlans.tenantId, tenantId), eq(allocationPlans.appId, appId)));
+
+    const userAllocationPlans = rawAllocationPlans.filter((p) => allowedIncomeEventIds.has(p.incomeEventId));
 
     const rawAllocationPlanLines = await db
       .select()
@@ -116,11 +109,11 @@ export function exportDataHandler(db: DbOrTx) {
     const userAllocationPlanLines = rawAllocationPlanLines.filter((l) => allowedEnvelopeIds.has(l.envelopeId));
 
     const csvFiles: Record<string, string> = {
-      "User_Profile.csv": arrayToCsv(
+      "User_Profile.csv": serializeCsvObjects(
         userRecord ? [{ ...userRecord, globalTimezone: tenantRecord?.timezone || "Australia/Sydney" }] : [],
         ["id", "email", "displayName", "globalTimezone"]
       ),
-      "Household_Profile.csv": arrayToCsv(
+      "Household_Profile.csv": serializeCsvObjects(
         tenantRecord ? [{
           id: tenantRecord.id,
           name: tenantRecord.name,
@@ -131,14 +124,14 @@ export function exportDataHandler(db: DbOrTx) {
         }] : [],
         ["id", "name", "subscriptionStatus", "setupStatus", "subscriptionEndsAt", "cancelAtPeriodEnd"]
       ),
-      "Bank_Accounts.csv": arrayToCsv(userBankAccounts, ["id", "name", "bankProvider", "lastKnownBalance", "isPrivate"]),
-      "Envelopes.csv": arrayToCsv(userEnvelopes, ["id", "name", "envelopeType", "bankAccountId", "targetAmount", "monthlyAmount", "budgetFrequency"]),
-      "Income_Sources.csv": arrayToCsv(userIncomeSources, ["id", "name", "amount", "rrule", "startDate", "receivingAccountId"]),
-      "Income_Events.csv": arrayToCsv(userIncomeEvents, ["id", "incomeSourceId", "expectedDate", "expectedAmount", "status"]),
-      "Expense_Events.csv": arrayToCsv(userExpenseEvents, ["id", "expectedDate", "expectedAmount", "envelopeId", "isScheduled", "status"]),
-      "Transactions_Ledger.csv": arrayToCsv(userLedger, ["id", "recordedAt", "amount", "flowType", "envelopeId", "bankAccountId"]),
-      "Income_Split_Plans.csv": arrayToCsv(userAllocationPlans, ["id", "incomeEventId", "totalIncomeAmount", "status"]),
-      "Income_Split_Plan_Lines.csv": arrayToCsv(userAllocationPlanLines, ["id", "planId", "envelopeId", "proposedAmount", "confirmedAmount"]),
+      "Bank_Accounts.csv": serializeCsvObjects(userBankAccounts, ["id", "name", "bankProvider", "lastKnownBalance", "isPrivate"]),
+      "Envelopes.csv": serializeCsvObjects(userEnvelopes, ["id", "name", "envelopeType", "bankAccountId", "targetAmount", "monthlyAmount", "budgetFrequency"]),
+      "Income_Sources.csv": serializeCsvObjects(userIncomeSources, ["id", "name", "amount", "rrule", "startDate", "receivingAccountId"]),
+      "Income_Events.csv": serializeCsvObjects(userIncomeEvents, ["id", "incomeSourceId", "expectedDate", "expectedAmount", "status"]),
+      "Expense_Events.csv": serializeCsvObjects(userExpenseEvents, ["id", "expectedDate", "expectedAmount", "envelopeId", "isScheduled", "status"]),
+      "Transactions_Ledger.csv": serializeCsvObjects(userLedger, ["id", "recordedAt", "amount", "flowType", "envelopeId", "bankAccountId"]),
+      "Income_Split_Plans.csv": serializeCsvObjects(userAllocationPlans, ["id", "incomeEventId", "totalIncomeAmount", "status"]),
+      "Income_Split_Plan_Lines.csv": serializeCsvObjects(userAllocationPlanLines, ["id", "planId", "envelopeId", "proposedAmount", "confirmedAmount"]),
     };
 
     return {

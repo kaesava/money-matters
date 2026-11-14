@@ -1,4 +1,4 @@
-import { tenantProcedure, authenticatedProcedure, requiresWriteAccess } from '../../trpc/trpc.js';
+import { tenantProcedure, privateTenantProcedure, authenticatedProcedure, requiresWriteAccess } from '../../trpc/trpc.js';
 import { MONEY_MATTERS_APP_ID } from '../../trpc/edge-context.js';
 import { userPreferences, tenantUserPreferences, users, tenants, AppPreferencesBlob } from "@money-matters/db";
 import { and, eq, sql } from "drizzle-orm";
@@ -6,7 +6,7 @@ import { COUNTRY_DEFAULTS } from "@money-matters/types";
 import { z } from 'zod';
 
 export const profileProcedures = {
-  getUserPreferences: tenantProcedure
+  getUserPreferences: privateTenantProcedure
     .query(async ({ ctx }) => {
       const appId = ctx.appId || MONEY_MATTERS_APP_ID;
 
@@ -67,7 +67,7 @@ export const profileProcedures = {
       };
     }),
 
-  updateUserPreferences: tenantProcedure
+  updateUserPreferences: privateTenantProcedure
     .input(
       z.object({
         timezone: z.string().optional(),

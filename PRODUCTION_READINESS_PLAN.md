@@ -21,7 +21,7 @@
 ### 2.1 Tier P0 — Launch Blockers
 *(Must be resolved before production launch: tenant/partner isolation bypasses, auth/privacy leaks, `pnpm validate` static build/typecheck/schema-audit blockers, and banned hard deletes.)*
 
-#### `SEC-01` — `file_notes` Cross-Tenant & Cross-Partner Stealth Privacy Bypass, Missing `FORCE ROW LEVEL SECURITY`, and Banned Hard Delete
+#### [x] COMPLETED `SEC-01` — `file_notes` Cross-Tenant & Cross-Partner Stealth Privacy Bypass, Missing `FORCE ROW LEVEL SECURITY`, and Banned Hard Delete
 - **Title:** Enforce parent entity ownership, stealth privacy (`isPrivate`), soft-delete only, and `FORCE ROW LEVEL SECURITY` on `file_notes`
 - **Evidence:**
   - `packages/capabilities/file-notes/src/handlers/index.ts:59-174` (`createPreSignedUrlHandler`, `createFileNoteHandler` never verify that `input.entityId` belongs to `ctx.tenantId` or is visible to `ctx.userId`).
@@ -47,7 +47,7 @@
 
 ---
 
-#### `SEC-02` — `exportMyData` (`tenantProcedure`) Leaks Partner's Private Records or Drops Caller's Private Records
+#### [x] COMPLETED `SEC-02` — `exportMyData` (`tenantProcedure`) Leaks Partner's Private Records or Drops Caller's Private Records
 - **Title:** Switch `exportMyData` to `privateTenantProcedure` and enforce explicit stealth-privacy predicates across all exported tables
 - **Evidence:**
   - `apps/api/src/routers/tenant/tenant-core.procedures.ts:138-145` (`exportMyData: tenantProcedure.mutation(...)`).
@@ -67,7 +67,7 @@
 
 ---
 
-#### `SEC-03` — Missing Stealth Privacy RLS & Session Variable Injection on `allocation_strategies`, `user_preferences`, and `bug_reports`
+#### [x] COMPLETED `SEC-03` — Missing Stealth Privacy RLS & Session Variable Injection on `allocation_strategies`, `user_preferences`, and `bug_reports`
 - **Title:** Add stealth-privacy RLS policy to `allocation_strategies`, enforce `FORCE ROW LEVEL SECURITY` on all remaining tables, and fix procedure types in `profile.procedures.ts`
 - **Evidence:**
   - `packages/db/drizzle/0049_allocation_strategies_personal_scope.sql:1-15` (adds `user_id` and `is_private` to `allocation_strategies` for personal payday rules, but adds **zero** `stealth_privacy_isolation` RLS policy).
@@ -89,7 +89,7 @@
 
 ---
 
-#### `SEC-04` — Sensitive Procedures Using `tenantProcedure` Instead of `privateTenantProcedure`
+#### [x] COMPLETED `SEC-04` — Sensitive Procedures Using `tenantProcedure` Instead of `privateTenantProcedure`
 - **Title:** Upgrade `getAllocationHistory`, `leaveHousehold`, `getHouseholdDetails`, and `removeHouseholdMember` to `privateTenantProcedure`
 - **Evidence:**
   - `apps/api/src/routers/payday/payday-execution.procedures.ts:127-241` (`getAllocationHistory` uses `tenantProcedure` while querying `allocationPlans`, `allocationPlanLines`, `incomeEvents`, `incomeSources`, `bankAccounts`, and `envelopes`!).
@@ -185,7 +185,7 @@
 
 ### 2.2 Tier P1 — High Priority (Security Hardening, Architecture Boundaries, Major Web/Mobile Parity Gaps & E2E Integrity)
 
-#### `SEC-05` — Unauthenticated Email Enumeration Oracle in `checkEmailRegistered` (`publicProcedure`)
+#### [x] COMPLETED `SEC-05` — Unauthenticated Email Enumeration Oracle in `checkEmailRegistered` (`publicProcedure`)
 - **Title:** Remove or rate-limit and obfuscate `checkEmailRegistered` public procedure
 - **Evidence:**
   - `apps/api/src/routers/tenant/tenant-core.procedures.ts:214-224` (`checkEmailRegistered: publicProcedure.input(z.object({ email: z.string().email() }).strict()).query(...)` executes `SELECT count(*)::int as count FROM neon_auth.user WHERE LOWER(email) = ${normalizedEmail}` and returns `{ registered: boolean }`).
@@ -204,7 +204,7 @@
 
 ---
 
-#### `SEC-06` — Rate Limiter Fails Open When Redis Is Unset/Unreachable & Web Auth Proxy Lacks Rate Limiting
+#### [x] COMPLETED `SEC-06` — Rate Limiter Fails Open When Redis Is Unset/Unreachable & Web Auth Proxy Lacks Rate Limiting
 - **Title:** Enforce fail-closed rate limiting on auth/mutation endpoints in production and wire rate limiting into Next.js `/api/auth/[...auth]`
 - **Evidence:**
   - `packages/core/src/rate-limiter.ts:45-62, 92-104, 148-159` (`checkRateLimit` and `checkAiTenantRateLimit` return `{ allowed: true }` if `UPSTASH_REDIS_REST_URL` is unset or when `ratelimit.limit()` throws an error).
@@ -223,7 +223,7 @@
 
 ---
 
-#### `SEC-07` — Missing Zod `.strict()` on `SubmitFeedbackInputSchema` & `AssistantResultSchema` Variants
+#### [x] COMPLETED `SEC-07` — Missing Zod `.strict()` on `SubmitFeedbackInputSchema` & `AssistantResultSchema` Variants
 - **Title:** Add `.strict()` to `SubmitFeedbackInputSchema` and all `AssistantResultSchema` object schemas
 - **Evidence:**
   - `packages/capabilities/bug-reports/src/submit-feedback.command.ts:4-16` (`SubmitFeedbackInputSchema = z.object({...})` without `.strict()`).
@@ -243,7 +243,7 @@
 
 ---
 
-#### `SEC-08` — CSV Formula Injection Vulnerability in Data Export & Reports CSV Builders
+#### [x] COMPLETED `SEC-08` — CSV Formula Injection Vulnerability in Data Export & Reports CSV Builders
 - **Title:** Sanitize leading formula characters (`=`, `+`, `-`, `@`, `\t`, `\r`) in `export-data.ts` and Web/Mobile Reports CSV exports
 - **Evidence:**
   - `packages/capabilities/tenant/src/export-data.ts:8-34` (`escapeCsvValue` quotes strings containing commas/quotes/newlines, but does not prefix strings starting with `=`, `+`, `-`, `@`, `\t`, `\r`).
@@ -594,7 +594,7 @@
 
 ---
 
-#### `ARCH-04` — Misplaced `submitFeedback` Procedure in `expensesRouter` & Cross-Import Hygiene
+#### [x] COMPLETED `ARCH-04` — Misplaced `submitFeedback` Procedure in `expensesRouter` & Cross-Import Hygiene
 - **Title:** Move `submitFeedback` from `expensesRouter` to a dedicated `feedbackRouter` (or `tenantRouter`) and reconcile `V2_SCOPE.md` documentation drift
 - **Evidence:**
   - `apps/api/src/routers/expenses.router.ts:192-218` mounts `submitFeedback` (which writes to `bug_reports` via `@money-matters/capability-bug-reports`) inside `expensesRouter` (`trpc.expenses.submitFeedback`).
@@ -612,7 +612,7 @@
 
 ---
 
-#### `OPS-01` — External Calls (Resend Email, Stripe API, LLM Gateway) Lack Explicit Timeouts & Backoff Retries, and Feature Flags Lack Metadata
+#### [x] COMPLETED `OPS-01` — External Calls (Resend Email, Stripe API, LLM Gateway) Lack Explicit Timeouts & Backoff Retries, and Feature Flags Lack Metadata
 - **Title:** Add `AbortSignal.timeout()` and retry-with-backoff to outbound Resend/Stripe/LLM calls and add owner/expiry metadata to feature flags
 - **Evidence:**
   - `packages/capabilities/assistant/src/llm/gateway.provider.ts:35-95` (`fetch(...)` to Cloudflare AI Gateway / OpenAI has no `signal: AbortSignal.timeout(...)` or retry backoff).

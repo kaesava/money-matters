@@ -2,7 +2,7 @@ import { useState, useMemo, useEffect } from "react";
 import { trpc } from "../../../../lib/trpc";
 import { t } from "@money-matters/i18n";
 import { useResizableColumns } from "@money-matters/ui/web";
-import { SpendingTimeframe } from "@money-matters/types";
+import { SpendingTimeframe, serializeCsvRows } from "@money-matters/types";
 import { getTenantDateString } from "@money-matters/core";
 import { useLocale } from "../../../../providers/LocaleProvider";
 import { PaydayPlanRecord } from "../../../../components/web/SlideOverAllocationDrawer";
@@ -186,7 +186,7 @@ export function useHistoryPaydayData({
       "Planned Amount",
       "Reasoning",
     ];
-    const rows: string[][] = [];
+    const rows: unknown[][] = [];
 
     for (const plan of paydayPlans) {
       const splitDateStr = fmtDate(plan.createdAt);
@@ -199,17 +199,17 @@ export function useHistoryPaydayData({
         rows.push([
           splitDateStr,
           incDateStr,
-          `"${incName.replace(/"/g, '""')}"`,
-          `"${bankName.replace(/"/g, '""')}"`,
+          incName,
+          bankName,
           totalAmt,
-          `"${(line.categoryName || "Unknown").replace(/"/g, '""')}"`,
+          line.categoryName || "Unknown",
           line.confirmedAmount || line.proposedAmount,
-          `"${(line.reasoning || "").replace(/"/g, '""')}"`,
+          line.reasoning || "",
         ]);
       }
     }
 
-    const csvContent = [headers.join(","), ...rows.map((r) => r.join(","))].join("\n");
+    const csvContent = serializeCsvRows(headers, rows);
     const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");

@@ -1,6 +1,5 @@
 import { tenantProcedure, requiresWriteAccess } from '../trpc/trpc.js';
 import { registerDeviceTokenHandler, removeDeviceTokenHandler } from "@money-matters/capability-notifications";
-import { submitFeedbackCommand, SubmitFeedbackInputSchema } from "@money-matters/capability-bug-reports";
 import { sendNotificationEmail } from "@money-matters/core";
 import { inngest } from "../inngest/client.js";
 import { z } from 'zod';
@@ -66,17 +65,6 @@ export const notificationsRouter = {
       }
 
       return { success: true, dispatchedChannels };
-    }),
-
-  submitFeedback: tenantProcedure
-    .input(SubmitFeedbackInputSchema)
-    .mutation(async ({ ctx, input }) => {
-      // NOTE: Intentionally do NOT call requiresWriteAccess(ctx) so users in read-only / grace-period states can submit feedback and report bugs.
-      return await submitFeedbackCommand(input, {
-        userId: ctx.userId,
-        tenantId: ctx.tenantId,
-        userEmail: ctx.email,
-      });
     }),
 };
 

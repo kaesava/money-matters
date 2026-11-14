@@ -1,5 +1,5 @@
 import { NextRequest } from "next/server";
-import { logger } from "@money-matters/core";
+import { logger, checkRateLimit } from "@money-matters/core";
 
 export async function GET(req: NextRequest) {
   return handleProxy(req);
@@ -61,6 +61,20 @@ async function handleProxy(req: NextRequest) {
         status: 403,
         headers: { "Content-Type": "application/json" },
       });
+    }
+
+    if (isStateChanging) {
+      const clientIp =
+        req.headers.get("cf-connecting-ip") ||
+        req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
+        "unknown";
+      const rateLimit = await checkRateLimit(`auth:${clientIp}`, 30, 60);
+      if (!rateLimit.allowed) {
+        return new Response(JSON.stringify({ error: "Too many authentication requests. Please try again shortly." }), {
+          status: 429,
+          headers: { "Content-Type": "application/json" },
+        });
+      }
     }
 
     const url = new URL(req.url);

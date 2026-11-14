@@ -23,14 +23,14 @@ export const IncomeItemSchema = z.object({
   type: z.enum(["SALARY", "BUSINESS", "BENEFIT", "OTHER"]).default("SALARY"),
   receivingAccountId: z.string().optional().nullable(),
   startDate: z.string().optional().nullable(),
-});
+}).strict();
 export type IncomeItem = z.infer<typeof IncomeItemSchema>;
 
 export const VehicleConfigSchema = z.object({
   id: z.string(),
   name: z.string(),
   size: CarSizeSchema,
-});
+}).strict();
 export type VehicleConfig = z.infer<typeof VehicleConfigSchema>;
 
 export const ChildConfigSchema = z.object({
@@ -38,7 +38,7 @@ export const ChildConfigSchema = z.object({
   name: z.string(),
   stage: SchoolStageSchema,
   type: SchoolTypeSchema,
-});
+}).strict();
 export type ChildConfig = z.infer<typeof ChildConfigSchema>;
 
 export const QuizAnswersSchema = z.object({
@@ -403,6 +403,6 @@ export const UserGoalItemSchema = z.object({
   startDate: z.string().optional().nullable(),
   rrule: z.string().optional().nullable(),
   isPrivate: z.boolean().optional(),
-});
+}).strict();
 export type UserGoalItem = z.infer<typeof UserGoalItemSchema>;
 

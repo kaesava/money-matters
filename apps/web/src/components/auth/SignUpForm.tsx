@@ -79,7 +79,6 @@ export function SignUpForm({
   };
 
   const createTenant = trpc.createTenant.useMutation();
-  const checkEmail = trpc.checkEmailRegistered.useMutation();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -132,23 +131,6 @@ export function SignUpForm({
     setLoading(true);
 
     try {
-      // 1. Check if email is already registered before attempting sign up
-      try {
-        const checkRes = await checkEmail.mutateAsync({ email: normalizedEmail });
-        if (checkRes.registered) {
-          const displayError = t("auth.userAlreadyExists");
-          setFormError(displayError);
-          onError?.(displayError);
-          setLoading(false);
-          if (onExistingUser) {
-            onExistingUser(normalizedEmail);
-          }
-          return;
-        }
-      } catch (_checkErr) {
-        // Fallback: Proceed with standard signUp if verification endpoint is temporarily unavailable
-      }
-
       const signUpResult = await authClient.signUp.email({
         email: normalizedEmail,
         password,

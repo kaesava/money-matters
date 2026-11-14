@@ -46,53 +46,66 @@ export class CloudflareGatewayLlmProvider implements LlmProviderPort {
 
     const endpoint = `https://gateway.ai.cloudflare.com/v1/${config.CF_ACCOUNT_ID}/${config.CF_AI_GATEWAY_ID}/workers-ai/v1/chat/completions`;
     const sanitizedText = redactPromptPii(userText).slice(0, 300);
+    const body = JSON.stringify({
+      model: config.AI_MODEL_ID || DEFAULT_AI_MODEL_ID,
+      messages: [
+        { role: "system", content: SYSTEM_PROMPT },
+        { role: "user", content: sanitizedText },
+      ],
+      max_tokens: 150,
+      temperature: 0.1,
+    });
 
-    try {
-      const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 6000);
+    for (let attempt = 1; attempt <= 2; attempt++) {
+      try {
+        const res = await fetch(endpoint, {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${config.CF_AI_API_TOKEN}`,
+            "Content-Type": "application/json",
+            "cf-aig-cache-ttl": "3600",
+          },
+          body,
+          signal: AbortSignal.timeout(10_000),
+        });
 
-      const res = await fetch(endpoint, {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${config.CF_AI_API_TOKEN}`,
-          "Content-Type": "application/json",
-          "cf-aig-cache-ttl": "3600",
-        },
-        body: JSON.stringify({
-          model: config.AI_MODEL_ID || DEFAULT_AI_MODEL_ID,
-          messages: [
-            { role: "system", content: SYSTEM_PROMPT },
-            { role: "user", content: sanitizedText },
-          ],
-          max_tokens: 150,
-          temperature: 0.1,
-        }),
-        signal: controller.signal,
-      });
+        if (res.status === 429 || res.status >= 500) {
+          const errorText = await res.text().catch(() => "");
+          logger.warn("[Penny AI Gateway] Transient HTTP response", { status: res.status, attempt, errorText });
+          if (attempt < 2) {
+            await new Promise((r) => setTimeout(r, 300 * attempt));
+            continue;
+          }
+          return null;
+        }
 
-      clearTimeout(timeout);
+        if (!res.ok) {
+          const errorText = await res.text().catch(() => "");
+          logger.warn("[Penny AI Gateway] Non-OK HTTP response", { status: res.status, errorText });
+          return null;
+        }
 
-      if (!res.ok) {
-        const errorText = await res.text().catch(() => "");
-        logger.warn("[Penny AI Gateway] Non-OK HTTP response", { status: res.status, errorText });
+        const json = await res.json() as {
+          choices?: Array<{ message?: { content?: string } }>;
+        };
+
+        const rawContent = json.choices?.[0]?.message?.content?.trim();
+        if (!rawContent) return null;
+
+        // Extract JSON if wrapped in code blocks
+        const cleanJson = rawContent.replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/, "").trim();
+        const parsed = JSON.parse(cleanJson);
+        return AssistantClassifiedIntentSchema.parse(parsed);
+      } catch (err) {
+        logger.warn("[Penny AI Gateway] Intent classification attempt failed", { attempt, error: err });
+        if (attempt < 2) {
+          await new Promise((r) => setTimeout(r, 300 * attempt));
+          continue;
+        }
         return null;
       }
-
-      const json = await res.json() as {
-        choices?: Array<{ message?: { content?: string } }>;
-      };
-
-      const rawContent = json.choices?.[0]?.message?.content?.trim();
-      if (!rawContent) return null;
-
-      // Extract JSON if wrapped in code blocks
-      const cleanJson = rawContent.replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/, "").trim();
-      const parsed = JSON.parse(cleanJson);
-      return AssistantClassifiedIntentSchema.parse(parsed);
-    } catch (err) {
-      logger.warn("[Penny AI Gateway] Intent classification failed", { error: err });
-      return null;
     }
+    return null;
   }
 }
 
