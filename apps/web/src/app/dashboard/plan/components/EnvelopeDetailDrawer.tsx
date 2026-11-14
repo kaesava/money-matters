@@ -2,13 +2,13 @@
 
 import React, { useEffect, useState, useMemo } from "react";
 import Link from "next/link";
-import { ArrowDownCircle, FileText } from "lucide-react";
+import { ArrowDownCircle } from "lucide-react";
 import { t } from "@money-matters/i18n";
 import { trpc } from "../../../../lib/trpc";
 import { Tabs, formatRecurrenceLabel } from "@money-matters/ui/web";
 import { useLocale } from "../../../../providers/LocaleProvider";
 import { useAppFeatures } from "../../../../hooks/useAppFeatures";
-import { FileNotesDrawer } from "@money-matters/capability-file-notes/web";
+import { FileNotesPanel } from "@money-matters/capability-file-notes/web";
 import { CategorySummaryItem } from "../../envelopes/types";
 import { DrawerUpcomingExpensesTable } from "./drawer/DrawerUpcomingExpensesTable";
 import { DrawerActivityHistoryTable } from "./drawer/DrawerActivityHistoryTable";
@@ -29,7 +29,7 @@ export interface EnvelopeDetailDrawerProps {
   events?: CategoryScheduledEvent[];
   onMarkPaid?: (eventId: string, amount: string, date: string) => void;
   onEditPool?: (pool: CategorySummaryItem) => void;
-  onDrawDown?: (pool: { id: string }) => void;
+  onDrawDown?: (pool: { id: string; name?: string }) => void;
 }
 
 export type SlideOverCategoryDrawerProps = EnvelopeDetailDrawerProps;
@@ -46,8 +46,7 @@ export function EnvelopeDetailDrawer({
 }: EnvelopeDetailDrawerProps) {
   const { fmt, fmtDate, fmtTx } = useLocale();
   const { hasFileNotes } = useAppFeatures();
-  const [activeTab, setActiveTab] = useState<"expenses" | "activity">("expenses");
-  const [fileNotesOpen, setFileNotesOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState<"expenses" | "activity" | "notes">("expenses");
 
   // Fetch pool, categories, transactions, and fallback upcoming events
   const poolsQuery = trpc.listEnvelopes.useQuery(undefined, { enabled: isOpen });
@@ -127,6 +126,7 @@ export function EnvelopeDetailDrawer({
   const resolvedTabs = [
     { id: "expenses" as const, label: `${t("categoryDrawer.tabs.upcomingExpenses")} (${effectiveEvents.length})` },
     { id: "activity" as const, label: `${t("categoryDrawer.tabs.history")} (${relatedTransactions.length})` },
+    ...(hasFileNotes ? [{ id: "notes" as const, label: t("fileNotes.title") }] : []),
   ];
 
   return (
@@ -192,16 +192,6 @@ export function EnvelopeDetailDrawer({
                       className="px-2 py-0.5 text-xs font-bold text-[#2563eb] hover:text-blue-700 bg-blue-50 dark:bg-blue-950/60 rounded-md border border-blue-200 dark:border-blue-800 transition-colors cursor-pointer"
                     >
                       {t("common.edit")}
-                    </button>
-                  )}
-                  {hasFileNotes && targetPool && (
-                    <button
-                      type="button"
-                      onClick={() => setFileNotesOpen(true)}
-                      className="px-2 py-0.5 text-xs font-bold text-slate-700 dark:text-slate-300 hover:text-slate-900 bg-slate-100 dark:bg-zinc-800 rounded-md border border-zinc-200 dark:border-zinc-700 transition-colors cursor-pointer inline-flex items-center gap-1"
-                    >
-                      <FileText className="w-3 h-3 text-slate-500" />
-                      <span>{t("fileNotes.attachFile")}</span>
                     </button>
                   )}
                 </div>
@@ -307,7 +297,7 @@ export function EnvelopeDetailDrawer({
             <Tabs
               tabs={resolvedTabs}
               activeTab={activeTab}
-              onChange={(id) => setActiveTab(id as "expenses" | "activity")}
+              onChange={(id) => setActiveTab(id as "expenses" | "activity" | "notes")}
             />
           </div>
 
@@ -332,17 +322,16 @@ export function EnvelopeDetailDrawer({
                 fmtTx={fmtTx}
               />
             )}
+
+            {activeTab === "notes" && hasFileNotes && targetPool && (
+              <FileNotesPanel
+                entityType="ENVELOPE"
+                entityId={targetPool.id}
+              />
+            )}
           </div>
         </div>
       </div>
-
-      {hasFileNotes && fileNotesOpen && targetPool && (
-        <FileNotesDrawer
-          entityType="ENVELOPE"
-          entity={{ id: targetPool.id, name: targetPool.name }}
-          onClose={() => setFileNotesOpen(false)}
-        />
-      )}
     </div>
   );
 }

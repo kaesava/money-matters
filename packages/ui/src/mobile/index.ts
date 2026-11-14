@@ -137,4 +137,7 @@ export { MobileCommandPaletteSheet } from './MobileCommandPaletteSheet';
 export type { MobileCommandPaletteSheetProps } from './MobileCommandPaletteSheet';
 export { MobileCelebrationBanner } from './MobileCelebrationBanner';
 export type { MobileCelebrationBannerProps } from './MobileCelebrationBanner';
+export { MobileHouseholdContributionSection } from './HouseholdContributionSection';
+export type { MobileHouseholdContributionSectionProps } from './HouseholdContributionSection';
+export * from '../lib/householdContribution';
 export * from './notifications/index';

@@ -5,6 +5,8 @@ import {
   MobileButton,
   showMobileConfirm,
   MobileEnvelopeOption,
+  validateHouseholdContribution,
+  resolveHouseholdContributionPayload,
 } from '@money-matters/ui/mobile';
 import { t } from '@money-matters/i18n';
 import { trpc } from '../lib/trpc';
@@ -116,23 +118,26 @@ export function IncomeExpenseFormModal({
       hasErr = true;
     }
 
-    if (mode === 'INCOME' && hasPrivateEnvelopes) {
-      if (contributionMode === 'PERCENTAGE') {
-        const pct = parseFloat(contributionValue);
-        if (isNaN(pct) || pct <= 0 || pct > 100) {
-          setAmountError(t('planTabs.householdContribution.percentageInvalid'));
-          hasErr = true;
-        }
-      } else if (contributionMode === 'FIXED_AMOUNT') {
-        const fix = parseFloat(contributionValue);
-        if (isNaN(fix) || fix <= 0) {
-          setAmountError(t('planTabs.householdContribution.amountInvalid'));
-          hasErr = true;
-        }
+    if (mode === 'INCOME') {
+      const contributionErr = validateHouseholdContribution({
+        hasPrivateEnvelopes,
+        contributionMode,
+        contributionValue,
+        expectedAmount: amount,
+      });
+      if (contributionErr) {
+        setAmountError(contributionErr);
+        hasErr = true;
       }
     }
 
     if (hasErr) return;
+
+    const contributionPayload = resolveHouseholdContributionPayload({
+      hasPrivateEnvelopes,
+      contributionMode,
+      contributionValue,
+    });
 
     const saveAction = () => {
       executeSave({
@@ -146,8 +151,7 @@ export function IncomeExpenseFormModal({
         interval: recurrenceBuilder.interval,
         startDate: recurrenceBuilder.startDate,
         endDate: recurrenceBuilder.endDate || undefined,
-        contributionMode: hasPrivateEnvelopes ? contributionMode : 'FULL',
-        contributionValue: hasPrivateEnvelopes && contributionMode !== 'FULL' ? contributionValue : null,
+        ...contributionPayload,
       });
     };
 

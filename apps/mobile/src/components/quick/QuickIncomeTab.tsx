@@ -6,6 +6,8 @@ import {
   MobileInput,
   MobileButton,
   MobileBankPicker,
+  MobileHouseholdContributionSection,
+  ContributionMode,
   DESIGN_TOKENS,
 } from '@money-matters/ui/mobile';
 import { t } from '@money-matters/i18n';
@@ -21,6 +23,11 @@ export interface QuickIncomeTabProps {
   setDate: (v: string) => void;
   receivingAccountId: string;
   setReceivingAccountId: (v: string) => void;
+  hasPrivateEnvelopes: boolean;
+  contributionMode: ContributionMode;
+  setContributionMode: (m: ContributionMode) => void;
+  contributionValue: string;
+  setContributionValue: (v: string) => void;
   bankAccounts: Array<{ id: string; name: string; bankProvider?: string | null; currentBalance?: string | number | null }>;
   presets: { recent: QuickPresetItem[]; frequent: QuickPresetItem[] };
   onSelectPreset: (preset: QuickPresetItem) => void;
@@ -38,6 +45,11 @@ export function QuickIncomeTab({
   setDate,
   receivingAccountId,
   setReceivingAccountId,
+  hasPrivateEnvelopes,
+  contributionMode,
+  setContributionMode,
+  contributionValue,
+  setContributionValue,
   bankAccounts,
   presets,
   onSelectPreset,
@@ -145,6 +157,14 @@ export function QuickIncomeTab({
         value={date}
         onChange={setDate}
         required
+      />
+
+      <MobileHouseholdContributionSection
+        hasPrivateEnvelopes={hasPrivateEnvelopes}
+        contributionMode={contributionMode}
+        onContributionModeChange={setContributionMode}
+        contributionValue={contributionValue}
+        onContributionValueChange={setContributionValue}
       />
 
       {/* Action Buttons: Split Income (primary) and Save Only (secondary) */}

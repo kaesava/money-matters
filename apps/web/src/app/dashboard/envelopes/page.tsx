@@ -112,10 +112,14 @@ function PoolsPageContent() {
     },
   });
 
-  const handleDrawDown = (pool: { id: string }) => {
+  const handleDrawDown = (pool: { id: string; name?: string }) => {
     setSelectedPoolForDrawer(null);
     setQuickDrawerTab("DEBIT");
-    setQuickDrawerInitialData({ type: "DEBIT", name: "Draw down", categoryId: pool.id });
+    setQuickDrawerInitialData({
+      type: "DEBIT",
+      name: pool.name ? `${pool.name} draw-down` : "Draw-down",
+      categoryId: pool.id,
+    });
     setIsQuickDrawerOpen(true);
   };
 

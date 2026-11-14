@@ -198,13 +198,13 @@
 
 ### 6.1 Package Entrypoints (`packages/ui/package.json`)
 - `@money-matters/ui` (`.`) → `packages/ui/src/index.ts` (re-exports `DESIGN_TOKENS`, shared hooks/formatters/dates, and `./web/index`).
-- `@money-matters/ui/web` (`./web`) → `packages/ui/src/web/index.ts` (68 exported symbols across modals, drawers, form inputs, tables, charts, and providers).
-- `@money-matters/ui/mobile` (`./mobile`) → `packages/ui/src/mobile/index.ts` (106 exported symbols across native bottom-sheet modals, inputs, pickers, charts, and providers).
+- `@money-matters/ui/web` (`./web`) → `packages/ui/src/web/index.ts` (73 exported symbols across modals, drawers, form inputs, tables, charts, `HouseholdContributionSection`, and providers).
+- `@money-matters/ui/mobile` (`./mobile`) → `packages/ui/src/mobile/index.ts` (111 exported symbols across native bottom-sheet modals, inputs, pickers, charts, `MobileHouseholdContributionSection`, and providers).
 - `@money-matters/ui/tokens` (`./tokens`) → `packages/ui/src/tokens.ts` (`DESIGN_TOKENS`).
 
 ---
 
-## 7. `@money-matters/i18n` Dictionary Files & Namespace Inventory (`2,048` Leaf Keys)
+## 7. `@money-matters/i18n` Dictionary Files & Namespace Inventory (`2,047` Leaf Keys)
 
 All user-facing copy lives in `packages/i18n/src/dictionaries/en/*.ts` (re-exported via `packages/i18n/src/dictionaries/en.ts`).
 
@@ -217,7 +217,7 @@ All user-facing copy lives in `packages/i18n/src/dictionaries/en/*.ts` (re-expor
 | `envelopes.ts` | `envelopes`, `categories`, `categoryDrawer`, `drawers`, `modals`, `poolTypes`, `quickPick`, `goalModes` | 309 | 290 (201) | 271 (177) | 0 (0) | 82 (42) |
 | `feedback.ts` | `feedback` | 26 | 25 (25) | 25 (25) | 0 (0) | 0 (0) |
 | `fileNotes.ts` | `fileNotes` | 16 | 2 (2) | 2 (1) | 0 (0) | 27 (16) |
-| `plan.ts` | `planTabs`, `incomeAndBills`, `schedules`, `matrix`, `billCoverage`, `expenseStatus` | 133 | 75 (66) | 100 (81) | 0 (0) | 11 (16) |
+| `plan.ts` | `planTabs`, `incomeAndBills`, `schedules`, `matrix`, `billCoverage`, `expenseStatus` | 132 | 75 (66) | 100 (81) | 0 (0) | 11 (16) |
 | `landing.ts` | `landing` | 292 | 230 (192) | 5 (3) | 0 (0) | 0 (0) |
 | `payday.ts` | `payday`, `paydayDrawer`, `paychecks` | 99 | 86 (75) | 103 (79) | 0 (0) | 14 (8) |
 | `privacy.ts` | `privacy`, `terms`, `public` | 144 | 136 (135) | 22 (21) | 0 (5) | 4 (4) |

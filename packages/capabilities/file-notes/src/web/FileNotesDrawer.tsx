@@ -4,14 +4,13 @@ import { t } from '@money-matters/i18n';
 import { useFileNotes } from './useFileNotes.js';
 import { SlideOverDrawer, ConfirmDialog, FormErrorBanner, Button } from '@money-matters/ui/web';
 
-export interface FileNotesDrawerProps {
+export interface FileNotesPanelProps {
   entityType: 'ENVELOPE' | 'BANK_ACCOUNT';
-  entity: { id: string; name: string } | null;
-  onClose: () => void;
-  onBack?: () => void;
+  entityId: string;
+  onDirtyChange?: (isDirty: boolean) => void;
 }
 
-export function FileNotesDrawer({ entityType, entity, onClose, onBack }: FileNotesDrawerProps) {
+export function FileNotesPanel({ entityType, entityId, onDirtyChange }: FileNotesPanelProps) {
   const fileInputId = useId();
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
@@ -31,11 +30,12 @@ export function FileNotesDrawer({ entityType, entity, onClose, onBack }: FileNot
     handleArchiveNote,
     handlePurgeNote,
     downloadNote,
-  } = useFileNotes(entityType, entity?.id);
-
-  if (!entity) return null;
+  } = useFileNotes(entityType, entityId);
 
   const isFormDirty = Boolean(noteComment.trim() || noteFile);
+  React.useEffect(() => {
+    onDirtyChange?.(isFormDirty);
+  }, [isFormDirty, onDirtyChange]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -60,15 +60,7 @@ export function FileNotesDrawer({ entityType, entity, onClose, onBack }: FileNot
 
   return (
     <>
-      <SlideOverDrawer
-        title={t('fileNotes.drawerTitle', { entityName: entity.name })}
-        subtitle={t('fileNotes.drawerSubtitle')}
-        onClose={onClose}
-        onBack={onBack}
-        isDirty={isFormDirty}
-        widthClass="max-w-lg"
-      >
-        <div className="flex flex-col h-full space-y-6">
+      <div className="flex flex-col h-full space-y-6">
           {errorMessage && (
             <FormErrorBanner message={errorMessage} onDismiss={clearError} />
           )}
@@ -254,7 +246,6 @@ export function FileNotesDrawer({ entityType, entity, onClose, onBack }: FileNot
             )}
           </div>
         </div>
-      </SlideOverDrawer>
 
       <ConfirmDialog
         isOpen={Boolean(purgingNoteId)}
@@ -272,5 +263,34 @@ export function FileNotesDrawer({ entityType, entity, onClose, onBack }: FileNot
         onClose={() => setPurgingNoteId(null)}
       />
     </>
+  );
+}
+
+export interface FileNotesDrawerProps {
+  entityType: 'ENVELOPE' | 'BANK_ACCOUNT';
+  entity: { id: string; name: string } | null;
+  onClose: () => void;
+  onBack?: () => void;
+}
+
+export function FileNotesDrawer({ entityType, entity, onClose, onBack }: FileNotesDrawerProps) {
+  const [isDirty, setIsDirty] = useState(false);
+  if (!entity) return null;
+
+  return (
+    <SlideOverDrawer
+      title={t('fileNotes.drawerTitle', { entityName: entity.name })}
+      subtitle={t('fileNotes.drawerSubtitle')}
+      onClose={onClose}
+      onBack={onBack}
+      isDirty={isDirty}
+      widthClass="max-w-lg"
+    >
+      <FileNotesPanel
+        entityType={entityType}
+        entityId={entity.id}
+        onDirtyChange={setIsDirty}
+      />
+    </SlideOverDrawer>
   );
 }

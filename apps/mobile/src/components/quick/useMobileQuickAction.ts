@@ -2,6 +2,7 @@ import { useState, useMemo, useEffect } from 'react';
 import { trpc } from '../../lib/trpc';
 import { formatIsoDate } from '../../lib/format';
 import { usePostHog } from 'posthog-react-native';
+import { ContributionMode } from '@money-matters/ui/mobile';
 import {
   QuickPresetItem,
   QuickActionInitialData,
@@ -31,6 +32,8 @@ export function useMobileQuickAction(
   const [selectedSubCategoryId, setSelectedSubCategoryId] = useState<string | null>(null);
   const [destPoolId, setDestPoolId] = useState('');
   const [receivingAccountId, setReceivingAccountId] = useState('');
+  const [contributionMode, setContributionMode] = useState<ContributionMode>('FULL');
+  const [contributionValue, setContributionValue] = useState('');
   const [note, setNote] = useState('');
 
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -227,6 +230,8 @@ export function useMobileQuickAction(
     setNote('');
     setDestPoolId('');
     setReceivingAccountId('');
+    setContributionMode('FULL');
+    setContributionValue('');
     setGeneralError('');
   };
 
@@ -247,6 +252,11 @@ export function useMobileQuickAction(
     setDestPoolId,
     receivingAccountId,
     setReceivingAccountId,
+    contributionMode,
+    setContributionMode,
+    contributionValue,
+    setContributionValue,
+    hasPrivateEnvelopes: pools.some((p) => p.isPrivate),
     note,
     setNote,
     isSubmitting,

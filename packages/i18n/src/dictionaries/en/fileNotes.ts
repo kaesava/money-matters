@@ -1,5 +1,6 @@
 export const fileNotes = {
   fileNotes: {
+    title: "Notes",
     drawerTitle: "Notes & Files: {entityName}",
     drawerSubtitle: "Attach documents, receipts, and notes",
     inputPlaceholder: "Write a note or attach a file...",

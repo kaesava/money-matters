@@ -3,7 +3,23 @@ import { getTenantDateString } from "@money-matters/core";
 
 
 import React, { useState, useEffect, useMemo } from "react";
-import { useToast, RecurrenceBuilder, useRecurrenceBuilder, ConfirmDialog, Button, AmountField, ModalDialog, Input, GenericSelectField, FormErrorBanner, FormLabel, parseRecurrenceRule } from "@money-matters/ui/web";
+import {
+  useToast,
+  RecurrenceBuilder,
+  useRecurrenceBuilder,
+  ConfirmDialog,
+  Button,
+  AmountField,
+  ModalDialog,
+  Input,
+  GenericSelectField,
+  FormErrorBanner,
+  HouseholdContributionSection,
+  validateHouseholdContribution,
+  resolveHouseholdContributionPayload,
+  ContributionMode,
+  parseRecurrenceRule,
+} from "@money-matters/ui/web";
 import { t } from "@money-matters/i18n";
 import { trpc } from "../../lib/trpc";
 import { useLocale } from "../../providers/LocaleProvider";
@@ -50,7 +66,7 @@ export function IncomeFormModal({ isOpen, onClose, sourceToEdit }: IncomeFormMod
   const [name, setName] = useState("");
   const [amount, setAmount] = useState("");
   const [receivingAccountId, setReceivingAccountId] = useState("");
-  const [contributionMode, setContributionMode] = useState<"FULL" | "PERCENTAGE" | "FIXED_AMOUNT">("FULL");
+  const [contributionMode, setContributionMode] = useState<ContributionMode>("FULL");
   const [contributionValue, setContributionValue] = useState("");
 
   const recurrenceBuilder = useRecurrenceBuilder();
@@ -133,6 +149,11 @@ export function IncomeFormModal({ isOpen, onClose, sourceToEdit }: IncomeFormMod
     setErrorMsg("");
     try {
       const formattedAmount = cleanAmount(amount);
+      const contribution = resolveHouseholdContributionPayload({
+        hasPrivateEnvelopes,
+        contributionMode,
+        contributionValue,
+      });
       const payload = {
         name,
         amount: formattedAmount,
@@ -142,8 +163,7 @@ export function IncomeFormModal({ isOpen, onClose, sourceToEdit }: IncomeFormMod
         interval: isRecurring ? (interval || 1) : undefined,
         startDate: startDate || undefined,
         endDate: isRecurring && endDate ? endDate : undefined,
-        contributionMode: hasPrivateEnvelopes ? contributionMode : "FULL",
-        contributionValue: hasPrivateEnvelopes && contributionMode !== "FULL" ? cleanAmount(contributionValue) : null,
+        ...contribution,
       };
       if (isEdit && sourceToEdit) {
         await updateIncomeMut.mutateAsync({ id: sourceToEdit.id, data: payload });
@@ -168,22 +188,13 @@ export function IncomeFormModal({ isOpen, onClose, sourceToEdit }: IncomeFormMod
     if (!amount || parseFloat(amount) <= 0) return setErrorMsg(t("categories.goalAmountRequired"));
     if (isRecurring && endDate && startDate && endDate < startDate) return setErrorMsg(t("categories.goalPastDateWarning"));
 
-    if (hasPrivateEnvelopes && contributionMode === "PERCENTAGE") {
-      const pct = parseFloat(contributionValue);
-      if (isNaN(pct) || pct <= 0 || pct > 100) {
-        return setErrorMsg(t("planTabs.householdContribution.percentageInvalid"));
-      }
-    }
-    if (hasPrivateEnvelopes && contributionMode === "FIXED_AMOUNT") {
-      const fix = parseFloat(cleanAmount(contributionValue));
-      const expAmt = parseFloat(cleanAmount(amount));
-      if (isNaN(fix) || fix <= 0) {
-        return setErrorMsg(t("planTabs.householdContribution.amountInvalid"));
-      }
-      if (fix > expAmt) {
-        return setErrorMsg(t("planTabs.householdContribution.fixedCannotExceedExpected"));
-      }
-    }
+    const contributionErr = validateHouseholdContribution({
+      hasPrivateEnvelopes,
+      contributionMode,
+      contributionValue,
+      expectedAmount: amount,
+    });
+    if (contributionErr) return setErrorMsg(contributionErr);
 
     if (isEdit && isScheduleRuleChanged) {
       setShowRuleChangeConfirm(true);
@@ -277,73 +288,16 @@ export function IncomeFormModal({ isOpen, onClose, sourceToEdit }: IncomeFormMod
 
         <RecurrenceBuilder builder={recurrenceBuilder} />
 
-        {!hasPrivateEnvelopes ? (
-          <div className="rounded-lg bg-slate-50 dark:bg-slate-800/40 p-3 border border-slate-200 dark:border-slate-700/60">
-            <p className="text-xs text-slate-500 dark:text-slate-400 font-normal">
-              {t("planTabs.householdContribution.allSharedNote")}
-            </p>
-          </div>
-        ) : (
-          <div className="space-y-2 rounded-lg bg-slate-50 dark:bg-slate-800/40 p-3 border border-slate-200 dark:border-slate-700/60">
-            <FormLabel>{t("planTabs.householdContribution.title")}</FormLabel>
-            <div className="grid grid-cols-3 gap-1 p-1 bg-slate-200 dark:bg-slate-700 rounded-md text-[11px]">
-              <button
-                type="button"
-                onClick={() => setContributionMode("FULL")}
-                className={`py-1.5 px-2 rounded font-medium transition-colors ${contributionMode === "FULL" ? "bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-xs" : "text-slate-600 dark:text-slate-300 hover:text-slate-900"}`}
-              >
-                {t("planTabs.householdContribution.full")}
-              </button>
-              <button
-                type="button"
-                onClick={() => setContributionMode("PERCENTAGE")}
-                className={`py-1.5 px-2 rounded font-medium transition-colors ${contributionMode === "PERCENTAGE" ? "bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-xs" : "text-slate-600 dark:text-slate-300 hover:text-slate-900"}`}
-              >
-                {t("planTabs.householdContribution.percentage")}
-              </button>
-              <button
-                type="button"
-                onClick={() => setContributionMode("FIXED_AMOUNT")}
-                className={`py-1.5 px-2 rounded font-medium transition-colors ${contributionMode === "FIXED_AMOUNT" ? "bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-xs" : "text-slate-600 dark:text-slate-300 hover:text-slate-900"}`}
-              >
-                {t("planTabs.householdContribution.fixedAmount")}
-              </button>
-            </div>
-
-            {contributionMode === "PERCENTAGE" && (
-              <div className="pt-2">
-                <Input
-                  label={t("planTabs.householdContribution.modeLabel")}
-                  type="number"
-                  min={1}
-                  max={100}
-                  value={contributionValue}
-                  onChange={(e) => setContributionValue(e.target.value)}
-                  placeholder={t("planTabs.householdContribution.percentagePlaceholder")}
-                />
-                <p className="mt-1 text-[11px] text-slate-500 dark:text-slate-400 font-normal">
-                  {t("planTabs.householdContribution.remainderNote")}
-                </p>
-              </div>
-            )}
-
-            {contributionMode === "FIXED_AMOUNT" && (
-              <div className="pt-2">
-                <AmountField
-                  label={t("planTabs.householdContribution.modeLabel")}
-                  value={contributionValue}
-                  onChange={setContributionValue}
-                  currency={currency}
-                  currencySymbol={currencySymbol}
-                  minorUnits={minorUnits}
-                />
-                <p className="mt-1 text-[11px] text-slate-500 dark:text-slate-400 font-normal">
-                  {t("planTabs.householdContribution.remainderNote")}
-                </p>
-              </div>
-            )}
-          </div>
-        )}
+        <HouseholdContributionSection
+          hasPrivateEnvelopes={hasPrivateEnvelopes}
+          contributionMode={contributionMode}
+          onContributionModeChange={setContributionMode}
+          contributionValue={contributionValue}
+          onContributionValueChange={setContributionValue}
+          currency={currency}
+          currencySymbol={currencySymbol}
+          minorUnits={minorUnits}
+        />
 
         <div className="flex items-center justify-between gap-2 pt-4 border-t border-zinc-200">
           {isEdit ? (

@@ -5,7 +5,12 @@ import { useRouter } from "next/navigation";
 import { trpc } from "../../../lib/trpc";
 import posthog from "../../../lib/posthog-client";
 import { QuickPresetItem, QuickActionInitialData } from "@money-matters/types";
-import { useToast } from "@money-matters/ui/web";
+import {
+  useToast,
+  ContributionMode,
+  validateHouseholdContribution,
+  resolveHouseholdContributionPayload,
+} from "@money-matters/ui/web";
 import { t } from "@money-matters/i18n";
 import { useLocale } from "../../../providers/LocaleProvider";
 import { useQuickPresets } from "./useQuickPresets";
@@ -36,6 +41,8 @@ export function useQuickActionState(
   const [sourceCategoryId, setSourceCategoryId] = useState("");
   const [destinationCategoryId, setDestinationCategoryId] = useState("");
   const [receivingAccountId, setReceivingAccountId] = useState("");
+  const [contributionMode, setContributionMode] = useState<ContributionMode>("FULL");
+  const [contributionValue, setContributionValue] = useState("");
   const [date, setDate] = useState(initialData?.date || todayStr);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
@@ -54,6 +61,7 @@ export function useQuickActionState(
   const transactionsQuery = trpc.listTransactions.useQuery({ limit: 100 });
 
   const rawPools = poolsQuery.data;
+  const hasPrivateEnvelopes = useMemo(() => (rawPools || []).some((p) => p.isPrivate), [rawPools]);
 
   const categories = useMemo(() => {
     const poolsList = rawPools ?? [];
@@ -96,6 +104,8 @@ export function useQuickActionState(
     setSourceCategoryId("");
     setDestinationCategoryId("");
     setReceivingAccountId("");
+    setContributionMode("FULL");
+    setContributionValue("");
     setDate(todayStr);
     setError(null);
     setSuccess(false);
@@ -281,6 +291,21 @@ export function useQuickActionState(
         });
       }
     } else {
+      const contributionErr = validateHouseholdContribution({
+        hasPrivateEnvelopes,
+        contributionMode,
+        contributionValue,
+        expectedAmount: amount,
+      });
+      if (contributionErr) {
+        setError(contributionErr);
+        return;
+      }
+      const contribution = resolveHouseholdContributionPayload({
+        hasPrivateEnvelopes,
+        contributionMode,
+        contributionValue,
+      });
       createIncomeSourceMut.mutate(
         {
           name,
@@ -288,6 +313,7 @@ export function useQuickActionState(
           isRecurring: false,
           startDate: date,
           receivingAccountId: receivingAccountId || undefined,
+          ...contribution,
         },
         {
           onSuccess: (res) => {
@@ -361,6 +387,11 @@ export function useQuickActionState(
     setDestinationCategoryId,
     receivingAccountId,
     setReceivingAccountId,
+    hasPrivateEnvelopes,
+    contributionMode,
+    setContributionMode,
+    contributionValue,
+    setContributionValue,
     date,
     setDate,
     todayStr,

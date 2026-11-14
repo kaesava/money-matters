@@ -8,6 +8,8 @@ export interface EventItem {
   expenseSourceId?: string | null;
   name?: string | null;
   note?: string | null;
+  contributionMode?: string | null;
+  contributionValue?: string | null;
 }
 
 export interface TimelineEventItem extends EventItem {

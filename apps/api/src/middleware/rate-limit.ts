@@ -24,15 +24,18 @@ export async function enforceApiRateLimit(
     request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
     'unknown-ip';
 
+  const isResetPassword = url.pathname === '/reset-password';
   const authHeader = request.headers.get('authorization');
-  let rateLimitKey = `ip:${clientIp}`;
+  let rateLimitKey = isResetPassword ? `reset-password:${clientIp}` : `ip:${clientIp}`;
 
-  if (authHeader) {
+  if (authHeader && !isResetPassword) {
     const hashed = await hashKey(authHeader);
-    rateLimitKey = `auth:${hashed}`;
+    // Use `api:` rather than `auth:` so general authenticated API traffic falls back to
+    // the in-process limiter on Redis outage instead of failing closed like auth brute-force routes.
+    rateLimitKey = `api:${hashed}`;
   }
 
-  const limit = url.pathname === '/reset-password' ? 10 : 120;
+  const limit = isResetPassword ? 10 : 120;
   const { allowed } = await checkRateLimit(rateLimitKey, limit, 60, env);
 
   if (!allowed) {

@@ -10,6 +10,10 @@ import {
   AmountField,
   Button,
   FormErrorBanner,
+  HouseholdContributionSection,
+  validateHouseholdContribution,
+  resolveHouseholdContributionPayload,
+  ContributionMode,
   useToast,
 } from "@money-matters/ui/web";
 import { t } from "@money-matters/i18n";
@@ -36,8 +40,17 @@ export function EditUpcomingEventModal({
   const [name, setName] = useState("");
   const [expectedDate, setExpectedDate] = useState("");
   const [expectedAmount, setExpectedAmount] = useState("");
+  const [contributionMode, setContributionMode] = useState<ContributionMode>("FULL");
+  const [contributionValue, setContributionValue] = useState("");
   const [errorMsg, setErrorMsg] = useState("");
   const [submitting, setSubmitting] = useState(false);
+
+  const isIncomeEvent = event?.eventKind === "INCOME";
+  const poolsQuery = trpc.listEnvelopes.useQuery(undefined, { enabled: isOpen && isIncomeEvent });
+  const hasPrivateEnvelopes = useMemo(
+    () => (poolsQuery.data || []).some((e) => e.isPrivate),
+    [poolsQuery.data]
+  );
 
   const overrideEventMut = trpc.overrideEvent.useMutation();
 
@@ -46,18 +59,28 @@ export function EditUpcomingEventModal({
       setName(event.name || "");
       setExpectedDate(event.expectedDate || "");
       setExpectedAmount(event.expectedAmount || "");
+      const initialMode = (event.contributionMode as ContributionMode) || "FULL";
+      setContributionMode(initialMode);
+      setContributionValue(event.contributionValue ? String(event.contributionValue) : "");
       setErrorMsg("");
     }
   }, [event, isOpen]);
 
   const isDirty = useMemo(() => {
     if (!event) return false;
+    const initialMode = (event.contributionMode as ContributionMode) || "FULL";
+    const initialValue = event.contributionValue ? String(event.contributionValue) : "";
+    const contributionChanged =
+      isIncomeEvent &&
+      hasPrivateEnvelopes &&
+      (contributionMode !== initialMode || contributionValue !== initialValue);
     return (
       name.trim() !== (event.name || "").trim() ||
       expectedDate !== (event.expectedDate || "") ||
-      expectedAmount !== (event.expectedAmount || "")
+      expectedAmount !== (event.expectedAmount || "") ||
+      contributionChanged
     );
-  }, [event, name, expectedDate, expectedAmount]);
+  }, [event, name, expectedDate, expectedAmount, isIncomeEvent, hasPrivateEnvelopes, contributionMode, contributionValue]);
 
   const isValid =
     name.trim().length > 0 &&
@@ -82,17 +105,39 @@ export function EditUpcomingEventModal({
       return;
     }
 
+    const eventType = event.eventKind === "INCOME" ? "INCOME" : "EXPENSE";
+    if (eventType === "INCOME") {
+      const contributionErr = validateHouseholdContribution({
+        hasPrivateEnvelopes,
+        contributionMode,
+        contributionValue,
+        expectedAmount,
+      });
+      if (contributionErr) {
+        setErrorMsg(contributionErr);
+        return;
+      }
+    }
+
     setSubmitting(true);
     setErrorMsg("");
 
     try {
-      const eventType = event.eventKind === "INCOME" ? "INCOME" : "EXPENSE";
+      const contributionPayload =
+        eventType === "INCOME"
+          ? resolveHouseholdContributionPayload({
+              hasPrivateEnvelopes,
+              contributionMode,
+              contributionValue,
+            })
+          : {};
       await overrideEventMut.mutateAsync({
         eventId: event.id,
         eventType,
         name: name.trim(),
         expectedAmount: numAmount.toFixed(2),
         expectedDate,
+        ...contributionPayload,
       });
 
       if (eventType === "INCOME") {
@@ -198,6 +243,19 @@ export function EditUpcomingEventModal({
             if (errorMsg) setErrorMsg("");
           }}
         />
+
+        {isIncomeEvent && (
+          <HouseholdContributionSection
+            hasPrivateEnvelopes={hasPrivateEnvelopes}
+            contributionMode={contributionMode}
+            onContributionModeChange={setContributionMode}
+            contributionValue={contributionValue}
+            onContributionValueChange={(val) => {
+              setContributionValue(val);
+              if (errorMsg) setErrorMsg("");
+            }}
+          />
+        )}
 
         <div className="flex justify-end gap-2 pt-4 border-t border-zinc-200 dark:border-zinc-800">
           <Button

@@ -1,6 +1,16 @@
 import React from "react";
 import { t } from "@money-matters/i18n";
-import { SlideOverDrawer, PoolPicker, InfoTooltip, ConfirmDialog, Button, AmountField, FormErrorBanner, FormLabel } from "@money-matters/ui/web";
+import {
+  SlideOverDrawer,
+  PoolPicker,
+  InfoTooltip,
+  ConfirmDialog,
+  Button,
+  AmountField,
+  FormErrorBanner,
+  FormLabel,
+  HouseholdContributionSection,
+} from "@money-matters/ui/web";
 import { useQuickActionState } from "./quick/useQuickActionState";
 import { QuickPickBadges } from "./quick/QuickPickBadges";
 import { CrossBankTransferModal } from "./CrossBankTransferModal";
@@ -32,6 +42,11 @@ export function QuickActionDrawer({ onClose, initialTab = "DEBIT", initialData }
     setDestinationCategoryId,
     receivingAccountId,
     setReceivingAccountId,
+    hasPrivateEnvelopes,
+    contributionMode,
+    setContributionMode,
+    contributionValue,
+    setContributionValue,
     date,
     setDate,
     todayStr,
@@ -271,6 +286,16 @@ export function QuickActionDrawer({ onClose, initialTab = "DEBIT", initialData }
                   />
                 </div>
               </div>
+
+              {isIncome && (
+                <HouseholdContributionSection
+                  hasPrivateEnvelopes={hasPrivateEnvelopes}
+                  contributionMode={contributionMode}
+                  onContributionModeChange={setContributionMode}
+                  contributionValue={contributionValue}
+                  onContributionValueChange={setContributionValue}
+                />
+              )}
 
               <div className="pt-2 flex items-center justify-end gap-2">
                 <Button

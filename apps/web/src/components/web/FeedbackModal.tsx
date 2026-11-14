@@ -51,8 +51,11 @@ export function FeedbackModal({ isOpen, onClose, userEmail = '' }: FeedbackModal
     onClose();
   };
 
+  const isSubmitting = submitFeedbackMutation.isPending;
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isSubmitting) return;
     let hasError = false;
 
     if (!title.trim()) {
@@ -181,10 +184,10 @@ export function FeedbackModal({ isOpen, onClose, userEmail = '' }: FeedbackModal
         </div>
 
         <div className="flex justify-end gap-3 pt-3 border-t border-slate-200 dark:border-slate-800">
-          <Button type="button" variant="ghost" onClick={handleClose}>
+          <Button type="button" variant="ghost" onClick={handleClose} disabled={isSubmitting}>
             {t('common.cancel')}
           </Button>
-          <Button type="submit" variant="primary">
+          <Button type="submit" variant="primary" loading={isSubmitting}>
             {t('feedback.submitCta')}
           </Button>
         </div>

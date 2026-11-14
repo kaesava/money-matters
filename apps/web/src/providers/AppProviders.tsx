@@ -110,7 +110,7 @@ export function AppProviders({ children }: AppProvidersProps) {
         }),
         defaultOptions: {
           queries: {
-            retry: 1,
+            retry: 0,
             staleTime: 1000 * 30, // 30 seconds
             refetchOnWindowFocus: false,
           },

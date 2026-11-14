@@ -59,3 +59,5 @@ export * from './charts/SpendingOverviewCard';
 export * from './AiUsageCard';
 export * from './CommandPaletteModal';
 export * from './CelebrationBanner';
+export * from './HouseholdContributionSection';
+export * from '../lib/householdContribution';

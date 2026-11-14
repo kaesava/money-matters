@@ -25,7 +25,7 @@ interface EnvelopesPageModalsProps {
   setPoolToEdit: (pool: EnvelopeSummaryItem | null) => void;
   selectedPoolForDrawer: PoolTableRow | null;
   setSelectedPoolForDrawer: (pool: PoolTableRow | null) => void;
-  onDrawDown: (pool: { id: string }) => void;
+  onDrawDown: (pool: { id: string; name?: string }) => void;
   poolToArchive: EnvelopeSummaryItem | null;
   setPoolToArchive: (pool: EnvelopeSummaryItem | null) => void;
   onConfirmArchive: () => void;

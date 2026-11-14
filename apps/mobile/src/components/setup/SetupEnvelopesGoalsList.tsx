@@ -65,12 +65,12 @@ export function SetupEnvelopesGoalsList({
           const targetAmt = userGoal?.targetAmount ?? cat.monthlyAud;
           displayMetric = userGoal?.dueDate
             ? t('setup.reviewSummary.targetWithDateMetric', {
-                amount: formatMobileCurrency(targetAmt),
+                target: formatMobileCurrency(targetAmt),
                 date: formatDate(userGoal.dueDate),
                 monthly: formatMobileCurrency(cat.monthlyAud),
               })
             : t('setup.reviewSummary.targetNoDateMetric', {
-                amount: formatMobileCurrency(targetAmt),
+                target: formatMobileCurrency(targetAmt),
                 monthly: formatMobileCurrency(cat.monthlyAud),
               });
         }

@@ -30,11 +30,11 @@ describe("PoolPicker", () => {
         tagKey: "BILL",
       });
       expect(getEnvelopeBadgeInfo({ envelopeType: "BILL", fundingMode: "TARGET_BALANCE" })).toEqual({
-        label: "Target Balance",
+        label: "Target",
         tagKey: "BILL",
       });
       expect(getEnvelopeBadgeInfo({ envelopeType: "GOAL", fundingMode: "TARGET_BALANCE" })).toEqual({
-        label: "Target Balance",
+        label: "Target",
         tagKey: "GOAL",
       });
       expect(getEnvelopeBadgeInfo({ envelopeType: "GOAL", fundingMode: "RECURRING" })).toEqual({
@@ -66,7 +66,7 @@ describe("PoolPicker", () => {
       expect(filteredByName).toHaveLength(1);
       expect(filteredByName[0]?.name).toBe("Holiday Fund");
 
-      const filteredByBadge = filterPools(samplePools, "target balance", false);
+      const filteredByBadge = filterPools(samplePools, "target", false);
       expect(filteredByBadge).toHaveLength(2);
       expect(filteredByBadge.map((p) => p.name)).toEqual(["Holiday Fund", "Vet Visits"]);
     });

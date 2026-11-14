@@ -79,6 +79,8 @@ export function QuickExpenseModal({
     state.setNote('');
     state.setDestPoolId('');
     state.setReceivingAccountId('');
+    state.setContributionMode('FULL');
+    state.setContributionValue('');
     state.setGeneralError('');
     onSuccess?.();
     onClose();
@@ -158,6 +160,11 @@ export function QuickExpenseModal({
               setDate={state.setDate}
               receivingAccountId={state.receivingAccountId}
               setReceivingAccountId={state.setReceivingAccountId}
+              hasPrivateEnvelopes={state.hasPrivateEnvelopes}
+              contributionMode={state.contributionMode}
+              setContributionMode={state.setContributionMode}
+              contributionValue={state.contributionValue}
+              setContributionValue={state.setContributionValue}
               bankAccounts={state.bankAccounts}
               presets={state.incomePresets}
               onSelectPreset={state.handleSelectPreset}

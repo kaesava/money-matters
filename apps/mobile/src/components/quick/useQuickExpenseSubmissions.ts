@@ -1,5 +1,10 @@
 import { useRouter, type Href } from 'expo-router';
-import { useMobileToast, showMobileConfirm } from '@money-matters/ui/mobile';
+import {
+  useMobileToast,
+  showMobileConfirm,
+  validateHouseholdContribution,
+  resolveHouseholdContributionPayload,
+} from '@money-matters/ui/mobile';
 import { t } from '@money-matters/i18n';
 import { formatMobileCurrency } from '../../lib/format';
 import { useMobileQuickAction } from './useMobileQuickAction';
@@ -80,7 +85,23 @@ export function useQuickExpenseSubmissions({
 
   const handleIncomeSubmit = async (splitImmediately: boolean) => {
     state.setGeneralError('');
+    const contributionErr = validateHouseholdContribution({
+      hasPrivateEnvelopes: state.hasPrivateEnvelopes,
+      contributionMode: state.contributionMode,
+      contributionValue: state.contributionValue,
+      expectedAmount: state.amount,
+    });
+    if (contributionErr) {
+      state.setGeneralError(contributionErr);
+      return;
+    }
+
     const numAmount = parseFloat(state.amount);
+    const contributionPayload = resolveHouseholdContributionPayload({
+      hasPrivateEnvelopes: state.hasPrivateEnvelopes,
+      contributionMode: state.contributionMode,
+      contributionValue: state.contributionValue,
+    });
     state.setIsSubmitting(true);
     try {
       const created = await state.createIncomeSourceMut.mutateAsync({
@@ -89,6 +110,7 @@ export function useQuickExpenseSubmissions({
         isRecurring: false,
         startDate: state.date.trim(),
         receivingAccountId: state.receivingAccountId || undefined,
+        ...contributionPayload,
       });
 
       state.posthog?.capture('income_recorded', { amount: numAmount });

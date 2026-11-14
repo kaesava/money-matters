@@ -256,7 +256,7 @@ export async function runAllocationCommand(
         transactionType: "INCOME_SPLIT" as const,
         amount: confirmedVal.toFixed(2),
         idempotencyKey: `paydayalloc-${insertedLine.id}`,
-        note: line.reasoning?.trim() || "Income Topup",
+        note: line.reasoning?.trim() || "Payday allocation",
         source: "MANUAL" as const,
         createdBy: userId,
         updatedBy: userId,

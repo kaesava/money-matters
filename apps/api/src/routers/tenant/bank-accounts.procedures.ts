@@ -185,7 +185,7 @@ export const bankAccountsProcedures = {
           .where(eq(bankAccounts.id, accountId));
 
         const txValues = [];
-        const alignmentNote = input.note?.trim() || "Balance Alignment";
+        const alignmentNote = input.note?.trim() || "Balance matched";
         for (const split of input.splits) {
           const adj = parseFloat(split.adjustment);
           if (Math.abs(adj) < 0.01) continue;

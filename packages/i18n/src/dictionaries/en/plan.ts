@@ -15,7 +15,7 @@ export const plan = {
     "oneOffExpense": "One-off Expense",
     "incomeSchedules": "Income Schedules",
     "expenseSchedules": "Expense Schedules",
-    "targetPool": "Target Envelope",
+    "targetPool": "Envelope",
     "currentBalance": "Current Balance",
     "surplus": "Surplus",
     "max": "Max",
@@ -50,13 +50,12 @@ export const plan = {
     "openCustomTransferModalLink": "Transfer funds between Envelopes",
     "householdContribution": {
       "title": "Household Contribution",
-      "allSharedNote": "All income is allocated across shared household envelopes.",
       "modeLabel": "Contribution",
       "full": "100% to Household Envelopes",
       "percentage": "Percentage Share",
       "percentagePlaceholder": "50",
       "fixedAmount": "Fixed Amount",
-      "remainderNote": "The remaining portion will be automatically allocated to your personal envelopes.",
+      "remainderNote": "The remaining portion will be automatically allocated to your private envelopes.",
       "percentageInvalid": "Percentage must be between 0 and 100",
       "amountInvalid": "Amount must be a valid positive number",
       "fixedCannotExceedExpected": "Fixed contribution cannot exceed expected income amount."

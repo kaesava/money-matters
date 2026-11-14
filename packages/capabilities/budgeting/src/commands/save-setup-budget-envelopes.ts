@@ -259,7 +259,7 @@ export async function processSetupEnvelopes(
 
       const sweepAmountStr = currentBalance.toFixed(2);
       const transferGroupId = randomUUID();
-      const transferNote = `Balance sweep upon archiving envelope "${envToArchive.name}"`;
+      const transferNote = `Archived "${envToArchive.name}" balance sweep`;
 
       await tx.insert(transactionLedger).values([
         {

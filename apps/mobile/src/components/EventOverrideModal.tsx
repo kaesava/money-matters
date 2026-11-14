@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator } from 'react-native';
 import {
   DESIGN_TOKENS,
@@ -7,6 +7,10 @@ import {
   AmountInput,
   useMobileToast,
   FormErrorBanner,
+  MobileHouseholdContributionSection,
+  ContributionMode,
+  validateHouseholdContribution,
+  resolveHouseholdContributionPayload,
 } from '@money-matters/ui/mobile';
 import { t } from '@money-matters/i18n';
 import { trpc } from '../lib/trpc';
@@ -21,6 +25,8 @@ export interface EventToOverride {
   incomeSourceId?: string | null;
   envelopeId?: string | null;
   poolId?: string | null;
+  contributionMode?: string | null;
+  contributionValue?: string | null;
 }
 
 interface EventOverrideModalProps {
@@ -43,12 +49,23 @@ export function EventOverrideModal({
   const toast = useMobileToast();
   const [expectedDate, setExpectedDate] = useState('');
   const [expectedAmount, setExpectedAmount] = useState('');
+  const [contributionMode, setContributionMode] = useState<ContributionMode>('FULL');
+  const [contributionValue, setContributionValue] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
+
+  const isIncomeEvent = eventToEdit?.eventType === 'INCOME';
+  const envelopesQuery = trpc.listEnvelopes.useQuery(undefined, { enabled: visible && isIncomeEvent });
+  const hasPrivateEnvelopes = useMemo(
+    () => (envelopesQuery.data || []).some((e) => e.isPrivate),
+    [envelopesQuery.data]
+  );
 
   useEffect(() => {
     if (eventToEdit) {
       setExpectedDate(formatIsoDate(eventToEdit.expectedDate));
       setExpectedAmount(eventToEdit.expectedAmount);
+      setContributionMode((eventToEdit.contributionMode as ContributionMode) || 'FULL');
+      setContributionValue(eventToEdit.contributionValue ? String(eventToEdit.contributionValue) : '');
       setErrorMsg('');
     }
   }, [eventToEdit]);
@@ -70,19 +87,48 @@ export function EventOverrideModal({
       return;
     }
 
+    if (isIncomeEvent) {
+      const contributionErr = validateHouseholdContribution({
+        hasPrivateEnvelopes,
+        contributionMode,
+        contributionValue,
+        expectedAmount,
+      });
+      if (contributionErr) {
+        setErrorMsg(contributionErr);
+        return;
+      }
+    }
+
+    const contributionPayload = isIncomeEvent
+      ? resolveHouseholdContributionPayload({
+          hasPrivateEnvelopes,
+          contributionMode,
+          contributionValue,
+        })
+      : {};
+
     overrideEventMut.mutate({
       eventId: eventToEdit.id,
       eventType: eventToEdit.eventType,
       amount: parseFloat(expectedAmount).toFixed(2),
       expectedDate,
+      ...contributionPayload,
     });
   };
 
   const isPending = overrideEventMut.isPending;
+  const initialMode = (eventToEdit?.contributionMode as ContributionMode) || 'FULL';
+  const initialValue = eventToEdit?.contributionValue ? String(eventToEdit.contributionValue) : '';
+  const contributionChanged =
+    isIncomeEvent &&
+    hasPrivateEnvelopes &&
+    (contributionMode !== initialMode || contributionValue !== initialValue);
   const isDirty = Boolean(
     eventToEdit && (
       expectedDate !== formatIsoDate(eventToEdit.expectedDate) ||
-      expectedAmount !== eventToEdit.expectedAmount
+      expectedAmount !== eventToEdit.expectedAmount ||
+      contributionChanged
     )
   );
 
@@ -196,6 +242,19 @@ export function EventOverrideModal({
           if (errorMsg) setErrorMsg('');
         }}
       />
+
+      {isIncomeEvent && (
+        <MobileHouseholdContributionSection
+          hasPrivateEnvelopes={hasPrivateEnvelopes}
+          contributionMode={contributionMode}
+          onContributionModeChange={setContributionMode}
+          contributionValue={contributionValue}
+          onContributionValueChange={(val) => {
+            setContributionValue(val);
+            if (errorMsg) setErrorMsg('');
+          }}
+        />
+      )}
     </MobileModalDialog>
   );
 }

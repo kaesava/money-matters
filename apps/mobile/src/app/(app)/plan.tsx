@@ -180,6 +180,8 @@ export default function IncomeAndBillsScreen() {
                 expectedDate: fullIncome.expectedDate,
                 expectedAmount: fullIncome.expectedAmount,
                 incomeSourceId: fullIncome.incomeSourceId,
+                contributionMode: fullIncome.contributionMode,
+                contributionValue: fullIncome.contributionValue,
               });
               modals.setOverrideModalVisible(true);
             }
