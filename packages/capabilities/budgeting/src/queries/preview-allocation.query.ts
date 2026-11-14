@@ -63,6 +63,8 @@ export async function previewAllocationQuery(
       incomeType: incomeSources.incomeType,
       contributionMode: sql<"FULL" | "PERCENTAGE" | "FIXED_AMOUNT">`COALESCE(${incomeEvents.contributionMode}, ${incomeSources.contributionMode}, 'FULL')`,
       contributionValue: sql<string | null>`COALESCE(${incomeEvents.contributionValue}, ${incomeSources.contributionValue})`,
+      createdBy: incomeEvents.createdBy,
+      sourceCreatedBy: incomeSources.createdBy,
       bankAccountIsPrivate: bankAccounts.isPrivate,
       bankAccountUserId: bankAccounts.userId,
     })
@@ -79,7 +81,11 @@ export async function previewAllocationQuery(
     throw new Error("Target income event not found.");
   }
 
-  const incomeUserId = event?.bankAccountUserId || undefined;
+  const rawCreator = event?.createdBy && event.createdBy !== "system" ? event.createdBy : undefined;
+  const rawSourceCreator = event?.sourceCreatedBy && event.sourceCreatedBy !== "system" ? event.sourceCreatedBy : undefined;
+  const incomeUserId = event?.bankAccountIsPrivate
+    ? (event.bankAccountUserId || userId)
+    : (rawCreator ?? rawSourceCreator ?? userId);
 
   let freqDays = 14;
   if (event?.rrule) {

@@ -3,6 +3,10 @@ import type { DbOrTx } from "@money-matters/db";
 import * as dbModule from "@money-matters/db";
 import { getProjectedPoolBalancesQuery } from "./get-projected-envelope-balances.query.js";
 
+vi.mock("./get-active-allocation-strategy.query.js", () => ({
+  getActiveAllocationStrategyQuery: vi.fn().mockResolvedValue(null),
+}));
+
 vi.mock("@money-matters/db", async (importOriginal) => {
   const actual = await importOriginal<typeof dbModule>();
   return {

@@ -11,7 +11,11 @@ import {
   GenericSelectField,
 } from "@money-matters/ui/web";
 import { trpc } from "../../../../lib/trpc";
-import { AllocationStepType } from "@money-matters/types";
+import {
+  AllocationStepType,
+  CANONICAL_ALLOCATION_PRESETS,
+  detectMatchingAllocationPreset,
+} from "@money-matters/types";
 import { useAppFeatures } from "../../../../hooks/useAppFeatures";
 
 interface EditableStep {
@@ -48,12 +52,14 @@ function AllocationRulesContent() {
   });
   const envelopesQuery = trpc.listEnvelopes.useQuery();
   const updateStepsMut = trpc.updateAllocationStrategySteps.useMutation();
-  const applyPresetMut = trpc.applyAllocationPreset.useMutation();
 
   const [steps, setSteps] = useState<EditableStep[]>([]);
   const [initialSteps, setInitialSteps] = useState<EditableStep[]>([]);
   const [isDirty, setIsDirty] = useState(false);
-  const [showResetConfirm, setShowResetConfirm] = useState(false);
+  const [hasManualOrderEdit, setHasManualOrderEdit] = useState(false);
+  const [pendingPresetLoad, setPendingPresetLoad] = useState<
+    "BALANCED" | "BILLS_FORTRESS" | "PAY_YOURSELF_FIRST" | null
+  >(null);
   const [showDiscardConfirm, setShowDiscardConfirm] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
@@ -75,6 +81,7 @@ function AllocationRulesContent() {
       setSteps(mapped);
       setInitialSteps(mapped);
       setIsDirty(false);
+      setHasManualOrderEdit(false);
     }
   }, [strategyQuery.data]);
 
@@ -106,6 +113,7 @@ function AllocationRulesContent() {
 
     const reindexed = next.map((s, idx) => ({ ...s, orderIndex: idx }));
     setSteps(reindexed);
+    setHasManualOrderEdit(true);
     setIsDirty(checkIfDirty(reindexed));
   };
 
@@ -113,7 +121,33 @@ function AllocationRulesContent() {
     const next = [...steps];
     next[index] = { ...next[index], targetEnvelopeId };
     setSteps(next);
+    setHasManualOrderEdit(true);
     setIsDirty(checkIfDirty(next));
+  };
+
+  const currentMatchedPreset = useMemo(() => detectMatchingAllocationPreset(steps), [steps]);
+
+  const applyPresetToEditor = (presetKey: "BALANCED" | "BILLS_FORTRESS" | "PAY_YOURSELF_FIRST") => {
+    const currentSweep = steps.find((s) => s.stepType === "SURPLUS_SWEEP");
+    const nextSteps: EditableStep[] = CANONICAL_ALLOCATION_PRESETS[presetKey].steps.map((s, idx) => ({
+      orderIndex: idx,
+      stepType: s.stepType,
+      targetEnvelopeId: s.stepType === "SURPLUS_SWEEP" ? (currentSweep?.targetEnvelopeId ?? null) : null,
+      config: s.config ?? null,
+    }));
+    setSteps(nextSteps);
+    setHasManualOrderEdit(false);
+    setPendingPresetLoad(null);
+    setIsDirty(checkIfDirty(nextSteps));
+  };
+
+  const handleSelectPreset = (presetKey: "BALANCED" | "BILLS_FORTRESS" | "PAY_YOURSELF_FIRST") => {
+    if (!canEdit || currentMatchedPreset === presetKey) return;
+    if (hasManualOrderEdit) {
+      setPendingPresetLoad(presetKey);
+      return;
+    }
+    applyPresetToEditor(presetKey);
   };
 
   const handleSave = async () => {
@@ -138,6 +172,7 @@ function AllocationRulesContent() {
       ]);
       toast.success(t("settings.paydayRules.saveSuccess"));
       setIsDirty(false);
+      setHasManualOrderEdit(false);
     } catch (err: unknown) {
       toast.error(err instanceof Error ? err.message : t("common.errorTryAgain"));
     } finally {
@@ -145,32 +180,13 @@ function AllocationRulesContent() {
     }
   };
 
-  const handleResetToRecommended = async () => {
-    try {
-      await applyPresetMut.mutateAsync({
-        presetKey: "BALANCED",
-        isPrivate: isPersonal,
-      });
-      await Promise.all([
-        utils.getActiveAllocationStrategy.invalidate(),
-        utils.previewPayday.invalidate(),
-        utils.getHorizonProjectionData.invalidate(),
-        utils.listAllAllocationPlans.invalidate(),
-        utils.getHomeSummary.invalidate(),
-      ]);
-      toast.success(t("settings.paydayRules.saveSuccess"));
-      setShowResetConfirm(false);
-      setIsDirty(false);
-    } catch (err: unknown) {
-      toast.error(err instanceof Error ? err.message : t("common.errorTryAgain"));
-    }
-  };
+  const backHref = `/dashboard/settings?tab=household${isPersonal ? "&strategyScope=personal" : ""}`;
 
   const handleBack = () => {
     if (isDirty) {
       setShowDiscardConfirm(true);
     } else {
-      router.push("/dashboard/settings?tab=household");
+      router.push(backHref);
     }
   };
 
@@ -204,16 +220,6 @@ function AllocationRulesContent() {
         <div className="flex items-center gap-2">
           {canEdit && (
             <Button
-              variant="secondary"
-              onClick={() => setShowResetConfirm(true)}
-              className="text-xs h-9 cursor-pointer"
-            >
-              {t("settings.paydayRules.resetToRecommended")}
-            </Button>
-          )}
-
-          {canEdit && (
-            <Button
               variant="primary"
               onClick={handleSave}
               disabled={!isDirty || submitting}
@@ -222,6 +228,40 @@ function AllocationRulesContent() {
             >
               {t("settings.paydayRules.saveChanges")}
             </Button>
+          )}
+        </div>
+      </div>
+
+      {/* Preset Switcher */}
+      <div className="flex flex-wrap items-center justify-between gap-3 p-3.5 bg-white/80 dark:bg-zinc-900/80 backdrop-blur-md rounded-2xl border border-zinc-200 dark:border-zinc-800 shadow-sm">
+        <span className="text-xs font-semibold text-[#1B2B4B] dark:text-white">
+          {t("settings.paydayRules.loadPresetLabel")}
+        </span>
+        <div className="flex flex-wrap items-center gap-1.5">
+          {(["BALANCED", "BILLS_FORTRESS", "PAY_YOURSELF_FIRST"] as const).map((key) => {
+            const active = currentMatchedPreset === key;
+            return (
+              <button
+                key={key}
+                type="button"
+                disabled={!canEdit}
+                onClick={() => handleSelectPreset(key)}
+                className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${
+                  !canEdit ? "opacity-60 cursor-not-allowed" : "cursor-pointer"
+                } ${
+                  active
+                    ? "bg-[#1B2B4B] text-white dark:bg-[#2563eb]"
+                    : "bg-slate-100 text-slate-600 hover:bg-slate-200 dark:bg-zinc-800 dark:text-slate-300 dark:hover:bg-zinc-700"
+                }`}
+              >
+                {t(CANONICAL_ALLOCATION_PRESETS[key].nameKey)}
+              </button>
+            );
+          })}
+          {currentMatchedPreset === null && (
+            <span className="px-2.5 py-1 rounded-lg text-xs font-bold bg-blue-50 text-[#2563eb] dark:bg-blue-950/40 dark:text-blue-400">
+              {t("settings.paydayRules.customBadge")}
+            </span>
           )}
         </div>
       </div>
@@ -311,17 +351,21 @@ function AllocationRulesContent() {
         })}
       </div>
 
-      {/* Reset Confirmation Dialog */}
-      {showResetConfirm && (
+      {/* Confirm Replacing Unsaved Order with Preset */}
+      {pendingPresetLoad && (
         <ConfirmDialog
-          isOpen={showResetConfirm}
-          title={t("settings.paydayRules.resetConfirmTitle")}
-          description={t("settings.paydayRules.resetConfirmMessage")}
-          confirmLabel={t("common.confirm")}
+          isOpen={!!pendingPresetLoad}
+          title={t("settings.paydayRules.discardOrderConfirmTitle")}
+          description={t("settings.paydayRules.discardOrderConfirmMessage", {
+            presetName: t(CANONICAL_ALLOCATION_PRESETS[pendingPresetLoad].nameKey),
+          })}
+          confirmLabel={t("settings.paydayRules.discardOrderConfirmCta", {
+            presetName: t(CANONICAL_ALLOCATION_PRESETS[pendingPresetLoad].nameKey),
+          })}
           cancelLabel={t("common.cancel")}
-          variant="primary"
-          onConfirm={handleResetToRecommended}
-          onClose={() => setShowResetConfirm(false)}
+          variant="warning"
+          onConfirm={() => applyPresetToEditor(pendingPresetLoad)}
+          onClose={() => setPendingPresetLoad(null)}
         />
       )}
 
@@ -336,7 +380,7 @@ function AllocationRulesContent() {
           variant="danger"
           onConfirm={() => {
             setShowDiscardConfirm(false);
-            router.push("/dashboard/settings?tab=household");
+            router.push(backHref);
           }}
           onClose={() => setShowDiscardConfirm(false)}
         />

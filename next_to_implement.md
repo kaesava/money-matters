@@ -1,10 +1,16 @@
 
 #### FLAGS
-pnpm app:set-flag --flag=aiAssistant --value=true
-pnpm app:set-flag --flag=privateMode --value=true
-pnpm app:set-flag --flag=fileNotes --value=true
-pnpm app:set-flag --flag=simulation --value=true
-pnpm app:set-flag --flag=customAllocationRules --value=true
+pnpm app:set-flag --flag=aiAssistant --value=true --env=dev
+pnpm app:set-flag --flag=privateMode --value=true --env=dev
+pnpm app:set-flag --flag=fileNotes --value=true --env=dev
+pnpm app:set-flag --flag=simulation --value=true --env=dev
+pnpm app:set-flag --flag=customAllocationRules --value=true --env=dev
+
+pnpm app:set-flag --flag=aiAssistant --value=true --env=prod
+pnpm app:set-flag --flag=privateMode --value=true --env=prod
+pnpm app:set-flag --flag=fileNotes --value=true --env=prod
+pnpm app:set-flag --flag=simulation --value=true --env=prod
+pnpm app:set-flag --flag=customAllocationRules --value=true --env=prod
 
 #####################################
 

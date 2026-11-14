@@ -1,6 +1,6 @@
 import { privateTenantProcedure } from '../trpc/trpc.js';
 import { canAffordSimulationQuery } from '@money-matters/capability-simulation';
-import { runCumulativeProjection } from '@money-matters/capability-budgeting';
+import { runCumulativeProjection, getActiveAllocationStrategyQuery } from '@money-matters/capability-budgeting';
 import { CanAffordQuery, DEFAULT_APP_FEATURE_FLAGS } from '@money-matters/types';
 import { apps } from '@money-matters/db';
 import { eq } from 'drizzle-orm';
@@ -24,6 +24,26 @@ export const simulationRouter = {
         });
       }
 
+      const [activeStrategy, personalStrategy] = await Promise.all([
+        getActiveAllocationStrategyQuery(ctx.tenantId!, ctx.appId!, ctx.userId!, ctx.db, false),
+        getActiveAllocationStrategyQuery(ctx.tenantId!, ctx.appId!, ctx.userId!, ctx.db, true),
+      ]);
+
+      const projectionEngine = ((projInput: Parameters<typeof runCumulativeProjection>[0]) =>
+        runCumulativeProjection({
+          ...projInput,
+          strategySteps: activeStrategy?.steps?.map((s) => ({
+            stepType: s.stepType,
+            targetEnvelopeId: s.targetEnvelopeId,
+            config: s.config as Record<string, unknown> | null,
+          })),
+          personalStrategySteps: personalStrategy?.steps?.map((s) => ({
+            stepType: s.stepType,
+            targetEnvelopeId: s.targetEnvelopeId,
+            config: s.config as Record<string, unknown> | null,
+          })),
+        })) as unknown as import('@money-matters/types').ProjectionEngineFn;
+
       return await canAffordSimulationQuery(
         input,
         ctx.tenantId!,
@@ -31,7 +51,7 @@ export const simulationRouter = {
         ctx.userId!,
         ctx.db,
         {
-          projectionEngine: runCumulativeProjection as unknown as import('@money-matters/types').ProjectionEngineFn,
+          projectionEngine,
         }
       );
     }),

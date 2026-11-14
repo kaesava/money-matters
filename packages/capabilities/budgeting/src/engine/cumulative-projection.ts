@@ -1,4 +1,4 @@
-import { runAllocationEngine, EngineBucket, AllocationLine } from "./allocation-engine.js";
+import { runAllocationEngine, EngineBucket, AllocationLine, AllocationStrategyStepItem } from "./allocation-engine.js";
 import { isBillsBucket, isGoalBucket, isEverydayBucket } from "./envelope-engine-mapper.js";
 
 export interface CumulativeProjectionIncomeEvent {
@@ -12,6 +12,8 @@ export interface CumulativeProjectionIncomeEvent {
   rrule?: string | null;
   userId?: string;
   isPrivate?: boolean;
+  contributionMode?: "FULL" | "PERCENTAGE" | "FIXED_AMOUNT";
+  contributionValue?: number | null;
 }
 
 export interface CumulativeProjectionExpenseEvent {
@@ -36,6 +38,8 @@ export interface CumulativeProjectionInput {
   cellOverrides?: Record<string, number>;
   currentUserId?: string;
   timezone?: string;
+  strategySteps?: AllocationStrategyStepItem[];
+  personalStrategySteps?: AllocationStrategyStepItem[];
 }
 
 export interface CumulativeAllocationDetail {
@@ -145,6 +149,11 @@ export function runCumulativeProjection(input: CumulativeProjectionInput): Cumul
 
       const engineResult = runAllocationEngine({
         incomeAmount: totalIncome,
+        incomeUserId: evt.userId || input.currentUserId,
+        contributionMode: evt.contributionMode,
+        contributionValue: evt.contributionValue,
+        strategySteps: input.strategySteps,
+        personalStrategySteps: input.personalStrategySteps,
         buckets: currentBuckets,
         paycheckDate: new Date(evt.expectedDate + "T00:00:00"),
         paycheckFrequencyDays: freqDays,

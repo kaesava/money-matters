@@ -192,4 +192,39 @@ describe("cumulative-projection engine", () => {
     expect(draftStep.allocations.get("pool-bills")?.isOverride).toBe(true);
     expect(draftStep.allocations.get("pool-everyday")?.proposedAmount).toBe(1100);
   });
+
+  it("should respect custom strategySteps and personalStrategySteps independently", () => {
+    const result = runCumulativeProjection({
+      currentUserId: "user-1",
+      categories: [
+        ...mockCategories,
+        { id: "priv-goal", name: "Private Goal", type: "GOAL", targetAmount: 2000, monthlyAmount: 500, currentBalance: 0, isPrivate: true, userId: "user-1", isPriority: true },
+        { id: "priv-everyday", name: "Private Spend", type: "EVERYDAY", monthlyAmount: 500, currentBalance: 0, isPrivate: true, userId: "user-1" },
+      ],
+      incomeEvents: [
+        {
+          id: "evt-split-1",
+          expectedDate: "2026-09-01",
+          expectedAmount: 1000,
+          status: "PENDING",
+          contributionMode: "PERCENTAGE",
+          contributionValue: 50,
+        },
+      ],
+      strategySteps: [
+        { stepType: "EVERYDAY_ALLOWANCE" },
+        { stepType: "STANDARD_BILLS" },
+        { stepType: "SURPLUS_SWEEP" },
+      ],
+      personalStrategySteps: [
+        { stepType: "PRIORITY_GOALS" },
+        { stepType: "EVERYDAY_ALLOWANCE" },
+        { stepType: "SURPLUS_SWEEP" },
+      ],
+    });
+
+    const step = result.steps[0];
+    expect(step.allocations.get("priv-goal")?.proposedAmount).toBeGreaterThan(0);
+    expect(step.allocations.get("pool-everyday")?.proposedAmount).toBeGreaterThan(0);
+  });
 });

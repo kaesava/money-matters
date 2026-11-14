@@ -1,6 +1,6 @@
 import { getCachedDateFormat } from "@money-matters/core";
 import { DEFAULT_LOCALE } from "@money-matters/types";
-import { EngineBucket } from "./allocation-engine.js";
+import { EngineBucket, AllocationStrategyStepItem } from "./allocation-engine.js";
 import {
   runCumulativeProjection,
   CumulativeProjectionIncomeEvent,
@@ -60,6 +60,8 @@ export interface MatrixProjectionInput {
   monthsAhead?: number;
   timezone?: string;
   locale?: string;
+  strategySteps?: AllocationStrategyStepItem[];
+  personalStrategySteps?: AllocationStrategyStepItem[];
 }
 
 export interface MatrixProjectionOutput {
@@ -88,6 +90,8 @@ export function computeMatrixProjection(input: MatrixProjectionInput): MatrixPro
     cellOverrides: input.cellOverrides,
     currentUserId: input.currentUserId,
     timezone: input.timezone,
+    strategySteps: input.strategySteps,
+    personalStrategySteps: input.personalStrategySteps,
   });
 
   const columns: MatrixColumn[] = [];

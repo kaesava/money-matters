@@ -70,6 +70,8 @@ export async function runAllocationCommand(
       incomeType: incomeSources.incomeType,
       contributionMode: sql<"FULL" | "PERCENTAGE" | "FIXED_AMOUNT">`COALESCE(${incomeEvents.contributionMode}, ${incomeSources.contributionMode}, 'FULL')`,
       contributionValue: sql<string | null>`COALESCE(${incomeEvents.contributionValue}, ${incomeSources.contributionValue})`,
+      createdBy: incomeEvents.createdBy,
+      sourceCreatedBy: incomeSources.createdBy,
       bankAccountUserId: bankAccounts.userId,
       bankAccountIsPrivate: bankAccounts.isPrivate,
     })
@@ -89,7 +91,11 @@ export async function runAllocationCommand(
     throw new Error("Income event not found.");
   }
 
-  const incomeUserId = eventWithSource.bankAccountUserId || undefined;
+  const rawCreator = eventWithSource.createdBy && eventWithSource.createdBy !== "system" ? eventWithSource.createdBy : undefined;
+  const rawSourceCreator = eventWithSource.sourceCreatedBy && eventWithSource.sourceCreatedBy !== "system" ? eventWithSource.sourceCreatedBy : undefined;
+  const incomeUserId = eventWithSource.bankAccountIsPrivate
+    ? (eventWithSource.bankAccountUserId || userId)
+    : (rawCreator ?? rawSourceCreator ?? userId);
 
   const [tenantRecord] = await dbClient
     .select({ timezone: tenants.timezone })

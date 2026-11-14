@@ -32,7 +32,7 @@ export function MobileAllocationStrategySection() {
   });
   const applyPresetMut = trpc.applyAllocationPreset.useMutation();
 
-  const activePreset = strategyQuery.data?.presetKey || 'BALANCED';
+  const activePreset = strategyQuery.data?.presetKey;
 
   const presetsList: Array<{
     key: 'BALANCED' | 'BILLS_FORTRESS' | 'PAY_YOURSELF_FIRST';
@@ -191,11 +191,19 @@ export function MobileAllocationStrategySection() {
 
         {/* 4th Preset Card: Custom Rules */}
         {hasCustomAllocationRules && (
-          <View
+          <TouchableOpacity
             style={[
               styles.presetCard,
               activePreset === 'CUSTOM' && styles.presetCardSelected,
+              !canEdit && styles.presetCardDisabled,
             ]}
+            onPress={() => {
+              if (canEdit) {
+                router.push(`/(app)/settings/allocation-rules?scope=${activeTab}` as Href);
+              }
+            }}
+            activeOpacity={canEdit ? 0.7 : 1}
+            disabled={!canEdit}
           >
             <View style={styles.presetHeader}>
               <Text style={[styles.presetName, activePreset === 'CUSTOM' && styles.presetNameSelected]}>
@@ -205,7 +213,7 @@ export function MobileAllocationStrategySection() {
                 <View style={styles.activeCheckRow}>
                   <Feather name="check" size={12} color={DESIGN_TOKENS.colors.sereneBlue} />
                   <Text style={styles.activeCheckText}>
-                    {t('settings.paydayRules.activeBadge')}
+                    {t('settings.paydayRules.activeCustomisedBadge')}
                   </Text>
                 </View>
               ) : (
@@ -217,7 +225,7 @@ export function MobileAllocationStrategySection() {
             <Text style={styles.presetDesc}>
               {t('settings.paydayRules.presets.custom.description')}
             </Text>
-          </View>
+          </TouchableOpacity>
         )}
       </View>
     </View>

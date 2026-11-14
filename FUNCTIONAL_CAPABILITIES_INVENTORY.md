@@ -53,7 +53,7 @@
 | `/dashboard/afford-check` | `apps/web/src/app/dashboard/afford-check/page.tsx` | 16 | Authenticated + Tenant | Renders `AffordCheckScreen` (`AffordCheckVerdict`, `AffordCheckBreakdown`, `GoalDelayCard`, `AffordCheckSkeleton`) |
 | `/dashboard/reports` | `apps/web/src/app/dashboard/reports/page.tsx` | 311 | Authenticated + Tenant + `reports` flag | `SpendingOverviewCard` (`DonutChart`, `BarTrendChart`, `HorizontalRankedBarChart`), KPI summary cards, CSV export |
 | `/dashboard/settings` | `apps/web/src/app/dashboard/settings/page.tsx` | 242 | Authenticated + Tenant | Tabbed settings (`ProfileSection`, `HouseholdDetailsSection`, `PartnerInviteSection`, `HouseholdDangerZoneSection`, `BankAccountsSection`, `AllocationStrategySection`, `SubscriptionSection`, `NotificationsPage`, `PrivacySection`, `ArchivedSection`, `FeedbackModal`, `ConfirmDialog`, version footer) |
-| `/dashboard/settings/allocation-rules` | `apps/web/src/app/dashboard/settings/allocation-rules/page.tsx` | 354 | Authenticated + Tenant + `customAllocationRules` flag | Custom payday waterfall strategy step builder (`ConfirmDialog`) |
+| `/dashboard/settings/allocation-rules` | `apps/web/src/app/dashboard/settings/allocation-rules/page.tsx` | 398 | Authenticated + Tenant + `customAllocationRules` flag | Custom payday waterfall strategy step builder with Preset Switcher (`ConfirmDialog`) |
 | `/dashboard/settings/notifications` | `apps/web/src/app/dashboard/settings/notifications/page.tsx` | 163 | Authenticated + Tenant | Notification toggles (`trpc.notifications.getPreferences`, `trpc.notifications.updatePreferences`) |
 | `/dashboard/settings/history` | `apps/web/src/app/dashboard/settings/history/page.tsx` | 41 | Authenticated + Tenant | Redirects to `/dashboard/history` |
 | `/dashboard/[...not-found]` | `apps/web/src/app/dashboard/[...not-found]/page.tsx` | 108 | Authenticated + Tenant | Scoped dashboard 404 screen |
@@ -98,7 +98,7 @@
 | `/(app)/afford-check` | `apps/mobile/src/app/(app)/afford-check.tsx` | 134 | Authenticated + Tenant | `AffordCheckInputControls`, `AffordCheckVerdictCard`, `AffordCheckBreakdownCard`, `GoalDelayCard` |
 | `/(app)/reports` | `apps/mobile/src/app/(app)/reports.tsx` | 409 | Authenticated + Tenant + `reports` flag | `MobileSpendingOverviewCard` (`MobileDonutChart`, `MobileBarTrendChart`, `MobileHorizontalRankedBarChart`), KPI cards, CSV export (`expo-sharing`) |
 | `/(app)/settings` | `apps/mobile/src/app/(app)/settings.tsx` | 360 | Authenticated + Tenant | `SettingsActiveHouseholdCard`, `MobileProfileSection`, `HouseholdDetailsSection`, `HouseholdPartnerInviteSection`, `HouseholdDangerZoneSection`, `MobileBankAccountsSection`, `MobileAllocationStrategySection`, `SubscriptionPlanSection`, `SettingsNotificationsCard`, `PrivacyGovernanceSection`, `MobileArchivedSection`, `SettingsVersionFooter`, `FeedbackFormModal`, `MobileTenantSwitcherModal` |
-| `/(app)/settings/allocation-rules` | `apps/mobile/src/app/(app)/settings/allocation-rules.tsx` | 525 | Authenticated + Tenant + `customAllocationRules` flag | Custom payday waterfall strategy step builder |
+| `/(app)/settings/allocation-rules` | `apps/mobile/src/app/(app)/settings/allocation-rules.tsx` | 389 | Authenticated + Tenant + `customAllocationRules` flag | Custom payday waterfall strategy step builder with Preset Switcher |
 | `/(app)/settings/archived` | `apps/mobile/src/app/(app)/settings/archived.tsx` | 36 | Authenticated + Tenant | Standalone wrapper around `MobileArchivedSection` |
 | `/(app)/settings/bank-accounts` | `apps/mobile/src/app/(app)/settings/bank-accounts.tsx` | 15 | Authenticated + Tenant | Redirects to `/(app)/settings?tab=bank-accounts` |
 | `/(app)/settings/history` | `apps/mobile/src/app/(app)/settings/history.tsx` | 18 | Authenticated + Tenant | Redirects to `/(app)/transactions` |
@@ -222,7 +222,7 @@ All user-facing copy lives in `packages/i18n/src/dictionaries/en/*.ts` (re-expor
 | `payday.ts` | `payday`, `paydayDrawer`, `paychecks` | 99 | 86 (75) | 103 (79) | 0 (0) | 14 (8) |
 | `privacy.ts` | `privacy`, `terms`, `public` | 144 | 136 (135) | 22 (21) | 0 (5) | 4 (4) |
 | `reports.ts` | `reports` | 18 | 12 (9) | 8 (8) | 0 (0) | 0 (0) |
-| `settings.ts` + `settings-sections.ts` | `settings`, `subscription`, `notifications`, `bankAccounts` | 382 | 341 (281) | 294 (247) | 4 (3) | 16 (22) |
+| `settings.ts` + `settings-sections.ts` | `settings`, `subscription`, `notifications`, `bankAccounts` | 385 | 341 (281) | 294 (247) | 4 (3) | 16 (22) |
 | `setup.ts` | `setup` | 176 | 177 (151) | 169 (153) | 0 (0) | 5 (9) |
 | `tour.ts` | `tour` | 38 | 7 (33) | 7 (33) | 0 (0) | 12 (5) |
 | `history.ts` | `transactions`, `canIAfford` | 177 | 133 (101) | 101 (84) | 0 (0) | 78 (43) |

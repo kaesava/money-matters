@@ -59,3 +59,20 @@ export const CANONICAL_ALLOCATION_PRESETS: Record<
     ],
   },
 } as const;
+
+/**
+ * Returns the canonical preset key whose step order matches `steps` (ignoring targetEnvelopeId), or null if custom.
+ */
+export function detectMatchingAllocationPreset(
+  steps: ReadonlyArray<{ stepType: AllocationStepType }>
+): "BALANCED" | "BILLS_FORTRESS" | "PAY_YOURSELF_FIRST" | null {
+  for (const preset of Object.values(CANONICAL_ALLOCATION_PRESETS)) {
+    if (
+      preset.steps.length === steps.length &&
+      preset.steps.every((s, idx) => s.stepType === steps[idx]?.stepType)
+    ) {
+      return preset.presetKey;
+    }
+  }
+  return null;
+}

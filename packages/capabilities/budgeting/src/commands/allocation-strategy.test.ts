@@ -1,5 +1,6 @@
 import { describe, it, expect, vi } from "vitest";
 import type { DbOrTx } from "@money-matters/db";
+import { CANONICAL_ALLOCATION_PRESETS } from "@money-matters/types";
 import { updateAllocationStrategyStepsCommand } from "./update-allocation-strategy-steps.command.js";
 import { applyAllocationPresetCommand } from "./apply-allocation-preset.command.js";
 
@@ -98,5 +99,48 @@ describe("allocation strategy commands", () => {
 
     expect(res.presetKey).toBe("BILLS_FORTRESS");
     expect(insertedRows[insertedRows.length - 1]?.stepType).toBe("SURPLUS_SWEEP");
+  });
+
+  it("updateAllocationStrategyStepsCommand detects matching canonical presetKey and preserves targetEnvelopeId", async () => {
+    const mockTx = {
+      update: vi.fn().mockReturnValue({
+        set: vi.fn().mockReturnValue({
+          where: vi.fn().mockResolvedValue({ rowCount: 1 }),
+        }),
+      }),
+      insert: vi.fn().mockReturnValue({
+        values: vi.fn().mockImplementation((rows: unknown[]) => ({
+          returning: vi.fn().mockResolvedValue(rows),
+        })),
+      }),
+    };
+
+    const mockDb = {
+      select: vi.fn().mockReturnValue({
+        from: vi.fn().mockReturnValue({
+          where: vi.fn().mockReturnValue({
+            limit: vi.fn().mockResolvedValue([{ id: "strat-1", tenantId: "tenant-1", appId: "app-1", isPrivate: false }]),
+          }),
+        }),
+      }),
+      transaction: vi.fn().mockImplementation(async (cb: (tx: typeof mockTx) => Promise<unknown>) => cb(mockTx)),
+    };
+
+    const steps = CANONICAL_ALLOCATION_PRESETS.BILLS_FORTRESS.steps.map((s, idx) => ({
+      orderIndex: idx,
+      stepType: s.stepType,
+      targetEnvelopeId: s.stepType === "SURPLUS_SWEEP" ? "env-sweep" : null,
+    }));
+
+    const res = await updateAllocationStrategyStepsCommand(
+      "tenant-1",
+      "app-1",
+      "user-1",
+      "strat-1",
+      steps,
+      mockDb as unknown as DbOrTx
+    );
+
+    expect(res.presetKey).toBe("BILLS_FORTRESS");
   });
 });

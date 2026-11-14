@@ -202,7 +202,8 @@ Money Matters natively supports shared households without compromising personal 
 1. **Universal Household Pooling**: All income sources in the household flow into a single unified waterfall cascade. Joint household bills (rent, power, groceries) are funded collectively based on household cashflow.
 2. **Orthogonal Stealth Privacy**:
    - Individual partners can link private bank accounts and private pools (`isPrivate: true`).
-   - Private pools participate fully in the waterfall according to their configured targets.
+   - Private pools participate fully in the waterfall according to their configured targets, using the earner's independent Personal Allocation Strategy (`isPrivate: true`) across payday previews, execution, 12-month horizon projections, and simulations (even when income lands in a shared bank account).
+   - Saving custom allocation step orders automatically detects if the resulting order matches a canonical preset (`BALANCED`, `BILLS_FORTRESS`, `PAY_YOURSELF_FIRST`) via `detectMatchingAllocationPreset` and persists that `presetKey` rather than `CUSTOM`.
    - In the partner's dashboard view, private pool details, names, and individual allocations are completely masked and aggregated into a single opaque `hiddenAllocationsTotal` figure.
    - This ensures 100% mathematical zero-sum ledger balance without exposing personal financial independence.
 3. **Staggered Multi-Income Scheduling**:

@@ -174,10 +174,13 @@ export const settings = {
       "description": "Control how income is allocated across your bills, everyday spending, and savings goals.",
       "activePresetLabel": "Active Strategy",
       "activeBadge": "Active",
+      "activeCustomisedBadge": "Active (Customised)",
       "customizeButton": "Customise Rules",
-      "resetToRecommended": "Reset to Recommended",
-      "resetConfirmTitle": "Reset to Recommended Rules",
-      "resetConfirmMessage": "Are you sure you want to restore the standard Balanced rules? Any custom order or rule blocks will be replaced.",
+      "loadPresetLabel": "Rule Preset",
+      "customBadge": "Custom",
+      "discardOrderConfirmTitle": "Replace Unsaved Order?",
+      "discardOrderConfirmMessage": "You have unsaved changes to the step order. Loading {presetName} will replace your current edits.",
+      "discardOrderConfirmCta": "Load {presetName}",
       "switchPresetConfirmTitle": "Switch to {presetName}?",
       "switchPresetConfirmMessage": "Are you sure you want to switch to {presetName}? Any active custom rules will be replaced.",
       "switchPresetAction": "Switch to {presetName}",
@@ -186,7 +189,7 @@ export const settings = {
         "household": "Household Rules",
         "personal": "Personal Rules"
       },
-      "customiseToActivate": "Customise to activate",
+      "customiseToActivate": "Customise an existing rule",
       "presets": {
         "balanced": {
           "name": "Balanced",

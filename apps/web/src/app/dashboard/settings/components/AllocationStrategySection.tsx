@@ -1,7 +1,8 @@
 "use client";
 
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { t } from "@money-matters/i18n";
 import { useToast, ConfirmDialog, InfoTooltip } from "@money-matters/ui/web";
 import { trpc } from "../../../../lib/trpc";
@@ -12,7 +13,9 @@ export function AllocationStrategySection() {
   const utils = trpc.useUtils();
   const { hasPrivateMode, hasCustomAllocationRules } = useAppFeatures();
 
-  const [activeTab, setActiveTab] = useState<"household" | "personal">("household");
+  const searchParams = useSearchParams();
+  const initialScope = searchParams.get("strategyScope") === "personal" ? "personal" : "household";
+  const [activeTab, setActiveTab] = useState<"household" | "personal">(initialScope);
 
   const govQuery = trpc.getHouseholdGovernanceInfo.useQuery();
   const envelopesQuery = trpc.listEnvelopes.useQuery();
@@ -22,6 +25,12 @@ export function AllocationStrategySection() {
     () => hasPrivateMode && (envelopesQuery.data || []).some((e) => e.isPrivate),
     [envelopesQuery.data, hasPrivateMode]
   );
+
+  useEffect(() => {
+    if (activeTab === "personal" && envelopesQuery.data && !hasPrivateEnvelopes) {
+      setActiveTab("household");
+    }
+  }, [activeTab, envelopesQuery.data, hasPrivateEnvelopes]);
 
   const isPersonalScope = activeTab === "personal";
 
@@ -34,7 +43,7 @@ export function AllocationStrategySection() {
     "BALANCED" | "BILLS_FORTRESS" | "PAY_YOURSELF_FIRST" | null
   >(null);
 
-  const activePreset = strategyQuery.data?.presetKey || "BALANCED";
+  const activePreset = strategyQuery.data?.presetKey;
 
   const handleApplyPreset = async (
     presetKey: "BALANCED" | "BILLS_FORTRESS" | "PAY_YOURSELF_FIRST"
@@ -205,33 +214,64 @@ export function AllocationStrategySection() {
 
         {/* 4th Preset Card: Custom Rules (rendered only if customAllocationRules is enabled) */}
         {hasCustomAllocationRules && (
-          <div
-            className={`text-left p-4 rounded-xl border transition-all flex flex-col justify-between gap-2 ${
-              activePreset === "CUSTOM"
-                ? "border-[#2563eb] bg-blue-50/50 dark:bg-blue-950/20 shadow-xs ring-1 ring-[#2563eb]"
-                : "border-slate-200 dark:border-slate-800 bg-white/40 dark:bg-zinc-800/40"
-            }`}
-          >
-            <div>
-              <div className="flex items-center justify-between">
-                <h4 className="font-semibold text-xs text-[#1B2B4B] dark:text-white">
-                  {t("settings.paydayRules.presets.custom.name")}
-                </h4>
-                {activePreset === "CUSTOM" ? (
-                  <span className="text-[11px] font-bold text-[#2563eb] dark:text-blue-400">
-                    ✓ {t("settings.paydayRules.activeBadge")}
-                  </span>
-                ) : (
-                  <span className="text-[10px] font-medium text-slate-400">
-                    {t("settings.paydayRules.customiseToActivate")}
-                  </span>
-                )}
+          canEdit ? (
+            <Link
+              href={`/dashboard/settings/allocation-rules?scope=${activeTab}`}
+              className={`text-left p-4 rounded-xl border transition-all flex flex-col justify-between gap-2 cursor-pointer ${
+                activePreset === "CUSTOM"
+                  ? "border-[#2563eb] bg-blue-50/50 dark:bg-blue-950/20 shadow-xs ring-1 ring-[#2563eb]"
+                  : "border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700 bg-white/40 dark:bg-zinc-800/40"
+              }`}
+            >
+              <div>
+                <div className="flex items-center justify-between gap-2">
+                  <h4 className="font-semibold text-xs text-[#1B2B4B] dark:text-white">
+                    {t("settings.paydayRules.presets.custom.name")}
+                  </h4>
+                  {activePreset === "CUSTOM" ? (
+                    <span className="text-[11px] font-bold text-[#2563eb] dark:text-blue-400">
+                      ✓ {t("settings.paydayRules.activeCustomisedBadge")}
+                    </span>
+                  ) : (
+                    <span className="text-[10px] font-medium text-[#2563eb] dark:text-blue-400">
+                      {t("settings.paydayRules.customiseToActivate")} →
+                    </span>
+                  )}
+                </div>
+                <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1 leading-relaxed">
+                  {t("settings.paydayRules.presets.custom.description")}
+                </p>
               </div>
-              <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1 leading-relaxed">
-                {t("settings.paydayRules.presets.custom.description")}
-              </p>
+            </Link>
+          ) : (
+            <div
+              className={`text-left p-4 rounded-xl border transition-all flex flex-col justify-between gap-2 opacity-75 cursor-not-allowed ${
+                activePreset === "CUSTOM"
+                  ? "border-[#2563eb] bg-blue-50/50 dark:bg-blue-950/20 shadow-xs ring-1 ring-[#2563eb]"
+                  : "border-slate-200 dark:border-slate-800 bg-white/40 dark:bg-zinc-800/40"
+              }`}
+            >
+              <div>
+                <div className="flex items-center justify-between gap-2">
+                  <h4 className="font-semibold text-xs text-[#1B2B4B] dark:text-white">
+                    {t("settings.paydayRules.presets.custom.name")}
+                  </h4>
+                  {activePreset === "CUSTOM" ? (
+                    <span className="text-[11px] font-bold text-[#2563eb] dark:text-blue-400">
+                      ✓ {t("settings.paydayRules.activeCustomisedBadge")}
+                    </span>
+                  ) : (
+                    <span className="text-[10px] font-medium text-slate-400">
+                      {t("settings.paydayRules.customiseToActivate")}
+                    </span>
+                  )}
+                </div>
+                <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1 leading-relaxed">
+                  {t("settings.paydayRules.presets.custom.description")}
+                </p>
+              </div>
             </div>
-          </div>
+          )
         )}
       </div>
 

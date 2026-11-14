@@ -1,5 +1,5 @@
 import { DbOrTx, allocationStrategies, allocationStrategySteps } from "@money-matters/db";
-import { AllocationStepType } from "@money-matters/types";
+import { AllocationStepType, detectMatchingAllocationPreset } from "@money-matters/types";
 import { eq, and, sql } from "drizzle-orm";
 
 export interface StrategyStepInputItem {
@@ -36,11 +36,29 @@ export async function updateAllocationStrategyStepsCommand(
   }
 
   return await dbClient.transaction(async (tx) => {
-    // Set presetKey to CUSTOM
+    // Pin SURPLUS_SWEEP as the final step so it never starves downstream steps
+    const nonSweepSteps = steps.filter((s) => s.stepType !== "SURPLUS_SWEEP");
+    const sweepSteps = steps.filter((s) => s.stepType === "SURPLUS_SWEEP");
+    const orderedSteps = [...nonSweepSteps, ...sweepSteps];
+
+    const matchedPreset = detectMatchingAllocationPreset(orderedSteps);
+    const resolvedPresetKey = matchedPreset ?? "CUSTOM";
+    const resolvedName = strategy.isPrivate
+      ? resolvedPresetKey === "BALANCED" ? "Personal Balanced"
+        : resolvedPresetKey === "BILLS_FORTRESS" ? "Personal Bills Fortress"
+        : resolvedPresetKey === "PAY_YOURSELF_FIRST" ? "Personal Pay Yourself First"
+        : "Personal Custom Rules"
+      : resolvedPresetKey === "BALANCED" ? "Standard Balanced"
+        : resolvedPresetKey === "BILLS_FORTRESS" ? "Bills Fortress"
+        : resolvedPresetKey === "PAY_YOURSELF_FIRST" ? "Pay Yourself First"
+        : "Custom Rules";
+
+    // Set presetKey to matched canonical preset or CUSTOM
     await tx
       .update(allocationStrategies)
       .set({
-        presetKey: "CUSTOM",
+        presetKey: resolvedPresetKey,
+        name: resolvedName,
         updatedAt: new Date(),
         updatedBy: userId,
       })
@@ -62,11 +80,6 @@ export async function updateAllocationStrategyStepsCommand(
         )
       );
 
-    // Pin SURPLUS_SWEEP as the final step so it never starves downstream steps
-    const nonSweepSteps = steps.filter((s) => s.stepType !== "SURPLUS_SWEEP");
-    const sweepSteps = steps.filter((s) => s.stepType === "SURPLUS_SWEEP");
-    const orderedSteps = [...nonSweepSteps, ...sweepSteps];
-
     // Insert new steps in bulk
     const rowsToInsert = orderedSteps.map((s, idx) => ({
       tenantId,
@@ -86,7 +99,7 @@ export async function updateAllocationStrategyStepsCommand(
 
     return {
       strategyId,
-      presetKey: "CUSTOM",
+      presetKey: resolvedPresetKey,
       steps: insertedSteps,
     };
   });

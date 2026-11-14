@@ -1,24 +1,15 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-  ScrollView,
-  ActivityIndicator,
-} from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { useRouter, useLocalSearchParams, type Href } from 'expo-router';
-import { Feather } from '@expo/vector-icons';
 import { t } from '@money-matters/i18n';
-import {
-  DESIGN_TOKENS,
-  MobileButton,
-  showMobileConfirm,
-  useMobileToast,
-} from '@money-matters/ui/mobile';
+import { DESIGN_TOKENS, MobileButton, showMobileConfirm, useMobileToast } from '@money-matters/ui/mobile';
 import { trpc } from '../../../lib/trpc';
 import { AppScreenWrapper } from '../../../components/AppScreenWrapper';
-import { AllocationStepType } from '@money-matters/types';
+import {
+  AllocationStepType,
+  CANONICAL_ALLOCATION_PRESETS,
+  detectMatchingAllocationPreset,
+} from '@money-matters/types';
 import { useAppFeatures } from '../../../context/useAppFeatures';
 import {
   AllocationRuleStepCard,
@@ -55,11 +46,11 @@ export default function MobileAllocationRulesScreen() {
     enabled: hasCustomAllocationRules,
   });
   const updateStepsMut = trpc.updateAllocationStrategySteps.useMutation();
-  const applyPresetMut = trpc.applyAllocationPreset.useMutation();
 
   const [steps, setSteps] = useState<EditableStep[]>([]);
   const [initialSteps, setInitialSteps] = useState<EditableStep[]>([]);
   const [isDirty, setIsDirty] = useState(false);
+  const [hasManualOrderEdit, setHasManualOrderEdit] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
   const eligibleEnvelopes = useMemo(() => {
@@ -79,6 +70,7 @@ export default function MobileAllocationRulesScreen() {
       setSteps(mapped);
       setInitialSteps(mapped);
       setIsDirty(false);
+      setHasManualOrderEdit(false);
     }
   }, [strategyQuery.data]);
 
@@ -110,6 +102,7 @@ export default function MobileAllocationRulesScreen() {
 
     const reindexed = next.map((s, idx) => ({ ...s, orderIndex: idx }));
     setSteps(reindexed);
+    setHasManualOrderEdit(true);
     setIsDirty(checkIfDirty(reindexed));
   };
 
@@ -117,35 +110,39 @@ export default function MobileAllocationRulesScreen() {
     const next = [...steps];
     next[index] = { ...next[index], targetEnvelopeId };
     setSteps(next);
+    setHasManualOrderEdit(true);
     setIsDirty(checkIfDirty(next));
   };
 
-  const handleResetToRecommended = () => {
-    showMobileConfirm({
-      title: t('settings.paydayRules.resetConfirmTitle'),
-      message: t('settings.paydayRules.resetConfirmMessage'),
-      confirmText: t('settings.paydayRules.resetToRecommended'),
-      cancelText: t('common.cancel'),
-      onConfirm: async () => {
-        try {
-          await applyPresetMut.mutateAsync({
-            presetKey: 'BALANCED',
-            isPrivate: isPersonal,
-          });
-          await Promise.all([
-            utils.getActiveAllocationStrategy.invalidate(),
-            utils.previewPayday.invalidate(),
-            utils.getHorizonProjectionData.invalidate(),
-            utils.listAllAllocationPlans.invalidate(),
-            utils.getHomeSummary.invalidate(),
-          ]);
-          toast.success(t('settings.paydayRules.saveSuccess'));
-          setIsDirty(false);
-        } catch (err) {
-          toast.error(err instanceof Error ? err.message : t('common.errorTryAgain'));
-        }
-      },
-    });
+  const currentMatchedPreset = useMemo(() => detectMatchingAllocationPreset(steps), [steps]);
+
+  const applyPresetToEditor = (presetKey: 'BALANCED' | 'BILLS_FORTRESS' | 'PAY_YOURSELF_FIRST') => {
+    const currentSweep = steps.find((s) => s.stepType === 'SURPLUS_SWEEP');
+    const nextSteps: EditableStep[] = CANONICAL_ALLOCATION_PRESETS[presetKey].steps.map((s, idx) => ({
+      orderIndex: idx,
+      stepType: s.stepType,
+      targetEnvelopeId: s.stepType === 'SURPLUS_SWEEP' ? (currentSweep?.targetEnvelopeId ?? null) : null,
+      config: s.config ?? null,
+    }));
+    setSteps(nextSteps);
+    setHasManualOrderEdit(false);
+    setIsDirty(checkIfDirty(nextSteps));
+  };
+
+  const handleSelectPreset = (presetKey: 'BALANCED' | 'BILLS_FORTRESS' | 'PAY_YOURSELF_FIRST') => {
+    if (!canEdit || currentMatchedPreset === presetKey) return;
+    if (hasManualOrderEdit) {
+      const presetName = t(CANONICAL_ALLOCATION_PRESETS[presetKey].nameKey);
+      showMobileConfirm({
+        title: t('settings.paydayRules.discardOrderConfirmTitle'),
+        message: t('settings.paydayRules.discardOrderConfirmMessage', { presetName }),
+        confirmText: t('settings.paydayRules.discardOrderConfirmCta', { presetName }),
+        cancelText: t('common.cancel'),
+        onConfirm: () => applyPresetToEditor(presetKey),
+      });
+      return;
+    }
+    applyPresetToEditor(presetKey);
   };
 
   const handleSave = async () => {
@@ -169,6 +166,7 @@ export default function MobileAllocationRulesScreen() {
         utils.getHomeSummary.invalidate(),
       ]);
       setIsDirty(false);
+      setHasManualOrderEdit(false);
       toast.success(t('settings.paydayRules.saveSuccess'));
     } catch (err) {
       toast.error(err instanceof Error ? err.message : t('common.errorTryAgain'));
@@ -224,23 +222,37 @@ export default function MobileAllocationRulesScreen() {
       scrollable={true}
     >
       <View style={styles.container}>
-        {/* Banner with Reset link */}
+        {/* Banner with Preset Switcher */}
         <View style={styles.bannerCard}>
           <Text style={styles.bannerSubtitle}>
             {t('settings.paydayRules.pageSubtitle')}
           </Text>
-          {canEdit && (
-            <TouchableOpacity
-              style={styles.resetBtn}
-              onPress={handleResetToRecommended}
-              activeOpacity={0.7}
-            >
-              <Feather name="rotate-ccw" size={13} color={DESIGN_TOKENS.colors.sereneBlue} />
-              <Text style={styles.resetBtnText}>
-                {t('settings.paydayRules.resetToRecommended')}
-              </Text>
-            </TouchableOpacity>
-          )}
+          <Text style={styles.presetLabel}>
+            {t('settings.paydayRules.loadPresetLabel')}
+          </Text>
+          <View style={styles.presetRow}>
+            {(['BALANCED', 'BILLS_FORTRESS', 'PAY_YOURSELF_FIRST'] as const).map((key) => {
+              const active = currentMatchedPreset === key;
+              return (
+                <TouchableOpacity
+                  key={key}
+                  style={[styles.presetChip, active && styles.presetChipActive, !canEdit && styles.presetChipDisabled]}
+                  onPress={() => handleSelectPreset(key)}
+                  disabled={!canEdit}
+                  activeOpacity={0.7}
+                >
+                  <Text style={[styles.presetChipText, active && styles.presetChipTextActive]}>
+                    {t(CANONICAL_ALLOCATION_PRESETS[key].nameKey)}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+            {currentMatchedPreset === null && (
+              <View style={styles.customChip}>
+                <Text style={styles.customChipText}>{t('settings.paydayRules.customBadge')}</Text>
+              </View>
+            )}
+          </View>
         </View>
 
         {!canEdit && (
@@ -314,13 +326,43 @@ const styles = StyleSheet.create({
     color: DESIGN_TOKENS.colors.slate[600],
     lineHeight: 18,
   },
-  resetBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    alignSelf: 'flex-start',
+  presetLabel: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: DESIGN_TOKENS.colors.primary,
   },
-  resetBtnText: {
+  presetRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  presetChip: {
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 8,
+    backgroundColor: DESIGN_TOKENS.colors.slate[100],
+  },
+  presetChipActive: {
+    backgroundColor: DESIGN_TOKENS.colors.primary,
+  },
+  presetChipDisabled: {
+    opacity: 0.6,
+  },
+  presetChipText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: DESIGN_TOKENS.colors.slate[600],
+  },
+  presetChipTextActive: {
+    color: '#FFFFFF',
+  },
+  customChip: {
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 8,
+    backgroundColor: '#EFF6FF',
+  },
+  customChipText: {
     fontSize: 12,
     fontWeight: '700',
     color: DESIGN_TOKENS.colors.sereneBlue,
