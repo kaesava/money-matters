@@ -4,7 +4,7 @@ import { useRouter, type Href } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
 import { DESIGN_TOKENS } from '@money-matters/ui/mobile';
 import { t } from '@money-matters/i18n';
-import { ReconcileNudgeCard } from './dashboard/attention/ReconcileNudgeCard';
+import { SyncBalanceNudgeCard } from './dashboard/attention/SyncBalanceNudgeCard';
 import { AttentionTransferItem } from './dashboard/attention/AttentionTransferItem';
 import { AttentionExpenseItem } from './dashboard/attention/AttentionExpenseItem';
 
@@ -97,7 +97,7 @@ export const AttentionItemsList: React.FC<AttentionItemsListProps> = ({
 
   return (
     <View style={styles.wrapper}>
-      {needsBankReconciliation && <ReconcileNudgeCard />}
+      {needsBankReconciliation && <SyncBalanceNudgeCard />}
 
       {itemsToShow.length > 0 && (
         <View style={styles.cardContainer}>

@@ -106,7 +106,10 @@ cd apps/api && pnpm cf-deploy
 
 ---
 
-## 📜 Documentation
-- [TECHNICAL_SPEC.md](file:///home/kaesava/projects/money-matters/TECHNICAL_SPEC.md) — Technical architecture, Drizzle ERD, and infrastructure specs.
-- [FUNCTIONAL_SPEC.md](file:///home/kaesava/projects/money-matters/FUNCTIONAL_SPEC.md) — Product requirements, onboarding estimation details, and Two-Horizon Waterfall allocation logic.
-- [AGENTS.md](file:///home/kaesava/projects/money-matters/AGENTS.md) — Architectural rules, MECE principles, and coding standards.
+## 📜 Canonical Documentation & Agent Inventories (MECE — Zero Redundancy)
+- [AGENTS.md](file:///home/kaesava/projects/money-matters/AGENTS.md) — Binding architectural invariants, priority order, coding standards, and post-build documentation sync rules.
+- [FUNCTIONAL_CAPABILITIES_INVENTORY.md](file:///home/kaesava/projects/money-matters/FUNCTIONAL_CAPABILITIES_INVENTORY.md) — **UI, Route, Modal, Parity & i18n Registry:** Complete inventory of all 36 Web routes, 37 Mobile routes, 56 Modals/Drawers/Confirm Dialogs, Screen-by-Screen Web/Mobile Parity Matrix, `@money-matters/ui` exports, and `@money-matters/i18n` dictionary namespaces.
+- [TECHNICAL_SPEC.md](file:///home/kaesava/projects/money-matters/TECHNICAL_SPEC.md) — **Architecture, API & Workflows Registry:** Stack, security/RLS architecture, complete 12-router / 103-procedure tRPC registry (`§9`), HTTP/webhook endpoints, Inngest workflows, and feature flags (`§10`).
+- [SCHEMA_DATA_DICTIONARY.md](file:///home/kaesava/projects/money-matters/SCHEMA_DATA_DICTIONARY.md) — **Database & RLS Registry:** Master 23-table RLS policy (`ENABLE`/`FORCE`), session variable, and code consumer registry + column-level data dictionary (`pnpm audit:schema`).
+- [FUNCTIONAL_SPEC.md](file:///home/kaesava/projects/money-matters/FUNCTIONAL_SPEC.md) — **Domain Math & Product Rules:** Two-Horizon Waterfall math, 12-Month Cumulative Projection rules, "Can I Afford It?" simulation verdicts, onboarding estimation formulas, and test matrix specifications.
+- [V2_SCOPE.md](file:///home/kaesava/projects/money-matters/V2_SCOPE.md) — Deferred Release 2 feature scope.

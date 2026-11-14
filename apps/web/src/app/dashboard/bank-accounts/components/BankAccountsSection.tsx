@@ -6,7 +6,7 @@ import { trpc } from "../../../../lib/trpc";
 import { InfoTooltip, SearchInput, RecordFilterBadge, PoolPicker } from "@money-matters/ui/web";
 import { BankAccountTable, BankName } from "./BankAccountTable";
 import { BankAccountFormModal } from "./BankAccountFormModal";
-import { ReconciliationModal } from "../../../../components/ReconciliationModal";
+import { SyncBalanceModal } from "../../../../components/SyncBalanceModal";
 import { QuickExpenseDrawer } from "../../../../components/web/QuickExpenseDrawer";
 import { useLocale } from "../../../../providers/LocaleProvider";
 import { useAppFeatures } from "../../../../hooks/useAppFeatures";
@@ -200,7 +200,7 @@ export function BankAccountsSection() {
 
       {/* Reconciliation Modal */}
       {list.reconcileState && (
-        <ReconciliationModal
+        <SyncBalanceModal
           isOpen={!!list.reconcileState}
           onClose={() => list.setReconcileState(null)}
           accountName={list.reconcileState.account.name}

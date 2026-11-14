@@ -58,7 +58,7 @@ function FilteredMobilePayeesView({
   if (payees.length === 0 || totalOutflow <= 0) {
     return (
       <View style={styles.emptyContainer}>
-        <Text style={styles.emptyText}>{t('transactions.reporting.topPools.emptyPayees')}</Text>
+        <Text style={styles.emptyText}>{t('history.reporting.topPools.emptyPayees')}</Text>
       </View>
     );
   }
@@ -110,7 +110,7 @@ function MacroMobilePoolsView({
     return (
       <View style={styles.emptyContainer}>
         <Text style={styles.emptyText}>
-          {emptyText || t('transactions.reporting.topPools.empty')}
+          {emptyText || t('history.reporting.topPools.empty')}
         </Text>
       </View>
     );
@@ -150,7 +150,7 @@ function MacroMobilePoolsView({
         <View style={[styles.row, styles.otherRow]}>
           <View style={styles.labelRow}>
             <Text style={styles.otherName} numberOfLines={1}>
-              {t('transactions.reporting.topPools.otherPools')}
+              {t('history.reporting.topPools.otherPools')}
             </Text>
             <View style={styles.amtGroup}>
               <Text style={styles.otherAmount}>{formatCurrency(otherPoolsAmount)}</Text>

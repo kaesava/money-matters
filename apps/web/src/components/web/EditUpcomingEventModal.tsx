@@ -14,7 +14,7 @@ import {
 } from "@money-matters/ui/web";
 import { t } from "@money-matters/i18n";
 import { trpc } from "../../lib/trpc";
-import type { TimelineEventItem } from "../../app/dashboard/income-and-bills/components/UpcomingTimelineTab";
+import type { TimelineEventItem } from "../../app/dashboard/plan/components/UpcomingTimelineTab";
 
 export interface EditUpcomingEventModalProps {
   isOpen: boolean;
@@ -136,7 +136,7 @@ export function EditUpcomingEventModal({
                 type="button"
                 onClick={() => {
                   onClose();
-                  router.push(`/dashboard/income-and-bills?tab=streams&editIncomeId=${event.incomeSourceId}`);
+                  router.push(`/dashboard/plan?tab=streams&editIncomeId=${event.incomeSourceId}`);
                 }}
                 className="font-bold text-[#2563eb] hover:underline cursor-pointer inline-flex items-center gap-1 ml-5.5"
               >
@@ -157,7 +157,7 @@ export function EditUpcomingEventModal({
                 type="button"
                 onClick={() => {
                   onClose();
-                  router.push(`/dashboard/income-and-bills?tab=streams&editBillId=${event.poolId || event.categoryId}`);
+                  router.push(`/dashboard/plan?tab=streams&editBillId=${event.poolId || event.categoryId}`);
                 }}
                 className="font-bold text-[#2563eb] hover:underline cursor-pointer inline-flex items-center gap-1 ml-5.5"
               >

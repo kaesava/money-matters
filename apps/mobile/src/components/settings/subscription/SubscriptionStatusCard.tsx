@@ -36,7 +36,7 @@ export function SubscriptionStatusCard({
     <View style={styles.card}>
       {/* Eyebrow & Sync Button */}
       <View style={styles.eyebrowRow}>
-        <Text style={styles.eyebrowText}>{t('subscription.currentPlan')}</Text>
+        <Text style={styles.eyebrowText}>{t('subscription.currentSubscription')}</Text>
         <TouchableOpacity
           onPress={onManualSync}
           disabled={syncing}

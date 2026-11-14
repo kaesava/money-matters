@@ -12,7 +12,7 @@ import { useSetupWizardCalculations } from "./useSetupWizardCalculations";
 import { useSetupWizardPrepopulation } from "./useSetupWizardPrepopulation";
 import { useSetupWizardSubmission } from "./useSetupWizardSubmission";
 import { useSetupLifestyleState } from "./useSetupLifestyleState";
-import { useSetupAccountsState } from "./useSetupAccountsState";
+import { useSetupBankAccountsState } from "./useSetupBankAccountsState";
 import { useSetupIncomeState } from "./useSetupIncomeState";
 import { useSetupGoalsState } from "./useSetupGoalsState";
 
@@ -90,7 +90,7 @@ export function useSetupWizardState() {
   const lifestyle = useSetupLifestyleState();
   const { setCountry, setWeeklyGroceries, setWeeklyDining, setWeeklyPersonal } = lifestyle;
 
-  const accounts = useSetupAccountsState();
+  const accounts = useSetupBankAccountsState();
   const { bankAccounts, setBankAccounts, archivedAccountIds } = accounts;
 
   const [customCategories, setCustomCategories] = useState<EstimatedCategoryItem[]>([]);

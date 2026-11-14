@@ -58,7 +58,7 @@ function TopPayeesListView({
     return (
       <div className="flex flex-col items-center justify-center p-6 text-center h-56">
         <p className="text-xs text-slate-400 font-medium">
-          {t("transactions.reporting.topPools.emptyPayees")}
+          {t("history.reporting.topPools.emptyPayees")}
         </p>
       </div>
     );
@@ -109,7 +109,7 @@ function TopPoolsListView({
     return (
       <div className="flex flex-col items-center justify-center p-6 text-center h-56">
         <p className="text-xs text-slate-400 font-medium">
-          {emptyText || t("transactions.reporting.topPools.empty")}
+          {emptyText || t("history.reporting.topPools.empty")}
         </p>
       </div>
     );
@@ -147,7 +147,7 @@ function TopPoolsListView({
         <div className="space-y-1 pt-1 border-t border-slate-100">
           <div className="flex items-center justify-between text-xs">
             <span className="font-medium text-slate-500 truncate max-w-[130px]">
-              {t("transactions.reporting.topPools.otherPools")}
+              {t("history.reporting.topPools.otherPools")}
             </span>
             <div className="flex items-center gap-1.5 font-mono text-[11px] tabular-nums">
               <span className="text-slate-600 font-medium">{formatCurrency(otherPoolsAmount)}</span>

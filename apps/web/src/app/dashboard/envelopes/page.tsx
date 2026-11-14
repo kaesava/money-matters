@@ -10,7 +10,7 @@ import { t } from "@money-matters/i18n";
 import { trpc } from "../../../lib/trpc";
 import posthog from "../../../lib/posthog-client";
 import { EnvelopeSummaryItem, PoolTableRow } from "./types";
-import { PoolsTable } from "./components/PoolsTable";
+import { EnvelopesTable } from "./components/EnvelopesTable";
 import { EnvelopesFilterBar } from "./components/EnvelopesFilterBar";
 import { EnvelopesOverflowMenu } from "./components/EnvelopesOverflowMenu";
 import { EnvelopesPageModals } from "./components/EnvelopesPageModals";
@@ -269,7 +269,7 @@ function PoolsPageContent() {
             </span>
           </div>
         )}
-        <PoolsTable
+        <EnvelopesTable
           pools={paginatedRows}
           page={page}
           totalPages={totalPages}

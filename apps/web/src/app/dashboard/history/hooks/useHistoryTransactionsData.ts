@@ -28,21 +28,21 @@ export interface TransactionRowItem {
 export function getTransactionTypeLabel(type?: string | null): string {
   switch (type) {
     case "EXPENSE":
-      return t("transactions.types.expense");
+      return t("history.types.expense");
     case "INCOME_SPLIT":
-      return t("transactions.types.incomeTopup");
+      return t("history.types.incomeTopup");
     case "INCOME_DIRECT":
-      return t("transactions.types.incomeDirect");
+      return t("history.types.incomeDirect");
     case "TRANSFER_OUT":
-      return t("transactions.types.transferOut");
+      return t("history.types.transferOut");
     case "TRANSFER_IN":
-      return t("transactions.types.transferIn");
+      return t("history.types.transferIn");
     case "ACCOUNT_ALIGNMENT":
-      return t("transactions.types.accountAlignment");
+      return t("history.types.accountAlignment");
     case "BALANCE_ADJUSTMENT":
-      return t("transactions.types.balanceAdjustment");
+      return t("history.types.balanceAdjustment");
     case "OPENING_BALANCE":
-      return t("transactions.types.openingBalance");
+      return t("history.types.openingBalance");
     default:
       return type ? type.replace(/_/g, " ") : "Transaction";
   }
@@ -254,12 +254,12 @@ export function useHistoryTransactionsData({
     if (sortedTransactions.length === 0) return;
     const currencyLabel = currency || "AUD";
     const headers = [
-      t("transactions.exportHeaders.date"),
-      t("transactions.exportHeaders.type"),
-      t("transactions.exportHeaders.description"),
-      t("transactions.exportHeaders.envelope"),
-      t("transactions.exportHeaders.source"),
-      t("transactions.exportHeaders.amountWithCurrency", { currency: currencyLabel }),
+      t("history.exportHeaders.date"),
+      t("history.exportHeaders.type"),
+      t("history.exportHeaders.description"),
+      t("history.exportHeaders.envelope"),
+      t("history.exportHeaders.source"),
+      t("history.exportHeaders.amountWithCurrency", { currency: currencyLabel }),
     ];
     const rows = sortedTransactions.map((tx) => [
       tx.date,

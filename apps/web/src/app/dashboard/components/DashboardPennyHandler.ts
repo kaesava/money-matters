@@ -34,7 +34,7 @@ export function handlePennyPrefillNavigation(
       router.push(`/dashboard/afford-check${amountParam}`);
     }
   } else if (prefill.target === "create-bill" || prefill.target === "create-income") {
-    router.push("/dashboard/income-and-bills");
+    router.push("/dashboard/plan");
   } else if (prefill.target === "history-filter") {
     router.push("/dashboard/history");
   } else if (prefill.target === "navigate") {

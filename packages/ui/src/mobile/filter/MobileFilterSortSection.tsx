@@ -27,7 +27,7 @@ export function MobileFilterSortSection<TSort = string>({
   return (
     <View style={styles.section}>
       <View style={styles.sectionHeader}>
-        <Text style={styles.sectionTitle}>{t('transactions.sortLabel')}</Text>
+        <Text style={styles.sectionTitle}>{t('history.sortLabel')}</Text>
       </View>
       <View style={styles.chipsWrap}>
         {sortOptions.map((opt) => {

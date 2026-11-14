@@ -3,7 +3,7 @@ import { View, Text, StyleSheet } from 'react-native';
 import {
   AmountInput,
   DatePickerField,
-  MobileGoalModeToggle,
+  MobileEnvelopeModeToggle,
   DESIGN_TOKENS,
   RecurrenceFrequency,
 } from '@money-matters/ui/mobile';
@@ -50,7 +50,12 @@ export const EnvelopeGoalFields: React.FC<EnvelopeGoalFieldsProps> = ({
   return (
     <>
       {setFundingMode && (
-        <MobileGoalModeToggle value={fundingMode} onChange={setFundingMode} />
+        <MobileEnvelopeModeToggle
+          mode={fundingMode}
+          onChange={setFundingMode}
+          targetBalanceLabel={t('envelopes.modeToggle.targetBalance')}
+          recurringLabel={t('envelopes.modeToggle.recurring')}
+        />
       )}
 
       {fundingMode === 'TARGET_BALANCE' ? (

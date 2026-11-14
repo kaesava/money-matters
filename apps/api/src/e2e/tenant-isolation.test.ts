@@ -94,7 +94,7 @@ describe("E2E Core Monorepo Integration & Multi-Tenant Isolation Suite", () => {
           where: () => ({
             limit: () => Promise.resolve([
               {
-                subscriptionStatus: "FREE_TIER",
+                subscriptionStatus: "TRIAL_EXPIRED",
                 trialEndsAt: new Date(Date.now() - 86400000),
               },
             ]),

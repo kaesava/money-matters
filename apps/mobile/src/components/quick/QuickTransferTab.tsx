@@ -7,7 +7,7 @@ import {
   MobileDatePickerField,
   MobileInput,
   MobileButton,
-  MobilePoolPicker,
+  MobileEnvelopePicker,
 } from '@money-matters/ui/mobile';
 import { t } from '@money-matters/i18n';
 import { QuickPresetItem } from './useMobileQuickAction';
@@ -147,7 +147,7 @@ export function QuickTransferTab({
       />
 
       {/* Source Pool Picker */}
-      <MobilePoolPicker
+      <MobileEnvelopePicker
         label={t('drawers.quickExpense.fromPool')}
         required
         displayStyle="field"
@@ -165,7 +165,7 @@ export function QuickTransferTab({
       />
 
       {/* Destination Pool Picker */}
-      <MobilePoolPicker
+      <MobileEnvelopePicker
         label={t('drawers.quickExpense.toPoolDestination')}
         required
         displayStyle="field"

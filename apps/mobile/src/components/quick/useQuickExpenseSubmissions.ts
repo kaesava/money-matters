@@ -100,7 +100,7 @@ export function useQuickExpenseSubmissions({
         if (onIncomeSuccess) {
           onIncomeSuccess(created.firstEventId);
         } else {
-          router.push(`/(app)/income-split/${created.firstEventId}` as Href);
+          router.push(`/(app)/payday-plan/${created.firstEventId}` as Href);
         }
       }
     } catch (err) {

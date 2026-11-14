@@ -24,7 +24,7 @@ export function BarTrendChart({
     return (
       <div className="flex flex-col items-center justify-center p-6 text-center h-56">
         <p className="text-xs text-slate-400 font-medium">
-          {emptyText || t("transactions.reporting.cashFlow.empty")}
+          {emptyText || t("history.reporting.cashFlow.empty")}
         </p>
       </div>
     );
@@ -83,8 +83,8 @@ function BarPointItem({
 }: BarPointItemProps) {
   const inPct = Math.round((point.income / maxVal) * 100);
   const outPct = Math.round((point.outflow / maxVal) * 100);
-  const inTitle = `${inflowLabel || t("transactions.reporting.cashFlow.inflow")}: ${formatCurrency(point.income)}`;
-  const outTitle = `${isFiltered ? t("transactions.reporting.donut.thisFilter") : (outflowLabel || t("transactions.reporting.cashFlow.outflow"))}: ${formatCurrency(point.outflow)}`;
+  const inTitle = `${inflowLabel || t("history.reporting.cashFlow.inflow")}: ${formatCurrency(point.income)}`;
+  const outTitle = `${isFiltered ? t("history.reporting.donut.thisFilter") : (outflowLabel || t("history.reporting.cashFlow.outflow"))}: ${formatCurrency(point.outflow)}`;
 
   return (
     <div className="flex-1 flex flex-col items-center min-w-[20px] max-w-[55px]">
@@ -129,7 +129,7 @@ function ChartLegend({
       <div className="w-full mt-3 flex items-center justify-center gap-4 text-xs">
         <div className="flex items-center gap-1.5">
           <span className="w-2.5 h-2.5 rounded-xs bg-[#2563eb]" />
-          <span className="text-slate-600 font-medium">{t("transactions.reporting.donut.thisFilter")}</span>
+          <span className="text-slate-600 font-medium">{t("history.reporting.donut.thisFilter")}</span>
         </div>
       </div>
     );
@@ -139,11 +139,11 @@ function ChartLegend({
     <div className="w-full mt-3 flex items-center justify-center gap-4 text-xs">
       <div className="flex items-center gap-1.5">
         <span className="w-2.5 h-2.5 rounded-xs bg-[#22c55e]" />
-        <span className="text-slate-600 font-medium">{inflowLabel || t("transactions.reporting.cashFlow.inflow")}</span>
+        <span className="text-slate-600 font-medium">{inflowLabel || t("history.reporting.cashFlow.inflow")}</span>
       </div>
       <div className="flex items-center gap-1.5">
         <span className="w-2.5 h-2.5 rounded-xs bg-[#2563eb]" />
-        <span className="text-slate-600 font-medium">{outflowLabel || t("transactions.reporting.cashFlow.outflow")}</span>
+        <span className="text-slate-600 font-medium">{outflowLabel || t("history.reporting.cashFlow.outflow")}</span>
       </div>
     </div>
   );

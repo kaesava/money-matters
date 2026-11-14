@@ -12,7 +12,7 @@ import {
 } from "@money-matters/capability-budgeting";
 import {
   ConfirmPaydayCommand,
-  GetIncomeSplitAnalyticsQuerySchema,
+  GetPaydayPlanAnalyticsQuerySchema,
   DEFAULT_APP_FEATURE_FLAGS,
 } from "@money-matters/types";
 import { TRPCError } from '@trpc/server';
@@ -39,9 +39,9 @@ export const paydayExecutionProcedures = {
     }),
 
   previewPayday: privateTenantProcedure
-    .input(z.object({ incomeEventId: z.string().uuid(), overrideAmount: z.number().min(0).optional() }).strict())
+    .input(z.object({ incomeEventId: z.string().uuid() }).strict())
     .query(({ input, ctx }) =>
-      previewPaydayQuery(input.incomeEventId, ctx.tenantId!, ctx.appId!, ctx.db, ctx.userId!, input.overrideAmount)
+      previewPaydayQuery(input.incomeEventId, ctx.tenantId!, ctx.appId!, ctx.db, ctx.userId!)
     ),
 
   confirmPayday: privateTenantProcedure
@@ -81,8 +81,8 @@ export const paydayExecutionProcedures = {
   listAllAllocationPlans: privateTenantProcedure
     .query(({ ctx }) => listAllAllocationPlansQuery(ctx.tenantId!, ctx.appId!, ctx.userId!, ctx.db)),
 
-  getIncomeSplitAnalytics: privateTenantProcedure
-    .input(GetIncomeSplitAnalyticsQuerySchema)
+  getPaydayPlanAnalytics: privateTenantProcedure
+    .input(GetPaydayPlanAnalyticsQuerySchema)
     .query(async ({ input, ctx }) => {
       const [appRecord] = await ctx.db.select({ featureFlags: apps.featureFlags }).from(apps).where(eq(apps.id, ctx.appId!)).limit(1);
       const flags = appRecord?.featureFlags || DEFAULT_APP_FEATURE_FLAGS;

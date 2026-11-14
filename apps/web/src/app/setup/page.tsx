@@ -7,7 +7,7 @@ import { SetupIncomeStep } from "./components/SetupIncomeStep";
 import { SetupBankAccountsStep } from "./components/SetupBankAccountsStep";
 import { SetupGoalsStep } from "./components/SetupGoalsStep";
 import { SetupLifestyleStep } from "./components/SetupLifestyleStep";
-import { SetupCategoriesStep } from "./components/SetupCategoriesStep";
+import { SetupEnvelopesStep } from "./components/SetupEnvelopesStep";
 import { SetupDiscardModal } from "./components/SetupDiscardModal";
 import { PaydaySandboxModal } from "./components/PaydaySandboxModal";
 import { SetupHeaderBar } from "./components/SetupHeaderBar";
@@ -168,7 +168,7 @@ function SetupWizardContent() {
 
         {/* Review Budget Summary (Step 3 for rerun, Step 5 for initial setup) */}
         {isReviewStep && (
-          <SetupCategoriesStep
+          <SetupEnvelopesStep
             activeEveryday={state.activeEveryday}
             activeRegular={state.activeRegular}
             activeGoals={state.activeGoals}

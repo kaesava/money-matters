@@ -6,7 +6,7 @@ import Image from "next/image";
 import { t } from "@money-matters/i18n";
 import { Logo } from "@money-matters/ui/web";
 import { SidebarTrialNavItem } from "../../../components/TrialStatusBadge";
-import { TenantSwitcher } from "../../../components/TenantSwitcher";
+import { HouseholdSwitcher } from "../../../components/HouseholdSwitcher";
 import { useProductTour, TOUR_STEPS } from "../../../providers/ProductTourContext";
 
 export interface NavItem {
@@ -74,7 +74,7 @@ export function SidebarContent({
 
       {hasMultipleTenants && !sidebarCollapsed && (
         <div className="px-4 py-3 border-b border-white/10 shrink-0">
-          <TenantSwitcher />
+          <HouseholdSwitcher />
         </div>
       )}
 

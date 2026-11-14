@@ -5,7 +5,7 @@ import { t } from "@money-matters/i18n";
 import { ConfirmDialog } from "@money-matters/ui/web";
 import { QuickActionDrawer } from "../../../components/web/QuickExpenseDrawer";
 import { AffordCheckModal } from "../../../components/web/AffordCheckModal";
-import { ReconciliationModal, PoolItem } from "../../../components/ReconciliationModal";
+import { SyncBalanceModal, PoolItem } from "../../../components/SyncBalanceModal";
 
 export interface DashboardModalsProps {
   quickDrawerOpen: boolean;
@@ -93,7 +93,7 @@ export function DashboardModals({
       )}
 
       {reconcileState && (
-        <ReconciliationModal
+        <SyncBalanceModal
           isOpen={Boolean(reconcileState)}
           onClose={onCloseReconcile}
           accountName={reconcileState.accountName}

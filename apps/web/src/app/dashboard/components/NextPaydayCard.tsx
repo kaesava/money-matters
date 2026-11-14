@@ -72,14 +72,14 @@ export const NextPaydayCard: React.FC<NextPaydayCardProps> = ({
         </div>
         <div className="flex items-center gap-2.5">
           <Link
-            href="/dashboard/income-and-bills?tab=events"
+            href="/dashboard/plan?tab=events"
             className="text-xs font-bold text-blue-600 hover:text-blue-700 transition-colors"
           >
             {t('dashboard.nextPay.upcomingEventsLink')}
           </Link>
           <span className="text-gray-300 text-xs">·</span>
           <Link
-            href="/dashboard/income-and-bills?tab=matrix"
+            href="/dashboard/plan?tab=matrix"
             className="text-xs font-bold text-blue-600 hover:text-blue-700 transition-colors"
           >
             {t('dashboard.nextPay.twelveMonthPlanLink')}

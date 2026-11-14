@@ -25,9 +25,20 @@ export async function getEnvelopeBalancesMap(
       )
     );
 
-  const rows = typeof (query as any).groupBy === "function"
-    ? await (query as any).groupBy(transactionLedger.envelopeId)
-    : await (query as any);
+  type BalanceRow = {
+    envelopeId?: string | null;
+    balance?: string;
+    amount?: string;
+    flowType?: string;
+  };
+  type GroupableQuery = PromiseLike<BalanceRow[]> & {
+    groupBy?: (col: unknown) => Promise<BalanceRow[]>;
+  };
+
+  const groupableQuery = query as unknown as GroupableQuery;
+  const rows = typeof groupableQuery.groupBy === "function"
+    ? await groupableQuery.groupBy(transactionLedger.envelopeId)
+    : await groupableQuery;
 
   const balancesMap: Record<string, number> = {};
   for (const r of (rows || [])) {

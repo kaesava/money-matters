@@ -50,7 +50,7 @@ function getCachedNumberFormat(locale: string, options: Intl.NumberFormatOptions
   return fmt;
 }
 
-function getCachedDateFormat(locale: string, options: Intl.DateTimeFormatOptions): Intl.DateTimeFormat {
+export function getCachedDateFormat(locale: string, options: Intl.DateTimeFormatOptions): Intl.DateTimeFormat {
   const key = `${locale}:${JSON.stringify(options)}`;
   let fmt = dateFormatCache.get(key);
   if (!fmt) {

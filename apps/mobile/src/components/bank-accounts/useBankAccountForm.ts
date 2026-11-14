@@ -3,7 +3,7 @@ import { trpc } from '../../lib/trpc';
 import { useMobileToast, showMobileConfirm } from '@money-matters/ui/mobile';
 import { t } from '@money-matters/i18n';
 import type { BankAccountItemToEdit, SupportedBankProvider } from './bankAccountTypes';
-import type { MobileReconciliationModalProps } from '../envelopes/MobileReconciliationModal';
+import type { MobileSyncBalanceModalProps } from '../envelopes/MobileSyncBalanceModal';
 import { AccountType, getDefaultAccountName, BankProvider } from '@money-matters/types';
 
 export function useBankAccountForm(
@@ -11,7 +11,7 @@ export function useBankAccountForm(
   accountToEdit: BankAccountItemToEdit | null | undefined,
   onClose: () => void,
   onSuccess?: () => void,
-  onNeedsReconciliation?: (account: NonNullable<MobileReconciliationModalProps['account']>) => void
+  onNeedsReconciliation?: (account: NonNullable<MobileSyncBalanceModalProps['account']>) => void
 ) {
   const isEdit = Boolean(accountToEdit?.id);
   const toast = useMobileToast();

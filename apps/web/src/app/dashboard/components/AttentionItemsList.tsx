@@ -4,7 +4,7 @@ import React, { useState, useMemo } from "react";
 import Link from "next/link";
 import { ConfirmDialog, InfoTooltip } from "@money-matters/ui/web";
 import { t } from "@money-matters/i18n";
-import { MarkPaidModal } from "../income-and-bills/components/MarkPaidModal";
+import { MarkPaidModal } from "../plan/components/MarkPaidModal";
 import { TransferModal } from "../../../components/web/TransferModal";
 import { useLocale } from "../../../providers/LocaleProvider";
 
@@ -127,7 +127,7 @@ export const AttentionItemsList: React.FC<WebAttentionItemsListProps> = ({
         </div>
         {items.length > 3 && (
           <Link
-            href="/dashboard/income-and-bills?tab=EVENTS"
+            href="/dashboard/plan?tab=EVENTS"
             className="text-xs font-bold text-blue-600 hover:text-blue-700 transition-colors"
           >
             {t("common.showMore")}

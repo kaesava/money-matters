@@ -11,7 +11,7 @@ import { formatIsoDate, getMobileLocaleConfig } from '../lib/format';
 import { useSetupWizardPrepopulation } from './useSetupWizardPrepopulation';
 import { useSetupWizardCalculations } from './useSetupWizardCalculations';
 import { useSetupWizardLifestyleState } from './useSetupWizardLifestyleState';
-import { useSetupWizardAccountsState } from './useSetupWizardAccountsState';
+import { useSetupWizardBankAccountsState } from './useSetupWizardBankAccountsState';
 import { authClient } from '../lib/auth';
 import { trpc } from '../lib/trpc';
 
@@ -81,7 +81,7 @@ export function SetupWizardProvider({ children: reactChildren }: { children: Rea
   }, [userPrefQuery.data, isRerunParam, router]);
 
   const lifestyle = useSetupWizardLifestyleState();
-  const accounts = useSetupWizardAccountsState();
+  const accounts = useSetupWizardBankAccountsState();
 
   useEffect(() => {
     const tenantCountry = tenantQuery.data?.country;

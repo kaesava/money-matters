@@ -77,7 +77,7 @@ export function SubscriptionSection({ status }: SubscriptionSectionProps) {
     try {
       const origin = typeof window !== "undefined" ? window.location.origin : "";
       const res = await portalMut.mutateAsync({
-        returnUrl: `${origin}/dashboard/settings?tab=account-data&stripe_sync=true`,
+        returnUrl: `${origin}/dashboard/settings?tab=subscription&stripe_sync=true`,
       });
       if (res.url) {
         window.location.href = res.url;
@@ -89,24 +89,24 @@ export function SubscriptionSection({ status }: SubscriptionSectionProps) {
     }
   };
 
-  let planName = t("subscription.freePlan");
+  let planName = t("subscription.noActiveSubscription");
   if (status) {
     if (status.status === "SUBSCRIBED") {
       if (status.planType === "founding") {
-        planName = t("subscription.planFounding");
+        planName = t("subscription.tierFounding");
       } else if (status.planType === "annual") {
-        planName = t("subscription.planAnnual");
+        planName = t("subscription.tierAnnual");
       } else if (status.planType === "monthly") {
-        planName = t("subscription.planMonthly");
+        planName = t("subscription.tierMonthly");
       } else {
-        planName = t("subscription.planActive");
+        planName = t("subscription.tierActive");
       }
     } else if (status.status === "TRIAL_ACTIVE") {
-      planName = t("subscription.planTrial", { days: String(status.daysRemainingInTrial ?? 0) });
+      planName = t("subscription.tierTrial", { days: String(status.daysRemainingInTrial ?? 0) });
     } else if (status.status === "TRIAL_EXPIRED") {
-      planName = t("subscription.planExpired");
+      planName = t("subscription.tierExpired");
     } else if (status.status === "PAST_DUE") {
-      planName = t("subscription.planPastDue");
+      planName = t("subscription.tierPastDue");
     }
   }
 
@@ -128,7 +128,7 @@ export function SubscriptionSection({ status }: SubscriptionSectionProps) {
           <div>
             <div className="flex items-center gap-2">
               <p className="text-[11px] font-bold uppercase tracking-wider text-zinc-400">
-                {t("subscription.currentPlan")}
+                {t("subscription.currentSubscription")}
               </p>
               <button
                 type="button"

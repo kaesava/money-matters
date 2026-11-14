@@ -4,7 +4,7 @@ import { SlideOverDrawer, PoolPicker, InfoTooltip, ConfirmDialog, Button, Amount
 import { useQuickActionState } from "./quick/useQuickActionState";
 import { QuickPickBadges } from "./quick/QuickPickBadges";
 import { CrossBankTransferModal } from "./CrossBankTransferModal";
-import { MarkPaidModal } from "../../app/dashboard/income-and-bills/components/MarkPaidModal";
+import { MarkPaidModal } from "../../app/dashboard/plan/components/MarkPaidModal";
 
 import { QuickActionInitialData } from "@money-matters/types";
 

@@ -36,7 +36,7 @@ export interface ProjectionIncomeEvent {
 
 export interface ProjectionExpenseEvent {
   categoryId?: string | null;
-  poolId?: string | null;
+  envelopeId?: string | null;
   amount: number;
   dueDate: string; // YYYY-MM-DD
   status: "PENDING" | "CONFIRMED";

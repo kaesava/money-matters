@@ -52,7 +52,7 @@ export function ReportsFilterSheets({
         sections={[
           {
             id: 'flowType',
-            title: t('transactions.flowType'),
+            title: t('history.flowType'),
             options: [
               { id: 'ALL', label: t('reports.filters.allFlows') },
               { id: 'DEBIT', label: t('reports.filters.debitsOnly') },

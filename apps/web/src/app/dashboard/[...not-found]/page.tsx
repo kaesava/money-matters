@@ -30,7 +30,7 @@ export default function DashboardNotFound() {
       icon: LayoutDashboard,
     },
     {
-      href: "/dashboard/income-and-bills",
+      href: "/dashboard/plan",
       label: t("notFound.quickLinkIncomeBills"),
       icon: CalendarDays,
     },

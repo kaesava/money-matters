@@ -5,8 +5,8 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { trpc } from "../../../lib/trpc";
 import { t } from "@money-matters/i18n";
 import { Tabs, Spinner } from "@money-matters/ui/web";
-import { TransactionsTab } from "./components/TransactionsTab";
-import { PaydayAllocationsTab } from "./components/PaydayAllocationsTab";
+import { HistoryTab } from "./components/HistoryTab";
+import { PaydayPlansTab } from "./components/PaydayPlansTab";
 
 function TransactionsPageContent() {
   const router = useRouter();
@@ -30,8 +30,8 @@ function TransactionsPageContent() {
   };
 
   const tabsList = [
-    { id: "transactions", label: t("transactions.tabs.transactions") },
-    { id: "payday-allocations", label: t("transactions.tabs.paydayAllocations") },
+    { id: "transactions", label: t("history.tabs.transactions") },
+    { id: "payday-allocations", label: t("history.tabs.paydayAllocations") },
   ];
 
   return (
@@ -40,7 +40,7 @@ function TransactionsPageContent() {
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <h1 className="text-2xl font-extrabold text-[#1B2B4B]">
-            {t("transactions.title")}
+            {t("history.title")}
           </h1>
         </div>
       </div>
@@ -50,7 +50,7 @@ function TransactionsPageContent() {
 
       {/* Tab 1: Itemized Transactions Ledger */}
       {activeTab === "transactions" && (
-        <TransactionsTab
+        <HistoryTab
           pools={pools}
           bankAccounts={bankAccounts}
           poolIdParam={poolIdParam}
@@ -63,7 +63,7 @@ function TransactionsPageContent() {
 
       {/* Tab 2: Payday Waterfall Allocation History */}
       {activeTab === "payday-allocations" && (
-        <PaydayAllocationsTab
+        <PaydayPlansTab
           bankAccounts={bankAccounts}
           bankAccountIdParam={bankAccountIdParam}
           isActive={activeTab === "payday-allocations"}

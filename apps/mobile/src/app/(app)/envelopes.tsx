@@ -14,8 +14,8 @@ import { trpc } from '../../lib/trpc';
 import { authClient } from '../../lib/auth';
 import { EnvelopeFormModal } from '../../components/EnvelopeFormModal';
 import { QuickExpenseModal } from '../../components/QuickExpenseModal';
-import { PoolOverflowMenuModal } from '../../components/envelopes/PoolOverflowMenuModal';
-import { PoolGroupSection } from '../../components/envelopes/PoolGroupSection';
+import { EnvelopeOverflowMenuModal } from '../../components/envelopes/EnvelopeOverflowMenuModal';
+import { EnvelopeGroupSection } from '../../components/envelopes/EnvelopeGroupSection';
 import { EnvelopesFilterSheet } from '../../components/envelopes/EnvelopesFilterSheet';
 import {
   useEnvelopesFilter,
@@ -125,7 +125,7 @@ export default function PoolsScreen() {
           <SkeletonCard count={3} />
         ) : (
           <View style={styles.sectionsContainer}>
-            <PoolGroupSection
+            <EnvelopeGroupSection
               title={t('categories.everydayPoolsUpper')}
               pools={filteredPools.filter((p) => p.envelopeType === 'EVERYDAY')}
               isCollapsed={!!collapsedTypes['EVERYDAY']}
@@ -133,7 +133,7 @@ export default function PoolsScreen() {
               bankAccounts={bankAccounts}
               groupType="EVERYDAY"
             />
-            <PoolGroupSection
+            <EnvelopeGroupSection
               title={t('categories.billsPoolsUpper')}
               pools={filteredPools.filter((p) => p.envelopeType === 'BILL')}
               isCollapsed={!!collapsedTypes['BILL']}
@@ -145,7 +145,7 @@ export default function PoolsScreen() {
                 setPoolModalVisible(true);
               }}
             />
-            <PoolGroupSection
+            <EnvelopeGroupSection
               title={t('categories.goalsUpper')}
               pools={filteredPools.filter((p) => p.envelopeType === 'GOAL')}
               isCollapsed={!!collapsedTypes['GOAL']}
@@ -168,7 +168,7 @@ export default function PoolsScreen() {
         )}
       </ScrollView>
 
-      <PoolOverflowMenuModal
+      <EnvelopeOverflowMenuModal
         visible={overflowMenuVisible}
         onClose={() => setOverflowMenuVisible(false)}
         onQuickExpense={() => {

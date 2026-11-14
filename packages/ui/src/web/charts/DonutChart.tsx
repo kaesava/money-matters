@@ -28,7 +28,7 @@ export function DonutChart({
       <div className="flex flex-col items-center justify-center p-6 text-center h-56">
         <div className="w-16 h-16 rounded-full border-4 border-dashed border-slate-200 flex items-center justify-center mb-2" />
         <p className="text-xs text-slate-400 font-medium">
-          {emptyText || t("transactions.reporting.donut.empty")}
+          {emptyText || t("history.reporting.donut.empty")}
         </p>
       </div>
     );
@@ -101,7 +101,7 @@ function FilteredDonutView({
 
         <div className="absolute inset-0 flex flex-col items-center justify-center text-center pointer-events-none">
           <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">
-            {t("transactions.reporting.donut.thisFilter")}
+            {t("history.reporting.donut.thisFilter")}
           </span>
           <span className="text-sm font-bold font-mono tabular-nums text-slate-800">
             {formatCurrency(totalOutflow)}
@@ -112,7 +112,7 @@ function FilteredDonutView({
       <div className="w-full mt-4 flex items-center justify-center gap-4 text-xs">
         <div className="flex items-center gap-1.5">
           <span className="w-2.5 h-2.5 rounded-full bg-[#2563eb]" />
-          <span className="text-slate-600 font-medium">{t("transactions.reporting.donut.thisFilter")}</span>
+          <span className="text-slate-600 font-medium">{t("history.reporting.donut.thisFilter")}</span>
           <span className="font-mono text-slate-400">({sharePercentage}%)</span>
         </div>
       </div>
@@ -193,7 +193,7 @@ function MacroHorizonDonutView({
 
         <div className="absolute inset-0 flex flex-col items-center justify-center text-center pointer-events-none">
           <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">
-            {centerLabel || t("transactions.reporting.donut.totalOutflow")}
+            {centerLabel || t("history.reporting.donut.totalOutflow")}
           </span>
           <span className="text-sm font-bold font-mono tabular-nums text-slate-800">
             {formatCurrency(data.totalOutflow)}
@@ -204,17 +204,17 @@ function MacroHorizonDonutView({
       <div className="w-full mt-4 flex flex-wrap items-center justify-center gap-3 text-xs">
         <div className="flex items-center gap-1.5">
           <span className="w-2.5 h-2.5 rounded-full bg-[#2563eb]" />
-          <span className="text-slate-600 font-medium">{t("transactions.reporting.donut.everyday")}</span>
+          <span className="text-slate-600 font-medium">{t("history.reporting.donut.everyday")}</span>
           <span className="font-mono text-slate-400">({data.percentages.everyday}%)</span>
         </div>
         <div className="flex items-center gap-1.5">
           <span className="w-2.5 h-2.5 rounded-full bg-[#1B2B4B]" />
-          <span className="text-slate-600 font-medium">{t("transactions.reporting.donut.bills")}</span>
+          <span className="text-slate-600 font-medium">{t("history.reporting.donut.bills")}</span>
           <span className="font-mono text-slate-400">({data.percentages.bills}%)</span>
         </div>
         <div className="flex items-center gap-1.5">
           <span className="w-2.5 h-2.5 rounded-full bg-[#22c55e]" />
-          <span className="text-slate-600 font-medium">{t("transactions.reporting.donut.goals")}</span>
+          <span className="text-slate-600 font-medium">{t("history.reporting.donut.goals")}</span>
           <span className="font-mono text-slate-400">({data.percentages.goals}%)</span>
         </div>
       </div>

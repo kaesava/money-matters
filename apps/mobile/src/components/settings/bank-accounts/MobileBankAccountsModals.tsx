@@ -1,10 +1,10 @@
 import React from 'react';
-import { MobileFilterSheet, MobilePoolPicker } from '@money-matters/ui/mobile';
+import { MobileFilterSheet, MobileEnvelopePicker } from '@money-matters/ui/mobile';
 import { t } from '@money-matters/i18n';
 import { NotesFeedModal } from '@money-matters/capability-file-notes/mobile';
 import { BankAccountFormModal, BankAccountItemToEdit } from '../../BankAccountFormModal';
-import { MobileReconciliationModal, MobileReconciliationModalProps } from '../../envelopes/MobileReconciliationModal';
-import { LinkedPoolsModalSheet, LinkedPoolItem } from '../../bank-accounts/LinkedPoolsModalSheet';
+import { MobileSyncBalanceModal, MobileSyncBalanceModalProps } from '../../envelopes/MobileSyncBalanceModal';
+import { LinkedEnvelopesModalSheet, LinkedPoolItem } from '../../bank-accounts/LinkedEnvelopesModalSheet';
 import { QuickExpenseModal } from '../../QuickExpenseModal';
 
 interface MobileBankAccountsModalsProps {
@@ -22,8 +22,8 @@ interface MobileBankAccountsModalsProps {
   formModalVisible: boolean;
   accountToEdit: BankAccountItemToEdit | null;
   onCloseFormModal: () => void;
-  reconcileAccount: MobileReconciliationModalProps['account'] | null;
-  setReconcileAccount: (acc: MobileReconciliationModalProps['account'] | null) => void;
+  reconcileAccount: MobileSyncBalanceModalProps['account'] | null;
+  setReconcileAccount: (acc: MobileSyncBalanceModalProps['account'] | null) => void;
   poolsSheetAccount: { name: string; pools: LinkedPoolItem[] } | null;
   setPoolsSheetAccount: (val: { name: string; pools: LinkedPoolItem[] } | null) => void;
   transferModalVisible: boolean;
@@ -82,7 +82,7 @@ export function MobileBankAccountsModals({
             id: 'pool',
             title: t('categories.title'),
             renderCustom: () => (
-              <MobilePoolPicker
+              <MobileEnvelopePicker
                 pools={allPools.map((p) => ({
                   id: p.id,
                   name: p.name,
@@ -107,7 +107,7 @@ export function MobileBankAccountsModals({
         onNeedsReconciliation={(accToReconcile) => setReconcileAccount(accToReconcile)}
       />
 
-      <MobileReconciliationModal
+      <MobileSyncBalanceModal
         visible={!!reconcileAccount}
         account={reconcileAccount}
         onClose={() => setReconcileAccount(null)}
@@ -119,7 +119,7 @@ export function MobileBankAccountsModals({
       />
 
       {poolsSheetAccount && (
-        <LinkedPoolsModalSheet
+        <LinkedEnvelopesModalSheet
           visible={!!poolsSheetAccount}
           onClose={() => setPoolsSheetAccount(null)}
           accountName={poolsSheetAccount.name}

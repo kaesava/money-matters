@@ -144,7 +144,7 @@ export default function UpgradePage() {
                 <div className="flex flex-col gap-6">
                   <div className="flex flex-col gap-1">
                     <span className="text-xs font-extrabold uppercase tracking-wider text-[#2563eb]">
-                      {t("subscription.householdPlanName")}
+                      {t("subscription.householdTierName")}
                     </span>
                   </div>
 

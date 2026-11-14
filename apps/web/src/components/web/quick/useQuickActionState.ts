@@ -293,7 +293,7 @@ export function useQuickActionState(
           onSuccess: (res) => {
             handleDone();
             if (!skipSplit && res?.firstEventId) {
-              router.push(`/dashboard/income-split?id=${res.firstEventId}&returnTo=/dashboard`);
+              router.push(`/dashboard/payday-plan?id=${res.firstEventId}&returnTo=/dashboard`);
             }
           },
         }

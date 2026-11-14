@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { BillingCycleSchema, SubscriptionTierSchema } from "./subscription.types.js";
 
 export const CreateTenantCommand = z.object({
   name: z.string().min(1),
@@ -177,7 +178,7 @@ export const MoveMoneyCommand = z.object({
   idempotencyKey: z.string().optional(),
 }).strict().superRefine((data, ctx) => {
   if (data.targetDate) {
-    const today = new Intl.DateTimeFormat("en-CA", { timeZone: "Australia/Sydney" }).format(new Date());
+    const today = new Date(Date.now() - 12 * 60 * 60 * 1000).toISOString().slice(0, 10);
     if (data.targetDate < today) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
@@ -273,7 +274,9 @@ export const WaterfallExecutionPayload = z.object({
 
 export const CreateCheckoutSessionCommand = z.object({
   priceId: z.string().min(1).optional(),
-  planType: z.enum(["monthly", "annual", "founding"]).optional(),
+  planType: BillingCycleSchema.optional(),
+  billingCycle: BillingCycleSchema.optional(),
+  tier: SubscriptionTierSchema.optional(),
   successUrl: z.string().url(),
   cancelUrl: z.string().url(),
 }).strict();

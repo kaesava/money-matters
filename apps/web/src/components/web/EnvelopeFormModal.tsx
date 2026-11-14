@@ -203,7 +203,7 @@ export function EnvelopeFormModal({
         isEdit
           ? (categoryToEdit?.name || "")
           : initialMode === "BILL_SCHEDULE"
-            ? t("incomeBillsTabs.addBillSchedule")
+            ? t("planTabs.addBillSchedule")
             : t("categories.createEnvelope")
       }
       maxWidth="max-w-lg"

@@ -5,8 +5,7 @@ import {
   GenericSelectField,
   DatePickerField,
   AmountField,
-  GoalModeToggle,
-  BillModeToggle,
+  EnvelopeModeToggle,
 } from '@money-matters/ui/web';
 import { t } from '@money-matters/i18n';
 import { EnvelopeRecurrenceFields } from './EnvelopeRecurrenceFields';
@@ -159,9 +158,11 @@ export function EnvelopeFormFields({
       {isBill && (
         <div className="space-y-3">
           {initialMode !== 'BILL_SCHEDULE' && (
-            <BillModeToggle
-              value={effectiveFundingMode}
-              onChange={onFundingModeChange}
+            <EnvelopeModeToggle
+              mode={effectiveFundingMode}
+              onChange={(m) => onFundingModeChange(m)}
+              targetBalanceLabel={t("envelopes.modeToggle.targetBalance")}
+              recurringLabel={t("envelopes.modeToggle.recurring")}
             />
           )}
 
@@ -232,7 +233,12 @@ export function EnvelopeFormFields({
 
       {type === 'GOAL' && (
         <>
-          <GoalModeToggle value={effectiveFundingMode} onChange={onFundingModeChange} />
+          <EnvelopeModeToggle
+            mode={effectiveFundingMode}
+            onChange={onFundingModeChange}
+            targetBalanceLabel={t("envelopes.modeToggle.targetBalance")}
+            recurringLabel={t("envelopes.modeToggle.recurring")}
+          />
 
           {effectiveFundingMode === 'TARGET_BALANCE' ? (
             <div className="space-y-2">

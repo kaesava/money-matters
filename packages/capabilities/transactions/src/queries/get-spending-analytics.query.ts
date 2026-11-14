@@ -13,7 +13,7 @@ import {
   initializeBuckets,
   resolvePointKey,
   extractTopPayees,
-} from "./spending-analytics-buckets";
+} from "./spending-analytics-envelopes";
 
 export interface AnalyticsFilterParams {
   timeframe: SpendingTimeframe;

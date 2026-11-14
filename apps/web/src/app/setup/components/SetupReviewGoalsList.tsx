@@ -74,12 +74,12 @@ export function SetupReviewGoalsList({
             const targetAmt = userGoal?.targetAmount ?? cat.monthlyAud;
             displayMetric = userGoal?.dueDate
               ? t("setup.reviewSummary.targetWithDateMetric", {
-                  amount: fmt(targetAmt),
+                  target: fmt(targetAmt),
                   date: fmtDateMedium(userGoal.dueDate),
                   monthly: fmt(cat.monthlyAud),
                 })
               : t("setup.reviewSummary.targetNoDateMetric", {
-                  amount: fmt(targetAmt),
+                  target: fmt(targetAmt),
                   monthly: fmt(cat.monthlyAud),
                 });
           }

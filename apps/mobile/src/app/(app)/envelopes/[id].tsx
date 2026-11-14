@@ -8,9 +8,9 @@ import { authClient } from '../../../lib/auth';
 import { EnvelopeFormModal } from '../../../components/EnvelopeFormModal';
 import { QuickExpenseModal, QuickActionInitialData } from '../../../components/QuickExpenseModal';
 import { MarkPaidModal, MarkPaidEvent } from '../../../components/MarkPaidModal';
-import { PoolSummaryCard } from '../../../components/envelopes/PoolSummaryCard';
-import { PoolUpcomingSection } from '../../../components/envelopes/PoolUpcomingSection';
-import { PoolHistorySection } from '../../../components/envelopes/PoolHistorySection';
+import { EnvelopeSummaryCard } from '../../../components/envelopes/EnvelopeSummaryCard';
+import { EnvelopeUpcomingSection } from '../../../components/envelopes/EnvelopeUpcomingSection';
+import { EnvelopeHistorySection } from '../../../components/envelopes/EnvelopeHistorySection';
 import { useAppFeatures } from '../../../context/useAppFeatures';
 import { NotesFeedModal } from '@money-matters/capability-file-notes/mobile';
 
@@ -68,7 +68,7 @@ export default function PoolDetailScreen() {
   return (
     <MobileScreenWrapper title={pool.name} user={session?.user} showBack onBackPress={handleBack}>
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-        <PoolSummaryCard
+        <EnvelopeSummaryCard
           pool={pool}
           bankAccountName={bankAccount?.name}
           onEdit={() => setPoolModalVisible(true)}
@@ -83,7 +83,7 @@ export default function PoolDetailScreen() {
           }
         />
 
-        <PoolUpcomingSection
+        <EnvelopeUpcomingSection
           poolId={pool.id}
           upcomingExpenses={upcomingExpenses}
           expanded={upcomingExpanded}
@@ -99,7 +99,7 @@ export default function PoolDetailScreen() {
           }
         />
 
-        <PoolHistorySection
+        <EnvelopeHistorySection
           poolId={pool.id}
           transactions={txLedgerQuery.data ?? []}
           expanded={historyExpanded}

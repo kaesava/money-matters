@@ -5,6 +5,8 @@
  * and timezone resolution (AEST/AEDT) for scheduled notification crons.
  */
 
+import { getCachedDateFormat } from './formatters.js';
+
 /** Known Australian national and state public holiday calendar dates (ISO YYYY-MM-DD). */
 const AU_NATIONAL_HOLIDAYS = new Set<string>([
   "2026-01-01", // New Year's Day
@@ -22,11 +24,11 @@ const AU_NATIONAL_HOLIDAYS = new Set<string>([
 ]);
 
 export function todayInZone(timeZone: string = 'UTC', now: Date = new Date()): string {
-  return new Intl.DateTimeFormat('en-CA', { timeZone }).format(now);
+  return getCachedDateFormat('en-CA', { timeZone }).format(now);
 }
 
 export function getLocalHourInZone(timeZone: string = 'UTC', now: Date = new Date()): number {
-  const hourStr = new Intl.DateTimeFormat('en-US', {
+  const hourStr = getCachedDateFormat('en-US', {
     timeZone,
     hour: 'numeric',
     hour12: false,
@@ -45,7 +47,7 @@ export function formatInstantInZone(
   timeZone: string = 'Australia/Sydney',
   options?: Intl.DateTimeFormatOptions
 ): string {
-  return new Intl.DateTimeFormat('en-AU', { timeZone, ...options }).format(instant);
+  return getCachedDateFormat('en-AU', { timeZone, ...options }).format(instant);
 }
 
 export function getAestIsoDate(date: Date = new Date()): string {

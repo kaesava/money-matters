@@ -3,7 +3,7 @@ import { useRouter, type Href } from 'expo-router';
 import type { AssistantResult } from '@money-matters/types';
 import { QuickActionType, QuickActionInitialData } from '../QuickExpenseModal';
 import { MarkPaidEvent } from '../MarkPaidModal';
-import { MobileReconciliationModalProps } from '../envelopes/MobileReconciliationModal';
+import { MobileSyncBalanceModalProps } from '../envelopes/MobileSyncBalanceModal';
 import { useAppFeatures } from '../../context/useAppFeatures';
 
 interface PoolItem {
@@ -37,7 +37,7 @@ export function useHomeModals(
   const [affordModalAmount, setAffordModalAmount] = useState<string | undefined>(undefined);
   const [askSheetVisible, setAskSheetVisible] = useState(false);
   const [markPaidEvent, setMarkPaidEvent] = useState<MarkPaidEvent | null>(null);
-  const [reconcileAccount, setReconcileAccount] = useState<MobileReconciliationModalProps['account'] | null>(null);
+  const [reconcileAccount, setReconcileAccount] = useState<MobileSyncBalanceModalProps['account'] | null>(null);
 
   const openQuickModal = useCallback((type: QuickActionType) => {
     setQuickModalType(type);
@@ -106,16 +106,16 @@ export function useHomeModals(
           setAffordModalVisible(true);
         }
       } else if (prefill.target === 'create-bill' || prefill.target === 'create-income') {
-        router.push('/(app)/paychecks' as Href);
+        router.push('/(app)/plan' as Href);
       } else if (prefill.target === 'history-filter') {
-        router.push('/(app)/transactions' as Href);
+        router.push('/(app)/history' as Href);
       } else if (prefill.target === 'navigate') {
         const screen = String(prefill.params?.targetScreen || prefill.params?.screen || '');
-        if (screen === 'income-and-bills') router.push('/(app)/paychecks' as Href);
+        if (screen === 'income-and-bills') router.push('/(app)/plan' as Href);
         else if (screen === 'envelopes') router.push('/(app)/envelopes' as Href);
         else if (screen === 'bank-accounts') router.push('/(app)/settings' as Href);
         else if (screen === 'settings') router.push('/(app)/settings' as Href);
-        else if (screen === 'history') router.push('/(app)/transactions' as Href);
+        else if (screen === 'history') router.push('/(app)/history' as Href);
       }
     },
     [router, hasSimulation]

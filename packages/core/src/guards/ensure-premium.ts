@@ -2,7 +2,7 @@ import { DbOrTx, tenants } from "@money-matters/db";
 import { eq } from "drizzle-orm";
 
 export interface SubscriptionStatusInfo {
-  status: "TRIAL" | "ACTIVE" | "PAST_DUE" | "CANCELED" | "FREE_TIER" | "DEACTIVATED";
+  status: "TRIAL_ACTIVE" | "TRIAL_EXPIRED" | "SUBSCRIBED" | "PAST_DUE" | "DEACTIVATED";
   isTrialExpired: boolean;
   isDeactivated: boolean;
 }
@@ -29,9 +29,9 @@ export async function ensurePremiumAccess(
   const now = new Date();
   const trialExpired = tenant.trialEndsAt ? new Date(tenant.trialEndsAt) < now : false;
   const isDeactivated = tenant.subscriptionStatus === "DEACTIVATED";
-  const isFreeTier = tenant.subscriptionStatus === "FREE_TIER" || (tenant.subscriptionStatus === "TRIAL" && trialExpired);
+  const isExpired = tenant.subscriptionStatus === "TRIAL_EXPIRED" || (tenant.subscriptionStatus === "TRIAL_ACTIVE" && trialExpired);
 
-  if (isFreeTier || isDeactivated) {
+  if (isExpired || isDeactivated) {
     throw new Error(`${featureName} requires an active subscription or unexpired 60-day trial.`);
   }
 }

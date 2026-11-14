@@ -77,8 +77,6 @@ export { RecordFilterBadge } from './RecordFilterBadge';
 export type { RecordFilterBadgeProps } from './RecordFilterBadge';
 export { FilterPill } from './FilterPill';
 export type { FilterPillProps } from './FilterPill';
-export { MobilePoolPicker } from './MobilePoolPicker';
-export type { MobilePoolPickerProps, MobilePoolOption } from './MobilePoolPicker';
 export { MobileEnvelopePicker } from './MobileEnvelopePicker';
 export type { MobileEnvelopePickerProps, MobileEnvelopeOption } from './MobileEnvelopePicker';
 
@@ -114,13 +112,11 @@ export type {
   MobileActivityItem,
 } from './MobileEnvelopeDetailSheet';
 
-export { MobileMatrixFilterBar } from './MobileMatrixFilterBar';
-export type { MobileMatrixFilterBarProps } from './MobileMatrixFilterBar';
+export { MobileHorizonFilterBar } from './MobileHorizonFilterBar';
+export type { MobileHorizonFilterBarProps } from './MobileHorizonFilterBar';
 
-export { MobileGoalModeToggle, MobileGoalModeToggle as GoalModeToggle } from './GoalModeToggle';
-export type { MobileGoalModeToggleProps, MobileGoalModeToggleProps as GoalModeToggleProps } from './GoalModeToggle';
-export { MobileBillModeToggle, MobileBillModeToggle as BillModeToggle } from './BillModeToggle';
-export type { MobileBillModeToggleProps, MobileBillModeToggleProps as BillModeToggleProps } from './BillModeToggle';
+export { MobileEnvelopeModeToggle } from './EnvelopeModeToggle';
+export type { MobileEnvelopeModeToggleProps } from './EnvelopeModeToggle';
 
 export { MobileProductTourSheet } from './MobileProductTourSheet';
 export type { MobileProductTourSheetProps, MobileTourStepConfig } from './MobileProductTourSheet';

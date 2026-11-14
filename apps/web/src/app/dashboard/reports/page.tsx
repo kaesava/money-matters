@@ -78,7 +78,7 @@ function ReportsPageContent() {
     { enabled: hasReports && activeTab === "spending" }
   );
 
-  const incomeSplitAnalyticsQuery = trpc.getIncomeSplitAnalytics.useQuery(
+  const incomeSplitAnalyticsQuery = trpc.getPaydayPlanAnalytics.useQuery(
     {
       timeframe: planTimeframe,
       bankAccountId: planBank !== "ALL" ? planBank : undefined,
@@ -89,20 +89,20 @@ function ReportsPageContent() {
 
   const incomeSplitLabels = useMemo(
     () => ({
-      overviewTitle: t("transactions.reporting.incomeSplits.overviewTitle"),
-      overviewSubtitle: t("transactions.reporting.incomeSplits.overviewSubtitle"),
-      filteredOverviewTitle: t("transactions.reporting.incomeSplits.filteredOverviewTitle"),
-      filteredOverviewSubtitle: t("transactions.reporting.incomeSplits.filteredOverviewSubtitle"),
-      donutTitle: t("transactions.reporting.incomeSplits.donutTitle"),
-      filteredDonutTitle: t("transactions.reporting.incomeSplits.filteredDonutTitle"),
-      cashFlowTitle: t("transactions.reporting.incomeSplits.cashFlowTitle"),
-      filteredCashFlowTitle: t("transactions.reporting.incomeSplits.filteredCashFlowTitle"),
-      topPoolsTitle: t("transactions.reporting.incomeSplits.topPoolsTitle"),
-      filteredTopPoolsTitle: t("transactions.reporting.incomeSplits.filteredTopPoolsTitle"),
-      centerLabel: t("transactions.reporting.incomeSplits.totalAllocated"),
-      inflowLegend: t("transactions.reporting.incomeSplits.inflow"),
-      outflowLegend: t("transactions.reporting.incomeSplits.sweepOutflow"),
-      emptyText: t("transactions.reporting.incomeSplits.empty"),
+      overviewTitle: t("history.reporting.incomeSplits.overviewTitle"),
+      overviewSubtitle: t("history.reporting.incomeSplits.overviewSubtitle"),
+      filteredOverviewTitle: t("history.reporting.incomeSplits.filteredOverviewTitle"),
+      filteredOverviewSubtitle: t("history.reporting.incomeSplits.filteredOverviewSubtitle"),
+      donutTitle: t("history.reporting.incomeSplits.donutTitle"),
+      filteredDonutTitle: t("history.reporting.incomeSplits.filteredDonutTitle"),
+      cashFlowTitle: t("history.reporting.incomeSplits.cashFlowTitle"),
+      filteredCashFlowTitle: t("history.reporting.incomeSplits.filteredCashFlowTitle"),
+      topPoolsTitle: t("history.reporting.incomeSplits.topPoolsTitle"),
+      filteredTopPoolsTitle: t("history.reporting.incomeSplits.filteredTopPoolsTitle"),
+      centerLabel: t("history.reporting.incomeSplits.totalAllocated"),
+      inflowLegend: t("history.reporting.incomeSplits.inflow"),
+      outflowLegend: t("history.reporting.incomeSplits.sweepOutflow"),
+      emptyText: t("history.reporting.incomeSplits.empty"),
     }),
     []
   );
@@ -200,12 +200,12 @@ function ReportsPageContent() {
                     }`}
                   >
                     {tType === "ALL"
-                      ? t("transactions.filterAll")
+                      ? t("history.filterAll")
                       : tType === "DEBIT"
-                      ? t("transactions.filterDebit")
+                      ? t("history.filterDebit")
                       : tType === "CREDIT"
-                      ? t("transactions.filterCredit")
-                      : t("transactions.filterTransfer")}
+                      ? t("history.filterCredit")
+                      : t("history.filterTransfer")}
                   </button>
                 ))}
               </div>

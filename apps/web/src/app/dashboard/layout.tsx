@@ -84,14 +84,14 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     }
   }, [session?.user, hasTenant, tenantStatusQuery.data?.tenantId, isSubLoading, subStatus, burstUpcomingEvents, utils]);
 
-  // Expired Trial Guard: redirect to /dashboard/settings?tab=account-data when trial has ended
+  // Expired Trial Guard: redirect to /dashboard/settings?tab=subscription when trial has ended
   useEffect(() => {
     if (!isSubLoading && subStatus?.isTrialExpired) {
       const isAlreadyOnAccountData =
         pathname === "/dashboard/settings" &&
         (typeof window !== "undefined" && new URLSearchParams(window.location.search).get("tab") === "account-data");
       if (!isAlreadyOnAccountData) {
-        router.replace("/dashboard/settings?tab=account-data");
+        router.replace("/dashboard/settings?tab=subscription");
       }
     }
   }, [isSubLoading, subStatus, pathname, router]);

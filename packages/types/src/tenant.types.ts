@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { SubscriptionStatusSchema } from "./subscription.types.js";
 
 /**
  * Base audit schema inherited by all tenant-scoped database models.
@@ -16,17 +17,8 @@ export const BaseSchema = z.object({
 }).strict();
 
 /**
- * Subscription status lifecycle state machine.
+ * Subscription status lifecycle state machine (canonical schema in subscription.types.ts).
  */
-export const SubscriptionStatus = z.enum([
-  "TRIAL_ACTIVE",
-  "TRIAL_GRACE",
-  "TRIAL_EXPIRED",
-  "SUBSCRIBED",
-  "PAST_DUE",
-  "DEACTIVATED",
-]);
-export type SubscriptionStatus = z.infer<typeof SubscriptionStatus>;
 
 /**
  * Schema validating Tenant organisation details including fiscal year parameters and subscription lifecycle.
@@ -37,7 +29,7 @@ export const TenantSchema = BaseSchema.extend({
   currency: z.string().length(3).default("AUD"),
   timezone: z.string().default("Australia/Sydney"),
   premiumEnabled: z.boolean().default(false),
-  subscriptionStatus: SubscriptionStatus.default("TRIAL_ACTIVE"),
+  subscriptionStatus: SubscriptionStatusSchema.default("TRIAL_ACTIVE"),
   trialStartedAt: z.date().nullable().default(null),
   trialEndsAt: z.date().nullable().default(null),
   stripeCustomerId: z.string().nullable().default(null),
@@ -53,7 +45,7 @@ export type TenantType = z.infer<typeof TenantSchema>;
  * DTO summarizing tenant subscription status and trial lifecycle flags.
  */
 export const SubscriptionStatusDto = z.object({
-  status: SubscriptionStatus,
+  status: SubscriptionStatusSchema,
   trialEndsAt: z.date().nullable(),
   subscriptionEndsAt: z.date().nullable(),
   gracePeriodEndsAt: z.date().nullable().optional(),

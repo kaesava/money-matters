@@ -66,7 +66,7 @@ export async function handleInvoicePaymentSucceeded(
     await sendNotificationEmail(
       customerEmail,
       "Your Money Matters Subscription Receipt",
-      `Thank you for your payment of ${formattedAmount} for Money Matters Household.\n\nYour subscription is active until ${currentPeriodEnd.toLocaleDateString("en-AU")}.\n\nYou can view and download your invoice receipt here:\n${invoice.hosted_invoice_url || "https://moneymatters.kaesava.au/dashboard/settings?tab=account-data"}\n\nIf you have any questions, contact our Australian support team at info@moneymatters.kaesava.au.`
+      `Thank you for your payment of ${formattedAmount} for Money Matters Household.\n\nYour subscription is active until ${currentPeriodEnd.toLocaleDateString("en-AU")}.\n\nYou can view and download your invoice receipt here:\n${invoice.hosted_invoice_url || "https://moneymatters.kaesava.au/dashboard/settings?tab=subscription"}\n\nIf you have any questions, contact our Australian support team at info@moneymatters.kaesava.au.`
     ).catch(() => {});
   }
 }

@@ -26,7 +26,7 @@ export function MobileBarTrendChart({
     return (
       <View style={styles.emptyContainer}>
         <Text style={styles.emptyText}>
-          {emptyText || t('transactions.reporting.cashFlow.empty')}
+          {emptyText || t('history.reporting.cashFlow.empty')}
         </Text>
       </View>
     );
@@ -126,7 +126,7 @@ function MobileChartLegend({
       <View style={styles.legend}>
         <View style={styles.legendItem}>
           <View style={[styles.dot, { backgroundColor: DESIGN_TOKENS.colors.primary }]} />
-          <Text style={styles.legendText}>{t('transactions.reporting.donut.thisFilter')}</Text>
+          <Text style={styles.legendText}>{t('history.reporting.donut.thisFilter')}</Text>
         </View>
       </View>
     );
@@ -136,11 +136,11 @@ function MobileChartLegend({
     <View style={styles.legend}>
       <View style={styles.legendItem}>
         <View style={[styles.dot, { backgroundColor: DESIGN_TOKENS.colors.success }]} />
-        <Text style={styles.legendText}>{inflowLabel || t('transactions.reporting.cashFlow.inflow')}</Text>
+        <Text style={styles.legendText}>{inflowLabel || t('history.reporting.cashFlow.inflow')}</Text>
       </View>
       <View style={styles.legendItem}>
         <View style={[styles.dot, { backgroundColor: DESIGN_TOKENS.colors.primary }]} />
-        <Text style={styles.legendText}>{outflowLabel || t('transactions.reporting.cashFlow.outflow')}</Text>
+        <Text style={styles.legendText}>{outflowLabel || t('history.reporting.cashFlow.outflow')}</Text>
       </View>
     </View>
   );

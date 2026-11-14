@@ -6,9 +6,10 @@ interface SetupDiscardModalProps {
   isOpen: boolean;
   onClose: () => void;
   onConfirm: () => void;
+  isLoading?: boolean;
 }
 
-export function SetupDiscardModal({ isOpen, onClose, onConfirm }: SetupDiscardModalProps) {
+export function SetupDiscardModal({ isOpen, onClose, onConfirm, isLoading = false }: SetupDiscardModalProps) {
   return (
     <ConfirmDialog
       isOpen={isOpen}
@@ -19,6 +20,7 @@ export function SetupDiscardModal({ isOpen, onClose, onConfirm }: SetupDiscardMo
       confirmLabel={t("common.discard")}
       cancelLabel={t("common.cancel")}
       variant="danger"
+      isLoading={isLoading}
     />
   );
 }

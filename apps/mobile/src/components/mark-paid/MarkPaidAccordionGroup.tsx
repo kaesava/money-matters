@@ -29,10 +29,10 @@ export function MarkPaidAccordionGroup({
 }: MarkPaidAccordionGroupProps) {
   const typeLabel =
     typeKey === 'BILL'
-      ? t('incomeBillsTabs.bills')
+      ? t('planTabs.bills')
       : typeKey === 'EVERYDAY'
-        ? t('incomeBillsTabs.everyday')
-        : t('incomeBillsTabs.goals');
+        ? t('planTabs.everyday')
+        : t('planTabs.goals');
 
   return (
     <View style={styles.accordionGroup}>
@@ -71,12 +71,12 @@ export function MarkPaidAccordionGroup({
                     <Text style={styles.poolItemName}>{pool.name}</Text>
                     {pool.isSurplusTarget && (
                       <View style={styles.surplusBadge}>
-                        <Text style={styles.surplusBadgeText}>{t('incomeBillsTabs.surplus')}</Text>
+                        <Text style={styles.surplusBadgeText}>{t('planTabs.surplus')}</Text>
                       </View>
                     )}
                   </View>
                   <Text style={styles.poolItemBal}>
-                    {t('incomeBillsTabs.available', { amount: formatMobileCurrency(b) })}
+                    {t('planTabs.available', { amount: formatMobileCurrency(b) })}
                   </Text>
                 </View>
 
@@ -100,7 +100,7 @@ export function MarkPaidAccordionGroup({
                     style={styles.maxBtn}
                     activeOpacity={0.7}
                   >
-                    <Text style={styles.maxBtnText}>{t('incomeBillsTabs.max')}</Text>
+                    <Text style={styles.maxBtnText}>{t('planTabs.max')}</Text>
                   </TouchableOpacity>
                 </View>
               </View>

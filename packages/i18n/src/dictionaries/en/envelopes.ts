@@ -1,5 +1,10 @@
 export const envelopes = {
   "envelopes": {
+    "modeToggle": {
+      "label": "Envelope Mode",
+      "targetBalance": "Target Balance",
+      "recurring": "Recurring"
+    },
     "everyday": {
       "title": "Everyday",
       "description": "Spend freely. We tell you what should be in your Everyday account — no receipts, no tracking."

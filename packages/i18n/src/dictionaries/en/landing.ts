@@ -81,7 +81,7 @@ export const landing = {
     "simTransferSubtitle": "Simulate moving funds between envelopes in your payday plan:",
     "affordAmountLabel": "Purchase Amount to Test",
     "affordSimSubtitle": "Simulate a purchase against your safe Everyday balance ({currencySymbol}{amount}).",
-    "affordCategoryLabel": "Spending Category",
+    "affordEnvelopeTypeLabel": "Envelope Type",
     "affordEverydayOption": "Everyday Living (Dining, Shopping, Tech)",
     "affordGoalOption": "Goal / Big Ticket (Travel, Furniture)",
     "affordTestBtn": "Run Verdict Simulation",

@@ -322,7 +322,7 @@ export function BankAccountTable({
                             <span className={`text-[9px] font-black px-1.5 py-0.5 rounded-md ${
                               isEveryday ? "bg-emerald-50 text-emerald-700" : isBill ? "bg-blue-50 text-[#2563eb]" : "bg-indigo-50 text-indigo-700"
                             }`}>
-                              {isEveryday ? t("incomeBillsTabs.everyday") : isBill ? t("incomeBillsTabs.bills") : t("incomeBillsTabs.goals")}
+                              {isEveryday ? t("planTabs.everyday") : isBill ? t("planTabs.bills") : t("planTabs.goals")}
                             </span>
                           );
                         })()}

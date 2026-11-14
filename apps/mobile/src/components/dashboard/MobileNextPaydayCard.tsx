@@ -96,7 +96,7 @@ export function MobileNextPaydayCard({
 
         <View style={styles.headerLinksWrap}>
           <TouchableOpacity
-            onPress={() => router.push('/(app)/paychecks' as Href)}
+            onPress={() => router.push('/(app)/plan' as Href)}
             style={styles.showMoreBtn}
             activeOpacity={0.7}
           >
@@ -104,7 +104,7 @@ export function MobileNextPaydayCard({
           </TouchableOpacity>
           <Text style={styles.linkSeparator}>·</Text>
           <TouchableOpacity
-            onPress={() => router.push('/(app)/income-split' as Href)}
+            onPress={() => router.push('/(app)/payday-plan' as Href)}
             style={styles.showMoreBtn}
             activeOpacity={0.7}
           >

@@ -132,7 +132,7 @@ export const bankAccountsProcedures = {
       });
     }),
 
-  reconcileBankBalance: privateTenantProcedure
+  syncBankBalance: privateTenantProcedure
     .input(
       z.object({
         accountId: z.string().uuid(),

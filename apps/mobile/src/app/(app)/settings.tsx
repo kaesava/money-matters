@@ -11,12 +11,12 @@ import * as SecureStore from 'expo-secure-store';
 import { AppScreenWrapper } from '../../components/AppScreenWrapper';
 import { MobileProfileSection } from '../../components/settings/MobileProfileSection';
 import { HouseholdDetailsSection } from '../../components/settings/HouseholdDetailsSection';
-import { HouseholdPartnerInviteSection } from '../../components/settings/HouseholdPartnerInviteSection';
-import { SubscriptionPlanSection } from '../../components/settings/SubscriptionPlanSection';
+import { HouseholdMemberInviteSection } from '../../components/settings/HouseholdMemberInviteSection';
+import { MobileSubscriptionSection } from '../../components/settings/MobileSubscriptionSection';
 import { PrivacyGovernanceSection } from '../../components/settings/PrivacyGovernanceSection';
 import { HouseholdDangerZoneSection } from '../../components/settings/HouseholdDangerZoneSection';
 import { FeedbackFormModal } from '../../components/FeedbackFormModal';
-import { MobileTenantSwitcherModal } from '../../components/settings/MobileTenantSwitcherModal';
+import { MobileHouseholdSwitcherModal } from '../../components/settings/MobileHouseholdSwitcherModal';
 import { MobileBankAccountsSection } from '../../components/settings/MobileBankAccountsSection';
 import { MobileArchivedSection } from '../../components/settings/MobileArchivedSection';
 import { MobileAllocationStrategySection } from '../../components/settings/MobileAllocationStrategySection';
@@ -158,7 +158,7 @@ export default function SettingsScreen() {
 
               <MobileAllocationStrategySection />
 
-              <HouseholdPartnerInviteSection />
+              <HouseholdMemberInviteSection />
 
               <HouseholdDangerZoneSection />
             </View>
@@ -181,7 +181,7 @@ export default function SettingsScreen() {
           {/* TAB 5: DATA & SUBSCRIPTION */}
           {activeTab === 'account-data' && (
             <View style={styles.tabSection}>
-              <SubscriptionPlanSection />
+              <MobileSubscriptionSection />
 
               <View style={styles.recalibrateCard}>
                 <View style={styles.recalibrateHeader}>
@@ -246,7 +246,7 @@ export default function SettingsScreen() {
       </AppScreenWrapper>
 
       {/* Household Switcher Modal */}
-      <MobileTenantSwitcherModal
+      <MobileHouseholdSwitcherModal
         visible={tenantSwitcherVisible}
         onClose={() => setTenantSwitcherVisible(false)}
       />

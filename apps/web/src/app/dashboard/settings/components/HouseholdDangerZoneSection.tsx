@@ -156,7 +156,7 @@ export function HouseholdDangerZoneSection() {
               {t("settings.dangerZone.downloadFirstBody")}
             </p>
             <Link
-              href="/dashboard/settings?tab=account-data"
+              href="/dashboard/settings?tab=subscription"
               onClick={() => setActiveModal(null)}
               className="inline-flex items-center gap-1 text-xs font-bold text-[#2563eb] hover:underline pt-1 cursor-pointer"
             >

@@ -15,13 +15,13 @@ export const GetSpendingAnalyticsQuery = z.object({
 }).strict();
 export type GetSpendingAnalyticsQuery = z.infer<typeof GetSpendingAnalyticsQuery>;
 
-export const GetIncomeSplitAnalyticsQuerySchema = z.object({
+export const GetPaydayPlanAnalyticsQuerySchema = z.object({
   timeframe: SpendingTimeframeEnum.default("90D"),
   bankAccountId: z.string().optional(),
   searchQuery: z.string().optional(),
   envelopeId: z.string().optional(),
 }).strict();
-export type GetIncomeSplitAnalyticsQuery = z.infer<typeof GetIncomeSplitAnalyticsQuerySchema>;
+export type GetPaydayPlanAnalyticsQuery = z.infer<typeof GetPaydayPlanAnalyticsQuerySchema>;
 
 export const HorizonBreakdownDTOSchema = z.object({
   everyday: z.number(),
@@ -78,8 +78,8 @@ export const SpendingAnalyticsDTOSchema = z.object({
 }).strict();
 export type SpendingAnalyticsDTO = z.infer<typeof SpendingAnalyticsDTOSchema>;
 
-export const IncomeSplitAnalyticsDTOSchema = SpendingAnalyticsDTOSchema;
-export type IncomeSplitAnalyticsDTO = SpendingAnalyticsDTO;
+export const PaydayPlanAnalyticsDTOSchema = SpendingAnalyticsDTOSchema;
+export type PaydayPlanAnalyticsDTO = SpendingAnalyticsDTO;
 
 /**
  * DTO summarizing monthly income, spending, savings, and remaining everyday cash balance.

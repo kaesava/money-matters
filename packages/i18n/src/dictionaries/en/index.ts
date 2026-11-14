@@ -3,8 +3,8 @@ import { auth } from './auth';
 import { dashboard } from './dashboard';
 import { envelopes } from './envelopes';
 import { payday } from './payday';
-import { incomeBills } from './incomeBills';
-import { transactions } from './transactions';
+import { plan } from './plan';
+import { history } from './history';
 import { settings } from './settings';
 import { privacy } from './privacy';
 import { feedback } from './feedback';
@@ -21,8 +21,8 @@ export const en = {
   ...dashboard,
   ...envelopes,
   ...payday,
-  ...incomeBills,
-  ...transactions,
+  ...plan,
+  ...history,
   ...settings,
   ...privacy,
   ...feedback,

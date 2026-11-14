@@ -87,7 +87,7 @@ export default function SetupIncomeScreen() {
     if (isRerun) {
       router.push({ pathname: '/(setup)/goals', params: { mode: 'rerun' } });
     } else {
-      router.push('/(setup)/accounts');
+      router.push('/(setup)/bank-accounts');
     }
   };
 

@@ -39,11 +39,11 @@ export function CardHeader({
   labels?: MobileSpendingOverviewLabels;
 }) {
   const title = isFiltered
-    ? (labels?.filteredOverviewTitle || t('transactions.reporting.filteredOverviewTitle'))
-    : (labels?.overviewTitle || t('transactions.reporting.overviewTitle'));
+    ? (labels?.filteredOverviewTitle || t('history.reporting.filteredOverviewTitle'))
+    : (labels?.overviewTitle || t('history.reporting.overviewTitle'));
   const subtitle = isFiltered
-    ? (labels?.filteredOverviewSubtitle || t('transactions.reporting.filteredOverviewSubtitle'))
-    : (labels?.overviewSubtitle || t('transactions.reporting.overviewSubtitle'));
+    ? (labels?.filteredOverviewSubtitle || t('history.reporting.filteredOverviewSubtitle'))
+    : (labels?.overviewSubtitle || t('history.reporting.overviewSubtitle'));
 
   return (
     <View style={styles.header}>
@@ -106,16 +106,16 @@ export function TabSwitcher({
   labels?: MobileSpendingOverviewLabels;
 }) {
   const horizonLabel = isFiltered
-    ? (labels?.filteredDonutTitle || t('transactions.reporting.donut.filteredTitle'))
-    : (labels?.tabHorizon || labels?.donutTitle || t('transactions.reporting.tabs.horizon'));
+    ? (labels?.filteredDonutTitle || t('history.reporting.donut.filteredTitle'))
+    : (labels?.tabHorizon || labels?.donutTitle || t('history.reporting.tabs.horizon'));
 
   const cashFlowLabel = isFiltered
-    ? (labels?.filteredCashFlowTitle || t('transactions.reporting.cashFlow.filteredTitle'))
-    : (labels?.tabCashFlow || labels?.cashFlowTitle || t('transactions.reporting.tabs.cashFlow'));
+    ? (labels?.filteredCashFlowTitle || t('history.reporting.cashFlow.filteredTitle'))
+    : (labels?.tabCashFlow || labels?.cashFlowTitle || t('history.reporting.tabs.cashFlow'));
 
   const topPoolsLabel = isFiltered
-    ? (labels?.filteredTopPoolsTitle || t('transactions.reporting.topPools.filteredTitle'))
-    : (labels?.tabTopPools || labels?.topPoolsTitle || t('transactions.reporting.tabs.topPools'));
+    ? (labels?.filteredTopPoolsTitle || t('history.reporting.topPools.filteredTitle'))
+    : (labels?.tabTopPools || labels?.topPoolsTitle || t('history.reporting.tabs.topPools'));
 
   const tabs: Array<{ key: ChartTab; label: string }> = [
     { key: 'HORIZON', label: horizonLabel },

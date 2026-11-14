@@ -1,0 +1,212 @@
+import React from 'react';
+import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { Feather } from '@expo/vector-icons';
+import { t } from '@money-matters/i18n';
+import { DESIGN_TOKENS } from '@money-matters/ui/mobile';
+import { formatMobileCurrency } from '../../lib/format';
+
+interface EnvelopeSummaryCardProps {
+  pool: {
+    id: string;
+    name: string;
+    envelopeType?: string;
+    poolType?: string;
+    fundingMode?: "TARGET_BALANCE" | "RECURRING" | null;
+    currentBalance?: number | string | null;
+    isSurplusTarget?: boolean | null;
+    isPriority?: boolean | null;
+  };
+  bankAccountName?: string | null;
+  onEdit: () => void;
+  onDrawDown?: () => void;
+  onOpenNotes?: () => void;
+}
+
+export function EnvelopeSummaryCard({
+  pool,
+  bankAccountName,
+  onEdit,
+  onDrawDown,
+  onOpenNotes,
+}: EnvelopeSummaryCardProps) {
+  const isBill = pool.envelopeType === 'BILL';
+  const isGoal = pool.envelopeType === 'GOAL' || pool.poolType === 'GOAL';
+  const isEveryday = pool.envelopeType === 'EVERYDAY' || pool.poolType === 'EVERYDAY';
+  const isPriority = Boolean(pool.isPriority);
+
+  const fundingMode = pool.fundingMode || 'TARGET_BALANCE';
+
+  const badgeText = isBill
+    ? (fundingMode === 'RECURRING' ? t('categories.scheduledBillBadge') : t('categories.flexibleBillBadge'))
+    : isGoal
+    ? (fundingMode === 'RECURRING' ? t('categories.ongoingGoalBadge') : t('categories.targetDateGoalBadge'))
+    : isEveryday
+    ? t('categories.everydayBadge')
+    : null;
+
+  return (
+    <View style={styles.card}>
+      <View style={styles.header}>
+        <View style={{ flex: 1 }}>
+          <View style={styles.tagsRow}>
+            <View style={[
+              styles.badgeWrap,
+              isBill
+                ? styles.scheduledBillBadge
+                : isGoal
+                ? styles.targetGoalBadge
+                : styles.everydayBadge
+            ]}>
+              <Text style={[
+                styles.poolTypeTag,
+                isBill
+                  ? styles.scheduledBillBadgeText
+                  : isGoal
+                  ? styles.targetGoalBadgeText
+                  : styles.everydayBadgeText
+              ]}>
+                {badgeText}
+              </Text>
+            </View>
+            {isPriority && !isEveryday && (
+              <View style={[styles.badgeWrap, styles.essentialBadge]}>
+                <Text style={[styles.poolTypeTag, styles.essentialBadgeText]}>
+                  {t('categories.priorityBadge')}
+                </Text>
+              </View>
+            )}
+            {pool.isSurplusTarget && (
+              <View style={styles.surplusPill}>
+                <Text style={styles.surplusPillText}>{t('categories.surplusBadgeText')}</Text>
+              </View>
+            )}
+          </View>
+          <Text style={styles.name}>{pool.name}</Text>
+          {bankAccountName && (
+            <Text style={styles.bankNameMeta}>
+              {t('categories.linkedAccount', { name: bankAccountName })}
+            </Text>
+          )}
+        </View>
+
+        <View style={styles.balanceCol}>
+          <Text style={styles.balanceLabel}>{t('categories.currentBalance')}</Text>
+          <Text style={styles.balanceAmount}>{formatMobileCurrency(pool.currentBalance ?? 0)}</Text>
+        </View>
+      </View>
+
+      <View style={styles.actionRow}>
+        {onDrawDown && pool.envelopeType !== 'EVERYDAY' && (
+          <TouchableOpacity onPress={onDrawDown} style={styles.drawDownBtn}>
+            <Feather name="arrow-down-circle" size={15} color={DESIGN_TOKENS.colors.successDark} />
+            <Text style={styles.drawDownBtnText}>{t('categories.actions.drawDown')}</Text>
+          </TouchableOpacity>
+        )}
+        {onOpenNotes && (
+          <TouchableOpacity onPress={onOpenNotes} style={styles.notesBtn}>
+            <Feather name="file-text" size={15} color={DESIGN_TOKENS.colors.slate[700]} />
+            <Text style={styles.notesBtnText}>{t('fileNotes.attachFile')}</Text>
+          </TouchableOpacity>
+        )}
+        <TouchableOpacity onPress={onEdit} style={styles.primaryActionBtn}>
+          <Feather name="edit-2" size={15} color="#FFFFFF" />
+          <Text style={styles.primaryActionBtnText}>{t('categories.editPool')}</Text>
+        </TouchableOpacity>
+      </View>
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  card: {
+    backgroundColor: DESIGN_TOKENS.colors.surface,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: DESIGN_TOKENS.colors.border,
+    padding: 18,
+    gap: 14,
+    shadowColor: '#000',
+    shadowOpacity: 0.04,
+    shadowOffset: { width: 0, height: 2 },
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
+  tagsRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 6 },
+  badgeWrap: {
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 6,
+    borderWidth: 1,
+  },
+  poolTypeTag: {
+    fontSize: 10,
+    fontWeight: '800',
+    letterSpacing: 0.3,
+    textTransform: 'uppercase',
+  },
+  scheduledBillBadge: { backgroundColor: '#EFF6FF', borderColor: '#BFDBFE' },
+  scheduledBillBadgeText: { color: '#1D4ED8' },
+  flexibleBillBadge: { backgroundColor: '#F0F9FF', borderColor: '#BAE6FD' },
+  flexibleBillBadgeText: { color: '#0369A1' },
+  targetGoalBadge: { backgroundColor: '#ECFDF5', borderColor: '#A7F3D0' },
+  targetGoalBadgeText: { color: '#047857' },
+  ongoingGoalBadge: { backgroundColor: '#F0FDFA', borderColor: '#99F6E4' },
+  ongoingGoalBadgeText: { color: '#0F766E' },
+  everydayBadge: { backgroundColor: '#FAF5FF', borderColor: '#E9D5FF' },
+  everydayBadgeText: { color: '#7E22CE' },
+  essentialBadge: { backgroundColor: '#FEF3C7', borderColor: '#FDE68A' },
+  essentialBadgeText: { color: '#B45309' },
+  committedBadge: { backgroundColor: '#EEF2FF', borderColor: '#C7D2FE' },
+  committedBadgeText: { color: '#4338CA' },
+  surplusPill: { backgroundColor: DESIGN_TOKENS.colors.successLight, paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6 },
+  surplusPillText: { fontSize: 10, fontWeight: '700', color: DESIGN_TOKENS.colors.successDark },
+  name: { fontSize: 18, fontWeight: '900', color: DESIGN_TOKENS.colors.primary },
+  bankNameMeta: { fontSize: 12, color: DESIGN_TOKENS.colors.textMuted, marginTop: 2 },
+  balanceCol: { alignItems: 'flex-end' },
+  balanceLabel: { fontSize: 10, fontWeight: '700', color: DESIGN_TOKENS.colors.slate[400], textTransform: 'uppercase' },
+  balanceAmount: { fontSize: 20, fontWeight: '900', fontFamily: 'monospace', color: DESIGN_TOKENS.colors.accent },
+  actionRow: { flexDirection: 'row', gap: 8, borderTopWidth: 1, borderTopColor: DESIGN_TOKENS.colors.slate[100], paddingTop: 12 },
+  primaryActionBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: DESIGN_TOKENS.colors.accent,
+    borderRadius: 12,
+    paddingVertical: 10,
+    shadowColor: DESIGN_TOKENS.colors.accent,
+    shadowOpacity: 0.2,
+    shadowOffset: { width: 0, height: 2 },
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  primaryActionBtnText: { fontSize: 13, fontWeight: '700', color: DESIGN_TOKENS.colors.onAccent },
+  drawDownBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    backgroundColor: DESIGN_TOKENS.colors.successLight,
+    borderWidth: 1,
+    borderColor: '#A7F3D0',
+    borderRadius: 12,
+    paddingVertical: 10,
+  },
+  drawDownBtnText: { fontSize: 13, fontWeight: '700', color: DESIGN_TOKENS.colors.successDark },
+  notesBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    backgroundColor: DESIGN_TOKENS.colors.slate[100],
+    borderWidth: 1,
+    borderColor: DESIGN_TOKENS.colors.slate[200],
+    borderRadius: 12,
+    paddingVertical: 10,
+  },
+  notesBtnText: { fontSize: 13, fontWeight: '700', color: DESIGN_TOKENS.colors.slate[700] },
+});

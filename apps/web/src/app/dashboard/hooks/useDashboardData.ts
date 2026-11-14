@@ -24,7 +24,7 @@ export function useDashboardData() {
   const expenseEventsQuery = trpc.listExpenseEvents.useQuery();
   const transferEventsQuery = trpc.listTransferEvents.useQuery();
 
-  const reconcileMutation = trpc.reconcileBankBalance.useMutation({
+  const reconcileMutation = trpc.syncBankBalance.useMutation({
     onSuccess: () => {
       bankAccountsQuery.refetch();
       poolsQuery.refetch();

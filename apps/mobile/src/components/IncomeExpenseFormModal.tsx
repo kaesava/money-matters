@@ -4,13 +4,13 @@ import {
   MobileModalDialog,
   MobileButton,
   showMobileConfirm,
-  MobilePoolOption,
+  MobileEnvelopeOption,
 } from '@money-matters/ui/mobile';
 import { t } from '@money-matters/i18n';
 import { trpc } from '../lib/trpc';
-import { IncomeExpenseFormFields } from './paychecks/IncomeExpenseFormFields';
-import { useIncomeExpenseForm } from './paychecks/useIncomeExpenseForm';
-import { useIncomeExpenseMutations } from './paychecks/useIncomeExpenseMutations';
+import { IncomeExpenseFormFields } from './plan/IncomeExpenseFormFields';
+import { useIncomeExpenseForm } from './plan/useIncomeExpenseForm';
+import { useIncomeExpenseMutations } from './plan/useIncomeExpenseMutations';
 
 export interface SourceToEdit {
   id: string;
@@ -51,7 +51,7 @@ export function IncomeExpenseFormModal({
   const bankAccounts = bankAccountsQuery.data ?? [];
   const hasPrivateEnvelopes = useMemo(() => rawPools.some((p) => p.isPrivate), [rawPools]);
 
-  const pickerPools: MobilePoolOption[] = useMemo(() => {
+  const pickerPools: MobileEnvelopeOption[] = useMemo(() => {
     return rawPools.map((p) => ({
       id: p.id,
       name: p.name,
@@ -120,13 +120,13 @@ export function IncomeExpenseFormModal({
       if (contributionMode === 'PERCENTAGE') {
         const pct = parseFloat(contributionValue);
         if (isNaN(pct) || pct <= 0 || pct > 100) {
-          setAmountError(t('incomeBillsTabs.householdContribution.percentageInvalid'));
+          setAmountError(t('planTabs.householdContribution.percentageInvalid'));
           hasErr = true;
         }
       } else if (contributionMode === 'FIXED_AMOUNT') {
         const fix = parseFloat(contributionValue);
         if (isNaN(fix) || fix <= 0) {
-          setAmountError(t('incomeBillsTabs.householdContribution.amountInvalid'));
+          setAmountError(t('planTabs.householdContribution.amountInvalid'));
           hasErr = true;
         }
       }
@@ -177,7 +177,7 @@ export function IncomeExpenseFormModal({
         isEdit
           ? (sourceToEdit?.name || '')
           : mode === 'INCOME'
-          ? t('incomeBillsTabs.addIncomeSchedule')
+          ? t('planTabs.addIncomeSchedule')
           : t('modals.incomeExpenseForm.titleAddExpense')
       }
       footer={

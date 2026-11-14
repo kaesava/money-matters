@@ -3,7 +3,7 @@ import { View, Text, TouchableOpacity, ScrollView, TextInput, StyleSheet } from 
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { t } from '@money-matters/i18n';
-import { DESIGN_TOKENS, AmountInput, MobileGoalModeToggle, MobileDatePickerField, showMobileConfirm, InfoTooltip } from '@money-matters/ui/mobile';
+import { DESIGN_TOKENS, AmountInput, MobileEnvelopeModeToggle, MobileDatePickerField, showMobileConfirm, InfoTooltip } from '@money-matters/ui/mobile';
 import { useSetupWizard } from '../../context/SetupWizardContext';
 import { SetupGoalCard } from '../../components/setup/SetupGoalCard';
 import { getMobileLocaleConfig } from '../../lib/format';
@@ -138,7 +138,7 @@ export default function SetupGoalsScreen() {
 
   const proceedToNextStep = () => {
     if (isRerun) {
-      router.push({ pathname: '/(setup)/categories', params: { mode: 'rerun' } });
+      router.push({ pathname: '/(setup)/envelopes', params: { mode: 'rerun' } });
     } else {
       router.push('/(setup)/lifestyle');
     }
@@ -201,7 +201,12 @@ export default function SetupGoalsScreen() {
           onChangeText={setCustomName}
         />
         <View style={styles.toggleWrap}>
-          <MobileGoalModeToggle value={customType} onChange={setCustomType} />
+          <MobileEnvelopeModeToggle
+            mode={customType}
+            onChange={setCustomType}
+            targetBalanceLabel={t('envelopes.modeToggle.targetBalance')}
+            recurringLabel={t('envelopes.modeToggle.recurring')}
+          />
         </View>
         {customType === 'RECURRING' && (
           <View style={styles.freqSelectSection}>

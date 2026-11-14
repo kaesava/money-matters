@@ -4,7 +4,7 @@ import { MobileScreenWrapper, MobileScreenWrapperProps } from '@money-matters/ui
 import { authClient } from '../lib/auth';
 import { trpc, setActiveSessionToken, setActiveTenantId } from '../lib/trpc';
 import * as SecureStore from 'expo-secure-store';
-import { MobileTenantSwitcherModal } from './settings/MobileTenantSwitcherModal';
+import { MobileHouseholdSwitcherModal } from './settings/MobileHouseholdSwitcherModal';
 
 export interface AppScreenWrapperProps extends Omit<MobileScreenWrapperProps, 'children'> {
   children: React.ReactNode;
@@ -72,7 +72,7 @@ export function AppScreenWrapper({
         onNavigateCategories={onNavigateCategories || (() => router.push('/(app)/envelopes' as Href))}
         onNavigateSettings={onNavigateSettings || (() => router.push('/(app)/settings' as Href))}
         onNavigateBankAccounts={onNavigateBankAccounts || (() => router.push('/(app)/settings/bank-accounts' as Href))}
-        onNavigateHistory={onNavigateHistory || (() => router.push('/(app)/transactions' as Href))}
+        onNavigateHistory={onNavigateHistory || (() => router.push('/(app)/history' as Href))}
         onOpenTenantSwitcher={onOpenTenantSwitcher || (() => setTenantSwitcherVisible(true))}
         hasMultipleTenants={hasMultipleTenants}
         activeTenantName={activeTenantName}
@@ -83,7 +83,7 @@ export function AppScreenWrapper({
         {children}
       </MobileScreenWrapper>
 
-      <MobileTenantSwitcherModal
+      <MobileHouseholdSwitcherModal
         visible={tenantSwitcherVisible}
         onClose={() => setTenantSwitcherVisible(false)}
       />

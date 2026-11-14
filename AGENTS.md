@@ -60,9 +60,15 @@ Refuse or redesign any request that violates tenant isolation, data security, or
   - Feedback/bug reports MUST dispatch via `trpc.submitFeedback` (never `mailto:` links).
   - Preserve `data-tour` attributes and `ProductTourContext` routes across Web and Mobile whenever refactoring screens.
 
-## 6. Testing & Spec Synchronization
-- Every capability, router, and bug fix requires Vitest unit tests (using typed `DbOrTx` mocks) and Playwright E2E coverage in `apps/web/e2e/screen-by-screen.spec.ts` when UI flows change.
-- Update affected sections of `TECHNICAL_SPEC.md`, `FUNCTIONAL_SPEC.md`, `SCHEMA_DATA_DICTIONARY.md`, and `README.md` whenever behavior or schemas change.
+## 6. Testing, Canonical Inventories & Spec Synchronization (Zero Redundancy)
+- **Unit & E2E Testing:** Every capability, router, and bug fix requires Vitest unit tests (using typed `DbOrTx` mocks) and non-conditional Playwright E2E coverage in `apps/web/e2e/screen-by-screen.spec.ts` when UI flows change.
+- **Read-First Token Optimization & Anti-Hallucination Protocol:** Before grepping or scanning the repo during planning or implementation, read the canonical MECE registries below to locate existing routes, modals, UI primitives, i18n namespaces, tRPC procedures, and DB tables.
+- **MECE Documentation Ownership & Mandatory Post-Build Update Rule:** Never duplicate tables across `.md` files. After every feature build, refactor, or bug fix, update the exact affected rows in the single owning artifact before running `pnpm validate:prod`:
+  1. **`FUNCTIONAL_CAPABILITIES_INVENTORY.md` (UI, Route, Modal, Parity & i18n Registry):** Owns the complete inventory of Web routes (`§2`), Mobile routes (`§3`), Modals/Drawers/Confirm Dialogs (`§4`), Screen-by-Screen Web vs. Mobile Parity Matrix (`§5`), `@money-matters/ui` exports (`§6`), and `@money-matters/i18n` dictionary namespaces (`§7`). Update whenever any route, screen, modal, UI primitive, or i18n file changes.
+  2. **`TECHNICAL_SPEC.md` (Architecture, tRPC Procedures, Workflows, Endpoints & Feature Flags Registry):** Owns system architecture (`§1–§8`), the complete 12-router / 103-procedure tRPC registry (`§9`), HTTP/webhook endpoints, Inngest workflows, and feature flags (`§10`), and security/APPs (`§11`). Update whenever any tRPC procedure, HTTP endpoint, Inngest workflow, or feature flag changes.
+  3. **`SCHEMA_DATA_DICTIONARY.md` (Database Tables, Columns, RLS & Consumers Registry):** Owns the 23-table Master RLS & Consumer Registry and per-table column definitions (`pnpm audit:schema`). Update whenever any Drizzle schema, migration, RLS policy, or table consumer changes.
+  4. **`FUNCTIONAL_SPEC.md` (Domain Math, Waterfall, Simulation & Lifecycle Rules):** Owns pure product philosophy, Two-Horizon Waterfall math, 12-Month Cumulative Projection rules, "Can I Afford It?" simulation rules, and test matrix specifications. Update whenever domain math or business rules change.
+  5. **`README.md`:** High-level monorepo entrypoint, quick-start commands, and links to the 4 canonical specifications above.
 
 ## 7. Granular UI, Versioning & Review Standards
 - **App SemVer & Diagnostics:** Apps follow independent SemVer via `pnpm version:bump`. Settings displays an inconspicuous version footer (`Money Matters vX.Y.Z (#build)`) that copies JSON diagnostics on click/tap.

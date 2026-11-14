@@ -4,7 +4,7 @@ import {
   UpdateHouseholdFormSchema,
   BankAccountFormSchema,
   computeAccountAvailability,
-  resolvePlanLabelKey,
+  getSubscriptionStatusLabelKey,
   buildExportFileName,
   COMMON_TIMEZONES,
   AU_STATES,
@@ -124,13 +124,12 @@ describe("Settings Types & Schemas", () => {
 
   describe("Subscription Helpers", () => {
     it("resolves status keys correctly", () => {
-      expect(resolvePlanLabelKey("SUBSCRIBED")).toBe("subscription.planActive");
-      expect(resolvePlanLabelKey("TRIALING")).toBe("subscription.trialActive");
-      expect(resolvePlanLabelKey("TRIAL_GRACE")).toBe("subscription.trialGrace");
-      expect(resolvePlanLabelKey("PAST_DUE")).toBe("subscription.pastDue");
-      expect(resolvePlanLabelKey("CANCELED")).toBe("subscription.canceled");
-      expect(resolvePlanLabelKey("EXPIRED")).toBe("subscription.expired");
-      expect(resolvePlanLabelKey(undefined)).toBe("subscription.planFree");
+      expect(getSubscriptionStatusLabelKey("SUBSCRIBED")).toBe("subscription.tierActive");
+      expect(getSubscriptionStatusLabelKey("TRIAL_ACTIVE")).toBe("subscription.tierTrial");
+      expect(getSubscriptionStatusLabelKey("PAST_DUE")).toBe("subscription.tierPastDue");
+      expect(getSubscriptionStatusLabelKey("TRIAL_EXPIRED")).toBe("subscription.tierExpired");
+      expect(getSubscriptionStatusLabelKey("DEACTIVATED")).toBe("subscription.noActiveSubscription");
+      expect(getSubscriptionStatusLabelKey(undefined)).toBe("subscription.noActiveSubscription");
     });
 
     it("builds consistent export file name", () => {

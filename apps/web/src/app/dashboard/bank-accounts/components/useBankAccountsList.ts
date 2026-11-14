@@ -18,7 +18,7 @@ export function useBankAccountsList() {
   const poolsQuery = trpc.listEnvelopes.useQuery();
   const utils = trpc.useUtils();
 
-  const reconcileMut = trpc.reconcileBankBalance.useMutation();
+  const reconcileMut = trpc.syncBankBalance.useMutation();
 
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 

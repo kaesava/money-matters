@@ -6,7 +6,7 @@ import {
   ChipSelect,
   FormLabel,
   AmountInput,
-  MobileBillModeToggle,
+  MobileEnvelopeModeToggle,
   MobileCheckbox,
   RecurrenceFrequency,
 } from '@money-matters/ui/mobile';
@@ -138,9 +138,11 @@ export const EnvelopeFormFields: React.FC<EnvelopeFormFieldsProps> = ({
       {(type === 'BILL') && (
         <View style={styles.billSection}>
           {setFundingMode && !hideBillModeToggle && (
-            <MobileBillModeToggle
-              value={fundingMode}
+            <MobileEnvelopeModeToggle
+              mode={fundingMode}
               onChange={setFundingMode}
+              targetBalanceLabel={t('envelopes.modeToggle.targetBalance')}
+              recurringLabel={t('envelopes.modeToggle.recurring')}
             />
           )}
 

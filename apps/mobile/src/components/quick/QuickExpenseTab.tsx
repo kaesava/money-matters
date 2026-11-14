@@ -7,7 +7,7 @@ import {
   MobileDatePickerField,
   MobileInput,
   MobileButton,
-  MobilePoolPicker,
+  MobileEnvelopePicker,
 } from '@money-matters/ui/mobile';
 import { t } from '@money-matters/i18n';
 import { formatMobileCurrency } from '../../lib/format';
@@ -143,7 +143,7 @@ export function QuickExpenseTab({
       />
 
       {/* 2. Pool / Category Second */}
-      <MobilePoolPicker
+      <MobileEnvelopePicker
         label={t('drawers.quickExpense.category')}
         required
         displayStyle="field"

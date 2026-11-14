@@ -31,7 +31,6 @@ export const assistantRouter = router({
         subStatus.isDeactivated ||
         subStatus.isGracePeriod ||
         subStatus.isPastDue ||
-        subStatus.status === "TRIAL_GRACE" ||
         subStatus.status === "PAST_DUE"
       ) {
         throw new TRPCError({
@@ -68,7 +67,7 @@ export const assistantRouter = router({
       const usageStore = new DbUsageStore(ctx.db);
       const handler = createAssistantIntentHandler(ctx.db, ctx.appId);
 
-      const isGracePeriod = ctx.subscriptionStatus.status === "TRIAL_GRACE";
+      const isGracePeriod = ctx.subscriptionStatus.status === "PAST_DUE";
       const isExpired = ctx.subscriptionStatus.isDeactivated;
 
       // 3. Ask assistant orchestration
@@ -100,7 +99,6 @@ export const assistantRouter = router({
         sub.isTrialExpired ||
         sub.isGracePeriod ||
         sub.isPastDue ||
-        sub.status === "TRIAL_GRACE" ||
         sub.status === "PAST_DUE"
       ) {
         status = "disabled";

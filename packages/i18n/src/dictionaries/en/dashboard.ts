@@ -85,7 +85,7 @@ export const dashboard = {
       "twelveMonthPlanLink": "12-Month Plan →",
       "nextPaydayBadge": "Next Payday",
       "allocatePayday": "Allocate Payday",
-      "savedBadge": "Locked"
+      "savedBadge": "Draft Saved"
     }
   },
   "home": {
@@ -141,7 +141,7 @@ export const dashboard = {
     },
     "unavailable": {
       "quota_exceeded": "Monthly AI limit reached (150 calls). Suggested questions and deterministic calculations are still available!",
-      "read_only_grace": "Your account is in read-only grace period. AI responses are paused, but suggested questions still work.",
+      "payment_grace": "Penny AI is paused during your 7-day Payment Grace Period. Please update your payment method in Settings > Subscription.",
       "disabled": "Ask Penny is currently disabled for this tenant.",
       "rate_limited": "Too many questions in a short period. Please take a breath and try again in a minute.",
       "unauthenticated": "Please sign in to ask questions."

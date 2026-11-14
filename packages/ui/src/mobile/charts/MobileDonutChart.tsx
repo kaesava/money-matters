@@ -29,7 +29,7 @@ export function MobileDonutChart({
     return (
       <View style={styles.emptyContainer}>
         <Text style={styles.emptyText}>
-          {emptyText || t('transactions.reporting.donut.empty')}
+          {emptyText || t('history.reporting.donut.empty')}
         </Text>
       </View>
     );
@@ -102,7 +102,7 @@ function FilteredMobileDonutView({
           </G>
         </Svg>
         <View style={styles.centerTextOverlay}>
-          <Text style={styles.centerSubtitle}>{t('transactions.reporting.donut.thisFilter')}</Text>
+          <Text style={styles.centerSubtitle}>{t('history.reporting.donut.thisFilter')}</Text>
           <Text style={styles.centerAmount}>{formatCurrency(totalOutflow)}</Text>
         </View>
       </View>
@@ -110,7 +110,7 @@ function FilteredMobileDonutView({
       <View style={styles.legendContainer}>
         <View style={styles.legendRow}>
           <View style={[styles.dot, { backgroundColor: DESIGN_TOKENS.colors.sereneBlue }]} />
-          <Text style={styles.legendLabel}>{t('transactions.reporting.donut.thisFilter')}</Text>
+          <Text style={styles.legendLabel}>{t('history.reporting.donut.thisFilter')}</Text>
           <Text style={styles.legendPct}>({sharePercentage}%)</Text>
         </View>
       </View>
@@ -192,7 +192,7 @@ function MacroMobileDonutView({
         </Svg>
         <View style={styles.centerTextOverlay}>
           <Text style={styles.centerSubtitle}>
-            {centerLabel || t('transactions.reporting.donut.totalOutflow')}
+            {centerLabel || t('history.reporting.donut.totalOutflow')}
           </Text>
           <Text style={styles.centerAmount}>{formatCurrency(data.totalOutflow)}</Text>
         </View>
@@ -201,17 +201,17 @@ function MacroMobileDonutView({
       <View style={styles.legendContainer}>
         <View style={styles.legendRow}>
           <View style={[styles.dot, { backgroundColor: DESIGN_TOKENS.colors.sereneBlue }]} />
-          <Text style={styles.legendLabel}>{t('transactions.reporting.donut.everyday')}</Text>
+          <Text style={styles.legendLabel}>{t('history.reporting.donut.everyday')}</Text>
           <Text style={styles.legendPct}>({data.percentages.everyday}%)</Text>
         </View>
         <View style={styles.legendRow}>
           <View style={[styles.dot, { backgroundColor: DESIGN_TOKENS.colors.primary }]} />
-          <Text style={styles.legendLabel}>{t('transactions.reporting.donut.bills')}</Text>
+          <Text style={styles.legendLabel}>{t('history.reporting.donut.bills')}</Text>
           <Text style={styles.legendPct}>({data.percentages.bills}%)</Text>
         </View>
         <View style={styles.legendRow}>
           <View style={[styles.dot, { backgroundColor: DESIGN_TOKENS.colors.success }]} />
-          <Text style={styles.legendLabel}>{t('transactions.reporting.donut.goals')}</Text>
+          <Text style={styles.legendLabel}>{t('history.reporting.donut.goals')}</Text>
           <Text style={styles.legendPct}>({data.percentages.goals}%)</Text>
         </View>
       </View>

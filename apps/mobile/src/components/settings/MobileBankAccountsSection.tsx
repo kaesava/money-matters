@@ -19,9 +19,9 @@ import { t } from '@money-matters/i18n';
 import { trpc } from '../../lib/trpc';
 import { useAppFeatures } from '../../context/useAppFeatures';
 import { BankAccountItemToEdit } from '../BankAccountFormModal';
-import { MobileReconciliationModalProps } from '../envelopes/MobileReconciliationModal';
+import { MobileSyncBalanceModalProps } from '../envelopes/MobileSyncBalanceModal';
 import { BankAccountCard } from '../bank-accounts/BankAccountCard';
-import { LinkedPoolItem } from '../bank-accounts/LinkedPoolsModalSheet';
+import { LinkedPoolItem } from '../bank-accounts/LinkedEnvelopesModalSheet';
 import { MobileBankAccountsModals } from './bank-accounts/MobileBankAccountsModals';
 
 export function MobileBankAccountsSection() {
@@ -30,7 +30,7 @@ export function MobileBankAccountsSection() {
   const [formModalVisible, setFormModalVisible] = useState(false);
   const [accountToEdit, setAccountToEdit] = useState<BankAccountItemToEdit | null>(null);
 
-  const [reconcileAccount, setReconcileAccount] = useState<MobileReconciliationModalProps['account'] | null>(null);
+  const [reconcileAccount, setReconcileAccount] = useState<MobileSyncBalanceModalProps['account'] | null>(null);
   const [poolsSheetAccount, setPoolsSheetAccount] = useState<{
     name: string;
     pools: LinkedPoolItem[];

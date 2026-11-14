@@ -15,7 +15,7 @@ import { FeedbackModal } from "../../../components/web/FeedbackModal";
 import { useSubscriptionStatus } from "../../../hooks/useSubscriptionStatus";
 import { ProfileSection } from "./components/ProfileSection";
 import { SubscriptionSection } from "./components/SubscriptionSection";
-import { PartnerInviteSection } from "./components/PartnerInviteSection";
+import { HouseholdMemberInviteSection } from "./components/HouseholdMemberInviteSection";
 import { HouseholdDetailsSection } from "./components/HouseholdDetailsSection";
 import { HouseholdDangerZoneSection } from "./components/HouseholdDangerZoneSection";
 import { AllocationStrategySection } from "./components/AllocationStrategySection";
@@ -151,7 +151,7 @@ function SettingsPageContent() {
           }}
         />
         <AllocationStrategySection />
-        <PartnerInviteSection />
+        <HouseholdMemberInviteSection />
         <HouseholdDangerZoneSection />
       </div>
 

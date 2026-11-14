@@ -37,7 +37,7 @@ export function MobileArchivedSection() {
         utils.listBankAccounts.invalidate(),
         utils.listBankAccountsWithExpected.invalidate(),
         utils.getBankAccountsWithMappings.invalidate(),
-        utils.getMatrixProjectionData.invalidate(),
+        utils.getHorizonProjectionData.invalidate(),
         utils.listTransactions.invalidate(),
         utils.getHomeSummary.invalidate(),
         utils.listExpenseEvents.invalidate(),

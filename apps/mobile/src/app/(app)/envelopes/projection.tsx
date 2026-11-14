@@ -17,7 +17,7 @@ import { t } from '@money-matters/i18n';
 import { trpc } from '../../../lib/trpc';
 import { authClient } from '../../../lib/auth';
 import { ProjectionScrubber } from '../../../components/envelopes/projection/ProjectionScrubber';
-import { ProjectionPoolGroupSection } from '../../../components/envelopes/projection/ProjectionPoolGroupSection';
+import { ProjectionEnvelopeGroupSection } from '../../../components/envelopes/projection/ProjectionEnvelopeGroupSection';
 
 export default function PoolProjectionScreen() {
   const router = useRouter();
@@ -115,21 +115,21 @@ export default function PoolProjectionScreen() {
           <SkeletonCard count={3} />
         ) : (
           <View style={styles.sectionsContainer}>
-            <ProjectionPoolGroupSection
+            <ProjectionEnvelopeGroupSection
               title={t('categories.everydayPoolsUpper')}
               pools={everydayPools}
               getBankForPool={getBankForPool}
               getPoolBalance={getPoolBalance}
             />
 
-            <ProjectionPoolGroupSection
+            <ProjectionEnvelopeGroupSection
               title={t('categories.billsPoolsUpper')}
               pools={billsPools}
               getBankForPool={getBankForPool}
               getPoolBalance={getPoolBalance}
             />
 
-            <ProjectionPoolGroupSection
+            <ProjectionEnvelopeGroupSection
               title={t('categories.goalsUpper')}
               pools={goalPools}
               getBankForPool={getBankForPool}

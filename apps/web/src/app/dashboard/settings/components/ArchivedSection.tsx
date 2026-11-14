@@ -40,7 +40,7 @@ export function ArchivedSection() {
         trpcUtils.listBankAccounts.invalidate(),
         trpcUtils.listBankAccountsWithExpected.invalidate(),
         trpcUtils.getBankAccountsWithMappings.invalidate(),
-        trpcUtils.getMatrixProjectionData.invalidate(),
+        trpcUtils.getHorizonProjectionData.invalidate(),
         trpcUtils.listTransactions.invalidate(),
         trpcUtils.getHomeSummary.invalidate(),
         trpcUtils.listExpenseEvents.invalidate(),

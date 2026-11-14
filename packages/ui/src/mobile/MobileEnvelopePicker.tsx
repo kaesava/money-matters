@@ -75,7 +75,7 @@ export const MobileEnvelopePicker: React.FC<MobileEnvelopePickerProps> = ({
   const [isInlineOpen, setIsInlineOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
 
-  const resolvedAllLabel = allOptionLabel || t('transactions.allPools');
+  const resolvedAllLabel = allOptionLabel || t('history.allPools');
   const selectedPool = pools.find((p) => p.id === selectedPoolId);
   const selectedCat = selectedPool?.categories?.find((c) => c.id === selectedCategoryId);
 
@@ -133,7 +133,7 @@ export const MobileEnvelopePicker: React.FC<MobileEnvelopePickerProps> = ({
   const modalSubtitle = useMemo(() => {
     if (allowCategorySelection) return t('categories.selectPoolOrCategory');
     if (displayStyle === 'field') return t('categories.selectPool');
-    return t('transactions.filterByPool');
+    return t('history.filterByPool');
   }, [allowCategorySelection, displayStyle]);
 
   const renderSearchInput = () => (

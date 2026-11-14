@@ -2,10 +2,10 @@ import React from 'react';
 import { TouchableOpacity, StyleSheet } from 'react-native';
 import { DESIGN_TOKENS } from '@money-matters/ui/mobile';
 import { useAppFeatures } from '../../context/useAppFeatures';
-import { LinkedPoolItem } from './LinkedPoolsModalSheet';
+import { LinkedPoolItem } from './LinkedEnvelopesModalSheet';
 import { BankAccountCardHeader } from './BankAccountCardHeader';
-import { BankAccountAlignmentRow } from './BankAccountAlignmentRow';
-import { BankAccountPoolsRow } from './BankAccountPoolsRow';
+import { BankAccountSyncRow } from './BankAccountSyncRow';
+import { BankAccountEnvelopesRow } from './BankAccountEnvelopesRow';
 
 export interface BankAccountCardData {
   id: string;
@@ -71,7 +71,7 @@ export function BankAccountCard({
         onPressNotes={onPressNotes}
       />
 
-      <BankAccountAlignmentRow
+      <BankAccountSyncRow
         linkedPoolsCount={linkedPools.length}
         poolsTotal={poolsTotal}
         diff={diff}
@@ -79,7 +79,7 @@ export function BankAccountCard({
         onPressAlign={onPressAlign}
       />
 
-      <BankAccountPoolsRow
+      <BankAccountEnvelopesRow
         linkedPools={linkedPools}
         onPressPool={onPressPool}
         onPressMorePools={onPressMorePools}

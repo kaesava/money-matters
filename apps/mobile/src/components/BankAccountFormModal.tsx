@@ -18,7 +18,7 @@ import {
 } from '@money-matters/ui/mobile';
 import { t } from '@money-matters/i18n';
 import { useAppFeatures } from '../context/useAppFeatures';
-import { AccountBalanceCard } from './bank-accounts/AccountBalanceCard';
+import { BankAccountBalanceCard } from './bank-accounts/BankAccountBalanceCard';
 import {
   type BankAccountItemToEdit,
   type SupportedBankProvider,
@@ -139,7 +139,7 @@ export function BankAccountFormModal({
         />
 
         {/* Balances & Buffer */}
-        <AccountBalanceCard
+        <BankAccountBalanceCard
           balance={balance}
           buffer={buffer}
           availableToBudget={availableToBudget}

@@ -149,9 +149,10 @@ export function useEnvelopeFormModalState({
 
   const isDirty = useMemo(() => {
     if (!isEdit) {
+      const defaultBankAccountId = bankAccounts[0]?.id || "";
       return Boolean(
         name.trim() ||
-          bankAccountId ||
+          bankAccountId !== defaultBankAccountId ||
           safetyBufferFloor.trim() ||
           targetAmount.trim() ||
           targetDate ||
@@ -229,6 +230,7 @@ export function useEnvelopeFormModalState({
   }, [
     isEdit,
     categoryToEdit,
+    bankAccounts,
     name,
     bankAccountId,
     safetyBufferFloor,

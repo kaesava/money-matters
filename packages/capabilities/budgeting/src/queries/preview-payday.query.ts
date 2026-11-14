@@ -25,8 +25,7 @@ export async function previewPaydayQuery(
   tenantId: string,
   appId: string,
   dbClient: DbOrTx,
-  userId?: string,
-  overrideAmount?: number
+  userId?: string
 ) {
   const [targetEvent] = await dbClient
     .select({
@@ -70,8 +69,7 @@ export async function previewPaydayQuery(
     tenantId,
     appId,
     dbClient,
-    userId,
-    overrideAmount
+    userId
   );
 }
 
@@ -80,8 +78,7 @@ export async function previewPaydayForEvent(
   tenantId: string,
   appId: string,
   dbClient: DbOrTx,
-  userId?: string,
-  overrideAmount?: number
+  userId?: string
 ) {
   const [savedPlan] = await dbClient
     .select({
@@ -139,11 +136,7 @@ export async function previewPaydayForEvent(
       : parsedActual !== null && parsedActual > 0
       ? parsedActual
       : null;
-  const baseAmount = resolvedActual ?? parsedExpected;
-  const effectiveAmount =
-    overrideAmount !== undefined && Number.isFinite(overrideAmount) && overrideAmount >= 0
-      ? overrideAmount
-      : baseAmount;
+  const effectiveAmount = resolvedActual ?? parsedExpected;
   const baselinePreview = await previewAllocationQuery(
     tenantId,
     appId,

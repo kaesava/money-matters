@@ -67,7 +67,7 @@ export const TOUR_STEPS: Array<{
   },
   {
     id: 'bank-accounts',
-    route: '/dashboard/bank-accounts',
+    route: '/dashboard/envelopes',
     selector: '[data-tour="bank-accounts"]',
     titleKey: 'tour.steps.bankAccounts.title',
     descKey: 'tour.steps.bankAccounts.desc',
@@ -75,7 +75,7 @@ export const TOUR_STEPS: Array<{
   },
   {
     id: 'upcoming-events',
-    route: '/dashboard/income-and-bills?tab=events',
+    route: '/dashboard/plan?tab=events',
     selector: '[data-tour="upcoming-events"]',
     titleKey: 'tour.steps.upcomingEvents.title',
     descKey: 'tour.steps.upcomingEvents.desc',
@@ -83,7 +83,7 @@ export const TOUR_STEPS: Array<{
   },
   {
     id: 'schedules-tab',
-    route: '/dashboard/income-and-bills?tab=streams',
+    route: '/dashboard/plan?tab=streams',
     selector: '[data-tour="schedules-tab"]',
     titleKey: 'tour.steps.schedulesTab.title',
     descKey: 'tour.steps.schedulesTab.desc',

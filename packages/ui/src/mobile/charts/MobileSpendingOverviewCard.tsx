@@ -40,9 +40,9 @@ export function MobileSpendingOverviewCard({
   const isFiltered = Boolean(analytics?.isFiltered);
 
   const timeframes: Array<{ key: SpendingTimeframe; label: string }> = [
-    { key: '30D', label: t('transactions.reporting.timeframe.d30') },
-    { key: '90D', label: t('transactions.reporting.timeframe.d90') },
-    { key: '1Y', label: t('transactions.reporting.timeframe.y1') },
+    { key: '30D', label: t('history.reporting.timeframe.d30') },
+    { key: '90D', label: t('history.reporting.timeframe.d90') },
+    { key: '1Y', label: t('history.reporting.timeframe.y1') },
   ];
 
   return (
@@ -111,7 +111,7 @@ function ChartContent({
   if (analytics?.isTransferOnly) {
     return (
       <View style={styles.noticeArea}>
-        <Text style={styles.noticeText}>{t('transactions.reporting.transfersNotice')}</Text>
+        <Text style={styles.noticeText}>{t('history.reporting.transfersNotice')}</Text>
       </View>
     );
   }
@@ -119,7 +119,7 @@ function ChartContent({
     return (
       <View style={styles.centerArea}>
         <Text style={styles.mutedText}>
-          {labels?.emptyText || t('transactions.reporting.donut.empty')}
+          {labels?.emptyText || t('history.reporting.donut.empty')}
         </Text>
       </View>
     );

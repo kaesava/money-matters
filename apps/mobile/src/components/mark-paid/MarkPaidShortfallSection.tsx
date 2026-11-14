@@ -49,7 +49,7 @@ export function MarkPaidShortfallSection({
       <View style={styles.shortfallBanner}>
         <Feather name="alert-triangle" size={16} color={DESIGN_TOKENS.colors.warningDark} style={{ marginTop: 2 }} />
         <Text style={styles.shortfallBannerText}>
-          {t('incomeBillsTabs.insufficientModalMessage', {
+          {t('planTabs.insufficientModalMessage', {
             envelopeName: formattedPoolName,
             amount: formatMobileCurrency(shortfallAmount),
           })}
@@ -57,7 +57,7 @@ export function MarkPaidShortfallSection({
         {shortfallValidation.isValid ? (
           <View style={styles.coveredNote}>
             <Text style={styles.coveredNoteText}>
-              {t('incomeBillsTabs.shortfallCovered', {
+              {t('planTabs.shortfallCovered', {
                 amount: formatMobileCurrency(shortfallAmount),
               })}
             </Text>
@@ -65,7 +65,7 @@ export function MarkPaidShortfallSection({
         ) : shortfallValidation.isOverAllocated ? (
           <View style={styles.partialSurplusWarning}>
             <Text style={styles.partialSurplusWarningText}>
-              ⚠️ {t('incomeBillsTabs.shortfallOverAllocated', {
+              ⚠️ {t('planTabs.shortfallOverAllocated', {
                 amount: formatMobileCurrency(shortfallValidation.difference),
               })}
             </Text>
@@ -73,7 +73,7 @@ export function MarkPaidShortfallSection({
         ) : (
           <View style={styles.partialSurplusWarning}>
             <Text style={styles.partialSurplusWarningText}>
-              ⚠️ {t('incomeBillsTabs.shortfallRemaining', {
+              ⚠️ {t('planTabs.shortfallRemaining', {
                 amount: formatMobileCurrency(shortfallValidation.difference),
               })}
             </Text>
@@ -83,17 +83,17 @@ export function MarkPaidShortfallSection({
 
       <View style={styles.fundingHeaderRow}>
         <Text style={styles.fundingHeaderLabel}>
-          {t('incomeBillsTabs.fundingSourceSelectLabel')}
+          {t('planTabs.fundingSourceSelectLabel')}
         </Text>
         <Text style={styles.fundingHeaderSub}>
-          {t('incomeBillsTabs.hiddenZeroBalanceNote')}
+          {t('planTabs.hiddenZeroBalanceNote')}
         </Text>
       </View>
 
       <View style={styles.accordionContainer}>
         {Object.keys(groupedPools).length === 0 ? (
           <Text style={styles.noPoolsText}>
-            {t('incomeBillsTabs.coverShortfallNoEnvelopes')}
+            {t('planTabs.coverShortfallNoEnvelopes')}
           </Text>
         ) : (
           Object.entries(groupedPools).map(([typeKey, poolsInGroup]) => (
@@ -114,7 +114,7 @@ export function MarkPaidShortfallSection({
 
       <View style={styles.progressCard}>
         <Text style={styles.progressText}>
-          {t('incomeBillsTabs.progressAllocatedHeader', {
+          {t('planTabs.progressAllocatedHeader', {
             allocated: formatMobileCurrency(totalAllocated),
             shortfall: formatMobileCurrency(shortfallAmount),
           })}
@@ -130,12 +130,12 @@ export function MarkPaidShortfallSection({
           ]}
         >
           {shortfallValidation.isValid
-            ? t('incomeBillsTabs.shortfallCovered')
+            ? t('planTabs.shortfallCovered')
             : shortfallValidation.isOverAllocated
-            ? t('incomeBillsTabs.shortfallOverAllocated', {
+            ? t('planTabs.shortfallOverAllocated', {
                 amount: formatMobileCurrency(shortfallValidation.difference),
               })
-            : t('incomeBillsTabs.shortfallRemaining', {
+            : t('planTabs.shortfallRemaining', {
                 amount: formatMobileCurrency(shortfallValidation.difference),
               })}
         </Text>
@@ -145,7 +145,7 @@ export function MarkPaidShortfallSection({
         <View style={styles.overAllocatedBanner}>
           <Feather name="alert-triangle" size={14} color={DESIGN_TOKENS.colors.critical} style={{ marginTop: 1 }} />
           <Text style={styles.overAllocatedBannerText}>
-            {t('incomeBillsTabs.shortfallOverAllocated', {
+            {t('planTabs.shortfallOverAllocated', {
               amount: formatMobileCurrency(shortfallValidation.difference),
             })}
           </Text>

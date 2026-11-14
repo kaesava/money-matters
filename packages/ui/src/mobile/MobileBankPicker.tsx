@@ -56,7 +56,7 @@ export const MobileBankPicker: React.FC<MobileBankPickerProps> = ({
   const [searchQuery, setSearchQuery] = useState('');
   const { locale, currency } = useCurrencyLocale();
 
-  const resolvedAllLabel = allOptionLabel || t('transactions.allBanks');
+  const resolvedAllLabel = allOptionLabel || t('history.allBanks');
   const selectedBank = banks.find((b) => b.id === selectedBankId || b.name === selectedBankId);
 
   const displayLabel = useMemo(() => {
@@ -148,7 +148,7 @@ export const MobileBankPicker: React.FC<MobileBankPickerProps> = ({
                 <Text style={styles.subtitle}>
                   {displayStyle === 'field'
                     ? t('bankAccounts.selectBankAccount')
-                    : t('transactions.filterByBank')}
+                    : t('history.filterByBank')}
                 </Text>
               </View>
               <TouchableOpacity

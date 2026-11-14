@@ -39,7 +39,7 @@ describe('requiresWriteAccess Unit Tests', () => {
   it('throws FORBIDDEN during 7-day read-only grace period (SEC-001)', () => {
     const status: SubscriptionStatusDto = {
       ...baseStatus,
-      status: 'TRIAL_GRACE',
+      status: 'PAST_DUE',
       isGracePeriod: true,
       isPastDue: true,
     };

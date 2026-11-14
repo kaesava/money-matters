@@ -98,7 +98,7 @@ export default function ReportsScreen() {
     { enabled: !!session?.user && hasReports && activeTab === 'spending' }
   );
 
-  const incomeSplitAnalyticsQuery = trpc.getIncomeSplitAnalytics.useQuery(
+  const incomeSplitAnalyticsQuery = trpc.getPaydayPlanAnalytics.useQuery(
     {
       timeframe: planTimeframe,
       bankAccountId: planBankId !== 'ALL' ? planBankId : undefined,
@@ -129,23 +129,23 @@ export default function ReportsScreen() {
 
   const incomeSplitLabels = useMemo(
     () => ({
-      overviewTitle: t('transactions.reporting.incomeSplits.overviewTitle'),
-      overviewSubtitle: t('transactions.reporting.incomeSplits.overviewSubtitle'),
-      filteredOverviewTitle: t('transactions.reporting.incomeSplits.filteredOverviewTitle'),
-      filteredOverviewSubtitle: t('transactions.reporting.incomeSplits.filteredOverviewSubtitle'),
-      donutTitle: t('transactions.reporting.incomeSplits.donutTitle'),
-      filteredDonutTitle: t('transactions.reporting.incomeSplits.filteredDonutTitle'),
-      cashFlowTitle: t('transactions.reporting.incomeSplits.cashFlowTitle'),
-      filteredCashFlowTitle: t('transactions.reporting.incomeSplits.filteredCashFlowTitle'),
-      topPoolsTitle: t('transactions.reporting.incomeSplits.topPoolsTitle'),
-      filteredTopPoolsTitle: t('transactions.reporting.incomeSplits.filteredTopPoolsTitle'),
-      inflowLegend: t('transactions.reporting.incomeSplits.inflow'),
-      outflowLegend: t('transactions.reporting.incomeSplits.sweepOutflow'),
-      centerLabel: t('transactions.reporting.incomeSplits.totalAllocated'),
-      emptyText: t('transactions.reporting.incomeSplits.empty'),
-      tabHorizon: t('transactions.reporting.incomeSplits.tabHorizon'),
-      tabCashFlow: t('transactions.reporting.incomeSplits.tabSweep'),
-      tabTopPools: t('transactions.reporting.incomeSplits.tabTopPools'),
+      overviewTitle: t('history.reporting.incomeSplits.overviewTitle'),
+      overviewSubtitle: t('history.reporting.incomeSplits.overviewSubtitle'),
+      filteredOverviewTitle: t('history.reporting.incomeSplits.filteredOverviewTitle'),
+      filteredOverviewSubtitle: t('history.reporting.incomeSplits.filteredOverviewSubtitle'),
+      donutTitle: t('history.reporting.incomeSplits.donutTitle'),
+      filteredDonutTitle: t('history.reporting.incomeSplits.filteredDonutTitle'),
+      cashFlowTitle: t('history.reporting.incomeSplits.cashFlowTitle'),
+      filteredCashFlowTitle: t('history.reporting.incomeSplits.filteredCashFlowTitle'),
+      topPoolsTitle: t('history.reporting.incomeSplits.topPoolsTitle'),
+      filteredTopPoolsTitle: t('history.reporting.incomeSplits.filteredTopPoolsTitle'),
+      inflowLegend: t('history.reporting.incomeSplits.inflow'),
+      outflowLegend: t('history.reporting.incomeSplits.sweepOutflow'),
+      centerLabel: t('history.reporting.incomeSplits.totalAllocated'),
+      emptyText: t('history.reporting.incomeSplits.empty'),
+      tabHorizon: t('history.reporting.incomeSplits.tabHorizon'),
+      tabCashFlow: t('history.reporting.incomeSplits.tabSweep'),
+      tabTopPools: t('history.reporting.incomeSplits.tabTopPools'),
     }),
     []
   );
@@ -178,7 +178,7 @@ export default function ReportsScreen() {
             <View style={styles.filterRow}>
               <View style={styles.searchWrap}>
                 <SearchInput
-                  placeholder={t('transactions.searchPlaceholder')}
+                  placeholder={t('history.searchPlaceholder')}
                   value={spendingSearch}
                   onChangeText={setSpendingSearch}
                 />
@@ -238,7 +238,7 @@ export default function ReportsScreen() {
             <View style={styles.filterRow}>
               <View style={styles.searchWrap}>
                 <SearchInput
-                  placeholder={t('transactions.searchPaydaysPlaceholder')}
+                  placeholder={t('history.searchPaydaysPlaceholder')}
                   value={planSearch}
                   onChangeText={setPlanSearch}
                 />

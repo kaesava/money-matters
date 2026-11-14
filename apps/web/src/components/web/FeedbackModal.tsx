@@ -138,7 +138,7 @@ export function FeedbackModal({ isOpen, onClose, userEmail = '' }: FeedbackModal
 
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <FormLabel>{t('feedback.categoryLabel')}</FormLabel>
+            <FormLabel>{t('feedback.typeLabel')}</FormLabel>
             <GenericSelectField
               value={category}
               onChange={setCategory}

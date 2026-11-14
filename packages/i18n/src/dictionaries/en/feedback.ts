@@ -4,7 +4,7 @@ export const feedback = {
     "subtitle": "Help shape Money Matters for web and mobile",
     "summaryLabel": "Feedback Summary",
     "summaryPlaceholder": "Brief summary of your feedback or issue...",
-    "categoryLabel": "Envelope",
+    "typeLabel": "Feedback Type",
     "severityLabel": "Severity",
     "descriptionLabel": "Description",
     "descriptionPlaceholder": "Detailed explanation of what happened or what you'd like to see...",

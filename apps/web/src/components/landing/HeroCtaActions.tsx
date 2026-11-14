@@ -23,7 +23,7 @@ function AuthenticatedHeroActions({
           {t("landing.pricingCtaExpired")}
         </Link>
         <Link
-          href="/dashboard/settings?tab=account-data"
+          href="/dashboard/settings?tab=subscription"
           className="w-full sm:w-auto bg-white border border-slate-200 hover:bg-slate-50 text-[#1B2B4B] font-bold px-7 py-4 rounded-2xl transition-all text-sm shadow-2xs cursor-pointer text-center"
         >
           {t("landing.heroCtaTrial")}

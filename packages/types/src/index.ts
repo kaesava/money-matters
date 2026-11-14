@@ -26,7 +26,7 @@ export * from "./projection.types.js";
 export * from "./ledger.types.js";
 export * from "./analytics.types.js";
 export * from "./affordability.types.js";
-export * from "./income-allocation.types.js";
+export * from "./payday-plan.types.js";
 export * from "./allocation-strategy.types.js";
 export * from "./allocation-presets.js";
 export * from "./file-notes.types.js";

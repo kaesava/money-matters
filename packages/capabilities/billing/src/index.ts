@@ -4,7 +4,7 @@ export * from "./commands/create-checkout-session.js";
 export * from "./commands/create-customer-portal-session.js";
 export * from "./commands/activate-subscription.js";
 export * from "./commands/deactivate-tenant.js";
-export * from "./commands/transition-to-free-tier.js";
+export * from "./commands/expire-subscription.js";
 export * from "./guards/ensure-premium.js";
 export * from "./commands/verify-checkout-session.js";
 export * from "./queries/list-invoices.js";

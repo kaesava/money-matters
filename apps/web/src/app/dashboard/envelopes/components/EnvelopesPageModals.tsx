@@ -6,7 +6,7 @@ import { t } from "@money-matters/i18n";
 import { trpc } from "../../../../lib/trpc";
 import { QuickExpenseDrawer as QuickActionDrawer } from "../../../../components/web/QuickExpenseDrawer";
 import { EnvelopeFormModal } from "../../../../components/web/EnvelopeFormModal";
-import { EnvelopeDetailDrawer } from "../../income-and-bills/components/EnvelopeDetailDrawer";
+import { EnvelopeDetailDrawer } from "../../plan/components/EnvelopeDetailDrawer";
 import type { EnvelopeSummaryItem, PoolTableRow } from "../types";
 
 interface EnvelopesPageModalsProps {

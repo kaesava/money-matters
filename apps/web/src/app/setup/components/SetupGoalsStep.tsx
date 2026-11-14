@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import { t } from "@money-matters/i18n";
-import { InfoTooltip, AmountField, GoalModeToggle, ConfirmDialog } from "@money-matters/ui/web";
+import { InfoTooltip, AmountField, EnvelopeModeToggle, ConfirmDialog } from "@money-matters/ui/web";
 import type { UserGoalItem } from "@money-matters/types";
 import { SetupGoalsPresetsGrid, GoalPresetConfig } from "./SetupGoalsPresetsGrid";
 import { SetupGoalItemRow } from "./SetupGoalItemRow";
@@ -153,7 +153,12 @@ export function SetupGoalsStep({
       <div className="p-4 bg-white rounded-2xl border border-zinc-200/80 flex flex-col gap-3">
         <label className="text-xs font-bold text-[#1B2B4B]">{t("setup.goals.addCustomGoal")}</label>
         <div className="max-w-xs">
-          <GoalModeToggle value={customType} onChange={setCustomType} />
+          <EnvelopeModeToggle
+            mode={customType}
+            onChange={setCustomType}
+            targetBalanceLabel={t("envelopes.modeToggle.targetBalance")}
+            recurringLabel={t("envelopes.modeToggle.recurring")}
+          />
         </div>
         <div className="flex flex-col sm:flex-row gap-2">
           <input

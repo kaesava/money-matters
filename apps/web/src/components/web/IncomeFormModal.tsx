@@ -169,17 +169,17 @@ export function IncomeFormModal({ isOpen, onClose, sourceToEdit }: IncomeFormMod
     if (hasPrivateEnvelopes && contributionMode === "PERCENTAGE") {
       const pct = parseFloat(contributionValue);
       if (isNaN(pct) || pct <= 0 || pct > 100) {
-        return setErrorMsg(t("incomeBillsTabs.householdContribution.percentageInvalid"));
+        return setErrorMsg(t("planTabs.householdContribution.percentageInvalid"));
       }
     }
     if (hasPrivateEnvelopes && contributionMode === "FIXED_AMOUNT") {
       const fix = parseFloat(cleanAmount(contributionValue));
       const expAmt = parseFloat(cleanAmount(amount));
       if (isNaN(fix) || fix <= 0) {
-        return setErrorMsg(t("incomeBillsTabs.householdContribution.amountInvalid"));
+        return setErrorMsg(t("planTabs.householdContribution.amountInvalid"));
       }
       if (fix > expAmt) {
-        return setErrorMsg(t("incomeBillsTabs.householdContribution.fixedCannotExceedExpected"));
+        return setErrorMsg(t("planTabs.householdContribution.fixedCannotExceedExpected"));
       }
     }
 
@@ -240,7 +240,7 @@ export function IncomeFormModal({ isOpen, onClose, sourceToEdit }: IncomeFormMod
       isOpen={isOpen}
       onClose={onClose}
       isDirty={isDirty}
-      title={isEdit ? (sourceToEdit?.name || "") : t("incomeBillsTabs.addIncomeSchedule")}
+      title={isEdit ? (sourceToEdit?.name || "") : t("planTabs.addIncomeSchedule")}
       maxWidth="max-w-md"
     >
       <form onSubmit={handleSave} className="space-y-4 text-xs font-semibold">
@@ -278,49 +278,49 @@ export function IncomeFormModal({ isOpen, onClose, sourceToEdit }: IncomeFormMod
         {!hasPrivateEnvelopes ? (
           <div className="rounded-lg bg-slate-50 dark:bg-slate-800/40 p-3 border border-slate-200 dark:border-slate-700/60">
             <p className="text-xs text-slate-500 dark:text-slate-400 font-normal">
-              {t("incomeBillsTabs.householdContribution.allSharedNote")}
+              {t("planTabs.householdContribution.allSharedNote")}
             </p>
           </div>
         ) : (
           <div className="space-y-2 rounded-lg bg-slate-50 dark:bg-slate-800/40 p-3 border border-slate-200 dark:border-slate-700/60">
-            <FormLabel>{t("incomeBillsTabs.householdContribution.title")}</FormLabel>
+            <FormLabel>{t("planTabs.householdContribution.title")}</FormLabel>
             <div className="grid grid-cols-3 gap-1 p-1 bg-slate-200 dark:bg-slate-700 rounded-md text-[11px]">
               <button
                 type="button"
                 onClick={() => setContributionMode("FULL")}
                 className={`py-1.5 px-2 rounded font-medium transition-colors ${contributionMode === "FULL" ? "bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-xs" : "text-slate-600 dark:text-slate-300 hover:text-slate-900"}`}
               >
-                {t("incomeBillsTabs.householdContribution.full")}
+                {t("planTabs.householdContribution.full")}
               </button>
               <button
                 type="button"
                 onClick={() => setContributionMode("PERCENTAGE")}
                 className={`py-1.5 px-2 rounded font-medium transition-colors ${contributionMode === "PERCENTAGE" ? "bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-xs" : "text-slate-600 dark:text-slate-300 hover:text-slate-900"}`}
               >
-                {t("incomeBillsTabs.householdContribution.percentage")}
+                {t("planTabs.householdContribution.percentage")}
               </button>
               <button
                 type="button"
                 onClick={() => setContributionMode("FIXED_AMOUNT")}
                 className={`py-1.5 px-2 rounded font-medium transition-colors ${contributionMode === "FIXED_AMOUNT" ? "bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-xs" : "text-slate-600 dark:text-slate-300 hover:text-slate-900"}`}
               >
-                {t("incomeBillsTabs.householdContribution.fixedAmount")}
+                {t("planTabs.householdContribution.fixedAmount")}
               </button>
             </div>
 
             {contributionMode === "PERCENTAGE" && (
               <div className="pt-2">
                 <Input
-                  label={t("incomeBillsTabs.householdContribution.modeLabel")}
+                  label={t("planTabs.householdContribution.modeLabel")}
                   type="number"
                   min={1}
                   max={100}
                   value={contributionValue}
                   onChange={(e) => setContributionValue(e.target.value)}
-                  placeholder={t("incomeBillsTabs.householdContribution.percentagePlaceholder")}
+                  placeholder={t("planTabs.householdContribution.percentagePlaceholder")}
                 />
                 <p className="mt-1 text-[11px] text-slate-500 dark:text-slate-400 font-normal">
-                  {t("incomeBillsTabs.householdContribution.remainderNote")}
+                  {t("planTabs.householdContribution.remainderNote")}
                 </p>
               </div>
             )}
@@ -328,7 +328,7 @@ export function IncomeFormModal({ isOpen, onClose, sourceToEdit }: IncomeFormMod
             {contributionMode === "FIXED_AMOUNT" && (
               <div className="pt-2">
                 <AmountField
-                  label={t("incomeBillsTabs.householdContribution.modeLabel")}
+                  label={t("planTabs.householdContribution.modeLabel")}
                   value={contributionValue}
                   onChange={setContributionValue}
                   currency={currency}
@@ -336,7 +336,7 @@ export function IncomeFormModal({ isOpen, onClose, sourceToEdit }: IncomeFormMod
                   minorUnits={minorUnits}
                 />
                 <p className="mt-1 text-[11px] text-slate-500 dark:text-slate-400 font-normal">
-                  {t("incomeBillsTabs.householdContribution.remainderNote")}
+                  {t("planTabs.householdContribution.remainderNote")}
                 </p>
               </div>
             )}

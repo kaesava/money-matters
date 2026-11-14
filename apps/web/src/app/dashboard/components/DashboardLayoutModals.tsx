@@ -56,7 +56,7 @@ export function DashboardLayoutModals({
     <>
       {quickExpenseOpen && (
         <QuickExpenseDrawer
-          initialTab={quickExpenseData?.type || (pathname.startsWith("/dashboard/bank-accounts") ? "CREDIT" : "DEBIT")}
+          initialTab={quickExpenseData?.type || (pathname.startsWith("/dashboard/envelopes") ? "CREDIT" : "DEBIT")}
           initialData={quickExpenseData}
           onClose={() => {
             setQuickExpenseOpen(false);
@@ -83,9 +83,9 @@ export function DashboardLayoutModals({
         onNavigatePrefill={(prefill) =>
           handlePennyPrefillNavigation(prefill, router, setQuickExpenseData, setQuickExpenseOpen, hasSimulation)
         }
-        onSelectAccount={() => router.push("/dashboard/bank-accounts")}
+        onSelectAccount={() => router.push("/dashboard/envelopes")}
         onSelectEnvelope={(env) => router.push(`/dashboard/envelopes?poolId=${env.id}`)}
-        onSelectEvent={() => router.push("/dashboard/income-and-bills?tab=timeline")}
+        onSelectEvent={() => router.push("/dashboard/plan?tab=timeline")}
         onSelectTransaction={() => router.push("/dashboard/history")}
         onViewAllTransactions={(q) => router.push(`/dashboard/history?search=${encodeURIComponent(q)}`)}
       />

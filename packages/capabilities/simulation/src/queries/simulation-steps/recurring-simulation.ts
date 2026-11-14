@@ -89,7 +89,7 @@ export function simulateRecurringCommitment(
     }
 
     phantomExpenses.push({
-      poolId: phantomBucket.id,
+      envelopeId: phantomBucket.id,
       amount,
       dueDate: getTenantDateString(d, { timezone }),
       status: "PENDING",

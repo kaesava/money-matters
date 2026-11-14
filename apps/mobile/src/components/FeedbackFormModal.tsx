@@ -151,7 +151,7 @@ export function FeedbackFormModal({ visible, onClose }: FeedbackFormModalProps) 
         />
 
         <View style={styles.inputGroup}>
-          <FormLabel>{t('feedback.categoryLabel')}</FormLabel>
+          <FormLabel>{t('feedback.typeLabel')}</FormLabel>
           <ChipSelect
             options={categoryOptions}
             value={category}

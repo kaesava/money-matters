@@ -20,8 +20,8 @@ import {
   UserPreferencesSchema,
   GetSpendingAnalyticsQuery,
   SpendingAnalyticsDTOSchema,
-  GetIncomeSplitAnalyticsQuerySchema,
-  IncomeSplitAnalyticsDTOSchema,
+  GetPaydayPlanAnalyticsQuerySchema,
+  PaydayPlanAnalyticsDTOSchema,
 } from './index';
 
 describe('Domain Schemas Validation', () => {
@@ -339,11 +339,11 @@ describe('Domain Schemas Validation', () => {
     expect(sampleAnalytics.topPayees[0].name).toBe('Woolworths');
   });
 
-  it('validates GetIncomeSplitAnalyticsQuerySchema and IncomeSplitAnalyticsDTOSchema', () => {
-    const defaultQuery = GetIncomeSplitAnalyticsQuerySchema.parse({});
+  it('validates GetPaydayPlanAnalyticsQuerySchema and PaydayPlanAnalyticsDTOSchema', () => {
+    const defaultQuery = GetPaydayPlanAnalyticsQuerySchema.parse({});
     expect(defaultQuery.timeframe).toBe('90D');
 
-    const filteredQuery = GetIncomeSplitAnalyticsQuerySchema.parse({
+    const filteredQuery = GetPaydayPlanAnalyticsQuerySchema.parse({
       timeframe: '30D',
       bankAccountId: 'bank-123',
       searchQuery: 'Salary',
@@ -352,7 +352,7 @@ describe('Domain Schemas Validation', () => {
     expect(filteredQuery.bankAccountId).toBe('bank-123');
     expect(filteredQuery.searchQuery).toBe('Salary');
 
-    const sampleIncomeSplit = IncomeSplitAnalyticsDTOSchema.parse({
+    const samplePaydayPlan = PaydayPlanAnalyticsDTOSchema.parse({
       timeframe: '30D',
       totalOutflow: 5000,
       totalIncome: 5000,
@@ -376,8 +376,8 @@ describe('Domain Schemas Validation', () => {
       topPayees: [],
       isTransferOnly: false,
     });
-    expect(sampleIncomeSplit.totalIncome).toBe(5000);
-    expect(sampleIncomeSplit.horizonBreakdown.percentages.everyday).toBe(40);
+    expect(samplePaydayPlan.totalIncome).toBe(5000);
+    expect(samplePaydayPlan.horizonBreakdown.percentages.everyday).toBe(40);
   });
 });
 

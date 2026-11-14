@@ -85,30 +85,4 @@ describe("previewPaydayQuery", () => {
       "user-1"
     );
   });
-
-  it("uses overrideAmount when provided for live auto-calculate preview", async () => {
-    const db = createMockDb({
-      id: "evt-1",
-      name: "Salary",
-      expectedDate: "2026-11-20",
-      expectedAmount: "6000.00",
-      actualAmount: null,
-      status: "PENDING",
-      receivingAccountId: "acc-1",
-      bankAccountIsPrivate: false,
-      bankAccountUserId: null,
-    });
-
-    await previewPaydayQuery("evt-1", "tenant-1", "app-1", db, "user-1", 4500);
-
-    expect(mockPreviewAllocation).toHaveBeenCalledWith(
-      "tenant-1",
-      "app-1",
-      "evt-1",
-      4500,
-      db,
-      undefined,
-      "user-1"
-    );
-  });
 });

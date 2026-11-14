@@ -5,13 +5,13 @@ import { useRouter } from "next/navigation";
 import { trpc } from "../../lib/trpc";
 import { t } from "@money-matters/i18n";
 import { useToast } from "@money-matters/ui/web";
-import { BentoPoolsSection } from "./components/BentoPoolsSection";
+import { BentoEnvelopesSection } from "./components/BentoEnvelopesSection";
 import { GoalsProgressStrip } from "./components/GoalsProgressStrip";
 import { NextPaydayCard } from "./components/NextPaydayCard";
 import { AttentionItemsList, WebAttentionItem } from "./components/AttentionItemsList";
-import { PoolItem } from "../../components/ReconciliationModal";
+import { PoolItem } from "../../components/SyncBalanceModal";
 import { DashboardActionStrip } from "./components/DashboardActionStrip";
-import { BalanceMatchNudgeBanner } from "./components/BalanceMatchNudgeBanner";
+import { SyncBalanceNudgeBanner } from "./components/SyncBalanceNudgeBanner";
 import { DashboardModals } from "./components/DashboardModals";
 import { useDashboardData } from "./hooks/useDashboardData";
 import { useDashboardDerivedState } from "./hooks/useDashboardDerivedState";
@@ -153,7 +153,7 @@ export default function DashboardPage() {
     toast.success(t("toasts.transferDeleted"));
   };
 
-  const reconcileMut = trpc.reconcileBankBalance.useMutation();
+  const reconcileMut = trpc.syncBankBalance.useMutation();
 
   const handleOpenEverydayReconciliation = () => {
     const everydayPool = pools.find((p) => p.envelopeType === "EVERYDAY");
@@ -234,12 +234,12 @@ export default function DashboardPage() {
       />
 
       {isBalanceMatchOverdue && (
-        <BalanceMatchNudgeBanner onOpenMatch={handleOpenEverydayReconciliation} />
+        <SyncBalanceNudgeBanner onOpenMatch={handleOpenEverydayReconciliation} />
       )}
 
       <div data-tour="envelopes-row" className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
         <div className="lg:col-span-7">
-          <BentoPoolsSection
+          <BentoEnvelopesSection
             everydayBalance={everydayBalance}
             everydayMonthlyBudget={everydayMonthlyBudget}
             safetyBufferFloor={everydaySafetyBuffer}
@@ -302,7 +302,7 @@ export default function DashboardPage() {
           <NextPaydayCard
             upcomingIncomes={upcomingIncomeList}
             onPressRunSplit={(id: string) => {
-              router.push(`/dashboard/income-split?id=${id}&returnTo=/dashboard`);
+              router.push(`/dashboard/payday-plan?id=${id}&returnTo=/dashboard`);
             }}
             onDeleteIncome={(id: string) => {
               const matched = upcomingIncomeList.find((item) => item.id === id);

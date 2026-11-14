@@ -14,8 +14,8 @@ import { TrialBanner } from '../../components/dashboard/TrialBanner';
 import { MarkPaidModal } from '../../components/MarkPaidModal';
 import { QuickExpenseModal } from '../../components/QuickExpenseModal';
 import { MobileAffordCheckModal } from '../../components/afford-check/MobileAffordCheckModal';
-import { ReconcileNudgeCard } from '../../components/dashboard/attention/ReconcileNudgeCard';
-import { MobileReconciliationModal } from '../../components/envelopes/MobileReconciliationModal';
+import { SyncBalanceNudgeCard } from '../../components/dashboard/attention/SyncBalanceNudgeCard';
+import { MobileSyncBalanceModal } from '../../components/envelopes/MobileSyncBalanceModal';
 import { useHomeData } from '../../components/dashboard/useHomeData';
 import { useHomeModals } from '../../components/dashboard/useHomeModals';
 import { useAppFeatures } from '../../context/useAppFeatures';
@@ -238,7 +238,7 @@ export default function HomeScreen() {
             upcomingIncomes={upcomingIncomeList}
             onPressRunSplit={(id: string) => {
               if (posthog) posthog.capture('payday_wizard_opened');
-              router.push(`/(app)/income-split/${id}` as Href);
+              router.push(`/(app)/payday-plan/${id}` as Href);
             }}
             onDeleteIncome={(id: string) => {
               deleteIncomeMutation.mutate({ eventId: id });
@@ -293,7 +293,7 @@ export default function HomeScreen() {
 
       {/* Reconciliation Modal */}
       {reconcileAccount && (
-        <MobileReconciliationModal
+        <MobileSyncBalanceModal
           visible={true}
           account={reconcileAccount}
           onClose={() => setReconcileAccount(null)}
@@ -349,10 +349,10 @@ export default function HomeScreen() {
           router.push('/(app)/income-and-bills' as Href);
         }}
         onSelectTransaction={() => {
-          router.push('/(app)/transactions' as Href);
+          router.push('/(app)/history' as Href);
         }}
         onViewAllTransactions={(q) => {
-          router.push(`/(app)/transactions?search=${encodeURIComponent(q)}` as Href);
+          router.push(`/(app)/history?search=${encodeURIComponent(q)}` as Href);
         }}
       />
     </AppScreenWrapper>

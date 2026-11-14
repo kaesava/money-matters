@@ -47,7 +47,7 @@ export function AllocationStrategySection() {
       await Promise.all([
         utils.getActiveAllocationStrategy.invalidate(),
         utils.previewPayday.invalidate(),
-        utils.getMatrixProjectionData.invalidate(),
+        utils.getHorizonProjectionData.invalidate(),
         utils.listAllAllocationPlans.invalidate(),
         utils.getHomeSummary.invalidate(),
       ]);

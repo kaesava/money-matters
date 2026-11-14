@@ -11,7 +11,7 @@ import {
 } from '@money-matters/ui/mobile';
 import { t } from '@money-matters/i18n';
 import { formatMobileCurrency, formatDate } from '../lib/format';
-import { MarkPaidTargetPoolCard } from './mark-paid/MarkPaidTargetPoolCard';
+import { MarkPaidTargetEnvelopeCard } from './mark-paid/MarkPaidTargetEnvelopeCard';
 import { MarkPaidShortfallSection } from './mark-paid/MarkPaidShortfallSection';
 import { MarkPaidEvent } from './mark-paid/mark-paid-types';
 import { useMarkPaidForm } from './mark-paid/useMarkPaidForm';
@@ -77,7 +77,7 @@ export function MarkPaidModal({
       visible={visible}
       onClose={onClose}
       isDirty={isDirty}
-      title={t('incomeBillsTabs.markSpentModalTitle')}
+      title={t('planTabs.markSpentModalTitle')}
       footer={
         <View style={styles.footerRow}>
           <MobileButton
@@ -96,7 +96,7 @@ export function MarkPaidModal({
             style={styles.confirmBtn}
           >
             {hasShortfall
-              ? t('incomeBillsTabs.confirmTransferAndSpend')
+              ? t('planTabs.confirmTransferAndSpend')
               : t('common.markSpent')}
           </MobileButton>
         </View>
@@ -105,7 +105,7 @@ export function MarkPaidModal({
       <View style={styles.content}>
         <FormErrorBanner message={generalError} />
 
-        <MarkPaidTargetPoolCard
+        <MarkPaidTargetEnvelopeCard
           poolName={formattedPoolName}
           poolType={formattedPoolType}
           poolBalance={poolBal}
@@ -119,7 +119,7 @@ export function MarkPaidModal({
               autoFocus={true}
               value={actualAmount}
               onChangeText={setActualAmount}
-              error={!isAmountValid && Boolean(actualAmount) ? t('incomeBillsTabs.amountGreaterThanZero') : undefined}
+              error={!isAmountValid && Boolean(actualAmount) ? t('planTabs.amountGreaterThanZero') : undefined}
             />
           </View>
           <View style={styles.flex1}>
@@ -128,7 +128,7 @@ export function MarkPaidModal({
               required
               value={actualDate}
               onChange={setActualDate}
-              error={!isDateValid ? t('incomeBillsTabs.dateCannotBeInFuture') : undefined}
+              error={!isDateValid ? t('planTabs.dateCannotBeInFuture') : undefined}
             />
           </View>
         </View>
@@ -137,7 +137,7 @@ export function MarkPaidModal({
           <View style={styles.infoBanner}>
             <Text style={styles.infoIcon}>ℹ️</Text>
             <Text style={styles.infoText}>
-              {t('incomeBillsTabs.expenseFutureDateAdjustedNotice', {
+              {t('planTabs.expenseFutureDateAdjustedNotice', {
                 date: formatDate(originalDate),
               })}
             </Text>
@@ -176,7 +176,7 @@ export function MarkPaidModal({
           <View style={styles.sufficientBanner}>
             <Feather name="check-circle" size={16} color={DESIGN_TOKENS.colors.successDark} style={{ marginTop: 1 }} />
             <Text style={styles.sufficientText}>
-              {t('incomeBillsTabs.sufficientBalanceNotice', {
+              {t('planTabs.sufficientBalanceNotice', {
                 envelopeName: formattedPoolName,
                 balance: formatMobileCurrency(poolBal),
               })}
