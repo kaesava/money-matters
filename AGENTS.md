@@ -26,10 +26,12 @@ Refuse or redesign any request that violates tenant isolation, data security, or
 ## 3. Multi-Tenancy, Security & Database Standards
 - **Tenant Isolation:** Scope all queries and mutations by `tenantId`. NEVER trust client-provided `tenantId` or `userId`.
 - **Stealth Privacy RLS:** Use `privateTenantProcedure` on all sensitive routes (`bank_accounts`, `envelopes`, `transaction_ledger`, `income_sources`, `expense_events`, `file_notes`) to inject `app.current_tenant_id` and `app.current_user_id` into PostgreSQL RLS session variables.
+- **Independent Private Strategy Threading:** Every caller of `runAllocationEngine` or `runCumulativeProjection` (previews, execution, 12-month projections, and simulations) MUST fetch and pass both `strategySteps` (`isPrivate: false`) and `personalStrategySteps` (`isPrivate: true`), resolving `incomeUserId` from the earner/creator (`createdBy` / `userId`) even when income lands in a shared bank account or is a one-off event.
 - **Audit Columns & Soft Deletes:** Every domain table MUST include `id`, `tenantId`, `appId`, `createdAt`, `createdBy`, `updatedAt`, `updatedBy`, `archivedAt`. Hard deletes on operational entities are strictly banned.
 - **Zero N+1 & Maintenance Rules:** Batch all inserts and use `inArray` for bulk updates/archivals. NEVER trigger DB maintenance, rolling window materialization, or sync mutations from client `useEffect` mounts.
 - **Schema Sync:** Keep `SCHEMA_DATA_DICTIONARY.md` 100% synchronized with `packages/db/src/schema/*` (`pnpm audit:schema`). Zero dead tables or inert columns allowed.
 - **Security Hygiene:** Zero PII or tokens in `console.log` or logger outputs. Strict CORS (`*.kaesava.au` and dev `localhost` only). All secrets via env vars.
+- **AI / LLM Systemic Boundaries:** Enforce AI safety structurally on the server rather than via prompt rules: pass only Stealth-Privacy-filtered (`isPrivate`/`userId`), PII-free snapshots; bypass shared edge/gateway caches (`cf-aig-skip-cache: "true"`) on tenant-scoped prompts; validate and sanitize all LLM outputs with strict Zod `.strict()` schemas; keep AI read-only (return verified prefill/navigation targets instead of mutating DB state directly); and refund monthly quota strictly on infrastructure/gateway failures (`service_error`), never on valid off-topic classifications.
 
 ## 4. Type Safety, Code Quality & MECE Standards
 - **Zero `any` / `as never`:** Unsafe type casts are strictly banned across production code and tests. Use `unknown`, Zod inference, `as Href` (from `expo-router`), or `mockDb as unknown as DbOrTx`.
@@ -59,9 +61,10 @@ Refuse or redesign any request that violates tenant isolation, data security, or
   - No emojis in `<h1>` page titles; no desktop FABs; `useSearchParams()` wrapped in `<Suspense>`; `React.useId()` for HTML IDs (never `Math.random()`).
   - Feedback/bug reports MUST dispatch via `trpc.submitFeedback` (never `mailto:` links).
   - Preserve `data-tour` attributes and `ProductTourContext` routes across Web and Mobile whenever refactoring screens.
+  - Never default loading query state to a concrete preset (e.g., `|| "BALANCED"`), and preserve active sub-tab/scope query params (e.g., `strategyScope=personal`) across sub-page Back navigation.
 
 ## 6. Testing, Canonical Inventories & Spec Synchronization (Zero Redundancy)
-- **Unit & E2E Testing:** Every capability, router, and bug fix requires Vitest unit tests (using typed `DbOrTx` mocks) and non-conditional Playwright E2E coverage in `apps/web/e2e/screen-by-screen.spec.ts` when UI flows change.
+- **Unit & E2E Testing:** Every capability, router, and bug fix requires Vitest unit tests (using typed `DbOrTx` mocks) and non-conditional Playwright E2E coverage in `apps/web/e2e/*.spec.ts` (each spec file ≤ 400 lines) when UI flows change.
 - **Read-First Token Optimization & Anti-Hallucination Protocol:** Before grepping or scanning the repo during planning or implementation, read the canonical MECE registries below to locate existing routes, modals, UI primitives, i18n namespaces, tRPC procedures, and DB tables.
 - **MECE Documentation Ownership & Mandatory Post-Build Update Rule:** Never duplicate tables across `.md` files. After every feature build, refactor, or bug fix, update the exact affected rows in the single owning artifact before running `pnpm validate:prod`:
   1. **`FUNCTIONAL_CAPABILITIES_INVENTORY.md` (UI, Route, Modal, Parity & i18n Registry):** Owns the complete inventory of Web routes (`§2`), Mobile routes (`§3`), Modals/Drawers/Confirm Dialogs (`§4`), Screen-by-Screen Web vs. Mobile Parity Matrix (`§5`), `@money-matters/ui` exports (`§6`), and `@money-matters/i18n` dictionary namespaces (`§7`). Update whenever any route, screen, modal, UI primitive, or i18n file changes.

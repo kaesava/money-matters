@@ -17,6 +17,7 @@ description: Critical architecture interrogation and unambiguous implementation 
    * Map exact `en.ts` i18n keys to reuse, rationalise, or cull.
    * Identify unused files, DB columns/tables, and dead code to delete.
    * Check `ProductTourContext` anchors (`data-tour` / `MOBILE_TOUR_STEPS`) if any targeted screen or layout changes.
+   * Verify target route files (`apps/web/src/app/**/page.tsx` and `apps/mobile/src/app/**`), shared header/layout wrappers (`dashboard/layout.tsx` vs `AppScreenWrapper`), and actual URL query-param handlers before finalizing cross-screen navigation or deep-link prefill steps.
 4. **Output Format:**
    * Deliver **only** a step-by-step, unambiguous implementation plan grouped by workspace package (`packages/db` -> `types` -> `i18n` -> `capabilities` -> `api` -> `ui` -> `web` -> `mobile` -> `docs`), explicitly listing which rows in `FUNCTIONAL_CAPABILITIES_INVENTORY.md`, `TECHNICAL_SPEC.md`, `SCHEMA_DATA_DICTIONARY.md`, and `FUNCTIONAL_SPEC.md` will be updated.
    * **Zero fluff:** No executive summaries, no walkthroughs, and no code modifications during this phase.

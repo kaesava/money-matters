@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { ensureAuthenticatedSession, isAuthenticatedE2E } from './auth.helper';
 
 /**
  * 100% Comprehensive Screen-by-Screen Field-by-Field Playwright E2E Master Suite
@@ -7,13 +8,15 @@ import { test, expect } from '@playwright/test';
  * Every test executes explicit, unconditional assertions.
  */
 
-const isAuthenticatedE2E = process.env.E2E_AUTHENTICATED === '1';
-
 test.describe('100% Comprehensive Field-by-Field Screen-by-Screen E2E Master Suite', () => {
+  test.beforeEach(async ({ page, browser }) => {
+    await ensureAuthenticatedSession(page, browser);
+  });
+
   // ---------------------------------------------------------------------------
-  // 1. PUBLIC MARKETING, LEGAL & PRIVACY GOVERNANCE PAGES
+  // 1. PUBLIC MARKETING, BLOG, LEGAL & PRIVACY GOVERNANCE PAGES
   // ---------------------------------------------------------------------------
-  test.describe('1. Public Marketing, Legal & Privacy Pages (`/`, `/terms`, `/privacy`)', () => {
+  test.describe('1. Public Marketing, Blog, Legal & Privacy Pages (`/`, `/blog`, `/terms`, `/privacy`)', () => {
     test('1.1 Landing Hero Header, SEO Metadata & Navigation Links', async ({ page }) => {
       await page.goto('/');
 
@@ -78,6 +81,28 @@ test.describe('100% Comprehensive Field-by-Field Screen-by-Screen E2E Master Sui
       await page.keyboard.press('Escape');
       await expect(transferModal).not.toBeVisible();
     });
+
+    test('1.6 Blog Index & Article Reader Audit (`/blog`, `/blog/[slug]`)', async ({ page }) => {
+      await page.goto('/blog');
+      await expect(page.getByRole('heading', { level: 1 }).first()).toContainText(
+        /Practical Systems for Household Cashflow/i
+      );
+
+      const firstArticleCard = page.getByRole('article').first();
+      await expect(firstArticleCard).toBeVisible();
+
+      await expect(async () => {
+        if (new URL(page.url()).pathname === '/blog') {
+          await firstArticleCard.click();
+        }
+        await expect(page).toHaveURL(/\/blog\/.+/, { timeout: 2000 });
+      }).toPass({ timeout: 15000 });
+
+      await expect(page.getByRole('heading', { level: 1 }).first()).toBeVisible();
+
+      await page.goto('/blog/non-existent-article-slug-xyz');
+      await expect(page.getByRole('heading', { level: 1, name: /Article Not Found/i })).toBeVisible();
+    });
   });
 
   // ---------------------------------------------------------------------------
@@ -105,8 +130,8 @@ test.describe('100% Comprehensive Field-by-Field Screen-by-Screen E2E Master Sui
     test('2.2 Sign-Up Screen & Password Strength Meter Audit (`/sign-up`)', async ({ page }) => {
       await page.goto('/sign-up');
 
-      const nameInput = page.locator('input[name="name"], input[placeholder*="name"]').first();
-      const emailInput = page.locator('input[type="email"]').first();
+      const nameInput = page.locator('input#signup-name, input[autocomplete="name"], input[name="name"]').first();
+      const emailInput = page.locator('input#signup-email, input[type="email"]').first();
       const passwordInput = page.locator('input[type="password"]').first();
 
       await expect(nameInput).toBeVisible();
@@ -144,7 +169,7 @@ test.describe('100% Comprehensive Field-by-Field Screen-by-Screen E2E Master Sui
       await page.goto('/invite/sample-token-123');
       const joinHouseholdHeader = page.locator('h1:has-text("Join Household"), div:has-text("Join Household")').first();
       await expect(joinHouseholdHeader).toBeVisible();
-      const signUpCTA = page.locator('button:has-text("Sign Up"), a[href*="sign-up"]').first();
+      const signUpCTA = page.locator('button:has-text("Create Account"), a[href*="sign-up"]').first();
       await expect(signUpCTA).toBeVisible();
     });
   });
@@ -161,8 +186,8 @@ test.describe('100% Comprehensive Field-by-Field Screen-by-Screen E2E Master Sui
       }
 
       const nameInput = page.locator('input[placeholder*="Salary"], input[value*="Primary"]').first();
-      const amountInput = page.locator('input[type="number"]').first();
-      const nextBtn = page.locator('button:has-text("Continue"), button:has-text("Next"), button:has-text("Questions")').first();
+      const amountInput = page.locator('input[inputmode="decimal"]').first();
+      const nextBtn = page.locator('button:has-text("Next")').first();
       await expect(nameInput).toBeVisible();
       await nameInput.fill('Engineering Salary');
       await expect(amountInput).toBeVisible();
@@ -177,7 +202,7 @@ test.describe('100% Comprehensive Field-by-Field Screen-by-Screen E2E Master Sui
         return;
       }
 
-      const recalibrateHeader = page.locator('text=Re-calibrate Household Budget').first();
+      const recalibrateHeader = page.locator('text=Update Household Budget').first();
       await expect(recalibrateHeader).toBeVisible();
       await expect(page.locator('text=Step 1 of').first()).toBeVisible();
     });
@@ -194,38 +219,39 @@ test.describe('100% Comprehensive Field-by-Field Screen-by-Screen E2E Master Sui
         return;
       }
 
-      await expect(page.locator('main, div[class*="dashboard"]')).toBeVisible();
-      await expect(page.locator('text=Savings Goals').first()).toBeVisible();
-      await expect(page.locator('text=Next Payday').first()).toBeVisible();
-      await expect(page.locator('text=Bank Balances').first()).toBeVisible();
+      await expect(page.locator('main').first()).toBeVisible();
+      await expect(page.locator('[data-tour="envelopes-row"]')).toBeVisible();
+      await expect(page.locator('text=Goals').first()).toBeVisible();
+      await expect(page.locator('text=Upcoming Income').first()).toBeVisible();
+      await expect(page.locator('text=Everyday Envelope').first()).toBeVisible();
     });
 
     test('4.2 Keyboard Shortcuts Discovery Modal (`?` Key Trigger)', async ({ page }) => {
       test.skip(!isAuthenticatedE2E, 'Requires authenticated E2E session');
       await page.goto('/dashboard');
       await page.keyboard.press('Shift+?');
-      const shortcutsModalHeader = page.locator('text=Keyboard Shortcuts, text=Shortcuts').first();
-      await expect(shortcutsModalHeader).toBeVisible();
+      const shortcutsModal = page.locator('[role="dialog"]').filter({ hasText: /Keyboard Shortcuts/i }).first();
+      await expect(shortcutsModal).toBeVisible();
       await page.keyboard.press('Escape');
-      await expect(shortcutsModalHeader).not.toBeVisible();
+      await expect(shortcutsModal).not.toBeVisible();
     });
 
     test('4.3 "Can I Afford It?" Header Button & Instant Modal Audit', async ({ page }) => {
       test.skip(!isAuthenticatedE2E, 'Requires authenticated E2E session');
       await page.goto('/dashboard');
-      const affordBtn = page.locator('button:has-text("Can I Afford"), a:has-text("Can I Afford")').first();
+      const affordBtn = page.locator('[data-tour="afford-check"], button:has-text("Can I Afford")').first();
       await expect(affordBtn).toBeVisible();
       await affordBtn.click();
 
-      const affordModalTitle = page.locator('h3:has-text("Can I Afford")').first();
-      await expect(affordModalTitle).toBeVisible();
+      const affordModal = page.locator('[role="dialog"]').filter({ hasText: /Can I Afford/i }).first();
+      await expect(affordModal).toBeVisible();
 
-      const amountInput = page.locator('input[type="text"]').first();
+      const amountInput = affordModal.locator('input[inputmode="decimal"]').first();
       await expect(amountInput).toBeVisible();
       await amountInput.fill('180.00');
 
       await page.keyboard.press('Escape');
-      await expect(affordModalTitle).not.toBeVisible();
+      await expect(affordModal).not.toBeVisible();
     });
 
     test('4.4 Settings Re-Trigger Product Tour Button', async ({ page }) => {
@@ -239,7 +265,7 @@ test.describe('100% Comprehensive Field-by-Field Screen-by-Screen E2E Master Sui
       await expect(revisitBtn).toBeVisible();
     });
 
-    test('4.5 Global Search & Ask Penny Command Palette (`⌘K` + Greeting Flow)', async ({ page }) => {
+    test('4.5 Global Search & Ask Penny Command Palette (`⌘K` + Search + Greeting Flow)', async ({ page }) => {
       test.skip(!isAuthenticatedE2E, 'Requires authenticated E2E session');
       await page.goto('/dashboard');
 
@@ -247,14 +273,57 @@ test.describe('100% Comprehensive Field-by-Field Screen-by-Screen E2E Master Sui
       const paletteDialog = page.locator('[role="dialog"]').first();
       await expect(paletteDialog).toBeVisible();
       await expect(paletteDialog.locator('text=Pages & Quick Actions').first()).toBeVisible();
+      await expect(paletteDialog.locator('button:has-text("Bank Accounts")').first()).toBeVisible();
+      await expect(paletteDialog.locator('button:has-text("Envelopes")').first()).toBeVisible();
 
-      const paletteInput = paletteDialog.locator('input[type="text"]').first();
+      const paletteInput = paletteDialog.locator('input').first();
+      await paletteInput.fill('Settings');
+      await expect(
+        paletteDialog.locator('text=Profile, household, billing, and preferences').first()
+      ).toBeVisible();
+
       await paletteInput.fill('Hi');
       await page.keyboard.press('Enter');
 
       await expect(paletteDialog.locator('text=Money Matters assistant').first()).toBeVisible();
       await page.keyboard.press('Escape');
       await expect(paletteDialog).not.toBeVisible();
+    });
+
+    test('4.6 Dashboard `+ Quick Action` Split Menu & Drawer (`/dashboard`)', async ({ page }) => {
+      test.skip(!isAuthenticatedE2E, 'Requires authenticated E2E session');
+      await page.goto('/dashboard');
+
+      const dropdownTrigger = page.locator('button[aria-haspopup="true"][aria-label="+ Quick Action"]').first();
+      await expect(dropdownTrigger).toBeVisible();
+      await dropdownTrigger.click();
+
+      await expect(page.locator('button:has-text("Record Bill or Goal Spend")').first()).toBeVisible();
+      await expect(page.locator('button:has-text("Record Income")').first()).toBeVisible();
+      const transferItem = page.locator('button:has-text("Transfer between Envelopes")').first();
+      await expect(transferItem).toBeVisible();
+      await transferItem.click();
+
+      const drawer = page.locator('[role="dialog"]').first();
+      await expect(drawer).toBeVisible();
+      await expect(drawer.locator('button:has-text("Expense")').first()).toBeVisible();
+      await expect(drawer.locator('button:has-text("Income")').first()).toBeVisible();
+      await expect(drawer.locator('button:has-text("Transfer")').first()).toBeVisible();
+
+      await page.keyboard.press('Escape');
+      await expect(drawer).not.toBeVisible();
+    });
+
+    test('4.7 Scoped Dashboard 404 Page Audit (`/dashboard/invalid-route-xyz`)', async ({ page }) => {
+      await page.goto('/dashboard/invalid-route-xyz');
+      if (!isAuthenticatedE2E) {
+        await expect(page).toHaveURL(/\/sign-in/);
+        return;
+      }
+
+      await expect(page.locator('text=404').first()).toBeVisible();
+      await expect(page.locator('h1').filter({ hasText: /We couldn't find that page/i }).first()).toBeVisible();
+      await expect(page.locator('a[href="/dashboard"]').first()).toBeVisible();
     });
   });
 });

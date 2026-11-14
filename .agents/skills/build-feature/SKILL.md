@@ -23,6 +23,7 @@ description: End-to-end implementation, Web/Mobile parity enforcement, aggressiv
      - **`README.md`**: Update only if top-level workspace topology or CLI scripts changed.
 5. **In-Flight Checks & Production Gate:**
    * Run targeted checks (`pnpm check-i18n`, `pnpm typecheck`, `pnpm lint`, `pnpm test`) as you build. Clear `apps/mobile/.tsbuildinfo` if workspace exports changed.
+   * Whenever Web routes, tabs, form fields, modals, or primary CTAs change, inspect `apps/web/e2e/*.spec.ts` against live components and `@money-matters/i18n` keys (following the `playwright-e2e` skill) and verify registration with `pnpm --filter @money-matters/web exec playwright test --list`.
    * Before finishing, run **`pnpm validate:prod`** and fix any failures iteratively until it exits `0`.
 6. **Git Commit Protocol:**
    * Once `pnpm validate:prod` passes, stage and commit all changes locally with a conventional commit message (`feat:`, `fix:`, `refactor:`).
