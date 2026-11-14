@@ -16,6 +16,10 @@ export const apps = pgTable("apps", {
   slug: varchar("slug", { length: 255 }).notNull().unique(),
   featureFlags: jsonb("feature_flags").$type<AppFeatureFlags>().default(DEFAULT_APP_FEATURE_FLAGS).notNull(),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  createdBy: uuid("created_by"),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedBy: uuid("updated_by"),
+  archivedAt: timestamp("archived_at", { withTimezone: true }),
+  archivedBy: uuid("archived_by"),
 });
 

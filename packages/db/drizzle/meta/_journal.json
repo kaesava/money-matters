@@ -400,6 +400,20 @@
       "when": 1784328494251,
       "tag": "0057_expense_events_scheduled_unique_idx",
       "breakpoints": true
+    },
+    {
+      "idx": 57,
+      "version": "7",
+      "when": 1784338494251,
+      "tag": "0058_harden_rls_and_stealth_privacy",
+      "breakpoints": true
+    },
+    {
+      "idx": 58,
+      "version": "7",
+      "when": 1784348494251,
+      "tag": "0059_standardize_audit_columns_and_app_id",
+      "breakpoints": true
     }
   ]
 }

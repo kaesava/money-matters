@@ -17,6 +17,9 @@ export const users = pgTable("users", {
   avatarUrl: text("avatar_url"),
   hasUsedTrial: boolean("has_used_trial").notNull().default(false),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  createdBy: uuid("created_by"),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedBy: uuid("updated_by"),
   archivedAt: timestamp("archived_at", { withTimezone: true }),
+  archivedBy: uuid("archived_by"),
 });

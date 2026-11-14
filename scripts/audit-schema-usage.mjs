@@ -113,7 +113,57 @@ if (deadColumns.length > 0) {
     console.error(`  - Table: ${dead.table} | Column: ${dead.column} (${dead.file})`);
   }
   process.exit(1);
-} else {
-  console.log("✅ Zero Dead Code Policy Verified: All active schema columns are consumed.");
-  process.exit(0);
 }
+
+// Verify 1-to-1 column parity with SCHEMA_DATA_DICTIONARY.md
+const dictPath = path.join(rootDir, "SCHEMA_DATA_DICTIONARY.md");
+const dictContent = fs.readFileSync(dictPath, "utf8");
+const dictSections = new Map();
+for (const section of dictContent.split(/^## Table: `/m).slice(1)) {
+  const tableName = section.split("`")[0];
+  const cols = [];
+  for (const line of section.split("\n")) {
+    const m = line.match(/^\|\s*`([^`]+)`\s*\|/);
+    if (m) cols.push(m[1]);
+  }
+  dictSections.set(tableName, cols);
+}
+
+const dictErrors = [];
+for (const file of schemaFiles) {
+  if (file.endsWith(".test.ts")) continue;
+  const content = fs.readFileSync(path.join(schemaDir, file), "utf8");
+  const tableMatch = content.match(/export\s+const\s+\w+\s*=\s*pgTable\s*\(\s*["']([^"']+)["']/);
+  if (!tableMatch) continue;
+  const tableName = tableMatch[1];
+  const schemaCols = [];
+  const colRx = /^\s+([a-zA-Z0-9_]+):\s*(?:text|varchar|integer|numeric|boolean|timestamp|date|uuid|jsonb|pgEnum|\w+Enum)\s*\(/gm;
+  let m;
+  while ((m = colRx.exec(content)) !== null) schemaCols.push(m[1]);
+  if (content.includes("...tenantAndTimestamps")) {
+    schemaCols.push("tenantId", "appId", "createdAt", "createdBy", "updatedAt", "updatedBy", "archivedAt", "archivedBy");
+  } else if (content.includes("...timestamps")) {
+    schemaCols.push("createdAt", "createdBy", "updatedAt", "updatedBy", "archivedAt", "archivedBy");
+  }
+
+  const dictCols = dictSections.get(tableName);
+  if (!dictCols) {
+    dictErrors.push(`Missing section for table '${tableName}' in SCHEMA_DATA_DICTIONARY.md`);
+    continue;
+  }
+  const dupes = dictCols.filter((c, i) => dictCols.indexOf(c) !== i);
+  if (dupes.length) dictErrors.push(`Table '${tableName}' has duplicate dictionary rows: ${dupes.join(", ")}`);
+  const missing = schemaCols.filter((c) => !dictCols.includes(c));
+  if (missing.length) dictErrors.push(`Table '${tableName}' missing in dictionary: ${missing.join(", ")}`);
+  const extra = dictCols.filter((c) => !schemaCols.includes(c));
+  if (extra.length) dictErrors.push(`Table '${tableName}' has phantom dictionary columns: ${extra.join(", ")}`);
+}
+
+if (dictErrors.length > 0) {
+  console.error("❌ SCHEMA_DATA_DICTIONARY.md parity check failed:");
+  for (const err of dictErrors) console.error(`  - ${err}`);
+  process.exit(1);
+}
+
+console.log("✅ Zero Dead Code Policy & SCHEMA_DATA_DICTIONARY.md 1-to-1 parity verified.");
+process.exit(0);

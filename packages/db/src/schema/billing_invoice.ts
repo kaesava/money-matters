@@ -12,6 +12,7 @@ export const billingInvoices = pgTable(
     tenantId: uuid("tenant_id")
       .notNull()
       .references(() => tenants.id),
+    appId: uuid("app_id").notNull().default("01908bde-34bb-7b19-a178-574211bc93aa"),
     stripeInvoiceId: varchar("stripe_invoice_id", { length: 255 }).notNull().unique(),
     stripeCustomerId: varchar("stripe_customer_id", { length: 255 }).notNull(),
     stripeSubscriptionId: varchar("stripe_subscription_id", { length: 255 }),
@@ -28,6 +29,7 @@ export const billingInvoices = pgTable(
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
     updatedBy: uuid("updated_by"),
     archivedAt: timestamp("archived_at", { withTimezone: true }),
+    archivedBy: uuid("archived_by"),
   },
   (table) => [
     index("billing_invoices_tenant_id_idx").on(table.tenantId),

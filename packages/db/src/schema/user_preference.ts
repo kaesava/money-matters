@@ -23,4 +23,6 @@ export const userPreferences = pgTable("user_preferences", {
   createdBy: uuid("created_by"),
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
   updatedBy: uuid("updated_by"),
+  archivedAt: timestamp("archived_at", { withTimezone: true }),
+  archivedBy: uuid("archived_by"),
 });

@@ -17,6 +17,7 @@ coverage/
 .aider*
 test_credentials.txt
 seed_credentials.local.md
+*.local.md
 *.credentials.local.*
 *.tsbuildinfo
 .tsbuildinfo
