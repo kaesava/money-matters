@@ -217,13 +217,13 @@ All user-facing copy lives in `packages/i18n/src/dictionaries/en/*.ts` (re-expor
 | `envelopes.ts` | `envelopes`, `categories`, `categoryDrawer`, `drawers`, `modals`, `poolTypes`, `quickPick`, `goalModes` | 309 | 290 (201) | 271 (177) | 0 (0) | 82 (42) |
 | `feedback.ts` | `feedback` | 26 | 25 (25) | 25 (25) | 0 (0) | 0 (0) |
 | `fileNotes.ts` | `fileNotes` | 16 | 2 (2) | 2 (1) | 0 (0) | 27 (16) |
-| `incomeBills.ts` | `incomeBillsTabs`, `incomeAndBills`, `schedules`, `matrix`, `billCoverage`, `expenseStatus` | 133 | 75 (66) | 100 (81) | 0 (0) | 11 (16) |
+| `plan.ts` | `planTabs`, `incomeAndBills`, `schedules`, `matrix`, `billCoverage`, `expenseStatus` | 133 | 75 (66) | 100 (81) | 0 (0) | 11 (16) |
 | `landing.ts` | `landing` | 292 | 230 (192) | 5 (3) | 0 (0) | 0 (0) |
 | `payday.ts` | `payday`, `paydayDrawer`, `paychecks` | 99 | 86 (75) | 103 (79) | 0 (0) | 14 (8) |
 | `privacy.ts` | `privacy`, `terms`, `public` | 144 | 136 (135) | 22 (21) | 0 (5) | 4 (4) |
 | `reports.ts` | `reports` | 18 | 12 (9) | 8 (8) | 0 (0) | 0 (0) |
-| `settings.ts` | `settings`, `subscription`, `notifications`, `bankAccounts` | 382 | 341 (281) | 294 (247) | 4 (3) | 16 (22) |
+| `settings.ts` + `settings-sections.ts` | `settings`, `subscription`, `notifications`, `bankAccounts` | 382 | 341 (281) | 294 (247) | 4 (3) | 16 (22) |
 | `setup.ts` | `setup` | 176 | 177 (151) | 169 (153) | 0 (0) | 5 (9) |
 | `tour.ts` | `tour` | 38 | 7 (33) | 7 (33) | 0 (0) | 12 (5) |
-| `transactions.ts` | `transactions`, `canIAfford` | 177 | 133 (101) | 101 (84) | 0 (0) | 78 (43) |
+| `history.ts` | `transactions`, `canIAfford` | 177 | 133 (101) | 101 (84) | 0 (0) | 78 (43) |
 | **Total** | **47 Top-Level Namespaces across 16 Files** | **2,260** | **2,036 (1,554)** | **1,642 (1,165)** | **4 (17)** | **441 (245)** |

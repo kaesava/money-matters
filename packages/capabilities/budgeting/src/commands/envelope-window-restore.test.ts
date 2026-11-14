@@ -19,7 +19,7 @@ describe("Envelope Lifecycle & Event Sync", () => {
         from: vi.fn().mockReturnValue({
           where: vi.fn().mockImplementation(() => ({
             limit: vi.fn().mockResolvedValue([{ timezone: "Australia/Sydney" }]),
-            then: (resolve: any) => {
+            then: (resolve: (v: Record<string, unknown>[]) => void) => {
               queriedGenerateEvents = true;
               return Promise.resolve([]).then(resolve);
             },
@@ -42,7 +42,7 @@ describe("Envelope Lifecycle & Event Sync", () => {
     let insertedEvents = false;
     const mockDb = {
       select: vi.fn().mockReturnValue({
-        from: vi.fn().mockImplementation((table: any) => {
+        from: vi.fn().mockImplementation((table: unknown) => {
           if (table === tenants) {
             return {
               where: vi.fn().mockReturnValue({
@@ -89,12 +89,12 @@ describe("Envelope Lifecycle & Event Sync", () => {
   });
 
   it("maintainRollingWindowCommand incrementally bursts only occurrences strictly after lastBurstDate", async () => {
-    let insertedExpensePayloads: any[] = [];
-    let updatedEnvelopePayload: any = null;
+    let insertedExpensePayloads: Array<Record<string, unknown>> = [];
+    let updatedEnvelopePayload = null as Record<string, unknown> | null;
 
     const mockDb = {
       select: vi.fn().mockReturnValue({
-        from: vi.fn().mockImplementation((table: any) => ({
+        from: vi.fn().mockImplementation((table: unknown) => ({
           where: vi.fn().mockImplementation(() => {
             if (table === tenants) {
               return { limit: vi.fn().mockResolvedValue([{ timezone: "Australia/Sydney" }]) };
@@ -124,14 +124,14 @@ describe("Envelope Lifecycle & Event Sync", () => {
         })),
       }),
       insert: vi.fn().mockImplementation(() => ({
-        values: vi.fn().mockImplementation((payloads: any[]) => {
+        values: vi.fn().mockImplementation((payloads: Record<string, unknown>[]) => {
           insertedExpensePayloads = payloads;
           return Promise.resolve(payloads);
         }),
       })),
       update: vi.fn().mockReturnValue({
-        set: vi.fn().mockImplementation((payload: any) => {
-          updatedEnvelopePayload = payload;
+        set: vi.fn().mockImplementation((payload: unknown) => {
+          updatedEnvelopePayload = payload as Record<string, unknown>;
           return {
             where: vi.fn().mockResolvedValue([]),
           };
@@ -150,21 +150,21 @@ describe("Envelope Lifecycle & Event Sync", () => {
     expect(res.expenseEventsCreated).toBeGreaterThan(0);
     // All inserted events must have expectedDate > 2026-06-01
     for (const ev of insertedExpensePayloads) {
-      expect(ev.expectedDate > "2026-06-01").toBe(true);
+      expect(String(ev.expectedDate) > "2026-06-01").toBe(true);
     }
     // Verify lastBurstDate on envelope is advanced
     expect(updatedEnvelopePayload).toBeDefined();
-    expect(updatedEnvelopePayload.lastBurstDate > "2026-06-01").toBe(true);
+    expect(String(updatedEnvelopePayload?.lastBurstDate) > "2026-06-01").toBe(true);
   });
 
   it("restoreItemCommand bursts all occurrences from startDate even when restored item had past startDate", async () => {
-    let insertedExpensePayloads: any[] = [];
+    let insertedExpensePayloads: Array<Record<string, unknown>> = [];
     const pastStartDate = "2026-01-01";
     const todayAest = new Intl.DateTimeFormat("en-CA", { timeZone: "Australia/Sydney" }).format(new Date());
 
     const mockDb = {
       select: vi.fn().mockReturnValue({
-        from: vi.fn().mockImplementation((table: any) => {
+        from: vi.fn().mockImplementation((table: unknown) => {
           if (table === tenants) {
             return {
               where: vi.fn().mockReturnValue({
@@ -202,7 +202,7 @@ describe("Envelope Lifecycle & Event Sync", () => {
         }),
       }),
       insert: vi.fn().mockImplementation(() => ({
-        values: vi.fn().mockImplementation((payloads: any[]) => {
+        values: vi.fn().mockImplementation((payloads: Record<string, unknown>[]) => {
           insertedExpensePayloads = payloads;
           return Promise.resolve(payloads);
         }),
@@ -213,7 +213,7 @@ describe("Envelope Lifecycle & Event Sync", () => {
     expect(insertedExpensePayloads.length).toBeGreaterThan(0);
     // Restored events burst from startDate forward (including past startDate occurrences)
     expect(insertedExpensePayloads[0].expectedDate).toBe(pastStartDate);
-    expect(insertedExpensePayloads.some((ev) => ev.expectedDate < todayAest)).toBe(true);
+    expect(insertedExpensePayloads.some((ev) => String(ev.expectedDate) < todayAest)).toBe(true);
   });
 
 });

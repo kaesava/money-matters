@@ -1,3 +1,4 @@
+import { getTenantDateString } from "../../lib/format";
 import React from 'react';
 import {
   View,
@@ -36,7 +37,7 @@ const FREQ_LABELS: Record<Frequency, string> = {
 
 function getDefaultStartDate(): string {
   const tz = getMobileLocaleConfig().timezone;
-  return new Intl.DateTimeFormat('en-CA', { timeZone: tz }).format(new Date());
+  return getTenantDateString(new Date(), { timezone: tz });
 }
 
 export default function SetupIncomeScreen() {

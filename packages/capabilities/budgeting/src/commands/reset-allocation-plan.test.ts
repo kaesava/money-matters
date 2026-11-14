@@ -1,3 +1,4 @@
+import type { DbOrTx } from "@money-matters/db";
 import { describe, it, expect, vi } from "vitest";
 import { resetAllocationPlanCommand } from "./reset-allocation-plan.command.js";
 
@@ -27,7 +28,7 @@ describe("resetAllocationPlanCommand", () => {
       "event-123",
       "tenant-1",
       "app-1",
-      mockDb as any
+      mockDb as unknown as DbOrTx
     );
 
     expect(res).toEqual({ success: true, count: 1, planId: "plan-123" });
@@ -54,7 +55,7 @@ describe("resetAllocationPlanCommand", () => {
       "event-123",
       "tenant-1",
       "app-1",
-      mockDb as any
+      mockDb as unknown as DbOrTx
     );
 
     expect(res).toEqual({ success: true, count: 0 });

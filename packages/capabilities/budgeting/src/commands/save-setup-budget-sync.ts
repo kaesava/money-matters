@@ -1,3 +1,4 @@
+import { DEFAULT_TIMEZONE } from "@money-matters/types";
 import { DbOrTx, expenseEvents, incomeEvents, envelopes, incomeSources } from "@money-matters/db";
 import { and, eq, inArray, sql } from "drizzle-orm";
 import { getTenantDateString } from "@money-matters/core";
@@ -67,7 +68,7 @@ export async function synchronizeUpdatedIncomeEvents(
         )
       );
 
-    const tz = params.timeZone || "Australia/Sydney";
+    const tz = params.timeZone || DEFAULT_TIMEZONE;
     const todayStr = getTenantDateString(params.now, { timezone: tz });
     const yesterdayStr = getTenantDateString(new Date(params.now.getTime() - 86400000), { timezone: tz });
     const afterDateStr = params.startDate < todayStr ? yesterdayStr : null;

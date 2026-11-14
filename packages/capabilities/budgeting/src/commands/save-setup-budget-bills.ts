@@ -1,3 +1,4 @@
+import { DEFAULT_TIMEZONE } from "@money-matters/types";
 import { DbOrTx, expenseEvents, envelopes } from "@money-matters/db";
 import { and, eq, sql } from "drizzle-orm";
 import {
@@ -15,7 +16,7 @@ export async function processSetupScheduledBills(
   appId: string,
   userId: string,
   now: Date,
-  timeZone: string = "Australia/Sydney"
+  timeZone: string = DEFAULT_TIMEZONE
 ): Promise<number> {
   const existingScheduledEvents = await tx
     .select({

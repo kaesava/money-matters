@@ -1,3 +1,4 @@
+import { DEFAULT_TIMEZONE } from "@money-matters/types";
 import { DbOrTx, incomeSources, envelopes, tenants } from "@money-matters/db";
 import { and, eq, or, sql } from "drizzle-orm";
 import { getTenantDateString } from "@money-matters/core";
@@ -23,7 +24,7 @@ export async function maintainRollingWindowCommand({
     .from(tenants)
     .where(eq(tenants.id, tenantId))
     .limit(1);
-  const tenantTz = tenantRecord?.timezone || "Australia/Sydney";
+  const tenantTz = tenantRecord?.timezone || DEFAULT_TIMEZONE;
   const getLocalDateString = (d: Date = new Date()) => getTenantDateString(d, { timezone: tenantTz });
   const todayStr = getLocalDateString();
 

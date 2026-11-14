@@ -3,7 +3,7 @@ import { eq, and, sql, gte, lte } from "drizzle-orm";
 import { getTenantDateString } from "@money-matters/core";
 import { burstEnvelopeEvents } from "./envelope-schedule.js";
 import { burstIncomeEvents } from "./income-schedule.js";
-import { DEFAULT_APP_FEATURE_FLAGS } from "@money-matters/types";
+import { DEFAULT_APP_FEATURE_FLAGS, DEFAULT_TIMEZONE } from "@money-matters/types";
 
 export async function restoreItemCommand(
   itemId: string,
@@ -19,7 +19,7 @@ export async function restoreItemCommand(
     .from(tenants)
     .where(eq(tenants.id, tenantId))
     .limit(1);
-  const tenantTz = tenantRecord?.timezone || "Australia/Sydney";
+  const tenantTz = tenantRecord?.timezone || DEFAULT_TIMEZONE;
   const getLocalDateString = (d: Date = new Date()) => getTenantDateString(d, { timezone: tenantTz });
   const todayStr = getLocalDateString();
   const yesterday = new Date(Date.now() - 86400000);

@@ -1,4 +1,6 @@
 "use client";
+import { getTenantDateString } from "@money-matters/core";
+
 
 import { useEffect } from "react";
 import { trpc } from "../../../lib/trpc";
@@ -105,7 +107,7 @@ export function useSetupWizardPrepopulation({
             budgetFrequency: (g.budgetFrequency as "MONTHLY" | "WEEKLY" | "FORTNIGHTLY" | "QUARTERLY" | "ANNUALLY" | null) || undefined,
             startDate: g.startDate,
             rrule: g.rrule,
-            dueDate: isOngoing ? null : (g.endDate || new Intl.DateTimeFormat("en-CA").format(new Date(Date.now() + 365 * 24 * 60 * 60 * 1000))),
+            dueDate: isOngoing ? null : (g.endDate || getTenantDateString(new Date(Date.now() + 365 * 24 * 60 * 60 * 1000))),
           };
         })
       );

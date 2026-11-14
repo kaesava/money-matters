@@ -5,7 +5,7 @@ import {
   deleteUpcomingEventCommand,
   saveBulkAllocationsCommand,
   saveAutoAllocationCommand,
-  getMatrixProjectionDataQuery,
+  getHorizonProjectionDataQuery,
 } from "@money-matters/capability-budgeting";
 import {
   OverrideEventCommand,
@@ -69,6 +69,6 @@ export const paydayHorizonProcedures = {
   getHorizonProjectionData: privateTenantProcedure
     .input(z.object({ monthsAhead: z.number().optional().default(12) }).strict())
     .query(async ({ input, ctx }) => {
-      return await getMatrixProjectionDataQuery(ctx.tenantId!, ctx.appId!, ctx.userId!, input.monthsAhead, ctx.db);
+      return await getHorizonProjectionDataQuery(ctx.tenantId!, ctx.appId!, ctx.userId!, input.monthsAhead, ctx.db);
     }),
 };

@@ -1,4 +1,6 @@
 "use client";
+import { getTenantDateString } from "@money-matters/core";
+
 
 import { useState, useEffect, useMemo } from "react";
 import { parseRecurrenceRule, buildRecurrenceRule, RecurrenceFrequency } from "@money-matters/ui/web";
@@ -98,7 +100,7 @@ export function useEnvelopeFormModalState({
       setTargetDate("");
       setFrequency("MONTHLY");
       setInterval(1);
-      setGoalStartDate(new Intl.DateTimeFormat("en-CA").format(new Date()));
+      setGoalStartDate(getTenantDateString(new Date()));
       setIsSurplusTarget(false);
       setIsPriority(false);
       setGenerateEvents(true);
@@ -246,7 +248,7 @@ export function useEnvelopeFormModalState({
     generateEvents,
   ]);
 
-  const todayStr = useMemo(() => new Intl.DateTimeFormat("en-CA").format(new Date()), []);
+  const todayStr = useMemo(() => getTenantDateString(new Date()), []);
   const isTargetDateInPast = useMemo(() => {
     return Boolean(type === "GOAL" && fundingMode === "TARGET_BALANCE" && targetDate && targetDate < todayStr);
   }, [type, fundingMode, targetDate, todayStr]);

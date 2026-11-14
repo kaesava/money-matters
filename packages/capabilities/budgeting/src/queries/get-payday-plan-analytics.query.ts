@@ -23,7 +23,7 @@ export interface IncomeSplitAnalyticsFilterParams {
   envelopeId?: string;
 }
 
-export async function getIncomeSplitAnalyticsQuery(
+export async function getPaydayPlanAnalyticsQuery(
   tenantId: string,
   appId: string,
   params: IncomeSplitAnalyticsFilterParams,

@@ -1,7 +1,7 @@
 import { envelopes, bankAccounts, tenants, DbOrTx } from "@money-matters/db";
 import { eq, and } from "drizzle-orm";
 import { z } from "zod";
-import { CreateEnvelopeCommand } from "@money-matters/types";
+import { CreateEnvelopeCommand, DEFAULT_TIMEZONE } from "@money-matters/types";
 import { deriveRruleFromFrequency, computeDefaultStartDate, burstEnvelopeEvents } from "./envelope-schedule.js";
 
 export async function createEnvelopeCommand(
@@ -53,13 +53,13 @@ export async function createEnvelopeCommand(
     const isPriority = input.isPriority ?? false;
 
     const isScheduled = input.envelopeType === "BILL" && fundingMode === "RECURRING";
-    let tenantTz = "Australia/Sydney";
+    let tenantTz = DEFAULT_TIMEZONE;
     if (isScheduled && !input.startDate) {
       const [tenantRecord] = await tx
         .select({ timezone: tenants.timezone })
         .from(tenants)
         .where(eq(tenants.id, tenantId));
-      tenantTz = tenantRecord?.timezone || "Australia/Sydney";
+      tenantTz = tenantRecord?.timezone || DEFAULT_TIMEZONE;
     }
     const rrule = isScheduled
       ? input.rrule || deriveRruleFromFrequency(input.budgetFrequency)

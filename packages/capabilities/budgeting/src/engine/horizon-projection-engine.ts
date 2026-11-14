@@ -1,3 +1,5 @@
+import { getCachedDateFormat } from "@money-matters/core";
+import { DEFAULT_LOCALE } from "@money-matters/types";
 import { EngineBucket } from "./allocation-engine.js";
 import {
   runCumulativeProjection,
@@ -96,7 +98,7 @@ export function computeMatrixProjection(input: MatrixProjectionInput): MatrixPro
   }
 
   const tz = input.timezone || "UTC";
-  const loc = input.locale && input.locale !== "auto" ? input.locale : undefined;
+  const loc = input.locale && input.locale !== "auto" ? input.locale : DEFAULT_LOCALE;
 
   for (const step of projectionResult.steps) {
     const evt = step.incomeEvent;
@@ -104,7 +106,7 @@ export function computeMatrixProjection(input: MatrixProjectionInput): MatrixPro
     try {
       const dateObj = new Date(step.date + "T00:00:00");
       if (!isNaN(dateObj.getTime())) {
-        dateLabel = new Intl.DateTimeFormat(loc, { day: "numeric", month: "short", timeZone: tz }).format(dateObj);
+        dateLabel = getCachedDateFormat(loc, { day: "numeric", month: "short", timeZone: tz }).format(dateObj);
       }
     } catch (_err) {
       // Keep fallback

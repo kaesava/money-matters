@@ -1,3 +1,4 @@
+import { DEFAULT_TIMEZONE, DEFAULT_LOCALE } from "@money-matters/types";
 import { useState, useMemo } from "react";
 import { useRouter, type Href } from "expo-router";
 import { usePostHog } from "posthog-react-native";
@@ -14,9 +15,9 @@ export function useSignUpForm() {
 
   const detectedTimezone = useMemo(() => {
     try {
-      return Intl.DateTimeFormat().resolvedOptions().timeZone || "Australia/Sydney";
+      return Intl.DateTimeFormat().resolvedOptions().timeZone || DEFAULT_TIMEZONE;
     } catch {
-      return "Australia/Sydney";
+      return DEFAULT_TIMEZONE;
     }
   }, []);
 

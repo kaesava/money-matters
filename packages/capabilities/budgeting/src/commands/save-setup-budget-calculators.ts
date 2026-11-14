@@ -1,4 +1,6 @@
 import { DbOrTx, expenseEvents, incomeEvents } from "@money-matters/db";
+import { getCachedDateFormat, getTenantDateString } from "@money-matters/core";
+import { DEFAULT_TIMEZONE } from "@money-matters/types";
 import { randomUUID } from "crypto";
 import { generateBurstDates } from "../engine/burst-engine.js";
 
@@ -19,15 +21,15 @@ export function computeBillScheduleAnchorDate(
 ): string {
   if (budgetFrequency === "WEEKLY") {
     const target = new Date(refDate.getTime() + 7 * 24 * 60 * 60 * 1000);
-    return new Intl.DateTimeFormat("en-CA", { timeZone }).format(target);
+    return getTenantDateString(target, { timezone: timeZone });
   }
   if (budgetFrequency === "FORTNIGHTLY") {
     const target = new Date(refDate.getTime() + 14 * 24 * 60 * 60 * 1000);
-    return new Intl.DateTimeFormat("en-CA", { timeZone }).format(target);
+    return getTenantDateString(target, { timezone: timeZone });
   }
 
   // Monthly / Quarterly / Annually: 1st of next month in dynamic timezone
-  const parts = new Intl.DateTimeFormat("en-CA", {
+  const parts = getCachedDateFormat("en-CA", {
     timeZone,
     year: "numeric",
     month: "numeric",
@@ -131,7 +133,7 @@ export function buildIncomeEventPayloads(
   appId: string,
   userId: string,
   now: Date,
-  timeZone: string = "Australia/Sydney"
+  timeZone: string = DEFAULT_TIMEZONE
 ) {
   const eventsToInsert: Array<typeof incomeEvents.$inferInsert> = [];
 
@@ -140,7 +142,7 @@ export function buildIncomeEventPayloads(
     const burstDates = generateBurstDates(item.rrule, item.startDate, item.endDate || null, 12);
 
     for (const d of burstDates) {
-      const dateStr = new Intl.DateTimeFormat("en-CA", { timeZone }).format(d);
+      const dateStr = getTenantDateString(d, { timezone: timeZone });
       if (existingDates.has(dateStr)) continue;
 
       eventsToInsert.push({

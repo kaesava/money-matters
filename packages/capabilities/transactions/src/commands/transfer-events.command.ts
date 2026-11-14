@@ -1,3 +1,4 @@
+import { DEFAULT_TIMEZONE } from "@money-matters/types";
 import { transferEvents, envelopes, bankAccounts, tenants, type DbOrTx } from "@money-matters/db";
 import { getTenantDateString } from "@money-matters/core";
 import { and, eq, sql } from "drizzle-orm";
@@ -76,7 +77,7 @@ export async function createTransferSourceCommand(
     .where(eq(tenants.id, tenantId))
     .limit(1);
 
-  const tenantTz = tenantRecord?.timezone || "Australia/Sydney";
+  const tenantTz = tenantRecord?.timezone || DEFAULT_TIMEZONE;
   const transferName = input.name || `Transfer: ${sourceEnv.name} ➔ ${destEnv.name}`;
   const eventDate = input.startDate || getTenantDateString(new Date(), { timezone: tenantTz });
 

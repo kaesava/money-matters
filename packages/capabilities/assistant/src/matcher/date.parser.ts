@@ -1,10 +1,12 @@
+import { DEFAULT_TIMEZONE } from "@money-matters/types";
+import { getCachedDateFormat } from "@money-matters/core";
+
 /**
- * Safely extracts dates from Australian informal text (e.g., "23-Jan", "23 Jan", "2026-01-23", "today", "yesterday").
- * Uses timezone-aware Australia/Sydney dates.
+ * Safely extracts dates from informal text (e.g., "23-Jan", "23 Jan", "2026-01-23", "today", "yesterday").
  */
-export function parseDate(text: string): string | undefined {
-  const sydneyFormatter = new Intl.DateTimeFormat("en-CA", { timeZone: "Australia/Sydney" });
-  const todayStr = sydneyFormatter.format(new Date()); // YYYY-MM-DD
+export function parseDate(text: string, timeZone: string = DEFAULT_TIMEZONE): string | undefined {
+  const formatter = getCachedDateFormat("en-CA", { timeZone });
+  const todayStr = formatter.format(new Date()); // YYYY-MM-DD
   const [currentYearStr] = todayStr.split("-");
   const currentYear = parseInt(currentYearStr || "2026", 10);
 
@@ -13,13 +15,13 @@ export function parseDate(text: string): string | undefined {
   if (/\byesterday\b/i.test(text)) {
     const d = new Date();
     d.setDate(d.getDate() - 1);
-    return sydneyFormatter.format(d);
+    return formatter.format(d);
   }
 
   if (/\btomorrow\b/i.test(text)) {
     const d = new Date();
     d.setDate(d.getDate() + 1);
-    return sydneyFormatter.format(d);
+    return formatter.format(d);
   }
 
   const isoMatch = text.match(/\b(\d{4})-(\d{2})-(\d{2})\b/);

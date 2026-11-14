@@ -3,6 +3,7 @@
 import React from "react";
 import Image from "next/image";
 import { t } from "@money-matters/i18n";
+import { DESIGN_TOKENS } from "@money-matters/ui/web";
 
 export interface DashboardMobileHeaderProps {
   onOpenMobileMenu: () => void;
@@ -73,7 +74,7 @@ export function DashboardMobileHeader({
           ) : (
             <div
               className="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-black ring-1 ring-white/20"
-              style={{ backgroundColor: "#2563eb" }}
+              style={{ backgroundColor: DESIGN_TOKENS.colors.sereneBlue }}
             >
               {initials}
             </div>

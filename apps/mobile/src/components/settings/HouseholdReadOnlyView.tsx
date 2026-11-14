@@ -1,3 +1,4 @@
+import { DEFAULT_TIMEZONE, DEFAULT_LOCALE } from "@money-matters/types";
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { Feather } from '@expo/vector-icons';
@@ -58,7 +59,7 @@ export function HouseholdReadOnlyView({
         />
         <ReadOnlyField
           label={t('settings.timezone')}
-          value={timezone || 'Australia/Sydney'}
+          value={timezone || DEFAULT_TIMEZONE}
         />
         <ReadOnlyField
           label={t('auth.countryLabel')}

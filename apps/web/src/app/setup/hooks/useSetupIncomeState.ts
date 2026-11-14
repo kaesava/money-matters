@@ -1,4 +1,6 @@
 "use client";
+import { getTenantDateString } from "@money-matters/core";
+
 
 import { useState } from "react";
 import { IncomeItem } from "@money-matters/types";
@@ -17,7 +19,7 @@ export function useSetupIncomeState({
       amount: 3200,
       frequency: "FORTNIGHTLY",
       type: "SALARY",
-      startDate: new Intl.DateTimeFormat("en-CA").format(new Date()),
+      startDate: getTenantDateString(new Date()),
     },
   ]);
   const [archivedIncomeIds, setArchivedIncomeIds] = useState<Set<string>>(new Set());

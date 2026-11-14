@@ -11,20 +11,20 @@ describe("restoreItemCommand", () => {
   it("denies restoring a private bank account owned by another user", async () => {
     const chainable = (data: unknown) => {
       const p = Promise.resolve(data);
-      const chain: any = {
+      const chain: Record<string, unknown> = {
         limit: vi.fn().mockReturnValue(p),
-        then: (cb: any) => p.then(cb),
-        catch: (cb: any) => p.catch(cb),
+        then: (cb: (v: unknown) => unknown) => p.then(cb),
+        catch: (cb: (e: unknown) => unknown) => p.catch(cb),
       };
       return chain;
     };
 
     const mockDb = {
       transaction: vi.fn().mockImplementation(async (cb: (tx: unknown) => Promise<unknown>) => cb(mockDb)),
-      select: vi.fn().mockImplementation((fields?: any) => ({
-        from: vi.fn().mockImplementation((table: any) => ({
+      select: vi.fn().mockImplementation((fields?: unknown) => ({
+        from: vi.fn().mockImplementation((table: unknown) => ({
           where: vi.fn().mockImplementation(() => {
-            if (fields?.timezone) {
+            if ((fields as Record<string, unknown> | undefined)?.timezone) {
               return chainable([{ timezone: "Australia/Sydney" }]);
             }
             return chainable([{ id: "acc-1", isPrivate: true, userId: otherUserId }]);
@@ -42,25 +42,25 @@ describe("restoreItemCommand", () => {
     const updatedTables: unknown[] = [];
     const chainable = (data: unknown) => {
       const p = Promise.resolve(data);
-      const chain: any = {
+      const chain: Record<string, unknown> = {
         limit: vi.fn().mockReturnValue(p),
-        then: (cb: any) => p.then(cb),
-        catch: (cb: any) => p.catch(cb),
+        then: (cb: (v: unknown) => unknown) => p.then(cb),
+        catch: (cb: (e: unknown) => unknown) => p.catch(cb),
       };
       return chain;
     };
 
     const mockDb = {
       transaction: vi.fn().mockImplementation(async (cb: (tx: unknown) => Promise<unknown>) => cb(mockDb)),
-      select: vi.fn().mockImplementation((fields?: any) => ({
-        from: vi.fn().mockImplementation((table: any) => ({
+      select: vi.fn().mockImplementation((fields?: unknown) => ({
+        from: vi.fn().mockImplementation((table: unknown) => ({
           leftJoin: vi.fn().mockReturnValue({
             where: vi.fn().mockReturnValue(chainable([
               { isPrivate: false, bankAccountUserId: null, archivedAt: new Date() },
             ])),
           }),
           where: vi.fn().mockImplementation(() => {
-            if (fields?.timezone) {
+            if ((fields as Record<string, unknown> | undefined)?.timezone) {
               return chainable([{ timezone: "Australia/Sydney" }]);
             }
             return chainable([{ isPrivate: false, bankAccountUserId: null, archivedAt: new Date() }]);
@@ -89,10 +89,10 @@ describe("restoreItemCommand", () => {
   it("rejects restoring an already-active envelope (archivedAt IS NOT NULL guard)", async () => {
     const chainable = (data: unknown) => {
       const p = Promise.resolve(data);
-      const chain: any = {
+      const chain: Record<string, unknown> = {
         limit: vi.fn().mockReturnValue(p),
-        then: (cb: any) => p.then(cb),
-        catch: (cb: any) => p.catch(cb),
+        then: (cb: (v: unknown) => unknown) => p.then(cb),
+        catch: (cb: (e: unknown) => unknown) => p.catch(cb),
       };
       return chain;
     };

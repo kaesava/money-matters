@@ -1,7 +1,7 @@
 import { envelopes, expenseEvents, bankAccounts, tenants, DbOrTx } from "@money-matters/db";
 import { eq, and, sql } from "drizzle-orm";
 import { z } from "zod";
-import { UpdateEnvelopeCommand } from "@money-matters/types";
+import { UpdateEnvelopeCommand, DEFAULT_TIMEZONE } from "@money-matters/types";
 import {
   deriveRruleFromFrequency,
   computeDefaultStartDate,
@@ -260,7 +260,7 @@ export async function updateEnvelopeCommand(
             .from(tenants)
             .where(eq(tenants.id, tenantId))
             .limit(1);
-          const tenantTz = tenantRecord?.timezone || "Australia/Sydney";
+          const tenantTz = tenantRecord?.timezone || DEFAULT_TIMEZONE;
 
           const count = await burstEnvelopeEvents(tx, {
             envelopeId,

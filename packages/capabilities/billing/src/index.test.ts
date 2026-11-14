@@ -1,9 +1,10 @@
 import { describe, it, expect } from 'vitest';
+import type { DbOrTx } from '@money-matters/db';
 import { createCheckoutSessionCommand, getSubscriptionStatus } from './index';
 
 describe('billing capability', () => {
   it('throws error when Stripe secret key is missing', async () => {
-    const mockDb = {} as any;
+    const mockDb = {} as unknown as DbOrTx;
     await expect(
       createCheckoutSessionCommand(mockDb, 'tenant-123', 'test@example.com', {
         priceId: 'price_123',
@@ -30,7 +31,7 @@ describe('billing capability', () => {
           }),
         }),
       }),
-    } as any;
+    } as unknown as DbOrTx;
 
     const status = await getSubscriptionStatus(mockDb, 'tenant-123');
     expect(status.status).toBe('TRIAL_ACTIVE');
@@ -63,7 +64,7 @@ describe('billing capability', () => {
           where: updateSetWhere,
         }),
       }),
-    } as any;
+    } as unknown as DbOrTx;
 
     const status = await getSubscriptionStatus(mockDb, 'tenant-123');
     expect(status.status).toBe('TRIAL_EXPIRED');
@@ -91,14 +92,14 @@ describe('billing capability', () => {
         }),
       }),
       update: () => ({
-        set: (vals: any) => {
+        set: (vals: { subscriptionStatus?: string }) => {
           updatedTo = vals.subscriptionStatus;
           return {
             where: async () => [],
           };
         },
       }),
-    } as any;
+    } as unknown as DbOrTx;
 
     const status = await getSubscriptionStatus(mockDb, 'tenant-123');
     expect(status.status).toBe('TRIAL_ACTIVE');

@@ -27,10 +27,10 @@ describe("Web UI Bucket categorization and health filtering", () => {
   });
 
   it("resolves correct badge copy for all envelope types", () => {
-    expect(t("categories.scheduledBillBadge")).toBe("Scheduled Bill");
-    expect(t("categories.flexibleBillBadge")).toBe("Flexible Bill");
-    expect(t("categories.targetDateGoalBadge")).toBe("Target Goal");
-    expect(t("categories.ongoingGoalBadge")).toBe("Ongoing Goal");
+    expect(t("categories.scheduledBillBadge")).toBe("Recurring");
+    expect(t("categories.flexibleBillBadge")).toBe("Target Balance");
+    expect(t("categories.targetDateGoalBadge")).toBe("Target Balance");
+    expect(t("categories.ongoingGoalBadge")).toBe("Recurring");
     expect(t("categories.everydayBadge")).toBe("Everyday");
   });
 });

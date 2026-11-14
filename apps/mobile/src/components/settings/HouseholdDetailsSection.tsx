@@ -1,3 +1,4 @@
+import { DEFAULT_TIMEZONE, DEFAULT_LOCALE } from "@money-matters/types";
 import React, { useState, useEffect, useRef } from 'react';
 import { View, ActivityIndicator, StyleSheet } from 'react-native';
 import { useMobileToast, showMobileConfirm, DESIGN_TOKENS } from '@money-matters/ui/mobile';
@@ -24,7 +25,7 @@ export function HouseholdDetailsSection({
   const [householdName, setHouseholdName] = useState('');
   const [country, setCountry] = useState('AU');
   const [currency, setCurrency] = useState('AUD');
-  const [timezone, setTimezone] = useState('Australia/Sydney');
+  const [timezone, setTimezone] = useState(DEFAULT_TIMEZONE);
   const [state, setState] = useState('');
   const [postcode, setPostcode] = useState('');
   const [postcodeError, setPostcodeError] = useState<string | undefined>();
@@ -34,7 +35,7 @@ export function HouseholdDetailsSection({
     householdName: '',
     country: 'AU',
     currency: 'AUD',
-    timezone: 'Australia/Sydney',
+    timezone: DEFAULT_TIMEZONE,
     state: '',
     postcode: '',
   });
@@ -45,7 +46,7 @@ export function HouseholdDetailsSection({
         householdName: gov.householdName || '',
         country: gov.country || 'AU',
         currency: gov.currency || 'AUD',
-        timezone: gov.timezone || 'Australia/Sydney',
+        timezone: gov.timezone || DEFAULT_TIMEZONE,
         state: gov.state || '',
         postcode: gov.postcode || '',
       };

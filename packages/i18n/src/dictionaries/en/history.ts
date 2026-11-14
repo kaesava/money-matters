@@ -44,7 +44,7 @@ export const history = {
       "type": "Type",
       "description": "Description",
       "envelope": "Envelope",
-      "category": "Category",
+      "category": "Envelope",
       "source": "Source",
       "amountWithCurrency": "Amount ({currency})",
       "amount": "Amount",

@@ -1,3 +1,5 @@
+import { DEFAULT_TIMEZONE } from "@money-matters/types";
+import { getTenantDateString } from "@money-matters/core";
 import { useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { trpc } from "../../../lib/trpc";
@@ -21,10 +23,8 @@ export function useQuickActionState(
   const router = useRouter();
   const toast = useToast();
   const { userTimezone, timezone } = useLocale();
-  const activeTz = userTimezone || timezone || "Australia/Sydney";
-  const todayStr = useMemo(() => new Intl.DateTimeFormat("en-CA", {
-    timeZone: activeTz,
-  }).format(new Date()), [activeTz]);
+  const activeTz = userTimezone || timezone || DEFAULT_TIMEZONE;
+  const todayStr = useMemo(() => getTenantDateString(new Date(), { timezone: activeTz }), [activeTz]);
 
   const [type, setType] = useState<"DEBIT" | "CREDIT" | "TRANSFER">(initialData?.type || initialTab);
   const [name, setName] = useState(initialData?.name || "");

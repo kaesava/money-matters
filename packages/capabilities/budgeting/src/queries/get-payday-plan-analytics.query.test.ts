@@ -8,7 +8,7 @@ import {
   ProcessedLine,
   ProcessedPlan,
 } from "./payday-plan-analytics-processors";
-import { getIncomeSplitAnalyticsQuery } from "./get-payday-plan-analytics.query";
+import { getPaydayPlanAnalyticsQuery } from "./get-payday-plan-analytics.query";
 import { getAnalyticsCutoff } from "./payday-plan-analytics-envelopes";
 import { DbOrTx } from "@money-matters/db";
 
@@ -182,7 +182,7 @@ describe("getIncomeSplitAnalyticsQuery DB interaction", () => {
       })),
     };
 
-    const res = await getIncomeSplitAnalyticsQuery(
+    const res = await getPaydayPlanAnalyticsQuery(
       "tenant-1",
       "app-1",
       { timeframe: "90D" },

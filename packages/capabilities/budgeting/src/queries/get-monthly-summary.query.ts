@@ -1,3 +1,4 @@
+import { DEFAULT_TIMEZONE } from "@money-matters/types";
 import { envelopes, bankAccounts, transactionLedger, getEnvelopeBalancesMap, DbOrTx, tenants } from "@money-matters/db";
 import { eq, and, sql, or, isNull } from "drizzle-orm";
 
@@ -15,7 +16,7 @@ export async function getMonthlySummaryQuery(
     .where(eq(tenants.id, tenantId))
     .limit(1);
 
-  const tenantTz = tenantRecord?.timezone || "Australia/Sydney";
+  const tenantTz = tenantRecord?.timezone || DEFAULT_TIMEZONE;
 
   // Month bounds in tenant's timezone
   const startMonthStr = `${year}-${String(month).padStart(2, "0")}-01`;

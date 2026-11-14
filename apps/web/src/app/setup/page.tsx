@@ -1,4 +1,6 @@
 "use client";
+import { getTenantDateString } from "@money-matters/core";
+
 
 import React, { useState } from "react";
 import { t } from "@money-matters/i18n";
@@ -60,7 +62,7 @@ function SetupWizardContent() {
                   amount: state.isAud ? 2000 : 0,
                   frequency: "MONTHLY",
                   type: "SALARY",
-                  startDate: new Intl.DateTimeFormat("en-CA").format(new Date()),
+                  startDate: getTenantDateString(new Date()),
                 },
               ]);
             }}

@@ -12,7 +12,7 @@ import {
   DbOrTx,
 } from "@money-matters/db";
 import { eq, and } from "drizzle-orm";
-import { serializeCsvObjects } from "@money-matters/types";
+import { serializeCsvObjects, DEFAULT_TIMEZONE } from "@money-matters/types";
 
 export function exportDataHandler(db: DbOrTx) {
   return async (tenantId: string, userId: string, appId: string) => {
@@ -110,7 +110,7 @@ export function exportDataHandler(db: DbOrTx) {
 
     const csvFiles: Record<string, string> = {
       "User_Profile.csv": serializeCsvObjects(
-        userRecord ? [{ ...userRecord, globalTimezone: tenantRecord?.timezone || "Australia/Sydney" }] : [],
+        userRecord ? [{ ...userRecord, globalTimezone: tenantRecord?.timezone || DEFAULT_TIMEZONE }] : [],
         ["id", "email", "displayName", "globalTimezone"]
       ),
       "Household_Profile.csv": serializeCsvObjects(

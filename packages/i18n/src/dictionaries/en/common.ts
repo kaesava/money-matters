@@ -44,7 +44,7 @@ export const common = {
     "add": "Add",
     "remove": "Remove",
     "discard": "Discard",
-    "markSpent": "Mark Spent",
+    "markSpent": "Mark Paid",
     "count": "Count",
     "technicalDetails": "Technical details",
     "redirectingToDev": "Redirecting to development server...",

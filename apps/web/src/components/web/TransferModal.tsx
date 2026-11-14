@@ -1,4 +1,6 @@
 "use client";
+import { getTenantDateString } from "@money-matters/core";
+
 
 import React, { useState, useEffect, useMemo, useId } from "react";
 import { t } from "@money-matters/i18n";
@@ -62,7 +64,7 @@ export function TransferModal({
   const nameInputId = useId();
 
   const todayStr = useMemo(() => {
-    return new Intl.DateTimeFormat("en-CA", { timeZone: userTimezone || contextTz }).format(new Date());
+    return getTenantDateString(new Date(), { timezone: userTimezone || contextTz });
   }, [userTimezone, contextTz]);
 
   const [name, setName] = useState("");

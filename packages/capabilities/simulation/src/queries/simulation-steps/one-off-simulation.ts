@@ -4,6 +4,7 @@ import type {
   ProjectionExpenseEvent,
   ProjectionIncomeEvent,
 } from "@money-matters/types";
+import { getTenantDateString } from "@money-matters/core";
 import type { OneOffSimulationParams } from "./simulation-types.js";
 
 export function simulateOneOffPurchase(
@@ -121,7 +122,7 @@ export function simulateOneOffPurchase(
       if (candidateGoal.endDate) {
         const origDate = new Date(candidateGoal.endDate + "T00:00:00Z");
         const nDate = new Date(origDate.getTime() + delayDays * 24 * 60 * 60 * 1000);
-        newTargetDate = new Intl.DateTimeFormat("en-CA", { timeZone: timezone }).format(nDate);
+        newTargetDate = getTenantDateString(nDate, { timezone });
       }
 
       goalAlternative = {

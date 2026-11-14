@@ -46,7 +46,7 @@ export const dashboard = {
     },
     "goals": {
       "title": "Goals",
-      "cardTitle": "Goals & Savings",
+      "cardTitle": "Goals",
       "totalSavedInvested": "Total Saved & Invested",
       "milestonesFunded": "{funded} of {target} ({percent}%)",
       "recurringPace": "{amount}/mo recurring pace",

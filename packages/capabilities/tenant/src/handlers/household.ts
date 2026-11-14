@@ -1,3 +1,4 @@
+import { DEFAULT_TIMEZONE } from "@money-matters/types";
 import { tenants, tenantUsers, users, bankAccounts, envelopes, tenantUserPreferences, type DbOrTx } from "@money-matters/db";
 import { and, eq, sql, inArray } from "drizzle-orm";
 
@@ -64,7 +65,7 @@ export async function getHouseholdGovernanceInfoHandler(tenantId: string, userId
     partnerEmail: partnerMember?.inviteEmail ?? partnerMember?.email ?? null,
     country: tenant?.country ?? "AU",
     currency: tenant?.currency ?? "AUD",
-    timezone: tenant?.timezone ?? "Australia/Sydney",
+    timezone: tenant?.timezone ?? DEFAULT_TIMEZONE,
     state: tenant?.state ?? null,
     postcode: tenant?.postcode ?? null,
     membersList: dbMembers.map((m) => ({

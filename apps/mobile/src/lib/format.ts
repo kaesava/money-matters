@@ -167,3 +167,14 @@ export { formatScheduleDetail } from './schedule-format';
 export type { ScheduleDetail } from './schedule-format';
 
 
+
+const dateStringCache = new Map<string, Intl.DateTimeFormat>();
+export function getTenantDateString(date: Date = new Date(), tenant?: { timezone?: string | null }): string {
+  const tz = tenant?.timezone || "UTC";
+  let dtf = dateStringCache.get(tz);
+  if (!dtf) {
+    dtf = new Intl.DateTimeFormat("en-CA", { timeZone: tz });
+    dateStringCache.set(tz, dtf);
+  }
+  return dtf.format(date);
+}

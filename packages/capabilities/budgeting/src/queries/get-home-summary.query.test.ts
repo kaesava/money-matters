@@ -6,7 +6,7 @@ describe("getHomeSummaryQuery", () => {
   it("computes safe to spend, daily pace, and groups attention items cleanly", async () => {
     const mockDb = {
       select: vi.fn().mockImplementation(() => {
-        const queryObj: any = {
+        const queryObj: Record<string, unknown> = {
           from: vi.fn().mockImplementation(() => queryObj),
           where: vi.fn().mockImplementation(() => queryObj),
           leftJoin: vi.fn().mockImplementation(() => queryObj),
@@ -16,7 +16,7 @@ describe("getHomeSummaryQuery", () => {
         };
 
         // When awaited directly or via then
-        queryObj.then = (resolve: any) => {
+        queryObj.then = (resolve: (v: unknown[]) => void) => {
           resolve([
             {
               id: "env-1",

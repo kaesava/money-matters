@@ -1,4 +1,6 @@
 "use client";
+import { getTenantDateString } from "@money-matters/core";
+
 
 import React, { useState, useEffect, useMemo } from "react";
 import { useToast, RecurrenceBuilder, useRecurrenceBuilder, ConfirmDialog, Button, AmountField, ModalDialog, Input, GenericSelectField, FormErrorBanner, FormLabel, parseRecurrenceRule } from "@money-matters/ui/web";
@@ -65,7 +67,7 @@ export function IncomeFormModal({ isOpen, onClose, sourceToEdit }: IncomeFormMod
   const activeTz = userTimezone || timezone || "UTC";
 
   const toTenantDateString = React.useCallback(
-    (iso: string): string => new Intl.DateTimeFormat('en-CA', { timeZone: activeTz }).format(new Date(iso)),
+    (iso: string): string => getTenantDateString(new Date(iso), { timezone: activeTz }),
     [activeTz]
   );
 
@@ -80,7 +82,7 @@ export function IncomeFormModal({ isOpen, onClose, sourceToEdit }: IncomeFormMod
       setIsRecurring(parsed.isRecurring || !!sourceToEdit.startDate);
       setFrequency(parsed.frequency);
       setInterval(parsed.interval);
-      const today = new Intl.DateTimeFormat('en-CA', { timeZone: activeTz }).format(new Date());
+      const today = getTenantDateString(new Date(), { timezone: activeTz });
       setStartDate(sourceToEdit.startDate ? toTenantDateString(sourceToEdit.startDate) : today);
       setEndDate(sourceToEdit.endDate ? toTenantDateString(sourceToEdit.endDate) : null);
     } else {
@@ -92,7 +94,7 @@ export function IncomeFormModal({ isOpen, onClose, sourceToEdit }: IncomeFormMod
       setIsRecurring(true);
       setFrequency("MONTHLY");
       setInterval(1);
-      setStartDate(new Intl.DateTimeFormat('en-CA', { timeZone: activeTz }).format(new Date()));
+      setStartDate(getTenantDateString(new Date(), { timezone: activeTz }));
       setEndDate(null);
     }
     setErrorMsg("");

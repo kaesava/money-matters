@@ -1,3 +1,4 @@
+import { DEFAULT_TIMEZONE } from "@money-matters/types";
 import {
   allocationPlans,
   allocationPlanLines,
@@ -18,7 +19,7 @@ import { mapEnvelopeToEngineBucket } from "../engine/envelope-engine-mapper.js";
 /**
  * Computes the 12-month payday matrix projection for a tenant, filtered by stealth privacy.
  */
-export async function getMatrixProjectionDataQuery(
+export async function getHorizonProjectionDataQuery(
   tenantId: string,
   appId: string,
   userId: string,
@@ -41,7 +42,7 @@ export async function getMatrixProjectionDataQuery(
   const visibleEnvelopeIds = new Set(activeEnvelopes.map((e) => e.id));
 
   const [tenantRecord] = await db.select({ timezone: tenants.timezone }).from(tenants).where(eq(tenants.id, tenantId)).limit(1);
-  const tenantTz = tenantRecord?.timezone || "Australia/Sydney";
+  const tenantTz = tenantRecord?.timezone || DEFAULT_TIMEZONE;
   const balancesMap = await getEnvelopeBalancesMap(tenantId, appId, db);
 
   const now = new Date();

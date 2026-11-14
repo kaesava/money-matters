@@ -3,7 +3,7 @@ import { eq, and, sql } from "drizzle-orm";
 import { runAllocationEngine, EngineBucket } from "../engine/allocation-engine.js";
 import { parseRruleFrequencyDays } from "../commands/run-allocation.command.js";
 import { getTenantDateString } from "@money-matters/core";
-import { SUPPORTED_CURRENCIES } from "@money-matters/types";
+import { SUPPORTED_CURRENCIES, DEFAULT_TIMEZONE } from "@money-matters/types";
 
 export async function previewAllocationQuery(
   tenantId: string,
@@ -21,7 +21,7 @@ export async function previewAllocationQuery(
     .where(eq(tenants.id, tenantId))
     .limit(1);
 
-  const tenantTz = tenantRecord?.timezone || "Australia/Sydney";
+  const tenantTz = tenantRecord?.timezone || DEFAULT_TIMEZONE;
   const currencyCode = tenantRecord?.currency || "AUD";
   const currencySymbol = SUPPORTED_CURRENCIES[currencyCode]?.symbol || "$";
 

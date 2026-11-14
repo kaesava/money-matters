@@ -37,7 +37,7 @@ export async function moveMoneyCommand(
       throw new Error("Source envelope invalid or access unauthorized.");
     }
 
-    const sourceEnv = (sourceRow as any).envelope ?? sourceRow;
+    const sourceEnv = "envelope" in sourceRow ? sourceRow.envelope : (sourceRow as unknown as typeof envelopes.$inferSelect);
 
     if (
       (sourceEnv.isPrivate && sourceEnv.userId !== userId) ||
@@ -67,7 +67,7 @@ export async function moveMoneyCommand(
       throw new Error("Destination envelope invalid or access unauthorized.");
     }
 
-    const destEnv = (destRow as any).envelope ?? destRow;
+    const destEnv = "envelope" in destRow ? destRow.envelope : (destRow as unknown as typeof envelopes.$inferSelect);
 
     if (
       (destEnv.isPrivate && destEnv.userId !== userId) ||

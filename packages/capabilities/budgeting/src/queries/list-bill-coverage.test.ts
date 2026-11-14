@@ -1,30 +1,31 @@
+import type { DbOrTx } from "@money-matters/db";
 import { describe, it, expect, vi } from "vitest";
 import { transactionLedger, incomeEvents, expenseEvents, envelopes, bankAccounts } from "@money-matters/db";
 import { listBillCoverageQuery } from "./list-bill-coverage.query";
 
 function createMockDb(
-  mockTxs: any[],
-  mockPaychecks: any[],
-  mockUpcomingBills: any[],
-  mockEnvelopes: any[] = [
+  mockTxs: Record<string, unknown>[],
+  mockPaychecks: Record<string, unknown>[],
+  mockUpcomingBills: Record<string, unknown>[],
+  mockEnvelopes: Record<string, unknown>[] = [
     { id: "env-bills-1", name: "Regular Bills", envelopeType: "BILL", bankAccountId: "acc-1", isPrivate: false }
   ]
 ) {
   return {
     select: vi.fn().mockImplementation(() => ({
-      from: vi.fn().mockImplementation((table: any) => {
-        let data: any[] = [];
+      from: vi.fn().mockImplementation((table: unknown) => {
+        let data: Record<string, unknown>[] = [];
         if (table === envelopes) data = mockEnvelopes;
         else if (table === transactionLedger) data = mockTxs;
         else if (table === incomeEvents) data = mockPaychecks;
         else if (table === expenseEvents) data = mockUpcomingBills;
 
         const resultPromise = Promise.resolve(data);
-        const chainObj: any = {
+        const chainObj: unknown = {
           limit: vi.fn().mockReturnValue(resultPromise),
           orderBy: vi.fn().mockReturnValue(resultPromise),
-          then: (cb: any) => resultPromise.then(cb),
-          catch: (cb: any) => resultPromise.catch(cb),
+          then: (cb: (v: Record<string, unknown>[]) => unknown) => resultPromise.then(cb),
+          catch: (cb: (e: unknown) => unknown) => resultPromise.catch(cb),
         };
 
         return {
@@ -37,8 +38,8 @@ function createMockDb(
           where: vi.fn().mockReturnValue(chainObj),
           orderBy: vi.fn().mockReturnValue(resultPromise),
           limit: vi.fn().mockReturnValue(resultPromise),
-          then: (cb: any) => resultPromise.then(cb),
-          catch: (cb: any) => resultPromise.catch(cb),
+          then: (cb: (v: Record<string, unknown>[]) => unknown) => resultPromise.then(cb),
+          catch: (cb: (e: unknown) => unknown) => resultPromise.catch(cb),
         };
       }),
     })),
@@ -51,15 +52,15 @@ describe("listBillCoverageQuery", () => {
   const appId = "00000000-0000-0000-0000-000000000002";
 
   it("returns NO_SCHEDULE for bill envelopes with no upcoming events", async () => {
-    const mockTxs: any[] = [];
-    const mockPaychecks: any[] = [];
-    const mockUpcomingBills: any[] = [];
+    const mockTxs: Record<string, unknown>[] = [];
+    const mockPaychecks: Record<string, unknown>[] = [];
+    const mockUpcomingBills: Record<string, unknown>[] = [];
     const mockEnvelopes = [
       { id: "env-bills-1", name: "Netflix", envelopeType: "BILL", bankAccountId: "acc-1", isPrivate: false }
     ];
     const mockDb = createMockDb(mockTxs, mockPaychecks, mockUpcomingBills, mockEnvelopes);
 
-    const result = await listBillCoverageQuery(tenantId, appId, mockDb as any);
+    const result = await listBillCoverageQuery(tenantId, appId, mockDb as unknown as DbOrTx);
 
     expect(result).toBeDefined();
     expect(result.billsPoolBalance).toBe(0);
@@ -85,7 +86,7 @@ describe("listBillCoverageQuery", () => {
 
     const mockDb = createMockDb(mockTxs, mockPaychecks, mockUpcomingBills, mockEnvelopes);
 
-    const result = await listBillCoverageQuery(tenantId, appId, mockDb as any);
+    const result = await listBillCoverageQuery(tenantId, appId, mockDb as unknown as DbOrTx);
 
     expect(result.billsPoolBalance).toBe(200);
     expect(result.totalUpcomingBeforePayday).toBe(150);
@@ -111,7 +112,7 @@ describe("listBillCoverageQuery", () => {
 
     const mockDb = createMockDb(mockTxs, mockPaychecks, mockUpcomingBills, mockEnvelopes);
 
-    const result = await listBillCoverageQuery(tenantId, appId, mockDb as any);
+    const result = await listBillCoverageQuery(tenantId, appId, mockDb as unknown as DbOrTx);
 
     expect(result.billsPoolBalance).toBe(100);
     expect(result.totalUpcomingBeforePayday).toBe(500);

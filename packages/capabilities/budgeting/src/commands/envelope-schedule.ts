@@ -1,3 +1,4 @@
+import { DEFAULT_TIMEZONE } from "@money-matters/types";
 import { expenseEvents, envelopes, DbOrTx } from "@money-matters/db";
 import { and, eq } from "drizzle-orm";
 import { getTenantDateString } from "@money-matters/core";
@@ -11,7 +12,7 @@ export function deriveRruleFromFrequency(freq?: string | null): string {
   return "FREQ=MONTHLY;INTERVAL=1";
 }
 
-export function computeDefaultStartDate(timeZone = "Australia/Sydney"): string {
+export function computeDefaultStartDate(timeZone = DEFAULT_TIMEZONE): string {
   const todayStr = getTenantDateString(new Date(), { timezone: timeZone });
   const [yearStr, monthStr] = todayStr.split("-");
   const year = Number(yearStr);

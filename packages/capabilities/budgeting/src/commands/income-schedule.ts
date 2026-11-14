@@ -1,4 +1,6 @@
 import { incomeEvents, incomeSources, DbOrTx } from "@money-matters/db";
+import { getTenantDateString } from "@money-matters/core";
+import { DEFAULT_TIMEZONE } from "@money-matters/types";
 import { and, eq, sql } from "drizzle-orm";
 import { generateBurstDates } from "../engine/burst-engine.js";
 
@@ -29,10 +31,10 @@ export async function burstIncomeEvents(
     params.afterDateStr
   );
   if (dates.length === 0) return 0;
-  const tz = params.timeZone || "Australia/Sydney";
+  const tz = params.timeZone || DEFAULT_TIMEZONE;
 
   const eventsToInsert = dates.map((d) => {
-    const dateStr = new Intl.DateTimeFormat("en-CA", { timeZone: tz }).format(d);
+    const dateStr = getTenantDateString(d, { timezone: tz });
     return {
       tenantId: params.tenantId,
       appId: params.appId,

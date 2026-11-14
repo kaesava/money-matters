@@ -1,4 +1,6 @@
 "use client";
+import { getTenantDateString } from "@money-matters/core";
+
 
 import React, { useState } from "react";
 import { t } from "@money-matters/i18n";
@@ -24,7 +26,7 @@ interface SetupGoalsStepProps {
 const getFutureDate = (months: number) => {
   const d = new Date();
   d.setMonth(d.getMonth() + months);
-  return new Intl.DateTimeFormat("en-CA").format(d);
+  return getTenantDateString(d);
 };
 
 export function SetupGoalsStep({

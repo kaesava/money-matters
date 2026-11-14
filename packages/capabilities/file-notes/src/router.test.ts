@@ -1,4 +1,5 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi } from "vitest";
+import type { DbOrTx } from "@money-matters/db";
 import {
   createPreSignedUrlHandler,
   createFileNoteHandler,
@@ -21,7 +22,7 @@ describe("FileNotes capability handlers", () => {
   };
 
   it("rejects presigned URL generation if file size exceeds single file cap", async () => {
-    const mockDb: any = {
+    const mockDb = {
       select: vi.fn().mockReturnValue({
         from: vi.fn().mockReturnValue({
           where: vi.fn().mockReturnValue({
@@ -31,7 +32,7 @@ describe("FileNotes capability handlers", () => {
           }),
         }),
       }),
-    };
+    } as unknown as DbOrTx;
 
     await expect(
       createPreSignedUrlHandler(mockDb, ctx, {
@@ -45,7 +46,7 @@ describe("FileNotes capability handlers", () => {
   });
 
   it("rejects presigned URL if fileNotes feature is disabled", async () => {
-    const mockDb: any = {
+    const mockDb = {
       select: vi.fn().mockReturnValue({
         from: vi.fn().mockReturnValue({
           where: vi.fn().mockReturnValue({
@@ -55,7 +56,7 @@ describe("FileNotes capability handlers", () => {
           }),
         }),
       }),
-    };
+    } as unknown as DbOrTx;
 
     await expect(
       createPreSignedUrlHandler(mockDb, ctx, {

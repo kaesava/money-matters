@@ -1,4 +1,6 @@
 "use client";
+import { getTenantDateString } from "@money-matters/core";
+
 
 import { useState, useMemo, useEffect } from "react";
 import { t } from "@money-matters/i18n";
@@ -113,7 +115,7 @@ export function useEnvelopesTableData({
     if (projectionMonths <= 0.05 || projectionColumns.length === 0) return null;
     const d = new Date();
     d.setDate(d.getDate() + Math.round(projectionMonths * 30.4375));
-    const targetDateISO = new Intl.DateTimeFormat("en-CA", { timeZone: userTimezone }).format(d);
+    const targetDateISO = getTenantDateString(d, { timezone: userTimezone });
     const sortedCols = [...projectionColumns].sort((a, b) => a.date.localeCompare(b.date));
     let matchingCol = sortedCols[0];
     for (const col of sortedCols) {
@@ -124,7 +126,7 @@ export function useEnvelopesTableData({
   }, [projectionMonths, projectionColumns, userTimezone]);
 
   const tableRows: PoolTableRow[] = useMemo(() => {
-    const todayISO = new Intl.DateTimeFormat("en-CA", { timeZone: userTimezone }).format(new Date());
+    const todayISO = getTenantDateString(new Date(), { timezone: userTimezone });
     const nextPaydayDate =
       rawIncomeEvents
         .filter((e) => e.expectedDate && e.expectedDate >= todayISO && e.status !== "CONFIRMED")

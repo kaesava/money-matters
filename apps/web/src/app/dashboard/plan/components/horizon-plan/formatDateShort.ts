@@ -1,3 +1,4 @@
+import { getCachedDateFormat } from "@money-matters/core";
 export function formatDateShort(
   dateStr?: string,
   fallbackLabel?: string,
@@ -15,7 +16,7 @@ export function formatDateShort(
     }
     if (isNaN(dateObj.getTime())) return fallbackLabel || dateStr;
     const resolvedLocale = locale === "auto" ? undefined : locale;
-    return new Intl.DateTimeFormat(resolvedLocale, {
+    return getCachedDateFormat(resolvedLocale ?? "en-AU", {
       day: "2-digit",
       month: "short",
       year: "2-digit",

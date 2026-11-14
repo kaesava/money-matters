@@ -1,4 +1,6 @@
 "use client";
+import { getTenantDateString } from "@money-matters/core";
+
 
 import React, { useState, useMemo } from "react";
 import Link from "next/link";
@@ -77,7 +79,7 @@ export const AttentionItemsList: React.FC<WebAttentionItemsListProps> = ({
   const [selectedDeleteItem, setSelectedDeleteItem] = useState<WebAttentionItem | null>(null);
 
   const todayStr = useMemo(() => {
-    return new Intl.DateTimeFormat("en-CA", { timeZone: userTimezone || contextTz }).format(new Date());
+    return getTenantDateString(new Date(), { timezone: userTimezone || contextTz });
   }, [userTimezone, contextTz]);
 
   if (!items || items.length === 0) {

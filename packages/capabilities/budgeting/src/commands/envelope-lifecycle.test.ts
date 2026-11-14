@@ -13,7 +13,7 @@ describe("Envelope Lifecycle & Event Sync", () => {
   const userId = "00000000-0000-0000-0000-000000000003";
 
   it("createEnvelopeCommand bursts 12 months when generateEvents is true", async () => {
-    let insertedEvents: any[] = [];
+    let insertedEvents: Record<string, unknown>[] = [];
     const mockDb = {
       select: vi.fn().mockReturnValue({
         from: vi.fn().mockReturnValue({
@@ -22,8 +22,8 @@ describe("Envelope Lifecycle & Event Sync", () => {
           ]),
         }),
       }),
-      insert: vi.fn().mockImplementation((table: any) => ({
-        values: vi.fn().mockImplementation((vals: any) => {
+      insert: vi.fn().mockImplementation((table: unknown) => ({
+        values: vi.fn().mockImplementation((vals: unknown) => {
           if (table === expenseEvents) {
             insertedEvents = Array.isArray(vals) ? vals : [vals];
           }
@@ -39,7 +39,7 @@ describe("Envelope Lifecycle & Event Sync", () => {
           where: vi.fn().mockResolvedValue([]),
         }),
       }),
-      transaction: vi.fn().mockImplementation((cb: any) => cb(mockDb)),
+      transaction: vi.fn().mockImplementation((cb: (tx: DbOrTx) => unknown) => cb(mockDb as unknown as DbOrTx)),
     } as unknown as DbOrTx;
 
     await createEnvelopeCommand(
@@ -55,14 +55,14 @@ describe("Envelope Lifecycle & Event Sync", () => {
       tenantId,
       appId,
       userId,
-      mockDb
+      mockDb as unknown as DbOrTx
     );
 
     expect(insertedEvents.length).toBe(12);
   });
 
   it("createEnvelopeCommand does NOT burst events when generateEvents is false", async () => {
-    let insertedEvents: any[] = [];
+    let insertedEvents: Record<string, unknown>[] = [];
     const mockDb = {
       select: vi.fn().mockReturnValue({
         from: vi.fn().mockReturnValue({
@@ -71,8 +71,8 @@ describe("Envelope Lifecycle & Event Sync", () => {
           ]),
         }),
       }),
-      insert: vi.fn().mockImplementation((table: any) => ({
-        values: vi.fn().mockImplementation((vals: any) => {
+      insert: vi.fn().mockImplementation((table: unknown) => ({
+        values: vi.fn().mockImplementation((vals: unknown) => {
           if (table === expenseEvents) {
             insertedEvents = Array.isArray(vals) ? vals : [vals];
           }
@@ -88,7 +88,7 @@ describe("Envelope Lifecycle & Event Sync", () => {
           where: vi.fn().mockResolvedValue([]),
         }),
       }),
-      transaction: vi.fn().mockImplementation((cb: any) => cb(mockDb)),
+      transaction: vi.fn().mockImplementation((cb: (tx: DbOrTx) => unknown) => cb(mockDb as unknown as DbOrTx)),
     } as unknown as DbOrTx;
 
     await createEnvelopeCommand(
@@ -104,7 +104,7 @@ describe("Envelope Lifecycle & Event Sync", () => {
       tenantId,
       appId,
       userId,
-      mockDb
+      mockDb as unknown as DbOrTx
     );
 
     expect(insertedEvents.length).toBe(0);
@@ -136,13 +136,13 @@ describe("Envelope Lifecycle & Event Sync", () => {
           }),
         }),
       }),
-      delete: vi.fn().mockImplementation((table: any) => ({
+      delete: vi.fn().mockImplementation((table: unknown) => ({
         where: vi.fn().mockImplementation(() => {
           if (table === expenseEvents) deletedEvents = true;
           return Promise.resolve();
         }),
       })),
-      transaction: vi.fn().mockImplementation((cb: any) => cb(mockDb)),
+      transaction: vi.fn().mockImplementation((cb: (tx: DbOrTx) => unknown) => cb(mockDb as unknown as DbOrTx)),
     } as unknown as DbOrTx;
 
     await updateEnvelopeCommand(
@@ -153,19 +153,19 @@ describe("Envelope Lifecycle & Event Sync", () => {
       tenantId,
       appId,
       userId,
-      mockDb
+      mockDb as unknown as DbOrTx
     );
 
     expect(deletedEvents).toBe(true);
   });
 
   it("overrideEventCommand recalculates monthlyAmount respecting budgetFrequency when updateSeries is true", async () => {
-    let updatedEnvelopePayload: any = null;
-    let updatedSubsequentEvents: any = null;
+    let updatedEnvelopePayload = null as Record<string, unknown> | null;
+    let updatedSubsequentEvents: unknown = null;
 
-    const mockDb: any = {
-      update: vi.fn().mockImplementation((table: any) => ({
-        set: vi.fn().mockImplementation((payload: any) => ({
+    const mockDb = {
+      update: vi.fn().mockImplementation((table: unknown) => ({
+        set: vi.fn().mockImplementation((payload: unknown) => ({
           where: vi.fn().mockImplementation(() => {
             if (table === expenseEvents) {
               if (!updatedSubsequentEvents) {
@@ -186,7 +186,7 @@ describe("Envelope Lifecycle & Event Sync", () => {
               }
             }
             if (table === envelopes) {
-              updatedEnvelopePayload = payload;
+              updatedEnvelopePayload = payload as Record<string, unknown>;
               return Promise.resolve();
             }
             return Promise.resolve();
@@ -201,7 +201,7 @@ describe("Envelope Lifecycle & Event Sync", () => {
         }),
       }),
     };
-    mockDb.transaction = vi.fn().mockImplementation((cb: any) => cb(mockDb));
+    (mockDb as unknown as Record<string, unknown>).transaction = vi.fn().mockImplementation((cb: (tx: DbOrTx) => unknown) => cb(mockDb as unknown as DbOrTx));
 
     await overrideEventCommand(
       {
@@ -218,18 +218,18 @@ describe("Envelope Lifecycle & Event Sync", () => {
 
     // For fortnightly: (100 * 26) / 12 = 216.67
     expect(updatedEnvelopePayload).toBeDefined();
-    expect(updatedEnvelopePayload.monthlyAmount).toBe("216.67");
-    expect(updatedEnvelopePayload.enteredAmount).toBe("100.00");
+    expect(updatedEnvelopePayload?.monthlyAmount).toBe("216.67");
+    expect(updatedEnvelopePayload?.enteredAmount).toBe("100.00");
   });
 
   it("updateEnvelopeCommand bursts all occurrences from startDate when updating schedule with past startDate", async () => {
-    let insertedExpensePayloads: any[] = [];
+    let insertedExpensePayloads: Array<Record<string, unknown>> = [];
     const pastStartDate = "2026-01-01";
     const todayAest = new Intl.DateTimeFormat("en-CA", { timeZone: "Australia/Sydney" }).format(new Date());
 
     const mockDb = {
       select: vi.fn().mockReturnValue({
-        from: vi.fn().mockImplementation((table: any) => {
+        from: vi.fn().mockImplementation((table: unknown) => {
           if (table === tenants) {
             return {
               where: vi.fn().mockReturnValue({
@@ -281,12 +281,12 @@ describe("Envelope Lifecycle & Event Sync", () => {
         where: vi.fn().mockResolvedValue([]),
       }),
       insert: vi.fn().mockImplementation(() => ({
-        values: vi.fn().mockImplementation((payloads: any[]) => {
+        values: vi.fn().mockImplementation((payloads: Record<string, unknown>[]) => {
           insertedExpensePayloads = payloads;
           return Promise.resolve(payloads);
         }),
       })),
-      transaction: vi.fn().mockImplementation((cb: any) => cb(mockDb)),
+      transaction: vi.fn().mockImplementation((cb: (tx: DbOrTx) => unknown) => cb(mockDb as unknown as DbOrTx)),
     } as unknown as DbOrTx;
 
     await updateEnvelopeCommand(
@@ -298,13 +298,13 @@ describe("Envelope Lifecycle & Event Sync", () => {
       tenantId,
       appId,
       userId,
-      mockDb
+      mockDb as unknown as DbOrTx
     );
 
     expect(insertedExpensePayloads.length).toBeGreaterThan(0);
     // Updated schedule bursts from startDate forward (including past startDate occurrences)
     expect(insertedExpensePayloads[0].expectedDate).toBe(pastStartDate);
-    expect(insertedExpensePayloads.some((ev) => ev.expectedDate < todayAest)).toBe(true);
+    expect(insertedExpensePayloads.some((ev) => String(ev.expectedDate) < todayAest)).toBe(true);
   });
 
   it("createEnvelopeCommand normalizes generateEvents to false for non-recurring envelopes", async () => {
@@ -338,7 +338,7 @@ describe("Envelope Lifecycle & Event Sync", () => {
       tenantId,
       appId,
       userId,
-      mockDb
+      mockDb as unknown as DbOrTx
     );
 
     expect(insertedEnvelopeValues).not.toBeNull();

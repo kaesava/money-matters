@@ -1,3 +1,4 @@
+import { DEFAULT_TIMEZONE, DEFAULT_LOCALE } from "@money-matters/types";
 /**
  * Mobile Locale & Timezone Configuration
  *
@@ -13,8 +14,8 @@ export interface MobileLocaleConfig {
 }
 
 let currentMobileLocaleConfig: MobileLocaleConfig = {
-  locale: 'en-AU',
-  timezone: 'Australia/Sydney',
+  locale: DEFAULT_LOCALE,
+  timezone: DEFAULT_TIMEZONE,
   currency: 'AUD',
 };
 

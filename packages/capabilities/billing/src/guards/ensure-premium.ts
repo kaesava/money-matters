@@ -3,7 +3,7 @@ import { getSubscriptionStatus } from "../queries/get-subscription-status.js";
 
 /**
  * Asserts that a tenant has an active trial, trial grace period, or active Premium subscription.
- * Throws a human-readable error if the tenant is on FREE_TIER or DEACTIVATED.
+ * Throws a human-readable error if the tenant is on TRIAL_EXPIRED or DEACTIVATED.
  */
 export async function ensurePremiumAccess(
   db: DbOrTx,

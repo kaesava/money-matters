@@ -1,4 +1,5 @@
 import { EnvelopeType, FundingMode, AllocationStepType } from "@money-matters/types";
+import { getTenantDateString } from "@money-matters/core";
 import { isBillsBucket, isGoalBucket, isEverydayBucket } from "./envelope-engine-mapper.js";
 import { toCents, toDollars, calculateCycleFactor } from "./allocation-engine-utils.js";
 import {
@@ -101,7 +102,7 @@ export function runAllocationEngine(input: AllocationEngineInput): AllocationEng
 
   const bufferedCutoffTime = baseNextCutoffTime + bufferDays * 24 * 60 * 60 * 1000;
   const targetTz = input.timezone || "UTC";
-  const bufferedCutoffDateStr = new Intl.DateTimeFormat("en-CA", { timeZone: targetTz }).format(new Date(bufferedCutoffTime));
+  const bufferedCutoffDateStr = getTenantDateString(new Date(bufferedCutoffTime), { timezone: targetTz });
 
   const allExpenses = input.upcomingExpenses ?? [];
   const immediateExpenses = allExpenses.filter((e) => e && e.dueDate && e.dueDate.slice(0, 10) <= bufferedCutoffDateStr);

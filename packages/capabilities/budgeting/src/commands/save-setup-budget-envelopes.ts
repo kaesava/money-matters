@@ -1,7 +1,7 @@
 import { DbOrTx, envelopes, transactionLedger, getEnvelopeBalancesMap } from "@money-matters/db";
 import { eq, and, sql } from "drizzle-orm";
 import { randomUUID } from "crypto";
-import { EnvelopeType } from "@money-matters/types";
+import { EnvelopeType, DEFAULT_TIMEZONE } from "@money-matters/types";
 import { deriveRrule, computeBillScheduleAnchorDate } from "./save-setup-budget-calculators.js";
 import { archivePendingExpenseEvents, synchronizeUpdatedEnvelopeEvents } from "./save-setup-budget-sync.js";
 
@@ -36,7 +36,7 @@ export async function processSetupEnvelopes(
   appId: string,
   userId: string,
   now: Date,
-  timeZone: string = "Australia/Sydney"
+  timeZone: string = DEFAULT_TIMEZONE
 ): Promise<{ envelopeIdMap: Map<string, string>; sweptEnvelopesCount: number; sweptTotalAmount: number }> {
   const existingEnvelopes = await tx
     .select()

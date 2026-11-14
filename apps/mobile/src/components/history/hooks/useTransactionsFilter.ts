@@ -11,8 +11,26 @@ export type PlanSortField =
   | 'receivingAccount'
   | 'amount';
 
+export interface MobileTransactionItem {
+  id: string;
+  amount: string;
+  flowType: string;
+  source: string;
+  note: string | null;
+  bankAccountId: string | null;
+  envelopeId: string;
+  poolId?: string | null;
+  poolName?: string | null;
+  categoryId?: string | null;
+  categoryName?: string | null;
+  transactionType: string;
+  recordedAt: string;
+  transferGroupId: string | null;
+  transactionDate?: string;
+}
+
 interface UseTransactionsFilterProps {
-  transactions: any[];
+  transactions: MobileTransactionItem[];
   pools: Array<{ id: string; name: string }>;
   bankAccounts: Array<{ id: string; name: string }>;
   allocationPlans: MobilePaydayAllocationRecord[];

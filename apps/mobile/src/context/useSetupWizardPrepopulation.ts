@@ -1,3 +1,4 @@
+import { getTenantDateString } from "../lib/format";
 import { useEffect } from 'react';
 import { trpc } from '../lib/trpc';
 import { IncomeItem, UserGoalItem, EstimatedCategoryItem } from '@money-matters/types';
@@ -48,7 +49,7 @@ export function useSetupWizardPrepopulation({
           receivingAccountId: inc.receivingAccountId,
           startDate: inc.startDate
             ? String(inc.startDate)
-            : new Intl.DateTimeFormat('en-CA', { timeZone: tz }).format(new Date()),
+            : getTenantDateString(new Date(), { timezone: tz }),
         };
       })
     );
@@ -103,7 +104,7 @@ export function useSetupWizardPrepopulation({
             dueDate: isOngoing
               ? null
               : g.endDate ||
-                new Intl.DateTimeFormat('en-CA', { timeZone: tz }).format(
+                getTenantDateString(
                   new Date(Date.now() + 365 * 24 * 60 * 60 * 1000)
                 ),
           };

@@ -1,3 +1,4 @@
+import { DEFAULT_TIMEZONE } from "@money-matters/types";
 import { incomeSources, incomeEvents, bankAccounts, tenants, type DbOrTx } from "@money-matters/db";
 import { getTenantDateString } from "@money-matters/core";
 import { and, eq, sql, inArray } from "drizzle-orm";
@@ -8,7 +9,7 @@ export type ContributionMode = "FULL" | "PERCENTAGE" | "FIXED_AMOUNT";
 
 export async function getTenantLocalDateString(db: DbOrTx, tenantId: string, d: Date = new Date()): Promise<string> {
   const [tenantRecord] = await db.select({ timezone: tenants.timezone }).from(tenants).where(eq(tenants.id, tenantId)).limit(1);
-  return getTenantDateString(d, { timezone: tenantRecord?.timezone || "Australia/Sydney" });
+  return getTenantDateString(d, { timezone: tenantRecord?.timezone || DEFAULT_TIMEZONE });
 }
 
 export function buildIncomeRRule(frequency?: IncomeFrequency, interval = 1): string {
@@ -143,7 +144,7 @@ export async function createIncomeSourceCommand(
       tenantId,
       appId,
       userId,
-      timeZone: tenantRecord?.timezone || "Australia/Sydney",
+      timeZone: tenantRecord?.timezone || DEFAULT_TIMEZONE,
     });
   }
 
@@ -276,7 +277,7 @@ export async function updateIncomeSourceCommand(
     }
     if (rrule) {
       const [tenantRecord] = await db.select({ timezone: tenants.timezone }).from(tenants).where(eq(tenants.id, tenantId)).limit(1);
-      const timeZone = tenantRecord?.timezone || "Australia/Sydney";
+      const timeZone = tenantRecord?.timezone || DEFAULT_TIMEZONE;
       const todayStr = getTenantDateString(new Date(), { timezone: timeZone });
       const yesterdayStr = getTenantDateString(new Date(Date.now() - 86400000), { timezone: timeZone });
       const count = await burstIncomeEvents(db, {

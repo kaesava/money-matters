@@ -1,3 +1,4 @@
+import { DEFAULT_TIMEZONE, DEFAULT_LOCALE } from "@money-matters/types";
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import * as SecureStore from 'expo-secure-store';
 import {
@@ -36,7 +37,7 @@ export function useMobileProfileData({
   const [phoneNumber, setPhoneNumber] = useState('');
   const [phoneError, setPhoneError] = useState<string | undefined>();
   const [avatarUri, setAvatarUri] = useState<string | null>(null);
-  const [timezone, setTimezone] = useState('Australia/Sydney');
+  const [timezone, setTimezone] = useState(DEFAULT_TIMEZONE);
   const [language, setLanguage] = useState<'en'>('en');
   const [showIcons, setShowIcons] = useState(true);
 
@@ -45,7 +46,7 @@ export function useMobileProfileData({
     notificationEmail: '',
     phoneCountryCode: '+61',
     phoneNumber: '',
-    timezone: 'Australia/Sydney',
+    timezone: DEFAULT_TIMEZONE,
     language: 'en' as const,
     showIcons: true,
     avatarUri: null as string | null,
@@ -66,7 +67,7 @@ export function useMobileProfileData({
     const uName = prof?.displayName || session?.user?.name || '';
     const uEmail = prof?.email || session?.user?.email || storedEmail || '';
     const uAvatar = prof?.avatarUrl || session?.user?.image || null;
-    const uTz = prof?.timezone || pref?.timezone || 'Australia/Sydney';
+    const uTz = prof?.timezone || pref?.timezone || DEFAULT_TIMEZONE;
     const uLang = 'en' as const;
     const uIcons = prof?.showIcons ?? pref?.showIcons ?? true;
     const uNotifEmail = prof?.notificationEmail || pref?.notificationEmail || uEmail;

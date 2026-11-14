@@ -1,3 +1,4 @@
+import type { DbOrTx } from "@money-matters/db";
 import { describe, it, expect, vi } from "vitest";
 import { saveSetupBudgetHandler } from "./save-setup-budget.command";
 import { envelopes, bankAccounts, incomeSources, expenseEvents, incomeEvents, transactionLedger, tenants } from "@money-matters/db";
@@ -22,19 +23,19 @@ describe("saveSetupBudgetHandler", () => {
   let updatedRows: Record<string, any[]> = {};
 
   const createMockDb = (existingData?: {
-    accounts?: any[];
-    envelopes?: any[];
-    incomes?: any[];
-    expenseSources?: any[];
-    prefs?: any[];
-    tenants?: any[];
+    accounts?: Record<string, unknown>[];
+    envelopes?: Record<string, unknown>[];
+    incomes?: Record<string, unknown>[];
+    expenseSources?: Record<string, unknown>[];
+    prefs?: Record<string, unknown>[];
+    tenants?: Record<string, unknown>[];
   }) => {
     insertedRows = {};
     updatedRows = {};
 
-    const mockDb: any = {
+    const mockDb = {
       select: vi.fn().mockImplementation(() => ({
-        from: vi.fn().mockImplementation((table: any) => {
+        from: vi.fn().mockImplementation((table: unknown) => {
           const getData = () => {
             if (table === bankAccounts) return existingData?.accounts || [];
             if (table === envelopes) return existingData?.envelopes || [];
@@ -43,7 +44,7 @@ describe("saveSetupBudgetHandler", () => {
             if (table === tenants) return existingData?.tenants || [{ timezone: "Australia/Sydney" }];
             return existingData?.prefs || [];
           };
-          const queryResult: any = Promise.resolve(getData());
+          const queryResult = Object.assign(Promise.resolve(getData()), {}) as Promise<unknown> & Record<string, unknown>;
           queryResult.limit = vi.fn().mockImplementation(() => Promise.resolve(getData()));
           return {
             where: vi.fn().mockReturnValue(queryResult),
@@ -51,8 +52,8 @@ describe("saveSetupBudgetHandler", () => {
           };
         }),
       })),
-      insert: vi.fn().mockImplementation((table: any) => ({
-        values: vi.fn().mockImplementation((vals: any) => {
+      insert: vi.fn().mockImplementation((table: unknown) => ({
+        values: vi.fn().mockImplementation((vals: unknown) => {
           const items = Array.isArray(vals) ? vals : [vals];
           if (table === transactionLedger) {
             insertedRows["transaction_ledger"] = [...(insertedRows["transaction_ledger"] || []), ...items];
@@ -70,10 +71,10 @@ describe("saveSetupBudgetHandler", () => {
           return Promise.resolve(vals);
         }),
       })),
-      update: vi.fn().mockImplementation((table: any) => ({
-        set: vi.fn().mockImplementation((setVals: any) => ({
+      update: vi.fn().mockImplementation((table: unknown) => ({
+        set: vi.fn().mockImplementation((setVals: unknown) => ({
           where: vi.fn().mockImplementation(() => {
-            const tableName = table === tenants ? "tenants" : table === envelopes ? "envelopes" : table?.name || "unknown";
+            const tableName = table === tenants ? "tenants" : table === envelopes ? "envelopes" : (table as { name?: string })?.name || "unknown";
             updatedRows[tableName] = updatedRows[tableName] || [];
             updatedRows[tableName].push(setVals);
             return Promise.resolve([setVals]);
@@ -85,13 +86,13 @@ describe("saveSetupBudgetHandler", () => {
       })),
     };
 
-    mockDb.transaction = vi.fn().mockImplementation((cb: any) => cb(mockDb));
+    (mockDb as unknown as Record<string, unknown>).transaction = vi.fn().mockImplementation((cb: (tx: DbOrTx) => unknown) => cb(mockDb as unknown as DbOrTx));
     return mockDb;
   };
 
   it("persists initial setup configuration cleanly", async () => {
     const mockDb = createMockDb();
-    const handler = saveSetupBudgetHandler(mockDb);
+    const handler = saveSetupBudgetHandler(mockDb as unknown as DbOrTx);
 
     const result = await handler(
       {
@@ -132,7 +133,7 @@ describe("saveSetupBudgetHandler", () => {
       envelopes: [{ id: existingEnvId, name: "Electricity", envelopeType: "BILL", fundingMode: "RECURRING", budgetFrequency: "MONTHLY", monthlyAmount: "150.00" }],
       expenseSources: [{ id: "evt-1", envelopeId: existingEnvId, status: "PENDING" }],
     });
-    const handler = saveSetupBudgetHandler(mockDb);
+    const handler = saveSetupBudgetHandler(mockDb as unknown as DbOrTx);
 
     const result = await handler(
       {
@@ -159,7 +160,7 @@ describe("saveSetupBudgetHandler", () => {
     const mockDb = createMockDb({
       envelopes: [{ id: "env-everyday", name: "Everyday Spending", envelopeType: "EVERYDAY", isPrivate: false }],
     });
-    const handler = saveSetupBudgetHandler(mockDb);
+    const handler = saveSetupBudgetHandler(mockDb as unknown as DbOrTx);
 
     await expect(
       handler(
@@ -184,7 +185,7 @@ describe("saveSetupBudgetHandler", () => {
         { id: "env-holiday", name: "Holiday Fund", envelopeType: "GOAL", fundingMode: "TARGET_BALANCE" },
       ],
     });
-    const handler = saveSetupBudgetHandler(mockDb);
+    const handler = saveSetupBudgetHandler(mockDb as unknown as DbOrTx);
 
     const result = await handler(
       {
@@ -225,7 +226,7 @@ describe("saveSetupBudgetHandler", () => {
         { id: "env-seed-emergency", name: "Emergency Reserve", envelopeType: "GOAL", fundingMode: "RECURRING", bankAccountId: "acc-seeded" },
       ],
     });
-    const handler = saveSetupBudgetHandler(mockDb);
+    const handler = saveSetupBudgetHandler(mockDb as unknown as DbOrTx);
 
     const result = await handler(
       {
@@ -269,7 +270,7 @@ describe("saveSetupBudgetHandler", () => {
         { id: "env-seed-everyday", name: "Everyday Spending", envelopeType: "EVERYDAY", bankAccountId: "acc-seeded", isSurplusTarget: true, isPrivate: false },
       ],
     });
-    const handler = saveSetupBudgetHandler(mockDb);
+    const handler = saveSetupBudgetHandler(mockDb as unknown as DbOrTx);
 
     const result = await handler(
       {
@@ -322,7 +323,7 @@ describe("saveSetupBudgetHandler", () => {
       incomes: [],
     });
 
-    const handler = saveSetupBudgetHandler(db);
+    const handler = saveSetupBudgetHandler(db as unknown as DbOrTx);
     await handler(
       {
         incomes: [

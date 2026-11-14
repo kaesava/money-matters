@@ -6,7 +6,7 @@ import {
   runAllocationCommand,
   previewPaydayQuery,
   resetAllocationPlanCommand,
-  getIncomeSplitAnalyticsQuery,
+  getPaydayPlanAnalyticsQuery,
   listAllocationPlanQuery,
   listAllAllocationPlansQuery,
 } from "@money-matters/capability-budgeting";
@@ -89,6 +89,6 @@ export const paydayExecutionProcedures = {
       if (!flags.reports) {
         throw new TRPCError({ code: 'FORBIDDEN', message: 'Reports feature is disabled for this application.' });
       }
-      return await getIncomeSplitAnalyticsQuery(ctx.tenantId!, ctx.appId!, input, ctx.db);
+      return await getPaydayPlanAnalyticsQuery(ctx.tenantId!, ctx.appId!, input, ctx.db);
     }),
 };

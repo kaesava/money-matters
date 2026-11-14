@@ -207,7 +207,7 @@ export function simulateRecurringCommitment(
     if (pool.endDate) {
       const originalDate = new Date(pool.endDate + "T00:00:00Z");
       const newDate = new Date(originalDate.getTime() + delayDays * 24 * 60 * 60 * 1000);
-      newDateStr = new Intl.DateTimeFormat("en-CA", { timeZone: timezone }).format(newDate);
+      newDateStr = getTenantDateString(newDate, { timezone });
     }
 
     goalDelays.push({

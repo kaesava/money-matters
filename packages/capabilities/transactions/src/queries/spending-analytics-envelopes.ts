@@ -1,4 +1,5 @@
-import { SpendingTimeframe, TopPayeeItemDTO } from "@money-matters/types";
+import { DEFAULT_LOCALE, SpendingTimeframe, TopPayeeItemDTO } from "@money-matters/types";
+import { getCachedDateFormat } from "@money-matters/core";
 
 export interface AnalyticsBucketItem {
   key: string;
@@ -7,9 +8,9 @@ export interface AnalyticsBucketItem {
   outflow: number;
 }
 
-export function getMonthLabel(year: number, monthZeroIndex: number): string {
+export function getMonthLabel(year: number, monthZeroIndex: number, locale: string = DEFAULT_LOCALE): string {
   const date = new Date(Date.UTC(year, monthZeroIndex, 1));
-  return new Intl.DateTimeFormat("en-AU", {
+  return getCachedDateFormat(locale, {
     month: "short",
     year: "2-digit",
     timeZone: "UTC",

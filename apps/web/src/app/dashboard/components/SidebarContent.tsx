@@ -4,7 +4,7 @@ import React from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { t } from "@money-matters/i18n";
-import { Logo } from "@money-matters/ui/web";
+import { Logo, DESIGN_TOKENS } from "@money-matters/ui/web";
 import { SidebarTrialNavItem } from "../../../components/TrialStatusBadge";
 import { HouseholdSwitcher } from "../../../components/HouseholdSwitcher";
 import { useProductTour, TOUR_STEPS } from "../../../providers/ProductTourContext";
@@ -103,10 +103,10 @@ export function SidebarContent({
                 className={`flex items-center gap-3.5 px-3 py-3 rounded-xl text-sm font-bold transition-all duration-200 group relative ${
                   isActive
                     ? "text-white shadow-lg shadow-black/10"
-                    : "text-[#9EACC7] hover:text-white hover:bg-white/5"
-                } ${isTourTarget ? "ring-2 ring-blue-400 ring-offset-2 ring-offset-[#1B2B4B]" : ""}`}
+                    : "text-slate-400 hover:text-white hover:bg-white/5"
+                } ${isTourTarget ? "ring-2 ring-blue-400 ring-offset-2 ring-offset-slate-900" : ""}`}
                 style={{
-                  backgroundColor: isActive ? "#2563eb" : "transparent",
+                  backgroundColor: isActive ? DESIGN_TOKENS.colors.sereneBlue : "transparent",
                 }}
                 title={sidebarCollapsed ? item.label() : undefined}
               >
@@ -169,12 +169,12 @@ export function SidebarContent({
               alt={sessionUser?.name || "User"}
               width={36}
               height={36}
-              className="w-9 h-9 rounded-full object-cover shrink-0 ring-2 ring-white/15 group-hover:ring-[#2563eb] transition-all"
+              className="w-9 h-9 rounded-full object-cover shrink-0 ring-2 ring-white/15 group-hover:ring-blue-600 transition-all"
             />
           ) : (
             <div
-              className="w-9 h-9 rounded-full flex items-center justify-center text-white text-xs font-black shrink-0 ring-2 ring-white/15 group-hover:ring-[#2563eb] transition-all"
-              style={{ backgroundColor: "#2563eb" }}
+              className="w-9 h-9 rounded-full flex items-center justify-center text-white text-xs font-black shrink-0 ring-2 ring-white/15 group-hover:ring-blue-600 transition-all"
+              style={{ backgroundColor: DESIGN_TOKENS.colors.sereneBlue }}
             >
               {initials}
             </div>
@@ -184,7 +184,7 @@ export function SidebarContent({
               <p className="text-xs font-extrabold text-white truncate group-hover:text-blue-300 transition-colors">
                 {sessionUser?.name}
               </p>
-              <p className="text-[10px] text-[#9EACC7] truncate">{sessionUser?.email}</p>
+              <p className="text-[10px] text-slate-400 truncate">{sessionUser?.email}</p>
             </div>
           )}
         </div>

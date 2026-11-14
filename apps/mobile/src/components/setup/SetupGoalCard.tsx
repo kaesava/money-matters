@@ -1,3 +1,4 @@
+import { getTenantDateString } from "../../lib/format";
 import React from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView } from 'react-native';
 import { Feather } from '@expo/vector-icons';
@@ -59,7 +60,7 @@ export function SetupGoalCard({
   const freq = goal.budgetFrequency || 'MONTHLY';
   const isSurplusTarget = Boolean(goal.isSurplusTarget);
   const tz = getMobileLocaleConfig().timezone;
-  const todayStr = new Intl.DateTimeFormat('en-CA', { timeZone: tz }).format(new Date());
+  const todayStr = getTenantDateString(new Date(), { timezone: tz });
   const isPast = Boolean(!isOngoing && goal.dueDate && goal.dueDate < todayStr);
 
   const handleFrequencyChange = (newFreq: 'WEEKLY' | 'FORTNIGHTLY' | 'MONTHLY' | 'QUARTERLY' | 'ANNUALLY') => {

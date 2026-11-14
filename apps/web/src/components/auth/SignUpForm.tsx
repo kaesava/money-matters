@@ -1,4 +1,6 @@
 "use client";
+import { DEFAULT_TIMEZONE } from "@money-matters/types";
+
 
 import React, { useState } from "react";
 import Link from "next/link";
@@ -35,9 +37,9 @@ export function SignUpForm({
 }: SignUpFormProps) {
   const detectedTimezone = React.useMemo(() => {
     try {
-      return Intl.DateTimeFormat().resolvedOptions().timeZone || "Australia/Sydney";
+      return Intl.DateTimeFormat().resolvedOptions().timeZone || DEFAULT_TIMEZONE;
     } catch {
-      return "Australia/Sydney";
+      return DEFAULT_TIMEZONE;
     }
   }, []);
 

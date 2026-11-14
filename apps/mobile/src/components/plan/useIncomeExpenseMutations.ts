@@ -1,10 +1,12 @@
+import { DEFAULT_TIMEZONE, DEFAULT_LOCALE } from "@money-matters/types";
+import { getTenantDateString } from "../../lib/format";
 import { trpc } from '../../lib/trpc';
 import { useMobileToast, showMobileConfirm } from '@money-matters/ui/mobile';
 import { t } from '@money-matters/i18n';
 import { SourceToEdit } from '../IncomeExpenseFormModal';
 
 const getSydneyTodayString = () =>
-  new Intl.DateTimeFormat('en-CA', { timeZone: 'Australia/Sydney' }).format(new Date());
+  getTenantDateString(new Date(), { timezone: DEFAULT_TIMEZONE });
 
 interface UseIncomeExpenseMutationsProps {
   mode: 'INCOME' | 'EXPENSE';

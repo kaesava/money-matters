@@ -1,3 +1,4 @@
+import { getTenantDateString } from "../../lib/format";
 import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, ScrollView, TextInput, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
@@ -31,7 +32,7 @@ export default function SetupGoalsScreen() {
   const [customType, setCustomType] = useState<'TARGET_BALANCE' | 'RECURRING'>('TARGET_BALANCE');
 
   const tz = getMobileLocaleConfig().timezone;
-  const todayStr = new Intl.DateTimeFormat('en-CA', { timeZone: tz }).format(new Date());
+  const todayStr = getTenantDateString(new Date(), { timezone: tz });
   const isCustomPastDate = Boolean(customType === 'TARGET_BALANCE' && customDate && customDate < todayStr);
 
   const isPresetActive = (name: string) =>
@@ -61,7 +62,7 @@ export default function SetupGoalsScreen() {
       const isOngoing = preset.fundingMode === 'RECURRING';
       const d = new Date();
       d.setMonth(d.getMonth() + (preset.defaultMonths || 12));
-      const dueDate = isOngoing ? null : new Intl.DateTimeFormat('en-CA', { timeZone: tz }).format(d);
+      const dueDate = isOngoing ? null : getTenantDateString(d, { timezone: tz });
       const targetAmt = isAud ? preset.defaultTarget : 0;
       setGoals((prev) => [
         ...prev,
@@ -113,7 +114,7 @@ export default function SetupGoalsScreen() {
       if (!dueDate) {
         const d = new Date();
         d.setMonth(d.getMonth() + 12);
-        dueDate = new Intl.DateTimeFormat('en-CA', { timeZone: tz }).format(d);
+        dueDate = getTenantDateString(d, { timezone: tz });
       }
       setGoals((prev) => [
         ...prev,

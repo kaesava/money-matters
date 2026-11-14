@@ -1,4 +1,6 @@
 "use client";
+import { DEFAULT_TIMEZONE } from "@money-matters/types";
+
 
 import React, { useState, useEffect } from "react";
 import { trpc } from "../../../../lib/trpc";
@@ -28,7 +30,7 @@ export function HouseholdDetailsSection({
   const [householdName, setHouseholdName] = useState("");
   const [country, setCountry] = useState("AU");
   const [currency, setCurrency] = useState("AUD");
-  const [timezone, setTimezone] = useState("Australia/Sydney");
+  const [timezone, setTimezone] = useState(DEFAULT_TIMEZONE);
   const [state, setState] = useState("");
   const [postcode, setPostcode] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -38,7 +40,7 @@ export function HouseholdDetailsSection({
       setHouseholdName(gov.householdName || "");
       setCountry(gov.country || "AU");
       setCurrency(gov.currency || "AUD");
-      setTimezone(gov.timezone || "Australia/Sydney");
+      setTimezone(gov.timezone || DEFAULT_TIMEZONE);
       setState(gov.state || "");
       setPostcode(gov.postcode || "");
     }
@@ -61,7 +63,7 @@ export function HouseholdDetailsSection({
     householdName: gov.householdName || "",
     country: gov.country || "AU",
     currency: gov.currency || "AUD",
-    timezone: gov.timezone || "Australia/Sydney",
+    timezone: gov.timezone || DEFAULT_TIMEZONE,
     state: gov.state || "",
     postcode: gov.postcode || "",
   } : null;
@@ -89,7 +91,7 @@ export function HouseholdDetailsSection({
       setHouseholdName(gov.householdName || "");
       setCountry(gov.country || "AU");
       setCurrency(gov.currency || "AUD");
-      setTimezone(gov.timezone || "Australia/Sydney");
+      setTimezone(gov.timezone || DEFAULT_TIMEZONE);
       setState(gov.state || "");
       setPostcode(gov.postcode || "");
     }

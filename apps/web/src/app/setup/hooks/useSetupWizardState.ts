@@ -1,4 +1,6 @@
 "use client";
+import { DEFAULT_TIMEZONE } from "@money-matters/types";
+
 
 import { useState, useMemo, useEffect, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -48,7 +50,7 @@ export function useSetupWizardState() {
           name: "My Household",
           country: "AU",
           currency: "AUD",
-          timezone: "Australia/Sydney",
+          timezone: DEFAULT_TIMEZONE,
         })
         .then(async () => {
           await tenantStatusQuery.refetch();
@@ -219,7 +221,7 @@ export function useSetupWizardState() {
             name: "My Household",
             country: "AU",
             currency: "AUD",
-            timezone: "Australia/Sydney",
+            timezone: DEFAULT_TIMEZONE,
           });
         }
         await cancelSetupMut.mutateAsync();

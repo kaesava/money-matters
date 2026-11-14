@@ -56,8 +56,8 @@ export function parseSourceRecurrence(source?: SourceToEdit | null) {
 export function useIncomeExpenseForm(
   visible: boolean,
   sourceToEdit: SourceToEdit | null | undefined,
-  rawPools: any[],
-  bankAccounts: any[],
+  rawPools: Array<{ id: string; name: string; poolType?: string; bucketType?: string; isDefault?: boolean }>,
+  bankAccounts: Array<{ id: string; name: string; accountType?: string }>,
   mode: 'INCOME' | 'EXPENSE',
 ) {
   const [name, setName] = useState('');

@@ -1,3 +1,4 @@
+import { getTenantDateString } from "../lib/format";
 import React, { createContext, useContext, useState, useMemo, useEffect, useRef } from 'react';
 import { useGlobalSearchParams, useRouter } from 'expo-router';
 import {
@@ -131,7 +132,7 @@ export function SetupWizardProvider({ children: reactChildren }: { children: Rea
       amount: 3200,
       frequency: 'FORTNIGHTLY',
       type: 'SALARY',
-      startDate: new Intl.DateTimeFormat('en-CA', { timeZone: tz }).format(new Date()),
+      startDate: getTenantDateString(new Date(), { timezone: tz }),
     },
   ]);
   const [archivedIncomeIds, setArchivedIncomeIds] = useState<Set<string>>(new Set());

@@ -1,4 +1,6 @@
 import { DbOrTx, incomeSources, incomeEvents } from "@money-matters/db";
+import { getTenantDateString } from "@money-matters/core";
+import { DEFAULT_TIMEZONE } from "@money-matters/types";
 import { eq, and, inArray, sql } from "drizzle-orm";
 import { randomUUID } from "crypto";
 import {
@@ -39,14 +41,14 @@ export async function processSetupIncomes(
   appId: string,
   userId: string,
   now: Date,
-  timeZone: string = "Australia/Sydney"
+  timeZone: string = DEFAULT_TIMEZONE
 ): Promise<void> {
   const existingIncomes = await tx
     .select()
     .from(incomeSources)
     .where(and(eq(incomeSources.tenantId, tenantId), eq(incomeSources.appId, appId), sql`${incomeSources.archivedAt} IS NULL`));
 
-  const todayLocal = new Intl.DateTimeFormat("en-CA", { timeZone }).format(now);
+  const todayLocal = getTenantDateString(now, { timezone: timeZone });
   const newIncomeCandidates: IncomeScheduleCandidate[] = [];
 
   for (const incInput of incomesInput) {

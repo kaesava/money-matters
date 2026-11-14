@@ -1,3 +1,4 @@
+import { DEFAULT_TIMEZONE, DEFAULT_LOCALE } from "@money-matters/types";
 import React, { useState, useMemo } from 'react';
 import { QueryCache, MutationCache, QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { PostHogProvider } from 'posthog-react-native';
@@ -42,10 +43,10 @@ function MobilePreferencesSync({ children }: { children: React.ReactNode }) {
 
   const resolvedLocale = React.useMemo(() => {
     let loc = pref?.locale || 'auto';
-    return loc === 'auto' ? 'en-AU' : loc;
+    return loc === 'auto' ? DEFAULT_LOCALE : loc;
   }, [pref?.locale]);
 
-  const userTimezone = pref?.timezone || pref?.tenantTimezone || 'Australia/Sydney';
+  const userTimezone = pref?.timezone || pref?.tenantTimezone || DEFAULT_TIMEZONE;
 
   React.useEffect(() => {
     if (pref) {

@@ -1,5 +1,5 @@
 import { userPreferences, tenantUserPreferences, users, tenants, type AppPreferencesBlob, type DbOrTx } from "@money-matters/db";
-import { COUNTRY_DEFAULTS } from "@money-matters/types";
+import { COUNTRY_DEFAULTS, DEFAULT_TIMEZONE, DEFAULT_LOCALE } from "@money-matters/types";
 import { and, eq, sql } from "drizzle-orm";
 
 function getCountryDefaults(country?: string | null) {
@@ -25,12 +25,12 @@ export async function getUserPreferencesHandler(userId: string, tenantId: string
     userId,
     tenantId,
     appId,
-    timezone: globalPref?.timezone || currentTenant?.timezone || "Australia/Sydney",
-    tenantTimezone: currentTenant?.timezone || "Australia/Sydney",
+    timezone: globalPref?.timezone || currentTenant?.timezone || DEFAULT_TIMEZONE,
+    tenantTimezone: currentTenant?.timezone || DEFAULT_TIMEZONE,
     currency: currentTenant?.currency || "AUD",
     country: currentTenant?.country || "AU",
     language: (globalPref?.language as "en") || "en",
-    locale: currentTenant?.country ? (countryDefaults?.locale || `en-${currentTenant.country}`) : "en-AU",
+    locale: currentTenant?.country ? (countryDefaults?.locale || `en-${currentTenant.country}`) : DEFAULT_LOCALE,
     theme: globalPref?.theme ?? "system",
     showIcons: globalPref?.showIcons ?? true,
     notificationEmail: globalPref?.notificationEmail ?? null,
@@ -133,7 +133,7 @@ export async function getUserProfileHandler(userId: string, tenantId: string | n
     notificationEmail: pref?.notificationEmail || u?.email || "",
     phoneCountryCode: pref?.phoneCountryCode && pref.phoneCountryCode !== "+61" ? pref.phoneCountryCode : (defaults?.phoneCountryCode || pref?.phoneCountryCode || "+61"),
     phoneNumber: pref?.phoneNumber || "",
-    timezone: pref?.timezone || tenantObj?.timezone || defaults?.timezone || "Australia/Sydney",
+    timezone: pref?.timezone || tenantObj?.timezone || defaults?.timezone || DEFAULT_TIMEZONE,
     showIcons: pref?.showIcons ?? true,
   };
 }

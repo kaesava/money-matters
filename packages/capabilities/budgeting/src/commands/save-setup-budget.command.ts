@@ -1,7 +1,7 @@
 import { DbOrTx, tenants } from "@money-matters/db";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
-import { SaveSetupBudgetCommand } from "@money-matters/types";
+import { SaveSetupBudgetCommand, DEFAULT_TIMEZONE } from "@money-matters/types";
 import { processSetupBankAccounts } from "./save-setup-budget-accounts.js";
 import { processSetupEnvelopes } from "./save-setup-budget-envelopes.js";
 import { processSetupIncomes } from "./save-setup-budget-incomes.js";
@@ -36,7 +36,7 @@ export function saveSetupBudgetHandler(dbClient: DbOrTx) {
         .from(tenants)
         .where(eq(tenants.id, tenantId))
         .limit(1);
-      const tenantTimezone = tenantRow?.timezone || "Australia/Sydney";
+      const tenantTimezone = tenantRow?.timezone || DEFAULT_TIMEZONE;
 
       // 1. Process Bank Accounts
       const { accountIdMap, primaryBankAccountId } = await processSetupBankAccounts(

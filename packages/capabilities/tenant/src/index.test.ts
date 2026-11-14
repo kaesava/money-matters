@@ -27,8 +27,8 @@ describe('Capability Tenant Handlers', () => {
     const returningMock = vi.fn().mockResolvedValue([{ id: 'mock-account-id' }, { id: 'mock-bills-pool-id' }]);
     const valuesMock = vi.fn().mockImplementation(() => {
       const promiseObj = Promise.resolve([]);
-      (promiseObj as any).returning = returningMock;
-      (promiseObj as any).onConflictDoNothing = vi.fn().mockResolvedValue([]);
+      (promiseObj as unknown as Record<string, unknown>).returning = returningMock;
+      (promiseObj as unknown as Record<string, unknown>).onConflictDoNothing = vi.fn().mockResolvedValue([]);
       return promiseObj;
     });
     const insertMock = vi.fn().mockReturnValue({ values: valuesMock });
@@ -43,13 +43,13 @@ describe('Capability Tenant Handlers', () => {
     const setMock = vi.fn().mockReturnValue({ where: setWhereMock });
     const updateMock = vi.fn().mockReturnValue({ set: setMock });
 
-    const mockDb: any = {
+    const mockDb = {
       insert: insertMock,
       select: selectMock,
       update: updateMock,
     };
 
-    const handler = createTenantHandler(mockDb);
+    const handler = createTenantHandler(mockDb as unknown as DbOrTx);
     const result = await handler({ name: 'Acme Household', country: 'AU' }, appId, userId);
 
     expect(result.success).toBe(true);
@@ -66,17 +66,17 @@ describe('Capability Tenant Handlers', () => {
 
     const valuesMock = vi.fn().mockImplementation(() => {
       const promiseObj = Promise.resolve([]);
-      (promiseObj as any).onConflictDoNothing = vi.fn().mockResolvedValue([]);
+      (promiseObj as unknown as Record<string, unknown>).onConflictDoNothing = vi.fn().mockResolvedValue([]);
       return promiseObj;
     });
     const insertMock = vi.fn().mockReturnValue({ values: valuesMock });
 
-    const mockDb: any = {
+    const mockDb = {
       insert: insertMock,
       select: selectMock,
     };
 
-    const handler = createTenantHandler(mockDb);
+    const handler = createTenantHandler(mockDb as unknown as DbOrTx);
     await expect(handler({ name: 'Second Household', country: 'AU' }, appId, userId)).rejects.toThrow(
       'You already have an active household'
     );
@@ -86,9 +86,9 @@ describe('Capability Tenant Handlers', () => {
     const returningMock = vi.fn().mockResolvedValue([{ id: accountId, name: 'Main Checking' }]);
     const valuesMock = vi.fn().mockReturnValue({ returning: returningMock });
     const insertMock = vi.fn().mockReturnValue({ values: valuesMock });
-    const mockDb: any = { insert: insertMock };
+    const mockDb = { insert: insertMock };
 
-    const handler = createBankAccountHandler(mockDb);
+    const handler = createBankAccountHandler(mockDb as unknown as DbOrTx);
     const res = await handler(
       {
         name: 'Main Checking',
@@ -117,10 +117,10 @@ describe('Capability Tenant Handlers', () => {
     const fromMock = vi.fn().mockReturnValue({ where: whereMock });
     const selectMock = vi.fn().mockReturnValue({ from: fromMock });
 
-    const mockDb: any = { insert: insertMock, select: selectMock };
+    const mockDb = { insert: insertMock, select: selectMock };
 
     const { invitePartnerHandler } = await import('./index.js');
-    const handler = invitePartnerHandler(mockDb);
+    const handler = invitePartnerHandler(mockDb as unknown as DbOrTx);
     const result = await handler({ email: 'partner@example.com' }, tenantId, userId);
 
     expect(result.success).toBe(true);
@@ -157,15 +157,15 @@ describe('Capability Tenant Handlers', () => {
     const insertReturningMock = vi.fn().mockResolvedValue([{ id: 'acc-partner-1' }]);
     const valuesMock = vi.fn().mockImplementation(() => ({
       returning: insertReturningMock,
-      then: (cb: any) => Promise.resolve([]).then(cb),
-      catch: (cb: any) => Promise.resolve([]).catch(cb),
+      then: (cb: (v: never[]) => unknown) => Promise.resolve([]).then(cb),
+      catch: (cb: (e: unknown) => unknown) => Promise.resolve([]).catch(cb),
     }));
     const insertMock = vi.fn().mockReturnValue({ values: valuesMock });
 
-    const mockDb: any = { select: selectMock, update: updateMock, insert: insertMock };
+    const mockDb = { select: selectMock, update: updateMock, insert: insertMock };
 
     const { acceptInviteHandler } = await import('./index.js');
-    const handler = acceptInviteHandler(mockDb);
+    const handler = acceptInviteHandler(mockDb as unknown as DbOrTx);
     const result = await handler({ inviteToken: 'valid-token' }, userId, 'partner@example.com');
 
     expect(result.success).toBe(true);
@@ -179,10 +179,10 @@ describe('Capability Tenant Handlers', () => {
     const fromMock = vi.fn().mockReturnValue({ where: whereMock });
     const selectMock = vi.fn().mockReturnValue({ from: fromMock });
 
-    const mockDb: any = { select: selectMock };
+    const mockDb = { select: selectMock };
 
     const { acceptInviteHandler } = await import('./index.js');
-    const handler = acceptInviteHandler(mockDb);
+    const handler = acceptInviteHandler(mockDb as unknown as DbOrTx);
     
     await expect(handler({ inviteToken: 'expired-token' }, userId, 'partner@example.com')).rejects.toThrow('Invitation token has expired');
   });
@@ -194,10 +194,10 @@ describe('Capability Tenant Handlers', () => {
     const fromMock = vi.fn().mockReturnValue({ where: whereMock });
     const selectMock = vi.fn().mockReturnValue({ from: fromMock });
 
-    const mockDb: any = { select: selectMock };
+    const mockDb = { select: selectMock };
 
     const { acceptInviteHandler } = await import('./index.js');
-    const handler = acceptInviteHandler(mockDb);
+    const handler = acceptInviteHandler(mockDb as unknown as DbOrTx);
 
     await expect(handler({ inviteToken: 'valid-token' }, userId, 'attacker@example.com')).rejects.toThrow(/Invitation email .* does not match/);
   });
@@ -232,7 +232,7 @@ describe('Capability Tenant Handlers', () => {
       transaction: vi.fn().mockImplementation((cb: (tx: unknown) => unknown) => cb(txMock)),
     } as unknown as DbOrTx;
 
-    const handler = cancelSetupHandler(mockDb);
+    const handler = cancelSetupHandler(mockDb as unknown as DbOrTx);
     const result = await handler(tenantId, appId, userId);
 
     expect(result).toEqual({
@@ -267,7 +267,7 @@ describe('Capability Tenant Handlers', () => {
       transaction: vi.fn().mockImplementation((cb: (tx: unknown) => unknown) => cb(txMock)),
     } as unknown as DbOrTx;
 
-    const handler = cancelSetupHandler(mockDb);
+    const handler = cancelSetupHandler(mockDb as unknown as DbOrTx);
     const result = await handler(tenantId, appId, userId);
 
     expect(result).toEqual({
@@ -282,7 +282,7 @@ describe('Capability Tenant Handlers', () => {
     const { deleteMyAccountHandler } = await import('./index.js');
     const deleteWhereMock = vi.fn().mockResolvedValue([]);
     const deleteMock = vi.fn().mockReturnValue({ where: deleteWhereMock });
-    const selectWhereResult: any = Promise.resolve([{ role: 'OWNER', stripeSubscriptionId: null, stripeCustomerId: null }]);
+    const selectWhereResult: Promise<Array<{ role: string; stripeSubscriptionId: null; stripeCustomerId: null }>> & { limit?: ReturnType<typeof vi.fn> } = Promise.resolve([{ role: 'OWNER', stripeSubscriptionId: null, stripeCustomerId: null }]);
     selectWhereResult.limit = vi.fn().mockResolvedValue([{ role: 'OWNER', stripeSubscriptionId: null, stripeCustomerId: null }]);
     const selectMock = vi.fn().mockReturnValue({
       from: vi.fn().mockReturnValue({
@@ -290,18 +290,18 @@ describe('Capability Tenant Handlers', () => {
       }),
     });
 
-    const txMock: any = {
+    const txMock: unknown = {
       select: selectMock,
       delete: deleteMock,
       execute: vi.fn().mockResolvedValue([]),
     };
 
-    const mockDb: any = {
+    const mockDb = {
       select: selectMock,
-      transaction: vi.fn().mockImplementation((cb: any) => cb(txMock)),
+      transaction: vi.fn().mockImplementation((cb: (tx: DbOrTx) => Promise<unknown>) => cb(txMock as unknown as DbOrTx)),
     };
 
-    const handler = deleteMyAccountHandler(mockDb);
+    const handler = deleteMyAccountHandler(mockDb as unknown as DbOrTx);
     const result = await handler(tenantId, userId, 'owner@example.com', appId);
 
     expect(result.success).toBe(true);

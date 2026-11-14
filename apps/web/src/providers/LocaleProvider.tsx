@@ -1,4 +1,6 @@
 "use client";
+import { DEFAULT_TIMEZONE, DEFAULT_LOCALE } from "@money-matters/types";
+
 
 import React, { createContext, useContext, useEffect, useMemo } from "react";
 import { setLanguage, SupportedLanguage } from "@money-matters/i18n";
@@ -41,15 +43,15 @@ const DEFAULT_LOCALE_CONTEXT: LocaleContextValue = {
   currencySymbol: "$",
   minorUnits: 2,
   country: "AU",
-  timezone: "Australia/Sydney",
-  userTimezone: "Australia/Sydney",
-  locale: "en-AU",
+  timezone: DEFAULT_TIMEZONE,
+  userTimezone: DEFAULT_TIMEZONE,
+  locale: DEFAULT_LOCALE,
   language: "en",
-  fmt: (v) => formatCurrency(v, "en-AU", "AUD"),
-  fmtDate: (d) => formatBaseDate(d, "Australia/Sydney", "en-AU"),
-  fmtDateMedium: (d) => formatBaseDateMedium(d, "Australia/Sydney", "en-AU"),
-  fmtDateTime: (d) => formatBaseDateTime(d, "Australia/Sydney", "en-AU"),
-  fmtTx: (v, f) => formatBaseTxAmount(v, f, "en-AU", "AUD"),
+  fmt: (v) => formatCurrency(v, DEFAULT_LOCALE, "AUD"),
+  fmtDate: (d) => formatBaseDate(d, DEFAULT_TIMEZONE, DEFAULT_LOCALE),
+  fmtDateMedium: (d) => formatBaseDateMedium(d, DEFAULT_TIMEZONE, DEFAULT_LOCALE),
+  fmtDateTime: (d) => formatBaseDateTime(d, DEFAULT_TIMEZONE, DEFAULT_LOCALE),
+  fmtTx: (v, f) => formatBaseTxAmount(v, f, DEFAULT_LOCALE, "AUD"),
 };
 
 const LocaleContext = createContext<LocaleContextValue>(DEFAULT_LOCALE_CONTEXT);
@@ -75,14 +77,14 @@ export function LocaleProvider({ children }: { children: React.ReactNode }) {
       if (typeof navigator !== "undefined" && navigator.language) {
         return navigator.language;
       }
-      return "en-AU";
+      return DEFAULT_LOCALE;
     }
     return rawLocale;
   }, [rawLocale]);
 
   const currency = pref?.currency || "AUD";
   const country = pref?.country || "AU";
-  const timezone = pref?.tenantTimezone || pref?.timezone || "Australia/Sydney";
+  const timezone = pref?.tenantTimezone || pref?.timezone || DEFAULT_TIMEZONE;
   const userTimezone = pref?.timezone || timezone;
 
   const currencySymbol = useMemo(

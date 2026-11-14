@@ -1,3 +1,4 @@
+import type { DbOrTx } from "@money-matters/db";
 import { describe, it, expect, vi } from "vitest";
 import { envelopes, transactionLedger } from "@money-matters/db";
 import { moveMoneyCommand } from "./move-money.command";
@@ -19,33 +20,33 @@ describe("moveMoneyCommand", () => {
   const userId = "00000000-0000-0000-0000-000000000003";
 
   it("throws if source and destination envelopes are identical", async () => {
-    const mockDb: any = {};
+    const mockDb = {};
     await expect(
       moveMoneyCommand(
         { sourceEnvelopeId: "pool-1", destinationEnvelopeId: "pool-1", amount: "50.00" },
         tenantId,
         appId,
         userId,
-        mockDb
+      mockDb as unknown as DbOrTx
       )
     ).rejects.toThrow("Cannot move money to the same envelope.");
   });
 
   it("generates directional notes when no custom note is provided", async () => {
-    let insertedRows: any[] = [];
-    const mockTx: any = {
+    let insertedRows: Record<string, unknown>[] = [];
+    const mockTx = {
       select: vi.fn().mockImplementation(() => ({
         from: vi.fn().mockImplementation(() => ({
-          where: vi.fn().mockImplementation((condition: any) => {
+          where: vi.fn().mockImplementation((condition: unknown) => {
             return Promise.resolve([
               { id: "pool-src", name: "Everyday Expenses" },
             ]);
           }),
         })),
       })),
-      insert: vi.fn().mockImplementation((table: any) => ({
-        values: vi.fn().mockImplementation((vals: any) => {
-          insertedRows = vals;
+      insert: vi.fn().mockImplementation((table: unknown) => ({
+        values: vi.fn().mockImplementation((vals: unknown) => {
+          insertedRows = vals as Record<string, unknown>[];
           return Promise.resolve(vals);
         }),
       })),
@@ -72,8 +73,8 @@ describe("moveMoneyCommand", () => {
       }),
     }));
 
-    const mockDb: any = {
-      transaction: vi.fn().mockImplementation(async (cb: (tx: any) => Promise<any>) => {
+    const mockDb = {
+      transaction: vi.fn().mockImplementation(async (cb: (tx: unknown) => Promise<unknown>) => {
         return cb(mockTx);
       }),
     };
@@ -83,7 +84,7 @@ describe("moveMoneyCommand", () => {
       tenantId,
       appId,
       userId,
-      mockDb
+      mockDb as unknown as DbOrTx
     );
 
     expect(res.success).toBe(true);
@@ -99,7 +100,7 @@ describe("moveMoneyCommand", () => {
   });
 
   it("preserves custom user note override when provided", async () => {
-    let insertedRows: any[] = [];
+    let insertedRows: Record<string, unknown>[] = [];
     let callCount = 0;
     const createWhereHandler = () =>
       vi.fn().mockImplementation(() => {
@@ -110,7 +111,7 @@ describe("moveMoneyCommand", () => {
         return Promise.resolve([{ id: "pool-dst", name: "Bills Buffer", isPrivate: false }]);
       });
 
-    const mockTx: any = {
+    const mockTx = {
       select: vi.fn().mockImplementation(() => ({
         from: vi.fn().mockImplementation(() => {
           const whereFn = createWhereHandler();
@@ -121,15 +122,15 @@ describe("moveMoneyCommand", () => {
         }),
       })),
       insert: vi.fn().mockImplementation(() => ({
-        values: vi.fn().mockImplementation((vals: any) => {
-          insertedRows = vals;
+        values: vi.fn().mockImplementation((vals: unknown) => {
+          insertedRows = vals as Record<string, unknown>[];
           return Promise.resolve(vals);
         }),
       })),
     };
 
-    const mockDb: any = {
-      transaction: vi.fn().mockImplementation(async (cb: (tx: any) => Promise<any>) => {
+    const mockDb = {
+      transaction: vi.fn().mockImplementation(async (cb: (tx: unknown) => Promise<unknown>) => {
         return cb(mockTx);
       }),
     };
@@ -144,7 +145,7 @@ describe("moveMoneyCommand", () => {
       tenantId,
       appId,
       userId,
-      mockDb
+      mockDb as unknown as DbOrTx
     );
 
     expect(res.success).toBe(true);

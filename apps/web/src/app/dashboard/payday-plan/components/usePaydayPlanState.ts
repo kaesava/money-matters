@@ -1,4 +1,7 @@
 "use client";
+import { DEFAULT_TIMEZONE } from "@money-matters/types";
+import { getTenantDateString } from "@money-matters/core";
+
 
 import { useState, useEffect, useMemo, useCallback } from "react";
 import { useRouter } from "next/navigation";
@@ -30,7 +33,7 @@ export interface PaydayPreviewData {
 export function usePaydayPlanState({ incomeEventId, returnTo = "/dashboard" }: { incomeEventId: string; returnTo?: string }) {
   const router = useRouter();
   const { userTimezone, timezone } = useLocale();
-  const activeTz = userTimezone || timezone || "Australia/Sydney";
+  const activeTz = userTimezone || timezone || DEFAULT_TIMEZONE;
 
   const poolsQuery = trpc.listEnvelopes.useQuery();
   const pools = useMemo(() => poolsQuery.data ?? [], [poolsQuery.data]);
@@ -40,7 +43,7 @@ export function usePaydayPlanState({ incomeEventId, returnTo = "/dashboard" }: {
 
   const [actualAmount, setActualAmount] = useState("0.00");
   const [sourceName, setSourceName] = useState("Paycheck");
-  const [selectedDate, setSelectedDate] = useState(new Intl.DateTimeFormat("en-CA", { timeZone: activeTz }).format(new Date()));
+  const [selectedDate, setSelectedDate] = useState(getTenantDateString(new Date(), { timezone: activeTz }));
   const [linesMap, setLinesMap] = useState<Record<string, string>>({});
   const [initialLinesMap, setInitialLinesMap] = useState<Record<string, string>>({});
   const [reasoningMap, setReasoningMap] = useState<Record<string, string>>({});
@@ -109,7 +112,7 @@ export function usePaydayPlanState({ incomeEventId, returnTo = "/dashboard" }: {
   );
 
   const isReadOnly = isConfirmedPlan;
-  const todayStr = useMemo(() => new Intl.DateTimeFormat("en-CA", { timeZone: activeTz }).format(new Date()), [activeTz]);
+  const todayStr = useMemo(() => getTenantDateString(new Date(), { timezone: activeTz }), [activeTz]);
   const isFutureDate = selectedDate > todayStr;
 
   const isDirty = useMemo(() => {

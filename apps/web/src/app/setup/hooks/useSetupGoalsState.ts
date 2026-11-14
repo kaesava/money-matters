@@ -1,4 +1,6 @@
 "use client";
+import { getTenantDateString } from "@money-matters/core";
+
 
 import { useState } from "react";
 import { UserGoalItem } from "../components/SetupGoalsStep";
@@ -31,7 +33,7 @@ export function useSetupGoalsState({
       targetAmount: 3000,
       fundingMode: "TARGET_BALANCE",
       isPriority: true,
-      dueDate: new Intl.DateTimeFormat("en-CA").format(
+      dueDate: getTenantDateString(
         new Date(Date.now() + 365 * 24 * 60 * 60 * 1000)
       ),
     },

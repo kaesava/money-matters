@@ -1,4 +1,6 @@
 "use client";
+import { DEFAULT_TIMEZONE } from "@money-matters/types";
+
 
 import React, { useState, Suspense } from "react";
 import Link from "next/link";
@@ -42,7 +44,7 @@ function SettingsPageContent() {
   const discardHouseholdRef = React.useRef<(() => void) | null>(null);
 
   const userPrefQuery = trpc.getUserPreferences.useQuery();
-  const currentTimezone = userPrefQuery.data?.timezone || "Australia/Sydney";
+  const currentTimezone = userPrefQuery.data?.timezone || DEFAULT_TIMEZONE;
 
   React.useEffect(() => {
     if (status?.isTrialExpired) {

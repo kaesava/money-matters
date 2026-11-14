@@ -3,10 +3,10 @@ import { t } from "@money-matters/i18n";
 
 describe("Mobile Envelope Badge & Parity Tests", () => {
   it("resolves correct badge copy for all envelope types", () => {
-    expect(t("categories.scheduledBillBadge")).toBe("Scheduled Bill");
-    expect(t("categories.flexibleBillBadge")).toBe("Flexible Bill");
-    expect(t("categories.targetDateGoalBadge")).toBe("Target Goal");
-    expect(t("categories.ongoingGoalBadge")).toBe("Ongoing Goal");
+    expect(t("categories.scheduledBillBadge")).toBe("Recurring");
+    expect(t("categories.flexibleBillBadge")).toBe("Target Balance");
+    expect(t("categories.targetDateGoalBadge")).toBe("Target Balance");
+    expect(t("categories.ongoingGoalBadge")).toBe("Recurring");
     expect(t("categories.everydayBadge")).toBe("Everyday");
   });
 
@@ -22,10 +22,10 @@ describe("Mobile Envelope Badge & Parity Tests", () => {
       return null;
     }
 
-    expect(resolveBadge("BILL", "RECURRING")).toBe("Scheduled Bill");
-    expect(resolveBadge("BILL", "TARGET_BALANCE")).toBe("Flexible Bill");
-    expect(resolveBadge("GOAL", "TARGET_BALANCE")).toBe("Target Goal");
-    expect(resolveBadge("GOAL", "RECURRING")).toBe("Ongoing Goal");
+    expect(resolveBadge("BILL", "RECURRING")).toBe("Recurring");
+    expect(resolveBadge("BILL", "TARGET_BALANCE")).toBe("Target Balance");
+    expect(resolveBadge("GOAL", "TARGET_BALANCE")).toBe("Target Balance");
+    expect(resolveBadge("GOAL", "RECURRING")).toBe("Recurring");
     expect(resolveBadge("EVERYDAY")).toBe("Everyday");
   });
 });

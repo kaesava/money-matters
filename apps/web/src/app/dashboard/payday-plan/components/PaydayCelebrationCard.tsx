@@ -3,7 +3,7 @@
 import React from "react";
 import { Sparkles, CheckCircle2, Lock } from "lucide-react";
 import { t } from "@money-matters/i18n";
-import { Button, InfoTooltip } from "@money-matters/ui/web";
+import { Button, InfoTooltip, DESIGN_TOKENS } from "@money-matters/ui/web";
 import { PaydayMetricsGrid } from "./PaydayMetricsGrid";
 
 interface PaydayCelebrationCardProps {
@@ -64,7 +64,7 @@ export function PaydayCelebrationCard({
     : "bg-blue-500/20 border-blue-400/30 text-blue-200";
 
   return (
-    <div className="bg-gradient-to-br from-blue-900 via-[#1B2B4B] to-slate-900 border border-blue-500/30 rounded-2xl p-6 sm:p-7 text-white shadow-xl space-y-6">
+    <div className="bg-gradient-to-br from-blue-900 via-slate-900 to-slate-900 border border-blue-500/30 rounded-2xl p-6 sm:p-7 text-white shadow-xl space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="space-y-1">
           <div className="flex items-center gap-2 flex-wrap">
@@ -116,7 +116,7 @@ export function PaydayCelebrationCard({
                   onClick={onConfirm}
                   loading={submitting}
                   disabled={isDeficit || submitting || isFutureDate}
-                  style={{ backgroundColor: "#22c55e", color: "#ffffff" }}
+                  style={{ backgroundColor: DESIGN_TOKENS.colors.success, color: DESIGN_TOKENS.colors.surface }}
                   className="px-6 py-2.5 hover:bg-emerald-600 disabled:opacity-50 disabled:cursor-not-allowed text-white font-extrabold text-sm rounded-xl shadow-lg shadow-emerald-950/30 cursor-pointer flex items-center gap-2"
                 >
                   <CheckCircle2 className="w-4 h-4 stroke-[2.5]" />
@@ -145,7 +145,7 @@ export function PaydayCelebrationCard({
                   variant="primary"
                   onClick={onSaveChanges || onLockSplit}
                   disabled={isDeficit || submitting}
-                  style={{ backgroundColor: "#2563eb", color: "#ffffff" }}
+                  style={{ backgroundColor: DESIGN_TOKENS.colors.sereneBlue, color: DESIGN_TOKENS.colors.surface }}
                   className="px-4 py-2.5 hover:bg-blue-600 disabled:opacity-50 text-white font-bold text-xs rounded-xl cursor-pointer flex items-center gap-1.5 shadow-xs"
                 >
                   <span>{t("paydayDrawer.saveIncomeSplit")}</span>

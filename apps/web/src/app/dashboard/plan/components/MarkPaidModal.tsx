@@ -1,4 +1,6 @@
 "use client";
+import { getTenantDateString } from "@money-matters/core";
+
 
 import React, { useState, useEffect, useMemo } from "react";
 import { t } from "@money-matters/i18n";
@@ -59,7 +61,7 @@ export function MarkPaidModal({
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const todayStr = useMemo(() => {
-    return new Intl.DateTimeFormat("en-CA", { timeZone: userTimezone || contextTz }).format(new Date());
+    return getTenantDateString(new Date(), { timezone: userTimezone || contextTz });
   }, [userTimezone, contextTz]);
 
   useEffect(() => {
