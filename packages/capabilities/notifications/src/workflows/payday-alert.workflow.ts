@@ -2,6 +2,7 @@ import { Inngest } from "inngest";
 import { db, incomeEvents, incomeSources, bankAccounts, tenants, tenantUsers, users, userPreferences, tenantUserPreferences } from "@money-matters/db";
 import { eq, and, sql } from "drizzle-orm";
 import { sendNotificationEmail, todayInZone, getLocalHourInZone, formatCurrency } from "@money-matters/core";
+import { isChannelEnabled, readNotificationPrefs, resolveNotificationRecipient } from "../helpers.js";
 
 export function createPaydayAlertWorkflow(inngest: Inngest) {
   return inngest.createFunction(
@@ -13,11 +14,13 @@ export function createPaydayAlertWorkflow(inngest: Inngest) {
           .select({
             eventId: incomeEvents.id,
             tenantId: tenants.id,
+            appId: tenants.appId,
             tenantName: tenants.name,
             tenantCurrency: tenants.currency,
             tenantTimezone: tenants.timezone,
             userId: users.id,
             email: users.email,
+            notificationEmail: userPreferences.notificationEmail,
             expectedDate: incomeEvents.expectedDate,
             amount: incomeEvents.expectedAmount,
             userTimezone: userPreferences.timezone,
@@ -52,9 +55,9 @@ export function createPaydayAlertWorkflow(inngest: Inngest) {
             return false;
           }
 
-          const prefs = (item.appPreferences?.["money-matters"] || item.appPreferences || {}) as Record<string, unknown>;
-          const emailOn = prefs["payday_alerts_email"] !== false && prefs["payday_alerts_enabled"] !== false;
-          const pushOn = prefs["payday_alerts_push"] !== false && prefs["payday_alerts_enabled"] !== false;
+          const prefs = readNotificationPrefs(item.appPreferences, item.appId);
+          const emailOn = isChannelEnabled(prefs, "payday_alerts_email", "payday_alerts_enabled");
+          const pushOn = isChannelEnabled(prefs, "payday_alerts_push", "payday_alerts_enabled");
           if (!emailOn && !pushOn) return false;
 
           const tz = item.userTimezone || item.tenantTimezone || "UTC";
@@ -70,13 +73,14 @@ export function createPaydayAlertWorkflow(inngest: Inngest) {
         await step.run(`send-payday-alert-${item.eventId}-${item.expectedDate}`, async () => {
           const cur = item.tenantCurrency || "AUD";
           const formattedAmount = formatCurrency(item.amount, { currency: cur });
-          const prefs = (item.appPreferences?.["money-matters"] || item.appPreferences || {}) as Record<string, unknown>;
-          const emailEnabled = prefs["payday_alerts_email"] !== false && prefs["payday_alerts_enabled"] !== false;
-          const pushEnabled = prefs["payday_alerts_push"] !== false && prefs["payday_alerts_enabled"] !== false;
+          const prefs = readNotificationPrefs(item.appPreferences, item.appId);
+          const emailEnabled = isChannelEnabled(prefs, "payday_alerts_email", "payday_alerts_enabled");
+          const pushEnabled = isChannelEnabled(prefs, "payday_alerts_push", "payday_alerts_enabled");
+          const emailRecipient = resolveNotificationRecipient(item.email, item.notificationEmail);
 
-          if (emailEnabled && item.email) {
+          if (emailEnabled && emailRecipient) {
             await sendNotificationEmail(
-              item.email,
+              emailRecipient,
               `Payday Alert — ${item.tenantName}`,
               `It's payday! An expected deposit of ${formattedAmount} is due today.\n\n` +
               `Log in to Money Matters to confirm your payday plan and ring-fence your committed expenses!`

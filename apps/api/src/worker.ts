@@ -3,7 +3,7 @@ import { logger, CANONICAL_SECURITY_HEADERS } from '@money-matters/core';
 import { validateEnv } from '@money-matters/config';
 import { appRouter } from './routers/_app.js';
 import { createEdgeContext } from './trpc/edge-context.js';
-import { inngest } from './inngest/client.js';
+import { inngest, syncInngestEventKey } from './inngest/client.js';
 import { functions } from './inngest/index.js';
 import { serve } from 'inngest/cloudflare';
 import { buildCorsHeaders } from './middleware/cors.js';
@@ -93,6 +93,7 @@ export default {
 
     if (!isWorkerEnvInitialized && env && typeof env === 'object') {
       Object.assign(process.env, env);
+      syncInngestEventKey(env.INNGEST_EVENT_KEY);
       if (isDev) {
         process.env.ENVIRONMENT = 'development';
       }

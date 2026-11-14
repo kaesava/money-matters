@@ -5,6 +5,7 @@ import { Feather } from '@expo/vector-icons';
 import { t } from '@money-matters/i18n';
 import { SegmentedTabs, DESIGN_TOKENS, showMobileConfirm, useMobileToast } from '@money-matters/ui/mobile';
 import { authClient } from '../../lib/auth';
+import { unregisterCachedPushToken } from '../../lib/push';
 import { setActiveSessionToken, setActiveTenantId, trpc } from '../../lib/trpc';
 import * as SecureStore from 'expo-secure-store';
 
@@ -76,11 +77,7 @@ export default function SettingsScreen() {
       onConfirm: async () => {
         setLoading(true);
         try {
-          const cachedToken = await SecureStore.getItemAsync('push_device_token').catch(() => null);
-          if (cachedToken) {
-            await removeToken.mutateAsync({ platform: 'android', token: cachedToken }).catch(() => {});
-            await SecureStore.deleteItemAsync('push_device_token').catch(() => {});
-          }
+          await unregisterCachedPushToken((input) => removeToken.mutateAsync(input));
           await authClient.signOut();
           await SecureStore.deleteItemAsync('money-matters_session_token');
           await SecureStore.deleteItemAsync('money-matters-session-token');

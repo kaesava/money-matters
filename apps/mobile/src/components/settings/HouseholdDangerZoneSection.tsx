@@ -11,6 +11,7 @@ import { t } from '@money-matters/i18n';
 import * as SecureStore from 'expo-secure-store';
 import { trpc, setActiveSessionToken, setActiveTenantId } from '../../lib/trpc';
 import { authClient } from '../../lib/auth';
+import { unregisterCachedPushToken } from '../../lib/push';
 
 export function HouseholdDangerZoneSection() {
   const router = useRouter();
@@ -19,6 +20,7 @@ export function HouseholdDangerZoneSection() {
   const govQuery = trpc.getHouseholdGovernanceInfo.useQuery();
   const deleteMutation = trpc.deleteMyAccount.useMutation();
   const leaveMutation = trpc.leaveMyHousehold.useMutation();
+  const removeToken = trpc.removeToken.useMutation();
 
   const [activeModal, setActiveModal] = useState<'LEAVE' | 'DELETE' | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -27,6 +29,7 @@ export function HouseholdDangerZoneSection() {
   if (!gov) return null;
 
   const handleSignOutAndExit = async (hasOtherHousehold: boolean) => {
+    await unregisterCachedPushToken((input) => removeToken.mutateAsync(input));
     await authClient.signOut();
     await SecureStore.deleteItemAsync('money-matters_session_token');
     await SecureStore.deleteItemAsync('money-matters-session-token');

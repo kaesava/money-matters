@@ -1,26 +1,32 @@
 import { Inngest } from "inngest";
-import { db, envelopes, getEnvelopeBalancesMap, tenants, tenantUsers, users, tenantUserPreferences } from "@money-matters/db";
+import { db, envelopes, getEnvelopeBalancesMap, tenants, tenantUsers, users, userPreferences, tenantUserPreferences } from "@money-matters/db";
 import { eq, and, sql, inArray } from "drizzle-orm";
 import { sendNotificationEmail, formatCurrency, logger } from "@money-matters/core";
+import { isChannelEnabled, isLocalScheduleMatch, readNotificationPrefs, resolveNotificationRecipient } from "../helpers.js";
 
 export function createWeeklyDigestWorkflow(inngest: Inngest) {
   return inngest.createFunction(
     { id: "notify-weekly-digest" },
-    { cron: "0 9 * * 0" }, // Every Sunday at 9:00 AM UTC
+    { cron: "0 * * * *" }, // Hourly check for Sunday 9:00 AM local time
     async ({ step }) => {
       const tenantMembers = await step.run("fetch-active-tenant-members", async () => {
         const members = await db
           .select({
             tenantId: tenants.id,
+            appId: tenants.appId,
             tenantName: tenants.name,
             tenantCurrency: tenants.currency,
+            tenantTimezone: tenants.timezone,
             userId: users.id,
             email: users.email,
+            notificationEmail: userPreferences.notificationEmail,
+            userTimezone: userPreferences.timezone,
             appPreferences: tenantUserPreferences.appPreferences,
           })
           .from(tenants)
           .innerJoin(tenantUsers, and(eq(tenantUsers.tenantId, tenants.id), sql`"tenant_users"."archived_at" IS NULL`))
           .innerJoin(users, eq(tenantUsers.userId, users.id))
+          .leftJoin(userPreferences, eq(userPreferences.userId, users.id))
           .leftJoin(
             tenantUserPreferences,
             and(
@@ -36,9 +42,11 @@ export function createWeeklyDigestWorkflow(inngest: Inngest) {
           );
 
         return members.filter((m) => {
-          const prefs = (m.appPreferences?.["money-matters"] || m.appPreferences || {}) as Record<string, unknown>;
-          const emailOn = prefs["weekly_digest_email"] !== false && prefs["weekly_digest_enabled"] !== false;
-          const pushOn = prefs["weekly_digest_push"] !== false && prefs["weekly_digest_enabled"] !== false;
+          const tz = m.userTimezone || m.tenantTimezone || "UTC";
+          if (!isLocalScheduleMatch(tz, { hour: 9, dayOfWeek: 0 })) return false;
+          const prefs = readNotificationPrefs(m.appPreferences, m.appId);
+          const emailOn = isChannelEnabled(prefs, "weekly_digest_email", "weekly_digest_enabled");
+          const pushOn = isChannelEnabled(prefs, "weekly_digest_push", "weekly_digest_enabled");
           return emailOn || pushOn;
         });
       });
@@ -71,9 +79,17 @@ export function createWeeklyDigestWorkflow(inngest: Inngest) {
               )
             );
 
+          const tenantAppIdById = new Map<string, string>();
+          for (const c of chunk) {
+            tenantAppIdById.set(c.tenantId, c.appId);
+          }
+
           const balancesByTenant: Record<string, Record<string, number>> = {};
           for (const tid of tenantIds) {
-            balancesByTenant[tid] = await getEnvelopeBalancesMap(tid, "default", db);
+            const tenantAppId = tenantAppIdById.get(tid);
+            if (tenantAppId) {
+              balancesByTenant[tid] = await getEnvelopeBalancesMap(tid, tenantAppId, db);
+            }
           }
 
           await Promise.all(
@@ -105,16 +121,17 @@ export function createWeeklyDigestWorkflow(inngest: Inngest) {
                 const formattedSafe = formatCurrency(safeToSpend, { currency: cur });
                 const formattedBills = formatCurrency(billsBal, { currency: cur });
 
-                const prefs = (record.appPreferences?.["money-matters"] || record.appPreferences || {}) as Record<string, unknown>;
-                const emailEnabled = prefs["weekly_digest_email"] !== false && prefs["weekly_digest_enabled"] !== false;
-                const pushEnabled = prefs["weekly_digest_push"] !== false && prefs["weekly_digest_enabled"] !== false;
+                const prefs = readNotificationPrefs(record.appPreferences, record.appId);
+                const emailEnabled = isChannelEnabled(prefs, "weekly_digest_email", "weekly_digest_enabled");
+                const pushEnabled = isChannelEnabled(prefs, "weekly_digest_push", "weekly_digest_enabled");
+                const emailRecipient = resolveNotificationRecipient(record.email, record.notificationEmail);
 
-                if (emailEnabled && record.email) {
+                if (emailEnabled && emailRecipient) {
                   await sendNotificationEmail(
-                    record.email,
+                    emailRecipient,
                     `Weekly Summary — ${record.tenantName}`,
                     `Here is your Sunday household balance check-in:\n\n` +
-                    `• Safe to Spend (Everyday pool): ${formattedSafe}\n` +
+                    `• Safe to Spend (Everyday): ${formattedSafe}\n` +
                     `• Ring-Fenced Bills Balance: ${formattedBills}\n\n` +
                     `Keep spending freely from Everyday with zero guilt!`
                   );

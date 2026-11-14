@@ -88,20 +88,26 @@ export async function updateUserPreferencesHandler(
     .where(and(eq(tenantUserPreferences.userId, userId), eq(tenantUserPreferences.tenantId, tenantId), eq(tenantUserPreferences.appId, appId)));
 
   const existingAppPrefs: Record<string, AppPreferencesBlob> = existingTenantPref?.appPreferences || {};
-  const updatedAppBlob: AppPreferencesBlob = {
-    ...(existingAppPrefs[appId] || {}),
-    ...(input.appPreferences?.[appId] ? input.appPreferences[appId] : {}),
-  };
-  const updatedAppPrefs: Record<string, AppPreferencesBlob> = {
-    ...existingAppPrefs,
-    ...input.appPreferences,
-    [appId]: updatedAppBlob,
-  };
+  if (input.appPreferences) {
+    const incomingBlob: AppPreferencesBlob = {
+      ...(existingAppPrefs["money-matters"] || {}),
+      ...(existingAppPrefs[appId] || {}),
+      ...(input.appPreferences["money-matters"] || {}),
+      ...(input.appPreferences[appId] || {}),
+    };
+    const { ["money-matters"]: _legacy, ...restExisting } = existingAppPrefs;
+    const { ["money-matters"]: _incomingLegacy, ...restIncoming } = input.appPreferences;
+    const updatedAppPrefs: Record<string, AppPreferencesBlob> = {
+      ...restExisting,
+      ...restIncoming,
+      [appId]: incomingBlob,
+    };
 
-  if (existingTenantPref) {
-    await db.update(tenantUserPreferences).set({ appPreferences: updatedAppPrefs, updatedAt: new Date() }).where(eq(tenantUserPreferences.id, existingTenantPref.id));
-  } else {
-    await db.insert(tenantUserPreferences).values({ userId, tenantId, appId, appPreferences: updatedAppPrefs });
+    if (existingTenantPref) {
+      await db.update(tenantUserPreferences).set({ appPreferences: updatedAppPrefs, updatedAt: new Date() }).where(eq(tenantUserPreferences.id, existingTenantPref.id));
+    } else {
+      await db.insert(tenantUserPreferences).values({ userId, tenantId, appId, appPreferences: updatedAppPrefs });
+    }
   }
 
   if (input.setupCompleted !== undefined && tenantId) {

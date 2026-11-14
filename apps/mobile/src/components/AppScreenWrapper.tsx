@@ -3,6 +3,7 @@ import { useRouter, type Href } from 'expo-router';
 import { MobileScreenWrapper, MobileScreenWrapperProps } from '@money-matters/ui/mobile';
 import { t } from '@money-matters/i18n';
 import { authClient } from '../lib/auth';
+import { unregisterCachedPushToken } from '../lib/push';
 import { trpc, setActiveSessionToken, setActiveTenantId } from '../lib/trpc';
 import * as SecureStore from 'expo-secure-store';
 import { MobileHouseholdSwitcherModal } from './settings/MobileHouseholdSwitcherModal';
@@ -52,11 +53,14 @@ export function AppScreenWrapper({
   const activeTenantName = activeTenantNameProp ?? currentTenant?.name;
   const user = userProp !== undefined ? userProp : session?.user;
 
+  const removeToken = trpc.removeToken.useMutation();
+
   const handleSignOut = async () => {
     if (onSignOutProp) {
       onSignOutProp();
       return;
     }
+    await unregisterCachedPushToken((input) => removeToken.mutateAsync(input));
     await authClient.signOut();
     await SecureStore.deleteItemAsync('money-matters_session_token');
     await SecureStore.deleteItemAsync('money-matters-session-token');

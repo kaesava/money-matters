@@ -99,16 +99,21 @@ export const settingsSections = {
       "title": "Notification Preferences",
       "backCta": "← Back",
       "weeklyDigestTitle": "Weekly Balance Digest",
-      "weeklyDigestDesc": "Receive a Sunday evening digest of your total saved vs spent, upcoming bills coverage, and forecast.",
+      "weeklyDigestDesc": "Receive a Sunday morning digest (9:00 AM local time) of your total saved vs spent, upcoming bills coverage, and forecast.",
       "paydayTitle": "Payday Plan Alerts",
-      "paydayDesc": "Receive morning alerts on expected paydays to plan incoming deposits in 1 tap.",
+      "paydayDesc": "Receive morning alerts (8:00 AM local time) on expected paydays to plan incoming deposits in 1 tap.",
       "balanceMatchTitle": "Bank Balance Match Nudge",
-      "balanceMatchDesc": "Gentle reminder when your bank accounts haven't been balance-matched for over 14 days.",
+      "balanceMatchDesc": "Gentle Monday morning reminder when your bank accounts haven't been balance-matched for over 14 days.",
       "emailChannel": "Email",
-      "pushChannel": "Push",
+      "pushChannel": "Mobile Push",
+      "emailChannelNote": "Emails deliver to {email}.",
+      "mobilePushNote": "Push notifications deliver to the Money Matters Mobile app on signed-in devices.",
+      "pushDeviceStatusNone": "No mobile devices registered yet — sign in on the mobile app to enable push.",
+      "pushDeviceStatusCount": "{count} mobile device(s) registered for push.",
       "sendTestButton": "Send Test Notification",
       "sendingTest": "Sending test...",
-      "testSuccessToast": "Test notification dispatched successfully!"
+      "testSuccessToast": "Test notification dispatched!",
+      "testSuccessWithDetails": "Test email queued for {email} and push sent to {count} registered mobile device(s)."
     }
   },
   "bankAccounts": {

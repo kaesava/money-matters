@@ -1,27 +1,35 @@
 import { Inngest } from "inngest";
-import { db, bankAccounts, tenants, tenantUsers, users, tenantUserPreferences } from "@money-matters/db";
+import { db, bankAccounts, tenants, tenantUsers, users, userPreferences, tenantUserPreferences } from "@money-matters/db";
 import { eq, and, sql } from "drizzle-orm";
 import { sendNotificationEmail } from "@money-matters/core";
+import { isChannelEnabled, isLocalScheduleMatch, readNotificationPrefs, resolveNotificationRecipient } from "../helpers.js";
 
 export function createBalanceNudgeWorkflow(inngest: Inngest) {
   return inngest.createFunction(
     { id: "notify-balance-match-nudge" },
-    { cron: "0 10 * * 1" }, // Every Monday at 10:00 AM UTC
+    { cron: "0 * * * *" }, // Hourly check for Monday 10:00 AM local time
     async ({ step }) => {
       const overdueMembers = await step.run("fetch-overdue-balance-match-members", async () => {
         const accounts = await db
           .select({
             tenantId: tenants.id,
+            appId: tenants.appId,
             tenantName: tenants.name,
+            tenantTimezone: tenants.timezone,
             userId: users.id,
             email: users.email,
+            notificationEmail: userPreferences.notificationEmail,
+            userTimezone: userPreferences.timezone,
             lastMatchedAt: bankAccounts.lastBalanceMatchedAt,
+            isPrivateAccount: bankAccounts.isPrivate,
+            accountOwnerId: bankAccounts.userId,
             appPreferences: tenantUserPreferences.appPreferences,
           })
           .from(bankAccounts)
           .innerJoin(tenants, eq(bankAccounts.tenantId, tenants.id))
           .innerJoin(tenantUsers, and(eq(tenantUsers.tenantId, tenants.id), sql`"tenant_users"."archived_at" IS NULL`))
           .innerJoin(users, eq(tenantUsers.userId, users.id))
+          .leftJoin(userPreferences, eq(userPreferences.userId, users.id))
           .leftJoin(
             tenantUserPreferences,
             and(
@@ -32,12 +40,27 @@ export function createBalanceNudgeWorkflow(inngest: Inngest) {
           .where(sql`"bank_accounts"."archived_at" IS NULL`);
 
         const fourteenDaysAgo = Date.now() - 14 * 24 * 60 * 60 * 1000;
-        const memberMap = new Map<string, { userId: string; tenantId: string; email: string; tenantName: string; appPreferences: unknown }>();
+        const memberMap = new Map<string, {
+          userId: string;
+          tenantId: string;
+          appId: string;
+          emailRecipient: string | null;
+          tenantName: string;
+          appPreferences: unknown;
+        }>();
 
         for (const acc of accounts) {
-          const prefs = (acc.appPreferences?.["money-matters"] || acc.appPreferences || {}) as Record<string, unknown>;
-          const emailOn = prefs["balance_nudge_email"] !== false && prefs["balance_nudge_enabled"] !== false;
-          const pushOn = prefs["balance_nudge_push"] !== false && prefs["balance_nudge_enabled"] !== false;
+          // Stealth Privacy Check: private accounts only nudge their owner
+          if (acc.isPrivateAccount && acc.accountOwnerId && acc.accountOwnerId !== acc.userId) {
+            continue;
+          }
+
+          const tz = acc.userTimezone || acc.tenantTimezone || "UTC";
+          if (!isLocalScheduleMatch(tz, { hour: 10, dayOfWeek: 1 })) continue;
+
+          const prefs = readNotificationPrefs(acc.appPreferences, acc.appId);
+          const emailOn = isChannelEnabled(prefs, "balance_nudge_email", "balance_nudge_enabled");
+          const pushOn = isChannelEnabled(prefs, "balance_nudge_push", "balance_nudge_enabled");
           if (!emailOn && !pushOn) continue;
 
           const isOverdue = !acc.lastMatchedAt || new Date(acc.lastMatchedAt).getTime() < fourteenDaysAgo;
@@ -46,7 +69,8 @@ export function createBalanceNudgeWorkflow(inngest: Inngest) {
             memberMap.set(key, {
               userId: acc.userId,
               tenantId: acc.tenantId,
-              email: acc.email,
+              appId: acc.appId,
+              emailRecipient: resolveNotificationRecipient(acc.email, acc.notificationEmail),
               tenantName: acc.tenantName,
               appPreferences: acc.appPreferences,
             });
@@ -58,14 +82,13 @@ export function createBalanceNudgeWorkflow(inngest: Inngest) {
 
       for (const m of overdueMembers) {
         await step.run(`send-match-nudge-${m.tenantId}-${m.userId}`, async () => {
-          const rawPrefs = (m.appPreferences || {}) as Record<string, unknown>;
-          const prefs = ((rawPrefs["money-matters"] as Record<string, unknown> | undefined) || rawPrefs) as Record<string, unknown>;
-          const emailEnabled = prefs["balance_nudge_email"] !== false && prefs["balance_nudge_enabled"] !== false;
-          const pushEnabled = prefs["balance_nudge_push"] !== false && prefs["balance_nudge_enabled"] !== false;
+          const prefs = readNotificationPrefs(m.appPreferences, m.appId);
+          const emailEnabled = isChannelEnabled(prefs, "balance_nudge_email", "balance_nudge_enabled");
+          const pushEnabled = isChannelEnabled(prefs, "balance_nudge_push", "balance_nudge_enabled");
 
-          if (emailEnabled && m.email) {
+          if (emailEnabled && m.emailRecipient) {
             await sendNotificationEmail(
-              m.email,
+              m.emailRecipient,
               `Balance Match Reminder — ${m.tenantName}`,
               `It has been over 14 days since your last bank balance match.\n\n` +
               `Take 30 seconds to align your bank balances in Money Matters to keep your safe-to-spend allowance 100% accurate!`

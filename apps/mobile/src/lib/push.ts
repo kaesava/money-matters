@@ -1,6 +1,24 @@
 import { Platform } from 'react-native';
 import Constants, { ExecutionEnvironment } from 'expo-constants';
 
+export function getPushPlatform(): 'ios' | 'android' {
+  return Platform.OS === 'ios' ? 'ios' : 'android';
+}
+
+export async function unregisterCachedPushToken(
+  removeTokenFn: (input: { platform: 'ios' | 'android'; token: string }) => Promise<unknown>
+): Promise<void> {
+  try {
+    const SecureStore = (await import('expo-secure-store')) as typeof import('expo-secure-store');
+    const cachedToken = await SecureStore.getItemAsync('push_device_token').catch(() => null);
+    if (!cachedToken) return;
+    await removeTokenFn({ platform: getPushPlatform(), token: cachedToken }).catch(() => {});
+    await SecureStore.deleteItemAsync('push_device_token').catch(() => {});
+  } catch {
+    // SecureStore unavailable
+  }
+}
+
 /**
  * Safely requests push notification permissions and fetches Expo push token.
  * Prevents runtime exceptions when running inside Expo Go (SDK 53+).
