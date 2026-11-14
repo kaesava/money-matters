@@ -37,6 +37,29 @@ export function getCurrencyFromCountry(countryCode?: string | null): string {
   }
 }
 
+const numberFormatCache = new Map<string, Intl.NumberFormat>();
+const dateFormatCache = new Map<string, Intl.DateTimeFormat>();
+
+function getCachedNumberFormat(locale: string, options: Intl.NumberFormatOptions): Intl.NumberFormat {
+  const key = `${locale}:${JSON.stringify(options)}`;
+  let fmt = numberFormatCache.get(key);
+  if (!fmt) {
+    fmt = new Intl.NumberFormat(locale, options);
+    numberFormatCache.set(key, fmt);
+  }
+  return fmt;
+}
+
+function getCachedDateFormat(locale: string, options: Intl.DateTimeFormatOptions): Intl.DateTimeFormat {
+  const key = `${locale}:${JSON.stringify(options)}`;
+  let fmt = dateFormatCache.get(key);
+  if (!fmt) {
+    fmt = new Intl.DateTimeFormat(locale, options);
+    dateFormatCache.set(key, fmt);
+  }
+  return fmt;
+}
+
 /**
  * Returns YYYY-MM-DD date string formatted according to tenant timezone.
  * Uses en-CA locale for ISO-style YYYY-MM-DD format.
@@ -46,7 +69,7 @@ export function getTenantDateString(
   tenant: FormatterTenant = DEFAULT_TENANT_FORMATTER
 ): string {
   const timezone = tenant?.timezone || DEFAULT_TENANT_FORMATTER.timezone!;
-  return new Intl.DateTimeFormat("en-CA", { timeZone: timezone }).format(date);
+  return getCachedDateFormat("en-CA", { timeZone: timezone }).format(date);
 }
 
 /**
@@ -64,7 +87,7 @@ export function formatCurrency(
   const locale = tenant?.locale || getLocaleFromCountry(tenant?.country);
   const currency = tenant?.currency || getCurrencyFromCountry(tenant?.country);
 
-  return new Intl.NumberFormat(locale, {
+  return getCachedNumberFormat(locale, {
     style: "currency",
     currency,
     ...options,
@@ -85,7 +108,7 @@ export function formatDate(
   const locale = tenant?.locale || getLocaleFromCountry(tenant?.country);
   const timezone = tenant?.timezone || DEFAULT_TENANT_FORMATTER.timezone!;
 
-  return new Intl.DateTimeFormat(locale, {
+  return getCachedDateFormat(locale, {
     timeZone: timezone,
     year: "numeric",
     month: "short",
@@ -108,7 +131,7 @@ export function formatDateTime(
   const locale = tenant?.locale || getLocaleFromCountry(tenant?.country);
   const timezone = tenant?.timezone || DEFAULT_TENANT_FORMATTER.timezone!;
 
-  return new Intl.DateTimeFormat(locale, {
+  return getCachedDateFormat(locale, {
     timeZone: timezone,
     year: "numeric",
     month: "short",

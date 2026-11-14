@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Inter, JetBrains_Mono } from "next/font/google";
+import { DESIGN_TOKENS } from "@money-matters/ui";
 import { AppProviders } from "../providers/AppProviders";
 import "./globals.css";
 
@@ -17,7 +18,7 @@ const jetbrainsMono = JetBrains_Mono({
 });
 
 export const viewport: Viewport = {
-  themeColor: "#2563eb",
+  themeColor: DESIGN_TOKENS.colors.sereneBlue,
   width: "device-width",
   initialScale: 1,
   minimumScale: 1,

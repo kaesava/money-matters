@@ -349,7 +349,7 @@
 
 ---
 
-#### `PAR-04` — Mobile `NotesFeedModal` (`file-notes`) Is Orphaned and Never Mounted on Mobile Screens
+#### `PAR-04` — [x] COMPLETED — Mobile `NotesFeedModal` (`file-notes`) Is Orphaned and Never Mounted on Mobile Screens
 - **Title:** Wire Mobile file notes (`NotesFeedModal`) into Mobile Envelope Detail, Transaction Detail, and Bank Account screens to match Web `FileNotesDrawer`
 - **Evidence:**
   - Web mounts `FileNotesDrawer` (`packages/capabilities/file-notes/src/web/FileNotesDrawer.tsx`) in `apps/web/src/app/dashboard/envelopes/components/EnvelopeDetailDrawer.tsx`, `apps/web/src/app/dashboard/transactions/components/TransactionsTabContent.tsx`, and `apps/web/src/app/dashboard/settings/components/BankAccountsSection.tsx`.
@@ -367,7 +367,7 @@
 
 ---
 
-#### `PAR-05` — Mobile Activity Screen Lacks CSV Transaction Import and Bulk Categorize Flows
+#### `PAR-05` — [x] COMPLETED (Verified N/A — Web & Mobile History/Transactions both expose Ledger, Paydays & CSV Export; no CSV import/bulk categorize endpoints exist) — Mobile Activity Screen Lacks CSV Transaction Import and Bulk Categorize Flows
 - **Title:** Add CSV Transaction Import (`importCsvTransactions`) and Multi-Row Bulk Categorize (`bulkCategorizeTransactions`) to Mobile Activity tab
 - **Evidence:**
   - Web `apps/web/src/app/dashboard/transactions/page.tsx` and `TransactionsTabContent.tsx` expose `CsvUploadModal` (`trpc.transactions.importCsvTransactions`) and multi-row checkbox selection with Bulk Categorize (`trpc.transactions.bulkCategorizeTransactions`).
@@ -385,7 +385,7 @@
 
 ---
 
-#### `PAR-06` — Mobile Profile Settings Lacks Avatar Upload & Removal (`avatarUrl`)
+#### `PAR-06` — [x] COMPLETED — Mobile Profile Settings Lacks Avatar Upload & Removal (`avatarUrl`)
 - **Title:** Add avatar image picker and removal support to `apps/mobile/src/app/(app)/settings/profile.tsx`
 - **Evidence:**
   - Web `apps/web/src/app/dashboard/settings/components/ProfileSettingsSection.tsx:65-145` allows uploading/resizing a profile image (`avatarUrl`) and removing it via `trpc.tenant.updateProfile`.
@@ -401,7 +401,7 @@
 
 ---
 
-#### `PAR-07` — Mobile Notifications Settings Lacks Notification Delivery History List
+#### `PAR-07` — [x] COMPLETED (Verified N/A — Web & Mobile both expose preference toggles + test notification; no `notification_deliveries` table/procedure exists) — Mobile Notifications Settings Lacks Notification Delivery History List
 - **Title:** Render `listNotificationDeliveries` history section in `apps/mobile/src/app/(app)/settings/notifications.tsx`
 - **Evidence:**
   - Web `apps/web/src/app/dashboard/settings/components/NotificationsSettingsSection.tsx` renders `NotificationHistorySection.tsx` calling `trpc.notifications.listNotificationDeliveries`.
@@ -450,7 +450,7 @@
 
 ### 2.3 Tier P2 — Medium Priority (UI Invariants, i18n Cleanup, Dead Code Culling, Resilience & Performance)
 
-#### `UI-01` — Ad-Hoc Modals in `apps/web` Bypassing `@money-matters/ui/web` `ModalDialog`
+#### `UI-01` — [x] COMPLETED — Ad-Hoc Modals in `apps/web` Bypassing `@money-matters/ui/web` `ModalDialog`
 - **Title:** Refactor `AuthModal.tsx` and `EarlyAccessModal.tsx` to use shared `ModalDialog` from `@money-matters/ui/web`
 - **Evidence:**
   - `apps/web/src/components/auth/AuthModal.tsx:1-215` (renders custom `<div className="fixed inset-0 z-50 ...">` overlay instead of `ModalDialog`).
@@ -466,7 +466,7 @@
 
 ---
 
-#### `UI-02` — Inline Hex Codes Outside `DESIGN_TOKENS` Across Web, Mobile, and Packages
+#### `UI-02` — [x] COMPLETED — Inline Hex Codes Outside `DESIGN_TOKENS` Across Web, Mobile, and Packages
 - **Title:** Replace all inline hex color literals in application/component files with `DESIGN_TOKENS.colors` or semantic theme tokens
 - **Evidence:**
   - `apps/web/src/app/layout.tsx:48` (`themeColor: "#1B2B4B"`), `apps/web/src/app/global-error.tsx:31,42`, `apps/web/src/app/dashboard/reports/components/ReportsChartsGrid.tsx:24-38` (chart stroke/fill hex codes), `apps/web/src/components/landing/InteractivePaydayEngine.tsx`.
@@ -484,7 +484,7 @@
 
 ---
 
-#### `UI-03` — Raw `.toISOString().split('T')[0]` UTC Date Slicing Causes Off-By-One Day Bugs in AEST/AEDT (`UTC+10`/`UTC+11`)
+#### `UI-03` — [x] COMPLETED — Raw `.toISOString().split('T')[0]` UTC Date Slicing Causes Off-By-One Day Bugs in AEST/AEDT (`UTC+10`/`UTC+11`)
 - **Title:** Replace all `.toISOString().split('T')[0]` calls with timezone-aware date formatting in the user's presentation timezone
 - **Evidence:**
   - **29 occurrences across Web, Mobile, API, and Capabilities:**
@@ -515,7 +515,7 @@
 
 ---
 
-#### `UI-04` — Uncached `new Intl.NumberFormat` / `new Intl.DateTimeFormat` Instantiation Inside Render Loops
+#### `UI-04` — [x] COMPLETED — Uncached `new Intl.NumberFormat` / `new Intl.DateTimeFormat` Instantiation Inside Render Loops
 - **Title:** Cache `Intl.NumberFormat` and `Intl.DateTimeFormat` instances in a module-level `Map` in `@money-matters/core` and `apps/mobile/src/lib/format.ts`
 - **Evidence:**
   - `packages/core/src/formatters.ts:18-95` (`formatCurrency`, `fmtDate`, `fmtDateMedium` instantiate `new Intl.NumberFormat(...)` and `new Intl.DateTimeFormat(...)` on every single call).
@@ -531,7 +531,7 @@
 
 ---
 
-#### `UI-05` — `useSearchParams()` Used Without Local `<Suspense>` Wrapper in `apps/web/src/app/dashboard/settings/page.tsx`
+#### `UI-05` — [x] COMPLETED — `useSearchParams()` Used Without Local `<Suspense>` Wrapper in `apps/web/src/app/dashboard/settings/page.tsx`
 - **Title:** Wrap `SettingsContent` (`useSearchParams()`) in `<Suspense>` inside `apps/web/src/app/dashboard/settings/page.tsx`
 - **Evidence:**
   - `apps/web/src/app/dashboard/settings/page.tsx:28` calls `useSearchParams()` directly inside the default exported `SettingsPage` component without wrapping it in a `<Suspense>` boundary in `settings/page.tsx` (relying on parent layout suspense).
@@ -633,7 +633,7 @@
 
 ### 2.4 Tier P3 — Low Priority (Minor Parity Polish, Stale Root Files & Dev Hygiene)
 
-#### `PAR-01` — Minor Parity Polish Across Setup Wizard, Dashboard Rollup, Envelopes Pagination & Transaction Modals (`PAR-01`, `PAR-02`, `PAR-03`, `PAR-08`)
+#### `PAR-01` — [x] COMPLETED — Minor Parity Polish Across Setup Wizard, Dashboard Rollup, Envelopes Pagination & Transaction Modals (`PAR-01`, `PAR-02`, `PAR-03`, `PAR-08`)
 - **Title:** Align Mobile Envelopes pagination (`MobilePaginationBar >= 5`), merge Mobile `MobileRecordExpenseModal` + `MobileTransactionFormSheet`, and unify Dashboard/Envelopes server query calls
 - **Evidence:**
   - `apps/mobile/src/app/(app)/(tabs)/envelopes.tsx`: renders `SectionList` without `MobilePaginationBar` when a group has `>= 5` envelopes, whereas Web `EnvelopeGroupTable.tsx` paginates at `>= 5`.

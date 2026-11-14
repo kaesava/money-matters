@@ -70,7 +70,7 @@ describe('BillLifecycleFSM Engine', () => {
         const meta = BILL_LIFECYCLE_META[status];
         expect(meta).toBeDefined();
         expect(meta.code).toBe(status);
-        expect(meta.visuals.hex).toMatch(/^#[0-9A-Fa-f]{6}$/);
+        expect(meta.visuals.tokenName).toBeTypeOf('string');
         expect(meta.visuals.web.badge).toBeTypeOf('string');
         expect(meta.visuals.web.text).toBeTypeOf('string');
       }

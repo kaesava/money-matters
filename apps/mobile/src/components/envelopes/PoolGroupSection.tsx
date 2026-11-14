@@ -1,7 +1,7 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { Feather } from '@expo/vector-icons';
-import { DESIGN_TOKENS } from '@money-matters/ui/mobile';
+import { DESIGN_TOKENS, MobilePaginationBar } from '@money-matters/ui/mobile';
 import { t } from '@money-matters/i18n';
 import { PoolItemCard } from './PoolItemCard';
 
@@ -42,7 +42,19 @@ export function PoolGroupSection({
   groupType,
   onAddPool,
 }: PoolGroupSectionProps) {
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(5);
+
+  const totalPages = Math.max(1, Math.ceil(pools.length / pageSize));
+  useEffect(() => {
+    if (page > totalPages) setPage(totalPages);
+  }, [page, totalPages]);
+
   if (pools.length === 0) return null;
+
+  const paginatedPools = pools.length >= 5
+    ? pools.slice((page - 1) * pageSize, page * pageSize)
+    : pools;
 
   return (
     <View style={styles.group}>
@@ -78,13 +90,28 @@ export function PoolGroupSection({
         )}
       </View>
 
-      {!isCollapsed &&
-        pools.map((p) => (
-          <PoolItemCard
-            key={p.id}
-            pool={p}
+      {!isCollapsed && (
+        <>
+          {paginatedPools.map((p) => (
+            <PoolItemCard
+              key={p.id}
+              pool={p}
+            />
+          ))}
+          <MobilePaginationBar
+            page={page}
+            totalPages={totalPages}
+            pageSize={pageSize}
+            totalItems={pools.length}
+            pageSizeOptions={[5, 10, 20]}
+            onPageChange={setPage}
+            onPageSizeChange={(nextSize) => {
+              setPageSize(nextSize);
+              setPage(1);
+            }}
           />
-        ))}
+        </>
+      )}
     </View>
   );
 }

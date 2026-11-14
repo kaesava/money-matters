@@ -25,8 +25,6 @@ export type BillLifecycleStatus = z.infer<typeof BillLifecycleStatusSchema>;
 export interface BillStatusVisualTokens {
   /** Serene Finance theme token reference */
   tokenName: 'sereneBlue' | 'primary' | 'success' | 'burnRed' | 'surfaceVariant';
-  /** Primary Hex color code for React Native Expo elements */
-  hex: string;
   /** Web Tailwind CSS color classes */
   web: {
     badge: string;
@@ -64,7 +62,6 @@ export const BILL_LIFECYCLE_META: Record<BillLifecycleStatus, BillLifecycleStatu
     isTerminal: false,
     visuals: {
       tokenName: 'primary',
-      hex: '#1B2B4B', // Navy
       web: {
         badge: 'bg-slate-100 text-slate-800',
         text: 'text-slate-800',
@@ -79,7 +76,6 @@ export const BILL_LIFECYCLE_META: Record<BillLifecycleStatus, BillLifecycleStatu
     isTerminal: false,
     visuals: {
       tokenName: 'sereneBlue',
-      hex: '#2563eb', // Serene Blue
       web: {
         badge: 'bg-blue-50 text-blue-700',
         text: 'text-blue-700',
@@ -94,7 +90,6 @@ export const BILL_LIFECYCLE_META: Record<BillLifecycleStatus, BillLifecycleStatu
     isTerminal: true,
     visuals: {
       tokenName: 'success',
-      hex: '#22C55E', // Green
       web: {
         badge: 'bg-emerald-50 text-emerald-700',
         text: 'text-emerald-700',
@@ -109,7 +104,6 @@ export const BILL_LIFECYCLE_META: Record<BillLifecycleStatus, BillLifecycleStatu
     isTerminal: false,
     visuals: {
       tokenName: 'burnRed',
-      hex: '#ba1a1a', // Burn Red
       web: {
         badge: 'bg-rose-50 text-rose-700',
         text: 'text-rose-700',

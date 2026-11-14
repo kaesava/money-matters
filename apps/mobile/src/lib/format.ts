@@ -151,9 +151,17 @@ export function formatRelativeDate(
   } else if (d.toDateString() === yesterday.toDateString()) {
     return t('common.yesterday');
   } else {
-    return new Intl.DateTimeFormat(loc, { day: 'numeric', month: 'short', timeZone: tz }).format(d);
+    const key = `${loc}:${tz}:day-short-month`;
+    let fmt = mobileDateFormatCache.get(key);
+    if (!fmt) {
+      fmt = new Intl.DateTimeFormat(loc, { day: 'numeric', month: 'short', timeZone: tz });
+      mobileDateFormatCache.set(key, fmt);
+    }
+    return fmt.format(d);
   }
 }
+
+const mobileDateFormatCache = new Map<string, Intl.DateTimeFormat>();
 
 export { formatScheduleDetail } from './schedule-format';
 export type { ScheduleDetail } from './schedule-format';

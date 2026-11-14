@@ -4,6 +4,7 @@ import { useEffect } from 'react';
 import Link from 'next/link';
 import posthog from '../lib/posthog-client';
 import { t } from '@money-matters/i18n';
+import { DESIGN_TOKENS } from '@money-matters/ui';
 
 export default function GlobalError({
   error,
@@ -18,7 +19,10 @@ export default function GlobalError({
 
   return (
     <html lang="en" className="h-full">
-      <body className="min-h-full bg-[#F7F8FA] flex items-center justify-center p-4 font-sans text-[#1B2B4B]">
+      <body
+        className="min-h-full flex items-center justify-center p-4 font-sans"
+        style={{ backgroundColor: DESIGN_TOKENS.colors.background, color: DESIGN_TOKENS.colors.primary }}
+      >
         <div className="w-full max-w-md bg-white rounded-2xl border border-zinc-200 p-8 shadow-sm text-center flex flex-col items-center gap-4">
           <div className="w-12 h-12 rounded-full bg-rose-50 text-rose-600 flex items-center justify-center text-xl font-bold">
             ⚠️
@@ -42,7 +46,8 @@ export default function GlobalError({
             <button
               type="button"
               onClick={() => reset()}
-              className="px-4 py-2 text-xs font-bold text-white bg-[#2563eb] hover:bg-blue-700 rounded-xl transition-colors shadow-xs"
+              className="px-4 py-2 text-xs font-bold text-white hover:opacity-90 rounded-xl transition-opacity shadow-xs"
+              style={{ backgroundColor: DESIGN_TOKENS.colors.sereneBlue }}
             >
               {t("common.tryAgain")}
             </button>

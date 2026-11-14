@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { t } from "@money-matters/i18n";
-import { Logo, FormErrorBanner } from "@money-matters/ui/web";
+import { Logo, FormErrorBanner, ModalDialog } from "@money-matters/ui/web";
 import { SignInForm } from "../auth/SignInForm";
 import { SignUpForm, PendingTenantData } from "../auth/SignUpForm";
 import { SocialAuthButtons } from "../auth/SocialAuthButtons";
@@ -33,18 +33,6 @@ export function AuthModal({ isOpen, onClose, initialTab = "signIn" }: AuthModalP
     setPendingTenant(null);
   }, [initialTab, isOpen]);
 
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape" && isOpen) {
-        onClose();
-      }
-    };
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [isOpen, onClose]);
-
-  if (!isOpen) return null;
-
   const handleNeedOtp = (email: string, password?: string, pending?: PendingTenantData) => {
     setUnverifiedEmail(email);
     setPasswordForOtp(password);
@@ -65,48 +53,32 @@ export function AuthModal({ isOpen, onClose, initialTab = "signIn" }: AuthModalP
     onClose();
   };
 
-  return (
-    <div
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="auth-modal-title"
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-200"
-      onClick={(e) => {
-        if (e.target === e.currentTarget) onClose();
-      }}
-    >
-      <div className="bg-white w-full max-w-md rounded-3xl shadow-2xl border border-slate-100 p-6 md:p-8 relative flex flex-col gap-5 overflow-hidden">
-        <button
-          type="button"
-          onClick={onClose}
-          aria-label={t("common.close")}
-          className="absolute top-5 right-5 text-slate-400 hover:text-slate-600 transition-colors p-1.5 rounded-full hover:bg-slate-100 cursor-pointer"
-        >
-          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-          </svg>
-        </button>
+  const titleText = unverifiedEmail
+    ? t("auth.checkYourEmailTitle")
+    : tab === "signIn"
+    ? t("landing.authModalTitleSignIn")
+    : t("landing.authModalTitleSignUp");
 
+  const subtitleText = unverifiedEmail
+    ? t("auth.otpLabel")
+    : tab === "signIn"
+    ? t("landing.authModalSubtitleSignIn")
+    : t("landing.authModalSubtitleSignUp");
+
+  return (
+    <ModalDialog
+      isOpen={isOpen}
+      onClose={onClose}
+      maxWidth="max-w-md"
+      title={
         <div className="flex items-center gap-3">
           <Logo size="md" />
-          <div>
-            <h2 id="auth-modal-title" className="text-lg font-extrabold text-[#1B2B4B] tracking-tight">
-              {unverifiedEmail
-                ? t("auth.checkYourEmailTitle")
-                : tab === "signIn"
-                ? t("landing.authModalTitleSignIn")
-                : t("landing.authModalTitleSignUp")}
-            </h2>
-            <p className="text-xs text-slate-500">
-              {unverifiedEmail
-                ? t("auth.otpLabel")
-                : tab === "signIn"
-                ? t("landing.authModalSubtitleSignIn")
-                : t("landing.authModalSubtitleSignUp")}
-            </p>
-          </div>
+          <span>{titleText}</span>
         </div>
-
+      }
+      subtitle={subtitleText}
+    >
+      <div className="flex flex-col gap-5">
         {error && <FormErrorBanner message={error} />}
 
         {unverifiedEmail ? (
@@ -185,6 +157,6 @@ export function AuthModal({ isOpen, onClose, initialTab = "signIn" }: AuthModalP
           </>
         )}
       </div>
-    </div>
+    </ModalDialog>
   );
 }

@@ -1,8 +1,8 @@
 "use client";
 
-import React, { useState, useEffect, useId } from "react";
+import React, { useState, useId } from "react";
 import { t } from "@money-matters/i18n";
-import { Button } from "@money-matters/ui/web";
+import { Button, ModalDialog } from "@money-matters/ui/web";
 import { z } from "zod";
 
 const emailSchema = z.string().email();
@@ -27,18 +27,6 @@ export function EarlyAccessModal({
   const emailInputId = useId();
   const [touched, setTouched] = useState(false);
 
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape" && isOpen) {
-        onClose();
-      }
-    };
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [isOpen, onClose]);
-
-  if (!isOpen) return null;
-
   const isValidEmail = emailSchema.safeParse(emailInput.trim()).success;
   const showError = touched && emailInput.trim().length > 0 && !isValidEmail;
 
@@ -51,37 +39,20 @@ export function EarlyAccessModal({
   };
 
   return (
-    <div
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="early-access-modal-title"
-      className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 animate-in fade-in duration-150"
-      onClick={(e) => {
-        if (e.target === e.currentTarget) onClose();
-      }}
+    <ModalDialog
+      isOpen={isOpen}
+      onClose={onClose}
+      title={t("landing.earlyAccess.title")}
+      subtitle={t("landing.earlyAccess.description")}
+      isDirty={emailInput.trim().length > 0}
+      maxWidth="max-w-md"
     >
-      <div className="bg-white rounded-2xl p-6 sm:p-8 max-w-md w-full border border-[#e2e4e0] shadow-2xl relative space-y-4">
-        <button
-          type="button"
-          onClick={onClose}
-          aria-label={t("common.close")}
-          className="absolute top-4 right-4 text-zinc-400 hover:text-zinc-600 text-lg font-bold cursor-pointer"
-        >
-          ✕
-        </button>
+      <div className="space-y-4">
         <div className="w-12 h-12 rounded-xl bg-blue-50 border border-blue-200 text-[#2563eb] flex items-center justify-center text-2xl">
           🚀
         </div>
-        <div className="space-y-1">
-          <h3 id="early-access-modal-title" className="text-xl font-bold text-[#1B2B4B]">
-            {t("landing.earlyAccess.title")}
-          </h3>
-          <p className="text-xs text-zinc-600 leading-relaxed">
-            {t("landing.earlyAccess.description")}
-          </p>
-        </div>
 
-        <form onSubmit={handleSubmit} className="space-y-3 pt-2">
+        <form onSubmit={handleSubmit} className="space-y-3 pt-1">
           <div>
             <label htmlFor={emailInputId} className="text-xs font-bold text-zinc-700 block mb-1">
               {t("landing.earlyAccess.notifyLabel")} <span className="text-red-500">*</span>
@@ -116,6 +87,6 @@ export function EarlyAccessModal({
           </div>
         </form>
       </div>
-    </div>
+    </ModalDialog>
   );
 }

@@ -19,6 +19,11 @@
       "types": "./src/mobile/index.ts",
       "import": "./src/mobile/index.ts",
       "require": "./src/mobile/index.ts"
+    },
+    "./tokens": {
+      "types": "./src/tokens.ts",
+      "import": "./src/tokens.ts",
+      "require": "./src/tokens.ts"
     }
   },
   "dependencies": {

@@ -8,11 +8,24 @@ describe('UI Design Tokens', () => {
     expect(DESIGN_TOKENS.colors.success).toBe('#22C55E');
     expect(DESIGN_TOKENS.colors.warning).toBe('#F59E0B');
     expect(DESIGN_TOKENS.colors.critical).toBe('#EF4444');
+    expect(DESIGN_TOKENS.colors.burnRed).toBe('#ba1a1a');
   });
 
   it('exposes border radius and spacing scale tokens', () => {
     expect(DESIGN_TOKENS.radius.default).toBe(8);
     expect(DESIGN_TOKENS.radius.full).toBe(9999);
     expect(DESIGN_TOKENS.spacing.containerMargin).toBe(20);
+  });
+
+  it('validates all DESIGN_TOKENS.colors entries are valid hex strings', () => {
+    for (const val of Object.values(DESIGN_TOKENS.colors)) {
+      if (typeof val === 'string') {
+        expect(val).toMatch(/^#[0-9A-Fa-f]{6}$/);
+      } else {
+        for (const nested of Object.values(val)) {
+          expect(nested).toMatch(/^#[0-9A-Fa-f]{6}$/);
+        }
+      }
+    }
   });
 });
