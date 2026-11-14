@@ -39,6 +39,7 @@ export interface UseIncomeSplitActionsParams {
   returnTo: string;
   previewData?: PaydayPreviewData | null;
   applyPreviewData: (data: PaydayPreviewData) => void;
+  onResetDraftPreview?: () => void;
   setSourceName: (val: string) => void;
   setActualAmount: (val: string) => void;
   setSelectedDate: (val: string) => void;
@@ -77,6 +78,7 @@ export function useIncomeSplitActions({
   returnTo,
   previewData,
   applyPreviewData,
+  onResetDraftPreview,
   setSourceName,
   setActualAmount,
   setSelectedDate,
@@ -99,6 +101,7 @@ export function useIncomeSplitActions({
   const handleDiscardEdits = () => {
     setLinesMap({ ...initialLinesMap });
     setReasoningMap({ ...initialReasoningMap });
+    onResetDraftPreview?.();
     if (previewData) {
       setSourceName(previewData.incomeEventName || "Paycheck");
       setActualAmount(String(previewData.actualAmount ?? previewData.expectedAmount));

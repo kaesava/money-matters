@@ -194,7 +194,7 @@ export function useIncomeSplitState({
   };
 
   const handleActualAmountBlur = useCallback(async () => {
-    if (!incomeEventId || isSavedPlan || isConfirmedPlan || isConfirmedPlan) return;
+    if (!incomeEventId || isSavedPlan || isConfirmedPlan || isReadOnly) return;
     if (lastAutoAmountRef.current !== null && Math.abs(numericActual - lastAutoAmountRef.current) <= 0.009) {
       return;
     }
@@ -272,6 +272,13 @@ export function useIncomeSplitState({
     returnTo,
     previewData: previewQuery.data,
     applyPreviewData,
+    onResetDraftPreview: () => {
+      setDraftLines(null);
+      if (previewQuery.data) {
+        lastAutoAmountRef.current =
+          Number(previewQuery.data.actualAmount ?? previewQuery.data.expectedAmount) || 0;
+      }
+    },
     setSourceName,
     setActualAmount,
     setSelectedDate,

@@ -182,14 +182,17 @@ export function usePaycheckStudio(id: string | undefined, returnTo?: string) {
   const handleResetAllEdits = () => {
     setLinesMap({ ...initialLinesMap });
     setReasoningMap({ ...initialReasoningMap });
+    setDraftLines(null);
     if (previewQuery.data) {
       setSourceName(previewQuery.data.incomeEventName || t('paydayDrawer.incomeDepositDefault'));
       const amtStr = String(previewQuery.data.actualAmount ?? previewQuery.data.expectedAmount);
       setActualAmount(amtStr);
       setInitialAmount(amtStr);
+      lastAutoAmountRef.current = parseFloat(amtStr) || 0;
       setSelectedDate(formatIsoDate(previewQuery.data.expectedDate));
     } else {
       setActualAmount(initialAmount);
+      lastAutoAmountRef.current = parseFloat(initialAmount) || 0;
     }
     toast.success(t('paydayDrawer.discardEditsSuccess'));
   };
