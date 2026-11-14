@@ -57,7 +57,20 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   // Auto-burst rolling window of scheduled bills and income on authenticated tenant entry
   useEffect(() => {
     const activeTenantId = tenantStatusQuery.data?.tenantId;
-    if (session?.user && hasTenant && activeTenantId && lastBurstTenantId.current !== activeTenantId) {
+    const hasWriteAccess =
+      !!subStatus &&
+      !subStatus.isTrialExpired &&
+      !subStatus.isGracePeriod &&
+      !subStatus.isPastDue &&
+      !subStatus.isDeactivated;
+    if (
+      session?.user &&
+      hasTenant &&
+      activeTenantId &&
+      !isSubLoading &&
+      hasWriteAccess &&
+      lastBurstTenantId.current !== activeTenantId
+    ) {
       lastBurstTenantId.current = activeTenantId;
       burstUpcomingEvents.mutate(undefined, {
         onSuccess: (res) => {
@@ -70,7 +83,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         },
       });
     }
-  }, [session?.user, hasTenant, tenantStatusQuery.data?.tenantId, burstUpcomingEvents, utils]);
+  }, [session?.user, hasTenant, tenantStatusQuery.data?.tenantId, isSubLoading, subStatus, burstUpcomingEvents, utils]);
 
   // Expired Trial Guard: redirect to /dashboard/settings?tab=account-data when trial has ended
   useEffect(() => {

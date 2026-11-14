@@ -10,6 +10,7 @@ import {
   transferEvents,
 } from "@money-matters/db";
 import { seedHouseholdEvents } from "./household-events.js";
+import { seedStrategiesDraftsAndNotes } from "./household-strategies-and-notes.js";
 import {
 
   getSeedEnvelopeDefinitions,
@@ -97,6 +98,24 @@ export async function seedSampleHousehold(
     .values({ name: "Sneha - Salary (Fortnightly)", amount: "3024.47", receivingAccountId: everydayAccount.id, rrule: "FREQ=WEEKLY;INTERVAL=2", startDate: "2026-07-02", tenantId, appId, createdBy: snehaUserId, updatedBy: snehaUserId })
     .returning();
 
+  const [advisoryIncome] = await db
+    .insert(incomeSources)
+    .values({
+      name: "Kesh - Advisory Consulting",
+      amount: "1200.00",
+      incomeType: "IRREGULAR" as const,
+      contributionMode: "PERCENTAGE" as const,
+      contributionValue: "50.00",
+      receivingAccountId: personalSaverAccount.id,
+      rrule: "FREQ=MONTHLY",
+      startDate: "2026-11-26",
+      tenantId,
+      appId,
+      createdBy: userId,
+      updatedBy: userId,
+    })
+    .returning();
+
   // 4. Payday Dates & Schedule
   const paydays = SEED_PAYDAYS;
 
@@ -129,7 +148,21 @@ export async function seedSampleHousehold(
     },
   ]);
 
-  const insertedIncomeEvents = await db.insert(incomeEvents).values(incomeEventsToInsert).returning();
+  const insertedIncomeEvents = await db.insert(incomeEvents).values([
+    ...incomeEventsToInsert,
+    {
+      incomeSourceId: advisoryIncome.id,
+      name: "Kesh - Advisory Retainer",
+      expectedDate: "2026-11-26",
+      expectedAmount: "1200.00",
+      status: "PENDING" as const,
+      note: "50% household contribution mode (irregular income)",
+      tenantId,
+      appId,
+      createdBy: userId,
+      updatedBy: userId,
+    },
+  ]).returning();
 
   // 5. Historical Allocation Plans for Paydays 1 to 6
   const pastSplitsData = SEED_PAST_SPLITS_DATA;
@@ -266,6 +299,15 @@ export async function seedSampleHousehold(
     appId,
     userId,
     misaAccountId: misaAccount.id,
+    envelopeMap,
+  });
+
+  // 8. Saved Drafts, Allocation Strategies & File Notes
+  await seedStrategiesDraftsAndNotes(db, {
+    tenantId,
+    appId,
+    userId,
+    insertedIncomeEvents,
     envelopeMap,
   });
 }

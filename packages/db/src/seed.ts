@@ -7,11 +7,14 @@ import {
   tenantUserPreferences,
   apps,
   earlyAccessSubscribers,
+  billingInvoices,
 } from "@money-matters/db";
+import { DEFAULT_APP_FEATURE_FLAGS } from "@money-matters/types";
 import { sql } from "drizzle-orm";
 import dotenv from "dotenv";
 import { ensureNeonAuthUser, cleanupTables } from "./seeds/neon-auth-setup.js";
 import { seedSampleHousehold } from "./seeds/sample-household.js";
+import { seedTesterHousehold } from "./seeds/tester-household.js";
 
 if (!process.env.DATABASE_URL) {
   dotenv.config({ path: "../../.env.development" });
@@ -65,6 +68,7 @@ export async function seedDatabase(connectionString: string, envLabel: string) {
         allocation_plans,
         allocation_strategy_steps,
         allocation_strategies,
+        file_notes,
         transfer_events,
         expense_events,
         income_events,
@@ -86,7 +90,7 @@ export async function seedDatabase(connectionString: string, envLabel: string) {
     console.log("Domain table truncation notice:", err instanceof Error ? err.message : err);
   }
 
-  const now = new Date("2026-09-13T09:00:00Z");
+  const now = new Date();
 
   // Ensure App Exists
   await db
@@ -95,10 +99,16 @@ export async function seedDatabase(connectionString: string, envLabel: string) {
       id: appId,
       name: "Money Matters",
       slug: "money-matters",
+      featureFlags: DEFAULT_APP_FEATURE_FLAGS,
     })
     .onConflictDoUpdate({
       target: apps.id,
-      set: { name: "Money Matters", slug: "money-matters", updatedAt: now },
+      set: {
+        name: "Money Matters",
+        slug: "money-matters",
+        featureFlags: DEFAULT_APP_FEATURE_FLAGS,
+        updatedAt: now,
+      },
     });
 
   // Ensure Early Access Subscriber
@@ -223,12 +233,36 @@ export async function seedDatabase(connectionString: string, envLabel: string) {
     { userId: testerUserId, tenantId: testerTenantId, appId, appPreferences: { [appId]: defaultAppPrefs }, createdBy: testerUserId, updatedBy: testerUserId },
   ]);
 
+  // Seed sample billing invoice for subscribed household
+  await db.insert(billingInvoices).values({
+    tenantId: household.id,
+    stripeInvoiceId: "in_seed_fy27_001",
+    stripeCustomerId: "cus_seed_kaesava_001",
+    stripeSubscriptionId: "sub_seed_kaesava_001",
+    amountPaid: "14.99",
+    currency: "AUD",
+    status: "paid",
+    paidAt: new Date(now.getTime() - 15 * 24 * 60 * 60 * 1000),
+    periodStart: new Date(now.getTime() - 15 * 24 * 60 * 60 * 1000),
+    periodEnd: new Date(now.getTime() + 15 * 24 * 60 * 60 * 1000),
+    createdBy: userId,
+    updatedBy: userId,
+  });
+
   // Seed sample household financial data (bank accounts, envelopes, paydays, transactions)
   await seedSampleHousehold(db, {
     tenantId,
     appId,
     userId,
     snehaUserId,
+    now,
+  });
+
+  // Seed Play Store Review tester household so reviewer sees realistic active data
+  await seedTesterHousehold(db, {
+    tenantId: testerTenantId,
+    appId,
+    userId: testerUserId,
     now,
   });
 
