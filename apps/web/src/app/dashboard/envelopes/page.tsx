@@ -27,6 +27,8 @@ function PoolsPageContent() {
   const paramType = (searchParams.get("type") || "ALL").toUpperCase() as PoolTypeFilter;
   const poolIdParam = searchParams.get("poolId") || searchParams.get("id") || "";
   const categoryIdParam = searchParams.get("categoryId") || "";
+  const createParam = searchParams.get("create");
+  const editIdParam = searchParams.get("editId");
 
   const poolsQuery = trpc.listEnvelopes.useQuery();
   const archivedQuery = trpc.listArchivedItems.useQuery();
@@ -91,6 +93,36 @@ function PoolsPageContent() {
     paramType,
     poolIdParam,
   });
+
+  const handledDeepLinkRef = React.useRef<string>("");
+  useEffect(() => {
+    const key = createParam === "1" ? `create:${paramSearch}` : editIdParam ? `edit:${editIdParam}` : "";
+    if (!key || handledDeepLinkRef.current === key) return;
+    if (createParam === "1") {
+      handledDeepLinkRef.current = key;
+      setPoolToEdit(
+        paramSearch
+          ? ({ id: "", type: "EVERYDAY", poolType: "EVERYDAY", name: paramSearch, currentBalance: "0.00" } as EnvelopeSummaryItem)
+          : null
+      );
+      setIsPoolModalOpen(true);
+      return;
+    }
+    if (editIdParam && poolsQuery.data) {
+      const target = poolsQuery.data.find((p) => p.id === editIdParam);
+      if (target) {
+        handledDeepLinkRef.current = key;
+        setPoolToEdit({
+          ...target,
+          type: target.envelopeType,
+          poolType: target.envelopeType,
+          currentBalance: String(target.currentBalance ?? 0),
+          targetDate: target.endDate,
+        });
+        setIsPoolModalOpen(true);
+      }
+    }
+  }, [createParam, editIdParam, paramSearch, poolsQuery.data]);
 
   useEffect(() => {
     function handleOpenCreateModal() {

@@ -22,6 +22,7 @@ export default function IncomeAndBillsScreen() {
     type?: string;
     poolId?: string;
     categoryId?: string;
+    search?: string;
     returnTo?: string;
   }>();
 
@@ -139,6 +140,7 @@ export default function IncomeAndBillsScreen() {
           initialKind={initialKind}
           initialPoolId={searchParams.poolId}
           initialCategoryId={searchParams.categoryId}
+          initialSearchQuery={searchParams.search}
           onOpenPaydayWizard={(eventId) => {
             router.push(`/(app)/payday-plan/${eventId}` as Href);
           }}

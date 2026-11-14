@@ -43,7 +43,7 @@
 | `/subscription/upgrade` | `apps/web/src/app/subscription/upgrade/page.tsx` | 255 | Authenticated (`<Suspense>`) | Plan selection & Stripe Checkout redirect (`ActiveSubscriptionCard`, `trpc.billing.createCheckoutSession`) |
 | `/subscription/success` | `apps/web/src/app/subscription/success/page.tsx` | 130 | Authenticated (`<Suspense>`) | Checkout verification (`trpc.billing.verifyCheckoutSession`) |
 | `/subscription/manage` | `apps/web/src/app/subscription/manage/page.tsx` | 50 | Authenticated | Redirects to `/dashboard/settings?tab=subscription` |
-| `/dashboard` (Layout) | `apps/web/src/app/dashboard/layout.tsx` | 499 | Authenticated + Tenant | `ProductTourProvider`, `FileNotesProvider`, `DashboardDesktopSidebar`, `DashboardMobileHeader`, `DashboardMobileDrawer`, `DashboardFooter`, `TrialBanner`, `CommandPaletteModal`, `FeedbackModal`, `KeyboardShortcutsModal` |
+| `/dashboard` (Layout) | `apps/web/src/app/dashboard/layout.tsx` | 499 | Authenticated + Tenant | `ProductTourProvider`, `FileNotesProvider`, `DashboardDesktopSidebar`, `DashboardMobileHeader`, `DashboardMobileDrawer`, `DashboardFooter`, `TrialBanner`, `useDashboardSearchAndShortcuts`, `DashboardPennyHandler`, `DashboardLayoutModals`, `CommandPaletteModal`, `FeedbackModal`, `KeyboardShortcutsModal` |
 | `/dashboard` | `apps/web/src/app/dashboard/page.tsx` | 364 | Authenticated + Tenant | `DashboardActionStrip`, `BentoPoolsSection`, `NextPaydayCard`, `GoalsProgressStrip`, `BalanceMatchNudgeBanner`, `AttentionItemsList`, `BankAccountsSection`, `DashboardModals` (`QuickActionDrawer`, `ReconciliationModal`, `EnvelopeFormModal`, `AffordCheckModal`, `MarkPaidModal`, `TransferModal`) |
 | `/dashboard/envelopes` | `apps/web/src/app/dashboard/envelopes/page.tsx` | 475 | Authenticated + Tenant | `EnvelopesFilterBar`, `PoolsTable`, `PoolTableRowItem`, `QuickActionDrawer`, `EnvelopeFormModal`, `EnvelopeDetailDrawer`, `ConfirmDialog`, `FileNotesDrawer` |
 | `/dashboard/income-and-bills` | `apps/web/src/app/dashboard/income-and-bills/page.tsx` | 503 | Authenticated + Tenant (`<Suspense>`) | 3 tabs: `UpcomingTimelineTab` (`TimelineFiltersBar`, `TimelineEventsTable`, `TimelineModals`), `MatrixPlanTab` (`MatrixTableHeader`, `MatrixCellInput`), and Schedules (`IncomeSchedulesCard`, `BillSchedulesCard`, `IncomeFormModal`, `EnvelopeFormModal`, `EnvelopeDetailDrawer`, `FileNotesDrawer`) |
@@ -82,7 +82,7 @@
 | `/(setup)/lifestyle` | `apps/mobile/src/app/(setup)/lifestyle.tsx` | 351 | Authenticated | Step 3: `SetupProgressBar`, `LifestyleChildSubCard`, `LifestyleVehicleSubCard`, `MobileDiscretionarySliders` |
 | `/(setup)/goals` | `apps/mobile/src/app/(setup)/goals.tsx` | 394 | Authenticated | Step 4: `SetupProgressBar`, `SetupGoalsPresetsGrid`, `SetupGoalCard` |
 | `/(setup)/categories` | `apps/mobile/src/app/(setup)/categories.tsx` | 499 | Authenticated | Step 5: `SetupProgressBar`, `SetupCategoriesGoalsList`, `SetupCategoryRow`, `EnvelopeFormModal`, `MobilePaydaySandboxModal` |
-| `(app)` Tabs Layout | `apps/mobile/src/app/(app)/_layout.tsx` | 274 | Authenticated + Tenant | Bottom Tabs (`home`, `envelopes`, `paychecks`, `transactions`, `settings`) + hidden stack routes, `QuickActionFab`, `QuickExpenseModal`, `MobileCommandPaletteSheet`, `MobileAnalyticsConsentPrompt` |
+| `(app)` Tabs Layout | `apps/mobile/src/app/(app)/_layout.tsx` | 274 | Authenticated + Tenant | Bottom Tabs (`home`, `envelopes`, `paychecks`, `transactions`, `settings`) + hidden stack routes, `CommandPaletteProvider` (`apps/mobile/src/context/CommandPaletteContext.tsx`), `QuickActionFab`, `QuickExpenseModal`, `MobileCommandPaletteSheet`, `MobileAnalyticsConsentPrompt` |
 | `/(app)/home` | `apps/mobile/src/app/(app)/home.tsx` | 368 | Authenticated + Tenant | `TrialBanner`, `DashboardHeroCard`, `MobileNextPaydayCard`, `MobileAffordCheckCard`, `GoalsProgressStrip`, `AttentionItemsList`, `BankAccountCard`, `EnvelopeFormModal`, `BankAccountFormModal`, `MobileReconciliationModal`, `MarkPaidModal`, `MobileTransferModal`, `MobileAffordCheckModal`, `QuickExpenseModal`, `LinkedPoolsModalSheet` |
 | `/(app)/envelopes` | `apps/mobile/src/app/(app)/envelopes.tsx` | 248 | Authenticated + Tenant | `PoolSummaryCard`, `PoolGroupSection`, `PoolItemCard`, `EnvelopesFilterSheet`, `EnvelopeFormModal`, `MobileEnvelopeDetailSheet`, `PoolOverflowMenuModal`, `QuickExpenseModal` |
 | `/(app)/envelopes/[id]` | `apps/mobile/src/app/(app)/envelopes/[id].tsx` | 186 | Authenticated + Tenant | Envelope detail route (`PoolUpcomingSection`, `PoolHistorySection`, `EnvelopeFormModal`) |
@@ -113,7 +113,7 @@
 
 | Component / Dialog Name | File Path | Lines | Primitive Used | Notes / Status |
 | :--- | :--- | ---: | :--- | :--- |
-| `CommandPaletteModal` | `packages/ui/src/web/CommandPaletteModal.tsx` | 802 | `createPortal` modal | Shared in `@money-matters/ui/web` (`⌘K` search + Ask Penny AI) |
+| `CommandPaletteModal` | `packages/ui/src/web/CommandPaletteModal.tsx` | 290 | `createPortal` modal | Shared in `@money-matters/ui/web` (`⌘K` / `/` search across Accounts, Envelopes, `PENDING` Events, Pages/Actions, Transactions + Smart Priority Ask Penny AI with `CommandPaletteResultsList.tsx` & `CommandPaletteActionRow.tsx`) |
 | `FileNotesDrawer` | `packages/capabilities/file-notes/src/web/FileNotesDrawer.tsx` | 316 | `SlideOverDrawer`, `ConfirmDialog` | Shared capability drawer for attaching/viewing PDF/image notes |
 | `QuickActionDrawer` (`QuickExpenseDrawer`) | `apps/web/src/components/web/QuickExpenseDrawer.tsx` | 371 | `SlideOverDrawer`, `ConfirmDialog` | Renders `CrossBankTransferModal` and `MarkPaidModal` |
 | `EnvelopeFormModal` | `apps/web/src/components/web/EnvelopeFormModal.tsx` | 383 | `ModalDialog`, `EnvelopeFormConfirmDialogs` (`ConfirmDialog` x3, `CrossBankTransferModal`) | Merged Create/Edit envelope & bill schedule modal (`isEdit`), same-privacy bank re-linking |
@@ -148,7 +148,7 @@
 
 | Component / Dialog Name | File Path | Lines | Primitive Used | Notes / Status |
 | :--- | :--- | ---: | :--- | :--- |
-| `MobileCommandPaletteSheet` | `packages/ui/src/mobile/MobileCommandPaletteSheet.tsx` | 812 | `MobileModalDialog` | Shared in `@money-matters/ui/mobile` (search + Ask Penny AI) |
+| `MobileCommandPaletteSheet` | `packages/ui/src/mobile/MobileCommandPaletteSheet.tsx` | 253 | `MobileModalDialog` | Shared in `@money-matters/ui/mobile` (globally mounted via `CommandPaletteProvider` + `AppScreenWrapper` header trigger; Smart Priority search + Ask Penny AI with `MobileCommandPaletteSections.tsx`) |
 | `MobileEnvelopeDetailSheet` | `packages/ui/src/mobile/MobileEnvelopeDetailSheet.tsx` | 325 | `MobileModalDialog` | Shared envelope detail bottom sheet |
 | `MobileFileNotesSheet` / `NotesFeedModal` | `packages/capabilities/file-notes/src/mobile/MobileFileNotesSheet.tsx` (369L) / `NotesFeedModal.tsx` (456L) | 369 / 456 | `MobileModalDialog`, `showMobileConfirm` | Shared capability bottom sheet for file notes |
 | `QuickExpenseModal` | `apps/mobile/src/components/QuickExpenseModal.tsx` | 229 | `MobileModalDialog`, `showMobileConfirm` | 3-tab quick action sheet (`QuickExpenseTab`, `QuickIncomeTab`, `QuickTransferTab`) |

@@ -161,28 +161,22 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const [isRetrying, setIsRetrying] = useState(false);
   const [cooldownSeconds, setCooldownSeconds] = useState(0);
 
-  const hasAiAccess =
-    hasAiAssistant &&
-    !!subStatus &&
-    !subStatus.isTrialExpired &&
-    !subStatus.isGracePeriod &&
-    !subStatus.isPastDue &&
-    !subStatus.isDeactivated;
-
   const askMutation = trpc.assistantAsk.useMutation();
   const usageQuery = trpc.assistantUsage.useQuery(undefined, {
-    enabled: !!session?.user && hasTenant && hasAiAccess,
+    enabled: !!session?.user && hasTenant && hasAiAssistant,
     staleTime: 30_000,
   });
 
   const versionInfo = getWebVersionInfo();
 
-  const { searchAccounts, searchEnvelopes, searchEvents, handleSearchTransactions } =
+  const { searchPages, searchAccounts, searchEnvelopes, searchEvents, handleSearchTransactions } =
     useDashboardSearchAndShortcuts({
       bankAccountsData: bankAccountsQuery.data,
       envelopesData: envelopesQuery.data,
       incomeEventsData: incomeEventsQuery.data,
       expenseEventsData: expenseEventsQuery.data,
+      hasSimulation,
+      hasReports,
       setAskPennyOpen,
       setShowShortcutsModal,
       setQuickExpenseOpen,
@@ -288,6 +282,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       onNavigateToSettings={() => router.push("/dashboard/settings")}
       onSignOut={handleSignOut}
       onOpenAsk={() => setAskPennyOpen(true)}
+      hasAiAssistant={hasAiAssistant}
     />
   );
 
@@ -323,6 +318,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             onOpenMobileMenu={() => setMobileMenuOpen(true)}
             title={activeItem ? activeItem.label() : t("app.title")}
             onOpenAskPenny={() => setAskPennyOpen(true)}
+            hasAiAssistant={hasAiAssistant}
             onNavigateToSettings={() => router.push("/dashboard/settings")}
             avatarUrl={avatarUrl}
             userName={session?.user?.name}
@@ -363,13 +359,14 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             askPennyOpen={askPennyOpen}
             setAskPennyOpen={setAskPennyOpen}
             hasSimulation={hasSimulation}
-            hasAiAccess={hasAiAccess}
+            hasAiAssistant={hasAiAssistant}
+            searchPages={searchPages}
             searchAccounts={searchAccounts}
             searchEnvelopes={searchEnvelopes}
             searchEvents={searchEvents}
             handleSearchTransactions={handleSearchTransactions}
-            remainingCalls={hasAiAccess && usageQuery.data?.limit && usageQuery.data ? Math.max(0, usageQuery.data.limit - usageQuery.data.used) : undefined}
-            onAskPenny={hasAiAccess ? async (q) => {
+            remainingCalls={hasAiAssistant && usageQuery.data?.limit && usageQuery.data ? Math.max(0, usageQuery.data.limit - usageQuery.data.used) : undefined}
+            onAskPenny={hasAiAssistant ? async (q) => {
               const res = await askMutation.mutateAsync({ query: q });
               usageQuery.refetch();
               return res;

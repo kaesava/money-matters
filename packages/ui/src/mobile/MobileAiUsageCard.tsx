@@ -3,6 +3,8 @@ import { View, Text, StyleSheet } from "react-native";
 import { Feather } from "@expo/vector-icons";
 import { DESIGN_TOKENS } from "../tokens";
 import { t } from "@money-matters/i18n";
+import { useDateLocale } from "../hooks/DateLocaleContext";
+import { fmtDateMedium } from "../dates/date-formatting";
 
 export interface MobileAiUsageCardProps {
   used: number;
@@ -11,7 +13,9 @@ export interface MobileAiUsageCardProps {
 }
 
 export const MobileAiUsageCard: React.FC<MobileAiUsageCardProps> = ({ used, limit, resetsOn }) => {
-  const percentage = Math.min(100, Math.round((used / limit) * 100));
+  const { locale, timeZone } = useDateLocale();
+  const percentage = limit > 0 ? Math.min(100, Math.round((used / limit) * 100)) : 0;
+  const formattedResetDate = fmtDateMedium(resetsOn, timeZone, locale);
 
   return (
     <View style={styles.card}>
@@ -43,9 +47,14 @@ export const MobileAiUsageCard: React.FC<MobileAiUsageCardProps> = ({ used, limi
         </View>
       </View>
 
-      <Text style={styles.footerText}>
-        {t("assistant.settingsCard.resetsOn", { date: resetsOn })}
-      </Text>
+      <View>
+        <Text style={styles.footerText}>
+          {t("assistant.settingsCard.resetsOn", { date: formattedResetDate })}
+        </Text>
+        <Text style={styles.footerText}>
+          {t("assistant.settingsCard.freeNotice")}
+        </Text>
+      </View>
     </View>
   );
 };

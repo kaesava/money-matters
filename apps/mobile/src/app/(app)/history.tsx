@@ -43,6 +43,12 @@ export default function TransactionsScreen() {
   const [selectedBankAccountId, setSelectedBankAccountId] = useState<string>(
     params.bankAccountId || 'ALL'
   );
+
+  React.useEffect(() => {
+    if (typeof params.search === 'string') setSearchQuery(params.search);
+    if (typeof params.poolId === 'string') setSelectedPoolId(params.poolId || 'ALL');
+    if (typeof params.bankAccountId === 'string') setSelectedBankAccountId(params.bankAccountId || 'ALL');
+  }, [params.search, params.poolId, params.bankAccountId]);
   const [sortField, setSortField] = useState<SortField>('recordedAt');
   const [sortDir, setSortDir] = useState<SortDir>('desc');
   const [page, setPage] = useState(1);

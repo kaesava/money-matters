@@ -134,7 +134,15 @@ export type { MobileSpendingOverviewLabels } from './charts/MobileSpendingOvervi
 
 export { MobileAiUsageCard } from './MobileAiUsageCard';
 export { MobileCommandPaletteSheet } from './MobileCommandPaletteSheet';
-export type { MobileCommandPaletteSheetProps } from './MobileCommandPaletteSheet';
+export type {
+  MobileCommandPaletteSheetProps,
+  SearchResultAccount,
+  SearchResultEnvelope,
+  SearchResultEvent,
+  SearchResultPage,
+  SearchResultTransaction,
+  CommandPaletteCategory,
+} from './MobileCommandPaletteSheet';
 export { MobileCelebrationBanner } from './MobileCelebrationBanner';
 export type { MobileCelebrationBannerProps } from './MobileCelebrationBanner';
 export { MobileHouseholdContributionSection } from './HouseholdContributionSection';

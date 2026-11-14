@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useEffect } from "react";
 import type { QuickActionInitialData } from "@money-matters/types";
 
 export function useQuickInitialMatching(
@@ -11,7 +11,7 @@ export function useQuickInitialMatching(
   destinationCategoryId: string,
   setDestinationCategoryId: (id: string) => void
 ) {
-  useMemo(() => {
+  useEffect(() => {
     if (!initialData || categories.length === 0) return;
 
     if (initialData.envelopeName && !categoryId) {

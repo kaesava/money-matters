@@ -1,6 +1,14 @@
-import { useState, useEffect, useMemo, useCallback } from "react";
+import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import type { AssistantResult } from "@money-matters/types";
 import { useCurrencyLocale } from "./CurrencyLocaleContext";
+import {
+  filterPagesByQuery,
+  mapTrpcAssistantError,
+  shouldPrioritizeAskPenny,
+  type SearchResultPage,
+} from "./commandPaletteHelpers";
+
+export type { SearchResultPage };
 
 export interface SearchResultAccount {
   id: string;
@@ -46,31 +54,38 @@ export const COMMAND_PALETTE_CHIPS = [
   "assistant.chips.internetPaid",
 ] as const;
 
-export function useCommandPaletteState({
-  isOpen,
-  onClose,
-  accounts = [],
-  envelopes = [],
-  upcomingEvents = [],
-  onSearchTransactions,
-  onAskPenny,
-  onNavigatePrefill,
-}: {
+export interface UseCommandPaletteStateParams {
   isOpen: boolean;
   onClose: () => void;
+  pages?: SearchResultPage[];
   accounts?: SearchResultAccount[];
   envelopes?: SearchResultEnvelope[];
   upcomingEvents?: SearchResultEvent[];
   onSearchTransactions?: (query: string) => Promise<SearchResultTransaction[]>;
   onAskPenny?: (query: string) => Promise<AssistantResult>;
+  hasAiAssistant?: boolean;
   onNavigatePrefill?: (result: Extract<AssistantResult, { type: "prefill" }>) => void;
-}) {
+}
+
+export function useCommandPaletteState({
+  isOpen,
+  onClose,
+  pages = [],
+  accounts = [],
+  envelopes = [],
+  upcomingEvents = [],
+  onSearchTransactions,
+  onAskPenny,
+  hasAiAssistant = true,
+  onNavigatePrefill,
+}: UseCommandPaletteStateParams) {
   const [query, setQuery] = useState("");
   const [activeCategory, setActiveCategory] = useState<CommandPaletteCategory>("all");
   const [isAiLoading, setIsAiLoading] = useState(false);
   const [aiResult, setAiResult] = useState<AssistantResult | null>(null);
   const [isSearchingTransactions, setIsSearchingTransactions] = useState(false);
   const [transactionResults, setTransactionResults] = useState<SearchResultTransaction[]>([]);
+  const requestSeqRef = useRef(0);
   const { currencySymbol, locale } = useCurrencyLocale();
 
   const formatAmount = useCallback(
@@ -83,37 +98,46 @@ export function useCommandPaletteState({
   );
 
   useEffect(() => {
-    if (isOpen) {
-      setQuery("");
-      setActiveCategory("all");
-      setAiResult(null);
-      setTransactionResults([]);
-    }
+    if (!isOpen) return;
+    requestSeqRef.current += 1;
+    setQuery("");
+    setActiveCategory("all");
+    setAiResult(null);
+    setTransactionResults([]);
+    setIsSearchingTransactions(false);
   }, [isOpen]);
 
   useEffect(() => {
     const trimmedQuery = query.trim();
     if (!trimmedQuery || !onSearchTransactions) {
+      requestSeqRef.current += 1;
       setTransactionResults([]);
       setIsSearchingTransactions(false);
       return;
     }
     if (activeCategory !== "all" && activeCategory !== "transactions") return;
 
+    const seq = ++requestSeqRef.current;
     const timer = setTimeout(async () => {
       setIsSearchingTransactions(true);
       try {
-        setTransactionResults(await onSearchTransactions(trimmedQuery));
+        const res = await onSearchTransactions(trimmedQuery);
+        if (requestSeqRef.current === seq) setTransactionResults(res);
       } catch {
-        setTransactionResults([]);
+        if (requestSeqRef.current === seq) setTransactionResults([]);
       } finally {
-        setIsSearchingTransactions(false);
+        if (requestSeqRef.current === seq) setIsSearchingTransactions(false);
       }
     }, 250);
     return () => clearTimeout(timer);
   }, [query, activeCategory, onSearchTransactions]);
 
   const trimmed = query.trim().toLowerCase();
+
+  const filteredPages = useMemo(
+    () => (activeCategory === "all" ? filterPagesByQuery(pages, trimmed) : []),
+    [pages, trimmed, activeCategory]
+  );
 
   const filteredAccounts = useMemo(() => {
     if (activeCategory !== "all" && activeCategory !== "accounts") return [];
@@ -138,11 +162,23 @@ export function useCommandPaletteState({
     [transactionResults, activeCategory]
   );
 
+  const totalMatchCount =
+    filteredPages.length +
+    filteredAccounts.length +
+    filteredEnvelopes.length +
+    filteredEvents.length +
+    filteredTransactions.length;
+
+  const shouldPrioritizeAi = Boolean(
+    hasAiAssistant && onAskPenny && shouldPrioritizeAskPenny(query.trim(), totalMatchCount)
+  );
+
   const handleExecuteAi = useCallback(
     async (textToAsk: string) => {
-      if (!onAskPenny || isAiLoading) return;
+      if (!hasAiAssistant || !onAskPenny || isAiLoading) return;
       const q = textToAsk.trim();
       if (!q) return;
+      setQuery(q);
       setIsAiLoading(true);
       setAiResult(null);
       try {
@@ -152,13 +188,13 @@ export function useCommandPaletteState({
           onClose();
           onNavigatePrefill(res);
         }
-      } catch {
-        setAiResult({ type: "unavailable", reason: "disabled" });
+      } catch (err) {
+        setAiResult(mapTrpcAssistantError(err));
       } finally {
         setIsAiLoading(false);
       }
     },
-    [onAskPenny, isAiLoading, onNavigatePrefill, onClose]
+    [hasAiAssistant, onAskPenny, isAiLoading, onNavigatePrefill, onClose]
   );
 
   return {
@@ -171,10 +207,12 @@ export function useCommandPaletteState({
     setAiResult,
     isSearchingTransactions,
     trimmed,
+    filteredPages,
     filteredAccounts,
     filteredEnvelopes,
     filteredEvents,
     filteredTransactions,
+    shouldPrioritizeAi,
     handleExecuteAi,
     formatAmount,
     locale,

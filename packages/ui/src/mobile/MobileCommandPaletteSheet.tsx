@@ -7,19 +7,32 @@ import type { AssistantResult } from "@money-matters/types";
 import MobileModalDialog from "./MobileModalDialog";
 import { styles } from "./MobileCommandPaletteSheet.styles";
 import { MobileCommandPaletteSections } from "./MobileCommandPaletteSections";
+import { formatAiAnswerText } from "../hooks/commandPaletteHelpers";
+import { useDateLocale } from "../hooks/DateLocaleContext";
 import {
   useCommandPaletteState,
   COMMAND_PALETTE_CHIPS,
   type SearchResultAccount,
   type SearchResultEnvelope,
   type SearchResultEvent,
+  type SearchResultPage,
   type SearchResultTransaction,
   type CommandPaletteCategory,
 } from "../hooks/useCommandPaletteState";
 
+export type {
+  SearchResultAccount,
+  SearchResultEnvelope,
+  SearchResultEvent,
+  SearchResultPage,
+  SearchResultTransaction,
+  CommandPaletteCategory,
+};
+
 export interface MobileCommandPaletteSheetProps {
   isOpen: boolean;
   onClose: () => void;
+  pages?: SearchResultPage[];
   accounts?: SearchResultAccount[];
   envelopes?: SearchResultEnvelope[];
   upcomingEvents?: SearchResultEvent[];
@@ -27,6 +40,8 @@ export interface MobileCommandPaletteSheetProps {
   onAskPenny?: (query: string) => Promise<AssistantResult>;
   onNavigatePrefill?: (result: Extract<AssistantResult, { type: "prefill" }>) => void;
   remainingCalls?: number;
+  hasAiAssistant?: boolean;
+  onSelectPage?: (page: SearchResultPage) => void;
   onSelectAccount?: (account: SearchResultAccount) => void;
   onSelectEnvelope?: (envelope: SearchResultEnvelope) => void;
   onSelectEvent?: (event: SearchResultEvent) => void;
@@ -38,6 +53,7 @@ export interface MobileCommandPaletteSheetProps {
 export const MobileCommandPaletteSheet: React.FC<MobileCommandPaletteSheetProps> = ({
   isOpen,
   onClose,
+  pages = [],
   accounts = [],
   envelopes = [],
   upcomingEvents = [],
@@ -45,19 +61,22 @@ export const MobileCommandPaletteSheet: React.FC<MobileCommandPaletteSheetProps>
   onAskPenny,
   onNavigatePrefill,
   remainingCalls,
+  hasAiAssistant = true,
   hasSimulation = true,
+  onSelectPage,
   onSelectAccount,
   onSelectEnvelope,
   onSelectEvent,
   onSelectTransaction,
   onViewAllTransactions,
 }) => {
+  const { timeZone } = useDateLocale();
   const {
     query, setQuery, activeCategory, setActiveCategory, isAiLoading, aiResult, setAiResult,
-    isSearchingTransactions, filteredAccounts, filteredEnvelopes, filteredEvents,
-    filteredTransactions, handleExecuteAi, formatAmount, locale,
+    isSearchingTransactions, filteredPages, filteredAccounts, filteredEnvelopes, filteredEvents,
+    filteredTransactions, shouldPrioritizeAi, handleExecuteAi, formatAmount, locale,
   } = useCommandPaletteState({
-    isOpen, onClose, accounts, envelopes, upcomingEvents, onSearchTransactions, onAskPenny, onNavigatePrefill,
+    isOpen, onClose, pages, accounts, envelopes, upcomingEvents, onSearchTransactions, onAskPenny, hasAiAssistant, onNavigatePrefill,
   });
 
   const categories: { id: CommandPaletteCategory; label: string }[] = [
@@ -68,24 +87,54 @@ export const MobileCommandPaletteSheet: React.FC<MobileCommandPaletteSheetProps>
     { id: "transactions", label: t("commandPalette.categories.transactions") },
   ];
 
-  const totalResultsCount = filteredAccounts.length + filteredEnvelopes.length + filteredEvents.length + filteredTransactions.length;
+  const totalResultsCount =
+    filteredPages.length + filteredAccounts.length + filteredEnvelopes.length + filteredEvents.length + filteredTransactions.length;
+
+  const handleSubmit = () => {
+    if (!query.trim()) return;
+    if (shouldPrioritizeAi && hasAiAssistant && onAskPenny) {
+      handleExecuteAi(query);
+      return;
+    }
+    if (filteredPages[0]) { onClose(); onSelectPage?.(filteredPages[0]); return; }
+    if (filteredAccounts[0]) { onClose(); onSelectAccount?.(filteredAccounts[0]); return; }
+    if (filteredEnvelopes[0]) { onClose(); onSelectEnvelope?.(filteredEnvelopes[0]); return; }
+    if (filteredEvents[0]) { onClose(); onSelectEvent?.(filteredEvents[0]); return; }
+    if (filteredTransactions[0]) { onClose(); onSelectTransaction?.(filteredTransactions[0]); return; }
+    if (hasAiAssistant && onAskPenny) handleExecuteAi(query);
+  };
+
+  const askCard = query.trim().length > 0 && hasAiAssistant && onAskPenny ? (
+    <TouchableOpacity onPress={() => handleExecuteAi(query)} style={styles.aiAskCard} activeOpacity={0.7}>
+      <View style={styles.aiAskIconContainer}>
+        <Feather name="zap" size={16} color={DESIGN_TOKENS.colors.sereneBlue} />
+      </View>
+      <View style={styles.aiAskTextContainer}>
+        <Text style={styles.aiAskTitle}>{t("commandPalette.askPennyPrefix")} &ldquo;{query}&rdquo;</Text>
+        <Text style={styles.aiAskSubtitle}>{t("commandPalette.askPennyHint")}</Text>
+      </View>
+      <Feather name="arrow-right" size={16} color={DESIGN_TOKENS.colors.slate[400]} />
+    </TouchableOpacity>
+  ) : null;
 
   return (
-    <MobileModalDialog visible={isOpen} onClose={onClose} title={t("commandPalette.triggerTitle")}>
+    <MobileModalDialog
+      visible={isOpen}
+      onClose={onClose}
+      title={t(hasAiAssistant ? "commandPalette.triggerTitle" : "commandPalette.searchOnlyTitle")}
+    >
       <View style={styles.container}>
         <View style={styles.inputBar}>
           <Feather name="search" size={18} color={DESIGN_TOKENS.colors.slate[400]} />
           <TextInput
             value={query}
             onChangeText={setQuery}
-            placeholder={t("commandPalette.inputPlaceholder")}
+            placeholder={t(hasAiAssistant ? "commandPalette.inputPlaceholder" : "commandPalette.searchOnlyPlaceholder")}
             placeholderTextColor={DESIGN_TOKENS.colors.slate[400]}
             style={styles.textInput}
             autoFocus
             returnKeyType="search"
-            onSubmitEditing={() => {
-              if (query.trim() && onAskPenny) handleExecuteAi(query);
-            }}
+            onSubmitEditing={handleSubmit}
           />
           {isAiLoading || isSearchingTransactions ? (
             <ActivityIndicator size="small" color={DESIGN_TOKENS.colors.sereneBlue} />
@@ -108,18 +157,7 @@ export const MobileCommandPaletteSheet: React.FC<MobileCommandPaletteSheetProps>
         </ScrollView>
 
         <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
-          {query.trim().length > 0 && onAskPenny && (
-            <TouchableOpacity onPress={() => handleExecuteAi(query)} style={styles.aiAskCard} activeOpacity={0.7}>
-              <View style={styles.aiAskIconContainer}>
-                <Feather name="zap" size={16} color={DESIGN_TOKENS.colors.sereneBlue} />
-              </View>
-              <View style={styles.aiAskTextContainer}>
-                <Text style={styles.aiAskTitle}>{t("commandPalette.askPennyPrefix")} &ldquo;{query}&rdquo;</Text>
-                <Text style={styles.aiAskSubtitle}>{t("commandPalette.askPennyHint")}</Text>
-              </View>
-              <Feather name="arrow-right" size={16} color={DESIGN_TOKENS.colors.slate[400]} />
-            </TouchableOpacity>
-          )}
+          {shouldPrioritizeAi ? askCard : null}
 
           {aiResult && (
             <View style={styles.aiResultBox}>
@@ -132,7 +170,9 @@ export const MobileCommandPaletteSheet: React.FC<MobileCommandPaletteSheetProps>
                   <Feather name="x" size={14} color={DESIGN_TOKENS.colors.slate[400]} />
                 </TouchableOpacity>
               </View>
-              {aiResult.type === "answer" && <Text style={styles.aiResultText}>{t(aiResult.templateKey, aiResult.templateValues)}</Text>}
+              {aiResult.type === "answer" && (
+                <Text style={styles.aiResultText}>{formatAiAnswerText(aiResult, t)}</Text>
+              )}
               {aiResult.type === "clarify" && (
                 <View style={styles.clarifyBox}>
                   <Text style={styles.clarifyText}>{t(aiResult.templateKey)}</Text>
@@ -152,18 +192,23 @@ export const MobileCommandPaletteSheet: React.FC<MobileCommandPaletteSheetProps>
           )}
 
           <MobileCommandPaletteSections
+            filteredPages={filteredPages}
             filteredAccounts={filteredAccounts}
             filteredEnvelopes={filteredEnvelopes}
             filteredEvents={filteredEvents}
             filteredTransactions={filteredTransactions}
             formatAmount={formatAmount}
             locale={locale}
+            timeZone={timeZone}
             onClose={onClose}
+            onSelectPage={onSelectPage}
             onSelectAccount={onSelectAccount}
             onSelectEnvelope={onSelectEnvelope}
             onSelectEvent={onSelectEvent}
             onSelectTransaction={onSelectTransaction}
           />
+
+          {!shouldPrioritizeAi ? askCard : null}
 
           {onViewAllTransactions && (filteredTransactions.length > 0 || activeCategory === "transactions") && (
             <TouchableOpacity onPress={() => { onClose(); onViewAllTransactions(query.trim()); }} style={styles.viewAllButton}>
@@ -172,21 +217,21 @@ export const MobileCommandPaletteSheet: React.FC<MobileCommandPaletteSheetProps>
             </TouchableOpacity>
           )}
 
-          {query.trim().length > 0 && totalResultsCount === 0 && (
+          {query.trim().length > 0 && totalResultsCount === 0 && !shouldPrioritizeAi && (
             <View style={styles.emptyContainer}>
               <Text style={styles.emptyTitle}>{t("commandPalette.emptyState.noResults", { query })}</Text>
               <Text style={styles.emptySubtitle}>{t("commandPalette.emptyState.tip")}</Text>
             </View>
           )}
 
-          {!query && onAskPenny && (
+          {!query && hasAiAssistant && onAskPenny && (
             <View style={styles.suggestedContainer}>
               <Text style={styles.suggestedHeader}>{t("assistant.suggestedTitle")}</Text>
               <View style={styles.chipsRow}>
                 {COMMAND_PALETTE_CHIPS.filter((chipKey) => hasSimulation || chipKey !== "assistant.chips.canAfford").map((chipKey) => {
                   const label = t(chipKey);
                   return (
-                    <TouchableOpacity key={chipKey} onPress={() => setQuery(label)} style={styles.chipButton}>
+                    <TouchableOpacity key={chipKey} onPress={() => handleExecuteAi(label)} style={styles.chipButton}>
                       <Text style={styles.chipText}>{label}</Text>
                       <Feather name="arrow-right" size={12} color={DESIGN_TOKENS.colors.slate[400]} />
                     </TouchableOpacity>
@@ -197,7 +242,7 @@ export const MobileCommandPaletteSheet: React.FC<MobileCommandPaletteSheetProps>
           )}
         </ScrollView>
 
-        {typeof remainingCalls === "number" && onAskPenny && (
+        {hasAiAssistant && typeof remainingCalls === "number" && onAskPenny && (
           <View style={styles.footerBar}>
             <Text style={styles.footerCallsText}>{t("commandPalette.footer.callsLeft", { remaining: remainingCalls })}</Text>
           </View>

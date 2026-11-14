@@ -10,6 +10,7 @@ import { authClient } from '../../lib/auth';
 import { QuickActionFab } from '../../components/QuickActionFab';
 import { EnvelopeFormModal } from '../../components/EnvelopeFormModal';
 import { MobileProductTourProvider } from '../../context/ProductTourContext';
+import { CommandPaletteProvider } from '../../context/CommandPaletteContext';
 
 function TabIcon({
   name,
@@ -150,6 +151,7 @@ export default function AppLayout() {
 
   return (
     <MobileProductTourProvider>
+    <CommandPaletteProvider>
       <View style={styles.root}>
         <Tabs
         backBehavior="history"
@@ -246,6 +248,7 @@ export default function AppLayout() {
         }}
       />
     </View>
+    </CommandPaletteProvider>
     </MobileProductTourProvider>
   );
 }

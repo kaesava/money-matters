@@ -21,6 +21,10 @@ export default function RecurringSchedulesScreen() {
     returnTo?: string;
     editIncomeId?: string;
     editBillId?: string;
+    createBill?: string;
+    createIncome?: string;
+    name?: string;
+    amount?: string;
   }>();
 
   const [formModalVisible, setFormModalVisible] = useState(false);
@@ -61,6 +65,37 @@ export default function RecurringSchedulesScreen() {
     isLoadingExpense,
     refetchAll,
   } = usePaychecksData();
+
+  const handledCreateRef = React.useRef('');
+  React.useEffect(() => {
+    const key = searchParams.createBill === '1'
+      ? `bill:${searchParams.name || ''}:${searchParams.amount || ''}`
+      : searchParams.createIncome === '1'
+        ? 'income'
+        : '';
+    if (!key || handledCreateRef.current === key) return;
+    handledCreateRef.current = key;
+    if (searchParams.createBill === '1') {
+      setPoolToEdit(
+        searchParams.name || searchParams.amount
+          ? ({
+              id: '',
+              name: searchParams.name || '',
+              type: 'BILL',
+              poolType: 'BILL',
+              envelopeType: 'BILL',
+              enteredAmount: searchParams.amount || undefined,
+              monthlyAmount: searchParams.amount || undefined,
+            } as PoolToEdit)
+          : null
+      );
+      setCategoryModalVisible(true);
+    } else if (searchParams.createIncome === '1') {
+      setFormMode('INCOME');
+      setSourceToEdit(null);
+      setFormModalVisible(true);
+    }
+  }, [searchParams.createBill, searchParams.createIncome, searchParams.name, searchParams.amount]);
 
   React.useEffect(() => {
     if (searchParams.editIncomeId && incomeSources.length > 0) {

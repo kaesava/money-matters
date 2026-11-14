@@ -20,7 +20,8 @@ interface DashboardLayoutModalsProps {
   askPennyOpen: boolean;
   setAskPennyOpen: (open: boolean) => void;
   hasSimulation: boolean;
-  hasAiAccess: boolean;
+  hasAiAssistant: boolean;
+  searchPages: CommandPaletteProps["pages"];
   searchAccounts: CommandPaletteProps["accounts"];
   searchEnvelopes: CommandPaletteProps["envelopes"];
   searchEvents: CommandPaletteProps["upcomingEvents"];
@@ -42,6 +43,8 @@ export function DashboardLayoutModals({
   askPennyOpen,
   setAskPennyOpen,
   hasSimulation,
+  hasAiAssistant,
+  searchPages,
   searchAccounts,
   searchEnvelopes,
   searchEvents,
@@ -74,6 +77,8 @@ export function DashboardLayoutModals({
         isOpen={askPennyOpen}
         onClose={() => setAskPennyOpen(false)}
         hasSimulation={hasSimulation}
+        hasAiAssistant={hasAiAssistant}
+        pages={searchPages}
         accounts={searchAccounts}
         envelopes={searchEnvelopes}
         upcomingEvents={searchEvents}
@@ -83,11 +88,22 @@ export function DashboardLayoutModals({
         onNavigatePrefill={(prefill) =>
           handlePennyPrefillNavigation(prefill, router, setQuickExpenseData, setQuickExpenseOpen, hasSimulation)
         }
-        onSelectAccount={() => router.push("/dashboard/envelopes")}
-        onSelectEnvelope={(env) => router.push(`/dashboard/envelopes?poolId=${env.id}`)}
-        onSelectEvent={() => router.push("/dashboard/plan?tab=timeline")}
-        onSelectTransaction={() => router.push("/dashboard/history")}
-        onViewAllTransactions={(q) => router.push(`/dashboard/history?search=${encodeURIComponent(q)}`)}
+        onSelectPage={(page) => {
+          if (page.isAction) {
+            setQuickExpenseData(undefined);
+            setQuickExpenseOpen(true);
+            return;
+          }
+          router.push(page.route);
+        }}
+        onSelectAccount={(acc) => router.push(`/dashboard/bank-accounts?id=${encodeURIComponent(acc.id)}`)}
+        onSelectEnvelope={(env) => router.push(`/dashboard/envelopes?poolId=${encodeURIComponent(env.id)}`)}
+        onSelectEvent={(ev) => router.push(`/dashboard/plan?tab=events&search=${encodeURIComponent(ev.name)}`)}
+        onSelectTransaction={(tx) => {
+          const term = tx.note || tx.envelopeName || String(tx.amount);
+          router.push(`/dashboard/history?tab=transactions&search=${encodeURIComponent(term)}`);
+        }}
+        onViewAllTransactions={(q) => router.push(`/dashboard/history?tab=transactions&search=${encodeURIComponent(q)}`)}
       />
     </>
   );

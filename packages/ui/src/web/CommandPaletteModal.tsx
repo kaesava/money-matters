@@ -1,24 +1,28 @@
 "use client";
 
 import React, { useState, useEffect, useRef, useMemo, useCallback } from "react";
-import { Search, Sparkles, ArrowRight, Loader2, X } from "lucide-react";
+import { Search, Sparkles, Loader2, X } from "lucide-react";
 import { t, ASSISTANT_UNAVAILABLE_KEYS } from "@money-matters/i18n";
 import type { AssistantResult } from "@money-matters/types";
 import {
   useCommandPaletteState,
-  COMMAND_PALETTE_CHIPS,
   type SearchResultAccount,
   type SearchResultEnvelope,
   type SearchResultEvent,
+  type SearchResultPage,
   type SearchResultTransaction,
   type CommandPaletteCategory,
 } from "../hooks/useCommandPaletteState";
-import { CommandPaletteActionRow, type PaletteActionItem } from "./CommandPaletteActionRow";
+import { formatAiAnswerText } from "../hooks/commandPaletteHelpers";
+import { useDateLocale } from "../hooks/DateLocaleContext";
+import type { PaletteActionItem } from "./CommandPaletteActionRow";
+import { CommandPaletteResultsList, type PaletteGroup } from "./CommandPaletteResultsList";
 
 export type {
   SearchResultAccount,
   SearchResultEnvelope,
   SearchResultEvent,
+  SearchResultPage,
   SearchResultTransaction,
   CommandPaletteCategory,
 };
@@ -26,6 +30,7 @@ export type {
 export interface CommandPaletteModalProps {
   isOpen: boolean;
   onClose: () => void;
+  pages?: SearchResultPage[];
   accounts?: SearchResultAccount[];
   envelopes?: SearchResultEnvelope[];
   upcomingEvents?: SearchResultEvent[];
@@ -33,6 +38,8 @@ export interface CommandPaletteModalProps {
   onAskPenny?: (query: string) => Promise<AssistantResult>;
   onNavigatePrefill?: (result: Extract<AssistantResult, { type: "prefill" }>) => void;
   remainingCalls?: number;
+  hasAiAssistant?: boolean;
+  onSelectPage?: (page: SearchResultPage) => void;
   onSelectAccount?: (account: SearchResultAccount) => void;
   onSelectEnvelope?: (envelope: SearchResultEnvelope) => void;
   onSelectEvent?: (event: SearchResultEvent) => void;
@@ -44,6 +51,7 @@ export interface CommandPaletteModalProps {
 export const CommandPaletteModal: React.FC<CommandPaletteModalProps> = ({
   isOpen,
   onClose,
+  pages = [],
   accounts = [],
   envelopes = [],
   upcomingEvents = [],
@@ -51,6 +59,8 @@ export const CommandPaletteModal: React.FC<CommandPaletteModalProps> = ({
   onAskPenny,
   onNavigatePrefill,
   remainingCalls,
+  hasAiAssistant = true,
+  onSelectPage,
   onSelectAccount,
   onSelectEnvelope,
   onSelectEvent,
@@ -61,13 +71,14 @@ export const CommandPaletteModal: React.FC<CommandPaletteModalProps> = ({
   const [selectedIndex, setSelectedIndex] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
   const resultsContainerRef = useRef<HTMLDivElement>(null);
+  const { timeZone } = useDateLocale();
 
   const {
     query, setQuery, activeCategory, setActiveCategory, isAiLoading, aiResult, setAiResult,
-    isSearchingTransactions, trimmed, filteredAccounts, filteredEnvelopes, filteredEvents,
-    filteredTransactions, handleExecuteAi, formatAmount, locale,
+    isSearchingTransactions, trimmed, filteredPages, filteredAccounts, filteredEnvelopes, filteredEvents,
+    filteredTransactions, shouldPrioritizeAi, handleExecuteAi, formatAmount, locale,
   } = useCommandPaletteState({
-    isOpen, onClose, accounts, envelopes, upcomingEvents, onSearchTransactions, onAskPenny, onNavigatePrefill,
+    isOpen, onClose, pages, accounts, envelopes, upcomingEvents, onSearchTransactions, onAskPenny, hasAiAssistant, onNavigatePrefill,
   });
 
   useEffect(() => {
@@ -77,31 +88,50 @@ export const CommandPaletteModal: React.FC<CommandPaletteModalProps> = ({
     }
   }, [isOpen]);
 
-  const flatItems: PaletteActionItem[] = useMemo(() => {
-    const list: PaletteActionItem[] = [];
-    if (!trimmed) {
-      if (onSelectEnvelope && envelopes.length > 0) {
-        list.push({ kind: "quick_jump", label: t("nav.categories"), sublabel: t("commandPalette.sections.envelopes"), onSelect: () => onSelectEnvelope(envelopes[0]!) });
-      }
-      if (onSelectAccount && accounts.length > 0) {
-        list.push({ kind: "quick_jump", label: t("nav.bankAccounts"), sublabel: t("commandPalette.sections.accounts"), onSelect: () => onSelectAccount(accounts[0]!) });
-      }
-      return list;
+  const groups: PaletteGroup[] = useMemo(() => {
+    const list: PaletteGroup[] = [];
+    const aiAction: PaletteActionItem[] =
+      trimmed && hasAiAssistant && onAskPenny
+        ? [{ kind: "ai_ask", query: query.trim(), isPrioritized: shouldPrioritizeAi }]
+        : [];
+    if (trimmed && shouldPrioritizeAi && aiAction.length > 0) {
+      list.push({ id: "ai", titleKey: "commandPalette.sections.ai", items: aiAction });
     }
-    if (onAskPenny) list.push({ kind: "ai_ask", query: query.trim() });
-    filteredAccounts.forEach((item) => list.push({ kind: "account", item }));
-    filteredEnvelopes.forEach((item) => list.push({ kind: "envelope", item }));
-    filteredEvents.forEach((item) => list.push({ kind: "event", item }));
-    filteredTransactions.forEach((item) => list.push({ kind: "transaction", item }));
-    if (onViewAllTransactions && (filteredTransactions.length > 0 || activeCategory === "transactions")) {
-      list.push({ kind: "view_all_transactions", query: query.trim() });
+    if (filteredPages.length > 0) {
+      list.push({ id: "pages", titleKey: "commandPalette.sections.pages", items: filteredPages.map((item) => ({ kind: "page", item })) });
+    }
+    if (filteredAccounts.length > 0) {
+      list.push({ id: "accounts", titleKey: "commandPalette.sections.accounts", items: filteredAccounts.map((item) => ({ kind: "account", item })) });
+    }
+    if (filteredEnvelopes.length > 0) {
+      list.push({ id: "envelopes", titleKey: "commandPalette.sections.envelopes", items: filteredEnvelopes.map((item) => ({ kind: "envelope", item })) });
+    }
+    if (filteredEvents.length > 0) {
+      list.push({ id: "events", titleKey: "commandPalette.sections.upcoming", items: filteredEvents.map((item) => ({ kind: "event", item })) });
+    }
+    const txItems: PaletteActionItem[] = filteredTransactions.map((item) => ({ kind: "transaction", item }));
+    if (trimmed && onViewAllTransactions && (filteredTransactions.length > 0 || activeCategory === "transactions")) {
+      txItems.push({ kind: "view_all_transactions", query: query.trim() });
+    }
+    if (txItems.length > 0) {
+      list.push({ id: "transactions", titleKey: "commandPalette.sections.transactions", items: txItems });
+    }
+    if (trimmed && !shouldPrioritizeAi && aiAction.length > 0) {
+      list.push({ id: "ai", titleKey: "commandPalette.sections.ai", items: aiAction });
     }
     return list;
-  }, [trimmed, query, onAskPenny, filteredAccounts, filteredEnvelopes, filteredEvents, filteredTransactions, onViewAllTransactions, onSelectEnvelope, onSelectAccount, envelopes, accounts, activeCategory]);
+  }, [trimmed, query, shouldPrioritizeAi, hasAiAssistant, onAskPenny, filteredPages, filteredAccounts, filteredEnvelopes, filteredEvents, filteredTransactions, onViewAllTransactions, activeCategory]);
+
+  const flatItems = useMemo(() => groups.flatMap((g) => g.items), [groups]);
 
   useEffect(() => {
     setSelectedIndex((prev) => (prev >= flatItems.length ? 0 : prev));
   }, [flatItems.length]);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    resultsContainerRef.current?.querySelector(`[data-palette-idx="${selectedIndex}"]`)?.scrollIntoView({ block: "nearest" });
+  }, [isOpen, selectedIndex]);
 
   const handleSelectItem = useCallback(
     (action: PaletteActionItem) => {
@@ -111,33 +141,34 @@ export const CommandPaletteModal: React.FC<CommandPaletteModalProps> = ({
       }
       onClose();
       if (action.kind === "quick_jump") action.onSelect();
+      else if (action.kind === "page") onSelectPage?.(action.item);
       else if (action.kind === "account") onSelectAccount?.(action.item);
       else if (action.kind === "envelope") onSelectEnvelope?.(action.item);
       else if (action.kind === "event") onSelectEvent?.(action.item);
       else if (action.kind === "transaction") onSelectTransaction?.(action.item);
       else if (action.kind === "view_all_transactions") onViewAllTransactions?.(action.query);
     },
-    [onClose, handleExecuteAi, onSelectAccount, onSelectEnvelope, onSelectEvent, onSelectTransaction, onViewAllTransactions]
+    [onClose, handleExecuteAi, onSelectPage, onSelectAccount, onSelectEnvelope, onSelectEvent, onSelectTransaction, onViewAllTransactions]
   );
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (!isOpen) return;
       if (e.key === "Escape") { e.preventDefault(); onClose(); }
-      else if (e.key === "ArrowDown") { e.preventDefault(); setSelectedIndex((p) => (p + 1 < flatItems.length ? p + 1 : 0)); }
-      else if (e.key === "ArrowUp") { e.preventDefault(); setSelectedIndex((p) => (p - 1 >= 0 ? p - 1 : flatItems.length - 1)); }
+      else if (e.key === "ArrowDown") { e.preventDefault(); setSelectedIndex((p) => (flatItems.length ? (p + 1) % flatItems.length : 0)); }
+      else if (e.key === "ArrowUp") { e.preventDefault(); setSelectedIndex((p) => (flatItems.length ? (p - 1 + flatItems.length) % flatItems.length : 0)); }
       else if (e.key === "Enter") {
         e.preventDefault();
         if (flatItems[selectedIndex]) handleSelectItem(flatItems[selectedIndex]);
-        else if (query.trim() && onAskPenny) handleExecuteAi(query);
-      } else if (e.key === "Tab" && query.trim() && onAskPenny) {
+        else if (query.trim() && hasAiAssistant && onAskPenny) handleExecuteAi(query);
+      } else if (e.key === "Tab" && query.trim() && hasAiAssistant && onAskPenny) {
         e.preventDefault();
         handleExecuteAi(query);
       }
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [isOpen, flatItems, selectedIndex, handleSelectItem, handleExecuteAi, query, onAskPenny, onClose]);
+  }, [isOpen, flatItems, selectedIndex, handleSelectItem, handleExecuteAi, query, hasAiAssistant, onAskPenny, onClose]);
 
   if (!isOpen) return null;
 
@@ -153,6 +184,7 @@ export const CommandPaletteModal: React.FC<CommandPaletteModalProps> = ({
     <div
       role="dialog"
       aria-modal="true"
+      aria-label={t(hasAiAssistant ? "commandPalette.triggerTitle" : "commandPalette.searchOnlyTitle")}
       className="fixed inset-0 z-50 flex items-start justify-center pt-16 sm:pt-24 px-4 bg-slate-900/60 backdrop-blur-sm"
       onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
     >
@@ -163,7 +195,7 @@ export const CommandPaletteModal: React.FC<CommandPaletteModalProps> = ({
             ref={inputRef}
             type="text"
             className="flex-1 bg-transparent border-0 outline-none text-slate-900 dark:text-slate-100 placeholder-slate-400 text-base"
-            placeholder={t("commandPalette.inputPlaceholder")}
+            placeholder={t(hasAiAssistant ? "commandPalette.inputPlaceholder" : "commandPalette.searchOnlyPlaceholder")}
             value={query}
             onChange={(e) => { setQuery(e.target.value); setSelectedIndex(0); }}
           />
@@ -203,7 +235,11 @@ export const CommandPaletteModal: React.FC<CommandPaletteModalProps> = ({
               </span>
               <button onClick={() => setAiResult(null)} className="text-xs text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"><X className="w-3.5 h-3.5" /></button>
             </div>
-            {aiResult.type === "answer" && <p className="text-sm font-medium text-slate-800 dark:text-slate-200">{t(aiResult.templateKey, aiResult.templateValues)}</p>}
+            {aiResult.type === "answer" && (
+              <p className="text-sm font-medium text-slate-800 dark:text-slate-200">
+                {formatAiAnswerText(aiResult, t)}
+              </p>
+            )}
             {aiResult.type === "clarify" && (
               <div className="space-y-2">
                 <p className="text-sm text-slate-700 dark:text-slate-300 font-medium">{t(aiResult.templateKey)}</p>
@@ -215,57 +251,36 @@ export const CommandPaletteModal: React.FC<CommandPaletteModalProps> = ({
               </div>
             )}
             {aiResult.type === "unavailable" && (
-              <p className="text-sm text-amber-600 dark:text-amber-400">{t(ASSISTANT_UNAVAILABLE_KEYS[aiResult.reason] ?? "assistant.unavailable.disabled")}</p>
+              <p className="text-sm text-amber-600 dark:text-amber-400">
+                {t(ASSISTANT_UNAVAILABLE_KEYS[aiResult.reason] ?? "assistant.unavailable.disabled")}
+              </p>
             )}
           </div>
         )}
 
-        <div ref={resultsContainerRef} className="flex-1 overflow-y-auto p-2 divide-y divide-slate-100 dark:divide-slate-800/60">
-          {flatItems.length === 0 ? (
-            <div className="py-12 text-center space-y-2">
-              <p className="text-sm font-medium text-slate-700 dark:text-slate-300">{t("commandPalette.emptyState.noResults", { query })}</p>
-              <p className="text-xs text-slate-400">{t("commandPalette.emptyState.tip")}</p>
-            </div>
-          ) : (
-            <div className="space-y-1">
-              {flatItems.map((action, idx) => (
-                <CommandPaletteActionRow
-                  key={`${action.kind}-${idx}`}
-                  action={action}
-                  isSelected={idx === selectedIndex}
-                  formatAmount={formatAmount}
-                  locale={locale}
-                  onSelect={handleSelectItem}
-                />
-              ))}
-            </div>
-          )}
-
-          {!query && (
-            <div className="p-3 space-y-2 border-t border-slate-100 dark:border-slate-800/60 mt-2">
-              <span className="text-xs font-semibold uppercase tracking-wider text-slate-400">{t("assistant.suggestedTitle")}</span>
-              <div className="flex flex-wrap gap-2">
-                {COMMAND_PALETTE_CHIPS.filter((chipKey) => hasSimulation || chipKey !== "assistant.chips.canAfford").map((chipKey) => {
-                  const label = t(chipKey);
-                  return (
-                    <button key={chipKey} onClick={() => { setQuery(label); inputRef.current?.focus(); }} className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-blue-50 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
-                      <span>{label}</span>
-                      <ArrowRight className="w-3 h-3 opacity-60" />
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-          )}
-        </div>
+        <CommandPaletteResultsList
+          groups={groups}
+          selectedIndex={selectedIndex}
+          query={query}
+          hasAiAssistant={hasAiAssistant}
+          hasSimulation={hasSimulation}
+          formatAmount={formatAmount}
+          locale={locale}
+          timeZone={timeZone}
+          onSelectItem={handleSelectItem}
+          onChipAsk={handleExecuteAi}
+          resultsContainerRef={resultsContainerRef}
+        />
 
         <div className="px-4 py-2.5 bg-slate-50 dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 flex justify-between items-center text-xs text-slate-400">
           <div className="flex items-center gap-4">
             <span className="flex items-center gap-1"><kbd className="font-mono bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-1 py-0.5 rounded text-[10px]">↑↓</kbd> {t("commandPalette.footer.navigate")}</span>
             <span className="flex items-center gap-1"><kbd className="font-mono bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-1 py-0.5 rounded text-[10px]">↵</kbd> {t("commandPalette.footer.select")}</span>
-            <span className="flex items-center gap-1"><kbd className="font-mono bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-1 py-0.5 rounded text-[10px]">Tab</kbd> {t("commandPalette.footer.askAi")}</span>
+            {hasAiAssistant && (
+              <span className="flex items-center gap-1"><kbd className="font-mono bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-1 py-0.5 rounded text-[10px]">Tab</kbd> {t("commandPalette.footer.askAi")}</span>
+            )}
           </div>
-          {typeof remainingCalls === "number" && (
+          {hasAiAssistant && typeof remainingCalls === "number" && (
             <span className="font-mono text-slate-400">{t("commandPalette.footer.callsLeft", { remaining: remainingCalls })}</span>
           )}
         </div>

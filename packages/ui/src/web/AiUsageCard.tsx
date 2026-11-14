@@ -1,6 +1,8 @@
 import React from "react";
 import { Sparkles } from "lucide-react";
 import { t } from "@money-matters/i18n";
+import { useDateLocale } from "../hooks/DateLocaleContext";
+import { fmtDateMedium } from "../dates/date-formatting";
 
 export interface AiUsageCardProps {
   used: number;
@@ -9,7 +11,9 @@ export interface AiUsageCardProps {
 }
 
 export const AiUsageCard: React.FC<AiUsageCardProps> = ({ used, limit, resetsOn }) => {
-  const percentage = Math.min(100, Math.round((used / limit) * 100));
+  const { locale, timeZone } = useDateLocale();
+  const percentage = limit > 0 ? Math.min(100, Math.round((used / limit) * 100)) : 0;
+  const formattedResetDate = fmtDateMedium(resetsOn, timeZone, locale);
 
   return (
     <div className="bg-white dark:bg-slate-800 rounded-xl p-5 border border-slate-200 dark:border-slate-700 shadow-sm space-y-4">
@@ -51,7 +55,7 @@ export const AiUsageCard: React.FC<AiUsageCardProps> = ({ used, limit, resetsOn 
       </div>
 
       <div className="flex flex-col gap-1 text-xs text-slate-500 dark:text-slate-400 border-t border-slate-100 dark:border-slate-700 pt-3">
-        <span>{t("assistant.settingsCard.resetsOn", { date: resetsOn })}</span>
+        <span>{t("assistant.settingsCard.resetsOn", { date: formattedResetDate })}</span>
         <span className="text-slate-400 dark:text-slate-500">
           {t("assistant.settingsCard.freeNotice")}
         </span>

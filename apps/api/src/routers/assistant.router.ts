@@ -1,5 +1,5 @@
-import { TRPCError } from "@trpc/server";
-import { router, privateTenantProcedure, tenantProcedure } from "../trpc/trpc.js";
+import { eq } from "drizzle-orm";
+import { router, privateTenantProcedure } from "../trpc/trpc.js";
 import {
   AssistantAskInputSchema,
   AssistantResultSchema,
@@ -14,94 +14,79 @@ import {
 import { checkAiTenantRateLimit } from "@money-matters/core";
 import { AI_TIER_LIMITS } from "@money-matters/config";
 import { apps } from "@money-matters/db";
-import { eq } from "drizzle-orm";
 import { createAssistantIntentHandler } from "./assistant-adapters.js";
+import { loadTenantFormatting } from "./assistant-context.js";
 
 const llmProvider = new CloudflareGatewayLlmProvider();
+
+async function isAiFeatureEnabled(db: Parameters<typeof loadTenantFormatting>[0], appId: string): Promise<boolean> {
+  const [appRecord] = await db
+    .select({ featureFlags: apps.featureFlags })
+    .from(apps)
+    .where(eq(apps.id, appId))
+    .limit(1);
+  const flags = appRecord?.featureFlags || DEFAULT_APP_FEATURE_FLAGS;
+  return Boolean(flags.aiAssistant);
+}
 
 export const assistantRouter = router({
   ask: privateTenantProcedure
     .input(AssistantAskInputSchema)
     .output(AssistantResultSchema)
     .mutation(async ({ ctx, input }) => {
-      // 0. Subscription & feature flag gate (requires active trial or paid subscription; block grace/past-due/expired)
-      const subStatus = ctx.subscriptionStatus;
-      if (
-        subStatus.isTrialExpired ||
-        subStatus.isDeactivated ||
-        subStatus.isGracePeriod ||
-        subStatus.isPastDue ||
-        subStatus.status === "PAST_DUE"
-      ) {
-        throw new TRPCError({
-          code: "FORBIDDEN",
-          message: "subscription_premium_required: Active subscription or unexpired 60-day trial required.",
-        });
+      if (!(await isAiFeatureEnabled(ctx.db, ctx.appId))) {
+        return { type: "unavailable", reason: "disabled" };
       }
 
-      const [appRecord] = await ctx.db
-        .select({ featureFlags: apps.featureFlags })
-        .from(apps)
-        .where(eq(apps.id, ctx.appId))
-        .limit(1);
-
-      const flags = appRecord?.featureFlags || DEFAULT_APP_FEATURE_FLAGS;
-      if (!flags.aiAssistant) {
-        return {
-          type: "unavailable",
-          reason: "disabled",
-        };
+      const sub = ctx.subscriptionStatus;
+      const isExpired = Boolean(sub.isTrialExpired || sub.isDeactivated);
+      if (isExpired) {
+        return { type: "unavailable", reason: "subscription_required" };
       }
 
-      // 1. Sliding window burst limit check (fail closed if active)
-      const burstLimit = AI_TIER_LIMITS.free.burstPerMinute;
-      const rateLimitCheck = await checkAiTenantRateLimit(ctx.tenantId, burstLimit);
+      const isGracePeriod = Boolean(sub.isGracePeriod || sub.isPastDue || sub.status === "PAST_DUE");
+      const rateLimitCheck = await checkAiTenantRateLimit(ctx.tenantId, AI_TIER_LIMITS.free.burstPerMinute);
       if (!rateLimitCheck.allowed) {
-        return {
-          type: "unavailable",
-          reason: "rate_limited",
-        };
+        return { type: "unavailable", reason: "rate_limited" };
       }
 
-      // 2. Wire usage store and domain adapter
+      const fmt = await loadTenantFormatting(ctx.db, ctx.tenantId);
       const usageStore = new DbUsageStore(ctx.db);
       const handler = createAssistantIntentHandler(ctx.db, ctx.appId);
 
-      const isGracePeriod = ctx.subscriptionStatus.status === "PAST_DUE";
-      const isExpired = ctx.subscriptionStatus.isDeactivated;
-
-      // 3. Ask assistant orchestration
       return askAssistant({
         query: input.query,
         context: {
           tenantId: ctx.tenantId,
           userId: ctx.userId,
+          currency: fmt.currency,
+          locale: fmt.locale,
+          timezone: fmt.timezone,
         },
         appId: ctx.appId,
         isGracePeriod,
-        isExpired,
+        isExpired: false,
         handler,
         llmProvider,
         usageStore,
       });
     }),
 
-  usage: tenantProcedure
+  usage: privateTenantProcedure
     .output(AssistantUsageSchema)
     .query(async ({ ctx }) => {
       const usageStore = new DbUsageStore(ctx.db);
-      const usage = await usageStore.getUsage(ctx.tenantId);
+      const [usage, featureEnabled] = await Promise.all([
+        usageStore.getUsage(ctx.tenantId),
+        isAiFeatureEnabled(ctx.db, ctx.appId),
+      ]);
 
-      let status: "active" | "grace" | "capped" | "disabled" = "active";
       const sub = ctx.subscriptionStatus;
-      if (
-        sub.isDeactivated ||
-        sub.isTrialExpired ||
-        sub.isGracePeriod ||
-        sub.isPastDue ||
-        sub.status === "PAST_DUE"
-      ) {
+      let status: "active" | "grace" | "capped" | "disabled" = "active";
+      if (!featureEnabled || sub.isDeactivated || sub.isTrialExpired) {
         status = "disabled";
+      } else if (sub.isGracePeriod || sub.isPastDue || sub.status === "PAST_DUE") {
+        status = "grace";
       } else if (usage.remaining <= 0) {
         status = "capped";
       }
@@ -111,7 +96,7 @@ export const assistantRouter = router({
         limit: usage.limit,
         remaining: usage.remaining,
         resetsOn: usage.resetsOn,
-        plan: "free",
+        plan: sub.isSubscribed ? "premium" : "free",
         status,
       };
     }),

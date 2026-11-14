@@ -2,16 +2,10 @@ import type { AssistantClassifiedIntent } from "@money-matters/types";
 import { parseAmount } from "./amount.parser.js";
 import { parseDate } from "./date.parser.js";
 
-/**
- * High-precision deterministic matcher for the top common financial questions.
- * Costs $0 in LLM tokens and resolves instantly.
- */
-export function matchDeterministicIntent(query: string): AssistantClassifiedIntent | null {
-  const q = query.trim().toLowerCase();
-  const amount = parseAmount(query);
-  const date = parseDate(query);
-
-  // 1. Goal Achievement Date ("when can I achieve Goal X", "when will I reach my goal", "how long to hit goal car")
+function matchGreetingOrGoal(q: string, query: string): AssistantClassifiedIntent | null {
+  if (/^(?:hi|hello|hey|hiya|yo|good\s+(?:morning|afternoon|evening)|help|what can you do|how do i use this)[\s!?.]*$/i.test(q)) {
+    return { intent: "GREETING_HELP", confidence: 1.0, params: {} };
+  }
   if (
     /(?:when|how long).*(?:achieve|reach|hit|finish|complete).*goal/i.test(q) ||
     /goal.*(?:date|finish|complete|target)/i.test(q)
@@ -19,162 +13,134 @@ export function matchDeterministicIntent(query: string): AssistantClassifiedInte
     const goalMatch = query.match(/(?:goal|for)\s+([a-zA-Z0-9\s]+?)(?:\?|$)/i);
     let entity = goalMatch?.[1]?.trim();
     if (entity && /^my\s+goal$/i.test(entity)) entity = undefined;
-    return {
-      intent: "GOAL_ACHIEVEMENT_DATE",
-      confidence: 1.0,
-      params: { entityName: entity },
-    };
+    return { intent: "GOAL_ACHIEVEMENT_DATE", confidence: 1.0, params: { entityName: entity } };
   }
+  return null;
+}
 
-  // 2. Can I Afford Check ("can I afford $250 next week", "can we afford to buy a laptop for $1200", "is $300 affordable")
+function matchBalanceOrCashflow(
+  q: string,
+  query: string,
+  amount?: number,
+  date?: string
+): AssistantClassifiedIntent | null {
   if (/(?:can i afford|can we afford|afford to buy|is.*affordable|can i buy)/i.test(q)) {
-    return {
-      intent: "CAN_I_AFFORD",
-      confidence: 1.0,
-      params: { amount, date },
-    };
+    return { intent: "CAN_I_AFFORD", confidence: 1.0, params: { amount, date } };
   }
-
-  // 3. Pool Balance ("how much is left in everyday", "everyday balance", "available to spend", "bills balance")
   if (
-    /(?:how much|what.*balance|balance.*of|available to spend|how much.*can i spend|how much.*money)/i.test(q) &&
-    /(?:left|have|in|balance|pool|spend|everyday|bills|goals?|surplus)/i.test(q)
+    /(?:how much|what(?:'s| is)).*(?:left|remaining|available|balance)/i.test(q) ||
+    /(?:available to spend|how much.*can i spend)/i.test(q)
   ) {
-    let poolName = "Everyday";
-    if (/\bbills?\b/i.test(q)) poolName = "Bills";
-    else if (/\bgoals?\b/i.test(q)) poolName = "Goals";
-    else if (/\bsurplus\b/i.test(q)) poolName = "Surplus";
-
-    return {
-      intent: "POOL_BALANCE",
-      confidence: 1.0,
-      params: { entityName: poolName },
-    };
+    const inMatch = query.match(/(?:in|for)\s+(?:my\s+|the\s+)?([a-zA-Z0-9\s]+?)(?:\s+envelope|\s+pool|\?|$)/i);
+    const prefixMatch = query.match(/^([a-zA-Z0-9\s]+?)\s+balance\??$/i);
+    const entity =
+      inMatch?.[1]?.trim() ||
+      prefixMatch?.[1]?.trim() ||
+      (/\bbills?\b/i.test(q) ? "Bills" : /\bgoals?\b/i.test(q) ? "Goals" : /\bsurplus\b/i.test(q) ? "Surplus" : "Everyday");
+    return { intent: "POOL_BALANCE", confidence: 1.0, params: { entityName: entity } };
   }
-
-  // 4. Next Payday ("when is my next payday", "when do I get paid", "preview payday", "next paycheck")
-  if (
-    /(?:when.*(?:payday|pay day|get paid|pay cheque|paycheck|income)|next.*(?:payday|pay day|pay|income|paycheck)|payday.*(?:preview|allocation|split))/i.test(q)
-  ) {
-    return {
-      intent: "NEXT_PAYDAY_ALLOCATION",
-      confidence: 1.0,
-      params: {},
-    };
+  if (/(?:when.*(?:payday|pay day|get paid|pay cheque|paycheck|income)|next.*(?:payday|pay day|pay|income|paycheck)|payday.*(?:preview|allocation|split))/i.test(q)) {
+    return { intent: "NEXT_PAYDAY_ALLOCATION", confidence: 1.0, params: {} };
   }
+  return null;
+}
 
-  // 5. Bills Due Soon ("which bills are due this week", "upcoming bills", "bills due in 14 days", "what do I have to pay")
-  if (
-    /(?:which bills|what bills|upcoming bills|bills?.*due|bills?.*coming up|what do i have to pay)/i.test(q)
-  ) {
-    let daysAhead = 7;
-    if (/\b(?:month|30\s*days?)\b/i.test(q)) daysAhead = 30;
-    else if (/\b(?:fortnight|2\s*weeks?|14\s*days?)\b/i.test(q)) daysAhead = 14;
-
-    return {
-      intent: "BILLS_DUE",
-      confidence: 1.0,
-      params: { daysAhead },
-    };
+function matchBillsAndTransactions(
+  q: string,
+  query: string,
+  amount?: number,
+  date?: string
+): AssistantClassifiedIntent | null {
+  if (/(?:which bills|what bills|upcoming bills|bills?.*due|bills?.*coming up|what do i have to pay)/i.test(q)) {
+    const daysAhead = /\b(?:month|30\s*days?)\b/i.test(q) ? 30 : /\b(?:fortnight|2\s*weeks?|14\s*days?)\b/i.test(q) ? 14 : 7;
+    return { intent: "BILLS_DUE", confidence: 1.0, params: { daysAhead } };
   }
-
-  // 6. Did I pay bill X? ("did i pay internet", "is rent paid", "has electricity been paid", "have i paid water")
   if (/(?:did i pay|have i paid|has.*been paid|is.*paid)/i.test(q)) {
     const billMatch =
-      query.match(/(?:did i pay|have i paid)\s+(?:(?:my|an|a|the)\s+)?([a-zA-Z\s]+?)(?:\s+bill|\?|$)/i) ||
-      query.match(/(?:has|is)\s+(?:(?:my|an|a|the)\s+)?([a-zA-Z\s]+?)(?:\s+(?:bill|been\s+paid|paid)|\?|$)/i);
-    const rawEntity = billMatch?.[1]?.trim().replace(/^(?:a|an|the|my)\s+/i, "");
-    return {
-      intent: "BILL_PAYMENT_STATUS",
-      confidence: 1.0,
-      params: { entityName: rawEntity },
-    };
+      query.match(/(?:did i pay|have i paid)\s+(?:(?:my|an|a|the)\s+)?([a-zA-Z0-9\s]+?)(?:\s+bill|\?|$)/i) ||
+      query.match(/(?:has|is)\s+(?:(?:my|an|a|the)\s+)?([a-zA-Z0-9\s]+?)(?:\s+(?:bill|been\s+paid|paid)|\?|$)/i);
+    return { intent: "BILL_PAYMENT_STATUS", confidence: 1.0, params: { entityName: billMatch?.[1]?.trim().replace(/^(?:a|an|the|my)\s+/i, "") } };
   }
-
-  // 7. Record Bill Payment ("i paid an internet bill for $50", "paid $50 for internet", "paid internet $50", "mark internet paid", "mark rent as paid")
   if (/(?:i paid|paid|mark.*paid)/i.test(q)) {
-    // Determine entity name by stripping leading triggers and trailing noise
     const billMatch =
       query.match(/(?:paid|mark)\s+(?:(?:my|an|a|the)\s+)?([a-zA-Z\s]+?)(?:\s+(?:bill|\$|\d|for|on|yesterday|today|as\s+paid|paid)|$)/i) ||
       query.match(/for\s+([a-zA-Z\s]+?)(?:\s+(?:bill|\$|\d|on|yesterday|today)|$)/i);
-
     let cleanEntity = billMatch?.[1]?.trim().replace(/^(?:my|an|a|the)\s+/i, "");
     if (cleanEntity?.toLowerCase() === "bill") cleanEntity = undefined;
-
-    return {
-      intent: "RECORD_BILL_PAYMENT",
-      confidence: 0.95,
-      params: {
-        entityName: cleanEntity,
-        amount,
-        date,
-      },
-    };
+    return { intent: "RECORD_BILL_PAYMENT", confidence: 0.95, params: { entityName: cleanEntity, amount, date } };
   }
+  return null;
+}
 
-
-  // 8. Add Expense/Transaction ("spent $45 at Woolworths", "spent $20 on coffee", "bought groceries for $80", "add expense $30 for lunch")
+function matchExpenseTransferOrSummary(
+  q: string,
+  query: string,
+  amount?: number,
+  date?: string
+): AssistantClassifiedIntent | null {
   if (/(?:spent|add expense|new expense|bought|purchased|cost me)/i.test(q)) {
     const merchantMatch =
       query.match(/(?:at|from|on|for)\s+([a-zA-Z0-9\s]+?)(?:\s+(?:for\s+)?\$|\s+on|\s+yesterday|\s+today|\?|$)/i) ||
       query.match(/(?:bought|purchased|spent)\s+([a-zA-Z0-9\s]+?)(?:\s+(?:for\s+)?\$|\s+on|\s+yesterday|\s+today|\?|$)/i);
-    const rawEntity = merchantMatch?.[1]?.trim().replace(/^(?:a|an|the|my)\s+/i, "");
     return {
       intent: "RECORD_TRANSACTION",
       confidence: 0.95,
-      params: {
-        entityName: rawEntity,
-        amount,
-        date,
-      },
+      params: { entityName: merchantMatch?.[1]?.trim().replace(/^(?:a|an|the|my)\s+/i, ""), amount, date },
     };
   }
-
-  // 9. Transfer Funds ("transfer $100 from savings to everyday", "move $50 from buffer to bills")
   if (/(?:transfer|move\s+(?:money|\$|\d))/i.test(q)) {
     const fromMatch = query.match(/from\s+([a-zA-Z\s]+?)(?:\s+to|$)/i);
     const toMatch = query.match(/to\s+([a-zA-Z\s]+?)(?:\s+(?:from|for)|\$|\?|$)/i);
     return {
       intent: "TRANSFER_FUNDS",
       confidence: 0.95,
-      params: {
-        amount,
-        sourceAccount: fromMatch?.[1]?.trim(),
-        destinationAccount: toMatch?.[1]?.trim(),
-      },
+      params: { amount, sourceAccount: fromMatch?.[1]?.trim(), destinationAccount: toMatch?.[1]?.trim() },
     };
   }
-
-  // 10. Spending Summary ("how much did i spend on groceries", "spending summary", "spending on coffee")
   if (/(?:how much.*spent|spending.*summary|show.*spending|spent on)/i.test(q)) {
     const catMatch = query.match(/on\s+([a-zA-Z\s]+?)(?:\s+this|\s+last|\?|$)/i);
-    return {
-      intent: "SPENDING_SUMMARY",
-      confidence: 0.95,
-      params: { categoryName: catMatch?.[1]?.trim() },
-    };
+    return { intent: "SPENDING_SUMMARY", confidence: 0.95, params: { categoryName: catMatch?.[1]?.trim() } };
   }
-
-  // 11. Navigation & Direct Action Helpers ("add income", "new bill", "view transactions", "bank accounts", "settings")
-  if (/(?:add|create|new)\s+(?:income|paycheck|salary)/i.test(q)) {
-    return { intent: "NAVIGATE_HELP", confidence: 1.0, params: { targetScreen: "income-and-bills" } };
-  }
-  if (/(?:add|create|new)\s+bill/i.test(q)) {
-    return { intent: "NAVIGATE_HELP", confidence: 1.0, params: { targetScreen: "income-and-bills" } };
-  }
-  if (/(?:add|create|new)\s+(?:envelope|pool|category|goal)/i.test(q)) {
-    return { intent: "NAVIGATE_HELP", confidence: 1.0, params: { targetScreen: "envelopes" } };
-  }
-  if (/(?:view|show|open|go to)\s+(?:transactions?|history|ledger)/i.test(q)) {
-    return { intent: "NAVIGATE_HELP", confidence: 1.0, params: { targetScreen: "history" } };
-  }
-  if (/(?:view|show|open|go to)\s+(?:bank\s+accounts?|accounts?)/i.test(q)) {
-    return { intent: "NAVIGATE_HELP", confidence: 1.0, params: { targetScreen: "bank-accounts" } };
-  }
-  if (/(?:settings|preferences|profile)/i.test(q)) {
-    return { intent: "NAVIGATE_HELP", confidence: 1.0, params: { targetScreen: "settings" } };
-  }
-
   return null;
 }
 
+function matchCrudOrNavigation(
+  q: string,
+  query: string,
+  amount?: number,
+  date?: string
+): AssistantClassifiedIntent | null {
+  const createMatch = query.match(/(?:add|create|new)\s+(?:an?\s+)?(?:(income|paycheck|salary)|(bill)|(envelope|category|goal))(?:\s+(?:called|named|for)?\s*([a-zA-Z0-9\s]+?))?(?:\s+(?:for|\$|\d)|$)/i);
+  if (createMatch) {
+    const categoryName = createMatch[1] ? "income" : createMatch[2] ? "bill" : "envelope";
+    return { intent: "ADD_ENTITY", confidence: 0.95, params: { categoryName, entityName: createMatch[4]?.trim(), amount, date } };
+  }
+  const editMatch = query.match(/(?:edit|update|rename|change)\s+(?:my\s+)?(?:(income|paycheck|salary)|(bill)|(envelope|category|goal))\s+([a-zA-Z0-9\s]+?)$/i);
+  if (editMatch) {
+    const categoryName = editMatch[1] ? "income" : editMatch[2] ? "bill" : "envelope";
+    return { intent: "EDIT_ENTITY", confidence: 0.95, params: { categoryName, entityName: editMatch[4]?.trim() } };
+  }
+  if (/(?:view|show|open|go to)\s+(?:transactions?|history)/i.test(q)) return { intent: "NAVIGATE_HELP", confidence: 1.0, params: { targetScreen: "history" } };
+  if (/(?:view|show|open|go to)\s+(?:bank\s+accounts?|accounts?)/i.test(q)) return { intent: "NAVIGATE_HELP", confidence: 1.0, params: { targetScreen: "bank-accounts" } };
+  if (/(?:view|show|open|go to)\s+(?:plan|upcoming|bills|schedules?)/i.test(q)) return { intent: "NAVIGATE_HELP", confidence: 1.0, params: { targetScreen: "plan" } };
+  if (/(?:view|show|open|go to)\s+(?:12[- ]?month|projection|forecast)/i.test(q)) return { intent: "NAVIGATE_HELP", confidence: 1.0, params: { targetScreen: "projection" } };
+  if (/^(?:settings|preferences|profile)$/i.test(q) || /(?:open|go to)\s+settings/i.test(q)) return { intent: "NAVIGATE_HELP", confidence: 1.0, params: { targetScreen: "settings" } };
+  return null;
+}
+
+/**
+ * High-precision deterministic matcher for common financial queries ($0 LLM cost).
+ */
+export function matchDeterministicIntent(query: string, timeZone?: string): AssistantClassifiedIntent | null {
+  const q = query.trim().toLowerCase();
+  const amount = parseAmount(query);
+  const date = parseDate(query, timeZone);
+
+  return (
+    matchGreetingOrGoal(q, query) ||
+    matchBalanceOrCashflow(q, query, amount, date) ||
+    matchBillsAndTransactions(q, query, amount, date) ||
+    matchExpenseTransferOrSummary(q, query, amount, date) ||
+    matchCrudOrNavigation(q, query, amount, date)
+  );
+}

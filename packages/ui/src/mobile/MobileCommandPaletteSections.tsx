@@ -3,22 +3,27 @@ import { View, Text, TouchableOpacity } from "react-native";
 import { Feather } from "@expo/vector-icons";
 import { t } from "@money-matters/i18n";
 import { DESIGN_TOKENS } from "../tokens";
+import { fmtDate } from "../dates/date-formatting";
 import { styles } from "./MobileCommandPaletteSheet.styles";
 import type {
   SearchResultAccount,
   SearchResultEnvelope,
   SearchResultEvent,
+  SearchResultPage,
   SearchResultTransaction,
 } from "../hooks/useCommandPaletteState";
 
 interface MobileCommandPaletteSectionsProps {
+  filteredPages: SearchResultPage[];
   filteredAccounts: SearchResultAccount[];
   filteredEnvelopes: SearchResultEnvelope[];
   filteredEvents: SearchResultEvent[];
   filteredTransactions: SearchResultTransaction[];
   formatAmount: (amount: number) => string;
   locale: string;
+  timeZone: string;
   onClose: () => void;
+  onSelectPage?: (page: SearchResultPage) => void;
   onSelectAccount?: (account: SearchResultAccount) => void;
   onSelectEnvelope?: (envelope: SearchResultEnvelope) => void;
   onSelectEvent?: (event: SearchResultEvent) => void;
@@ -26,19 +31,42 @@ interface MobileCommandPaletteSectionsProps {
 }
 
 export const MobileCommandPaletteSections: React.FC<MobileCommandPaletteSectionsProps> = ({
+  filteredPages,
   filteredAccounts,
   filteredEnvelopes,
   filteredEvents,
   filteredTransactions,
   formatAmount,
   locale,
+  timeZone,
   onClose,
+  onSelectPage,
   onSelectAccount,
   onSelectEnvelope,
   onSelectEvent,
   onSelectTransaction,
 }) => (
   <>
+    {filteredPages.length > 0 && (
+      <View style={styles.sectionContainer}>
+        <Text style={styles.sectionTitle}>{t("commandPalette.sections.pages")}</Text>
+        {filteredPages.map((page) => (
+          <TouchableOpacity key={`page-${page.id}`} onPress={() => { onClose(); onSelectPage?.(page); }} style={styles.resultRow} activeOpacity={0.7}>
+            <View style={styles.rowLeft}>
+              <View style={[styles.iconBox, { backgroundColor: DESIGN_TOKENS.colors.accentLight }]}>
+                <Feather name="compass" size={16} color={DESIGN_TOKENS.colors.sereneBlue} />
+              </View>
+              <View>
+                <Text style={styles.rowTitle}>{page.title}</Text>
+                {page.subtitle ? <Text style={styles.rowSubtitle}>{page.subtitle}</Text> : null}
+              </View>
+            </View>
+            <Feather name="chevron-right" size={16} color={DESIGN_TOKENS.colors.slate[400]} />
+          </TouchableOpacity>
+        ))}
+      </View>
+    )}
+
     {filteredAccounts.length > 0 && (
       <View style={styles.sectionContainer}>
         <Text style={styles.sectionTitle}>{t("commandPalette.sections.accounts")}</Text>
@@ -92,7 +120,7 @@ export const MobileCommandPaletteSections: React.FC<MobileCommandPaletteSections
                 </View>
                 <View>
                   <Text style={styles.rowTitle}>{event.name}</Text>
-                  <Text style={styles.rowSubtitle}>{event.dueDate} · {isIncome ? t("common.income") : t("common.expense")}</Text>
+                  <Text style={styles.rowSubtitle}>{fmtDate(event.dueDate, timeZone, locale)} · {isIncome ? t("common.income") : t("common.expense")}</Text>
                 </View>
               </View>
               <Text style={[styles.rowAmount, isIncome && { color: DESIGN_TOKENS.colors.success }]}>
@@ -119,7 +147,7 @@ export const MobileCommandPaletteSections: React.FC<MobileCommandPaletteSections
                   <Text style={styles.rowTitle}>{tx.note || t("commandPalette.sections.transactions")}</Text>
                   <Text style={styles.rowSubtitle}>
                     {tx.envelopeName ? `${tx.envelopeName} · ` : ""}
-                    {new Date(tx.recordedAt).toLocaleDateString(locale)}
+                    {fmtDate(tx.recordedAt, timeZone, locale)}
                   </Text>
                 </View>
               </View>

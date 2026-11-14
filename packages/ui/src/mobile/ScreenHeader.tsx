@@ -18,6 +18,8 @@ interface ScreenHeaderProps {
   getInitials: () => string;
   onOpenMenu: () => void;
   onOpenAsk?: () => void;
+  askAccessibilityLabel?: string;
+  onAskTargetLayout?: (rect: { x: number; y: number; width: number; height: number }) => void;
   styles: Record<string, ViewStyle | TextStyle | ImageStyle>;
 }
 
@@ -32,8 +34,11 @@ export function ScreenHeader({
   getInitials,
   onOpenMenu,
   onOpenAsk,
+  askAccessibilityLabel,
+  onAskTargetLayout,
   styles,
 }: ScreenHeaderProps) {
+  const askWrapRef = React.useRef<View>(null);
   return (
     <View style={styles.header}>
       {/* Left Area: Back Button or Clickable Money Matters Home Link */}
@@ -78,22 +83,32 @@ export function ScreenHeader({
       {/* Right Area: Ask Penny + Person / Profile Icon */}
       <View style={[styles.rightContainer, { flexDirection: "row", alignItems: "center", gap: 8 }]}>
         {onOpenAsk && (
-          <TouchableOpacity
-            onPress={onOpenAsk}
-            style={{
-              width: 34,
-              height: 34,
-              borderRadius: 17,
-              backgroundColor: DESIGN_TOKENS.colors.accentLight,
-              alignItems: "center",
-              justifyContent: "center",
+          <View
+            ref={askWrapRef}
+            onLayout={() => {
+              if (!onAskTargetLayout) return;
+              askWrapRef.current?.measureInWindow((x, y, width, height) => {
+                if (width > 0 && height > 0) onAskTargetLayout({ x, y, width, height });
+              });
             }}
-            activeOpacity={0.8}
-            accessibilityLabel={t("assistant.triggerTitle")}
-            accessibilityRole="button"
           >
-            <Feather name="zap" size={17} color={DESIGN_TOKENS.colors.sereneBlue} />
-          </TouchableOpacity>
+            <TouchableOpacity
+              onPress={onOpenAsk}
+              style={{
+                width: 34,
+                height: 34,
+                borderRadius: 17,
+                backgroundColor: DESIGN_TOKENS.colors.accentLight,
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+              activeOpacity={0.8}
+              accessibilityLabel={askAccessibilityLabel || t("commandPalette.triggerTitle")}
+              accessibilityRole="button"
+            >
+              <Feather name="zap" size={17} color={DESIGN_TOKENS.colors.sereneBlue} />
+            </TouchableOpacity>
+          </View>
         )}
         {showProfile ? (
           <TouchableOpacity

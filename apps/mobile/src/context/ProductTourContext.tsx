@@ -62,7 +62,7 @@ export const MOBILE_TOUR_STEPS: Array<{
   },
   {
     id: 'bank-accounts',
-    route: '/(app)/settings/bank-accounts',
+    route: '/(app)/settings?tab=bank-accounts',
     titleKey: 'tour.steps.bankAccounts.title',
     descKey: 'tour.steps.bankAccounts.desc',
     badgeKey: 'tour.steps.bankAccounts.badge',

@@ -10,6 +10,7 @@ import { useRouter } from "next/navigation";
 interface TimelineTabWrapperProps {
   isLoading: boolean;
   savedIncomeEventIds: Set<string>;
+  initialSearchQuery?: string;
   incomeEvents: TimelineEventItem[];
   expenseEvents: TimelineEventItem[];
   transferEvents: TimelineEventItem[];
@@ -21,6 +22,7 @@ interface TimelineTabWrapperProps {
 export function TimelineTabWrapper({
   isLoading,
   savedIncomeEventIds,
+  initialSearchQuery,
   incomeEvents,
   expenseEvents,
   transferEvents,
@@ -43,6 +45,7 @@ export function TimelineTabWrapper({
     <div className="p-6 bg-white/80 dark:bg-zinc-900/80 backdrop-blur-md rounded-2xl border border-zinc-200 dark:border-zinc-800 shadow-sm">
       <UpcomingTimelineTab
         isLoading={isLoading}
+        initialSearchQuery={initialSearchQuery}
         savedIncomeEventIds={savedIncomeEventIds}
         incomeEvents={incomeEvents}
         expenseEvents={expenseEvents}

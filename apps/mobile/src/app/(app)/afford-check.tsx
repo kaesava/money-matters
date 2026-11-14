@@ -5,7 +5,7 @@ import {
   StyleSheet,
   ActivityIndicator,
 } from 'react-native';
-import { useRouter, type Href } from 'expo-router';
+import { useRouter, useLocalSearchParams, type Href } from 'expo-router';
 import { DESIGN_TOKENS, MobileScreenWrapper, GoalDelayCard } from '@money-matters/ui/mobile';
 import { t } from '@money-matters/i18n';
 import { trpc } from '../../lib/trpc';
@@ -16,6 +16,7 @@ import { AffordCheckBreakdownCard } from '../../components/afford-check/AffordCh
 
 export default function AffordCheckScreen() {
   const router = useRouter();
+  const params = useLocalSearchParams<{ amount?: string }>();
   const { hasSimulation, isLoading: isFeaturesLoading } = useAppFeatures();
 
   useEffect(() => {
@@ -24,7 +25,10 @@ export default function AffordCheckScreen() {
     }
   }, [hasSimulation, isFeaturesLoading, router]);
 
-  const [rawAmount, setRawAmount] = useState('');
+  const [rawAmount, setRawAmount] = useState(params.amount || '');
+  useEffect(() => {
+    if (params.amount) setRawAmount(params.amount);
+  }, [params.amount]);
   const [mode, setMode] = useState<'ONE_OFF' | 'RECURRING'>('ONE_OFF');
   const [frequency, setFrequency] = useState<
     'WEEKLY' | 'FORTNIGHTLY' | 'MONTHLY' | 'ANNUALLY'

@@ -26,7 +26,7 @@ import {
 
 export default function PoolsScreen() {
   const router = useRouter();
-  const params = useLocalSearchParams<{ poolId?: string; categoryId?: string }>();
+  const params = useLocalSearchParams<{ poolId?: string; categoryId?: string; create?: string; name?: string }>();
   const { data: session } = authClient.useSession();
 
   const [refreshing, setRefreshing] = useState(false);
@@ -68,6 +68,15 @@ export default function PoolsScreen() {
     bankAccounts,
     initialPoolId: params.poolId || null,
   });
+
+  const handledCreateRef = React.useRef(false);
+  React.useEffect(() => {
+    if (params.create === '1' && !handledCreateRef.current) {
+      handledCreateRef.current = true;
+      setDefaultPoolType('EVERYDAY');
+      setPoolModalVisible(true);
+    }
+  }, [params.create]);
 
   React.useEffect(() => {
     if (params.poolId) setActivePoolIdFilter(params.poolId);

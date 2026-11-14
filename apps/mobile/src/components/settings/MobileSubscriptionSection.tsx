@@ -8,8 +8,10 @@ import { MobileSubscriptionModal, PlanChoice } from './MobileSubscriptionModal';
 import { MobileInvoiceHistory } from './MobileInvoiceHistory';
 import { SubscriptionStatusCard } from './subscription/SubscriptionStatusCard';
 import { MobileSubscriptionCancellationCallout } from './subscription/MobileSubscriptionCancellationCallout';
+import { useAppFeatures } from '../../context/useAppFeatures';
 
 export function MobileSubscriptionSection() {
+  const { hasAiAssistant } = useAppFeatures();
   const toast = useMobileToast();
   const [syncing, setSyncing] = useState(false);
   const [pickerVisible, setPickerVisible] = useState(false);
@@ -20,6 +22,7 @@ export function MobileSubscriptionSection() {
   const trpcUtils = trpc.useUtils();
   const statusQuery = trpc.getSubscriptionStatus.useQuery();
   const usageQuery = trpc.assistantUsage.useQuery(undefined, {
+    enabled: hasAiAssistant,
     staleTime: 30_000,
   });
   const checkoutMut = trpc.createCheckoutSession.useMutation();
@@ -204,7 +207,7 @@ export function MobileSubscriptionSection() {
         <MobileInvoiceHistory invoices={invoices} isLoading={invoicesQuery.isLoading} />
       )}
 
-      {usageQuery.data && (
+      {hasAiAssistant && usageQuery.data && (
         <MobileAiUsageCard
           used={usageQuery.data.used}
           limit={usageQuery.data.limit}

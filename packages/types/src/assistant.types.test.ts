@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import {
   AssistantAskInputSchema,
   AssistantClassifiedIntentSchema,
+  AssistantLlmResponseSchema,
   AssistantResultSchema,
   AssistantUsageSchema,
 } from "./assistant.types";
@@ -10,6 +11,7 @@ describe("Assistant Types & Validation", () => {
   it("validates Ask query input length and limits", () => {
     expect(() => AssistantAskInputSchema.parse({ query: "How much is in my Everyday pool?" })).not.toThrow();
     expect(() => AssistantAskInputSchema.parse({ query: "" })).toThrow();
+    expect(() => AssistantAskInputSchema.parse({ query: "   " })).toThrow();
     expect(() => AssistantAskInputSchema.parse({ query: "a".repeat(301) })).toThrow();
   });
 
@@ -35,24 +37,53 @@ describe("Assistant Types & Validation", () => {
     ).toThrow();
   });
 
+  it("normalizes tolerant LLM responses and rejects empty answer text", () => {
+    const llmIntent = AssistantLlmResponseSchema.parse({
+      mode: "intent",
+      intent: "ADD_ENTITY",
+      confidence: 0.88,
+      params: { entityName: "Gym", amount: null, extraField: "ignored" },
+    });
+    expect(llmIntent.mode).toBe("intent");
+    if (llmIntent.mode === "intent") {
+      expect(llmIntent.params.amount).toBeUndefined();
+      expect(llmIntent.params.entityName).toBe("Gym");
+    }
+
+    const llmAnswer = AssistantLlmResponseSchema.parse({
+      mode: "answer",
+      text: "Your total bills budget is $420.",
+    });
+    expect(llmAnswer.mode).toBe("answer");
+
+    const llmRefuse = AssistantLlmResponseSchema.parse({ mode: "refuse" });
+    expect(llmRefuse.mode).toBe("refuse");
+  });
+
   it("validates assistant discriminated union result types", () => {
     const answerResult = AssistantResultSchema.parse({
       type: "answer",
       templateKey: "assistant.answers.poolBalance",
-      templateValues: { balance: 350 },
+      templateValues: { balance: "$350.00" },
     });
     expect(answerResult.type).toBe("answer");
 
+    const directTextResult = AssistantResultSchema.parse({
+      type: "answer",
+      text: "You have 2 upcoming bills.",
+    });
+    expect(directTextResult.type).toBe("answer");
+
     const prefillResult = AssistantResultSchema.parse({
       type: "prefill",
-      target: "mark-paid",
-      params: { billName: "Internet", amount: 190 },
+      target: "edit-envelope",
+      params: { entityId: "11111111-1111-1111-1111-111111111111", name: "Internet" },
     });
     expect(prefillResult.type).toBe("prefill");
 
     const unavailableResult = AssistantResultSchema.parse({
       type: "unavailable",
-      reason: "quota_exceeded",
+      reason: "service_error",
     });
     expect(unavailableResult.type).toBe("unavailable");
   });

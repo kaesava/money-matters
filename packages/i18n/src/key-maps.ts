@@ -3,8 +3,10 @@ import type { TranslationKey } from "./index";
 export const ASSISTANT_UNAVAILABLE_KEYS: Record<string, TranslationKey> = {
   quota_exceeded: "assistant.unavailable.quota_exceeded",
   read_only_grace: "assistant.unavailable.read_only_grace",
+  subscription_required: "assistant.unavailable.subscription_required",
   disabled: "assistant.unavailable.disabled",
   rate_limited: "assistant.unavailable.rate_limited",
+  service_error: "assistant.unavailable.service_error",
   unauthenticated: "assistant.unavailable.unauthenticated",
 };
 

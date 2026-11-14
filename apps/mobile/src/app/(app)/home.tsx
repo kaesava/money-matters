@@ -2,8 +2,7 @@ import React from 'react';
 import { ScrollView, RefreshControl, StyleSheet, View } from 'react-native';
 import { useRouter, useLocalSearchParams, type Href } from 'expo-router';
 import { usePostHog } from 'posthog-react-native';
-import { DESIGN_TOKENS, MobileCommandPaletteSheet } from '@money-matters/ui/mobile';
-import { trpc } from '../../lib/trpc';
+import { DESIGN_TOKENS } from '@money-matters/ui/mobile';
 import { t } from '@money-matters/i18n';
 import { AppScreenWrapper } from '../../components/AppScreenWrapper';
 import { DashboardHeroCard } from '../../components/DashboardHeroCard';
@@ -18,35 +17,17 @@ import { SyncBalanceNudgeCard } from '../../components/dashboard/attention/SyncB
 import { MobileSyncBalanceModal } from '../../components/envelopes/MobileSyncBalanceModal';
 import { useHomeData } from '../../components/dashboard/useHomeData';
 import { useHomeModals } from '../../components/dashboard/useHomeModals';
-import { useAppFeatures } from '../../context/useAppFeatures';
 import { useMobileProductTour } from '../../context/ProductTourContext';
+import { useAppFeatures } from '../../context/useAppFeatures';
 
 export default function HomeScreen() {
   const router = useRouter();
   const { token } = useLocalSearchParams<{ token?: string }>();
   const posthog = usePostHog();
-  const { hasAiAssistant, hasSimulation } = useAppFeatures();
+  const { hasSimulation } = useAppFeatures();
   const { registerTourTarget } = useMobileProductTour();
   const heroRef = React.useRef<View>(null);
   const paydayRef = React.useRef<View>(null);
-
-  const subStatusQuery = trpc.getSubscriptionStatus.useQuery(undefined, {
-    staleTime: 60_000,
-  });
-  const hasAiAccess = Boolean(
-    hasAiAssistant &&
-      subStatusQuery.data &&
-      !subStatusQuery.data.isTrialExpired &&
-      !subStatusQuery.data.isGracePeriod &&
-      !subStatusQuery.data.isPastDue &&
-      !subStatusQuery.data.isDeactivated
-  );
-
-  const askMutation = trpc.assistantAsk.useMutation();
-  const usageQuery = trpc.assistantUsage.useQuery(undefined, {
-    enabled: hasAiAccess,
-    staleTime: 30_000,
-  });
 
   const {
     refreshing,
@@ -82,61 +63,6 @@ export default function HomeScreen() {
     refetchAll,
   } = useHomeData(token);
 
-  const utils = trpc.useUtils();
-
-  const searchAccounts = React.useMemo(() => {
-    return bankAccounts.map((acc) => ({
-      id: acc.id,
-      name: acc.name,
-      type: acc.accountType,
-      currentBalance: parseFloat(acc.lastKnownBalance || '0'),
-    }));
-  }, [bankAccounts]);
-
-  const searchEnvelopes = React.useMemo(() => {
-    return pools.map((env) => ({
-      id: env.id,
-      name: env.name,
-      type: env.envelopeType,
-      currentBalance: env.currentBalance,
-    }));
-  }, [pools]);
-
-  const searchEvents = React.useMemo(() => {
-    const incomes = incomeEvents.map((ev) => ({
-      id: ev.id,
-      name: ev.name,
-      amount: parseFloat(ev.expectedAmount),
-      dueDate: ev.expectedDate,
-      type: 'INCOME' as const,
-    }));
-    const expenses = expenseEvents.map((ev) => ({
-      id: ev.id,
-      name: ev.name,
-      amount: parseFloat(ev.expectedAmount),
-      dueDate: ev.expectedDate,
-      type: 'EXPENSE' as const,
-    }));
-    return [...incomes, ...expenses];
-  }, [incomeEvents, expenseEvents]);
-
-  const handleSearchTransactions = React.useCallback(
-    async (q: string) => {
-      const res = await utils.searchTransactions.fetch({ query: q, limit: 10 });
-      return res.map((tx) => ({
-        id: tx.id,
-        recordedAt: tx.recordedAt,
-        amount: parseFloat(tx.amount),
-        note: tx.note,
-        flowType: tx.flowType,
-        envelopeName: tx.envelopeName,
-        envelopeId: tx.envelopeId,
-        bankAccountId: tx.bankAccountId,
-      }));
-    },
-    [utils]
-  );
-
   const {
     quickModalVisible,
     setQuickModalVisible,
@@ -145,15 +71,12 @@ export default function HomeScreen() {
     affordModalVisible,
     setAffordModalVisible,
     affordModalAmount,
-    askSheetVisible,
-    setAskSheetVisible,
     markPaidEvent,
     setMarkPaidEvent,
     reconcileAccount,
     setReconcileAccount,
     openQuickModal,
     handleOpenEverydayReconciliation,
-    handleAssistantPrefill,
   } = useHomeModals(pools, bankAccounts, everydayPool);
 
   const isBalanceMatchOverdue = React.useMemo(() => {
@@ -172,7 +95,6 @@ export default function HomeScreen() {
   return (
     <AppScreenWrapper
       title={t('dashboard.title')}
-      onOpenAsk={hasAiAssistant ? () => setAskSheetVisible(true) : undefined}
       scrollable={false}
     >
       <TrialBanner />
@@ -312,47 +234,6 @@ export default function HomeScreen() {
         onSuccess={() => {
           setMarkPaidEvent(null);
           refetchAll();
-        }}
-      />
-
-      {/* Global Command Palette & Search Sheet */}
-      <MobileCommandPaletteSheet
-        isOpen={askSheetVisible}
-        onClose={() => setAskSheetVisible(false)}
-        hasSimulation={hasSimulation}
-        accounts={searchAccounts}
-        envelopes={searchEnvelopes}
-        upcomingEvents={searchEvents}
-        onSearchTransactions={handleSearchTransactions}
-        remainingCalls={
-          hasAiAccess && usageQuery.data?.limit && usageQuery.data
-            ? Math.max(0, usageQuery.data.limit - usageQuery.data.used)
-            : undefined
-        }
-        onAskPenny={
-          hasAiAccess
-            ? async (query: string) => {
-                const res = await askMutation.mutateAsync({ query });
-                usageQuery.refetch();
-                return res;
-              }
-            : undefined
-        }
-        onNavigatePrefill={handleAssistantPrefill}
-        onSelectAccount={() => {
-          router.push('/(app)/settings/bank-accounts' as Href);
-        }}
-        onSelectEnvelope={(env) => {
-          router.push(`/(app)/envelopes/${env.id}` as Href);
-        }}
-        onSelectEvent={() => {
-          router.push('/(app)/income-and-bills' as Href);
-        }}
-        onSelectTransaction={() => {
-          router.push('/(app)/history' as Href);
-        }}
-        onViewAllTransactions={(q) => {
-          router.push(`/(app)/history?search=${encodeURIComponent(q)}` as Href);
         }}
       />
     </AppScreenWrapper>

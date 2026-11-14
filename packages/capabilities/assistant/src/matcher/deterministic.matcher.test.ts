@@ -2,6 +2,12 @@ import { describe, it, expect } from "vitest";
 import { matchDeterministicIntent } from "./deterministic.matcher.js";
 
 describe("Deterministic Intent Matcher", () => {
+  it("matches greetings and help requests at $0 cost", () => {
+    expect(matchDeterministicIntent("Hi")?.intent).toBe("GREETING_HELP");
+    expect(matchDeterministicIntent("hello!")?.intent).toBe("GREETING_HELP");
+    expect(matchDeterministicIntent("what can you do?")?.intent).toBe("GREETING_HELP");
+  });
+
   it("matches 'I paid my internet bill $190 on 23-Jan' to RECORD_BILL_PAYMENT", () => {
     const res = matchDeterministicIntent("I paid my internet bill $190 on 23-Jan");
     expect(res).not.toBeNull();
@@ -18,11 +24,14 @@ describe("Deterministic Intent Matcher", () => {
     expect(res?.params.entityName?.toLowerCase()).toContain("emergency fund");
   });
 
-  it("matches 'How much is left in Everyday' to POOL_BALANCE", () => {
-    const res = matchDeterministicIntent("How much is left in Everyday?");
-    expect(res).not.toBeNull();
-    expect(res?.intent).toBe("POOL_BALANCE");
-    expect(res?.params.entityName).toBe("Everyday");
+  it("matches 'How much is left in Everyday' and custom envelopes to POOL_BALANCE", () => {
+    const res1 = matchDeterministicIntent("How much is left in Everyday?");
+    expect(res1?.intent).toBe("POOL_BALANCE");
+    expect(res1?.params.entityName).toBe("Everyday");
+
+    const res2 = matchDeterministicIntent("How much is left in Groceries?");
+    expect(res2?.intent).toBe("POOL_BALANCE");
+    expect(res2?.params.entityName).toBe("Groceries");
   });
 
   it("matches 'Can I afford $250' to CAN_I_AFFORD", () => {
@@ -34,20 +43,17 @@ describe("Deterministic Intent Matcher", () => {
 
   it("matches 'When is my next payday' to NEXT_PAYDAY_ALLOCATION", () => {
     const res = matchDeterministicIntent("When is my next payday?");
-    expect(res).not.toBeNull();
     expect(res?.intent).toBe("NEXT_PAYDAY_ALLOCATION");
   });
 
   it("matches 'Which bills are due this week' to BILLS_DUE", () => {
     const res = matchDeterministicIntent("Which bills are due this week?");
-    expect(res).not.toBeNull();
     expect(res?.intent).toBe("BILLS_DUE");
     expect(res?.params.daysAhead).toBe(7);
   });
 
   it("matches 'i paid an internet bill for $50' to RECORD_BILL_PAYMENT", () => {
     const res = matchDeterministicIntent("i paid an internet bill for $50");
-    expect(res).not.toBeNull();
     expect(res?.intent).toBe("RECORD_BILL_PAYMENT");
     expect(res?.params.amount).toBe(50);
     expect(res?.params.entityName?.toLowerCase()).toBe("internet");
@@ -111,11 +117,15 @@ describe("Deterministic Intent Matcher", () => {
     expect(res?.params.entityName).toBeUndefined();
   });
 
-  it("matches direct navigation actions: add income, add bill, settings", () => {
-    expect(matchDeterministicIntent("add income")?.params.targetScreen).toBe("income-and-bills");
-    expect(matchDeterministicIntent("new bill")?.params.targetScreen).toBe("income-and-bills");
+  it("matches create, edit, and canonical navigation actions", () => {
+    expect(matchDeterministicIntent("add income")?.intent).toBe("ADD_ENTITY");
+    expect(matchDeterministicIntent("add income")?.params.categoryName).toBe("income");
+    expect(matchDeterministicIntent("new bill Water for 80")?.intent).toBe("ADD_ENTITY");
+    expect(matchDeterministicIntent("new bill Water for 80")?.params.entityName).toBe("Water");
+    expect(matchDeterministicIntent("edit bill Internet")?.intent).toBe("EDIT_ENTITY");
     expect(matchDeterministicIntent("settings")?.params.targetScreen).toBe("settings");
     expect(matchDeterministicIntent("view transactions")?.params.targetScreen).toBe("history");
+    expect(matchDeterministicIntent("open plan")?.params.targetScreen).toBe("plan");
   });
 
   it("does not false-positive parse dates or days as amounts", () => {
@@ -125,7 +135,7 @@ describe("Deterministic Intent Matcher", () => {
     expect(res?.params.amount).toBeUndefined();
   });
 
-  it("returns null for ambiguous queries requiring LLM fallback", () => {
+  it("returns null for complex queries requiring LLM fallback", () => {
     const res = matchDeterministicIntent("Tell me about my financial habits overall");
     expect(res).toBeNull();
   });

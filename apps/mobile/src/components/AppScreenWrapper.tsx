@@ -1,10 +1,14 @@
 import React, { useState } from 'react';
 import { useRouter, type Href } from 'expo-router';
 import { MobileScreenWrapper, MobileScreenWrapperProps } from '@money-matters/ui/mobile';
+import { t } from '@money-matters/i18n';
 import { authClient } from '../lib/auth';
 import { trpc, setActiveSessionToken, setActiveTenantId } from '../lib/trpc';
 import * as SecureStore from 'expo-secure-store';
 import { MobileHouseholdSwitcherModal } from './settings/MobileHouseholdSwitcherModal';
+import { useCommandPalette } from '../context/CommandPaletteContext';
+import { useMobileProductTour } from '../context/ProductTourContext';
+import { useAppFeatures } from '../context/useAppFeatures';
 
 export interface AppScreenWrapperProps extends Omit<MobileScreenWrapperProps, 'children'> {
   children: React.ReactNode;
@@ -33,6 +37,9 @@ export function AppScreenWrapper({
   const router = useRouter();
   const { data: session } = authClient.useSession();
   const [tenantSwitcherVisible, setTenantSwitcherVisible] = useState(false);
+  const { openCommandPalette } = useCommandPalette();
+  const { registerTourTarget } = useMobileProductTour();
+  const { hasAiAssistant } = useAppFeatures();
 
   const { data: tenants } = trpc.listUserTenants.useQuery(undefined, {
     enabled: showProfile && !!session?.user,
@@ -71,13 +78,15 @@ export function AppScreenWrapper({
         onNavigateHome={onNavigateHome || (() => router.push('/(app)/home' as Href))}
         onNavigateCategories={onNavigateCategories || (() => router.push('/(app)/envelopes' as Href))}
         onNavigateSettings={onNavigateSettings || (() => router.push('/(app)/settings' as Href))}
-        onNavigateBankAccounts={onNavigateBankAccounts || (() => router.push('/(app)/settings/bank-accounts' as Href))}
+        onNavigateBankAccounts={onNavigateBankAccounts || (() => router.push('/(app)/settings?tab=bank-accounts' as Href))}
         onNavigateHistory={onNavigateHistory || (() => router.push('/(app)/history' as Href))}
         onOpenTenantSwitcher={onOpenTenantSwitcher || (() => setTenantSwitcherVisible(true))}
         hasMultipleTenants={hasMultipleTenants}
         activeTenantName={activeTenantName}
         onSignOut={handleSignOut}
-        onOpenAsk={onOpenAsk}
+        onOpenAsk={onOpenAsk || openCommandPalette}
+        askAccessibilityLabel={t(hasAiAssistant ? 'commandPalette.triggerTitle' : 'commandPalette.searchOnlyTitle')}
+        onAskTargetLayout={(rect) => registerTourTarget('ask-penny', rect)}
         scrollable={scrollable}
       >
         {children}

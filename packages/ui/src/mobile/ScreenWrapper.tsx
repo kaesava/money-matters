@@ -28,6 +28,8 @@ export interface ScreenWrapperProps {
   hasMultipleTenants?: boolean;
   activeTenantName?: string;
   onOpenAsk?: () => void;
+  askAccessibilityLabel?: string;
+  onAskTargetLayout?: (rect: { x: number; y: number; width: number; height: number }) => void;
   children: React.ReactNode;
   scrollable?: boolean;
 }
@@ -49,6 +51,8 @@ export const ScreenWrapper: React.FC<ScreenWrapperProps> = ({
   hasMultipleTenants,
   activeTenantName,
   onOpenAsk,
+  askAccessibilityLabel,
+  onAskTargetLayout,
   children,
   scrollable = true,
 }) => {
@@ -92,6 +96,8 @@ export const ScreenWrapper: React.FC<ScreenWrapperProps> = ({
         getInitials={getInitials}
         onOpenMenu={() => setMenuVisible(true)}
         onOpenAsk={onOpenAsk}
+        askAccessibilityLabel={askAccessibilityLabel}
+        onAskTargetLayout={onAskTargetLayout}
         styles={styles}
       />
 

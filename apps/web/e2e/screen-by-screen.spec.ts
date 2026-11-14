@@ -238,5 +238,23 @@ test.describe('100% Comprehensive Field-by-Field Screen-by-Screen E2E Master Sui
       const revisitBtn = page.locator('button:has-text("Take Product Tour")').first();
       await expect(revisitBtn).toBeVisible();
     });
+
+    test('4.5 Global Search & Ask Penny Command Palette (`⌘K` + Greeting Flow)', async ({ page }) => {
+      test.skip(!isAuthenticatedE2E, 'Requires authenticated E2E session');
+      await page.goto('/dashboard');
+
+      await page.locator('[data-tour="ask-penny"]').first().click();
+      const paletteDialog = page.locator('[role="dialog"]').first();
+      await expect(paletteDialog).toBeVisible();
+      await expect(paletteDialog.locator('text=Pages & Quick Actions').first()).toBeVisible();
+
+      const paletteInput = paletteDialog.locator('input[type="text"]').first();
+      await paletteInput.fill('Hi');
+      await page.keyboard.press('Enter');
+
+      await expect(paletteDialog.locator('text=Money Matters assistant').first()).toBeVisible();
+      await page.keyboard.press('Escape');
+      await expect(paletteDialog).not.toBeVisible();
+    });
   });
 });

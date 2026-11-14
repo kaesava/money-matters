@@ -123,15 +123,21 @@ export const dashboard = {
       "canAfford": "Can I afford 250 next week?",
       "nextPayday": "When is my next payday?",
       "billsDue": "Which bills are due this week?",
-      "internetPaid": "I paid my internet bill $190 on 23-Jan"
+      "internetPaid": "I paid my internet bill 190 on 23-Jan"
     },
     "answers": {
+      "greetingHelp": "Hi! I'm Penny, your Money Matters assistant. Ask me about your envelope balances, upcoming bills, next payday, goal dates, or say things like \"create a bill for 80\" or \"can I afford 250?\".",
+      "outOfScope": "I can only help with your Money Matters budget, envelopes, bills, goals, paydays, and app actions. Try asking about a balance, upcoming bill, or transaction!",
       "goalProjection": "Based on your current plan, you are projected to reach {goal} ({target}) on {date}.",
-      "noGoalFound": "We couldn't find a goal named '{goal}'. Check your Goals envelopes in Budgeting.",
+      "goalNoTargetDate": "Your {goal} goal currently has {balance} saved toward a {target} target with no target date set yet.",
+      "noGoalFound": "We couldn't find a goal named '{goal}'. Check your Goals envelopes in Envelopes.",
       "poolBalance": "Your {envelopeName} envelope currently has {balance} available.",
+      "poolNotFound": "Couldn't find an envelope named '{envelopeName}'. Try checking your Envelopes list.",
       "nextPayday": "Your next scheduled payday is on {date} with an expected {amount} to allocate.",
-      "nextPaydayNotScheduled": "No upcoming income event is scheduled yet. Add an income schedule to preview your next payday.",
+      "nextPaydayNotScheduled": "No upcoming income event is scheduled yet. Add an income source to preview your next payday.",
       "billsDue": "You have {count} bill(s) due within the next {days} days.",
+      "billsDueWithDetails": "You have {count} bill(s) totaling {total} due within the next {days} days: {bills}.",
+      "noPendingBillsDue": "You have no bills due within the next {days} days.",
       "billCovered": "✓ {bill} ({amount}) is fully funded in your envelope and ready for its due date.",
       "billUnpaid": "⚠ {bill} ({amount}) currently has a shortfall or is unfunded.",
       "billStatusNotFound": "Couldn't find an envelope or bill named '{bill}'."
@@ -140,10 +146,12 @@ export const dashboard = {
       "generic": "I couldn't quite understand that. Would one of these help?"
     },
     "unavailable": {
-      "quota_exceeded": "Monthly AI limit reached (150 calls). Suggested questions and deterministic calculations are still available!",
-      "payment_grace": "Penny AI is paused during your 7-day Payment Grace Period. Please update your payment method in Settings > Subscription.",
+      "quota_exceeded": "Monthly AI limit reached ({limit} calls). Suggested questions and deterministic calculations are still available!",
+      "read_only_grace": "Penny AI is paused during your 7-day Payment Grace Period. Please update your payment method in Settings > Subscription.",
+      "subscription_required": "Ask Penny requires an active subscription or trial. Manage your plan in Settings > Subscription.",
       "disabled": "Ask Penny is currently disabled for this tenant.",
       "rate_limited": "Too many questions in a short period. Please take a breath and try again in a minute.",
+      "service_error": "Penny AI is temporarily unavailable right now. Global search and quick questions still work — please try again shortly.",
       "unauthenticated": "Please sign in to ask questions."
     },
     "settingsCard": {

@@ -35,6 +35,7 @@ interface UpcomingEventsTabProps {
   initialKind?: 'ALL' | 'INCOME' | 'EXPENSE' | 'TRANSFER';
   initialPoolId?: string | null;
   initialCategoryId?: string | null;
+  initialSearchQuery?: string | null;
   savedIncomeEventIds?: Set<string>;
   onOpenOverflowMenu?: () => void;
 }
@@ -57,10 +58,16 @@ export function UpcomingEventsTab({
   initialKind,
   initialPoolId,
   initialCategoryId,
+  initialSearchQuery,
   savedIncomeEventIds,
   onOpenOverflowMenu,
 }: UpcomingEventsTabProps) {
-  const [upcomingSearchQuery, setUpcomingSearchQuery] = useState('');
+  const [upcomingSearchQuery, setUpcomingSearchQuery] = useState(initialSearchQuery || '');
+  React.useEffect(() => {
+    if (typeof initialSearchQuery === 'string') {
+      setUpcomingSearchQuery(initialSearchQuery);
+    }
+  }, [initialSearchQuery]);
   const [upcomingStatusFilter, setUpcomingStatusFilter] = useState<'ALL' | 'OVERDUE'>('ALL');
   const [upcomingKindFilter, setUpcomingKindFilter] = useState<'ALL' | 'INCOME' | 'EXPENSE' | 'TRANSFER'>(
     initialKind || 'ALL'

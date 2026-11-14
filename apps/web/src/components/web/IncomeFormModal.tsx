@@ -41,13 +41,14 @@ interface IncomeFormModalProps {
   isOpen: boolean;
   onClose: () => void;
   sourceToEdit?: IncomeSourceToEdit;
+  initialPrefill?: { name?: string; amount?: string; date?: string };
 }
 
 function cleanAmount(val: string): string {
   const num = parseFloat(val.replace(/[^0-9.]/g, ""));
   return isNaN(num) ? "0.00" : num.toFixed(2);
 }
-export function IncomeFormModal({ isOpen, onClose, sourceToEdit }: IncomeFormModalProps) {
+export function IncomeFormModal({ isOpen, onClose, sourceToEdit, initialPrefill }: IncomeFormModalProps) {
   const { currency, currencySymbol, minorUnits } = useLocale();
   const toast = useToast();
   const utils = trpc.useUtils();
@@ -102,19 +103,19 @@ export function IncomeFormModal({ isOpen, onClose, sourceToEdit }: IncomeFormMod
       setStartDate(sourceToEdit.startDate ? toTenantDateString(sourceToEdit.startDate) : today);
       setEndDate(sourceToEdit.endDate ? toTenantDateString(sourceToEdit.endDate) : null);
     } else {
-      setName("");
-      setAmount("");
+      setName(initialPrefill?.name || "");
+      setAmount(initialPrefill?.amount || "");
       setReceivingAccountId(bankAccounts[0]?.id || "");
       setContributionMode("FULL");
       setContributionValue("");
       setIsRecurring(true);
       setFrequency("MONTHLY");
       setInterval(1);
-      setStartDate(getTenantDateString(new Date(), { timezone: activeTz }));
+      setStartDate(initialPrefill?.date || getTenantDateString(new Date(), { timezone: activeTz }));
       setEndDate(null);
     }
     setErrorMsg("");
-  }, [sourceToEdit, isOpen, bankAccounts, setEndDate, setFrequency, setInterval, setIsRecurring, setStartDate, activeTz, toTenantDateString]);
+  }, [sourceToEdit, initialPrefill, isOpen, bankAccounts, setEndDate, setFrequency, setInterval, setIsRecurring, setStartDate, activeTz, toTenantDateString]);
 
   const confirmArchive = async () => {
     if (!sourceToEdit) return;

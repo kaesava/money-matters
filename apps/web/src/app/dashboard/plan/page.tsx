@@ -30,8 +30,10 @@ function IncomeAndBillsContent() {
   const [quickActionTab, setQuickActionTab] = useState<"DEBIT" | "CREDIT" | "TRANSFER" | null>(null);
   const [isIncomeModalOpen, setIsIncomeModalOpen] = useState(false);
   const [incomeToEdit, setIncomeToEdit] = useState<IncomeSourceToEdit | undefined>(undefined);
+  const [incomeInitialPrefill, setIncomeInitialPrefill] = useState<{ name?: string; amount?: string; date?: string } | undefined>(undefined);
   const [isEnvelopeModalOpen, setIsEnvelopeModalOpen] = useState(false);
   const [envelopeToEdit, setEnvelopeToEdit] = useState<EnvelopeToEditDraft | null>(null);
+  const handledCreateRef = useRef("");
 
   const [setupSearchQuery, setSetupSearchQuery] = useState("");
   const toast = useToast();
@@ -63,6 +65,41 @@ function IncomeAndBillsContent() {
 
   const editIncomeId = searchParams.get("editIncomeId");
   const editBillId = searchParams.get("editBillId");
+  const paramSearch = searchParams.get("search") || "";
+  const createBillParam = searchParams.get("createBill") === "1";
+  const createIncomeParam = searchParams.get("createIncome") === "1";
+  const prefillName = searchParams.get("name") || "";
+  const prefillAmount = searchParams.get("amount") || "";
+  const prefillDate = searchParams.get("date") || "";
+
+  useEffect(() => {
+    const key = createBillParam
+      ? `bill:${prefillName}:${prefillAmount}:${prefillDate}`
+      : createIncomeParam
+        ? `income:${prefillName}:${prefillAmount}:${prefillDate}`
+        : "";
+    if (!key || handledCreateRef.current === key) return;
+    handledCreateRef.current = key;
+    if (createBillParam) {
+      setEnvelopeToEdit({
+        id: "",
+        name: prefillName,
+        envelopeType: "BILL",
+        fundingMode: "RECURRING",
+        enteredAmount: prefillAmount || undefined,
+        startDate: prefillDate || undefined,
+      });
+      setIsEnvelopeModalOpen(true);
+    } else if (createIncomeParam) {
+      setIncomeToEdit(undefined);
+      setIncomeInitialPrefill({
+        name: prefillName || undefined,
+        amount: prefillAmount || undefined,
+        date: prefillDate || undefined,
+      });
+      setIsIncomeModalOpen(true);
+    }
+  }, [createBillParam, createIncomeParam, prefillName, prefillAmount, prefillDate]);
 
   React.useEffect(() => {
     if (rawTab) {
@@ -251,6 +288,7 @@ function IncomeAndBillsContent() {
         <div data-tour="upcoming-events">
           <TimelineTabWrapper
             isLoading={isLoading}
+            initialSearchQuery={paramSearch}
             savedIncomeEventIds={savedIncomeEventIds}
             incomeEvents={incomeEvents.map((e) => {
               const src = incomeSources.find((s) => s.id === e.incomeSourceId);
@@ -346,8 +384,9 @@ function IncomeAndBillsContent() {
       {isIncomeModalOpen && (
         <IncomeFormModal
           isOpen={isIncomeModalOpen}
-          onClose={() => { setIsIncomeModalOpen(false); setIncomeToEdit(undefined); }}
+          onClose={() => { setIsIncomeModalOpen(false); setIncomeToEdit(undefined); setIncomeInitialPrefill(undefined); }}
           sourceToEdit={incomeToEdit}
+          initialPrefill={incomeInitialPrefill}
         />
       )}
 
